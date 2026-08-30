@@ -134,6 +134,66 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProRetainsFormattingOnlyParagraphs() {
+        foreach (string paragraphSource in new[] { "<+B>", "@Body Text@" }) {
+            string source = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
+            source = source.Substring(0, source.IndexOf("[edoc]", StringComparison.Ordinal)) +
+                "[edoc]\n" + paragraphSource + "\n";
+
+            using LegacyWordImportResult imported = LegacyWordImporter.Import(
+                Encoding.ASCII.GetBytes(source),
+                new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+            LegacyWordParagraphContent paragraph = Assert.Single(imported.Content.Paragraphs);
+            Assert.Equal(string.Empty, paragraph.Text);
+            Assert.True(paragraph.Alignment == WordParagraphAlignment.Center || paragraph.StyleName == "Body Text");
+            Assert.Single(imported.Document.Paragraphs);
+            imported.Report.RequireStructuredNoLoss();
+        }
+    }
+
+    [Fact]
+    public void AmiProRejectsUnsafeDecodedEscapeCharacters() {
+        foreach (string escaped in new[] { "<\\\t>", "</@>" }) {
+            using LegacyWordImportResult imported = LegacyWordImporter.Import(
+                Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + escaped + "Visible\n"),
+                new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+            Assert.Equal("Visible", imported.PlainText);
+            Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_INLINE_TAG_MALFORMED");
+            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+            using var docx = new MemoryStream();
+            imported.Document.Save(docx);
+            Assert.True(docx.Length > 0);
+        }
+    }
+
+    [Fact]
+    public void AmiProProjectionWritesExplicitOverridesForStyleResets() {
+        string source = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro())
+            .Replace("\n16385\n", "\n16391\n", StringComparison.Ordinal)
+            .Replace("<+!>bold<-!> paragraph", "<+!>bold<-!><-\"><-#><:f> reset", StringComparison.Ordinal)
+            .Replace("\n\n<+B>- Ami list\n", "\n", StringComparison.Ordinal);
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(source),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        WordDocument document = Assert.IsType<WordDocument>(imported.Document);
+        DocumentFormat.OpenXml.Wordprocessing.Run resetRun = document.OpenXmlDocument!
+            .MainDocumentPart!.Document!.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>()
+            .Single(run => run.InnerText == " reset");
+        DocumentFormat.OpenXml.Wordprocessing.RunProperties properties = resetRun.RunProperties!;
+        Assert.False(properties.Bold!.Val!.Value);
+        Assert.False(properties.Italic!.Val!.Value);
+        Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.UnderlineValues.None, properties.Underline!.Val!.Value);
+        Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.ThemeFontValues.MinorHighAnsi, properties.RunFonts!.AsciiTheme!.Value);
+        Assert.Equal("22", properties.FontSize!.Val!.Value);
+        Assert.Equal("auto", properties.Color!.Val!.Value);
+        imported.Report.RequireStructuredNoLoss();
+    }
+
+    [Fact]
     public void AmiProDocumentDirectivesRemainExplicitLoss() {
         using LegacyWordImportResult imported = LegacyWordImporter.Import(
             Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n>directive payload\nVisible\n"),

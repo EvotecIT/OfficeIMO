@@ -154,6 +154,10 @@ public static class LegacyWordImporter {
     private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph, WordDocument document,
         IDictionary<string, string> styleIds, ISet<string> usedStyleIds, IReadOnlyDictionary<string, LegacyWordStyle> recoveredStyles,
         CancellationToken cancellationToken) {
+        LegacyWordStyle? recoveredStyle = null;
+        if (!string.IsNullOrWhiteSpace(source.StyleName)) {
+            recoveredStyles.TryGetValue(source.StyleName!, out recoveredStyle);
+        }
         int runIndex = 0;
         foreach (LegacyWordRun sourceRun in source.Runs) {
             if ((runIndex++ & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -163,6 +167,7 @@ public static class LegacyWordImporter {
             if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
             if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
             if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
+            ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (source.Alignment.HasValue) paragraph.SetAlignment(source.Alignment.Value);
@@ -175,8 +180,59 @@ public static class LegacyWordImporter {
         if (!string.IsNullOrWhiteSpace(source.StyleName)) {
             string styleId = GetOrCreateLegacyStyleId(source.StyleName!, styleIds, usedStyleIds);
             paragraph.SetStyleId(styleId);
-            recoveredStyles.TryGetValue(source.StyleName!, out LegacyWordStyle? recoveredStyle);
             EnsureLegacyParagraphStyle(document, styleId, source.StyleName!, recoveredStyle);
+        }
+    }
+
+    private static void ApplyRecoveredStyleRunOverrides(
+        WordParagraph run,
+        LegacyWordRun sourceRun,
+        LegacyWordStyle? recoveredStyle,
+        WordDocument document) {
+        if (recoveredStyle == null) return;
+        bool resetBold = recoveredStyle.Bold && !sourceRun.Bold;
+        bool resetItalic = recoveredStyle.Italic && !sourceRun.Italic;
+        bool resetUnderline = recoveredStyle.Underline.HasValue && !sourceRun.Underline.HasValue;
+        bool resetFontFamily = recoveredStyle.FontFamily != null && sourceRun.FontFamily == null;
+        bool resetFontSize = recoveredStyle.FontSizePoints.HasValue && !sourceRun.FontSizePoints.HasValue;
+        bool resetColor = recoveredStyle.ColorHex != null && sourceRun.ColorHex == null;
+        if (!resetBold && !resetItalic && !resetUnderline && !resetFontFamily && !resetFontSize && !resetColor) return;
+
+        RunProperties properties = run._runProperties ??= new RunProperties();
+        if (resetBold) {
+            properties.Bold = new Bold { Val = false };
+            properties.BoldComplexScript = new BoldComplexScript { Val = false };
+        }
+        if (resetItalic) {
+            properties.Italic = new Italic { Val = false };
+            properties.ItalicComplexScript = new ItalicComplexScript { Val = false };
+        }
+        if (resetUnderline) {
+            properties.Underline = new Underline { Val = UnderlineValues.None };
+        }
+
+        RunPropertiesBaseStyle? defaults = document.OpenXmlDocument.MainDocumentPart?
+            .StyleDefinitionsPart?.Styles?.DocDefaults?.RunPropertiesDefault?.RunPropertiesBaseStyle;
+        if (resetFontFamily) {
+            properties.RunFonts = defaults?.RunFonts != null
+                ? (RunFonts)defaults.RunFonts.CloneNode(true)
+                : new RunFonts {
+                    AsciiTheme = ThemeFontValues.MinorHighAnsi,
+                    HighAnsiTheme = ThemeFontValues.MinorHighAnsi,
+                    EastAsiaTheme = ThemeFontValues.MinorHighAnsi,
+                    ComplexScriptTheme = ThemeFontValues.MinorBidi
+                };
+        }
+        if (resetFontSize) {
+            properties.FontSize = defaults?.FontSize != null
+                ? (FontSize)defaults.FontSize.CloneNode(true)
+                : new FontSize { Val = "22" };
+            properties.FontSizeComplexScript = defaults?.FontSizeComplexScript != null
+                ? (FontSizeComplexScript)defaults.FontSizeComplexScript.CloneNode(true)
+                : new FontSizeComplexScript { Val = "22" };
+        }
+        if (resetColor) {
+            properties.Color = new Color { Val = "auto" };
         }
     }
 

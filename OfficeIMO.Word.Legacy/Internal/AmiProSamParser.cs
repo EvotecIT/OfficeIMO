@@ -229,7 +229,7 @@ internal sealed class AmiProSamParser {
         string source = string.Join("\n", lines);
         lines.Clear();
         LegacyWordParagraph paragraph = ParseInline(source);
-        if (paragraph.Text.Length == 0) return;
+        if (paragraph.Text.Length == 0 && !HasMeaningfulParagraphProperties(paragraph)) return;
         ConsumeItem("paragraph");
         if (paragraph.Text.StartsWith("- ", StringComparison.Ordinal) || paragraph.Text.StartsWith("* ", StringComparison.Ordinal)) {
             paragraph.IsList = true;
@@ -329,11 +329,15 @@ internal sealed class AmiProSamParser {
             return;
         }
         if (tag.Length == 2 && tag[0] == '/') {
-            Append(text, tag[1] == 'R' ? '\'' : (char)(tag[1] + 0x40));
+            char decoded = tag[1] == 'R' ? '\'' : (char)(tag[1] + 0x40);
+            if (IsSafeXmlTextCharacter(decoded)) Append(text, decoded);
+            else RecordMalformedInlineTag();
             return;
         }
         if (tag.Length == 2 && tag[0] == '\\') {
-            Append(text, (char)(tag[1] | 0x80));
+            char decoded = (char)(tag[1] | 0x80);
+            if (IsSafeXmlTextCharacter(decoded)) Append(text, decoded);
+            else RecordMalformedInlineTag();
             return;
         }
         string boundedTag = tag.Length > 16 ? tag.Substring(0, 16) : tag;
@@ -367,6 +371,20 @@ internal sealed class AmiProSamParser {
         paragraph.KeepWithNext = style.KeepWithNext;
         paragraph.KeepLinesTogether = style.KeepLinesTogether;
     }
+
+    private static bool HasMeaningfulParagraphProperties(LegacyWordParagraph paragraph) =>
+        !string.IsNullOrWhiteSpace(paragraph.StyleName) ||
+        paragraph.Alignment.HasValue ||
+        paragraph.PageBreakBefore ||
+        paragraph.KeepWithNext ||
+        paragraph.KeepLinesTogether ||
+        paragraph.LineSpacingPoints.HasValue ||
+        paragraph.SpacingBeforePoints.HasValue ||
+        paragraph.SpacingAfterPoints.HasValue;
+
+    private static bool IsSafeXmlTextCharacter(char value) =>
+        value == '\t' || value == '\n' || value == '\r' ||
+        (!char.IsControl(value) && !char.IsSurrogate(value));
 
     private void FlushRun(List<LegacyWordRun> runs, StringBuilder text, AmiRunState state) {
         if (text.Length == 0) return;

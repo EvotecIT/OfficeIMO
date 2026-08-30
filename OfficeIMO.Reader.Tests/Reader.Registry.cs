@@ -8,6 +8,7 @@ using OfficeIMO.Reader.PowerPoint;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Word;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -236,5 +237,77 @@ public sealed partial class ReaderRegistryTests {
             new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
 
         Assert.Contains(OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public async Task PreferContentEnforcesResolvedHandlerCeilingBeforeEveryDispatch() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.extension-unbounded",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".wrong" },
+                ReadPath = (path, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.detected-bounded",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".boundedpdf" },
+                MaxInputBytesCeiling = 8,
+                ReadPath = (path, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.Read(stream, "sample.wrong", options).ToArray());
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.ReadDocument(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.wrong", options));
+            }
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        Assert.Equal(0, dispatchCount);
     }
 }

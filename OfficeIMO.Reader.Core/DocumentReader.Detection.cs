@@ -161,15 +161,16 @@ internal static partial class DocumentReaderEngine {
         if (contentOverridesExtension) {
             if (hasExtensionHandler && ValidateExtensionHandler(path, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
-                return true;
+            } else if (!TryResolveDetectedHandler(detection, pathInput: true, out handler)) {
+                return false;
             }
-            return TryResolveDetectedHandler(detection, pathInput: true, out handler);
-        }
-        if (hasExtensionHandler) {
+        } else if (hasExtensionHandler) {
             handler = extensionHandler;
-            return true;
+        } else if (!TryResolveDetectedHandler(detection, pathInput: true, out handler)) {
+            return false;
         }
-        return TryResolveDetectedHandler(detection, pathInput: true, out handler);
+        EnforceFileSize(path, handler.MaxInputBytesCeiling);
+        return true;
     }
 
     private static bool TryResolveStreamHandler(
@@ -198,15 +199,16 @@ internal static partial class DocumentReaderEngine {
         if (contentOverridesExtension) {
             if (hasExtensionHandler && ValidateExtensionHandler(stream, sourceName, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
-                return true;
+            } else if (!TryResolveDetectedHandler(detection, pathInput: false, out handler)) {
+                return false;
             }
-            return TryResolveDetectedHandler(detection, pathInput: false, out handler);
-        }
-        if (hasExtensionHandler) {
+        } else if (hasExtensionHandler) {
             handler = extensionHandler;
-            return true;
+        } else if (!TryResolveDetectedHandler(detection, pathInput: false, out handler)) {
+            return false;
         }
-        return TryResolveDetectedHandler(detection, pathInput: false, out handler);
+        ReaderInputLimits.EnforceSeekableStreamSize(stream, handler.MaxInputBytesCeiling);
+        return true;
     }
 
     private static bool TryResolveDetectedHandler(
