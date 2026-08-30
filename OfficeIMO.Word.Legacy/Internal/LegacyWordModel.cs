@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.Legacy;
 
 internal sealed class LegacyWordModel {
     internal List<LegacyWordParagraph> Paragraphs { get; } = new();
+    internal List<LegacyWordStyle> Styles { get; } = new();
     internal List<LegacyWordNote> Notes { get; } = new();
     internal List<LegacyWordResource> Resources { get; } = new();
     internal Dictionary<string, string> Metadata { get; } = new(System.StringComparer.OrdinalIgnoreCase);
@@ -38,6 +39,23 @@ internal sealed class LegacyWordParagraph {
     internal double? SpacingBeforePoints { get; set; }
     internal double? SpacingAfterPoints { get; set; }
     internal string? StyleName { get; set; }
+}
+
+internal sealed class LegacyWordStyle {
+    internal string Name { get; set; } = string.Empty;
+    internal bool Bold { get; set; }
+    internal bool Italic { get; set; }
+    internal WordUnderlineStyle? Underline { get; set; }
+    internal double? FontSizePoints { get; set; }
+    internal string? FontFamily { get; set; }
+    internal string? ColorHex { get; set; }
+    internal WordParagraphAlignment? Alignment { get; set; }
+    internal double? LineSpacingPoints { get; set; }
+    internal double? SpacingBeforePoints { get; set; }
+    internal double? SpacingAfterPoints { get; set; }
+    internal bool PageBreakBefore { get; set; }
+    internal bool KeepWithNext { get; set; }
+    internal bool KeepLinesTogether { get; set; }
 }
 
 internal sealed class LegacyWordRun {

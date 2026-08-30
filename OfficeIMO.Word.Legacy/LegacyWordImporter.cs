@@ -67,7 +67,7 @@ public static class LegacyWordImporter {
         }
 
         string text = BuildPlainText(model, effective.Limits, cancellationToken);
-        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Notes.Count + model.Resources.Count);
+        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Styles.Count + model.Notes.Count + model.Resources.Count);
         var metadata = new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase));
         var content = new LegacyWordContent(model);
         WordDocument? document = null;
@@ -118,16 +118,23 @@ public static class LegacyWordImporter {
                     if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
                 }
             }
+            var recoveredStyles = new Dictionary<string, LegacyWordStyle>(StringComparer.OrdinalIgnoreCase);
+            foreach (LegacyWordStyle sourceStyle in model.Styles) {
+                cancellationToken.ThrowIfCancellationRequested();
+                string styleId = GetOrCreateLegacyStyleId(sourceStyle.Name, styleIds, usedStyleIds);
+                recoveredStyles[sourceStyle.Name] = sourceStyle;
+                EnsureLegacyParagraphStyle(document, styleId, sourceStyle.Name, sourceStyle);
+            }
             foreach (LegacyWordParagraph source in model.Paragraphs) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (source.IsList) {
                     activeList ??= document.AddListBulleted();
                     WordParagraph paragraph = activeList.AddItem(string.Empty, Math.Max(0, Math.Min(8, source.ListLevel)));
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, cancellationToken);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
                 } else {
                     activeList = null;
                     WordParagraph paragraph = document.AddParagraph();
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, cancellationToken);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, recoveredStyles, cancellationToken);
                 }
             }
             foreach (LegacyWordNote note in model.Notes) {
@@ -145,7 +152,8 @@ public static class LegacyWordImporter {
     }
 
     private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph, WordDocument document,
-        IDictionary<string, string> styleIds, ISet<string> usedStyleIds, CancellationToken cancellationToken) {
+        IDictionary<string, string> styleIds, ISet<string> usedStyleIds, IReadOnlyDictionary<string, LegacyWordStyle> recoveredStyles,
+        CancellationToken cancellationToken) {
         int runIndex = 0;
         foreach (LegacyWordRun sourceRun in source.Runs) {
             if ((runIndex++ & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
@@ -167,7 +175,8 @@ public static class LegacyWordImporter {
         if (!string.IsNullOrWhiteSpace(source.StyleName)) {
             string styleId = GetOrCreateLegacyStyleId(source.StyleName!, styleIds, usedStyleIds);
             paragraph.SetStyleId(styleId);
-            EnsureLegacyParagraphStyle(document, styleId, source.StyleName!);
+            recoveredStyles.TryGetValue(source.StyleName!, out LegacyWordStyle? recoveredStyle);
+            EnsureLegacyParagraphStyle(document, styleId, source.StyleName!, recoveredStyle);
         }
     }
 
@@ -186,22 +195,78 @@ public static class LegacyWordImporter {
         return candidate;
     }
 
-    private static void EnsureLegacyParagraphStyle(WordDocument document, string styleId, string styleName) {
+    private static void EnsureLegacyParagraphStyle(WordDocument document, string styleId, string styleName, LegacyWordStyle? recoveredStyle) {
         MainDocumentPart mainPart = document.OpenXmlDocument.MainDocumentPart
             ?? throw new InvalidDataException("The projected Word document has no main document part.");
         StyleDefinitionsPart stylePart = mainPart.StyleDefinitionsPart
             ?? throw new InvalidDataException("The projected Word document has no style definitions part.");
         Styles styles = stylePart.Styles ??= new Styles();
         if (styles.Elements<OpenXmlStyle>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))) return;
-        styles.Append(new OpenXmlStyle(
+        var projected = new OpenXmlStyle(
             new StyleName { Val = styleName },
             new BasedOn { Val = "Normal" },
             new NextParagraphStyle { Val = "Normal" }) {
             Type = StyleValues.Paragraph,
             StyleId = styleId,
             CustomStyle = true
-        });
+        };
+        if (recoveredStyle != null) {
+            var paragraphProperties = new StyleParagraphProperties();
+            if (recoveredStyle.Alignment.HasValue) paragraphProperties.Justification = new Justification { Val = ToOpenXmlAlignment(recoveredStyle.Alignment.Value) };
+            if (recoveredStyle.LineSpacingPoints.HasValue || recoveredStyle.SpacingBeforePoints.HasValue || recoveredStyle.SpacingAfterPoints.HasValue) {
+                paragraphProperties.SpacingBetweenLines = new SpacingBetweenLines {
+                    Line = ToTwips(recoveredStyle.LineSpacingPoints),
+                    Before = ToTwips(recoveredStyle.SpacingBeforePoints),
+                    After = ToTwips(recoveredStyle.SpacingAfterPoints)
+                };
+            }
+            if (recoveredStyle.PageBreakBefore) paragraphProperties.PageBreakBefore = new PageBreakBefore();
+            if (recoveredStyle.KeepWithNext) paragraphProperties.KeepNext = new KeepNext();
+            if (recoveredStyle.KeepLinesTogether) paragraphProperties.KeepLines = new KeepLines();
+            if (paragraphProperties.HasChildren) projected.Append(paragraphProperties);
+
+            var runProperties = new StyleRunProperties {
+                Bold = new Bold { Val = recoveredStyle.Bold },
+                Italic = new Italic { Val = recoveredStyle.Italic }
+            };
+            if (!string.IsNullOrWhiteSpace(recoveredStyle.FontFamily)) {
+                runProperties.RunFonts = new RunFonts {
+                    Ascii = recoveredStyle.FontFamily,
+                    HighAnsi = recoveredStyle.FontFamily,
+                    EastAsia = recoveredStyle.FontFamily,
+                    ComplexScript = recoveredStyle.FontFamily
+                };
+            }
+            if (recoveredStyle.FontSizePoints.HasValue) {
+                string halfPoints = Math.Round(recoveredStyle.FontSizePoints.Value * 2d, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture);
+                runProperties.FontSize = new FontSize { Val = halfPoints };
+                runProperties.FontSizeComplexScript = new FontSizeComplexScript { Val = halfPoints };
+            }
+            if (!string.IsNullOrWhiteSpace(recoveredStyle.ColorHex)) runProperties.Color = new Color { Val = recoveredStyle.ColorHex };
+            if (recoveredStyle.Underline.HasValue) runProperties.Underline = new Underline { Val = ToOpenXmlUnderline(recoveredStyle.Underline.Value) };
+            projected.Append(runProperties);
+        }
+        styles.Append(projected);
     }
+
+    private static string? ToTwips(double? points) => points.HasValue
+        ? Math.Round(points.Value * 20d, MidpointRounding.AwayFromZero).ToString(CultureInfo.InvariantCulture)
+        : null;
+
+    private static UnderlineValues ToOpenXmlUnderline(WordUnderlineStyle value) => value switch {
+        WordUnderlineStyle.Double => UnderlineValues.Double,
+        WordUnderlineStyle.Words => UnderlineValues.Words,
+        WordUnderlineStyle.Single => UnderlineValues.Single,
+        _ => throw new InvalidDataException($"Recovered underline style {value} is outside the DOCX projection profile.")
+    };
+
+    private static JustificationValues ToOpenXmlAlignment(WordParagraphAlignment value) => value switch {
+        WordParagraphAlignment.Center => JustificationValues.Center,
+        WordParagraphAlignment.Right => JustificationValues.Right,
+        WordParagraphAlignment.Both => JustificationValues.Both,
+        WordParagraphAlignment.Left => JustificationValues.Left,
+        _ => throw new InvalidDataException($"Recovered paragraph alignment {value} is outside the DOCX projection profile.")
+    };
 
     private static (ILegacyWordAdapter Adapter, LegacyWordDetection Detection) SelectAdapter(byte[] data, LegacyWordImportOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

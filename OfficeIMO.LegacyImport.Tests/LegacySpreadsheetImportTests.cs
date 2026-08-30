@@ -370,6 +370,15 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = sourceName, RequireStructured = true }));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void StructuredWkNamesRejectNonzeroFixedFieldPadding(bool pascal) {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkNameWithNonzeroFixedFieldPadding(pascal),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
+    }
+
     [Fact]
     public void SalvageSpreadsheetParsingEnforcesTheRecordLimit() {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(

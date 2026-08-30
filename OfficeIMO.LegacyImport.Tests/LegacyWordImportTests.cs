@@ -86,12 +86,38 @@ public sealed class LegacyWordImportTests {
         using LegacyWordImportResult imported = LegacyWordImporter.Import(LegacyFixtureFactory.AmiPro(), new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
         Assert.Equal("4", imported.Metadata["AmiProVersion"]);
         Assert.Equal("1", imported.Metadata["StyleCount"]);
+        LegacyWordStyleContent style = Assert.Single(imported.Content.Styles);
+        Assert.Equal("Body Text", style.Name);
+        Assert.Equal("Arial", style.FontFamily);
+        Assert.Equal(12d, style.FontSizePoints);
+        Assert.Equal("FF0000", style.ColorHex);
+        Assert.True(style.Bold);
+        Assert.Equal(OfficeIMO.Word.WordParagraphAlignment.Left, style.Alignment);
+        Assert.Equal(12d, style.LineSpacingPoints);
+        Assert.True(style.KeepWithNext);
+        Assert.True(style.KeepLinesTogether);
         LegacyWordParagraphContent first = imported.Content.Paragraphs[0];
         Assert.Equal("Body Text", first.StyleName);
         Assert.Contains(first.Runs, run => run.Bold && run.Text == "bold");
         Assert.True(first.KeepWithNext);
         Assert.Equal(12d, first.LineSpacingPoints);
         Assert.Contains(imported.Content.Paragraphs, paragraph => paragraph.Alignment == OfficeIMO.Word.WordParagraphAlignment.Center);
+
+        DocumentFormat.OpenXml.Wordprocessing.Style projectedStyle = imported.Document.OpenXmlDocument.MainDocumentPart!
+            .StyleDefinitionsPart!.Styles!.Elements<DocumentFormat.OpenXml.Wordprocessing.Style>()
+            .Single(candidate => candidate.StyleName?.Val?.Value == "Body Text");
+        Assert.Equal("Arial", projectedStyle.StyleRunProperties!.RunFonts!.Ascii!.Value);
+        Assert.Equal("24", projectedStyle.StyleRunProperties.FontSize!.Val!.Value);
+        Assert.Equal("FF0000", projectedStyle.StyleRunProperties.Color!.Val!.Value);
+        Assert.True(projectedStyle.StyleRunProperties.Bold!.Val!.Value);
+        Assert.False(projectedStyle.StyleRunProperties.Italic!.Val!.Value);
+        Assert.Equal(DocumentFormat.OpenXml.Wordprocessing.JustificationValues.Left,
+            projectedStyle.StyleParagraphProperties!.Justification!.Val!.Value);
+        Assert.Equal("240", projectedStyle.StyleParagraphProperties.SpacingBetweenLines!.Line!.Value);
+        Assert.Equal("0", projectedStyle.StyleParagraphProperties.SpacingBetweenLines.Before!.Value);
+        Assert.Equal("0", projectedStyle.StyleParagraphProperties.SpacingBetweenLines.After!.Value);
+        Assert.NotNull(projectedStyle.StyleParagraphProperties.KeepNext);
+        Assert.NotNull(projectedStyle.StyleParagraphProperties.KeepLines);
     }
 
     [Fact]
@@ -214,6 +240,21 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProStyleBlocksRejectUnconsumedFields() {
+        string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
+        string malformed = fixture.Replace("[brk]\n16\n[edoc]", "[brk]\n16\nunconsumed\n[edoc]", StringComparison.Ordinal);
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(malformed),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Empty(imported.Content.Styles);
+        Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_BLOCK_MALFORMED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
     public void AmiProUnterminatedInlineOpenersAreScannedLinearlyWithoutHidingLaterStyleReferences() {
         string text = string.Concat(Enumerable.Repeat("<x", 100_000));
         byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + text + "@Missing@End\n");
@@ -291,6 +332,26 @@ public sealed class LegacyWordImportTests {
         using LegacyWordImportResult hinted = LegacyWordImporter.Import(arbitraryHighBit, new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar });
         Assert.Equal(OfficeLegacyImportQuality.Salvage, hinted.Report.Quality);
         Assert.Equal("wordstar-family-salvage", hinted.Report.SourceFormatId);
+    }
+
+    [Theory]
+    [InlineData((byte)0x0D)]
+    [InlineData((byte)0x0A)]
+    public void WordStarAdmissionAcceptsEveryStructuredHardParagraphTerminator(byte terminator) {
+        byte[] source = new byte[] { 0x02, 0x02 }
+            .Concat(Encoding.ASCII.GetBytes("One"))
+            .Append(terminator)
+            .Concat(Encoding.ASCII.GetBytes("Two"))
+            .Append(terminator)
+            .Append((byte)0x1A)
+            .ToArray();
+
+        LegacyWordDetection detected = LegacyWordImporter.Detect(source);
+        Assert.Equal(LegacyWordFormat.WordStar, detected.Format);
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { RequireStructured = true });
+        Assert.Equal(new[] { "One", "Two" }, imported.Content.Paragraphs.Select(paragraph => paragraph.Text));
     }
 
     [Fact]

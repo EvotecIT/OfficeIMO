@@ -260,10 +260,35 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         model.Names.Add(new LegacySpreadsheetName(name, sheet.Name, firstRow, firstColumn, lastRow, lastColumn));
     }
 
-    private static string ReadStructuredName(byte[] data, int payload, int length) =>
-        data[payload] <= 15 && data[payload] <= length - 1
-            ? DecodeStrictAscii(data, payload + 1, data[payload])
-            : ReadNullTerminatedAscii(data, payload, Math.Min(length, 16));
+    private static string ReadStructuredName(byte[] data, int payload, int length) {
+        const int NameFieldLength = 16;
+        if (length < NameFieldLength || payload > data.Length - NameFieldLength) {
+            throw new InvalidDataException("Truncated WK fixed-width name field.");
+        }
+
+        int textOffset;
+        int textLength;
+        int paddingOffset;
+        if (data[payload] <= 15) {
+            textOffset = payload + 1;
+            textLength = data[payload];
+            paddingOffset = textOffset + textLength;
+        } else {
+            textOffset = payload;
+            textLength = 0;
+            while (textLength < NameFieldLength && data[textOffset + textLength] != 0) textLength++;
+            paddingOffset = textOffset + textLength;
+            if (textLength < NameFieldLength) paddingOffset++;
+        }
+
+        int fieldEnd = payload + NameFieldLength;
+        for (int index = paddingOffset; index < fieldEnd; index++) {
+            if (data[index] != 0) {
+                throw new InvalidDataException("WK fixed-width name field contains nonzero unconsumed padding bytes.");
+            }
+        }
+        return DecodeStrictAscii(data, textOffset, textLength);
+    }
 
     private static void ValidateBof(byte[] data, string familyName, byte expectedProduct0, byte expectedProduct1) {
         if (data.Length < 6 || OfficeLegacyImportBuffer.ReadUInt16(data, 0) != 0x0000 ||

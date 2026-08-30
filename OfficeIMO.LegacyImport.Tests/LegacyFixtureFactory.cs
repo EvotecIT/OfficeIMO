@@ -149,6 +149,24 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] WkNameWithNonzeroFixedFieldPadding(bool pascal) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        byte[] payload = NamePayload("Input", 0, 0, 1, 0);
+        if (pascal) {
+            payload[6] = 0x7F;
+        } else {
+            Array.Clear(payload, 0, 16);
+            Encoding.ASCII.GetBytes("Input").CopyTo(payload, 0);
+            payload[6] = 0x7F;
+        }
+        Record(writer, 0x000B, payload);
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] EmptyWk(byte product0 = 0x06, byte product1 = 0x04) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);

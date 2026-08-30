@@ -67,6 +67,54 @@ public sealed class LegacyWordRunContent {
     public string? ColorHex { get; }
 }
 
+/// <summary>Describes one recovered source paragraph-style definition.</summary>
+public sealed class LegacyWordStyleContent {
+    internal LegacyWordStyleContent(LegacyWordStyle source) {
+        Name = source.Name;
+        Bold = source.Bold;
+        Italic = source.Italic;
+        Underline = source.Underline;
+        FontSizePoints = source.FontSizePoints;
+        FontFamily = source.FontFamily;
+        ColorHex = source.ColorHex;
+        Alignment = source.Alignment;
+        LineSpacingPoints = source.LineSpacingPoints;
+        SpacingBeforePoints = source.SpacingBeforePoints;
+        SpacingAfterPoints = source.SpacingAfterPoints;
+        PageBreakBefore = source.PageBreakBefore;
+        KeepWithNext = source.KeepWithNext;
+        KeepLinesTogether = source.KeepLinesTogether;
+    }
+    /// <summary>Gets the recovered source style name.</summary>
+    public string Name { get; }
+    /// <summary>Gets whether bold is part of the style.</summary>
+    public bool Bold { get; }
+    /// <summary>Gets whether italic is part of the style.</summary>
+    public bool Italic { get; }
+    /// <summary>Gets the recovered underline style.</summary>
+    public WordUnderlineStyle? Underline { get; }
+    /// <summary>Gets the recovered font size in points.</summary>
+    public double? FontSizePoints { get; }
+    /// <summary>Gets the recovered font family.</summary>
+    public string? FontFamily { get; }
+    /// <summary>Gets the recovered RGB color.</summary>
+    public string? ColorHex { get; }
+    /// <summary>Gets recovered paragraph alignment.</summary>
+    public WordParagraphAlignment? Alignment { get; }
+    /// <summary>Gets recovered line spacing in points.</summary>
+    public double? LineSpacingPoints { get; }
+    /// <summary>Gets recovered spacing before the paragraph in points.</summary>
+    public double? SpacingBeforePoints { get; }
+    /// <summary>Gets recovered spacing after the paragraph in points.</summary>
+    public double? SpacingAfterPoints { get; }
+    /// <summary>Gets whether the style requests a page break before the paragraph.</summary>
+    public bool PageBreakBefore { get; }
+    /// <summary>Gets whether the style keeps a paragraph with the next paragraph.</summary>
+    public bool KeepWithNext { get; }
+    /// <summary>Gets whether the style keeps paragraph lines together.</summary>
+    public bool KeepLinesTogether { get; }
+}
+
 /// <summary>Describes one recovered source paragraph.</summary>
 public sealed class LegacyWordParagraphContent {
     internal LegacyWordParagraphContent(LegacyWordParagraph source) {
@@ -131,11 +179,14 @@ public sealed class LegacyWordResourceReference {
 public sealed class LegacyWordContent {
     internal LegacyWordContent(LegacyWordModel source) {
         Paragraphs = source.Paragraphs.ConvertAll(static paragraph => new LegacyWordParagraphContent(paragraph)).AsReadOnly();
+        Styles = source.Styles.ConvertAll(static style => new LegacyWordStyleContent(style)).AsReadOnly();
         Notes = source.Notes.ConvertAll(static note => new LegacyWordNoteContent(note)).AsReadOnly();
         Resources = source.Resources.ConvertAll(static resource => new LegacyWordResourceReference(resource)).AsReadOnly();
     }
     /// <summary>Gets recovered paragraphs and formatted runs.</summary>
     public IReadOnlyList<LegacyWordParagraphContent> Paragraphs { get; }
+    /// <summary>Gets recovered paragraph-style definitions.</summary>
+    public IReadOnlyList<LegacyWordStyleContent> Styles { get; }
     /// <summary>Gets recovered notes.</summary>
     public IReadOnlyList<LegacyWordNoteContent> Notes { get; }
     /// <summary>Gets inert resource references.</summary>

@@ -46,11 +46,15 @@ internal sealed class WordStarAdapter : LegacyWordAdapterBase {
             if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte value = data[index];
             if (value == 0x1A) { eof = true; break; }
+            if (value == 0x8D && index + 1 < end && data[index + 1] == 0x0A) {
+                index++;
+                continue;
+            }
             if ((value & 0x7F) >= 0x20 && (value & 0x7F) <= 0x7E) {
                 printable++;
                 if (value >= 0x80) highBitPrintable++;
             }
-            if (value == 0x0D && index + 1 < end && data[index + 1] == 0x0A) hardParagraph = true;
+            if (value == 0x0D || value == 0x0A) hardParagraph = true;
             if (value == 0x02 || value == 0x13 || value == 0x14 || value == 0x16 || value == 0x18 || value == 0x19) formattingControls++;
             if (value != 0x1D) continue;
             if (index + 4 > data.Length) { malformed = true; return false; }

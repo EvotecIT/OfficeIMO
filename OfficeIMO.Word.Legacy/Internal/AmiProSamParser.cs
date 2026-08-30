@@ -20,6 +20,7 @@ internal sealed class AmiProSamParser {
     private readonly OfficeLegacyImportLimits _limits;
     private readonly CancellationToken _cancellationToken;
     private readonly Dictionary<string, AmiStyle> _styles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, int> _styleModelIndexes = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _unknownTags = new(StringComparer.Ordinal);
     private readonly HashSet<string> _unsupportedSections = new(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _missingStyles = new(StringComparer.OrdinalIgnoreCase);
@@ -117,13 +118,25 @@ internal sealed class AmiProSamParser {
                 _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_DUPLICATE", "Styles", "One or more duplicate Ami Pro style definitions replaced an earlier definition; the total is available in metadata."));
             }
             _styles[style.Name] = style;
+            LegacyWordStyle recoveredStyle = style.ToLegacyWordStyle();
+            if (_styleModelIndexes.TryGetValue(style.Name, out int styleIndex)) {
+                _model.Styles[styleIndex] = recoveredStyle;
+            } else {
+                _styleModelIndexes.Add(style.Name, _model.Styles.Count);
+                _model.Styles.Add(recoveredStyle);
+            }
             _model.Metadata[$"Style.{_styles.Count}.Name"] = style.Name;
         }
         _model.Metadata["StyleCount"] = _styles.Count.ToString(CultureInfo.InvariantCulture);
     }
 
     private AmiStyle? ParseStyle(List<string> lines) {
-        if (lines.Count < 19 || !string.Equals(lines[2], "[fnt]", StringComparison.OrdinalIgnoreCase)) return null;
+        const int ExactStyleLineCount = 21;
+        if (lines.Count != ExactStyleLineCount ||
+            !string.Equals(lines[2], "[fnt]", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(lines[7], "[algn]", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(lines[13], "[spc]", StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(lines[19], "[brk]", StringComparison.OrdinalIgnoreCase)) return null;
         if (!int.TryParse(lines[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out _)) return null;
         if (!int.TryParse(lines[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int fontTwips) || fontTwips <= 0) return null;
         if (!uint.TryParse(lines[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint color) || (color & 0xFF000000) != 0) return null;
@@ -136,44 +149,34 @@ internal sealed class AmiProSamParser {
             Bold = (formatting & 1) != 0, Italic = (formatting & 2) != 0,
             Underline = (formatting & 64) != 0 ? WordUnderlineStyle.Double : (formatting & 8) != 0 ? WordUnderlineStyle.Words : (formatting & 4) != 0 ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null
         };
-        int alignIndex = lines.FindIndex(static value => string.Equals(value, "[algn]", StringComparison.OrdinalIgnoreCase));
-        if (alignIndex >= 0) {
-            if (alignIndex + 5 >= lines.Count ||
-                !uint.TryParse(lines[alignIndex + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint alignment) ||
-                !int.TryParse(lines[alignIndex + 2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int leftIndent) ||
-                !int.TryParse(lines[alignIndex + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out int rightIndent) ||
-                !int.TryParse(lines[alignIndex + 4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int firstLineIndent) ||
-                !int.TryParse(lines[alignIndex + 5], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedAlignment) ||
-                leftIndent != 0 || rightIndent != 0 || firstLineIndent != 0 || reservedAlignment != 0) return null;
-            RecordUnsupportedStyleFlags(alignment & ~SupportedStyleAlignmentMask, ref _unsupportedStyleAlignmentFlags);
-            style.Alignment = DecodeAlignment(alignment);
-        }
-        int spacingIndex = lines.FindIndex(static value => string.Equals(value, "[spc]", StringComparison.OrdinalIgnoreCase));
-        if (spacingIndex >= 0) {
-            if (spacingIndex + 5 >= lines.Count ||
-                !uint.TryParse(lines[spacingIndex + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint spacing) ||
-                !int.TryParse(lines[spacingIndex + 2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int customSpacing) ||
-                !int.TryParse(lines[spacingIndex + 3], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedSpacing) ||
-                !int.TryParse(lines[spacingIndex + 4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int before) ||
-                !int.TryParse(lines[spacingIndex + 5], NumberStyles.Integer, CultureInfo.InvariantCulture, out int after) ||
-                reservedSpacing != 0 || ((spacing & 8) != 0 && customSpacing <= 0)) return null;
-            RecordUnsupportedStyleFlags(spacing & ~SupportedStyleSpacingMask, ref _unsupportedStyleSpacingFlags);
-            if ((spacing & 1) != 0) style.LineSpacingPoints = 12;
-            else if ((spacing & 2) != 0) style.LineSpacingPoints = 18;
-            else if ((spacing & 4) != 0) style.LineSpacingPoints = 24;
-            else if ((spacing & 8) != 0) style.LineSpacingPoints = customSpacing / 20d;
-            style.SpacingBeforePoints = before / 20d;
-            style.SpacingAfterPoints = after / 20d;
-        }
-        int breakIndex = lines.FindIndex(static value => string.Equals(value, "[brk]", StringComparison.OrdinalIgnoreCase));
-        if (breakIndex >= 0) {
-            if (breakIndex + 1 >= lines.Count ||
-                !uint.TryParse(lines[breakIndex + 1], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint breaks)) return null;
-            RecordUnsupportedStyleFlags(breaks & ~SupportedStyleBreakMask, ref _unsupportedStyleBreakFlags);
-            style.PageBreakBefore = (breaks & 1) != 0;
-            style.KeepWithNext = (breaks & 16) != 0;
-            style.KeepLinesTogether = (breaks & 4) == 0;
-        }
+        if (!uint.TryParse(lines[8], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint alignment) ||
+            !int.TryParse(lines[9], NumberStyles.Integer, CultureInfo.InvariantCulture, out int leftIndent) ||
+            !int.TryParse(lines[10], NumberStyles.Integer, CultureInfo.InvariantCulture, out int rightIndent) ||
+            !int.TryParse(lines[11], NumberStyles.Integer, CultureInfo.InvariantCulture, out int firstLineIndent) ||
+            !int.TryParse(lines[12], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedAlignment) ||
+            leftIndent != 0 || rightIndent != 0 || firstLineIndent != 0 || reservedAlignment != 0) return null;
+        RecordUnsupportedStyleFlags(alignment & ~SupportedStyleAlignmentMask, ref _unsupportedStyleAlignmentFlags);
+        style.Alignment = DecodeAlignment(alignment);
+
+        if (!uint.TryParse(lines[14], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint spacing) ||
+            !int.TryParse(lines[15], NumberStyles.Integer, CultureInfo.InvariantCulture, out int customSpacing) ||
+            !int.TryParse(lines[16], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedSpacing) ||
+            !int.TryParse(lines[17], NumberStyles.Integer, CultureInfo.InvariantCulture, out int before) ||
+            !int.TryParse(lines[18], NumberStyles.Integer, CultureInfo.InvariantCulture, out int after) ||
+            reservedSpacing != 0 || ((spacing & 8) != 0 && customSpacing <= 0)) return null;
+        RecordUnsupportedStyleFlags(spacing & ~SupportedStyleSpacingMask, ref _unsupportedStyleSpacingFlags);
+        if ((spacing & 1) != 0) style.LineSpacingPoints = 12;
+        else if ((spacing & 2) != 0) style.LineSpacingPoints = 18;
+        else if ((spacing & 4) != 0) style.LineSpacingPoints = 24;
+        else if ((spacing & 8) != 0) style.LineSpacingPoints = customSpacing / 20d;
+        style.SpacingBeforePoints = before / 20d;
+        style.SpacingAfterPoints = after / 20d;
+
+        if (!uint.TryParse(lines[20], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint breaks)) return null;
+        RecordUnsupportedStyleFlags(breaks & ~SupportedStyleBreakMask, ref _unsupportedStyleBreakFlags);
+        style.PageBreakBefore = (breaks & 1) != 0;
+        style.KeepWithNext = (breaks & 16) != 0;
+        style.KeepLinesTogether = (breaks & 4) == 0;
         return style;
     }
 
@@ -489,5 +492,22 @@ internal sealed class AmiProSamParser {
         internal bool PageBreakBefore;
         internal bool KeepWithNext;
         internal bool KeepLinesTogether;
+
+        internal LegacyWordStyle ToLegacyWordStyle() => new() {
+            Name = Name,
+            Bold = Bold,
+            Italic = Italic,
+            Underline = Underline,
+            FontSizePoints = FontSizePoints,
+            FontFamily = FontFamily,
+            ColorHex = ColorHex,
+            Alignment = Alignment,
+            LineSpacingPoints = LineSpacingPoints,
+            SpacingBeforePoints = SpacingBeforePoints,
+            SpacingAfterPoints = SpacingAfterPoints,
+            PageBreakBefore = PageBreakBefore,
+            KeepWithNext = KeepWithNext,
+            KeepLinesTogether = KeepLinesTogether
+        };
     }
 }
