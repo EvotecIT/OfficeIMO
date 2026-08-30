@@ -487,7 +487,7 @@ internal static class BibCodec {
         private void AppendValue(StringBuilder builder, string value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, value.Length, offset); builder.Append(value); }
         private void AppendValue(StringBuilder builder, char value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, 1, offset); builder.Append(value); }
 
-        private static BibliographyName ParseBibName(string value) {
+        private BibliographyName ParseBibName(string value) {
             string trimmed = value.Trim();
             if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
             string[] parts = SplitTopLevel(trimmed, ',').Take(3).ToArray();
@@ -531,17 +531,18 @@ internal static class BibCodec {
         private static bool StartsWithLowercaseLetter(string value) => BibCodec.StartsWithLowercaseLetter(value);
         private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-        private static IEnumerable<string> SplitBibList(string value) => SplitTopLevel(value, ',', ';').Select(static part => part.Trim());
+        private IEnumerable<string> SplitBibList(string value) => SplitTopLevel(value, ',', ';').Select(static part => part.Trim());
 
         private static string UnwrapBibListItem(string value) {
             string trimmed = value.Trim();
             return trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}' ? trimmed.Substring(1, trimmed.Length - 2) : trimmed;
         }
 
-        private static IEnumerable<string> SplitTopLevel(string value, params char[] separators) {
+        private IEnumerable<string> SplitTopLevel(string value, params char[] separators) {
             int start = 0;
             int depth = 0;
             for (int index = 0; index < value.Length; index++) {
+                if ((index & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
                 if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
                 if (value[index] == '{') depth++;
                 else if (value[index] == '}' && depth > 0) depth--;
@@ -550,16 +551,22 @@ internal static class BibCodec {
             yield return value.Substring(start);
         }
 
-        private static IEnumerable<string> SplitNames(string value) {
+        private IEnumerable<string> SplitNames(string value) {
             int start = 0;
             int depth = 0;
             for (int index = 0; index <= value.Length - 5; index++) {
+                if ((index & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
                 if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
                 if (value[index] == '{') depth++; else if (value[index] == '}' && depth > 0) depth--;
-                if (depth == 0 && string.Equals(value.Substring(index, 5), " and ", StringComparison.OrdinalIgnoreCase)) { yield return value.Substring(start, index - start).Trim(); start = index + 5; index += 4; }
+                if (depth == 0 && IsNameSeparator(value, index)) { yield return value.Substring(start, index - start).Trim(); start = index + 5; index += 4; }
             }
             if (start <= value.Length) yield return value.Substring(start).Trim();
         }
+
+        private static bool IsNameSeparator(string value, int index) =>
+            value[index] == ' ' && (value[index + 1] == 'a' || value[index + 1] == 'A') &&
+            (value[index + 2] == 'n' || value[index + 2] == 'N') &&
+            (value[index + 3] == 'd' || value[index + 3] == 'D') && value[index + 4] == ' ';
 
         private void SetYear(BibliographyItem item, string value) {
             BibliographyDate date = item.GetDate(BibliographyDateRole.Issued) ?? new BibliographyDate { Role = BibliographyDateRole.Issued };

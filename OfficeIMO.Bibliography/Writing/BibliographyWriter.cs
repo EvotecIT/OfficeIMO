@@ -275,7 +275,7 @@ internal static class BibliographyConversionInspector {
         if (!year.HasValue) return !month.HasValue && !day.HasValue;
         if (month.HasValue && (month.Value < 1 || month.Value > 12)) return false;
         if (day.HasValue && (!month.HasValue || day.Value < 1 || day.Value > 31)) return false;
-        return year.Value >= 1 && year.Value <= 9999;
+        return year.Value >= 1;
     }
 
     private static void InspectProperties(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {

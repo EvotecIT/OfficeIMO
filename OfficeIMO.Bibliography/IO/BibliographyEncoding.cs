@@ -75,12 +75,14 @@ internal static class BibliographyEncoding {
     }
 
     internal static byte[] Encode(string value, Encoding encoding, CancellationToken cancellationToken) {
-        byte[] preamble = encoding.GetPreamble();
-        int contentLength = ConvertChunks(value, encoding, null, 0, cancellationToken);
+        var outputEncoding = (Encoding)encoding.Clone();
+        outputEncoding.EncoderFallback = EncoderFallback.ReplacementFallback;
+        byte[] preamble = outputEncoding.GetPreamble();
+        int contentLength = ConvertChunks(value, outputEncoding, null, 0, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var result = new byte[checked(preamble.Length + contentLength)];
         if (preamble.Length > 0) Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);
-        int written = ConvertChunks(value, encoding, result, preamble.Length, cancellationToken);
+        int written = ConvertChunks(value, outputEncoding, result, preamble.Length, cancellationToken);
         if (written != contentLength) throw new InvalidDataException("Bibliography output encoding produced an inconsistent byte count.");
         return result;
     }

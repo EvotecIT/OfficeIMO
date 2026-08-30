@@ -85,9 +85,10 @@ internal static class EndNoteXmlCodec {
             bool recordsRoot = document.EndNoteRecordsRoot;
             string rootElementName = document.EndNoteRootElementName ?? (recordsRoot ? "records" : "xml");
             string outputNamespace = GetDocumentElementNamespace(document, rootElementName, string.Empty, cancellationToken);
+            string? rootPrefix = GetDocumentElementPrefix(document, rootElementName, cancellationToken);
             writer.WriteStartDocument();
             if (!recordsRoot) {
-                writer.WriteStartElement(null, rootElementName, outputNamespace);
+                writer.WriteStartElement(rootPrefix, rootElementName, outputNamespace);
                 WriteDocumentAttributes(writer, document, rootElementName, report, cancellationToken);
                 foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
                     if (TryWriteRootElement(writer, entry, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
@@ -96,7 +97,8 @@ internal static class EndNoteXmlCodec {
             }
             string recordsElementName = document.EndNoteRecordsElementName ?? "records";
             string recordsNamespace = GetDocumentElementNamespace(document, recordsElementName, outputNamespace, cancellationToken);
-            writer.WriteStartElement(null, recordsElementName, recordsNamespace);
+            string? recordsPrefix = GetDocumentElementPrefix(document, recordsElementName, cancellationToken);
+            writer.WriteStartElement(recordsPrefix, recordsElementName, recordsNamespace);
             WriteDocumentAttributes(writer, document, recordsElementName, report, cancellationToken);
             foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
                 if (TryWriteRecordsElement(writer, entry, recordsNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
@@ -106,7 +108,8 @@ internal static class EndNoteXmlCodec {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 string recordNamespace = GetRecordNamespace(item, recordsNamespace, cancellationToken);
-                writer.WriteStartElement(null, "record", recordNamespace);
+                string? recordPrefix = GetRecordPrefix(item, cancellationToken);
+                writer.WriteStartElement(recordPrefix, "record", recordNamespace);
                 WriteRecordAttributes(writer, item, report, cancellationToken);
                 WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
                 writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
@@ -345,12 +348,29 @@ internal static class EndNoteXmlCodec {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
         return entry == null ? fallback : GetCarrierNamespace(entry.Value, fallback);
     }
+    private static string? GetDocumentElementPrefix(BibliographyDocument document, string elementName, CancellationToken cancellationToken) {
+        BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
+        return entry == null ? null : GetCarrierPrefix(entry.Value);
+    }
     private static string GetRecordNamespace(BibliographyItem item, string fallback, CancellationToken cancellationToken) {
         BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
         return field == null ? fallback : GetCarrierNamespace(field.Value, fallback);
     }
+    private static string? GetRecordPrefix(BibliographyItem item, CancellationToken cancellationToken) {
+        BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
+        return field == null ? null : GetCarrierPrefix(field.Value);
+    }
     private static string GetCarrierNamespace(string serializedCarrier, string fallback) {
         try { return XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace).Name.NamespaceName; } catch (XmlException) { return fallback; }
+    }
+    private static string? GetCarrierPrefix(string serializedCarrier) {
+        try {
+            XElement carrier = XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace);
+            string? prefix = carrier.GetPrefixOfNamespace(carrier.Name.Namespace);
+            return string.IsNullOrEmpty(prefix) ? null : prefix;
+        } catch (XmlException) {
+            return null;
+        }
     }
     private static void WriteDocumentAttributes(XmlWriter writer, BibliographyDocument document, string elementName, BibliographyConversionReport report, CancellationToken cancellationToken) {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
@@ -394,7 +414,9 @@ internal static class EndNoteXmlCodec {
                 } else if (!names.Add(attribute.Name)) return false;
             }
             foreach (XAttribute attribute in attributes.Where(static attribute => attribute.IsNamespaceDeclaration)) {
-                if (attribute.Name.LocalName != "xmlns") writer.WriteAttributeString("xmlns", attribute.Name.LocalName, "http://www.w3.org/2000/xmlns/", attribute.Value);
+                if (attribute.Name.LocalName == "xmlns") continue;
+                if (string.Equals(writer.LookupPrefix(attribute.Value), attribute.Name.LocalName, StringComparison.Ordinal)) continue;
+                writer.WriteAttributeString("xmlns", attribute.Name.LocalName, "http://www.w3.org/2000/xmlns/", attribute.Value);
             }
             foreach (XAttribute attribute in attributes.Where(static attribute => !attribute.IsNamespaceDeclaration)) {
                 string? prefix = attribute.Name.Namespace == XNamespace.None ? null : carrier.GetPrefixOfNamespace(attribute.Name.Namespace);
@@ -583,8 +605,8 @@ internal static class EndNoteXmlCodec {
     }
     private static bool IsKnownAttribute(XElement element, XAttribute attribute) {
         if (attribute.IsNamespaceDeclaration || attribute.Name.Namespace != XNamespace.None) return false;
-        if (string.Equals(element.Name.LocalName, "ref-type", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "name", StringComparison.OrdinalIgnoreCase)) return true;
-        return string.Equals(element.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "type", StringComparison.OrdinalIgnoreCase) &&
+        if (string.Equals(element.Name.LocalName, "ref-type", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "name", StringComparison.Ordinal)) return true;
+        return string.Equals(element.Name.LocalName, "isbn", StringComparison.OrdinalIgnoreCase) && string.Equals(attribute.Name.LocalName, "type", StringComparison.Ordinal) &&
             (string.Equals(attribute.Value, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(attribute.Value, "ISSN", StringComparison.OrdinalIgnoreCase));
     }
     private static bool HasDuplicateKnownNestedContent(XElement element, CancellationToken cancellationToken = default) {

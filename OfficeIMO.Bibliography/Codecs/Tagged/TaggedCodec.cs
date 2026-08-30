@@ -42,7 +42,8 @@ internal static class TaggedCodec {
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
-            WriteNbibPublicationTypes(builder, document.SourceFormat, item, options.LineEnding, report, cancellationToken);
+            bool hasNativePublicationTypes = HasNativeNbibPublicationTypes(item, cancellationToken);
+            if (!hasNativePublicationTypes) WriteNbibPublicationTypes(builder, document.SourceFormat, item, options.LineEnding, report, cancellationToken);
             WriteTag(builder, "TI", item.Title, options.LineEnding); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Nbib, "container-title", "JT"), item.ContainerTitle, options.LineEnding);
             foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "FAU", CodecMappings.FormatName(author.Name), options.LineEnding);
             foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name), options.LineEnding);
@@ -53,7 +54,8 @@ internal static class TaggedCodec {
             WriteNbibIdentifiers(builder, item, outputKeys[itemIndex], options.LineEnding, cancellationToken);
             foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteTag(builder, "OT", keyword, options.LineEnding);
             foreach (string note in Cancellable(item.Notes, cancellationToken)) WriteTag(builder, "GN", note, options.LineEnding);
-            WriteNativeFields(builder, item, BibliographyFormat.Nbib, options.LineEnding, report, cancellationToken);
+            if (hasNativePublicationTypes) WriteNbibNativeFieldsAndPublicationTypes(builder, document.SourceFormat, item, options.LineEnding, report, cancellationToken);
+            else WriteNativeFields(builder, item, BibliographyFormat.Nbib, options.LineEnding, report, cancellationToken);
             if (itemIndex + 1 < document.Items.Count) builder.Append(options.LineEnding);
         }
         AddDocumentNativeLoss(document, BibliographyFormat.Nbib, report, cancellationToken);
@@ -530,21 +532,49 @@ internal static class TaggedCodec {
     internal static bool CanPreserveUnknownRisType(string? nativeType) =>
         IsRisType(nativeType) && CodecMappings.ParseRisType(nativeType) == BibliographyItemType.Unknown;
 
+    private static bool HasNativeNbibPublicationTypes(BibliographyItem item, CancellationToken cancellationToken) =>
+        Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase));
+
     private static void WriteNbibPublicationTypes(StringBuilder builder, BibliographyFormat sourceFormat, BibliographyItem item, string lineEnding, BibliographyConversionReport report, CancellationToken cancellationToken) {
         BibliographyNativeField[] nativeTypes = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
         BibliographyItemType sourceType = nativeTypes.Select(field => CodecMappings.ParseType(field.Value)).FirstOrDefault(static type => type != BibliographyItemType.Unknown);
         bool preserveRecognizedSourceTypes = sourceType == item.Type;
         bool wroteTypedValue = false;
         foreach (BibliographyNativeField field in Cancellable(nativeTypes, cancellationToken)) {
-            BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
-            if (parsed == BibliographyItemType.Unknown) {
-                WriteTag(builder, "PT", field.Value, lineEnding);
-                report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, "Preserved an unrecognized NBIB publication type.", BibliographyConversionAction.PreservedExtension, item, "PT");
-            } else if (preserveRecognizedSourceTypes || parsed == item.Type) {
-                WriteTag(builder, "PT", field.Value, lineEnding);
-                if (parsed == item.Type) wroteTypedValue = true;
-            } else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Recognized NBIB publication type '{field.Value}' conflicts with the edited typed item kind and was omitted.", BibliographyConversionAction.Omitted, item, "PT");
+            wroteTypedValue |= WriteNbibPublicationTypeField(builder, item, field, preserveRecognizedSourceTypes, lineEnding, report);
         }
+        WriteNbibFallbackPublicationType(builder, sourceFormat, item, sourceType, wroteTypedValue, lineEnding);
+    }
+
+    private static void WriteNbibNativeFieldsAndPublicationTypes(StringBuilder builder, BibliographyFormat sourceFormat, BibliographyItem item, string lineEnding, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        BibliographyNativeField[] nativeTypes = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)).ToArray();
+        BibliographyItemType sourceType = nativeTypes.Select(field => CodecMappings.ParseType(field.Value)).FirstOrDefault(static type => type != BibliographyItemType.Unknown);
+        bool preserveRecognizedSourceTypes = sourceType == item.Type;
+        bool wroteTypedValue = false;
+        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
+            if (field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) {
+                wroteTypedValue |= WriteNbibPublicationTypeField(builder, item, field, preserveRecognizedSourceTypes, lineEnding, report);
+            } else WriteNativeField(builder, item, field, BibliographyFormat.Nbib, lineEnding, report);
+        }
+        WriteNbibFallbackPublicationType(builder, sourceFormat, item, sourceType, wroteTypedValue, lineEnding);
+    }
+
+    private static bool WriteNbibPublicationTypeField(StringBuilder builder, BibliographyItem item, BibliographyNativeField field, bool preserveRecognizedSourceTypes, string lineEnding, BibliographyConversionReport report) {
+        BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
+        if (parsed == BibliographyItemType.Unknown) {
+            WriteTag(builder, field.Name, field.Value, lineEnding);
+            report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, "Preserved an unrecognized NBIB publication type.", BibliographyConversionAction.PreservedExtension, item, field.Name);
+            return false;
+        }
+        if (preserveRecognizedSourceTypes || parsed == item.Type) {
+            WriteTag(builder, field.Name, field.Value, lineEnding);
+            return parsed == item.Type;
+        }
+        report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Recognized NBIB publication type '{field.Value}' conflicts with the edited typed item kind and was omitted.", BibliographyConversionAction.Omitted, item, field.Name);
+        return false;
+    }
+
+    private static void WriteNbibFallbackPublicationType(StringBuilder builder, BibliographyFormat sourceFormat, BibliographyItem item, BibliographyItemType sourceType, bool wroteTypedValue, string lineEnding) {
         bool preserveSourceAbsence = sourceFormat == BibliographyFormat.Nbib && item.Type == BibliographyItemType.ArticleJournal &&
             string.Equals(item.NativeType, "Journal Article", StringComparison.Ordinal) && sourceType == BibliographyItemType.Unknown;
         if (!wroteTypedValue && !preserveSourceAbsence && TryGetNbibPublicationType(item.Type, out string? publicationType)) WriteTag(builder, "PT", publicationType, lineEnding);
@@ -625,11 +655,15 @@ internal static class TaggedCodec {
     private static void WriteNativeFields(StringBuilder builder, BibliographyItem item, BibliographyFormat format, string lineEnding, BibliographyConversionReport report, CancellationToken cancellationToken) {
         foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
             if (format == BibliographyFormat.Nbib && field.Format == format && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) continue;
-            bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
-            if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name, field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
-            else if (field.Format != format) report.Add("BIBCONV113", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in {format}.", BibliographyConversionAction.Omitted, item, field.Name);
-            else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Native {format} field '{field.Name}' conflicts with a typed tag or has an unsafe name.", BibliographyConversionAction.Omitted, item, field.Name);
+            WriteNativeField(builder, item, field, format, lineEnding, report);
         }
+    }
+
+    private static void WriteNativeField(StringBuilder builder, BibliographyItem item, BibliographyNativeField field, BibliographyFormat format, string lineEnding, BibliographyConversionReport report) {
+        bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
+        if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name, field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
+        else if (field.Format != format) report.Add("BIBCONV113", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in {format}.", BibliographyConversionAction.Omitted, item, field.Name);
+        else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Native {format} field '{field.Name}' conflicts with a typed tag or has an unsafe name.", BibliographyConversionAction.Omitted, item, field.Name);
     }
 
     private static bool CanRemainNativeTaggedField(BibliographyItem item, BibliographyNativeField field, BibliographyFormat format) {
