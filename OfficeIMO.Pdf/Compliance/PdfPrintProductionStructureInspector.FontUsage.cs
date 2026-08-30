@@ -215,14 +215,33 @@ internal static partial class PdfPrintProductionStructureInspector {
 
         private bool AddPatternContent(string name, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {
             if (!TryResolveResource(resources, "Pattern", name, out PdfObject? patternObject) ||
-                ResolveObject(_objects, patternObject, 0, _limits.MaxObjectNestingDepth, out int patternDepth) is not PdfStream pattern ||
-                !PdfPrintProductionColorInspector.IsStructurallyValidTilingPatternResource(
-                    pattern.Dictionary,
+                ResolveObject(_objects, patternObject, 0, _limits.MaxObjectNestingDepth, out int patternDepth) is not PdfObject resolved) {
+                return false;
+            }
+            if (resolved is PdfStream tilingPattern &&
+                PdfPrintProductionColorInspector.IsStructurallyValidTilingPatternResource(
+                    tilingPattern.Dictionary,
                     patternDepth,
                     _objects,
-                    _limits.MaxObjectNestingDepth)) return false;
-            AddStream(pattern, ResolveStreamResources(pattern, resources), contentDepth, selectedFontObject);
-            return true;
+                    _limits.MaxObjectNestingDepth)) {
+                AddStream(tilingPattern, ResolveStreamResources(tilingPattern, resources), contentDepth, selectedFontObject);
+                return true;
+            }
+
+            PdfDictionary? shadingPattern = resolved switch {
+                PdfDictionary dictionary => dictionary,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+            if (shadingPattern == null ||
+                !PdfPrintProductionColorInspector.IsStructurallyValidShadingPatternResource(
+                    shadingPattern,
+                    patternDepth,
+                    _objects,
+                    _limits.MaxObjectNestingDepth,
+                    out PdfObject? graphicsStateObject)) return false;
+            return graphicsStateObject == null ||
+                AddSoftMaskContent(graphicsStateObject, resources, contentDepth, selectedFontObject);
         }
 
         private bool AddSoftMaskContent(PdfObject graphicsStateObject, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {

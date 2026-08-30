@@ -764,6 +764,40 @@ internal static partial class PdfPrintProductionColorInspector {
             IsStructurallyValidTilingPattern(pattern, patternDepth, objects, maximumObjectDepth);
     }
 
+    internal static bool IsStructurallyValidShadingPatternResource(
+        PdfDictionary pattern,
+        int patternDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out PdfObject? graphicsStateObject) {
+        graphicsStateObject = null;
+        if (!string.Equals(
+                ResolveName(
+                    pattern.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Pattern",
+                StringComparison.Ordinal) ||
+            !TryResolveInteger(pattern, "PatternType", objects, maximumObjectDepth, 2, 2, out _) ||
+            !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
+            ResolveObject(objects, shadingObject, patternDepth + 1, maximumObjectDepth) is not (PdfDictionary or PdfStream) ||
+            !HasOptionalExactFiniteNumberArray(pattern, "Matrix", 6, objects, maximumObjectDepth)) {
+            return false;
+        }
+
+        if (!pattern.Items.TryGetValue("ExtGState", out graphicsStateObject)) return true;
+        PdfObject? resolvedGraphicsState = ResolveObject(
+            objects,
+            graphicsStateObject,
+            patternDepth + 1,
+            maximumObjectDepth);
+        if (resolvedGraphicsState is PdfNull) {
+            graphicsStateObject = null;
+            return true;
+        }
+        return resolvedGraphicsState is PdfDictionary;
+    }
+
     internal static bool IsStructurallyValidFormXObject(
         PdfDictionary form,
         int formDepth,

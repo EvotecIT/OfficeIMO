@@ -1298,6 +1298,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void StructureInspectorAcceptsValidShadingPatternsWithoutFontContent() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Pattern cs /P1 scn",
+            resources:
+                "/Pattern << /P1 << /Type /Pattern /PatternType 2 " +
+                "/Shading << /ShadingType 3 /ColorSpace /DeviceCMYK >> >> >>");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(0, evidence.FontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Fact]
     public void StructureInspectorBoundsIndirectFontResourceGraphTraversal() {
         const int firstObject = 5;
         const int lastObject = 40;
