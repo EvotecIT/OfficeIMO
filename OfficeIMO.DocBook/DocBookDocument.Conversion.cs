@@ -713,7 +713,13 @@ public sealed partial class DocBookDocument {
         bool PrimaryTextShouldTakePrecedence(OfficeDocumentModelNode source) =>
             ShouldReplaceChildrenWithPrimaryText(source);
 
-        void AddFlatTable(OfficeDocumentModelTable source) {
+        bool AddFlatTable(OfficeDocumentModelTable source) {
+            if (source.Rows.Count == 0 || source.Rows.Any(row => row.Count == 0)) {
+                diagnostics.Add(new DocBookDiagnostic("DB126", DocBookDiagnosticSeverity.Warning,
+                    "The shared flat table was omitted because CALS requires at least one body row and one entry in every row.",
+                    source.Location?.HeadingPath));
+                return false;
+            }
             bool formal = !string.IsNullOrWhiteSpace(source.Title);
             DocBookNode table = formal ? document.Root.Add(DocBookNodeKind.Table) : document.Root.AddRaw("informaltable");
             if (formal) table.Add(DocBookNodeKind.Title, source.Title);
@@ -739,6 +745,7 @@ public sealed partial class DocBookDocument {
                     "Shared table summary metadata cannot be represented by the bounded DocBook table profile and was omitted.",
                     source.Location?.HeadingPath));
             }
+            return true;
         }
 
         bool AddFlatAsset(OfficeDocumentModelAsset source) {
@@ -829,8 +836,9 @@ public sealed partial class DocBookDocument {
                 AddSupplementaryDiagnostic("block", block.Id, block.Location?.HeadingPath);
             }
             foreach (OfficeDocumentModelTable table in model.Tables.Where(table => !IsDerivedTable(table, structureTableNodesByIndex, consumedTableNodes))) {
-                AddFlatTable(table);
-                AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
+                if (AddFlatTable(table)) {
+                    AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
+                }
             }
             foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodesById, structureParents))) {
                 if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
@@ -842,7 +850,7 @@ public sealed partial class DocBookDocument {
             document.Title = model.Source.Title;
             if (model.Blocks.Count > 0 || model.Tables.Count > 0 || model.Assets.Count > 0 || model.Links.Count > 0) {
                 diagnostics.Add(new DocBookDiagnostic("DB103", DocBookDiagnosticSeverity.Warning,
-                    "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were emitted as common DocBook structures."));
+                    "The shared model had no recursive Structure; flat Blocks, Tables, image Assets, and Links were processed as bounded common DocBook structures."));
             }
             foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddParagraph(block.Text);
             foreach (OfficeDocumentModelTable table in model.Tables) AddFlatTable(table);

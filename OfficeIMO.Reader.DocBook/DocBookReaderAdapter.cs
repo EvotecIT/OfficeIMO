@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Xml.Linq;
 using OfficeIMO;
 using OfficeIMO.DocBook;
 using OfficeIMO.Reader;
@@ -91,8 +92,9 @@ internal static partial class DocBookReaderAdapter {
         }
 
         IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null,
-            string? admonitionContext = null) {
+            string? admonitionContext = null, OfficeDocumentModelNode? suppressedTitle = null) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (ReferenceEquals(node, suppressedTitle)) yield break;
             if (IsIndexTerm(node.Kind)) yield break;
             string? nestedAdmonitionContext = IsAdmonition(node.Kind) ? node.Kind : admonitionContext;
             if (node.Kind == "itemized-list" || node.Kind == "ordered-list") {
@@ -107,10 +109,10 @@ internal static partial class DocBookReaderAdapter {
                     if (child.Kind == "list-item") {
                         string indentation = listMarker?.ContinuationPrefix ?? string.Empty;
                         var childMarker = new ListMarker(indentation + (ordered ? ordinal + ". " : "- "));
-                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, nestedAdmonitionContext)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, childMarker, nestedAdmonitionContext, suppressedTitle)) yield return chunk;
                         if (ordinal < long.MaxValue) ordinal++;
                     } else {
-                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext)) yield return chunk;
+                        foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext, suppressedTitle)) yield return chunk;
                     }
                 }
                 yield break;
@@ -118,7 +120,8 @@ internal static partial class DocBookReaderAdapter {
             int currentSource = sourceIndex++;
             bool preformatted = IsPreformatted(node.Kind);
             bool ownsInlineText = OwnsInlineText(node);
-            OfficeDocumentModelNode? inlineProjectionNode = ownsInlineText ? node : GetStructuralTitle(node);
+            OfficeDocumentModelNode? structuralTitle = ownsInlineText ? null : GetStructuralTitle(node);
+            OfficeDocumentModelNode? inlineProjectionNode = ownsInlineText ? node : structuralTitle;
             bool emittedInlineProjection = false;
             if (!preformatted && inlineProjectionNode != null &&
                 TryBuildInlineFragments(inlineProjectionNode, out IReadOnlyList<InlineFragment> inlineFragments)) {
@@ -129,7 +132,7 @@ internal static partial class DocBookReaderAdapter {
                         : DocumentReaderEngine.SplitAdapterProjection(fragment.Text, reader.MaxChars);
                     foreach (string fragmentPart in fragmentParts) {
                         string markdown = fragment.ToMarkdown(fragmentPart);
-                        if (inlinePart == 0 && (node.Kind == "section" || node.Kind == "title")) {
+                        if (inlinePart == 0 && IsHeadingNode(node)) {
                             markdown = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdown;
                         }
                         if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
@@ -154,10 +157,11 @@ internal static partial class DocBookReaderAdapter {
             }
             bool compoundExtension = node.Kind.StartsWith("extension:", StringComparison.Ordinal) &&
                 node.Children.Any(child => child.Kind != "text");
-            if (!emittedInlineProjection && !compoundExtension && !string.IsNullOrWhiteSpace(node.Text) &&
+            string projectedText = structuralTitle?.Text ?? node.Text;
+            if (!emittedInlineProjection && (!compoundExtension || structuralTitle != null) && !string.IsNullOrWhiteSpace(projectedText) &&
                 node.Kind != "metadata" && node.Kind != "author") {
-                IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(node.Text, reader.MaxChars);
-                string codeFence = preformatted ? CreateCodeFence(node.Text) : string.Empty;
+                IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(projectedText, reader.MaxChars);
+                string codeFence = preformatted ? CreateCodeFence(projectedText) : string.Empty;
                 for (int part = 0; part < parts.Count; part++) {
                     string markdown;
                     if (preformatted) {
@@ -165,7 +169,7 @@ internal static partial class DocBookReaderAdapter {
                             : (part == 0 ? codeFence + "\n" : string.Empty) + parts[part] +
                               (part == parts.Count - 1 ? "\n" + codeFence : string.Empty);
                     } else {
-                        markdown = part == 0 && (node.Kind == "section" || node.Kind == "title")
+                        markdown = part == 0 && IsHeadingNode(node)
                             ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " + parts[part]
                             : parts[part];
                     }
@@ -198,9 +202,9 @@ internal static partial class DocBookReaderAdapter {
                 };
             }
             if (!ownsInlineText) {
+                OfficeDocumentModelNode? childSuppressedTitle = structuralTitle ?? suppressedTitle;
                 foreach (OfficeDocumentModelNode child in node.Children) {
-                    if ((node.Kind == "section" || node.Kind == "table" || node.Kind == "figure") && child.Kind == "title") continue;
-                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext)) yield return chunk;
+                    foreach (ReaderChunk chunk in BuildNode(child, listMarker, nestedAdmonitionContext, childSuppressedTitle)) yield return chunk;
                 }
             }
         }
@@ -231,10 +235,48 @@ internal static partial class DocBookReaderAdapter {
          node.Children.All(child => child.Kind == "text") &&
          string.Equals(string.Concat(node.Children.Select(child => child.Text)), node.Text, StringComparison.Ordinal));
 
-    private static OfficeDocumentModelNode? GetStructuralTitle(OfficeDocumentModelNode node) =>
-        node.Kind == "section" || node.Kind == "table" || node.Kind == "figure"
-            ? node.Children.FirstOrDefault(child => child.Kind == "title")
-            : null;
+    private static OfficeDocumentModelNode? GetStructuralTitle(OfficeDocumentModelNode node) {
+        if (!IsStructuralTitleOwner(node)) return null;
+        OfficeDocumentModelNode? title = node.Children.FirstOrDefault(child => child.Kind == "title");
+        return title ?? node.Children
+            .Where(child => child.Kind == "metadata")
+            .SelectMany(child => child.Children)
+            .FirstOrDefault(child => child.Kind == "title");
+    }
+
+    private static bool IsHeadingNode(OfficeDocumentModelNode node) =>
+        node.Kind == "title" || IsStructuralTitleOwner(node);
+
+    private static bool IsStructuralTitleOwner(OfficeDocumentModelNode node) =>
+        node.Kind == "section" || node.Kind == "table" || node.Kind == "figure" || IsBookComponentKind(node.Kind);
+
+    private static bool IsBookComponentKind(string kind) {
+        const string prefix = "extension:";
+        if (!kind.StartsWith(prefix, StringComparison.Ordinal)) return false;
+        XName name;
+        try {
+            name = XName.Get(kind.Substring(prefix.Length));
+        } catch (ArgumentException) {
+            return false;
+        }
+        if (name.NamespaceName.Length > 0 &&
+            !string.Equals(name.NamespaceName, DocBookSchemaProfiles.DocBook52.NamespaceUri, StringComparison.Ordinal)) return false;
+        switch (name.LocalName) {
+            case "chapter":
+            case "appendix":
+            case "article":
+            case "bibliography":
+            case "glossary":
+            case "index":
+            case "part":
+            case "preface":
+            case "reference":
+            case "setindex":
+                return true;
+            default:
+                return false;
+        }
+    }
 
     private static string CreateCodeFence(string text) {
         int backticks = LongestRun(text, '`');

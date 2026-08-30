@@ -156,6 +156,22 @@ public sealed class DocBookDocumentTests {
         Assert.True(document.Validate().IsValid);
     }
 
+    [Theory]
+    [InlineData("<tbody/>", "tbody")]
+    [InlineData("<thead/><tbody><row><entry>Value</entry></row></tbody>", "thead")]
+    [InlineData("<tfoot/><tbody><row><entry>Value</entry></row></tbody>", "tfoot")]
+    [InlineData("<tbody><row/></tbody>", "row")]
+    public void ValidationRejectsEmptyCalsContainers(string tableContent, string expectedContainer) {
+        string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\">" +
+            tableContent + "</tgroup></informaltable></article>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB012" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf(expectedContainer, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
     [Fact]
     public void CrossReferenceRejectsDirectTextAndValidationRejectsTextContent() {
         DocBookDocument document = DocBookDocument.CreateArticle();
@@ -1544,6 +1560,30 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("table", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" &&
             diagnostic.Message.IndexOf("summary", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedReverseConversionOmitsFlatTablesWithoutCalsBodyContent(bool includeEmptyRow) {
+        var table = new OfficeDocumentModelTable {
+            Columns = new[] { "Value" },
+            Rows = includeEmptyRow
+                ? new IReadOnlyList<string>[] { Array.Empty<string>() }
+                : Array.Empty<IReadOnlyList<string>>()
+        };
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Tables = new[] { table }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB126");
+        Assert.DoesNotContain(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "table" || element.Name.LocalName == "informaltable");
+        Assert.True(converted.Value.Validate().IsValid);
     }
 
     [Fact]

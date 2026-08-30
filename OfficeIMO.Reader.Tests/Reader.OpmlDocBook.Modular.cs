@@ -55,6 +55,21 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.Xml, reader.DetectKind("guide.xml"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DocBookAdapterPreservesBookComponentHeadingHierarchy(bool docBookFive) {
+        string source = docBookFive
+            ? "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><title>Chapter</title><section><title>Section</title><para>Body</para></section></chapter><appendix><info><title>Appendix</title></info><para>Tail</para></appendix></book>"
+            : "<book><chapter><title>Chapter</title><section><title>Section</title><para>Body</para></section></chapter><appendix><appendixinfo><title>Appendix</title></appendixinfo><para>Tail</para></appendix></book>";
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(DocBookDocument.Parse(source)).ToArray();
+
+        Assert.Equal("# Chapter", Assert.Single(chunks, chunk => chunk.Text == "Chapter").Markdown);
+        Assert.Equal("## Section", Assert.Single(chunks, chunk => chunk.Text == "Section").Markdown);
+        Assert.Equal("# Appendix", Assert.Single(chunks, chunk => chunk.Text == "Appendix").Markdown);
+    }
+
     [Fact]
     public void DocBookAdapterPublishesBoundedCalsTablesAndConversionWarnings() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"2\"><colspec colname=\"c1\"/><colspec colname=\"c2\"/><thead><row><entry namest=\"c1\" nameend=\"c2\">Values</entry></row></thead><tbody><row><entry>A</entry><entry>1</entry></row><row><entry>B</entry><entry>2</entry></row></tbody></tgroup></informaltable></article>";

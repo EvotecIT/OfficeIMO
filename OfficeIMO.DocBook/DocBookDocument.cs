@@ -230,6 +230,15 @@ public sealed partial class DocBookDocument {
             if (kind == DocBookNodeKind.ListItem && !element.Elements().Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error, "listitem must contain content.", path));
             }
+            if ((kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody || localName == "tfoot") &&
+                !element.Elements(Namespace + "row").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    $"{localName} must contain at least one row.", path));
+            }
+            if (kind == DocBookNodeKind.Row && !element.Elements(Namespace + "entry").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    "row must contain at least one entry.", path));
+            }
             if (kind == DocBookNodeKind.ImageData && string.IsNullOrWhiteSpace((string?)element.Attribute("fileref"))) {
                 diagnostics.Add(new DocBookDiagnostic("DB013", DocBookDiagnosticSeverity.Error, "imagedata requires fileref.", path));
             }
