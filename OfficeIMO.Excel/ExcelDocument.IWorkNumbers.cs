@@ -74,12 +74,19 @@ public partial class ExcelDocument {
                                 IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
                                     && cell.Value is double formulaSeconds => TimeSpan.FromSeconds(formulaSeconds),
                                 IWorkCellKind.Formula when cell.Value != null => cell.Value,
-                                IWorkCellKind.Formula or IWorkCellKind.Error => cell.DisplayText,
+                                IWorkCellKind.Formula => cell.DisplayText,
                                 IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
                                 _ => cell.Value
                             };
                             ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
-                            targetCell.SetValue(value);
+                            bool hasNativeError = cell.Kind == IWorkCellKind.Error
+                                || cell.Kind == IWorkCellKind.Formula
+                                    && cell.ValueKind == IWorkCellKind.Error;
+                            if (hasNativeError) {
+                                sheet.CellError(cell.Row, cell.Column, ExcelErrorLiteral(cell));
+                            } else {
+                                targetCell.SetValue(value);
+                            }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
                                 targetCell.SetBold();
@@ -118,6 +125,17 @@ public partial class ExcelDocument {
             document.Dispose();
             throw;
         }
+    }
+
+    private static string ExcelErrorLiteral(IWorkTableCell cell) {
+        string value = cell.Kind == IWorkCellKind.Formula
+            ? cell.CachedDisplayText
+            : cell.DisplayText;
+        return value switch {
+            "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"
+                or "#NUM!" or "#N/A" or "#GETTING_DATA" => value,
+            _ => "#VALUE!"
+        };
     }
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {

@@ -1097,21 +1097,23 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] CreateBncRow(TableSpec table) {
         int cellOffset = table.WideOffsets ? 4 : 0;
-        int valueBytes = table.FormulaWithoutCachedValue ? 0 : table.Decimal128HighBit ? 16 : 8;
+        int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
+            : table.Decimal128HighBit ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
-        buffer[cellOffset + 1] = table.FormulaWithoutCachedValue ? (byte)9
+        buffer[cellOffset + 1] = table.Error ? (byte)8
+            : table.FormulaWithoutCachedValue ? (byte)9
             : table.TextValue != null ? (byte)3
             : table.Date ? (byte)5
             : table.Duration ? (byte)7
             : (byte)2;
-        uint valueFlag = table.FormulaWithoutCachedValue ? 0
+        uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.TextValue != null ? 1u << 3
             : table.Decimal128HighBit ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
-        if (!table.FormulaWithoutCachedValue) {
+        if (!table.FormulaWithoutCachedValue && !table.Error) {
             if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
             else if (table.Decimal128HighBit) {
                 buffer[cellOffset + 26] = 0x41;
@@ -1404,7 +1406,7 @@ public sealed partial class IWorkBoundaryTests {
             bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
             bool duplicateFormula = false, bool wrongWireDimensions = false,
             bool oddCurrentOffsets = false, double? defaultRowHeight = null,
-            int headerRows = 0, int footerRows = 0) {
+            int headerRows = 0, int footerRows = 0, bool error = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1431,6 +1433,7 @@ public sealed partial class IWorkBoundaryTests {
             DefaultRowHeight = defaultRowHeight;
             HeaderRows = headerRows;
             FooterRows = footerRows;
+            Error = error;
         }
 
         internal string Name { get; }
@@ -1459,5 +1462,6 @@ public sealed partial class IWorkBoundaryTests {
         internal double? DefaultRowHeight { get; }
         internal int HeaderRows { get; }
         internal int FooterRows { get; }
+        internal bool Error { get; }
     }
 }

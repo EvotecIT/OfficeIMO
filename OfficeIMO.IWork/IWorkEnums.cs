@@ -55,3 +55,13 @@ public enum IWorkCellKind {
     Formula,
     Error
 }
+
+/// <summary>Identifies one drawable recovered from a Keynote slide.</summary>
+public enum IWorkKeynoteDrawableKind {
+    /// <summary>A positioned rich-text shape.</summary>
+    TextBox,
+    /// <summary>An embedded raster image.</summary>
+    Image,
+    /// <summary>An editable table.</summary>
+    Table
+}

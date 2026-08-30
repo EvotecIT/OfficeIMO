@@ -24,9 +24,63 @@ internal static class IWorkPdfInfo {
     }
 
     private static bool IsClassicXref(byte[] bytes, int offset, int limit) {
-        offset += 4;
         var inUseOffsets = new Dictionary<(long Object, long Generation), int>();
+        var seenObjects = new HashSet<long>();
+        var visitedXrefs = new HashSet<int>();
+        long totalEntries = 0;
+        long? size = null;
+        long? rootObject = null;
+        long rootGeneration = 0;
+        int objectLimit = -1;
+        int currentXref = offset;
+        bool chainComplete = false;
+        for (int depth = 0; depth < 128; depth++) {
+            if (!visitedXrefs.Add(currentXref)
+                || !TryReadClassicXref(bytes, currentXref, limit, inUseOffsets,
+                    seenObjects, ref totalEntries, out int trailerOffset, out long sectionSize,
+                    out bool hasRoot, out long sectionRootObject, out long sectionRootGeneration,
+                    out bool hasPrevious, out long previousOffset)) return false;
+            objectLimit = objectLimit < 0 ? trailerOffset : objectLimit;
+            size ??= sectionSize;
+            if (!rootObject.HasValue && hasRoot) {
+                rootObject = sectionRootObject;
+                rootGeneration = sectionRootGeneration;
+            }
+            if (!hasPrevious) {
+                chainComplete = true;
+                break;
+            }
+            if (previousOffset < 0 || previousOffset >= currentXref || previousOffset > int.MaxValue) return false;
+            currentXref = (int)previousOffset;
+            SkipWhitespace(bytes, ref currentXref, limit);
+            if (!StartsWith(bytes, currentXref, "xref")) return false;
+        }
+        if (!chainComplete || !size.HasValue || !rootObject.HasValue
+            || rootObject.Value <= 0 || rootObject.Value >= size.Value
+            || !inUseOffsets.TryGetValue((rootObject.Value, rootGeneration), out int rootOffset)) return false;
+        if (!IsCatalogObjectAt(bytes, rootOffset, objectLimit, rootObject.Value, rootGeneration,
+                out long pagesObject, out long pagesGeneration)
+            || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
+        var visited = new HashSet<(long Object, long Generation)>();
+        return IsCompletePageTree(bytes, inUseOffsets, pagesOffset, objectLimit,
+            pagesObject, pagesGeneration, parent: null, visited, depth: 0, out _);
+    }
+
+    private static bool TryReadClassicXref(byte[] bytes, int offset, int limit,
+        IDictionary<(long Object, long Generation), int> inUseOffsets,
+        ISet<long> seenObjects, ref long totalEntries, out int trailerOffset,
+        out long size, out bool hasRoot, out long rootObject, out long rootGeneration,
+        out bool hasPrevious, out long previousOffset) {
+        trailerOffset = -1;
+        size = 0;
+        hasRoot = false;
+        rootObject = 0;
+        rootGeneration = 0;
+        hasPrevious = false;
+        previousOffset = 0;
+        offset += 4;
         bool hasSubsection = false;
+        var tableObjects = new HashSet<long>();
         while (offset < limit) {
             SkipWhitespace(bytes, ref offset, limit);
             if (StartsWith(bytes, offset, "trailer")) break;
@@ -34,7 +88,9 @@ internal static class IWorkPdfInfo {
             SkipWhitespace(bytes, ref offset, limit);
             if (!TryReadDecimal(bytes, ref offset, limit, out long entryCount)
                 || entryCount <= 0 || entryCount > 1_000_000
-                || firstObject > long.MaxValue - (entryCount - 1)) return false;
+                || firstObject > long.MaxValue - (entryCount - 1)
+                || totalEntries > 1_000_000 - entryCount) return false;
+            totalEntries += entryCount;
             hasSubsection = true;
             for (long index = 0; index < entryCount; index++) {
                 SkipWhitespace(bytes, ref offset, limit);
@@ -45,29 +101,32 @@ internal static class IWorkPdfInfo {
                 if (offset >= limit || bytes[offset] != (byte)'n' && bytes[offset] != (byte)'f') return false;
                 bool inUse = bytes[offset++] == (byte)'n';
                 if (!ConsumeLineEnd(bytes, ref offset, limit)) return false;
-                if (inUse && objectOffset <= int.MaxValue) {
-                    if (inUseOffsets.ContainsKey((checked(firstObject + index), generation))) return false;
-                    inUseOffsets.Add((checked(firstObject + index), generation), (int)objectOffset);
+                long objectNumber = checked(firstObject + index);
+                if (!tableObjects.Add(objectNumber)) return false;
+                if (seenObjects.Add(objectNumber) && inUse && objectOffset <= int.MaxValue) {
+                    inUseOffsets.Add((objectNumber, generation), (int)objectOffset);
                 }
             }
         }
         if (!hasSubsection || !StartsWith(bytes, offset, "trailer")) return false;
+        trailerOffset = offset;
         int dictionaryStart = IndexOf(bytes, "<<", offset + 7, Math.Min(limit, offset + 65536));
         if (dictionaryStart < 0) return false;
         int dictionaryEnd = IndexOf(bytes, ">>", dictionaryStart + 2, Math.Min(limit, dictionaryStart + 65536));
         if (dictionaryEnd < 0
-            || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Size", out long size)
-            || size <= 0
-            || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Root",
-                out long rootObject, out long rootGeneration)
-            || rootObject <= 0 || rootObject >= size
-            || !inUseOffsets.TryGetValue((rootObject, rootGeneration), out int rootOffset)) return false;
-        if (!IsCatalogObjectAt(bytes, rootOffset, offset, rootObject, rootGeneration,
-                out long pagesObject, out long pagesGeneration)
-            || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
-        var visited = new HashSet<(long Object, long Generation)>();
-        return IsCompletePageTree(bytes, inUseOffsets, pagesOffset, offset,
-            pagesObject, pagesGeneration, parent: null, visited, depth: 0, out _);
+            || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Size", out size)
+            || size <= 0 || IndexOfDictionaryName(bytes, "/XRefStm", dictionaryStart, dictionaryEnd) >= 0) {
+            return false;
+        }
+        int rootName = IndexOfDictionaryName(bytes, "/Root", dictionaryStart, dictionaryEnd);
+        hasRoot = rootName >= 0;
+        if (hasRoot && (!TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Root",
+                out rootObject, out rootGeneration) || rootObject <= 0 || rootObject >= size)) return false;
+        int previousName = IndexOfDictionaryName(bytes, "/Prev", dictionaryStart, dictionaryEnd);
+        hasPrevious = previousName >= 0;
+        if (hasPrevious && !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd,
+                "/Prev", out previousOffset)) return false;
+        return true;
     }
 
     private static bool TryReadFixedDecimal(byte[] bytes, ref int offset, int limit, int digits, out long value) {

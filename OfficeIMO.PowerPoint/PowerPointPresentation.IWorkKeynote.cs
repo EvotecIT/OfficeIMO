@@ -53,6 +53,8 @@ public sealed partial class PowerPointPresentation {
         PowerPointPresentation presentation = Create();
         try {
             if (editable) {
+                double canvasWidth = projection.SlideSize?.WidthPoints ?? 960d;
+                double canvasHeight = projection.SlideSize?.HeightPoints ?? 540d;
                 if (projection.SlideSize != null) {
                     presentation.SlideSize.SetSizePoints(projection.SlideSize.WidthPoints,
                         projection.SlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
@@ -61,35 +63,26 @@ public sealed partial class PowerPointPresentation {
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
-                    if (sourceSlide.TitleBox != null) {
-                        AddRichTextBox(slide, sourceSlide.TitleBox,
-                            46.8, 32.4, 864, 72);
-                    }
-                    foreach (IWorkTextBox textBox in sourceSlide.TextBoxes) {
-                        AddRichTextBox(slide, textBox,
-                            61.2, 118.8, 835.2, 352.8);
-                    }
-                    foreach (IWorkTable sourceTable in sourceSlide.Tables) {
-                        AddEditableTable(slide, sourceTable);
-                    }
-                    foreach (IWorkImageAsset sourceImage in sourceSlide.Images.Where(image =>
-                                 image.MediaType is "image/png" or "image/jpeg")) {
-                        double left = sourceImage.Geometry?.LeftPoints ?? 72;
-                        double top = sourceImage.Geometry?.TopPoints ?? 72;
-                        double width = sourceImage.Geometry?.WidthPoints
-                            ?? sourceImage.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
-                        double height = sourceImage.Geometry?.HeightPoints
-                            ?? sourceImage.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
-                        using var stream = new MemoryStream(sourceImage.GetBytes(), writable: false);
-                        PowerPointPicture picture = slide.AddPicturePoints(stream,
-                            sourceImage.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
-                            left, top, width, height);
-                        picture.Rotation = sourceImage.Geometry?.RotationDegrees;
-                        picture.AltText = sourceImage.AccessibilityDescription;
-                        if (sourceImage.Hyperlink != null
-                            && Uri.TryCreate(sourceImage.Hyperlink, UriKind.Absolute,
-                                out Uri? imageLink)) {
-                            picture.SetHyperlink(imageLink);
+                    foreach (IWorkKeynoteDrawable drawable in sourceSlide.Drawables) {
+                        switch (drawable.Kind) {
+                            case IWorkKeynoteDrawableKind.TextBox:
+                                IWorkTextBox textBox = drawable.TextBox!;
+                                if (drawable.IsTitlePlaceholder) {
+                                    AddRichTextBox(slide, textBox,
+                                        canvasWidth * 0.04875d, canvasHeight * 0.06d,
+                                        canvasWidth * 0.9d, canvasHeight / 7.5d);
+                                } else {
+                                    AddRichTextBox(slide, textBox,
+                                        canvasWidth * 0.06375d, canvasHeight * 0.22d,
+                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d);
+                                }
+                                break;
+                            case IWorkKeynoteDrawableKind.Table:
+                                AddEditableTable(slide, drawable.Table!);
+                                break;
+                            case IWorkKeynoteDrawableKind.Image:
+                                AddEditableImage(slide, drawable.Image!);
+                                break;
                         }
                     }
                     if (sourceSlide.PresenterNoteContent.Paragraphs.Count > 0) {
@@ -170,6 +163,26 @@ public sealed partial class PowerPointPresentation {
             for (int row = 0; row < source.RowCount; row++) {
                 table.SetRowHeightPoints(row, rowHeight);
             }
+        }
+    }
+
+    private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source) {
+        if (source.MediaType is not "image/png" and not "image/jpeg") return;
+        double left = source.Geometry?.LeftPoints ?? 72;
+        double top = source.Geometry?.TopPoints ?? 72;
+        double width = source.Geometry?.WidthPoints
+            ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
+        double height = source.Geometry?.HeightPoints
+            ?? source.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
+        using var stream = new MemoryStream(source.GetBytes(), writable: false);
+        PowerPointPicture picture = slide.AddPicturePoints(stream,
+            source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
+            left, top, width, height);
+        picture.Rotation = source.Geometry?.RotationDegrees;
+        picture.AltText = source.AccessibilityDescription;
+        if (source.Hyperlink != null
+            && Uri.TryCreate(source.Hyperlink, UriKind.Absolute, out Uri? imageLink)) {
+            picture.SetHyperlink(imageLink);
         }
     }
 

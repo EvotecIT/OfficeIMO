@@ -2,11 +2,42 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
+/// <summary>One typed Keynote drawable retained in source stacking order.</summary>
+public sealed class IWorkKeynoteDrawable {
+    internal IWorkKeynoteDrawable(IWorkTextBox textBox, bool isTitlePlaceholder) {
+        Kind = IWorkKeynoteDrawableKind.TextBox;
+        TextBox = textBox;
+        IsTitlePlaceholder = isTitlePlaceholder;
+    }
+
+    internal IWorkKeynoteDrawable(IWorkImageAsset image) {
+        Kind = IWorkKeynoteDrawableKind.Image;
+        Image = image;
+    }
+
+    internal IWorkKeynoteDrawable(IWorkTable table) {
+        Kind = IWorkKeynoteDrawableKind.Table;
+        Table = table;
+    }
+
+    /// <summary>Gets the drawable kind.</summary>
+    public IWorkKeynoteDrawableKind Kind { get; }
+    /// <summary>Gets the text-box payload when <see cref="Kind"/> is <see cref="IWorkKeynoteDrawableKind.TextBox"/>.</summary>
+    public IWorkTextBox? TextBox { get; }
+    /// <summary>Gets the image payload when <see cref="Kind"/> is <see cref="IWorkKeynoteDrawableKind.Image"/>.</summary>
+    public IWorkImageAsset? Image { get; }
+    /// <summary>Gets the table payload when <see cref="Kind"/> is <see cref="IWorkKeynoteDrawableKind.Table"/>.</summary>
+    public IWorkTable? Table { get; }
+    /// <summary>Gets whether this drawable is the slide title placeholder.</summary>
+    public bool IsTitlePlaceholder { get; }
+}
+
 /// <summary>One Keynote slide recovered in presentation order.</summary>
 public sealed class IWorkKeynoteSlide {
     internal IWorkKeynoteSlide(int index, string name, IWorkTextBox? titleBox,
         IReadOnlyList<IWorkTextBox> textBoxes, IWorkTextContent presenterNoteContent,
-        IReadOnlyList<IWorkImageAsset> images, IReadOnlyList<IWorkTable> tables, bool isSkipped) {
+        IReadOnlyList<IWorkImageAsset> images, IReadOnlyList<IWorkTable> tables,
+        IReadOnlyList<IWorkKeynoteDrawable> drawables, bool isSkipped) {
         Index = index;
         Name = name;
         TitleBox = titleBox;
@@ -14,6 +45,7 @@ public sealed class IWorkKeynoteSlide {
         PresenterNoteContent = presenterNoteContent;
         Images = Array.AsReadOnly(images.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
+        Drawables = Array.AsReadOnly(drawables.ToArray());
         Title = titleBox?.Content.PlainText ?? string.Empty;
         Body = Array.AsReadOnly(TextBoxes.Select(textBox => textBox.Content.PlainText)
             .Where(text => text.Length > 0).ToArray());
@@ -35,6 +67,8 @@ public sealed class IWorkKeynoteSlide {
     public IReadOnlyList<IWorkImageAsset> Images { get; }
     /// <summary>Gets editable tables in drawable order.</summary>
     public IReadOnlyList<IWorkTable> Tables { get; }
+    /// <summary>Gets text boxes, images, and tables in their shared source stacking order.</summary>
+    public IReadOnlyList<IWorkKeynoteDrawable> Drawables { get; }
     /// <summary>Gets title-placeholder text.</summary>
     public string Title { get; }
     /// <summary>Gets remaining editable text blocks.</summary>
@@ -239,13 +273,17 @@ internal static class IWorkKeynoteReader {
         var textBoxes = new List<IWorkTextBox>();
         var images = new List<IWorkImageAsset>();
         var tables = new List<IWorkTable>();
+        var drawables = new List<IWorkKeynoteDrawable>();
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord drawable in candidates) {
             if (drawable.MessageType == 6000) {
                 projectionBudget.AddTable();
                 IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
                     ref materializedCellCount, ref supportsEditableReconstruction);
-                if (table != null) tables.Add(table);
+                if (table != null) {
+                    tables.Add(table);
+                    drawables.Add(new IWorkKeynoteDrawable(table));
+                }
                 continue;
             }
             if (drawable.MessageType == 3005) {
@@ -260,6 +298,7 @@ internal static class IWorkKeynoteReader {
                         drawable.EntryPath, drawable.Identifier));
                 } else {
                     images.Add(image);
+                    drawables.Add(new IWorkKeynoteDrawable(image));
                 }
                 continue;
             }
@@ -327,6 +366,7 @@ internal static class IWorkKeynoteReader {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
                 title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
+                drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
                 if (index.Dereference(message, 6)?.Identifier == drawable.Identifier) {
                     IWorkWireMessage? bodyGeometry = IWorkObjectIndex.TryGetMessage(
@@ -348,7 +388,9 @@ internal static class IWorkKeynoteReader {
                 if (!metadataComplete) {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
-                textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
+                var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
+                textBoxes.Add(textBox);
+                drawables.Add(new IWorkKeynoteDrawable(textBox, isTitlePlaceholder: false));
             }
         }
 
@@ -373,7 +415,7 @@ internal static class IWorkKeynoteReader {
         }
         if (slideName != null) projectionBudget.AddTextCharacters(slideName.Length);
         return new IWorkKeynoteSlide(position, slideName ?? string.Empty,
-            title, textBoxes, notes, images, tables, skipped);
+            title, textBoxes, notes, images, tables, drawables, skipped);
     }
 
     private static void MarkDrawableIncomplete(IWorkArchiveRecord drawable,
