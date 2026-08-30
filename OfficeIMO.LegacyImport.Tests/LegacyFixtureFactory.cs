@@ -236,6 +236,20 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] Wq1WithNamedRangeOnSecondSheet() {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x20, 0x51 });
+        byte[] name = NamePayload("Second", 0, 0, 1, 0);
+        name[17] = 1;
+        name[21] = 1;
+        Record(writer, 0x000B, name);
+        Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)7), sheet: 1));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] WkMultiSheet(byte product0 = 0x06, byte product1 = 0x04) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);

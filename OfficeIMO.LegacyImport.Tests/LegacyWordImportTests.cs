@@ -108,6 +108,37 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProDocumentDirectivesRemainExplicitLoss() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n>directive payload\nVisible\n"),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Equal("Visible", imported.PlainText);
+        Assert.Equal("1", imported.Metadata["AmiProDocumentDirectiveCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_DOCUMENT_DIRECTIVE_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void AmiProUnsupportedStyleFlagsRemainExplicitLoss() {
+        string source = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro())
+            .Replace("\n16385\n", "\n16513\n", StringComparison.Ordinal)
+            .Replace("[algn]\n1\n", "[algn]\n17\n", StringComparison.Ordinal)
+            .Replace("[spc]\n1\n", "[spc]\n17\n", StringComparison.Ordinal)
+            .Replace("[brk]\n16\n", "[brk]\n18\n", StringComparison.Ordinal);
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(source),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Equal("0x80", imported.Metadata["AmiProUnsupportedStyleFlags.Formatting"]);
+        Assert.Equal("0x10", imported.Metadata["AmiProUnsupportedStyleFlags.Alignment"]);
+        Assert.Equal("0x10", imported.Metadata["AmiProUnsupportedStyleFlags.Spacing"]);
+        Assert.Equal("0x2", imported.Metadata["AmiProUnsupportedStyleFlags.Break"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_FLAGS_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
     public void WordStarPreservesRepeatedAndTrailingPageBreaks() {
         byte[] source = new byte[] { 0x02, 0x02 }
             .Concat(Encoding.ASCII.GetBytes("First\r\n"))

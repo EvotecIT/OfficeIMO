@@ -10,6 +10,12 @@ namespace OfficeIMO.Word.Legacy;
 
 /// <summary>Bounded semantic parser for the documented Ami Pro SAM version 4 tagged-text profile.</summary>
 internal sealed class AmiProSamParser {
+    private const uint DecodedStyleFormattingMask = 0x004F;
+    private const uint PermittedReservedStyleFormattingMask = 0x4000;
+    private const uint SupportedStyleFormattingMask = DecodedStyleFormattingMask | PermittedReservedStyleFormattingMask;
+    private const uint SupportedStyleAlignmentMask = 0x000F;
+    private const uint SupportedStyleSpacingMask = 0x000F;
+    private const uint SupportedStyleBreakMask = 0x0015;
     private readonly string[] _lines;
     private readonly OfficeLegacyImportLimits _limits;
     private readonly CancellationToken _cancellationToken;
@@ -26,6 +32,12 @@ internal sealed class AmiProSamParser {
     private int _malformedStyleBlockCount;
     private int _duplicateStyleCount;
     private int _malformedInlineTagCount;
+    private int _documentDirectiveCount;
+    private int _unsupportedStyleFlagCount;
+    private uint _unsupportedStyleFormattingFlags;
+    private uint _unsupportedStyleAlignmentFlags;
+    private uint _unsupportedStyleSpacingFlags;
+    private uint _unsupportedStyleBreakFlags;
 
     internal AmiProSamParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         _limits = limits;
@@ -72,6 +84,14 @@ internal sealed class AmiProSamParser {
         if (_malformedStyleBlockCount > 0) _model.Metadata["AmiProMalformedStyleBlockCount"] = _malformedStyleBlockCount.ToString(CultureInfo.InvariantCulture);
         if (_duplicateStyleCount > 0) _model.Metadata["AmiProDuplicateStyleCount"] = _duplicateStyleCount.ToString(CultureInfo.InvariantCulture);
         if (_malformedInlineTagCount > 0) _model.Metadata["AmiProMalformedInlineTagCount"] = _malformedInlineTagCount.ToString(CultureInfo.InvariantCulture);
+        if (_documentDirectiveCount > 0) _model.Metadata["AmiProDocumentDirectiveCount"] = _documentDirectiveCount.ToString(CultureInfo.InvariantCulture);
+        if (_unsupportedStyleFlagCount > 0) {
+            _model.Metadata["AmiProUnsupportedStyleFlagCount"] = _unsupportedStyleFlagCount.ToString(CultureInfo.InvariantCulture);
+            AddUnsupportedStyleFlagMetadata("Formatting", _unsupportedStyleFormattingFlags);
+            AddUnsupportedStyleFlagMetadata("Alignment", _unsupportedStyleAlignmentFlags);
+            AddUnsupportedStyleFlagMetadata("Spacing", _unsupportedStyleSpacingFlags);
+            AddUnsupportedStyleFlagMetadata("Break", _unsupportedStyleBreakFlags);
+        }
         return _model;
     }
 
@@ -107,6 +127,8 @@ internal sealed class AmiProSamParser {
         if (!int.TryParse(lines[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int fontTwips)) return null;
         if (!uint.TryParse(lines[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint color)) color = 0;
         if (!uint.TryParse(lines[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint formatting)) formatting = 0;
+        uint unsupportedFormatting = formatting & ~SupportedStyleFormattingMask;
+        RecordUnsupportedStyleFlags(unsupportedFormatting, ref _unsupportedStyleFormattingFlags);
         var style = new AmiStyle {
             Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = Math.Max(1d, fontTwips / 20d),
             ColorHex = $"{color & 0xFF:X2}{(color >> 8) & 0xFF:X2}{(color >> 16) & 0xFF:X2}",
@@ -114,10 +136,14 @@ internal sealed class AmiProSamParser {
             Underline = (formatting & 64) != 0 ? WordUnderlineStyle.Double : (formatting & 8) != 0 ? WordUnderlineStyle.Words : (formatting & 4) != 0 ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null
         };
         int alignIndex = lines.FindIndex(static value => string.Equals(value, "[algn]", StringComparison.OrdinalIgnoreCase));
-        if (alignIndex >= 0 && alignIndex + 1 < lines.Count && uint.TryParse(lines[alignIndex + 1], out uint alignment)) style.Alignment = DecodeAlignment(alignment);
+        if (alignIndex >= 0 && alignIndex + 1 < lines.Count && uint.TryParse(lines[alignIndex + 1], out uint alignment)) {
+            RecordUnsupportedStyleFlags(alignment & ~SupportedStyleAlignmentMask, ref _unsupportedStyleAlignmentFlags);
+            style.Alignment = DecodeAlignment(alignment);
+        }
         int spacingIndex = lines.FindIndex(static value => string.Equals(value, "[spc]", StringComparison.OrdinalIgnoreCase));
         if (spacingIndex >= 0 && spacingIndex + 5 < lines.Count) {
             if (uint.TryParse(lines[spacingIndex + 1], out uint spacing)) {
+                RecordUnsupportedStyleFlags(spacing & ~SupportedStyleSpacingMask, ref _unsupportedStyleSpacingFlags);
                 if ((spacing & 1) != 0) style.LineSpacingPoints = 12;
                 else if ((spacing & 2) != 0) style.LineSpacingPoints = 18;
                 else if ((spacing & 4) != 0) style.LineSpacingPoints = 24;
@@ -128,11 +154,24 @@ internal sealed class AmiProSamParser {
         }
         int breakIndex = lines.FindIndex(static value => string.Equals(value, "[brk]", StringComparison.OrdinalIgnoreCase));
         if (breakIndex >= 0 && breakIndex + 1 < lines.Count && uint.TryParse(lines[breakIndex + 1], out uint breaks)) {
+            RecordUnsupportedStyleFlags(breaks & ~SupportedStyleBreakMask, ref _unsupportedStyleBreakFlags);
             style.PageBreakBefore = (breaks & 1) != 0;
             style.KeepWithNext = (breaks & 16) != 0;
             style.KeepLinesTogether = (breaks & 4) == 0;
         }
         return style;
+    }
+
+    private void RecordUnsupportedStyleFlags(uint unsupported, ref uint aggregate) {
+        if (unsupported == 0) return;
+        aggregate |= unsupported;
+        if (++_unsupportedStyleFlagCount == 1) {
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_FLAGS_UNSUPPORTED", "Styles", "One or more Ami Pro style fields used flag bits outside the bounded profile; supported formatting was retained and per-field unsupported aggregates are available in metadata."));
+        }
+    }
+
+    private void AddUnsupportedStyleFlagMetadata(string field, uint flags) {
+        if (flags != 0) _model.Metadata["AmiProUnsupportedStyleFlags." + field] = "0x" + flags.ToString("X", CultureInfo.InvariantCulture);
     }
 
     private void ParseDocument() {
@@ -150,7 +189,12 @@ internal sealed class AmiProSamParser {
                 FlushParagraph(paragraphLines);
                 continue;
             }
-            if (line.StartsWith(">", StringComparison.Ordinal)) continue;
+            if (line.StartsWith(">", StringComparison.Ordinal)) {
+                if (++_documentDirectiveCount == 1) {
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_DOCUMENT_DIRECTIVE_UNSUPPORTED", "Structure", "One or more Ami Pro document directive lines were kept inert and omitted; their total is available in metadata."));
+                }
+                continue;
+            }
             paragraphLines.Add(line);
         }
         FlushParagraph(paragraphLines);
@@ -272,7 +316,7 @@ internal sealed class AmiProSamParser {
 
     private bool ParseFont(string value, AmiRunState state) {
         string[] parts = value.Split(',');
-        if (parts.Length < 5 || !int.TryParse(parts[0], out int size)) return false;
+        if (parts.Length != 5 || !int.TryParse(parts[0], out int size)) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
         ConsumeText(family.Length, "inline font family");
         state.FontSizePoints = Math.Max(1d, size / 20d);

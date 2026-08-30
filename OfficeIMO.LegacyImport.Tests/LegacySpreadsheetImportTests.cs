@@ -227,6 +227,18 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkSourceNameWhitespaceIsNotSilentlyTrimmed() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithNames(" Input"),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        LegacySpreadsheetNameContent name = Assert.Single(imported.Names);
+        Assert.Equal(" Input", name.Name);
+        Assert.Null(name.ProjectedName);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
+    }
+
+    [Fact]
     public void WkCellProtectionCannotDisappearFromNoLossClaims() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(cellFormat: 0x80, includeFormulaAndChart: false),
@@ -261,6 +273,19 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wq2WithNonzeroCellHeader(),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wq2", RequireStructured = true }));
+    }
+
+    [Fact]
+    public void WqNamedRangesPreserveTheirSourceSheet() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wq1WithNamedRangeOnSecondSheet(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wq1", RequireStructured = true });
+
+        LegacySpreadsheetNameContent name = Assert.Single(imported.Names);
+        Assert.Equal("Sheet2", name.SheetName);
+        Assert.Equal("Second", name.ProjectedName);
+        Assert.Contains(imported.Document.ListNamedRanges(), range =>
+            range.Name == "Second" && range.Reference.Contains("'Sheet2'", StringComparison.Ordinal));
     }
 
     [Fact]

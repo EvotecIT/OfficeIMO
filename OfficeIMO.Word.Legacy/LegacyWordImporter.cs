@@ -123,11 +123,11 @@ public static class LegacyWordImporter {
                 if (source.IsList) {
                     activeList ??= document.AddListBulleted();
                     WordParagraph paragraph = activeList.AddItem(string.Empty, Math.Max(0, Math.Min(8, source.ListLevel)));
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, cancellationToken);
                 } else {
                     activeList = null;
                     WordParagraph paragraph = document.AddParagraph();
-                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds, cancellationToken);
                 }
             }
             foreach (LegacyWordNote note in model.Notes) {
@@ -145,8 +145,10 @@ public static class LegacyWordImporter {
     }
 
     private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph, WordDocument document,
-        IDictionary<string, string> styleIds, ISet<string> usedStyleIds) {
+        IDictionary<string, string> styleIds, ISet<string> usedStyleIds, CancellationToken cancellationToken) {
+        int runIndex = 0;
         foreach (LegacyWordRun sourceRun in source.Runs) {
+            if ((runIndex++ & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             WordParagraph run = paragraph.AddFormattedText(sourceRun.Text, sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
             if (sourceRun.Strike) run.SetStrike();
             if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
@@ -154,6 +156,7 @@ public static class LegacyWordImporter {
             if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
             if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         if (source.Alignment.HasValue) paragraph.SetAlignment(source.Alignment.Value);
         paragraph.PageBreakBefore = source.PageBreakBefore;
         paragraph.KeepWithNext = source.KeepWithNext;

@@ -54,7 +54,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     break;
                 case 0x000B:
                     CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters,
-                        ref reportedUnsupportedNameReference, ref unresolvedNameCount);
+                        ref reportedUnsupportedNameReference, ref unresolvedNameCount, layout);
                     break;
                 case 0x000C:
                     ValidateFixedCellLength(data, payload, length, DataOffset(layout), "blank");
@@ -206,11 +206,11 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
     private static void CaptureName(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
         byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters,
-        ref bool reportedUnsupportedNameReference, ref int unresolvedNameCount) {
+        ref bool reportedUnsupportedNameReference, ref int unresolvedNameCount, WkRecordLayout layout) {
         if (length != 24) {
             string metadataName = length >= 16
                 ? ReadStructuredName(data, payload, length)
-                : ReadNullTerminatedAscii(data, payload, length).Trim();
+                : ReadNullTerminatedAscii(data, payload, length);
             if (metadataName.Length == 0) return;
             AddTextCharacters(ref recoveredTextCharacters, metadataName.Length, limits);
             unresolvedNameCount++;
@@ -226,20 +226,37 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         string name = ReadStructuredName(data, payload, length);
         if (name.Length == 0) return;
         AddTextCharacters(ref recoveredTextCharacters, name.Length, limits);
-        int firstColumn = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 16) + 1;
-        int firstRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 18) + 1;
-        int lastColumn = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 20) + 1;
-        int lastRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 22) + 1;
+        int firstColumn;
+        int firstRow;
+        int lastColumn;
+        int lastRow;
+        byte sheetId;
+        if (layout == WkRecordLayout.SingleSheetDos) {
+            firstColumn = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 16) + 1;
+            firstRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 18) + 1;
+            lastColumn = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 20) + 1;
+            lastRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 22) + 1;
+            sheetId = 0;
+        } else {
+            firstColumn = data[payload + 16] + 1;
+            byte firstSheetId = data[payload + 17];
+            firstRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 18) + 1;
+            lastColumn = data[payload + 20] + 1;
+            byte lastSheetId = data[payload + 21];
+            lastRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 22) + 1;
+            if (firstSheetId != lastSheetId) throw new InvalidDataException("The bounded WQ name profile does not support ranges spanning multiple sheets.");
+            sheetId = firstSheetId;
+        }
         if (firstRow > 1048576 || lastRow > 1048576 || firstColumn > 16384 || lastColumn > 16384) throw new InvalidDataException("WK named range is outside the workbook model.");
         if (model.Names.Count >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured name limit.");
-        LegacySpreadsheetSheet sheet = GetSheet(model, sheets, 0);
+        LegacySpreadsheetSheet sheet = GetSheet(model, sheets, sheetId);
         model.Names.Add(new LegacySpreadsheetName(name, sheet.Name, firstRow, firstColumn, lastRow, lastColumn));
     }
 
     private static string ReadStructuredName(byte[] data, int payload, int length) =>
         data[payload] <= 15 && data[payload] <= length - 1
-            ? DecodeStrictAscii(data, payload + 1, data[payload]).Trim()
-            : ReadNullTerminatedAscii(data, payload, Math.Min(length, 16)).Trim();
+            ? DecodeStrictAscii(data, payload + 1, data[payload])
+            : ReadNullTerminatedAscii(data, payload, Math.Min(length, 16));
 
     private static void ValidateBof(byte[] data, string familyName, byte expectedProduct0, byte expectedProduct1) {
         if (data.Length < 6 || OfficeLegacyImportBuffer.ReadUInt16(data, 0) != 0x0000 ||
