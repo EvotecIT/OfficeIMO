@@ -98,7 +98,7 @@ internal static class BibliographyConversionInspector {
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = CslJsonCodec.CanRoundTripType(sourceFormat, item) || sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
+                exact = CslJsonCodec.CanRoundTripType(sourceFormat, item) || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);

@@ -369,7 +369,13 @@ internal static class EndNoteXmlCodec {
         return false;
     }
     private static void WriteRecordAttributes(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        bool wroteAttributes = false;
         foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal))) {
+            if (wroteAttributes) {
+                report.Add("BIBCONV249", BibliographyDiagnosticSeverity.Warning, "Additional EndNote XML record-attribute metadata was omitted to keep one source-preserving carrier.", BibliographyConversionAction.Omitted, item, field.Name);
+                continue;
+            }
+            wroteAttributes = true;
             if (TryWriteAttributes(writer, field.Value)) report.Add("BIBCONV019", BibliographyDiagnosticSeverity.Information, "Preserved EndNote XML record attributes.", BibliographyConversionAction.PreservedExtension, item, field.Name);
             else report.Add("BIBCONV132", BibliographyDiagnosticSeverity.Warning, "EndNote XML record attributes are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, item, field.Name);
         }
@@ -437,7 +443,8 @@ internal static class EndNoteXmlCodec {
         }
     }
     private static bool ConflictsWithTypedRecordElement(BibliographyItem item, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
-        if (string.Equals(field.Name, "periodical", StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.Equals(field.Name, "periodical", StringComparison.OrdinalIgnoreCase) && item.ContainerTitle != null &&
+            item.EndNoteFieldNames.TryGetValue("container-title", out string? source) && !string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase)) return false;
         if (!KnownRecordElements.Contains(field.Name)) return false;
         if (CanPreserveUnownedKnownRecordContainer(item, field, xmlNamespace, cancellationToken)) return false;
         string? raw = field.UnmodifiedRawValue ?? field.RawValue;
@@ -455,6 +462,7 @@ internal static class EndNoteXmlCodec {
         try {
             XElement element = XElement.Parse(field.UnmodifiedRawValue, LoadOptions.PreserveWhitespace);
             if (!string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal) || !KnownRecordElements.Contains(element.Name.LocalName)) return false;
+            if (ContainsBindableTypedContent(element, cancellationToken)) return false;
             switch (element.Name.LocalName.ToLowerInvariant()) {
                 case "contributors": return item.Contributors.Count == 0;
                 case "titles": return item.Title == null && item.ContainerTitle == null && item.CollectionTitle == null;
@@ -466,6 +474,29 @@ internal static class EndNoteXmlCodec {
             }
         } catch (XmlException) {
             return false;
+        }
+    }
+    private static bool ContainsBindableTypedContent(XElement element, CancellationToken cancellationToken) {
+        XNamespace xmlNamespace = element.Name.Namespace;
+        switch (element.Name.LocalName.ToLowerInvariant()) {
+            case "contributors":
+                return Cancellable(element.Elements(), cancellationToken).Any(group => HasNameInNamespace(group, xmlNamespace) && IsContributorRoleElement(group.Name.LocalName) &&
+                    Cancellable(group.Elements(), cancellationToken).Any(author => HasName(author, xmlNamespace, "author")));
+            case "titles":
+                return Cancellable(element.Elements(), cancellationToken).Any(child => HasNameInNamespace(child, xmlNamespace) &&
+                    (string.Equals(child.Name.LocalName, "title", StringComparison.OrdinalIgnoreCase) || string.Equals(child.Name.LocalName, "secondary-title", StringComparison.OrdinalIgnoreCase) || string.Equals(child.Name.LocalName, "tertiary-title", StringComparison.OrdinalIgnoreCase)));
+            case "periodical":
+                return Cancellable(element.Elements(), cancellationToken).Any(child => HasName(child, xmlNamespace, "full-title"));
+            case "dates":
+                return Cancellable(element.Elements(), cancellationToken).Any(child => HasName(child, xmlNamespace, "year") || HasName(child, xmlNamespace, "pub-dates") &&
+                    Cancellable(child.Elements(), cancellationToken).Any(date => HasName(date, xmlNamespace, "date")));
+            case "urls":
+                return Cancellable(element.Elements(), cancellationToken).Any(child => HasName(child, xmlNamespace, "related-urls") &&
+                    Cancellable(child.Elements(), cancellationToken).Any(url => HasName(url, xmlNamespace, "url")));
+            case "keywords":
+                return Cancellable(element.Elements(), cancellationToken).Any(child => HasName(child, xmlNamespace, "keyword"));
+            default:
+                return false;
         }
     }
     private static bool IsEmptyKnownRecordContainer(XElement element, CancellationToken cancellationToken = default) {
