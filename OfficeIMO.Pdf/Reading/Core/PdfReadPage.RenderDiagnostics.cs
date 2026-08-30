@@ -963,7 +963,9 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                 hasSoftMask: invocation.HasSoftMask,
                 hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                renderingIntent: invocation.RenderingIntent);
+                renderingIntent: invocation.RenderingIntent,
+                imageDictionary: imageDictionary,
+                objects: _objects);
         } else {
             if (!TryGetImageXObject(resources, invocation.Name, out int objectNumber, out int directStreamIdentity)) return false;
             PdfDictionary? xObjects = ResolveDictionary(resources?.Items.TryGetValue("XObject", out PdfObject? xObjectValue) == true ? xObjectValue : null);
@@ -986,7 +988,9 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                 hasSoftMask: invocation.HasSoftMask,
                 hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                renderingIntent: invocation.RenderingIntent);
+                renderingIntent: invocation.RenderingIntent,
+                imageDictionary: imageDictionary,
+                objects: _objects);
         }
 
         if (IsInvisibleImagePlacement(

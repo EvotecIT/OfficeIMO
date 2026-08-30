@@ -7,6 +7,7 @@ $project = Join-Path $repositoryRoot 'Build/RealWorldCorpus/OfficeIMO.RealWorldC
 $scratch = Join-Path ([System.IO.Path]::GetTempPath()) ("officeimo-real-corpus-contract-" + [guid]::NewGuid().ToString('N'))
 $inputDirectory = Join-Path $scratch 'input'
 $formatInputDirectory = Join-Path $scratch 'all-formats-input'
+$claimInputDirectory = Join-Path $scratch 'claim-input'
 $policyInputDirectory = Join-Path $scratch 'policy-input'
 $packagePolicyInputDirectory = Join-Path $scratch 'package-policy-input'
 $traversalInputDirectory = Join-Path $scratch 'traversal-input'
@@ -18,6 +19,7 @@ $secondMarkdown = Join-Path $scratch 'second/report.md'
 try {
     [void] (New-Item -ItemType Directory -Path $inputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $formatInputDirectory -Force)
+    [void] (New-Item -ItemType Directory -Path $claimInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $policyInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path $packagePolicyInputDirectory -Force)
     [void] (New-Item -ItemType Directory -Path (Join-Path $traversalInputDirectory 'a/b/c') -Force)
@@ -172,15 +174,58 @@ try {
             throw "The $kind normalized-reader contract was not reached successfully: $observed"
         }
     }
+    [System.IO.File]::Copy(
+        (Join-Path $repositoryRoot 'OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-pdfa1b-text.pdf'),
+        (Join-Path $claimInputDirectory 'openpreserve-pdfa1b-text.pdf'))
     $pdfRecord = @($formatReport.files | Where-Object { $_.contentKind -eq 'pdf' })
+    $mutationModeProperties = if ($pdfRecord.Count -eq 1 -and $null -ne $pdfRecord[0].pdfEvidence) {
+        @($pdfRecord[0].pdfEvidence.mutationPlanModes.PSObject.Properties)
+    } else {
+        @()
+    }
+    $mutationModeValues = @($mutationModeProperties | ForEach-Object Value)
+    $expectedMutationPlanModes = [ordered]@{
+        UpdateMetadata = 'FullRewrite'
+        FillFormFields = 'AppendOnly'
+        FlattenFormFields = 'Blocked'
+        FillAndFlattenFormFields = 'Blocked'
+        ModifyAcroForm = 'FullRewrite'
+        PrepareExternalSignature = 'AppendOnly'
+        FinalizeExternalSignature = 'Blocked'
+        ExtractPages = 'FullRewrite'
+        ModifyPageTree = 'FullRewrite'
+        MergeDocuments = 'FullRewrite'
+        ModifyPageContent = 'FullRewrite'
+        ModifyCatalog = 'FullRewrite'
+        ModifyAnnotations = 'FullRewrite'
+        ModifyAttachments = 'FullRewrite'
+        ChangeEncryption = 'FullRewrite'
+        Optimize = 'FullRewrite'
+        Redact = 'FullRewrite'
+        EnrichLongTermValidation = 'Blocked'
+        SynchronizeMetadata = 'FullRewrite'
+        Sanitize = 'FullRewrite'
+        ModifyJavaScript = 'FullRewrite'
+    }
     if ($pdfRecord.Count -ne 1 -or $null -eq $pdfRecord[0].pdfEvidence -or
         -not $pdfRecord[0].pdfEvidence.allStagesSucceeded -or
         $pdfRecord[0].pdfEvidence.stages.Count -ne 7 -or
         $pdfRecord[0].pdfEvidence.renderSucceededPages -ne 1 -or
         $pdfRecord[0].pdfEvidence.mutationPlanCount -ne 21 -or
+        $mutationModeProperties.Count -ne 21 -or
+        @($mutationModeValues | Where-Object { $_ -eq 'fullRewrite' }).Count -ne $pdfRecord[0].pdfEvidence.fullRewriteMutationPlanCount -or
+        @($mutationModeValues | Where-Object { $_ -eq 'appendOnly' }).Count -ne $pdfRecord[0].pdfEvidence.appendOnlyMutationPlanCount -or
+        @($mutationModeValues | Where-Object { $_ -eq 'blocked' }).Count -ne $pdfRecord[0].pdfEvidence.blockedMutationPlanCount -or
+        @($pdfRecord[0].pdfEvidence.declaredComplianceClaimStatuses).Count -ne $pdfRecord[0].pdfEvidence.declaredComplianceClaimCount -or
         $pdfRecord[0].pdfEvidence.claimableComplianceClaimCount -ne 0) {
         $observed = $pdfRecord | Select-Object contentKind, outcome, pdfEvidence | ConvertTo-Json -Depth 10 -Compress
         throw "The PDF deep quality probe did not reach every canonical stage: $observed"
+    }
+    foreach ($expectedMutationPlan in $expectedMutationPlanModes.GetEnumerator()) {
+        $actualMutationPlan = $pdfRecord[0].pdfEvidence.mutationPlanModes.PSObject.Properties[$expectedMutationPlan.Key]
+        if ($null -eq $actualMutationPlan -or $actualMutationPlan.Value -cne $expectedMutationPlan.Value) {
+            throw "The PDF evidence recorded an unexpected execution mode for $($expectedMutationPlan.Key): expected $($expectedMutationPlan.Value), observed $($actualMutationPlan.Value)."
+        }
     }
     if ($formatReport.totals.pdfSelected -ne 1 -or
         $formatReport.totals.pdfDeepStages -ne 7 -or
@@ -194,6 +239,32 @@ try {
     if ($formatMarkdownText -notmatch 'PDF quality depth' -or
         $formatMarkdownText -notmatch '\| 1 \| 7 \| 7 \| 1 \| 21 \|') {
         throw 'The real-world Markdown scorecard omitted PDF quality depth evidence.'
+    }
+
+    $claimJson = Join-Path $scratch 'claim/report.json'
+    $claimMarkdown = Join-Path $scratch 'claim/report.md'
+    & dotnet run --project $project --framework net10.0 --configuration Release --no-build -- run `
+        --input $claimInputDirectory --json $claimJson --markdown $claimMarkdown `
+        --corpus-id synthetic-declared-claim --formats Pdf --max-per-format 1 --max-total 1 `
+        --max-file-bytes 1048576 --max-traversal-entries 5 --timeout-seconds 30 --parallelism 1
+    if ($LASTEXITCODE -ne 0) { throw "Declared-claim corpus contract run failed with exit code $LASTEXITCODE." }
+    $claimReport = Get-Content -LiteralPath $claimJson -Raw | ConvertFrom-Json -Depth 100
+    $claimRecord = @($claimReport.files | Where-Object selected)
+    [string[]] $claimStatuses = if ($claimRecord.Count -eq 1 -and $null -ne $claimRecord[0].pdfEvidence) {
+        @($claimRecord[0].pdfEvidence.declaredComplianceClaimStatuses)
+    } else {
+        @()
+    }
+    if ($claimRecord.Count -ne 1 -or
+        $claimRecord[0].contentKind -ne 'pdf' -or
+        $claimRecord[0].outcome -notin @('completed', 'completed-with-warnings') -or
+        $claimRecord[0].pdfEvidence.declaredComplianceClaimCount -ne 1 -or
+        $claimRecord[0].pdfEvidence.recognizedComplianceClaimCount -ne 0 -or
+        $claimRecord[0].pdfEvidence.claimableComplianceClaimCount -ne 0 -or
+        $claimStatuses.Count -ne 1 -or
+        $claimStatuses[0] -cne 'PDF/A-1b:UnsupportedProfile') {
+        $observed = $claimRecord | Select-Object contentKind, outcome, pdfEvidence | ConvertTo-Json -Depth 10 -Compress
+        throw "The PDF evidence did not retain the expected per-declaration compliance status: $observed"
     }
 
     $policyJson = Join-Path $scratch 'policy/report.json'

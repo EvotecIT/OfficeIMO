@@ -70,12 +70,19 @@ internal static class PdfCorpusProbe {
             evidence.FullRewriteMutationPlanCount = portfolio.Plans.Count(static plan => plan.ExecutionMode == PdfMutationExecutionMode.FullRewrite);
             evidence.AppendOnlyMutationPlanCount = portfolio.Plans.Count(static plan => plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly);
             evidence.BlockedMutationPlanCount = portfolio.BlockedPlans.Count;
+            evidence.MutationPlanModes = portfolio.Plans.ToDictionary(
+                static plan => plan.Operation.ToString(),
+                static plan => plan.ExecutionMode.ToString(),
+                StringComparer.Ordinal);
         });
         Measure(stages, "declared-compliance-claims", () => {
             PdfDeclaredComplianceClaimsReport claims = document.AssessDeclaredComplianceClaims();
             evidence.DeclaredComplianceClaimCount = claims.Claims.Count;
             evidence.RecognizedComplianceClaimCount = claims.RecognizedClaims.Count;
             evidence.ClaimableComplianceClaimCount = claims.Claims.Count(static claim => claim.CanClaimConformance);
+            evidence.DeclaredComplianceClaimStatuses = claims.Claims
+                .Select(static claim => claim.Declaration + ":" + claim.Status)
+                .ToArray();
         });
 
         evidence.Stages = stages.AsReadOnly();

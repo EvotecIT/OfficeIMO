@@ -57,10 +57,9 @@ internal static class PdfFontInspector {
             string resourcePath,
             int depth,
             HashSet<PdfStream> activeForms,
-            Dictionary<FormResourceContext, int> visitedFormContexts,
-            bool inspectDeclaredFonts = true) {
+            Dictionary<FormResourceContext, int> visitedFormContexts) {
             if (IsStopped) return;
-            if (inspectDeclaredFonts) InspectFonts(resources, pageNumber, resourcePath);
+            InspectFonts(resources, pageNumber, resourcePath);
             if (IsStopped) return;
 
             if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
@@ -92,32 +91,86 @@ internal static class PdfFontInspector {
                 var context = new FormResourceContext(form, formResources);
                 int contextDepth = depth + 1;
                 bool previouslyVisited = visitedFormContexts.TryGetValue(context, out int previousDepth);
-                if (previouslyVisited && previousDepth <= contextDepth) {
+                if (!TryConsumeFormTraversal(pageNumber, formPath)) {
                     activeForms.Remove(form);
+                    return;
+                }
+                if (previouslyVisited && previousDepth <= contextDepth) {
+                    InspectResourceReferences(formResources, pageNumber, formPath, contextDepth, activeForms);
+                    activeForms.Remove(form);
+                    if (IsStopped) return;
                     continue;
                 }
                 visitedFormContexts[context] = contextDepth;
-                if (_formTraversalCount >= _options.MaxFormResourceTraversals) {
-                    activeForms.Remove(form);
-                    AddLimitDiagnostic(
-                        PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded,
-                        "Font inspection stopped at the configured Form XObject resource-context traversal limit.",
-                        pageNumber,
-                        formPath);
-                    return;
-                }
-                _formTraversalCount++;
                 InspectResources(
                     formResources,
                     pageNumber,
                     formPath,
                     contextDepth,
                     activeForms,
-                    visitedFormContexts,
-                    inspectDeclaredFonts: !previouslyVisited);
+                    visitedFormContexts);
                 activeForms.Remove(form);
                 if (IsStopped) return;
             }
+        }
+
+        private void InspectResourceReferences(
+            PdfDictionary resources,
+            int pageNumber,
+            string resourcePath,
+            int depth,
+            HashSet<PdfStream> activeForms) {
+            if (IsStopped) return;
+            InspectFonts(resources, pageNumber, resourcePath);
+            if (IsStopped ||
+                !resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
+                Resolve(xObjectValue) is not PdfDictionary xObjects) return;
+
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
+                if (Resolve(entry.Value) is not PdfStream form ||
+                    !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) continue;
+                string formPath = resourcePath + "/XObject/" + entry.Key;
+                if (depth >= _options.MaxResourceDepth) {
+                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                        PdfFontInspectionDiagnosticCode.ResourceDepthExceeded,
+                        "Font resource traversal stopped at the configured nested Form XObject depth.",
+                        pageNumber,
+                        formPath));
+                    continue;
+                }
+                if (!activeForms.Add(form)) {
+                    _diagnostics.Add(new PdfFontInspectionDiagnostic(
+                        PdfFontInspectionDiagnosticCode.CyclicResourceGraph,
+                        "Font resource traversal stopped at a cyclic Form XObject path.",
+                        pageNumber,
+                        formPath));
+                    continue;
+                }
+
+                PdfDictionary formResources = form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) && Resolve(formResourceValue) is PdfDictionary declared
+                    ? declared
+                    : resources;
+                if (!TryConsumeFormTraversal(pageNumber, formPath)) {
+                    activeForms.Remove(form);
+                    return;
+                }
+                InspectResourceReferences(formResources, pageNumber, formPath, depth + 1, activeForms);
+                activeForms.Remove(form);
+                if (IsStopped) return;
+            }
+        }
+
+        private bool TryConsumeFormTraversal(int pageNumber, string resourcePath) {
+            if (_formTraversalCount >= _options.MaxFormResourceTraversals) {
+                AddLimitDiagnostic(
+                    PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded,
+                    "Font inspection stopped at the configured Form XObject resource-context traversal limit.",
+                    pageNumber,
+                    resourcePath);
+                return false;
+            }
+            _formTraversalCount++;
+            return true;
         }
 
         private void InspectFonts(PdfDictionary resources, int pageNumber, string resourcePath) {

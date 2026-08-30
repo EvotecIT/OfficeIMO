@@ -63,6 +63,31 @@ public sealed class PdfImageInspectionContractTests {
     }
 
     [Fact]
+    public void ImageInspection_ImageDictionaryIntentOverridesPlacementGraphicsState() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q /Saturation ri 10 0 0 10 10 10 cm /Im1 Do Q q /AbsoluteColorimetric ri 10 0 0 10 30 10 cm BI /W 1 /H 1 /BPC 8 /CS /RGB /Intent /Perceptual ID abc EI Q"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Intent /Perceptual"));
+        PdfDocument source = PdfDocument.Open(pdf);
+
+        PdfImagePlacement[] placements = source.Read.ImagePlacements().ToArray();
+        PdfExtractedImage[] images = source.Read.Images().ToArray();
+
+        Assert.Equal(2, placements.Length);
+        Assert.All(placements, placement => {
+            Assert.True(placement.HasAuthoredRenderingIntent);
+            Assert.Equal(OfficeIccRenderingIntent.Perceptual, placement.RenderingIntent);
+        });
+        Assert.Equal(2, images.Length);
+        Assert.All(images, image => {
+            Assert.True(image.HasAuthoredRenderingIntent);
+            Assert.Equal(OfficeIccRenderingIntent.Perceptual, image.RenderingIntent);
+        });
+    }
+
+    [Fact]
     public void ImageInspection_DistinguishesDefaultAndExplicitNormalBlendModes() {
         byte[] pdf = BuildPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",

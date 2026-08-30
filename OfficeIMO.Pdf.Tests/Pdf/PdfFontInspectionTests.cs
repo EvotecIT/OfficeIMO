@@ -261,11 +261,13 @@ public sealed class PdfFontInspectionTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
 
         PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
-            MaxFormResourceTraversals = 3
+            MaxFormResourceTraversals = 4
         });
 
         Assert.Single(inventory.Fonts);
-        Assert.Single(inventory.Fonts[0].References);
+        Assert.Equal(2, inventory.Fonts[0].References.Count);
+        Assert.Contains(inventory.Fonts[0].References, reference => reference.ResourcePath == "Page 1/XObject/A/XObject/Shared/Font/F1");
+        Assert.Contains(inventory.Fonts[0].References, reference => reference.ResourcePath == "Page 1/XObject/B/XObject/Shared/Font/F1");
         Assert.DoesNotContain(
             inventory.Diagnostics,
             diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded);

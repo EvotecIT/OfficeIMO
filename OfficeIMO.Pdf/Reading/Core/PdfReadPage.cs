@@ -844,12 +844,18 @@ public sealed partial class PdfReadPage {
                     hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     hasSoftMask: invocation.HasSoftMask,
                     hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                    renderingIntent: invocation.RenderingIntent);
+                    renderingIntent: invocation.RenderingIntent,
+                    objects: _objects);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
-            if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
+            if (TryGetImageXObject(
+                    resources,
+                    invocation.Name,
+                    out int imageObjectNumber,
+                    out int directStreamIdentity,
+                    out PdfStream? imageStream)) {
                 PdfImagePlacement placement = BuildImagePlacement(
                     pageNumber,
                     invocation.Name,
@@ -866,7 +872,9 @@ public sealed partial class PdfReadPage {
                     hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     hasSoftMask: invocation.HasSoftMask,
                     hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                    renderingIntent: invocation.RenderingIntent);
+                    renderingIntent: invocation.RenderingIntent,
+                    imageDictionary: imageStream!.Dictionary,
+                    objects: _objects);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
@@ -1023,7 +1031,18 @@ public sealed partial class PdfReadPage {
         bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false,
         bool hasAuthoredRenderingIntent = false,
-        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfDictionary? imageDictionary = null,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        PdfDictionary? intentOwner = imageDictionary ?? inlineImageStream?.Dictionary;
+        if (intentOwner is not null && objects is not null && PdfRenderingIntentResolver.TryRead(
+                intentOwner,
+                "Intent",
+                objects,
+                out OfficeIccRenderingIntent authoredImageIntent)) {
+            hasAuthoredRenderingIntent = true;
+            renderingIntent = authoredImageIntent;
+        }
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
         var p2 = transform.Transform(0D, 1D);

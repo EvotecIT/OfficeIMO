@@ -237,9 +237,11 @@ internal sealed class CorpusPdfEvidence {
     public int FullRewriteMutationPlanCount { get; set; }
     public int AppendOnlyMutationPlanCount { get; set; }
     public int BlockedMutationPlanCount { get; set; }
+    public IReadOnlyDictionary<string, string> MutationPlanModes { get; set; } = new Dictionary<string, string>();
     public int DeclaredComplianceClaimCount { get; set; }
     public int RecognizedComplianceClaimCount { get; set; }
     public int ClaimableComplianceClaimCount { get; set; }
+    public IReadOnlyList<string> DeclaredComplianceClaimStatuses { get; set; } = Array.Empty<string>();
     public IReadOnlyList<CorpusPdfStageResult> Stages { get; set; } = Array.Empty<CorpusPdfStageResult>();
     public bool AllStagesSucceeded => Stages.Count > 0 && Stages.All(static stage => stage.Succeeded);
 }
