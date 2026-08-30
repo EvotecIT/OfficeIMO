@@ -205,6 +205,25 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(sourceValue, metadataName == "title" ? converted.Value.Head.Title : converted.Value.Head.OwnerName);
     }
 
+    [Theory]
+    [InlineData("title")]
+    [InlineData("ownerName")]
+    public void SharedConversionPreservesClearedPrimaryHeadFields(string metadataName) {
+        OpmlDocument source = OpmlDocument.Create();
+        source.Head.Title = "Original title";
+        source.Head.OwnerName = "Original owner";
+        OfficeDocumentModel model = source.ToOfficeDocumentModel().Value;
+        if (metadataName == "title") model.Source.Title = null;
+        else model.Source.Author = null;
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Null(metadataName == "title" ? converted.Value.Head.Title : converted.Value.Head.OwnerName);
+        Assert.Null(converted.Value.Xml.Root!.Element("head")!.Element(metadataName));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML110" &&
+            diagnostic.Message.IndexOf(metadataName, StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void SharedConversionReportsUnsupportedVersionNormalization() {
         OpmlConversionResult<OfficeDocumentModel> forward = OpmlDocument.Parse(

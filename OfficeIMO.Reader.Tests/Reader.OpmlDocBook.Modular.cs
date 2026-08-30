@@ -50,7 +50,9 @@ public sealed class ReaderOpmlDocBookModularTests {
 
         Assert.True(chunks.Length > 1);
         Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 256));
-        Assert.Contains(outline.XmlUrl, string.Concat(chunks.Select(chunk => chunk.Markdown)), StringComparison.Ordinal);
+        string markdown = string.Concat(chunks.Select(chunk => chunk.Markdown));
+        Assert.Contains("# Feed\n\n- Feed:", markdown, StringComparison.Ordinal);
+        Assert.Contains(outline.XmlUrl, markdown, StringComparison.Ordinal);
         Assert.All(chunks.Skip(1), chunk => Assert.True(chunk.ContinuesPreviousChunk));
     }
 

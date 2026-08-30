@@ -155,8 +155,8 @@ public sealed partial class OpmlDocument {
             entry.Category == "opml.head" && entry.Name == "title");
         OfficeDocumentModelMetadataEntry? ownerMetadata = model.Metadata.FirstOrDefault(entry =>
             entry.Category == "opml.head" && entry.Name == "ownerName");
-        document.Head.Title = model.Source.Title ?? (titleMetadata == null ? null : titleMetadata.Value ?? string.Empty);
-        document.Head.OwnerName = model.Source.Author ?? (ownerMetadata == null ? null : ownerMetadata.Value ?? string.Empty);
+        document.Head.Title = ResolvePrimaryMetadata(model.Source.Title, titleMetadata);
+        document.Head.OwnerName = ResolvePrimaryMetadata(model.Source.Author, ownerMetadata);
         ReportPrimaryMetadataConflict("title", model.Source.Title, titleMetadata);
         ReportPrimaryMetadataConflict("ownerName", model.Source.Author, ownerMetadata);
         if (!string.IsNullOrEmpty(model.Source.Subject)) {
@@ -174,11 +174,22 @@ public sealed partial class OpmlDocument {
             string elementName,
             string? sourceValue,
             OfficeDocumentModelMetadataEntry? metadata) {
-            if (sourceValue == null || metadata == null || string.Equals(sourceValue, metadata.Value, StringComparison.Ordinal)) return;
+            if (metadata == null || string.Equals(sourceValue, metadata.Value, StringComparison.Ordinal) ||
+                sourceValue == null && !IsProjectedPrimaryMetadata(metadata)) return;
             diagnostics.Add(new OpmlDiagnostic("OPML110", OpmlDiagnosticSeverity.Warning,
                 $"Shared Source and opml.head/{elementName} metadata contain conflicting values; the Source value took precedence.",
                 "/opml/head/" + elementName));
         }
+
+        string? ResolvePrimaryMetadata(string? sourceValue, OfficeDocumentModelMetadataEntry? metadata) {
+            if (metadata == null) return sourceValue;
+            if (sourceValue != null || IsProjectedPrimaryMetadata(metadata)) return sourceValue;
+            return metadata.Value ?? string.Empty;
+        }
+
+        bool IsProjectedPrimaryMetadata(OfficeDocumentModelMetadataEntry metadata) =>
+            model.Format == OfficeDocumentFormat.Opml &&
+            metadata.Id.StartsWith("opml-head-", StringComparison.Ordinal);
 
         void ApplyPrimaryMetadataAttributes(string elementName, OfficeDocumentModelMetadataEntry? metadata) {
             if (metadata == null) return;

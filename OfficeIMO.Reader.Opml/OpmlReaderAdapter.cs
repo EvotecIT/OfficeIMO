@@ -87,7 +87,7 @@ internal static partial class OpmlReaderAdapter {
                 finalTextMarkdown.Length + 2 + targetMarkdown.Length <= maxChars;
             IReadOnlyList<string> targetParts = targetMarkdown.Length == 0 || appendTargets
                 ? Array.Empty<string>()
-                : DocumentReaderEngine.SplitAdapterProjection(targetMarkdown, maxChars);
+                : DocumentReaderEngine.SplitAdapterProjection("\n\n" + targetMarkdown, maxChars);
             int totalParts = parts.Count + targetParts.Count;
             int emittedPart = 0;
             for (int part = 0; part < parts.Count; part++) {

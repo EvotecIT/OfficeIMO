@@ -185,6 +185,12 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same component.", path));
             }
+            bool misplacedTitle = kind == DocBookNodeKind.Title && parent != null && IsTitleBearingContainer(parent) &&
+                element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) != DocBookNodeKind.Info);
+            if (misplacedTitle) {
+                diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
+                    "title must appear in the container header before subtitle and body content.", path));
+            }
             bool invalidParent = invalidInlineParent ||
                 kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
@@ -338,14 +344,24 @@ public sealed partial class DocBookDocument {
             kind == DocBookNodeKind.Caption;
     }
 
-    internal string? GetComponentInfoElementName(XElement component) {
-        string localName = component.Name.LocalName;
-        bool isRoot = ReferenceEquals(component, RootElement);
-        bool isSection = DocBookNames.GetKind(component.Name, Namespace) == DocBookNodeKind.Section;
-        bool isSupportedComponent = localName == "chapter" || localName == "appendix" || localName == "article" ||
+    internal bool IsTitleBearingContainer(XElement element) {
+        if (GetComponentInfoElementName(element) != null) return true;
+        DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
+        return kind == DocBookNodeKind.Info || kind == DocBookNodeKind.Table || kind == DocBookNodeKind.Figure;
+    }
+
+    internal bool IsSupportedComponent(XElement element) {
+        if (element.Name.Namespace != Namespace) return false;
+        string localName = element.Name.LocalName;
+        return ReferenceEquals(element, RootElement) || DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Section ||
+            localName == "chapter" || localName == "appendix" || localName == "article" ||
             localName == "bibliography" || localName == "glossary" || localName == "index" || localName == "part" ||
             localName == "preface" || localName == "reference" || localName == "setindex";
-        if (!isRoot && !isSection && !isSupportedComponent) return null;
+    }
+
+    internal string? GetComponentInfoElementName(XElement component) {
+        string localName = component.Name.LocalName;
+        if (!IsSupportedComponent(component)) return null;
         if (Profile == DocBookProfile.DocBook52) return "info";
         switch (localName) {
             case "article": return "articleinfo";

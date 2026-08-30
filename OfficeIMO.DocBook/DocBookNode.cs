@@ -162,7 +162,15 @@ public sealed class DocBookNode {
         XName name = _document.Namespace + localName;
         var element = new XElement(name);
         if (text != null) element.Value = text;
-        _document.ResolveTypedContentParent(Element, localName).Add(element); _document.MarkModified();
+        XElement parent = _document.ResolveTypedContentParent(Element, localName);
+        if (localName == "title" && _document.IsTitleBearingContainer(parent)) {
+            XElement? metadata = parent.Elements().FirstOrDefault(child =>
+                DocBookNames.GetKind(child.Name, _document.Namespace) == DocBookNodeKind.Info);
+            if (metadata == null) parent.AddFirst(element); else metadata.AddAfterSelf(element);
+        } else {
+            parent.Add(element);
+        }
+        _document.MarkModified();
         return new DocBookNode(_document, element);
     }
 

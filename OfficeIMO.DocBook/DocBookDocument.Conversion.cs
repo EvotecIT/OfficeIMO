@@ -91,8 +91,9 @@ public sealed partial class DocBookDocument {
                     ? "informal-table"
                     : ToModelKind(kind);
             string text = textBudget.GetPrimaryText(element, kind, Namespace, parentPath);
-            string path = kind == DocBookNodeKind.Section
-                ? OfficeDocumentHeadingPath.Append(parentPath, text, " / ") : parentPath;
+            string? headingText = kind == DocBookNodeKind.Section ? text : GetComponentTitle(element, parentPath);
+            string path = headingText == null
+                ? parentPath : OfficeDocumentHeadingPath.Append(parentPath, headingText, " / ");
             var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (XAttribute attribute in element.Attributes()) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -550,13 +551,25 @@ public sealed partial class DocBookDocument {
 
         string BuildTableHeadingPath(XElement tableElement, string? tableTitle) {
             string path = string.Empty;
-            foreach (XElement section in tableElement.Ancestors().Reverse().Where(ancestor =>
-                         DocBookNames.GetKind(ancestor.Name, Namespace) == DocBookNodeKind.Section)) {
+            foreach (XElement ancestor in tableElement.Ancestors().Reverse()) {
                 cancellationToken.ThrowIfCancellationRequested();
-                path = OfficeDocumentHeadingPath.Append(path,
-                    textBudget.GetPrimaryText(section, DocBookNodeKind.Section, Namespace, path), " / ");
+                if (ReferenceEquals(ancestor, RootElement)) continue;
+                DocBookNodeKind ancestorKind = DocBookNames.GetKind(ancestor.Name, Namespace);
+                string? ancestorTitle = ancestorKind == DocBookNodeKind.Section
+                    ? textBudget.GetPrimaryText(ancestor, ancestorKind, Namespace, path)
+                    : GetComponentTitle(ancestor, path);
+                if (ancestorTitle != null) path = OfficeDocumentHeadingPath.Append(path, ancestorTitle, " / ");
             }
             return OfficeDocumentHeadingPath.Append(path, tableTitle, " / ");
+        }
+
+        string? GetComponentTitle(XElement element, string parentPath) {
+            if (!IsSupportedComponent(element) || ReferenceEquals(element, RootElement) ||
+                DocBookNames.GetKind(element.Name, Namespace) == DocBookNodeKind.Section) return null;
+            string? infoName = GetComponentInfoElementName(element);
+            XElement? title = element.Element(Namespace + "title") ??
+                (infoName == null ? null : element.Element(Namespace + infoName)?.Element(Namespace + "title"));
+            return title == null ? null : textBudget.GetElementValue(title, parentPath);
         }
 
         string? GetProjectedDocumentTitle() {

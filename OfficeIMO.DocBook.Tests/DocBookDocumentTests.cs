@@ -495,6 +495,23 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedModelHeadingPathsIncludeTitledBookComponents() {
+        const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><chapter><title>Alpha</title><section><title>Details</title><para><link xl:href=\"https://example.test/alpha\">Alpha link</link></para></section></chapter><chapter><title>Beta</title><section><title>Details</title><mediaobject><imageobject><imagedata fileref=\"beta.png\"/></imageobject></mediaobject><table><title>Values</title><tgroup><tbody><row><entry>B</entry></row></tbody></tgroup></table></section></chapter></book>";
+
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode[] chapters = model.Structure
+            .Where(node => node.Kind.EndsWith("chapter", StringComparison.Ordinal)).ToArray();
+        OfficeDocumentModelNode[] sections = chapters
+            .Select(chapter => chapter.Children.Single(node => node.Kind == "section")).ToArray();
+
+        Assert.Equal(new[] { "Alpha", "Beta" }, chapters.Select(chapter => chapter.Location.HeadingPath));
+        Assert.Equal(new[] { "Alpha / Details", "Beta / Details" }, sections.Select(section => section.Location.HeadingPath));
+        Assert.Equal("Alpha / Details", Assert.Single(model.Links).Location!.HeadingPath);
+        Assert.Equal("Beta / Details", Assert.Single(model.Assets).Location!.HeadingPath);
+        Assert.Equal("Beta / Details / Values", Assert.Single(model.Tables).Location!.HeadingPath);
+    }
+
+    [Fact]
     public void SharedModelPublishesMetadataOnlyImageReferences() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Figures</title><mediaobject><imageobject><imagedata fileref=\"assets/figure.png?version=2\"/></imageobject><textobject><phrase>Chart alternative</phrase></textobject><caption><para>Chart title</para></caption></mediaobject></section></article>";
 
@@ -696,6 +713,39 @@ public sealed class DocBookDocumentTests {
 
         Assert.Contains(book.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB019" &&
             diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedTitlesAreInsertedBeforeBodyAndValidationRejectsLateParsedTitles(DocBookProfile profile) {
+        DocBookDocument article = DocBookDocument.CreateArticle(profile);
+        DocBookNode section = article.Root.Add(DocBookNodeKind.Section);
+        section.AddParagraph("Body");
+        section.Add(DocBookNodeKind.Title, "Late section");
+        Assert.Equal(new[] { "title", "para" }, section.Children.Select(child => child.Name));
+
+        DocBookNode table = article.Root.Add(DocBookNodeKind.Table);
+        table.Add(DocBookNodeKind.TableGroup).Add(DocBookNodeKind.TableBody)
+            .Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
+        table.Add(DocBookNodeKind.Title, "Late table");
+        Assert.Equal("title", table.Children.First().Name);
+
+        DocBookDocument book = DocBookDocument.CreateBook(profile);
+        book.AddParagraph("Book body");
+        DocBookNode chapter = book.Root.Children.Single(child => child.Name == "chapter");
+        chapter.Children.Single(child => child.Kind == DocBookNodeKind.Title).Remove();
+        chapter.Add(DocBookNodeKind.Title, "Late chapter");
+        Assert.Equal("title", chapter.Children.First().Name);
+
+        Assert.True(article.Validate().IsValid);
+        Assert.True(book.Validate().IsValid);
+
+        string parsedSource = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><para>Body</para><title>Late</title></section></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section><para>Body</para><title>Late</title></section></article>";
+        Assert.Contains(DocBookDocument.Parse(parsedSource).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB020" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
     [Fact]
