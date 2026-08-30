@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 202,
+    "projectCount": 203,
     "productionComponentCount": 106,
     "testProjectCount": 37,
     "benchmarkProjectCount": 33,
-    "validationProjectCount": 27,
+    "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41675
+    "conceptualWordCount": 41611
   },
   "categories": [
     {
@@ -768,7 +768,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1054,
+      "sourceFileCount": 1065,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1106,7 +1106,7 @@
       "description": "PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "sourceFileCount": 16,
+      "sourceFileCount": 17,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

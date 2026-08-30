@@ -283,6 +283,10 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB011", DocBookDiagnosticSeverity.Warning,
                     $"{element.Name.LocalName} has no title in the bounded common-structure profile.", path));
             }
+            if (kind == DocBookNodeKind.Table && !element.Elements(Namespace + "tgroup").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    $"{element.Name.LocalName} must contain at least one tgroup.", path));
+            }
             if (kind == DocBookNodeKind.ListItem && !element.Elements().Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error, "listitem must contain content.", path));
             }

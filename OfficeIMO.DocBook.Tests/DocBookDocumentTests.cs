@@ -840,6 +840,24 @@ public sealed class DocBookDocumentTests {
     }
 
     [Theory]
+    [InlineData(DocBookProfile.DocBook45, "table")]
+    [InlineData(DocBookProfile.DocBook45, "informaltable")]
+    [InlineData(DocBookProfile.DocBook52, "table")]
+    [InlineData(DocBookProfile.DocBook52, "informaltable")]
+    public void ValidationRejectsTablesWithoutTableGroups(DocBookProfile profile, string tableName) {
+        string title = tableName == "table" ? "<title>Values</title>" : string.Empty;
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><{tableName}>{title}</{tableName}></article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><{tableName}>{title}</{tableName}></article>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB012" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf("tgroup", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
     [InlineData(DocBookProfile.DocBook45)]
     [InlineData(DocBookProfile.DocBook52)]
     public void TypedSingletonChildrenRejectDuplicatesAndValidationCatchesParsedDuplicates(DocBookProfile profile) {

@@ -437,6 +437,25 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionPreservesGeneratedLookingFlatContentWithoutProjectionProvenance() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Blocks = new[] {
+                new OfficeDocumentModelBlock { Id = "outline-7", Kind = "outline", Text = "Independent block" }
+            },
+            Links = new[] {
+                new OfficeDocumentModelLink {
+                    Id = "opml-link-8-url", Kind = "url", Text = "Independent link", Uri = "https://example.test/"
+                }
+            }
+        };
+
+        OpmlDocument converted = OpmlDocument.FromOfficeDocumentModel(model).Value;
+
+        Assert.Equal(new[] { "Independent block", "Independent link" }, converted.Outlines.Select(outline => outline.Text));
+    }
+
+    [Fact]
     public void SharedReverseConversionIndexesLargeDerivedFlatProjections() {
         const int count = 25_000;
         OfficeDocumentModelNode[] nodes = Enumerable.Range(0, count).Select(index => {
@@ -754,6 +773,32 @@ public sealed class OpmlDocumentTests {
 
         Assert.Equal(new[] { "Original", "Edited flat block" }, converted.Value.Outlines.Select(outline => outline.Text));
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
+    }
+
+    [Theory]
+    [InlineData("1.0", false)]
+    [InlineData("1.0", true)]
+    [InlineData("2.0", false)]
+    [InlineData("2.0", true)]
+    public void SharedReverseConversionDoesNotRestoreDeletedOutlineProjections(string version, bool removeAll) {
+        OfficeDocumentModel model = OpmlDocument.Parse(
+            $"<opml version=\"{version}\"><head/><body>" +
+            "<outline text=\"Deleted\" url=\"https://example.test/deleted\"/>" +
+            "<outline text=\"Retained\" url=\"https://example.test/retained\"/>" +
+            "</body></opml>").ToOfficeDocumentModel().Value;
+        model.Structure = removeAll ? Array.Empty<OfficeDocumentModelNode>() : model.Structure.Skip(1).ToArray();
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        if (removeAll) {
+            Assert.Empty(converted.Value.Outlines);
+        } else {
+            OpmlOutline outline = Assert.Single(converted.Value.Outlines);
+            Assert.Equal("Retained", outline.Text);
+            Assert.Equal("https://example.test/retained", outline.Url);
+        }
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic =>
+            diagnostic.Code == "OPML101" || diagnostic.Code == "OPML107");
     }
 
     [Fact]

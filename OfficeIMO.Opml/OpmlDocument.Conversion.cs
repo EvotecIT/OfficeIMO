@@ -358,13 +358,16 @@ public sealed partial class OpmlDocument {
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
-            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodesById))) {
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block =>
+                         !IsOrphanedProjectedBlock(block, structureNodesById, model.Format == OfficeDocumentFormat.Opml) &&
+                         !IsDerivedBlock(block, structureNodesById))) {
                 document.AddOutline(block.Text);
                 diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
                     $"Supplementary shared block '{block.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
                     block.Location?.HeadingPath));
             }
             foreach (OfficeDocumentModelLink link in model.Links.Where(link =>
+                         !IsOrphanedProjectedLink(link, structureNodesById, model.Format == OfficeDocumentFormat.Opml) &&
                          !IsDerivedLink(link, structureNodesById, model.Format == OfficeDocumentFormat.Opml))) {
                 if (AddFlatLink(link)) {
                     diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
@@ -373,12 +376,16 @@ public sealed partial class OpmlDocument {
                 }
             }
         } else {
-            if (model.Blocks.Count > 0 || model.Links.Count > 0) {
+            OfficeDocumentModelBlock[] flatBlocks = model.Blocks.Where(block =>
+                !IsOrphanedProjectedBlock(block, structureNodesById, model.Format == OfficeDocumentFormat.Opml)).ToArray();
+            OfficeDocumentModelLink[] flatLinks = model.Links.Where(link =>
+                !IsOrphanedProjectedLink(link, structureNodesById, model.Format == OfficeDocumentFormat.Opml)).ToArray();
+            if (flatBlocks.Length > 0 || flatLinks.Length > 0) {
                 diagnostics.Add(new OpmlDiagnostic("OPML101", OpmlDiagnosticSeverity.Warning,
                     "The shared model had no recursive Structure; flat Blocks and Links were emitted as top-level outlines."));
             }
-            foreach (OfficeDocumentModelBlock block in model.Blocks) document.AddOutline(block.Text);
-            foreach (OfficeDocumentModelLink link in model.Links) AddFlatLink(link);
+            foreach (OfficeDocumentModelBlock block in flatBlocks) document.AddOutline(block.Text);
+            foreach (OfficeDocumentModelLink link in flatLinks) AddFlatLink(link);
         }
         foreach (OpmlDiagnostic diagnostic in document.Validate().Diagnostics.Where(candidate =>
                      candidate.Severity == OpmlDiagnosticSeverity.Error)) {
@@ -397,6 +404,48 @@ public sealed partial class OpmlDocument {
                 return recursiveTextWasEdited && flatTextIsOriginal &&
                     string.Equals(node.Location?.HeadingPath, block.Location?.HeadingPath, StringComparison.Ordinal);
             });
+        }
+
+        static bool IsOrphanedProjectedBlock(
+            OfficeDocumentModelBlock block,
+            ILookup<string, OfficeDocumentModelNode> nodesById,
+            bool isOpmlProjection) =>
+            isOpmlProjection && block.Marker == null && block.Region == null &&
+            string.Equals(block.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
+            TryGetProjectedOutlineId(block.Id, "outline-", out string nodeId, out int index) &&
+            block.Location?.BlockIndex == index &&
+            !nodesById[nodeId].Any();
+
+        static bool IsOrphanedProjectedLink(
+            OfficeDocumentModelLink link,
+            ILookup<string, OfficeDocumentModelNode> nodesById,
+            bool isOpmlProjection) {
+            const string prefix = "opml-link-";
+            if (!isOpmlProjection || string.IsNullOrEmpty(link.Id) ||
+                !link.Id.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            int kindSeparator = link.Id.LastIndexOf('-');
+            if (kindSeparator <= prefix.Length) return false;
+            string kind = link.Id.Substring(kindSeparator + 1);
+            if (!(string.Equals(kind, "url", StringComparison.Ordinal) ||
+                  string.Equals(kind, "subscription", StringComparison.Ordinal) ||
+                  string.Equals(kind, "html", StringComparison.Ordinal)) ||
+                !string.Equals(kind, link.Kind, StringComparison.OrdinalIgnoreCase) ||
+                link.Location?.BlockAnchor == null ||
+                !link.Location.BlockAnchor.StartsWith("opml-link-projection-sha256:", StringComparison.Ordinal)) return false;
+            return TryGetProjectedOutlineId(
+                link.Id.Substring(0, kindSeparator), prefix, out string nodeId, out int index) &&
+                link.Location?.BlockIndex == index && !nodesById[nodeId].Any();
+        }
+
+        static bool TryGetProjectedOutlineId(string? projectionId, string prefix, out string nodeId, out int index) {
+            nodeId = string.Empty;
+            index = -1;
+            if (string.IsNullOrEmpty(projectionId) || !projectionId!.StartsWith(prefix, StringComparison.Ordinal)) return false;
+            string suffix = projectionId.Substring(prefix.Length);
+            if (!int.TryParse(suffix, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out index) || index < 0) return false;
+            nodeId = "outline-" + suffix;
+            return true;
         }
 
         static bool IsDerivedLink(
