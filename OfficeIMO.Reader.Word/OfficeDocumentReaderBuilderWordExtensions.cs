@@ -11,7 +11,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
     public static OfficeDocumentReaderBuilder AddWordHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderWordOptions? options = null,
-        bool replaceExisting = false) => AddWordHandlerCore(builder, options, null, routeWordForDos: true, replaceExisting);
+        bool replaceExisting = false) => AddWordHandlerCore(builder, options, null, routeWordForDos: false, replaceExisting);
 
     /// <summary>Adds the normal and legacy Word handlers with one immutable option set for every legacy route, including content-routed Word for DOS <c>.doc</c>.</summary>
     public static OfficeDocumentReaderBuilder AddWordAndLegacyHandlers(

@@ -52,7 +52,10 @@ internal sealed class AmiProSamParser {
         int records = 1;
         for (int index = 0; index < data.Length; index++) {
             if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
-            if (data[index] > 0x7F) throw new InvalidDataException("Ami Pro SAM contains an extended character byte outside the structured ASCII profile.");
+            byte value = data[index];
+            if (value > 0x7F || (value < 0x20 && value != (byte)'\t' && value != (byte)'\r' && value != (byte)'\n')) {
+                throw new InvalidDataException("Ami Pro SAM contains a byte outside the XML-safe structured ASCII profile.");
+            }
             if ((data[index] == (byte)'\n' || data[index] == (byte)'\r') &&
                 (index == 0 || data[index] != (byte)'\n' || data[index - 1] != (byte)'\r') &&
                 ++records > _limits.MaxRecords) {
@@ -246,7 +249,9 @@ internal sealed class AmiProSamParser {
         }
         int nextAngleClose = source.IndexOf('>');
         int nextStyleClose = source.IndexOf('@');
+        int scannedTokenCount = 0;
         for (int index = 0; index < source.Length;) {
+            if ((scannedTokenCount++ & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
             char value = source[index];
             if (value == '<') {
                 if (index + 1 < source.Length && source[index + 1] == '<') { Append(text, '<'); index += 2; continue; }

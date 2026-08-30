@@ -70,8 +70,12 @@ internal static class WkFormulaDecoder {
                         if (zero < 0) throw new InvalidDataException("Formula string token has no terminator.");
                         for (int index = cursor; index < zero; index++) {
                             if (((index - cursor) & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-                            if (data[index] > 0x7F) {
+                            byte value = data[index];
+                            if (value > 0x7F) {
                                 throw new InvalidDataException("Formula string contains an extended character byte outside the validated ASCII profile.");
+                            }
+                            if (value < 0x20 && value != (byte)'\t' && value != (byte)'\r' && value != (byte)'\n') {
+                                throw new InvalidDataException("Formula string contains a control byte outside the XML-safe validated ASCII profile.");
                             }
                         }
                         string text = Encoding.ASCII.GetString(data, cursor, zero - cursor).Replace("\"", "\"\"");

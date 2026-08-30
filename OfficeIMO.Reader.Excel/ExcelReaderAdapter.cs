@@ -22,7 +22,8 @@ internal static class ExcelReaderAdapter {
         CancellationToken cancellationToken) {
         using ExcelDocument document = Load(path, readerOptions);
         using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
-        ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, BuildLegacyWarnings(document), cancellationToken).ToArray();
+        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        ReaderChunk[] chunks = Extract(reader, path, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, path, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
@@ -30,6 +31,7 @@ internal static class ExcelReaderAdapter {
             ReaderInputKind.Excel,
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
+        AttachWarningsWhenEmpty(result, chunks, warnings, path);
         return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
     }
 
@@ -42,7 +44,8 @@ internal static class ExcelReaderAdapter {
         using ExcelDocument document = Load(stream, sourceName, readerOptions);
         using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "workbook.xlsx" : sourceName!;
-        ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, BuildLegacyWarnings(document), cancellationToken).ToArray();
+        IReadOnlyList<string>? warnings = BuildLegacyWarnings(document);
+        ReaderChunk[] chunks = Extract(reader, logicalName, readerOptions, options, warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, logicalName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
@@ -50,6 +53,7 @@ internal static class ExcelReaderAdapter {
             ReaderInputKind.Excel,
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.HandlerId },
             assets: assets);
+        AttachWarningsWhenEmpty(result, chunks, warnings, logicalName);
         return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
     }
 
@@ -61,8 +65,9 @@ internal static class ExcelReaderAdapter {
         CancellationToken cancellationToken,
         IReadOnlyList<string>? sourceWarnings = null) {
         using ExcelDocumentReader reader = document.CreateReader(options.ReadOptions);
+        IReadOnlyList<string>? warnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         ReaderChunk[] chunks = Extract(reader, sourceName, readerOptions, options,
-            Combine(sourceWarnings, BuildLegacyWarnings(document)), cancellationToken).ToArray();
+            warnings, cancellationToken).ToArray();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectExcel(
             document.OpenXmlDocument, sourceName, readerOptions, options.SheetName, options.A1Range, cancellationToken);
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
@@ -70,7 +75,17 @@ internal static class ExcelReaderAdapter {
             ReaderInputKind.Excel,
             capabilities: new[] { OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId },
             assets: assets);
+        AttachWarningsWhenEmpty(result, chunks, warnings, sourceName);
         return ExcelRichMapping.Apply(document.CreateInspectionSnapshot(), readerOptions, options, result);
+    }
+
+    private static void AttachWarningsWhenEmpty(OfficeDocumentReadResult result, IReadOnlyList<ReaderChunk> chunks,
+        IReadOnlyList<string>? warnings, string sourceName) {
+        if (chunks.Count != 0 || warnings is not { Count: > 0 }) return;
+        var warningLocation = new ReaderLocation { Path = sourceName };
+        result.Diagnostics = result.Diagnostics
+            .Concat(warnings.Distinct(StringComparer.Ordinal).Select(warning => DocumentReaderEngine.BuildWarningDiagnostic(warning, warningLocation)))
+            .ToArray();
     }
 
     internal static bool ProbeEncryptedOpenXml(

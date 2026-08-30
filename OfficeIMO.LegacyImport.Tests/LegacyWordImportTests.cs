@@ -329,6 +329,33 @@ public sealed class LegacyWordImportTests {
             new LegacyWordImportOptions { SourceName = "archive.sam" }));
     }
 
+    [Theory]
+    [InlineData((byte)0x00)]
+    [InlineData((byte)0x01)]
+    [InlineData((byte)0x0B)]
+    [InlineData((byte)0x0C)]
+    public void AmiProStructuredProfileRejectsXmlInvalidAsciiControls(byte control) {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nXY\n");
+        source[Array.IndexOf(source, (byte)'Y')] = control;
+
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true }));
+    }
+
+    [Fact]
+    public void AmiProLargeInlineTagScansObserveCancellation() {
+        string tags = string.Concat(Enumerable.Repeat("<+!><-!>", 2_000_000));
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + tags + "X\n");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+
+        Assert.Throws<OperationCanceledException>(() => LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true },
+            cancellation.Token));
+    }
+
     [Fact]
     public void CompoundDetectionHonorsRaisedDirectoryEntryLimit() {
         byte[] source = LegacyFixtureFactory.CompoundWithLargeDirectory();
@@ -714,6 +741,15 @@ public sealed class LegacyWordImportTests {
 
         Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Word DOS recovered paragraph", StringComparison.Ordinal));
         Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void NormalWordHandlerDoesNotOptIntoWordForDosSalvage() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddWordHandler().Build();
+
+        Assert.ThrowsAny<Exception>(() => reader.ReadDocument(
+            LegacyFixtureFactory.Write(false),
+            "archive.doc"));
     }
 
     [Fact]

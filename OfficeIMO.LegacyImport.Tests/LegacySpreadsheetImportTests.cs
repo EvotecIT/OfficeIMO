@@ -144,6 +144,22 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Theory]
+    [InlineData((byte)0x01)]
+    [InlineData((byte)0x0B)]
+    [InlineData((byte)0x0C)]
+    public void WkFormulaStringsRejectXmlInvalidAsciiControls(byte control) {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x06, (byte)'A', control, (byte)'B', 0x00, 0x03 }),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        LegacySpreadsheetCellContent formula = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Null(formula.Formula);
+        Assert.Equal(84d, formula.CachedValue);
+        Assert.Contains(imported.Metadata.Values, value => value.Contains("XML-safe validated ASCII profile", StringComparison.Ordinal));
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+    }
+
+    [Theory]
     [InlineData(new byte[] { 0x01, 0x00, 0x01, 0x00, 0x00, 0x03 })]
     [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x40, 0x03 })]
     [InlineData(new byte[] { 0x01, 0x00, 0x00, 0x00, 0x20, 0x03 })]
@@ -554,6 +570,17 @@ public sealed class LegacySpreadsheetImportTests {
         OfficeDocumentReadResult result = reader.ReadDocument(stream, "archive.wk1");
         Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("lotus-1-2-3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ReaderHandlerPreservesLegacyWarningsForEmptyWorkbooks() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddLegacySpreadsheetHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(LegacyFixtureFactory.EmptyWk(), "archive.wk1");
+
+        Assert.Empty(result.Chunks);
+        Assert.Contains(OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("Legacy import quality", StringComparison.Ordinal));
     }
 
     [Fact]
