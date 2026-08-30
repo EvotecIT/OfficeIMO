@@ -82,7 +82,7 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool IsRecoveryLossDiagnostic(BibliographyDiagnostic diagnostic) =>
-        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003";
+        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003" || diagnostic.Code == "BIBEND004";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
@@ -229,7 +229,8 @@ internal static class BibliographyConversionInspector {
             if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
                 !date.Year.HasValue && !date.Month.HasValue && !date.Day.HasValue && !date.EndYear.HasValue && !date.EndMonth.HasValue && !date.EndDay.HasValue && date.Literal == null)
                 Loss(report, item, "dates." + date.Role, "BIBCONV242", $"A null-valued empty date reopens with an empty literal in {format}.", BibliographyConversionAction.Approximated);
-            if (!IsValidDate(date.Year, date.Month, date.Day) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
+            bool classicBibMonthOnly = format == BibliographyFormat.BibTex && date.Role == BibliographyDateRole.Issued && !date.Year.HasValue && date.Month is >= 1 and <= 12 && !date.Day.HasValue;
+            if ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && format != BibliographyFormat.CslJson && format != BibliographyFormat.BibLatex && format != BibliographyFormat.EndNoteXml)
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);

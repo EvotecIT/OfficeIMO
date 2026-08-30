@@ -114,23 +114,45 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
 }
 
 internal sealed class EndNoteSourceOffsetMap {
-    private readonly int[] _lineStarts;
+    private readonly string _source;
+    private readonly int _baseOffset;
+    private readonly CancellationToken _cancellationToken;
+    private int _scanIndex;
+    private int _currentLine = 1;
+    private int _currentLineStart;
 
-    internal EndNoteSourceOffsetMap(string source, int baseOffset) {
-        var lineStarts = new List<int> { baseOffset };
-        for (int index = 0; index < source.Length; index++) {
-            if (source[index] == '\r') {
-                if (index + 1 < source.Length && source[index + 1] == '\n') index++;
-                lineStarts.Add(baseOffset + index + 1);
-            } else if (source[index] == '\n') lineStarts.Add(baseOffset + index + 1);
-        }
-        _lineStarts = lineStarts.ToArray();
+    internal EndNoteSourceOffsetMap(string source, int baseOffset, CancellationToken cancellationToken) {
+        _source = source;
+        _baseOffset = baseOffset;
+        _currentLineStart = baseOffset;
+        _cancellationToken = cancellationToken;
     }
 
     internal int GetOffset(IXmlLineInfo lineInfo) {
-        if (!lineInfo.HasLineInfo() || lineInfo.LineNumber < 1 || lineInfo.LineNumber > _lineStarts.Length || lineInfo.LinePosition < 1) return -1;
-        int lineStart = _lineStarts[lineInfo.LineNumber - 1];
-        return Math.Max(lineStart, lineStart + lineInfo.LinePosition - 2);
+        if (!lineInfo.HasLineInfo() || lineInfo.LineNumber < 1 || lineInfo.LinePosition < 1) return -1;
+        if (lineInfo.LineNumber < _currentLine) Reset();
+        while (_currentLine < lineInfo.LineNumber && _scanIndex < _source.Length) {
+            if ((_scanIndex & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            char character = _source[_scanIndex++];
+            if (character == '\r') {
+                if (_scanIndex < _source.Length && _source[_scanIndex] == '\n') _scanIndex++;
+                AdvanceLine();
+            } else if (character == '\n') AdvanceLine();
+        }
+        _cancellationToken.ThrowIfCancellationRequested();
+        if (_currentLine != lineInfo.LineNumber) return -1;
+        return Math.Max(_currentLineStart, _currentLineStart + lineInfo.LinePosition - 2);
+    }
+
+    private void AdvanceLine() {
+        _currentLine++;
+        _currentLineStart = _baseOffset + _scanIndex;
+    }
+
+    private void Reset() {
+        _scanIndex = 0;
+        _currentLine = 1;
+        _currentLineStart = _baseOffset;
     }
 }
 
