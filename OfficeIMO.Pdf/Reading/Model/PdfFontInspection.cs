@@ -19,6 +19,12 @@ public sealed class PdfFontInspectionOptions {
     /// <summary>Maximum decoded bytes retained for one embedded font program. Default: 16 MiB.</summary>
     public int MaxEmbeddedProgramBytes { get; init; } = 16 * 1024 * 1024;
 
+    /// <summary>Maximum decoded bytes processed for one ToUnicode character map. Default: 4 MiB.</summary>
+    public int MaxToUnicodeBytes { get; init; } = 4 * 1024 * 1024;
+
+    /// <summary>Maximum aggregate decoded bytes processed across ToUnicode maps and embedded font programs. Default: 64 MiB.</summary>
+    public long MaxTotalDecodedFontBytes { get; init; } = 64L * 1024L * 1024L;
+
     /// <summary>Maximum unique font dictionaries returned by one inspection. Default: 4,096.</summary>
     public int MaxFonts { get; init; } = 4_096;
 
@@ -28,10 +34,19 @@ public sealed class PdfFontInspectionOptions {
     /// <summary>Maximum declared font references returned by one inspection. Default: 100,000.</summary>
     public int MaxResourceReferences { get; init; } = 100_000;
 
+    /// <summary>Maximum nested Form XObject resource-context traversals performed by one inspection. Default: 10,000.</summary>
+    public int MaxFormResourceTraversals { get; init; } = 10_000;
+
     internal static PdfFontInspectionOptions Resolve(PdfFontInspectionOptions? options) {
         PdfFontInspectionOptions effective = options ?? new PdfFontInspectionOptions();
         if (effective.MaxEmbeddedProgramBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaxEmbeddedProgramBytes, "Maximum embedded font program bytes must be positive.");
+        }
+        if (effective.MaxToUnicodeBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), effective.MaxToUnicodeBytes, "Maximum ToUnicode bytes must be positive.");
+        }
+        if (effective.MaxTotalDecodedFontBytes <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), effective.MaxTotalDecodedFontBytes, "Maximum aggregate decoded font bytes must be positive.");
         }
         if (effective.MaxFonts <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaxFonts, "Maximum fonts must be positive.");
@@ -42,6 +57,9 @@ public sealed class PdfFontInspectionOptions {
         if (effective.MaxResourceReferences <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaxResourceReferences, "Maximum resource references must be positive.");
         }
+        if (effective.MaxFormResourceTraversals <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), effective.MaxFormResourceTraversals, "Maximum Form resource traversals must be positive.");
+        }
         return effective;
     }
 }
@@ -49,23 +67,31 @@ public sealed class PdfFontInspectionOptions {
 /// <summary>Stable diagnostic codes emitted while inspecting PDF font resources.</summary>
 public enum PdfFontInspectionDiagnosticCode {
     /// <summary>A font dictionary did not declare a BaseFont name.</summary>
-    MissingBaseFont,
+    MissingBaseFont = 0,
     /// <summary>A font dictionary did not declare a ToUnicode mapping.</summary>
-    MissingToUnicode,
+    MissingToUnicode = 1,
     /// <summary>A declared ToUnicode mapping could not be decoded into a readable character map.</summary>
-    UnreadableToUnicode,
+    UnreadableToUnicode = 2,
     /// <summary>An embedded font program could not be decoded within the configured limit.</summary>
-    EmbeddedProgramUnavailable,
+    EmbeddedProgramUnavailable = 3,
     /// <summary>An embedded OpenType or TrueType program was decoded but its table directory could not be inspected.</summary>
-    UnreadableEmbeddedOpenTypeProgram,
+    UnreadableEmbeddedOpenTypeProgram = 4,
     /// <summary>The configured unique-font limit stopped further inspection.</summary>
-    FontLimitExceeded,
+    FontLimitExceeded = 5,
     /// <summary>The configured font-reference limit stopped further inspection.</summary>
-    ResourceReferenceLimitExceeded,
+    ResourceReferenceLimitExceeded = 6,
     /// <summary>The configured nested Form XObject depth stopped further traversal.</summary>
-    ResourceDepthExceeded,
+    ResourceDepthExceeded = 7,
     /// <summary>A cyclic Form XObject resource path was detected and stopped.</summary>
-    CyclicResourceGraph
+    CyclicResourceGraph = 8,
+    /// <summary>The aggregate embedded font program decode allowance was exhausted.</summary>
+    EmbeddedProgramTotalLimitExceeded = 9,
+    /// <summary>The configured Form XObject resource-context traversal limit stopped further inspection.</summary>
+    FormResourceTraversalLimitExceeded = 10,
+    /// <summary>A declared ToUnicode mapping exceeded the configured per-map decoded-byte limit.</summary>
+    ToUnicodeLimitExceeded = 11,
+    /// <summary>A declared ToUnicode mapping was not decoded because the aggregate font-stream allowance was exhausted.</summary>
+    ToUnicodeTotalLimitExceeded = 12
 }
 
 /// <summary>One structured font inspection diagnostic.</summary>
@@ -254,8 +280,17 @@ public sealed class PdfFontInventory {
     /// <summary>Number of unique fonts that do not declare a ToUnicode mapping.</summary>
     public int MissingToUnicodeFontCount => Fonts.Count(static font => !font.HasToUnicode);
 
-    /// <summary>Number of unique fonts with a declared but unreadable ToUnicode mapping.</summary>
-    public int UnreadableToUnicodeFontCount => Fonts.Count(static font => font.HasToUnicode && !font.HasReadableToUnicodeMap);
+    /// <summary>Number of unique fonts whose declared ToUnicode mapping was malformed or otherwise unreadable for a non-limit reason.</summary>
+    public int UnreadableToUnicodeFontCount => Fonts.Count(static font =>
+        font.Diagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.UnreadableToUnicode));
+
+    /// <summary>Number of unique fonts whose declared ToUnicode mapping exceeded the configured per-map decoded-byte limit.</summary>
+    public int ToUnicodeLimitExceededFontCount => Fonts.Count(static font =>
+        font.Diagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ToUnicodeLimitExceeded));
+
+    /// <summary>Number of unique fonts whose declared ToUnicode mapping was skipped after the aggregate font-stream allowance was exhausted.</summary>
+    public int ToUnicodeTotalLimitExceededFontCount => Fonts.Count(static font =>
+        font.Diagnostics.Any(static diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ToUnicodeTotalLimitExceeded));
 
     /// <summary>Total declared page and nested Form XObject font references.</summary>
     public int ResourceReferenceCount => Fonts.Sum(static font => font.References.Count);

@@ -489,7 +489,14 @@ Cross-page recovery is conservative. It joins only adjacent boundary items with
 compatible geometry and content evidence, returns confidence and evidence flags,
 and leaves the original page-local logical model unchanged. Embedded program bytes
 are returned only when `IncludeEmbeddedProgramBytes` is explicitly enabled and
-remain subject to `MaxEmbeddedProgramBytes`.
+remain subject to both `MaxEmbeddedProgramBytes` per font and
+`MaxTotalDecodedFontBytes` across embedded programs and ToUnicode maps. ToUnicode
+per-map and aggregate limit outcomes have separate diagnostics and inventory counts,
+so resource limits are not reported as malformed maps. Nested Form XObject discovery
+deduplicates shared resource contexts by their shallowest reachable depth and is
+bounded by `MaxFormResourceTraversals`.
+For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
+was not declared and retains an explicit or inherited authored `Normal` value.
 
 Text extraction excludes PDF artifact marked content by default, which is the
 logical-text behavior expected for decorative headers, footers, and chart

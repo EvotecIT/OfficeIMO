@@ -8,6 +8,19 @@ namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfFontInspectionTests {
     [Fact]
+    public void FontInspectionDiagnosticCodes_PreserveStableLegacyValues() {
+        Assert.Equal(0, (int)PdfFontInspectionDiagnosticCode.MissingBaseFont);
+        Assert.Equal(1, (int)PdfFontInspectionDiagnosticCode.MissingToUnicode);
+        Assert.Equal(2, (int)PdfFontInspectionDiagnosticCode.UnreadableToUnicode);
+        Assert.Equal(3, (int)PdfFontInspectionDiagnosticCode.EmbeddedProgramUnavailable);
+        Assert.Equal(4, (int)PdfFontInspectionDiagnosticCode.UnreadableEmbeddedOpenTypeProgram);
+        Assert.Equal(5, (int)PdfFontInspectionDiagnosticCode.FontLimitExceeded);
+        Assert.Equal(6, (int)PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded);
+        Assert.Equal(7, (int)PdfFontInspectionDiagnosticCode.ResourceDepthExceeded);
+        Assert.Equal(8, (int)PdfFontInspectionDiagnosticCode.CyclicResourceGraph);
+    }
+
+    [Fact]
     public void Fonts_ReportsSubsetEmbeddingToUnicodeAndNestedReferences() {
         byte[] pdf = BuildFontPdf();
 
@@ -127,6 +140,179 @@ public sealed class PdfFontInspectionTests {
         Assert.Equal(PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded, diagnostic.Code);
         Assert.Equal(1, diagnostic.PageNumber);
         Assert.Equal("Page 1/XObject/Fm1/Font/Nested", diagnostic.ResourcePath);
+    }
+
+    [Fact]
+    public void Fonts_StopsDecodingWhenAggregateEmbeddedProgramLimitIsReached() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /FontOne /FontDescriptor 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /FontTwo /FontDescriptor 8 0 R >>",
+            StreamObject(string.Empty),
+            "<< /Type /FontDescriptor /FontName /FontOne /FontFile 9 0 R >>",
+            "<< /Type /FontDescriptor /FontName /FontTwo /FontFile 10 0 R >>",
+            StreamObject("font-one", "/Length1 8"),
+            StreamObject("font-two", "/Length1 8"));
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            IncludeEmbeddedProgramBytes = true,
+            MaxEmbeddedProgramBytes = 16,
+            MaxTotalDecodedFontBytes = 8
+        });
+
+        Assert.Equal(2, inventory.FontCount);
+        Assert.Equal(Encoding.ASCII.GetBytes("font-one"), inventory.Fonts[0].EmbeddedProgramBytes);
+        Assert.Null(inventory.Fonts[1].EmbeddedProgramBytes);
+        Assert.Contains(
+            inventory.Fonts[1].Diagnostics,
+            diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.EmbeddedProgramTotalLimitExceeded);
+    }
+
+    [Fact]
+    public void Fonts_DistinguishesToUnicodePerMapLimitFromUnreadableContent() {
+        const string toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 beginbfchar\n<41> <0041>\nendbfchar\nendcmap\nend\nend";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 6 0 R >>",
+            StreamObject(string.Empty),
+            StreamObject(toUnicode));
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxToUnicodeBytes = 16,
+            MaxTotalDecodedFontBytes = 1_024
+        });
+
+        PdfFontInfo font = Assert.Single(inventory.Fonts);
+        Assert.False(font.HasReadableToUnicodeMap);
+        Assert.Contains(font.Diagnostics, diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ToUnicodeLimitExceeded);
+        Assert.Equal(1, inventory.ToUnicodeLimitExceededFontCount);
+        Assert.Equal(0, inventory.ToUnicodeTotalLimitExceededFontCount);
+        Assert.Equal(0, inventory.UnreadableToUnicodeFontCount);
+    }
+
+    [Fact]
+    public void Fonts_DistinguishesAggregateToUnicodeLimitFromUnreadableContent() {
+        const string toUnicode = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 beginbfchar\n<41> <0041>\nendbfchar\nendcmap\nend\nend";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 8 0 R >>",
+            StreamObject(string.Empty),
+            StreamObject(toUnicode),
+            StreamObject(toUnicode));
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxToUnicodeBytes = 1_024,
+            MaxTotalDecodedFontBytes = Encoding.ASCII.GetByteCount(toUnicode)
+        });
+
+        Assert.True(inventory.Fonts[0].HasReadableToUnicodeMap);
+        Assert.False(inventory.Fonts[1].HasReadableToUnicodeMap);
+        Assert.Contains(
+            inventory.Fonts[1].Diagnostics,
+            diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ToUnicodeTotalLimitExceeded);
+        Assert.Equal(0, inventory.ToUnicodeLimitExceededFontCount);
+        Assert.Equal(1, inventory.ToUnicodeTotalLimitExceededFontCount);
+        Assert.Equal(0, inventory.UnreadableToUnicodeFontCount);
+    }
+
+    [Fact]
+    public void Fonts_BoundsRepeatedMalformedToUnicodeDecodeAttempts() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /ToUnicode 8 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Courier /ToUnicode 9 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /TimesRoman /ToUnicode 10 0 R >>",
+            StreamObject(string.Empty),
+            StreamObject("bad", "/Filter /DCTDecode"),
+            StreamObject("bad", "/Filter /DCTDecode"),
+            StreamObject("bad", "/Filter /DCTDecode"));
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxToUnicodeBytes = 16,
+            MaxTotalDecodedFontBytes = 32
+        });
+
+        Assert.Equal(2, inventory.UnreadableToUnicodeFontCount);
+        Assert.Equal(1, inventory.ToUnicodeTotalLimitExceededFontCount);
+        Assert.Contains(
+            inventory.Fonts[2].Diagnostics,
+            diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ToUnicodeTotalLimitExceeded);
+    }
+
+    [Fact]
+    public void Fonts_VisitsSharedFormResourceContextOnlyOnce() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /A 4 0 R /B 5 0 R >> >> /Contents 6 0 R >>",
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Shared 7 0 R >> >>"),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Shared 7 0 R >> >>"),
+            StreamObject(string.Empty),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 8 0 R >> >>"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxFormResourceTraversals = 3
+        });
+
+        Assert.Single(inventory.Fonts);
+        Assert.Single(inventory.Fonts[0].References);
+        Assert.DoesNotContain(
+            inventory.Diagnostics,
+            diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded);
+    }
+
+    [Fact]
+    public void Fonts_RevisitsSharedFormWhenLaterPathHasMoreDepthAvailable() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Deep 4 0 R /Shallow 5 0 R >> >> /Contents 6 0 R >>",
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Middle 7 0 R >> >>"),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Shared 8 0 R >> >>"),
+            StreamObject(string.Empty),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Shared 8 0 R >> >>"),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /XObject << /Leaf 9 0 R >> >>"),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 10 0 R >> >>"),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxResourceDepth = 3,
+            MaxFormResourceTraversals = 10
+        });
+
+        PdfFontInfo font = Assert.Single(inventory.Fonts);
+        PdfFontResourceReference reference = Assert.Single(font.References);
+        Assert.Equal("Page 1/XObject/Shallow/XObject/Shared/XObject/Leaf/Font/F1", reference.ResourcePath);
+        Assert.Contains(inventory.Diagnostics, diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.ResourceDepthExceeded);
+    }
+
+    [Fact]
+    public void Fonts_StopsAtConfiguredFormResourceTraversalLimit() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /A 4 0 R /B 5 0 R >> >> /Contents 6 0 R >>",
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>"),
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>"),
+            StreamObject(string.Empty));
+
+        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+            MaxFormResourceTraversals = 1
+        });
+
+        PdfFontInspectionDiagnostic diagnostic = Assert.Single(inventory.Diagnostics);
+        Assert.Equal(PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded, diagnostic.Code);
+        Assert.Equal("Page 1/XObject/B", diagnostic.ResourcePath);
     }
 
     [Fact]

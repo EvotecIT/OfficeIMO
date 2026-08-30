@@ -20,7 +20,13 @@ internal static class PdfFontInspector {
             int pageNumber = pageNumbers[i];
             PdfDictionary? resources = document.Pages[pageNumber - 1].GetFontInspectionResources();
             if (resources is not null) {
-                context.InspectResources(resources, pageNumber, "Page " + pageNumber, 0, new HashSet<PdfStream>(ReferenceComparer<PdfStream>.Instance));
+                context.InspectResources(
+                    resources,
+                    pageNumber,
+                    "Page " + pageNumber,
+                    0,
+                    new HashSet<PdfStream>(ReferenceComparer<PdfStream>.Instance),
+                    new Dictionary<FormResourceContext, int>(FormResourceContextComparer.Instance));
             }
         }
 
@@ -33,11 +39,14 @@ internal static class PdfFontInspector {
         private readonly Dictionary<PdfDictionary, FontBuilder> _fonts = new(ReferenceComparer<PdfDictionary>.Instance);
         private readonly List<FontBuilder> _fontOrder = new();
         private readonly List<PdfFontInspectionDiagnostic> _diagnostics = new();
+        private readonly FontStreamDecodeBudget _decodeBudget;
         private int _referenceCount;
+        private int _formTraversalCount;
 
         internal InspectionContext(Dictionary<int, PdfIndirectObject> objects, PdfFontInspectionOptions options) {
             _objects = objects;
             _options = options;
+            _decodeBudget = new FontStreamDecodeBudget(options.MaxTotalDecodedFontBytes);
         }
 
         internal bool IsStopped { get; private set; }
@@ -47,9 +56,11 @@ internal static class PdfFontInspector {
             int pageNumber,
             string resourcePath,
             int depth,
-            HashSet<PdfStream> activeForms) {
+            HashSet<PdfStream> activeForms,
+            Dictionary<FormResourceContext, int> visitedFormContexts,
+            bool inspectDeclaredFonts = true) {
             if (IsStopped) return;
-            InspectFonts(resources, pageNumber, resourcePath);
+            if (inspectDeclaredFonts) InspectFonts(resources, pageNumber, resourcePath);
             if (IsStopped) return;
 
             if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
@@ -78,7 +89,32 @@ internal static class PdfFontInspector {
                 PdfDictionary formResources = form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) && Resolve(formResourceValue) is PdfDictionary declared
                     ? declared
                     : resources;
-                InspectResources(formResources, pageNumber, formPath, depth + 1, activeForms);
+                var context = new FormResourceContext(form, formResources);
+                int contextDepth = depth + 1;
+                bool previouslyVisited = visitedFormContexts.TryGetValue(context, out int previousDepth);
+                if (previouslyVisited && previousDepth <= contextDepth) {
+                    activeForms.Remove(form);
+                    continue;
+                }
+                visitedFormContexts[context] = contextDepth;
+                if (_formTraversalCount >= _options.MaxFormResourceTraversals) {
+                    activeForms.Remove(form);
+                    AddLimitDiagnostic(
+                        PdfFontInspectionDiagnosticCode.FormResourceTraversalLimitExceeded,
+                        "Font inspection stopped at the configured Form XObject resource-context traversal limit.",
+                        pageNumber,
+                        formPath);
+                    return;
+                }
+                _formTraversalCount++;
+                InspectResources(
+                    formResources,
+                    pageNumber,
+                    formPath,
+                    contextDepth,
+                    activeForms,
+                    visitedFormContexts,
+                    inspectDeclaredFonts: !previouslyVisited);
                 activeForms.Remove(form);
                 if (IsStopped) return;
             }
@@ -109,7 +145,7 @@ internal static class PdfFontInspector {
                         return;
                     }
                     GetReferenceIdentity(entry.Value, out int? objectNumber, out int? generation);
-                    builder = FontBuilder.Create(font, entry.Key, objectNumber, generation, _objects, _options);
+                    builder = FontBuilder.Create(font, entry.Key, objectNumber, generation, _objects, _options, _decodeBudget);
                     _fonts.Add(font, builder);
                     _fontOrder.Add(builder);
                 }
@@ -192,17 +228,38 @@ internal static class PdfFontInspector {
             int? objectNumber,
             int? generation,
             Dictionary<int, PdfIndirectObject> objects,
-            PdfFontInspectionOptions options) {
-            PdfFontResource resource = ResourceResolver.CreateFontResource(resourceName, font, objects);
+            PdfFontInspectionOptions options,
+            FontStreamDecodeBudget decodeBudget) {
+            FontStreamDecodeFailure toUnicodeDecodeFailure = FontStreamDecodeFailure.None;
+            PdfFontResource resource = ResourceResolver.CreateFontResource(
+                resourceName,
+                font,
+                objects,
+                stream => {
+                    bool decoded = decodeBudget.TryDecode(
+                        stream,
+                        objects,
+                        options.MaxToUnicodeBytes,
+                        out byte[]? bytes,
+                        out toUnicodeDecodeFailure);
+                    return decoded ? bytes : null;
+                },
+                includeEmbeddedTrueTypeFont: false);
             SplitSubsetName(resource.BaseFont, out string familyName, out string? subsetTag);
             FindEmbeddedProgram(font, objects, out PdfStream? program, out string? programSubtype);
             byte[]? decodedProgram = null;
             byte[]? programBytes = null;
             PdfOpenTypeFontInfo? openTypeInfo = null;
             bool programUnavailable = false;
+            FontStreamDecodeFailure programDecodeFailure = FontStreamDecodeFailure.None;
             bool unreadableOpenTypeProgram = false;
             if (program is not null && (options.IncludeEmbeddedProgramBytes || options.InspectEmbeddedProgramMetadata)) {
-                if (!StreamDecoder.TryDecode(program.Dictionary, program.Data, options.MaxEmbeddedProgramBytes, out decodedProgram, objects)) {
+                if (!decodeBudget.TryDecode(
+                        program,
+                        objects,
+                        options.MaxEmbeddedProgramBytes,
+                        out decodedProgram,
+                        out programDecodeFailure)) {
                     decodedProgram = null;
                     programUnavailable = true;
                 }
@@ -238,13 +295,25 @@ internal static class PdfFontInspector {
                     "Font dictionary does not declare a ToUnicode mapping."));
             } else if (resource.CMap is null) {
                 builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
-                    PdfFontInspectionDiagnosticCode.UnreadableToUnicode,
-                    "Font dictionary declares a ToUnicode mapping that could not be decoded."));
+                    toUnicodeDecodeFailure == FontStreamDecodeFailure.AggregateLimit
+                        ? PdfFontInspectionDiagnosticCode.ToUnicodeTotalLimitExceeded
+                        : toUnicodeDecodeFailure == FontStreamDecodeFailure.PerStreamLimit
+                            ? PdfFontInspectionDiagnosticCode.ToUnicodeLimitExceeded
+                            : PdfFontInspectionDiagnosticCode.UnreadableToUnicode,
+                    toUnicodeDecodeFailure == FontStreamDecodeFailure.AggregateLimit
+                        ? "ToUnicode mapping was not decoded because the aggregate font-stream byte allowance was exhausted."
+                        : toUnicodeDecodeFailure == FontStreamDecodeFailure.PerStreamLimit
+                            ? "ToUnicode mapping exceeded the configured per-map decoded-byte limit."
+                            : "Font dictionary declares a ToUnicode mapping that could not be decoded."));
             }
             if (programUnavailable) {
                 builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
-                    PdfFontInspectionDiagnosticCode.EmbeddedProgramUnavailable,
-                    "Embedded font program could not be decoded within the configured byte limit."));
+                    programDecodeFailure == FontStreamDecodeFailure.AggregateLimit
+                        ? PdfFontInspectionDiagnosticCode.EmbeddedProgramTotalLimitExceeded
+                        : PdfFontInspectionDiagnosticCode.EmbeddedProgramUnavailable,
+                    programDecodeFailure == FontStreamDecodeFailure.AggregateLimit
+                        ? "Embedded font program was not decoded because the aggregate font-stream byte allowance was exhausted."
+                        : "Embedded font program could not be decoded within the configured byte limit."));
             }
             if (unreadableOpenTypeProgram) {
                 builder._diagnostics.Add(new PdfFontInspectionDiagnostic(
@@ -332,6 +401,77 @@ internal static class PdfFontInspector {
             subtype = program is null ? null : declaredSubtype;
             return program is not null;
         }
+    }
+
+    private sealed class FontStreamDecodeBudget {
+        private long _remainingBytes;
+
+        internal FontStreamDecodeBudget(long maximumBytes) {
+            _remainingBytes = maximumBytes;
+        }
+
+        internal bool TryDecode(
+            PdfStream program,
+            Dictionary<int, PdfIndirectObject> objects,
+            int maximumStreamBytes,
+            out byte[]? decoded,
+            out FontStreamDecodeFailure failure) {
+            decoded = null;
+            failure = FontStreamDecodeFailure.None;
+            if (_remainingBytes <= 0L) {
+                failure = FontStreamDecodeFailure.AggregateLimit;
+                return false;
+            }
+
+            long remainingBeforeDecode = _remainingBytes;
+            int maximumOutput = (int)Math.Min(maximumStreamBytes, Math.Min(remainingBeforeDecode, int.MaxValue));
+            if (!StreamDecoder.TryDecode(
+                    program.Dictionary,
+                    program.Data,
+                    maximumOutput,
+                    out byte[] candidate,
+                    out bool decodedLimitExceeded,
+                    objects)) {
+                _remainingBytes -= maximumOutput;
+                failure = decodedLimitExceeded
+                    ? remainingBeforeDecode <= maximumStreamBytes
+                        ? FontStreamDecodeFailure.AggregateLimit
+                        : FontStreamDecodeFailure.PerStreamLimit
+                    : FontStreamDecodeFailure.DecodeFailure;
+                return false;
+            }
+
+            _remainingBytes -= candidate.LongLength;
+            decoded = candidate;
+            return true;
+        }
+    }
+
+    private enum FontStreamDecodeFailure {
+        None,
+        DecodeFailure,
+        PerStreamLimit,
+        AggregateLimit
+    }
+
+    private readonly struct FormResourceContext {
+        internal FormResourceContext(PdfStream form, PdfDictionary resources) {
+            Form = form;
+            Resources = resources;
+        }
+
+        internal PdfStream Form { get; }
+        internal PdfDictionary Resources { get; }
+    }
+
+    private sealed class FormResourceContextComparer : IEqualityComparer<FormResourceContext> {
+        internal static FormResourceContextComparer Instance { get; } = new FormResourceContextComparer();
+
+        public bool Equals(FormResourceContext x, FormResourceContext y) =>
+            ReferenceEquals(x.Form, y.Form) && ReferenceEquals(x.Resources, y.Resources);
+
+        public int GetHashCode(FormResourceContext value) =>
+            unchecked((RuntimeHelpers.GetHashCode(value.Form) * 397) ^ RuntimeHelpers.GetHashCode(value.Resources));
     }
 
     private sealed class ReferenceComparer<T> : IEqualityComparer<T> where T : class {

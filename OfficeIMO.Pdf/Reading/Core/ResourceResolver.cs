@@ -539,7 +539,12 @@ internal static partial class ResourceResolver {
         return bytes => PdfWinAnsiEncoding.Decode(bytes, maxDecodedTextCharacters);
     }
 
-    internal static PdfFontResource CreateFontResource(string resourceName, PdfDictionary fontVal, Dictionary<int, PdfIndirectObject> objects) {
+    internal static PdfFontResource CreateFontResource(
+        string resourceName,
+        PdfDictionary fontVal,
+        Dictionary<int, PdfIndirectObject> objects,
+        Func<PdfStream, byte[]?>? toUnicodeDecoder = null,
+        bool includeEmbeddedTrueTypeFont = true) {
         string baseFont = (fontVal.Get<PdfName>("BaseFont")?.Name) ?? "";
         string encoding = GetDefaultEncodingForBaseFont(baseFont);
         IReadOnlyDictionary<int, string>? differences = null;
@@ -559,12 +564,17 @@ internal static partial class ResourceResolver {
                 tu is PdfReference r &&
                 PdfObjectLookup.TryGet(objects, r, out var ind) &&
                 ind.Value is PdfStream s) {
-                var data = Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects);
-                if (!ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
+                byte[]? data = toUnicodeDecoder == null
+                    ? Filters.StreamDecoder.Decode(s.Dictionary, s.Data, objects)
+                    : toUnicodeDecoder(s);
+                if (data == null || !ToUnicodeCMap.TryParse(data, out cmap)) cmap = null;
             }
         }
 
-        byte[]? embeddedTrueTypeFont = TryReadEmbeddedTrueTypeFont(fontVal, objects, out string? embeddedProgramSubtype);
+        string? embeddedProgramSubtype = null;
+        byte[]? embeddedTrueTypeFont = includeEmbeddedTrueTypeFont
+            ? TryReadEmbeddedTrueTypeFont(fontVal, objects, out embeddedProgramSubtype)
+            : null;
         PdfType3FontResource? type3 = string.Equals(fontVal.Get<PdfName>("Subtype")?.Name, "Type3", System.StringComparison.Ordinal)
             ? TryCreateType3FontResource(fontVal, objects)
             : null;

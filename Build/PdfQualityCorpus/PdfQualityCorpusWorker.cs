@@ -47,9 +47,9 @@ internal static class PdfQualityCorpusWorker {
             IReadOnlyList<PdfLogicalParagraphContinuationGroup> paragraphs = logical.GetParagraphContinuationGroups();
             IReadOnlyList<PdfLogicalTableContinuationGroup> tables = logical.GetTableContinuationGroups(
                 new PdfLogicalTableContinuationOptions { MaxRows = 100_000 });
-            metrics.ParagraphCount = paragraphs.Count;
+            metrics.ParagraphCount = logical.Paragraphs.Count;
             metrics.CrossPageParagraphCount = paragraphs.Count(paragraph => paragraph.SpansPages);
-            metrics.TableCount = tables.Count;
+            metrics.TableCount = logical.Tables.Count;
             metrics.CrossPageTableCount = tables.Count(table => table.SpansPages);
         });
         Run(checks, "font-inspection", () => {

@@ -3,19 +3,31 @@ name: PDF quality corpus
 on:
   pull_request:
     paths:
+      - "OfficeIMO.Core/**"
       - "OfficeIMO.Pdf/**"
+      - "OfficeIMO.SharedSource/**"
       - "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/**"
       - "Build/PdfQualityCorpus/**"
+      - "Build/Compatibility/IsExternalInit.cs"
       - "Build/Test-PdfQualityCorpus.ps1"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "global.json"
       - ".github/workflows/pdf-quality-corpus.yml"
   push:
     branches:
       - master
     paths:
+      - "OfficeIMO.Core/**"
       - "OfficeIMO.Pdf/**"
+      - "OfficeIMO.SharedSource/**"
       - "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/**"
       - "Build/PdfQualityCorpus/**"
+      - "Build/Compatibility/IsExternalInit.cs"
       - "Build/Test-PdfQualityCorpus.ps1"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "global.json"
       - ".github/workflows/pdf-quality-corpus.yml"
   workflow_dispatch:
 
@@ -40,7 +52,9 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: |
+            8.0.x
+            10.0.x
 
       - name: Run provenance-bound scorecard
         shell: pwsh

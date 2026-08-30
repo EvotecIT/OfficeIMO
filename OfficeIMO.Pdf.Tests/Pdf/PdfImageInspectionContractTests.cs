@@ -62,6 +62,53 @@ public sealed class PdfImageInspectionContractTests {
         Assert.True(image.HasAuthoredRenderingIntent);
     }
 
+    [Fact]
+    public void ImageInspection_DistinguishesDefaultAndExplicitNormalBlendModes() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> /ExtGState << /GS1 6 0 R /GS2 7 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q q /GS1 gs 10 0 0 10 30 10 cm /Im1 Do Q q 10 0 0 10 50 10 cm /Im1 Do Q q /GS2 gs 10 0 0 10 70 10 cm /Im1 Do Q"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB"),
+            "<< /Type /ExtGState /BM /Normal >>",
+            "<< /Type /ExtGState /BM /NotSupported >>");
+
+        PdfImagePlacement[] placements = PdfDocument.Open(pdf).Read.ImagePlacements().ToArray();
+
+        Assert.Equal(4, placements.Length);
+        Assert.Null(placements[0].BlendMode);
+        Assert.Null(placements[0].AuthoredBlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[0].EffectiveBlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[1].BlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[1].AuthoredBlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[1].EffectiveBlendMode);
+        Assert.Null(placements[2].BlendMode);
+        Assert.Null(placements[2].AuthoredBlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[2].EffectiveBlendMode);
+        Assert.Null(placements[3].BlendMode);
+        Assert.Null(placements[3].AuthoredBlendMode);
+        Assert.Equal(OfficeBlendMode.Normal, placements[3].EffectiveBlendMode);
+        Assert.True(placements[3].HasUnsupportedBlendMode);
+    }
+
+    [Fact]
+    public void ImageInspection_PreservesAuthoredBlendModeThroughNestedForms() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Fm1 5 0 R >> /ExtGState << /GS1 7 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q /GS1 gs /Fm1 Do Q"),
+            StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << /XObject << /Im1 6 0 R >> >>"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB"),
+            "<< /Type /ExtGState /BM /Screen >>");
+
+        PdfImagePlacement placement = Assert.Single(PdfDocument.Open(pdf).Read.ImagePlacements());
+
+        Assert.Equal(OfficeBlendMode.Screen, placement.BlendMode);
+        Assert.Equal(OfficeBlendMode.Screen, placement.AuthoredBlendMode);
+        Assert.Equal(OfficeBlendMode.Screen, placement.EffectiveBlendMode);
+    }
+
     private static string StreamObject(string content, string additionalDictionary = "") {
         int length = Encoding.ASCII.GetByteCount(content);
         string suffix = string.IsNullOrWhiteSpace(additionalDictionary) ? string.Empty : " " + additionalDictionary;
