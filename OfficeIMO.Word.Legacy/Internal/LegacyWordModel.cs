@@ -48,7 +48,7 @@ internal sealed class LegacyWordRun {
     internal bool Strike { get; set; }
     internal WordUnderlineStyle? Underline { get; set; }
     internal WordVerticalTextPosition? VerticalPosition { get; set; }
-    internal int? FontSizePoints { get; set; }
+    internal double? FontSizePoints { get; set; }
     internal string? FontFamily { get; set; }
     internal string? ColorHex { get; set; }
 }

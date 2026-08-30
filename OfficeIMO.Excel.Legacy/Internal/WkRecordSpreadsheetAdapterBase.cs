@@ -125,7 +125,6 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             model.Metadata["TruncatedStructuredCellCount"] = truncatedCellTextCount.ToString(CultureInfo.InvariantCulture);
             AddCellTextTruncationFinding(model);
         }
-        if (model.RecoveredCellCount == 0) throw new InvalidDataException($"The {familyName} record stream contained no supported cells.");
         return model;
     }
 
@@ -216,7 +215,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             return;
         }
         string name = data[payload] <= 15 && data[payload] <= length - 1
-            ? Encoding.ASCII.GetString(data, payload + 1, data[payload]).Trim()
+            ? DecodeStrictAscii(data, payload + 1, data[payload]).Trim()
             : ReadNullTerminatedAscii(data, payload, 16).Trim();
         if (name.Length == 0) return;
         AddTextCharacters(ref recoveredTextCharacters, name.Length, limits);
@@ -268,7 +267,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int available = Math.Min(length, data.Length - offset);
         int count = 0;
         while (count < available && data[offset + count] != 0) count++;
-        return Encoding.ASCII.GetString(data, offset, count);
+        return DecodeStrictAscii(data, offset, count);
     }
 
     private static string ReadRequiredNullTerminatedAscii(byte[] data, int offset, int length) {
@@ -276,14 +275,23 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int count = 0;
         while (count < available && data[offset + count] != 0) count++;
         if (count == available) throw new InvalidDataException("WK label text is missing its required null terminator.");
-        return Encoding.ASCII.GetString(data, offset, count);
+        return DecodeStrictAscii(data, offset, count);
     }
 
     private static string ReadPascalAscii(byte[] data, int offset, int length) {
         if (length < 1) throw new InvalidDataException("Truncated Pascal string.");
         int count = data[offset];
         if (count > length - 1) throw new InvalidDataException("Pascal string length exceeds its record.");
-        return Encoding.ASCII.GetString(data, offset + 1, count);
+        return DecodeStrictAscii(data, offset + 1, count);
+    }
+
+    private static string DecodeStrictAscii(byte[] data, int offset, int count) {
+        for (int index = 0; index < count; index++) {
+            if (data[offset + index] > 0x7F) {
+                throw new InvalidDataException("Structured WK text contains an extended character byte outside the validated ASCII profile.");
+            }
+        }
+        return Encoding.ASCII.GetString(data, offset, count);
     }
 
     private static string ToHex(byte[] data, int offset, int length) {

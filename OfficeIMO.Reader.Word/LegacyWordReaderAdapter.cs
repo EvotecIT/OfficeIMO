@@ -3,7 +3,7 @@ using OfficeIMO.Word.Legacy;
 namespace OfficeIMO.Reader.Word;
 
 internal static class LegacyWordReaderAdapter {
-    private const int WordForDosHeaderLength = 97;
+    internal const int WordForDosHeaderLength = 97;
 
     internal static LegacyWordImportOptions? Clone(LegacyWordImportOptions? source) {
         if (source == null) return null;
@@ -80,11 +80,17 @@ internal static class LegacyWordReaderAdapter {
                 if (read <= 0) break;
                 total += read;
             }
-            return total == header.Length && (header[0] == 0x31 || header[0] == 0x32) &&
-                   header[1] == 0xBE && header[5] == 0xAB && header[96] == 0;
+            return total == header.Length && HasWordForDosHeader(new ReadOnlyMemory<byte>(header));
         } finally {
             stream.Position = position;
         }
+    }
+
+    internal static bool HasWordForDosHeader(ReadOnlyMemory<byte> prefix) {
+        if (prefix.Length < WordForDosHeaderLength) return false;
+        ReadOnlySpan<byte> header = prefix.Span;
+        return (header[0] == 0x31 || header[0] == 0x32) &&
+               header[1] == 0xBE && header[5] == 0xAB && header[96] == 0;
     }
 
     internal static OfficeDocumentReadResult ReadWordForDosDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,

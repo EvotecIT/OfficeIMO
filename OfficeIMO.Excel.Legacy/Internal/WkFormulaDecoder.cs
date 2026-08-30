@@ -66,6 +66,11 @@ internal static class WkFormulaDecoder {
                     case 0x06: {
                         int zero = Array.IndexOf(data, (byte)0, cursor, end - cursor);
                         if (zero < 0) throw new InvalidDataException("Formula string token has no terminator.");
+                        for (int index = cursor; index < zero; index++) {
+                            if (data[index] > 0x7F) {
+                                throw new InvalidDataException("Formula string contains an extended character byte outside the validated ASCII profile.");
+                            }
+                        }
                         string text = Encoding.ASCII.GetString(data, cursor, zero - cursor).Replace("\"", "\"\"");
                         Push(stack, Literal("\"" + text + "\"", maximumCharacters), ref nodeCount, maximumNodes);
                         cursor = zero + 1;

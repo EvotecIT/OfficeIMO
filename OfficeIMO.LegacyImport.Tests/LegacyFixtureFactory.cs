@@ -118,6 +118,25 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] EmptyWk(byte product0 = 0x06, byte product1 = 0x04) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new[] { product0, product1 });
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static byte[] WkWithExtendedLabelByte() {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', new byte[] { 0xE9, 0 }));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] WkWithWideColumnName() {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);

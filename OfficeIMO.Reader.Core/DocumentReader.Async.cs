@@ -61,6 +61,7 @@ internal static partial class DocumentReaderEngine {
             stream,
             ResolveStreamMaxInputBytes(logicalSourceName, opt,
                 stream.CanSeek),
+            ResolveStreamInputLimitProbe(logicalSourceName),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {
@@ -147,6 +148,7 @@ internal static partial class DocumentReaderEngine {
             stream,
             ResolveStreamMaxInputBytes(logicalSourceName, opt,
                 stream.CanSeek),
+            ResolveStreamInputLimitProbe(logicalSourceName),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {

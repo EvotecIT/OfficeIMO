@@ -111,6 +111,20 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkFormulaStringRejectsUndeclaredExtendedTextWithoutReplacement() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x06, 0xE9, 0x00, 0x03 }),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+
+        LegacySpreadsheetCellContent formula = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Null(formula.Formula);
+        Assert.Equal(84d, formula.CachedValue);
+        Assert.Contains(imported.Metadata.Values,
+            value => value.Contains("extended character byte", StringComparison.Ordinal));
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+    }
+
+    [Fact]
     public void LotusErrFormulaRetainsItsCachedValueAsUnsupported() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x20, 0x03 }),
@@ -219,9 +233,27 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void StructurallyValidEmptyWkWorkbookProjectsAnEmptySheet() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.EmptyWk(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        Assert.Empty(imported.Cells);
+        Assert.Single(imported.Document.Sheets);
+        imported.Report.RequireStructuredNoLoss();
+    }
+
+    [Fact]
     public void WkLabelAlignmentPrefixMustBelongToTheValidatedProfile() {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(includeFormulaAndChart: false, labelPrefix: (byte)'?'),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+    }
+
+    [Fact]
+    public void StructuredWkProfileRejectsUndeclaredExtendedTextEncoding() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithExtendedLabelByte(),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
     }
 

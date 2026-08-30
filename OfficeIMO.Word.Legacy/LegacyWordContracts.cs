@@ -60,7 +60,7 @@ public sealed class LegacyWordRunContent {
     /// <summary>Gets the recovered vertical text position.</summary>
     public WordVerticalTextPosition? VerticalPosition { get; }
     /// <summary>Gets the recovered font size in points.</summary>
-    public int? FontSizePoints { get; }
+    public double? FontSizePoints { get; }
     /// <summary>Gets the recovered font family.</summary>
     public string? FontFamily { get; }
     /// <summary>Gets the recovered RGB color.</summary>

@@ -163,6 +163,8 @@ internal sealed class ReaderHandlerRegistrySnapshot {
 }
 
 internal sealed class ReaderHandlerDescriptor {
+    private const int MaximumInputLimitProbeBytes = 64 * 1024;
+
     private ReaderHandlerDescriptor(
         string id,
         string displayName,
@@ -173,6 +175,8 @@ internal sealed class ReaderHandlerDescriptor {
         IReadOnlyList<string> extensions,
         long? defaultMaxInputBytes,
         IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension,
+        int inputLimitProbeBytes,
+        Func<ReadOnlyMemory<byte>, long?>? resolveMaxInputBytesFromPrefix,
         ReaderSourceHashBehavior sourceHashBehavior,
         ReaderWarningBehavior warningBehavior,
         bool deterministicOutput,
@@ -193,6 +197,8 @@ internal sealed class ReaderHandlerDescriptor {
         Extensions = extensions;
         DefaultMaxInputBytes = defaultMaxInputBytes;
         DefaultMaxInputBytesByExtension = defaultMaxInputBytesByExtension;
+        InputLimitProbeBytes = inputLimitProbeBytes;
+        ResolveMaxInputBytesFromPrefix = resolveMaxInputBytesFromPrefix;
         SourceHashBehavior = sourceHashBehavior;
         WarningBehavior = warningBehavior;
         DeterministicOutput = deterministicOutput;
@@ -215,6 +221,8 @@ internal sealed class ReaderHandlerDescriptor {
     public IReadOnlyList<string> Extensions { get; }
     public long? DefaultMaxInputBytes { get; }
     public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; }
+    public int InputLimitProbeBytes { get; }
+    public Func<ReadOnlyMemory<byte>, long?>? ResolveMaxInputBytesFromPrefix { get; }
     public ReaderSourceHashBehavior SourceHashBehavior { get; }
     public ReaderWarningBehavior WarningBehavior { get; }
     public bool DeterministicOutput { get; }
@@ -255,6 +263,12 @@ internal sealed class ReaderHandlerDescriptor {
         }
         IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension = NormalizeExtensionLimits(
             registration.DefaultMaxInputBytesByExtension, extensions);
+        if ((registration.InputLimitProbeBytes == 0) != (registration.ResolveMaxInputBytesFromPrefix == null)) {
+            throw new ArgumentException("InputLimitProbeBytes and ResolveMaxInputBytesFromPrefix must be configured together.", nameof(registration));
+        }
+        if (registration.InputLimitProbeBytes < 0 || registration.InputLimitProbeBytes > MaximumInputLimitProbeBytes) {
+            throw new ArgumentException($"InputLimitProbeBytes must be between 1 and {MaximumInputLimitProbeBytes} when configured.", nameof(registration));
+        }
 
         return new ReaderHandlerDescriptor(
             id,
@@ -266,6 +280,8 @@ internal sealed class ReaderHandlerDescriptor {
             extensions,
             registration.DefaultMaxInputBytes,
             defaultMaxInputBytesByExtension,
+            registration.InputLimitProbeBytes,
+            registration.ResolveMaxInputBytesFromPrefix,
             registration.SourceHashBehavior,
             registration.WarningBehavior,
             registration.DeterministicOutput,

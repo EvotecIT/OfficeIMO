@@ -30,15 +30,16 @@ internal sealed class AmiProSamParser {
     internal AmiProSamParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         _limits = limits;
         _cancellationToken = cancellationToken;
-        ValidateRecordCount(data);
+        ValidateRecordCountAndEncoding(data);
         _cancellationToken.ThrowIfCancellationRequested();
         _lines = Encoding.ASCII.GetString(data).Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
     }
 
-    private void ValidateRecordCount(byte[] data) {
+    private void ValidateRecordCountAndEncoding(byte[] data) {
         int records = 1;
         for (int index = 0; index < data.Length; index++) {
             if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            if (data[index] > 0x7F) throw new InvalidDataException("Ami Pro SAM contains an extended character byte outside the structured ASCII profile.");
             if ((data[index] == (byte)'\n' || data[index] == (byte)'\r') &&
                 (index == 0 || data[index] != (byte)'\n' || data[index - 1] != (byte)'\r') &&
                 ++records > _limits.MaxRecords) {
@@ -108,7 +109,7 @@ internal sealed class AmiProSamParser {
         if (!uint.TryParse(lines[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint color)) color = 0;
         if (!uint.TryParse(lines[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint formatting)) formatting = 0;
         var style = new AmiStyle {
-            Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = Math.Max(1, fontTwips / 20),
+            Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = Math.Max(1d, fontTwips / 20d),
             ColorHex = $"{color & 0xFF:X2}{(color >> 8) & 0xFF:X2}{(color >> 16) & 0xFF:X2}",
             Bold = (formatting & 1) != 0, Italic = (formatting & 2) != 0,
             Underline = (formatting & 64) != 0 ? WordUnderlineStyle.Double : (formatting & 8) != 0 ? WordUnderlineStyle.Words : (formatting & 4) != 0 ? WordUnderlineStyle.Single : (WordUnderlineStyle?)null
@@ -271,7 +272,7 @@ internal sealed class AmiProSamParser {
         if (parts.Length < 5 || !int.TryParse(parts[0], out int size)) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
         ConsumeText(family.Length, "inline font family");
-        state.FontSizePoints = Math.Max(1, size / 20);
+        state.FontSizePoints = Math.Max(1d, size / 20d);
         state.FontFamily = family;
         if (byte.TryParse(parts[2], out byte red) && byte.TryParse(parts[3], out byte green) && byte.TryParse(parts[4], out byte blue)) state.ColorHex = $"{red:X2}{green:X2}{blue:X2}";
         else return false;
@@ -403,7 +404,7 @@ internal sealed class AmiProSamParser {
         internal bool Strike;
         internal WordUnderlineStyle? Underline;
         internal WordVerticalTextPosition? VerticalPosition;
-        internal int? FontSizePoints;
+        internal double? FontSizePoints;
         internal string? FontFamily;
         internal string? ColorHex;
         internal void ResetFont() { FontSizePoints = null; FontFamily = null; ColorHex = null; }
@@ -415,7 +416,7 @@ internal sealed class AmiProSamParser {
         internal bool Bold;
         internal bool Italic;
         internal WordUnderlineStyle? Underline;
-        internal int? FontSizePoints;
+        internal double? FontSizePoints;
         internal string? FontFamily;
         internal string? ColorHex;
         internal WordParagraphAlignment? Alignment;

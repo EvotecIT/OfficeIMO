@@ -6,6 +6,7 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word.OpenDocument;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.LegacyImport.Tests;
 
@@ -128,6 +129,31 @@ public sealed class LegacyWordImportTests {
         Assert.Equal("1", imported.Metadata["AmiProDuplicateStyleCount"]);
         Assert.Single(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_DUPLICATE");
         Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void AmiProPreservesHalfPointStyleAndInlineFontSizes() {
+        string styledSource = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro())
+            .Replace("[fnt]\nArial\n240\n", "[fnt]\nArial\n210\n", StringComparison.Ordinal);
+        using LegacyWordImportResult styled = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(styledSource),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+        Assert.Equal(10.5d, styled.Content.Paragraphs[0].Runs[0].FontSizePoints);
+
+        byte[] inlineSource = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<:f210,Arial,0,0,0>X\n");
+        using LegacyWordImportResult inline = LegacyWordImporter.Import(
+            inlineSource,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+        Assert.Equal(10.5d, inline.Content.Paragraphs[0].Runs[0].FontSizePoints);
+    }
+
+    [Fact]
+    public void AmiProStructuredProfileRejectsUndeclaredExtendedTextEncoding() {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nX\n");
+        source[Array.IndexOf(source, (byte)'X')] = 0xE9;
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam" }));
     }
 
     [Fact]
@@ -429,7 +455,21 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
-    public void CoordinatedWordRegistrationDoesNotApplyDosLimitToModernWord() {
+    public async Task CoordinatedWordRegistrationBoundsNonSeekableDosRoutingBeforeAsyncSnapshot() {
+        byte[] source = LegacyFixtureFactory.Write(write: false);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+        using var stream = new NonSeekableStream(source);
+
+        IOException exception = await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "archive.doc"));
+        Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CoordinatedWordRegistrationDoesNotApplyDosLimitToModernDocContent() {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph(new string('M', 1_024));
         using var package = new MemoryStream();
@@ -441,7 +481,7 @@ public sealed class LegacyWordImportTests {
             .Build();
         package.Position = 0;
 
-        OfficeDocumentReadResult result = reader.ReadDocument(package, "modern.docx");
+        OfficeDocumentReadResult result = reader.ReadDocument(package, "modern.doc");
         Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("MMM", StringComparison.Ordinal));
     }
 

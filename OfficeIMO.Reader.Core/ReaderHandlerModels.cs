@@ -112,6 +112,20 @@ public sealed class ReaderHandlerRegistration {
         new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Optional number of leading bytes required by <see cref="ResolveMaxInputBytesFromPrefix"/>.
+    /// Core reads this bounded prefix before completing a stream snapshot so a shared extension can
+    /// select a stricter limit from content without lowering the normal format's advertised ceiling.
+    /// </summary>
+    public int InputLimitProbeBytes { get; set; }
+
+    /// <summary>
+    /// Optional deterministic resolver for a stricter content-specific input limit. Return null to
+    /// retain the handler or per-extension default. A returned value is combined with that default
+    /// and any caller limit by taking the minimum.
+    /// </summary>
+    public Func<ReadOnlyMemory<byte>, long?>? ResolveMaxInputBytesFromPrefix { get; set; }
+
+    /// <summary>
     /// Defines whether Core derives the source hash from <see cref="ReaderOptions.ComputeHashes"/>
     /// or leaves source-hash ownership to the format handler.
     /// </summary>

@@ -93,10 +93,10 @@ public sealed partial class ReaderRegistryTests {
             ExcelFormatCatalog.All.Select(format => format.Extension).OrderBy(extension => extension, StringComparer.Ordinal).ToArray(),
             excel.Extensions);
         Assert.Equal(WordLoadOptions.DefaultMaxInputBytes, word.DefaultMaxInputBytes);
-        Assert.Equal(new OfficeLegacyImportLimits().MaxInputBytes, word.DefaultMaxInputBytesByExtension[".doc"]);
+        Assert.DoesNotContain(".doc", word.DefaultMaxInputBytesByExtension.Keys);
         Assert.Equal(WordLoadOptions.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.docx"));
-        Assert.Equal(new OfficeLegacyImportLimits().MaxInputBytes,
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes,
             OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.doc"));
     }
 
@@ -182,5 +182,35 @@ public sealed partial class ReaderRegistryTests {
 
         Assert.Contains(manifest.Handlers, capability => capability.Id == handlerId && capability.SupportsStream && capability.Origin == ReaderHandlerOrigin.Custom);
         Assert.Contains(handlerId, reader.GetCapabilityManifestJson(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDocumentReader_InputLimitProbeRequiresACompleteBoundedRegistration() {
+        var missingResolver = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-length-only",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            InputLimitProbeBytes = 8
+        };
+        var missingLength = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-resolver-only",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            ResolveMaxInputBytesFromPrefix = prefix => 1024
+        };
+        var oversized = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-oversized",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            InputLimitProbeBytes = (64 * 1024) + 1,
+            ResolveMaxInputBytesFromPrefix = prefix => 1024
+        };
+
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingResolver));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingLength));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(oversized));
     }
 }

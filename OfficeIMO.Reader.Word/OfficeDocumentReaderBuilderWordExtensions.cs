@@ -53,9 +53,10 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
             DefaultMaxInputBytes = global::OfficeIMO.Word.WordLoadOptions.DefaultMaxInputBytes,
-            DefaultMaxInputBytesByExtension = routeWordForDos
-                ? new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase) { [".doc"] = legacyMaxInputBytes }
-                : new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
+            InputLimitProbeBytes = routeWordForDos ? LegacyWordReaderAdapter.WordForDosHeaderLength : 0,
+            ResolveMaxInputBytesFromPrefix = routeWordForDos
+                ? prefix => LegacyWordReaderAdapter.HasWordForDosHeader(prefix) ? legacyMaxInputBytes : null
+                : null
         }, replaceExisting);
     }
 

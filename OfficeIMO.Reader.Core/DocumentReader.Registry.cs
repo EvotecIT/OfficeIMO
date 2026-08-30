@@ -57,6 +57,12 @@ internal static partial class DocumentReaderEngine {
         return streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
     }
 
+    internal static ReaderInputLimitProbe? ResolveStreamInputLimitProbe(string? sourceName) {
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            !handler.SupportsStreamInput || handler.ResolveMaxInputBytesFromPrefix == null) return null;
+        return new ReaderInputLimitProbe(handler.InputLimitProbeBytes, handler.ResolveMaxInputBytesFromPrefix);
+    }
+
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         return TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)
             ? handler.ResolveDefaultMaxInputBytes(sourceName)
@@ -136,4 +142,14 @@ internal static partial class DocumentReaderEngine {
             throw;
         }
     }
+}
+
+internal sealed class ReaderInputLimitProbe {
+    internal ReaderInputLimitProbe(int prefixLength, Func<ReadOnlyMemory<byte>, long?> resolveMaxInputBytes) {
+        PrefixLength = prefixLength;
+        ResolveMaxInputBytes = resolveMaxInputBytes;
+    }
+
+    internal int PrefixLength { get; }
+    internal Func<ReadOnlyMemory<byte>, long?> ResolveMaxInputBytes { get; }
 }
