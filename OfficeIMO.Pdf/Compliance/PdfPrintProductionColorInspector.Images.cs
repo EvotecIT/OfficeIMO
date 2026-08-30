@@ -228,7 +228,12 @@ internal static partial class PdfPrintProductionColorInspector {
         filterName = null;
         if (!dictionary.Items.TryGetValue("Filter", out PdfObject? filterObject) ||
             ResolveObject(objects, filterObject, 0, maximumObjectDepth) is PdfNull) return true;
-        if (ResolveObject(objects, filterObject, 0, maximumObjectDepth) is not PdfName name) return false;
+        PdfObject? resolved = ResolveObject(objects, filterObject, 0, maximumObjectDepth);
+        if (resolved is PdfArray filters) {
+            if (filters.Items.Count != 1) return false;
+            resolved = ResolveObject(objects, filters.Items[0], 0, maximumObjectDepth);
+        }
+        if (resolved is not PdfName name) return false;
         filterName = name.Name;
         return true;
     }
@@ -239,7 +244,13 @@ internal static partial class PdfPrintProductionColorInspector {
         int maximumObjectDepth) {
         if (!dictionary.Items.TryGetValue("DecodeParms", out PdfObject? parametersObject) ||
             ResolveObject(objects, parametersObject, 0, maximumObjectDepth) is PdfNull) return true;
-        if (ResolveObject(objects, parametersObject, 0, maximumObjectDepth) is not PdfDictionary parameters) return false;
+        PdfObject? resolved = ResolveObject(objects, parametersObject, 0, maximumObjectDepth);
+        if (resolved is PdfArray parameterSets) {
+            if (parameterSets.Items.Count != 1) return false;
+            resolved = ResolveObject(objects, parameterSets.Items[0], 0, maximumObjectDepth);
+            if (resolved is PdfNull) return true;
+        }
+        if (resolved is not PdfDictionary parameters) return false;
         return !parameters.Items.ContainsKey("ColorTransform") ||
             TryResolveInteger(parameters, "ColorTransform", objects, maximumObjectDepth, 0, 1, out _);
     }

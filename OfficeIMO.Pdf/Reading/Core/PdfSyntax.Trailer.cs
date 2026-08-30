@@ -33,9 +33,14 @@ internal static partial class PdfSyntax {
                 PdfDictionary dictionary = ParseDictionary(
                     raw.Substring(dictionaryStart + 2, dictionaryEnd - dictionaryStart - 2),
                     effectiveLimits);
-                if (dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfReference found) {
-                    reference = found;
-                    return true;
+                if (dictionary.Items.TryGetValue(key, out PdfObject? value)) {
+                    if (value is PdfReference found) {
+                        reference = found;
+                        return true;
+                    }
+                    // A later trailer entry overrides the same key in every earlier revision.
+                    // Explicit null or another non-reference value therefore suppresses inheritance.
+                    return false;
                 }
             } catch (Exception exception) when (exception is not OutOfMemoryException) {
                 return false;

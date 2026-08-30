@@ -512,6 +512,12 @@ public class PdfXGroundworkTests {
         PdfReference inheritedRoot = Assert.IsType<PdfReference>(PdfSyntax.ReadTrailerReference(
             "trailer\n<< /Prev 42 >>\ntrailer\n<< /Root 4 1 R >>", "Root"));
         Assert.Equal((4, 1), (inheritedRoot.ObjectNumber, inheritedRoot.Generation));
+        Assert.Null(PdfSyntax.ReadTrailerReference(
+            "trailer\n<< /Info null /Prev 42 >>\ntrailer\n<< /Info 5 2 R >>",
+            "Info"));
+        Assert.Null(PdfSyntax.ReadTrailerReference(
+            "trailer\n<< /Root 0 /Prev 42 >>\ntrailer\n<< /Root 4 1 R >>",
+            "Root"));
     }
 
     [Fact]

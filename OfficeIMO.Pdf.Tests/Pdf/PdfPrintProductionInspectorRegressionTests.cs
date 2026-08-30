@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Tests.Pdf;
 using Xunit;
 
@@ -823,6 +824,36 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
     }
 
+    [Theory]
+    [InlineData("/Subtype /TrueType /BaseFont /Fixture")]
+    [InlineData("/Type /Font /Subtype /TrueType")]
+    public void StructureInspectorRejectsIncompleteSimpleFontDictionaries(string fontEntries) {
+        byte[] pdf = BuildTrueTypeInspectionPdf(
+            BuildMinimalTrueTypeProgram(validLoca: true),
+            fontEntries: fontEntries);
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.Equal(1, evidence.FontResourceCount);
+        Assert.Equal(1, evidence.UnembeddedFontResourceCount);
+        Assert.Equal(0, evidence.UninspectableFontResourceCount);
+    }
+
+    [Theory]
+    [InlineData("/DecodeParms [null]")]
+    [InlineData("/DecodeParms [<< /ColorTransform 1 >>]")]
+    public void ColorInspectorAcceptsSingletonDctFilterAndParameterArrays(string decodeParameters) {
+        byte[] pdf = BuildBinaryImageInspectionPdf(
+            "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter [/DCTDecode] " + decodeParameters,
+            CreateMinimalJpeg(1, 1));
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.DeviceRgbImageCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void StructureInspectorRejectsMultipleEmbeddedProgramEntries() {
         byte[] pdf = BuildTrueTypeInspectionPdf(
@@ -1524,7 +1555,10 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildTrueTypeInspectionPdf(byte[] trueTypeProgram, string? descriptorEntries = null) {
+    private static byte[] BuildTrueTypeInspectionPdf(
+        byte[] trueTypeProgram,
+        string? descriptorEntries = null,
+        string? fontEntries = null) {
         byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");
         using var output = new MemoryStream();
         WriteAscii(output, "%PDF-1.7\n");
@@ -1534,13 +1568,42 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         WriteAscii(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n");
         output.Write(content, 0, content.Length);
         WriteAscii(output, "\nendstream\nendobj\n");
-        WriteAscii(output, "5 0 obj\n<< /Type /Font /Subtype /TrueType /BaseFont /Fixture /FontDescriptor 6 0 R >>\nendobj\n");
+        fontEntries ??= "/Type /Font /Subtype /TrueType /BaseFont /Fixture";
+        WriteAscii(output, "5 0 obj\n<< " + fontEntries + " /FontDescriptor 6 0 R >>\nendobj\n");
         descriptorEntries ??= "/Type /FontDescriptor /FontName /Fixture /Flags 32 /FontBBox [0 0 500 700] /ItalicAngle 0 /Ascent 700 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R";
         WriteAscii(output, "6 0 obj\n<< " + descriptorEntries + " >>\nendobj\n");
         WriteAscii(output, "7 0 obj\n<< /Length " + trueTypeProgram.Length + " >>\nstream\n");
         output.Write(trueTypeProgram, 0, trueTypeProgram.Length);
         WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildBinaryImageInspectionPdf(string imageEntries, byte[] imageData) {
+        const string content = "/Im1 Do";
+        using var output = new MemoryStream();
+        WriteAscii(output, "%PDF-1.7\n");
+        WriteAscii(output, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+        WriteAscii(output, "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>\nendobj\n");
+        WriteAscii(output, "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>\nendobj\n");
+        WriteAscii(output, "4 0 obj\n<< /Length " + content.Length + " >>\nstream\n" + content + "\nendstream\nendobj\n");
+        WriteAscii(output, "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 " + imageEntries + " /Length " + imageData.Length + " >>\nstream\n");
+        output.Write(imageData, 0, imageData.Length);
+        WriteAscii(output, "\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static byte[] CreateMinimalJpeg(int width, int height) {
+        byte[] rgba = new byte[checked(width * height * 4)];
+        for (int offset = 0; offset < rgba.Length; offset += 4) {
+            rgba[offset] = 255;
+            rgba[offset + 3] = 255;
+        }
+        return OfficeJpegCodec.Encode(
+            OfficeRasterImage.FromRgba32(width, height, rgba),
+            new OfficeJpegEncodeOptions {
+                Quality = 100,
+                Subsampling = OfficeJpegSubsampling.Y444
+            });
     }
 
     private static byte[] BuildOpenTypeCffInspectionPdf(byte[] openTypeProgram) {

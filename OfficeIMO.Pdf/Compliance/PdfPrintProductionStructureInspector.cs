@@ -134,6 +134,8 @@ internal static partial class PdfPrintProductionStructureInspector {
             if (!HasRequiredCidFontEntries(descendant, objects, maximumObjectDepth)) return false;
             fontWithDescriptor = descendant;
             programFontSubtype = descendantSubtype;
+        } else if (!HasRequiredSimpleFontEntries(font, subtype, objects, maximumObjectDepth)) {
+            return false;
         }
 
         if (!fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject) ||
@@ -145,6 +147,26 @@ internal static partial class PdfPrintProductionStructureInspector {
             objects,
             maxDecodedStreamBytes,
             maximumObjectDepth);
+    }
+
+    private static bool HasRequiredSimpleFontEntries(
+        PdfDictionary font,
+        string? subtype,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!string.Equals(subtype, "Type1", StringComparison.Ordinal) &&
+            !string.Equals(subtype, "MMType1", StringComparison.Ordinal) &&
+            !string.Equals(subtype, "TrueType", StringComparison.Ordinal)) return false;
+        return string.Equals(ResolveName(
+                font.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                objects,
+                maximumObjectDepth), "Font", StringComparison.Ordinal) &&
+            ResolveObject(
+                objects,
+                font.Items.TryGetValue("BaseFont", out PdfObject? baseFontObject) ? baseFontObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is PdfName { Name.Length: > 0 };
     }
 
     private static bool HasRequiredType0ParentEntries(
