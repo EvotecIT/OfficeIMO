@@ -425,10 +425,20 @@ internal static class IWorkNumbersReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_DECODE",
                 $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier));
         }
-        int incompleteFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula && !cell.FormulaIsComplete);
-        if (incompleteFormulaCount > 0) {
+        int incompleteCachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
+            && !cell.FormulaIsComplete && cell.Value != null);
+        if (incompleteCachedFormulaCount > 0) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_FORMULA_PARTIAL",
-                $"{incompleteFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
+                $"{incompleteCachedFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
+                model.EntryPath, model.Identifier));
+        }
+        int incompleteUncachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
+            && !cell.FormulaIsComplete && cell.Value == null);
+        if (incompleteUncachedFormulaCount > 0) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_FORMULA_UNSUPPORTED",
+                $"{incompleteUncachedFormulaCount} formulas in table '{name}' have neither a complete expression nor a cached value; editable reconstruction is incomplete.",
                 model.EntryPath, model.Identifier));
         }
         return CreateTable();

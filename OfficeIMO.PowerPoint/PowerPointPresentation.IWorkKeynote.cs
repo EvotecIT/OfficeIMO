@@ -85,6 +85,11 @@ public sealed partial class PowerPointPresentation {
                             left, top, width, height);
                         picture.Rotation = sourceImage.Geometry?.RotationDegrees;
                         picture.AltText = sourceImage.AccessibilityDescription;
+                        if (sourceImage.Hyperlink != null
+                            && Uri.TryCreate(sourceImage.Hyperlink, UriKind.Absolute,
+                                out Uri? imageLink)) {
+                            picture.SetHyperlink(imageLink);
+                        }
                     }
                     if (sourceSlide.PresenterNotes.Length > 0) slide.Notes.Text = sourceSlide.PresenterNotes;
                 }
@@ -168,6 +173,17 @@ public sealed partial class PowerPointPresentation {
             return "The Keynote slide canvas has invalid dimensions.";
         }
         foreach (IWorkKeynoteSlide slide in projection.Slides) {
+            IEnumerable<string?> drawableHyperlinks = slide.TextBoxes
+                .Select(textBox => textBox.Hyperlink)
+                .Concat(slide.TitleBox == null ? Array.Empty<string?>() : new[] { slide.TitleBox.Hyperlink })
+                .Concat(slide.Images.Select(image => image.Hyperlink));
+            if (drawableHyperlinks.Any(IsUnsupportedExternalHyperlink)
+                || SlideText(slide).SelectMany(content => content.Paragraphs)
+                    .SelectMany(paragraph => paragraph.Runs)
+                    .Select(run => run.Hyperlink)
+                    .Any(IsUnsupportedExternalHyperlink)) {
+                return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
+            }
             IEnumerable<IWorkGeometry> geometries = slide.TextBoxes
                 .Select(textBox => textBox.Geometry)
                 .Concat(slide.TitleBox == null ? Array.Empty<IWorkGeometry?>() : new[] { slide.TitleBox.Geometry })
@@ -251,6 +267,9 @@ public sealed partial class PowerPointPresentation {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
+    private static bool IsUnsupportedExternalHyperlink(string? value) => value != null
+        && !Uri.TryCreate(value, UriKind.Absolute, out _);
+
     private static void AddRichTextBox(PowerPointSlide slide, IWorkTextBox source,
         double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight) {
         double left = source.Geometry?.LeftPoints ?? fallbackLeft;
@@ -260,6 +279,10 @@ public sealed partial class PowerPointPresentation {
         PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
         textBox.Rotation = source.Geometry?.RotationDegrees;
         textBox.AltText = source.AccessibilityDescription;
+        if (source.Hyperlink != null
+            && Uri.TryCreate(source.Hyperlink, UriKind.Absolute, out Uri? shapeLink)) {
+            textBox.SetHyperlink(shapeLink);
+        }
         textBox.Clear();
         bool first = true;
         foreach (IWorkTextParagraph sourceParagraph in source.Content.Paragraphs) {

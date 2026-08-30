@@ -68,7 +68,8 @@ internal static class IWorkFormulaReader {
             if (type < 0) complete = false;
             if (TryBinary(type, out string? symbol, out int precedence)) {
                 Operand[] operands = Pop(stack, 2, ref complete);
-                stack.Add(new Operand(Bound(Wrap(operands[0], precedence) + symbol
+                int leftPrecedence = symbol == "^" ? precedence + 1 : precedence;
+                stack.Add(new Operand(Bound(Wrap(operands[0], leftPrecedence) + symbol
                     + Wrap(operands[1], precedence + 1), maximumCharacters, ref complete), precedence));
                 continue;
             }

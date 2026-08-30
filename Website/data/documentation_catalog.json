@@ -755,7 +755,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 464,
+      "sourceFileCount": 465,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",

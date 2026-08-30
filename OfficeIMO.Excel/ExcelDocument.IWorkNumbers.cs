@@ -53,21 +53,20 @@ public partial class ExcelDocument {
         try {
             if (editable) {
                 foreach (IWorkNumbersSheet sourceSheet in projection.Sheets) {
-                    ExcelSheet sheet = document.AddWorksheet(sourceSheet.Name);
-                    int targetRow = 1;
-                    foreach (string textBox in sourceSheet.TextBoxes) {
-                        sheet.CellAt(targetRow++, 1).SetValue(textBox);
+                    if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
+                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name);
+                        for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
+                            textSheet.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
+                        }
                     }
-                    if (sourceSheet.TextBoxes.Count > 0 && sourceSheet.Tables.Count > 0) targetRow++;
                     for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {
                         IWorkTable table = sourceSheet.Tables[tableIndex];
-                        if (targetRow > 1_048_576 - Math.Max(table.RowCount - 1, 0)) {
-                            string splitName = sourceSheet.Name + " - "
-                                + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                            sheet = document.AddWorksheet(splitName);
-                            targetRow = 1;
-                        }
-                        int tableStartRow = targetRow;
+                        string tableSheetName = sourceSheet.Tables.Count == 1
+                            && sourceSheet.TextBoxes.Count == 0
+                                ? sourceSheet.Name
+                                : sourceSheet.Name + " - "
+                                    + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
+                        ExcelSheet sheet = document.AddWorksheet(tableSheetName);
                         foreach (IWorkTableCell cell in table.Cells) {
                             object? value = cell.Kind switch {
                                 IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
@@ -77,7 +76,7 @@ public partial class ExcelDocument {
                                 IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
                                 _ => cell.Value
                             };
-                            ExcelCell targetCell = sheet.CellAt(tableStartRow + cell.Row - 1, cell.Column);
+                            ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
                             targetCell.SetValue(value);
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
@@ -89,21 +88,18 @@ public partial class ExcelDocument {
                             }
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
-                            sheet.MergeRange(CellReference(tableStartRow + merge.FirstRow - 1, merge.FirstColumn)
-                                + ":" + CellReference(tableStartRow + merge.LastRow - 1, merge.LastColumn));
+                            sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
+                                + ":" + CellReference(merge.LastRow, merge.LastColumn));
                         }
                         if (table.DefaultRowHeight is > 0 and <= 409 && table.RowCount <= 4096) {
-                            for (int row = 0; row < table.RowCount; row++) {
-                                sheet.SetRowHeight(tableStartRow + row, table.DefaultRowHeight.Value);
+                            for (int row = 1; row <= table.RowCount; row++) {
+                                sheet.SetRowHeight(row, table.DefaultRowHeight.Value);
                             }
                         }
                         if (table.DefaultColumnWidth is > 0) {
                             double width = Math.Min(255d, Math.Max(0.1d, table.DefaultColumnWidth.Value / 7d));
-                            for (int column = 1; column <= table.ColumnCount; column++) {
-                                sheet.SetColumnWidth(column, width);
-                            }
+                            sheet.SetDefaultColumnWidth(width);
                         }
-                        targetRow = checked(tableStartRow + Math.Max(table.RowCount, 1) + 1);
                     }
                 }
             } else {

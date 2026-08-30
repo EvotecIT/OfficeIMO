@@ -1,10 +1,122 @@
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
+using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
+    [Fact]
+    public void Formula_renderer_parenthesizes_left_nested_exponentiation() {
+        byte[] nodeArray = Message(
+            BytesField(1, Message(VarintField(1, 17), DoubleField(4, 2d))),
+            BytesField(1, Message(VarintField(1, 17), DoubleField(4, 3d))),
+            BytesField(1, Message(VarintField(1, 5))),
+            BytesField(1, Message(VarintField(1, 17), DoubleField(4, 4d))),
+            BytesField(1, Message(VarintField(1, 5))));
+        IWorkWireMessage formula = IWorkProtobuf.Parse(
+            Message(BytesField(1, nodeArray)), new IWorkReadOptions());
+
+        IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
+
+        Assert.True(result.IsComplete);
+        Assert.Equal("=(2^3)^4", result.Text);
+    }
+
+    [Fact]
+    public void Incomplete_uncached_numbers_formulas_use_visual_fallback() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Uncached formula", 1, 1, 0d, hasFormula: true,
+                formulaWithoutCachedValue: true)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_FORMULA_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Numbers_owner_isolates_tables_and_applies_default_width_in_constant_space() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Wide", 1, 16_384, 1d, defaultColumnWidth: 70d),
+            new TableSpec("Narrow", 1, 1, 2d, defaultColumnWidth: 140d)
+        });
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(2, result.Document.Sheets.Count);
+        Assert.Equal(1d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(2d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(10d, result.Document.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(20d, result.Document.Sheets[1].DefaultColumnWidth);
+        Assert.Empty(result.Document.Sheets[0].GetColumnDefinitions());
+        Assert.Empty(result.Document.Sheets[1].GetColumnDefinitions());
+    }
+
+    [Fact]
+    public void Numbers_owner_keeps_sheet_text_separate_from_table_coordinates() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Formula coordinates", 1, 1, 42d)
+        }, textBox: "Sheet annotation");
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(2, result.Document.Sheets.Count);
+        Assert.Equal("Sheet annotation", result.Document.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(42d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+    }
+
+    [Fact]
+    public void Pages_owner_uses_a_default_marker_for_unlabeled_lists() {
+        using MemoryStream package = CreatePagesPackageWithUnlabeledList();
+
+        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+            package, IWorkDocumentKind.Pages).ReadPages();
+        IWorkTextParagraph sourceParagraph = Assert.Single(projection.Body.Paragraphs);
+        Assert.Equal(0, sourceParagraph.ListLevel);
+        Assert.Null(sourceParagraph.ListLabel);
+        package.Position = 0;
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        string[] texts = result.Document.Paragraphs.Select(paragraph => paragraph.Text).ToArray();
+        Assert.Contains("\u2022 ", texts);
+        Assert.Contains("Item", texts);
+    }
+
+    [Fact]
+    public void Pages_drawable_hyperlinks_use_visual_fallback_instead_of_silent_loss() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true,
+            textBox: "Linked shape", includePreview: true,
+            textBoxDrawable: Message(StringField(4, "https://example.com/pages-shape")));
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Equal("https://example.com/pages-shape",
+            Assert.Single(result.Projection.TextBoxObjects).Hyperlink);
+    }
+
+    [Fact]
+    public void PowerPoint_shape_hyperlinks_round_trip_through_the_owner_model() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointTextBox textBox = presentation.AddSlide()
+            .AddTextBoxPoints("Linked", 10, 10, 100, 30);
+        var target = new Uri("https://example.com/keynote-shape");
+
+        textBox.SetHyperlink(target);
+
+        Assert.Equal(target, textBox.Hyperlink);
+        Assert.Empty(presentation.ValidateDocument());
+        textBox.ClearHyperlink();
+        Assert.Null(textBox.Hyperlink);
+    }
+
     [Fact]
     public void Singular_protobuf_fields_use_the_last_wire_value() {
         byte[] payload = Message(VarintField(1, 42));
@@ -129,5 +241,20 @@ public sealed partial class IWorkBoundaryTests {
         int second = Array.IndexOf(texts, "Second");
         Assert.True(first >= 0 && second > first);
         Assert.Contains(string.Empty, texts.Skip(first + 1).Take(second - first - 1));
+    }
+
+    private static MemoryStream CreatePagesPackageWithUnlabeledList() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong listStyleId = 3;
+        byte[] listTable = Message(BytesField(1,
+            Message(VarintField(1, 0), ReferenceField(2, listStyleId))));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001,
+                Message(StringField(3, "Item"), BytesField(7, listTable)),
+                new[] { listStyleId }),
+            ArchiveRecord(listStyleId, 2023, Message(VarintField(11, 1))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 }

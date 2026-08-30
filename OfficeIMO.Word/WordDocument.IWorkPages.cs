@@ -194,6 +194,20 @@ public partial class WordDocument {
     }
 
     private static string? FindWordProjectionLimitation(IWorkPagesProjection projection) {
+        if (projection.TextBoxObjects.Any(textBox => textBox.Hyperlink != null)
+            || projection.Images.Any(image => image.Hyperlink != null)) {
+            return "Pages contains a drawable hyperlink that cannot be represented by the DOCX owner.";
+        }
+        if (projection.Body.Paragraphs
+                .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
+                .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
+                    .Concat(projection.Sections.SelectMany(section => section.FooterContents))
+                    .SelectMany(content => content.Paragraphs))
+                .SelectMany(paragraph => paragraph.Runs)
+                .Any(run => run.Hyperlink != null
+                    && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
+            return "Pages contains a text hyperlink that cannot be represented by the DOCX owner.";
+        }
         if (projection.PageLayout is { } layout
             && (layout.WidthPoints <= 0 || layout.HeightPoints <= 0
                 || layout.WidthPoints > uint.MaxValue / 20d || layout.HeightPoints > uint.MaxValue / 20d
@@ -287,8 +301,11 @@ public partial class WordDocument {
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph.Style);
-            if (sourceParagraph.ListLevel >= 0 && !string.IsNullOrEmpty(sourceParagraph.ListLabel)) {
-                paragraph.AddText(sourceParagraph.ListLabel + " ");
+            if (sourceParagraph.ListLevel >= 0) {
+                string marker = string.IsNullOrEmpty(sourceParagraph.ListLabel)
+                    ? "\u2022"
+                    : sourceParagraph.ListLabel!;
+                paragraph.AddText(marker + " ");
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 WordParagraph run;

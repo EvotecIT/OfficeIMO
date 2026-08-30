@@ -1034,11 +1034,16 @@ public sealed partial class IWorkBoundaryTests {
             byte[] store = table.TextValue == null
                 ? Message(BytesField(3, tileStorage))
                 : Message(BytesField(3, tileStorage), ReferenceField(4, stringListId));
-            byte[] model = Message(
+            var modelFields = new List<byte[]> {
                 BytesField(4, store),
                 VarintField(6, checked((ulong)table.Rows)),
                 VarintField(7, checked((ulong)table.Columns)),
-                StringField(8, table.Name));
+                StringField(8, table.Name)
+            };
+            if (table.DefaultColumnWidth.HasValue) {
+                modelFields.Add(DoubleField(17, table.DefaultColumnWidth.Value));
+            }
+            byte[] model = Message(modelFields.ToArray());
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
                 byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
@@ -1073,24 +1078,29 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] CreateBncRow(TableSpec table) {
         int cellOffset = table.WideOffsets ? 4 : 0;
-        int valueBytes = table.Decimal128HighBit ? 16 : 8;
+        int valueBytes = table.FormulaWithoutCachedValue ? 0 : table.Decimal128HighBit ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
-        buffer[cellOffset + 1] = table.TextValue != null ? (byte)3
+        buffer[cellOffset + 1] = table.FormulaWithoutCachedValue ? (byte)9
+            : table.TextValue != null ? (byte)3
             : table.Date ? (byte)5
             : table.Duration ? (byte)7
             : (byte)2;
-        uint valueFlag = table.TextValue != null ? 1u << 3
+        uint valueFlag = table.FormulaWithoutCachedValue ? 0
+            : table.TextValue != null ? 1u << 3
             : table.Decimal128HighBit ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
-        if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
-        else if (table.Decimal128HighBit) {
-            buffer[cellOffset + 26] = 0x41;
-            buffer[cellOffset + 27] = 0x30;
+        if (!table.FormulaWithoutCachedValue) {
+            if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
+            else if (table.Decimal128HighBit) {
+                buffer[cellOffset + 26] = 0x41;
+                buffer[cellOffset + 27] = 0x30;
+            } else {
+                Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
+            }
         }
-        else Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
         var fields = new List<byte[]> { VarintField(1, 0), BytesField(6, buffer) };
@@ -1202,6 +1212,9 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] FloatField(int field, float value) =>
         Message(Varint(checked((ulong)((field << 3) | 5))), BitConverter.GetBytes(value));
+
+    private static byte[] DoubleField(int field, double value) =>
+        Message(Varint(checked((ulong)((field << 3) | 1))), BitConverter.GetBytes(value));
 
     private static byte[] BytesField(int field, byte[] value) =>
         Message(Varint(checked((ulong)((field << 3) | 2))), Varint(checked((ulong)value.Length)), value);
@@ -1329,7 +1342,8 @@ public sealed partial class IWorkBoundaryTests {
             bool missingModel = false, bool missingTile = false, string? textValue = null,
             bool duration = false, bool duplicateCell = false, bool duplicateString = false,
             bool decimal128HighBit = false, bool duplicateTileIdentity = false,
-            bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false) {
+            bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false,
+            bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1348,6 +1362,8 @@ public sealed partial class IWorkBoundaryTests {
             DuplicateTileRow = duplicateTileRow;
             OmitCurrentOffsets = omitCurrentOffsets;
             Date = date;
+            FormulaWithoutCachedValue = formulaWithoutCachedValue;
+            DefaultColumnWidth = defaultColumnWidth;
         }
 
         internal string Name { get; }
@@ -1368,5 +1384,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool DuplicateTileRow { get; }
         internal bool OmitCurrentOffsets { get; }
         internal bool Date { get; }
+        internal bool FormulaWithoutCachedValue { get; }
+        internal double? DefaultColumnWidth { get; }
     }
 }
