@@ -20,12 +20,10 @@ internal sealed class Lotus123Adapter : WkRecordSpreadsheetAdapterBase {
             return 45;
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x06, 0x04)) {
-            if (ExtensionIs(sourceName, ".wk1", ".wk2", ".wk3", ".wk4", ".123")) {
-                reason = "Early WK record-stream BOF signature with Lotus family extension.";
-                return 100;
-            }
-            reason = "Early WK record-stream BOF signature.";
-            return 65;
+            reason = ExtensionIs(sourceName, ".wk1", ".wk2", ".wk3", ".wk4", ".123")
+                ? "Exact Lotus WK1 BOF signature with corroborating source extension."
+                : "Exact Lotus WK1 BOF signature.";
+            return 100;
         }
         if (ExtensionIs(sourceName, ".wk1", ".wk2", ".wk3", ".wk4", ".123")) {
             reason = "Lotus 1-2-3 family source extension only; use FormatHint when the family is independently known.";

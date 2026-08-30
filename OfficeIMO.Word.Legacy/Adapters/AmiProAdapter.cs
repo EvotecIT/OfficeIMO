@@ -39,12 +39,13 @@ internal sealed class AmiProAdapter : LegacyWordAdapterBase {
 
     private static bool TryGetVersion(byte[] data, out int version) {
         version = 0;
-        string prefix = Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 4096)).Replace("\r\n", "\n").Replace('\r', '\n');
+        string prefix = Encoding.ASCII.GetString(data, 0, Math.Min(data.Length, 4096))
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .TrimStart(' ', '\t', '\n', '\f');
         string[] lines = prefix.Split('\n');
-        for (int index = 0; index + 1 < lines.Length; index++) {
-            if (!string.Equals(lines[index].Trim('\uFEFF', '\0', ' ', '\t'), "[ver]", StringComparison.OrdinalIgnoreCase)) continue;
-            return int.TryParse(lines[index + 1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out version);
-        }
-        return false;
+        return lines.Length > 1 &&
+               string.Equals(lines[0].Trim(' ', '\t'), "[ver]", StringComparison.OrdinalIgnoreCase) &&
+               int.TryParse(lines[1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out version);
     }
 }

@@ -12,9 +12,11 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
 
     public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04) && ExtensionIs(sourceName, ".wks")) {
-            reason = "Early WK record-stream BOF signature with Microsoft Works spreadsheet extension.";
-            return 95;
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)) {
+            reason = ExtensionIs(sourceName, ".wks")
+                ? "Exact Microsoft Works WKS BOF signature with corroborating source extension."
+                : "Exact Microsoft Works WKS BOF signature.";
+            return 100;
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xFF, 0x00, 0x02)) {
             if (ExtensionIs(sourceName, ".wks")) {

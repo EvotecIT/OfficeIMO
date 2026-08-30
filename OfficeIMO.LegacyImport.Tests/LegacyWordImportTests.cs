@@ -213,6 +213,19 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProVersionMarkerMustStartTheHeader() {
+        byte[] prefixed = Encoding.ASCII.GetBytes("unrelated data\n[ver]\n4\n[edoc]\nText\n");
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(
+            prefixed,
+            new LegacyWordImportOptions { SourceName = "archive.sam" }));
+
+        using LegacyWordImportResult whitespace = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(" \t\n[ver]\n4\n[edoc]\nText\n"),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+        Assert.Equal(OfficeLegacyImportQuality.Structured, whitespace.Report.Quality);
+    }
+
+    [Fact]
     public void AmiProRecordLimitIsCheckedBeforeLineMaterialization() {
         byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nOne\nTwo\nThree\n");
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(source, new LegacyWordImportOptions {

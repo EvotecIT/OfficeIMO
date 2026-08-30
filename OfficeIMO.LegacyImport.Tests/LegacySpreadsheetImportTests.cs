@@ -111,6 +111,23 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void LotusErrFormulaRetainsItsCachedValueAsUnsupported() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x20, 0x03 }),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+
+        LegacySpreadsheetCellContent formula = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Null(formula.Formula);
+        Assert.Equal(84d, formula.CachedValue);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+
+        using LegacySpreadsheetImportResult notAvailable = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x1F, 0x03 }),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+        Assert.Equal("NA()", Assert.Single(notAvailable.Cells, cell => cell.Row == 1 && cell.Column == 3).Formula);
+    }
+
+    [Fact]
     public void WkFormulaTextSharesTheWorkbookCharacterBudget() {
         const int sourceNameAndLabelCharacters = 9;
         const int oneFormulaCharacters = 13;
@@ -193,11 +210,23 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
-    public void WkParserStopsAtEofAndBoundsMetadataText() {
+    public void WkParserRejectsRecordsAfterEofAndBoundsMetadataText() {
         byte[] trailingCell = { 0x0D, 0x00, 0x07, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x63, 0x00 };
         byte[] source = LegacyFixtureFactory.Wk().Concat(trailingCell).ToArray();
-        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(source, new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
-        Assert.Equal(3, imported.Report.RecoveredItemCount);
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            source,
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+
+        byte[] eofPayload = LegacyFixtureFactory.Wk(includeFormulaAndChart: false);
+        eofPayload[eofPayload.Length - 2] = 1;
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            eofPayload.Concat(new byte[] { 0 }).ToArray(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+
+        using LegacySpreadsheetImportResult padded = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false).Concat(new byte[] { 0, 0, 0x1A }).ToArray(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+        Assert.Equal(OfficeLegacyImportQuality.Structured, padded.Report.Quality);
 
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(LegacyFixtureFactory.Wk(), new LegacySpreadsheetImportOptions {
             SourceName = "archive.wk1",
@@ -340,6 +369,19 @@ public sealed class LegacySpreadsheetImportTests {
             LegacySpreadsheetImporter.Detect(LegacyFixtureFactory.Multiplan(), new LegacySpreadsheetImportOptions { SourceName = "archive.mp" }).Format);
         Assert.Equal(LegacySpreadsheetFormat.MicrosoftWorks,
             LegacySpreadsheetImporter.Detect(works, new LegacySpreadsheetImportOptions { SourceName = "archive.wks" }).Format);
+    }
+
+    [Fact]
+    public void ExactStructuredBofSignaturesDoNotRequireSourceNames() {
+        using LegacySpreadsheetImportResult lotus = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false),
+            new LegacySpreadsheetImportOptions { RequireStructured = true });
+        using LegacySpreadsheetImportResult works = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(0x04, 0x04, includeFormulaAndChart: false),
+            new LegacySpreadsheetImportOptions { RequireStructured = true });
+
+        Assert.Equal(LegacySpreadsheetFormat.Lotus123, lotus.Detection.Format);
+        Assert.Equal(LegacySpreadsheetFormat.MicrosoftWorks, works.Detection.Format);
     }
 
     [Fact]

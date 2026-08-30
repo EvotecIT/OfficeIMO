@@ -47,6 +47,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     model.Metadata["BofPayload"] = ToHex(data, payload, Math.Min(length, (ushort)8));
                     break;
                 case 0x0001:
+                    if (length != 0) throw new InvalidDataException($"The {familyName} EOF record has an unexpected payload.");
                     foundEnd = true;
                     break;
                 case 0x000B:
@@ -102,7 +103,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     break;
             }
             offset = payload + length;
-            if (foundEnd) break;
+            if (foundEnd) {
+                ValidateTrailingPadding(data, offset, familyName);
+                break;
+            }
         }
         if (!foundEnd) model.Findings.Add(Loss("LEGACY_EOF_MISSING", "Container", "The record stream ended without a recognized EOF record; recovered records were retained."));
         if (unsupportedRecordTypes.Count > 0) {
@@ -119,6 +123,15 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         }
         if (model.RecoveredCellCount == 0) throw new InvalidDataException($"The {familyName} record stream contained no supported cells.");
         return model;
+    }
+
+    private static void ValidateTrailingPadding(byte[] data, int offset, string familyName) {
+        for (int index = offset; index < data.Length; index++) {
+            byte value = data[index];
+            if (value != 0x00 && value != 0x1A) {
+                throw new InvalidDataException($"The {familyName} record stream contains non-padding data after EOF.");
+            }
+        }
     }
 
     private static void ParseFormulaCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,

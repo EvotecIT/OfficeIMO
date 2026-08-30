@@ -11,7 +11,7 @@ internal static class WkFormulaDecoder {
     private const int MaximumExpressionDepth = 128;
 
     private static readonly Dictionary<byte, FunctionInfo> Functions = new() {
-        [0x1F] = new("NA", 0), [0x20] = new("NA", 0), [0x21] = new("ABS", 1), [0x22] = new("INT", 1), [0x23] = new("SQRT", 1),
+        [0x1F] = new("NA", 0), [0x21] = new("ABS", 1), [0x22] = new("INT", 1), [0x23] = new("SQRT", 1),
         [0x24] = new("LOG10", 1), [0x25] = new("LN", 1), [0x26] = new("PI", 0), [0x27] = new("SIN", 1),
         [0x28] = new("COS", 1), [0x29] = new("TAN", 1), [0x2A] = new("ATAN2", 2), [0x2B] = new("ATAN", 1),
         [0x2C] = new("ASIN", 1), [0x2D] = new("ACOS", 1), [0x2E] = new("EXP", 1), [0x2F] = new("MOD", 2),
