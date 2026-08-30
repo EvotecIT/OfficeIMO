@@ -152,6 +152,8 @@ internal static class EndNoteXmlCodec {
                 AddIdentifier(item, scheme, identifier.Value);
             } else if (string.Equals(identifier.Name.LocalName, "electronic-resource-num", StringComparison.OrdinalIgnoreCase)) AddIdentifier(item, "DOI", identifier.Value);
             else if (string.Equals(identifier.Name.LocalName, "accession-num", StringComparison.OrdinalIgnoreCase)) ParseAccessionIdentifier(item, identifier.Value);
+            if (IsRepeatableRecordElement(identifier.Name.LocalName) && string.IsNullOrWhiteSpace(identifier.Value))
+                item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, identifier.Name.LocalName, identifier.Value, SerializeBoundedElement(identifier, partial, limits)));
         }
         XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
         string? primaryUrl = relatedUrls.FirstOrDefault()?.Value;
@@ -376,6 +378,7 @@ internal static class EndNoteXmlCodec {
         if (raw == null) return true;
         try {
             XElement element = XElement.Parse(raw, LoadOptions.PreserveWhitespace);
+            if (IsRepeatableRecordElement(field.Name) && string.IsNullOrWhiteSpace(element.Value)) return false;
             return string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal);
         } catch (XmlException) {
             return true;

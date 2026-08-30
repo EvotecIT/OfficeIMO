@@ -58,6 +58,9 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
             int last = _elementTextLengths.Count - 1;
             _materializationLimits.CheckAdditionalValueLength(_partialItems, _elementTextLengths[last], _reader.Value.Length, _elementOffsets[last]);
             _elementTextLengths[last] += _reader.Value.Length;
+        } else if (read && (_reader.NodeType == XmlNodeType.Comment || _reader.NodeType == XmlNodeType.ProcessingInstruction)) {
+            int offset = _offsets.GetOffset(this);
+            _materializationLimits.AddValue(_partialItems, _reader.Value, offset);
         }
         return read;
     }

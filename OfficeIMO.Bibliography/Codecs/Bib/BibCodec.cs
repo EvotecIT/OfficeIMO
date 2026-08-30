@@ -34,9 +34,9 @@ internal static class BibCodec {
             builder.Append('@').Append(type).Append('{').Append(SafeKey(outputKeys[itemIndex])).Append(',').Append(options.LineEnding);
             var fields = new List<KeyValuePair<string, string>>();
             Add(fields, "title", item.Title);
-            AddNames(fields, "author", item, BibliographyContributorRole.Author);
-            AddNames(fields, "editor", item, BibliographyContributorRole.Editor);
-            AddNames(fields, "translator", item, BibliographyContributorRole.Translator);
+            AddNames(fields, "author", item, BibliographyContributorRole.Author, cancellationToken);
+            AddNames(fields, "editor", item, BibliographyContributorRole.Editor, cancellationToken);
+            AddNames(fields, "translator", item, BibliographyContributorRole.Translator, cancellationToken);
             Add(fields, GetBibFieldName(item, "container-title", DefaultContainerField(item, format), format), item.ContainerTitle);
             Add(fields, "series", item.CollectionTitle);
             Add(fields, GetBibFieldName(item, "publisher", "publisher", format), item.Publisher);
@@ -51,6 +51,7 @@ internal static class BibCodec {
             if (format == BibliographyFormat.BibLatex) {
                 var emittedDateRoles = new HashSet<BibliographyDateRole>();
                 foreach (BibliographyDate date in item.Dates) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!emittedDateRoles.Add(date.Role)) continue;
                     if (date.Role == BibliographyDateRole.Issued) Add(fields, "date", CodecMappings.FormatDate(date));
                     else if (date.Role == BibliographyDateRole.Accessed) Add(fields, "urldate", CodecMappings.FormatDate(date));
@@ -63,15 +64,18 @@ internal static class BibCodec {
                 }
             }
             foreach (BibliographyIdentifier identifier in item.Identifiers) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string fieldName = identifier.Scheme.ToLowerInvariant();
                 if (CodecMappings.IsBibIdentifierScheme(identifier.Scheme) && IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);
                 else report.Add("BIBCONV129", BibliographyDiagnosticSeverity.Warning, $"Identifier scheme '{identifier.Scheme}' cannot be represented as a safe, non-conflicting BibTeX field.", BibliographyConversionAction.Omitted, item, "identifiers." + identifier.Scheme);
             }
-            if (item.Keywords.Count > 0) Add(fields, "keywords", string.Join(", ", item.Keywords.Select(FormatBibListItem)));
-            if (item.Notes.Count > 0) Add(fields, "note", string.Join("; ", item.Notes));
+            if (item.Keywords.Count > 0) Add(fields, "keywords", JoinValues(item.Keywords, ", ", cancellationToken, FormatBibListItem));
+            if (item.Notes.Count > 0) Add(fields, "note", JoinValues(item.Notes, "; ", cancellationToken));
 
-            var emitted = new HashSet<string>(fields.Select(static pair => pair.Key), StringComparer.OrdinalIgnoreCase);
+            var emitted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, string> field in fields) { cancellationToken.ThrowIfCancellationRequested(); emitted.Add(field.Key); }
             foreach (BibliographyNativeField field in item.NativeFields) {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool typedDuplicate = IsBibFamily(field.Format) && (ReservedTypedFieldNames.Contains(field.Name) || TypedIdentifierFieldNames.Contains(field.Name));
                 bool canRemainNative = !typedDuplicate || CanRemainNativeBibField(field, emitted);
                 if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && canRemainNative) {
@@ -86,6 +90,7 @@ internal static class BibCodec {
             }
 
             for (int index = 0; index < fields.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 KeyValuePair<string, string> field = fields[index];
                 builder.Append("  ").Append(field.Key).Append(" = {").Append(Escape(field.Value)).Append('}');
                 if (index + 1 < fields.Count) builder.Append(',');
@@ -99,6 +104,16 @@ internal static class BibCodec {
 
     private static void Add(ICollection<KeyValuePair<string, string>> fields, string name, string? value) {
         if (value != null) fields.Add(new KeyValuePair<string, string>(name, value));
+    }
+
+    private static string JoinValues(IEnumerable<string> values, string separator, CancellationToken cancellationToken, Func<string, string>? transform = null) {
+        var builder = new StringBuilder();
+        foreach (string value in values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (builder.Length > 0) builder.Append(separator);
+            builder.Append(transform == null ? value : transform(value));
+        }
+        return builder.ToString();
     }
 
     private static bool CanRemainNativeBibField(BibliographyNativeField field, ISet<string> emitted) {
@@ -135,9 +150,15 @@ internal static class BibCodec {
     private static string DefaultContainerField(BibliographyItem item, BibliographyFormat format) =>
         item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference ? "booktitle" : format == BibliographyFormat.BibLatex ? "journaltitle" : "journal";
 
-    private static void AddNames(ICollection<KeyValuePair<string, string>> fields, string name, BibliographyItem item, BibliographyContributorRole role) {
-        string[] names = item.Contributors.Where(contributor => contributor.Role == role).Select(contributor => FormatBibName(contributor.Name)).Where(static value => value.Length > 0).ToArray();
-        if (names.Length > 0) Add(fields, name, string.Join(" and ", names));
+    private static void AddNames(ICollection<KeyValuePair<string, string>> fields, string name, BibliographyItem item, BibliographyContributorRole role, CancellationToken cancellationToken) {
+        var names = new List<string>();
+        foreach (BibliographyContributor contributor in item.Contributors) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (contributor.Role != role) continue;
+            string formatted = FormatBibName(contributor.Name);
+            if (formatted.Length > 0) names.Add(formatted);
+        }
+        if (names.Count > 0) Add(fields, name, string.Join(" and ", names));
     }
 
     private static string FormatBibName(BibliographyName name) =>
@@ -317,7 +338,10 @@ internal static class BibCodec {
                 else if (_source[_position] == '"') AppendValue(builder, ReadDelimited('"', '"'), _position);
                 else {
                     string atom = ReadValueAtom(entryClose);
-                    AppendValue(builder, _strings.TryGetValue(atom, out string? expanded) ? expanded : atom, _position - atom.Length);
+                    if (_strings.TryGetValue(atom, out string? expanded)) {
+                        _limits.AddExpandedCharacters(_items, expanded.Length, _position - atom.Length);
+                        AppendValue(builder, expanded, _position - atom.Length);
+                    } else AppendValue(builder, atom, _position - atom.Length);
                 }
                 SkipWhitespace();
                 if (_position < _source.Length && _source[_position] == '#') { _position++; continue; }

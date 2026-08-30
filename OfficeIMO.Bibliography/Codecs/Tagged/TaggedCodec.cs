@@ -13,7 +13,7 @@ internal static class TaggedCodec {
         for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
-            WriteTag(builder, "TY", item.Type == BibliographyItemType.Unknown && IsRisType(item.NativeType) ? item.NativeType!.ToUpperInvariant() : CodecMappings.ToRisType(item.Type), options.LineEnding);
+            WriteTag(builder, "TY", CanPreserveNativeType(document.SourceFormat, item) ? item.NativeType : CodecMappings.ToRisType(item.Type), options.LineEnding);
             WriteTag(builder, "ID", outputKeys[itemIndex], options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "title", "TI"), item.Title, options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "container-title", "T2"), item.ContainerTitle, options.LineEnding);
@@ -498,6 +498,9 @@ internal static class TaggedCodec {
     }
     internal static bool CanRoundTripRisType(BibliographyItemType type) =>
         type != BibliographyItemType.Unknown && CodecMappings.ParseRisType(CodecMappings.ToRisType(type)) == type;
+
+    internal static bool CanPreserveNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        sourceFormat == BibliographyFormat.Ris && IsRisType(item.NativeType) && CodecMappings.ParseRisType(item.NativeType) == item.Type;
 
     internal static bool CanPreserveUnknownRisType(string? nativeType) =>
         IsRisType(nativeType) && CodecMappings.ParseRisType(nativeType) == BibliographyItemType.Unknown;

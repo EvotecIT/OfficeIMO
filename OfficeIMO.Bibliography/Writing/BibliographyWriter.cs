@@ -111,7 +111,7 @@ internal static class BibliographyConversionInspector {
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
+                exact = CslJsonCodec.CanPreserveNativeType(sourceFormat, item) || sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
@@ -120,9 +120,9 @@ internal static class BibliographyConversionInspector {
                     : BibCodec.CanRoundTripType(item.Type, format);
                 break;
             case BibliographyFormat.Ris:
-                exact = item.Type == BibliographyItemType.Unknown
+                exact = TaggedCodec.CanPreserveNativeType(sourceFormat, item) || (item.Type == BibliographyItemType.Unknown
                     ? sameFormatNativeType && TaggedCodec.CanPreserveUnknownRisType(item.NativeType)
-                    : TaggedCodec.CanRoundTripRisType(item.Type);
+                    : TaggedCodec.CanRoundTripRisType(item.Type));
                 break;
             case BibliographyFormat.Nbib:
                 exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);

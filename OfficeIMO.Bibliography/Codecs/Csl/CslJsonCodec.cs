@@ -39,7 +39,7 @@ internal static class CslJsonCodec {
                 cancellationToken.ThrowIfCancellationRequested();
                 writer.WriteStartObject();
                 if (ShouldWriteTypedId(item, cancellationToken)) writer.WriteString("id", outputKeys[itemIndex]);
-                if (ShouldWriteTypedType(item, cancellationToken)) writer.WriteString("type", item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType : CodecMappings.ToCslType(item.Type));
+                if (ShouldWriteTypedType(item, cancellationToken)) writer.WriteString("type", OutputType(document.SourceFormat, item));
                 WriteString(writer, "title", item.Title); WriteString(writer, "container-title", item.ContainerTitle); WriteString(writer, "collection-title", item.CollectionTitle);
                 WriteString(writer, "publisher", item.Publisher); WriteString(writer, "publisher-place", item.PublisherPlace); WriteString(writer, "edition", item.Edition);
                 WriteString(writer, "volume", item.Volume); WriteString(writer, "issue", item.Issue); WriteString(writer, "page", item.Pages); WriteString(writer, "abstract", item.Abstract);
@@ -178,7 +178,9 @@ internal static class CslJsonCodec {
     }
 
     private static void BindIdentifier(BibliographyItem item, JsonProperty property, string scheme, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
-        if (TryReadScalar(item, property, items, limits, out string scalar)) CodecMappings.AddIdentifier(item, scheme, scalar);
+        if (!TryReadScalar(item, property, items, limits, out string scalar)) return;
+        if (!string.IsNullOrWhiteSpace(scalar)) CodecMappings.AddIdentifier(item, scheme, scalar);
+        else item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, scalar, property.Value.GetRawText()));
     }
 
     private static bool TryReadScalar(BibliographyItem item, JsonProperty property, IList<BibliographyItem> items, BibliographyLimitGuard limits, out string scalar) {
@@ -420,7 +422,13 @@ internal static class CslJsonCodec {
     private static bool WouldBindTypedItemProperty(BibliographyNativeField field) {
         using JsonDocument? output = GetNativeOutputJson(field);
         JsonValueKind kind = output?.RootElement.ValueKind ?? JsonValueKind.String;
-        if (IsTypedScalarProperty(field.Name)) return kind == JsonValueKind.String;
+        if (IsTypedScalarProperty(field.Name)) {
+            if (IsIdentifierProperty(field.Name) && kind == JsonValueKind.String) {
+                string value = output == null ? field.Value : output.RootElement.GetString() ?? string.Empty;
+                return !string.IsNullOrWhiteSpace(value);
+            }
+            return kind == JsonValueKind.String;
+        }
         if (IsTypedNameProperty(field.Name)) return kind == JsonValueKind.Array && CanParseNames(output!.RootElement);
         if (IsTypedDateProperty(field.Name)) return kind == JsonValueKind.Object;
         return false;
@@ -474,6 +482,19 @@ internal static class CslJsonCodec {
         }
     }
 
+    private static bool IsIdentifierProperty(string name) {
+        switch (name) {
+            case "DOI": case "ISBN": case "ISSN": case "PMID": case "PMCID": return true;
+            default: return false;
+        }
+    }
+
+    internal static bool CanPreserveNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        sourceFormat == BibliographyFormat.CslJson && !string.IsNullOrWhiteSpace(item.NativeType) && CodecMappings.ParseCslType(item.NativeType) == item.Type;
+
+    private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        CanPreserveNativeType(sourceFormat, item) ? item.NativeType! : item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType! : CodecMappings.ToCslType(item.Type);
+
     private static bool IsTypedNameProperty(string name) {
         switch (name) {
             case "author": case "editor": case "translator": case "recipient": case "interviewer": case "composer": case "collection-editor": return true;
@@ -491,7 +512,7 @@ internal static class CslJsonCodec {
     private static JsonDocument ParseDocument(string source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
         const int ChunkCharacters = 4096;
         using var stream = new MemoryStream(Math.Min(source.Length, 1024 * 1024));
-        var encoder = Encoding.UTF8.GetEncoder();
+        var encoder = new UTF8Encoding(false, true).GetEncoder();
         var characters = new char[Math.Min(ChunkCharacters, Math.Max(1, source.Length))];
         var bytes = new byte[Encoding.UTF8.GetMaxByteCount(characters.Length)];
         int position = 0;
@@ -500,9 +521,13 @@ internal static class CslJsonCodec {
             int characterCount = Math.Min(characters.Length, source.Length - position);
             source.CopyTo(position, characters, 0, characterCount);
             bool flush = position + characterCount == source.Length;
-            encoder.Convert(characters, 0, characterCount, bytes, 0, bytes.Length, flush, out int charactersUsed, out int bytesUsed, out _);
-            stream.Write(bytes, 0, bytesUsed);
-            position += charactersUsed;
+            try {
+                encoder.Convert(characters, 0, characterCount, bytes, 0, bytes.Length, flush, out int charactersUsed, out int bytesUsed, out _);
+                stream.Write(bytes, 0, bytesUsed);
+                position += charactersUsed;
+            } catch (EncoderFallbackException exception) {
+                throw new JsonException("CSL JSON input contains invalid UTF-16.", exception);
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.TryGetBuffer(out ArraySegment<byte> buffer) || buffer.Array == null) throw new InvalidOperationException("The CSL JSON input buffer is unavailable.");

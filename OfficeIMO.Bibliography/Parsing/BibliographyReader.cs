@@ -51,6 +51,7 @@ internal sealed class BibliographyLimitGuard {
     private readonly BibliographyReadOptions _options;
     private int _items;
     private int _values;
+    private long _expandedCharacters;
 
     internal BibliographyLimitGuard(BibliographyReadOptions options) => _options = options;
 
@@ -84,6 +85,12 @@ internal sealed class BibliographyLimitGuard {
     internal void CheckAdditionalValueLength(IList<BibliographyItem> partial, int currentLength, int additionalLength, int offset) {
         if (currentLength < 0 || additionalLength < 0 || currentLength > _options.MaximumValueLength || additionalLength > _options.MaximumValueLength - currentLength)
             throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+    }
+
+    internal void AddExpandedCharacters(IList<BibliographyItem> partial, int length, int offset) {
+        if (length < 0 || _expandedCharacters > _options.MaximumInputCharacters - (long)length)
+            throw new BibliographyLimitException("Maximum cumulative expanded bibliography value length was exceeded.", partial, offset);
+        _expandedCharacters += length;
     }
 }
 
