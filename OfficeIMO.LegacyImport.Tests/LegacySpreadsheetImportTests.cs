@@ -12,8 +12,9 @@ public sealed class LegacySpreadsheetImportTests {
     public static IEnumerable<object[]> Families() {
         yield return new object[] { LegacyFixtureFactory.Wk(), "archive.wk1", LegacySpreadsheetFormat.Lotus123 };
         yield return new object[] { LegacyFixtureFactory.Wk(0x20, 0x51), "archive.wq1", LegacySpreadsheetFormat.QuattroPro };
+        yield return new object[] { LegacyFixtureFactory.CompoundSheet(), "archive.qpw", LegacySpreadsheetFormat.QuattroPro };
         yield return new object[] { LegacyFixtureFactory.Multiplan(), "archive.mp", LegacySpreadsheetFormat.Multiplan };
-        yield return new object[] { LegacyFixtureFactory.Wk(includeFormulaAndChart: false), "archive.wks", LegacySpreadsheetFormat.MicrosoftWorks };
+        yield return new object[] { LegacyFixtureFactory.Wk(0x04, 0x04, includeFormulaAndChart: false), "archive.wks", LegacySpreadsheetFormat.MicrosoftWorks };
         yield return new object[] { LegacyFixtureFactory.CompoundSheet(), "archive.xlr", LegacySpreadsheetFormat.MicrosoftWorks };
     }
 
@@ -50,6 +51,19 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkLabelsPreserveWhitespaceAndDoNotInventActiveContentFromVisibleText() {
+        const string label = "  https://example.invalid macro  ";
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, label: label),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+
+        Assert.Equal(label, Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 1).CachedValue);
+        Assert.Equal(OfficeLegacyInertContentKind.None, imported.Report.InertContent);
+        Assert.DoesNotContain(imported.Report.Findings, finding =>
+            finding.Code == "LEGACY_EXTERNAL_LINK_INERT" || finding.Code == "LEGACY_MACRO_INERT");
+    }
+
+    [Fact]
     public void WkFormulaFallbackAndRecordBoundsAreExplicit() {
         using LegacySpreadsheetImportResult fallback = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0xFE, 0x03 }),
@@ -75,6 +89,25 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkFormulaTextSharesTheWorkbookCharacterBudget() {
+        const int sourceNameAndLabelCharacters = 9;
+        const int oneFormulaCharacters = 13;
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithRepeatedFormulas(),
+            new LegacySpreadsheetImportOptions {
+                SourceName = "archive.wk1",
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = sourceNameAndLabelCharacters + oneFormulaCharacters }
+            });
+
+        Assert.Single(imported.Cells, cell => cell.Formula != null);
+        Assert.Single(imported.Cells, cell => cell.Formula == null && cell.CachedValue is double);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+        Assert.True(imported.Names.Sum(name => name.Name.Length) +
+            imported.Cells.Sum(cell => (cell.CachedValue as string)?.Length ?? 0) +
+            imported.Cells.Sum(cell => cell.Formula?.Length ?? 0) <= sourceNameAndLabelCharacters + oneFormulaCharacters);
+    }
+
+    [Fact]
     public void WkBlankCellsAndUnknownRecordsCannotDisappearFromNoLossClaims() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(includeBlank: true, extraRecordType: 0x7777),
@@ -95,6 +128,19 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_COLLISION");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
         Assert.Single(imported.Document.CreateInspectionSnapshot().NamedRanges);
+    }
+
+    [Fact]
+    public void Wk1NamesUseSixteenBitColumnsOnTheSingleSourceSheet() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithWideColumnName(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+        LegacySpreadsheetNameContent projected = Assert.Single(imported.Names);
+        Assert.Equal("Sheet1", projected.SheetName);
+        Assert.Equal(257, projected.FirstColumn);
+        Assert.Equal(258, projected.LastColumn);
+        Assert.Contains(imported.Document.ListNamedRanges(), name => name.Name == "Wide" &&
+            name.Reference.Contains("$IW$1:$IX$1", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -131,16 +177,41 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkStructuredImportRequiresTheValidatedFamilyBofPayload() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(product0: 0x99, product1: 0x99),
+            new LegacySpreadsheetImportOptions {
+                FormatHint = LegacySpreadsheetFormat.Lotus123,
+                RequireStructured = true
+            }));
+
+        using LegacySpreadsheetImportResult salvage = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(product0: 0x99, product1: 0x99),
+            new LegacySpreadsheetImportOptions { FormatHint = LegacySpreadsheetFormat.Lotus123 });
+        Assert.Equal(OfficeLegacyImportQuality.Salvage, salvage.Report.Quality);
+        Assert.Equal("lotus-1-2-3-later-salvage", salvage.Report.SourceFormatId);
+
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Detect(
+            LegacyFixtureFactory.Wk(product0: 0x99, product1: 0x99),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+    }
+
+    [Fact]
     public void WeakExtensionsAndUninspectableCompoundSecurityDoNotPassSilently() {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
             Encoding.ASCII.GetBytes("renamed,plain,text"),
             new LegacySpreadsheetImportOptions { SourceName = "renamed.wk1" }));
 
         using LegacySpreadsheetImportResult compound = LegacySpreadsheetImporter.Import(
-            LegacyFixtureFactory.CompoundSheet(),
-            new LegacySpreadsheetImportOptions { SourceName = "archive.xlr" });
+            LegacyFixtureFactory.TruncatedCompoundHeader(),
+            new LegacySpreadsheetImportOptions { FormatHint = LegacySpreadsheetFormat.MicrosoftWorks });
         Assert.Contains(compound.Report.Findings, finding => finding.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE");
         Assert.True(compound.Report.HasLoss);
+
+        using LegacySpreadsheetImportResult validCompound = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.CompoundSheet(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.xlr" });
+        Assert.DoesNotContain(validCompound.Report.Findings, finding => finding.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE");
     }
 
     [Fact]
@@ -189,5 +260,19 @@ public sealed class LegacySpreadsheetImportTests {
         OfficeDocumentReadResult result = reader.ReadDocument(stream, "archive.wk1");
         Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
             warning => warning.Contains("lotus-1-2-3", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ReaderLimitCannotRaiseConfiguredLegacySpreadsheetLimit() {
+        byte[] source = LegacyFixtureFactory.Wk();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddLegacySpreadsheetHandler(new LegacySpreadsheetImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+
+        using var stream = new MemoryStream(source);
+        Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wk1",
+            new ReaderOptions { MaxInputBytes = source.Length + 100L }));
     }
 }

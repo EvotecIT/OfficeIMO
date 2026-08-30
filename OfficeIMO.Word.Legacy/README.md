@@ -2,7 +2,16 @@
 
 `OfficeIMO.Word.Legacy` safely reads selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Microsoft Works/Write, and Word for DOS sources into the normal `OfficeIMO.Word.WordDocument` model.
 
+## Install from an OfficeIMO source checkout
+
+```powershell
+dotnet add .\YourApp.csproj reference .\OfficeIMO.Word.Legacy\OfficeIMO.Word.Legacy.csproj
+```
+
+Keep the legacy importer and the other OfficeIMO projects in the same coordinated source revision.
+
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Word.Legacy;
 
 using LegacyWordImportResult imported = LegacyWordImporter.Import("archive.wpd");

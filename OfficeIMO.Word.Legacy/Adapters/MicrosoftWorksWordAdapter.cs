@@ -5,7 +5,7 @@ internal sealed class MicrosoftWorksWordAdapter : LegacyWordAdapterBase {
     public override string ProfileId => "microsoft-works-word-2-8-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0) && ExtensionIs(sourceName, ".wps")) {
+        if (ExtensionIs(sourceName, ".wps") && OfficeLegacyCompoundInspector.IsValidCompound(data)) {
             reason = "OLE compound document with Microsoft Works word-processing extension.";
             return 90;
         }

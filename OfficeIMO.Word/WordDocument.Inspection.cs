@@ -152,7 +152,7 @@ namespace OfficeIMO.Word {
             var snapshot = new WordParagraphSnapshot {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
-                StyleName = paragraph.Style?.ToString(),
+                StyleName = ResolveParagraphStyleName(paragraph),
                 IsListItem = paragraph.IsListItem,
                 IsOrderedList = ResolveOrderedList(paragraph),
                 ListLevel = paragraph.ListItemLevel,
@@ -252,6 +252,17 @@ namespace OfficeIMO.Word {
             }
 
             return snapshot;
+        }
+
+        private string? ResolveParagraphStyleName(WordParagraph paragraph) {
+            WordParagraphStyles? style = paragraph.Style;
+            if (style != WordParagraphStyles.Custom) return style?.ToString();
+            string? styleId = paragraph.StyleId;
+            if (string.IsNullOrWhiteSpace(styleId)) return style?.ToString();
+            return _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?
+                .Elements<Style>()
+                .FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))?
+                .StyleName?.Val?.Value ?? style?.ToString();
         }
 
         private WordTableSnapshot BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {

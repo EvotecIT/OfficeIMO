@@ -1,5 +1,6 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Word;
+using OfficeIMO.Word;
 using OfficeIMO.Word.Legacy;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
@@ -114,6 +115,55 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void WordStarParagraphStyleSequencesAttachToFollowingParagraphs() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarWithStyles(),
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        Assert.Collection(imported.Content.Paragraphs,
+            paragraph => {
+                Assert.Equal("Body paragraph", paragraph.Text);
+                Assert.Equal("Body", paragraph.StyleName);
+            },
+            paragraph => {
+                Assert.Equal("Heading paragraph", paragraph.Text);
+                Assert.Equal("Heading", paragraph.StyleName);
+            });
+
+        WordParagraphSnapshot[] projected = imported.Document.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements)
+            .OfType<WordParagraphSnapshot>()
+            .ToArray();
+        Assert.Collection(projected,
+            paragraph => {
+                Assert.Equal("Body paragraph", paragraph.Text);
+                Assert.Equal("Body", paragraph.StyleName);
+            },
+            paragraph => {
+                Assert.Equal("Heading paragraph", paragraph.Text);
+                Assert.Equal("Heading", paragraph.StyleName);
+            });
+    }
+
+    [Fact]
+    public void WordStarCoalescesUnknownDotCommandsAndPlainTextRemainsHardBounded() {
+        byte[] commands = Encoding.ASCII.GetBytes("\u0002\u0002.XX first\r\n.YY second\r\nText\r\n\u001A");
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(commands, new LegacyWordImportOptions {
+            FormatHint = LegacyWordFormat.WordStar,
+            RequireStructured = true
+        });
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_DOT_COMMAND");
+        Assert.Equal("2", imported.Metadata["WordStarUnknownDotCommandCount"]);
+
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("A\r\nB\r\n\u001A"),
+            new LegacyWordImportOptions {
+                FormatHint = LegacyWordFormat.WordStar,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 2 }
+            }));
+    }
+
+    [Fact]
     public void AmiProUnsupportedVersionsSalvageAndAllObjectSectionsAreInventoried() {
         byte[] version3 = Encoding.ASCII.GetBytes("[ver]\n3\n[edoc]\nLegacy Ami text\n");
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(version3, new LegacyWordImportOptions { SourceName = "archive.sam" }));
@@ -179,6 +229,52 @@ public sealed class LegacyWordImportTests {
         Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Recovered WordPerfect", StringComparison.Ordinal));
         Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
         Assert.Contains(result.Chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()), warning => warning.Contains("Legacy import quality", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WordReaderContentRoutesStrongDosDocHeadersWithoutStealingCompoundDoc() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers()
+            .Build();
+        using var stream = new MemoryStream(LegacyFixtureFactory.Write(write: false));
+
+        OfficeDocumentReadResult result = reader.ReadDocument(stream, "archive.doc");
+
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Word DOS recovered paragraph", StringComparison.Ordinal));
+        Assert.Contains(OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void CoordinatedWordRegistrationAppliesLegacyOptionsToDosDocRouting() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
+                RequireStructured = true
+            })
+            .Build();
+        using var stream = new MemoryStream(LegacyFixtureFactory.Write(write: false));
+
+        Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.doc"));
+    }
+
+    [Fact]
+    public void ReaderLimitCannotRaiseConfiguredLegacyWordLimit() {
+        byte[] source = LegacyFixtureFactory.WordPerfect();
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddLegacyWordHandler(new LegacyWordImportOptions {
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+            })
+            .Build();
+
+        using var stream = new MemoryStream(source);
+        Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wpd",
+            new ReaderOptions { MaxInputBytes = source.Length + 100L }));
+    }
+
+    [Fact]
+    public void CompoundFamiliesRequireAValidCompoundDirectory() {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            LegacyFixtureFactory.TruncatedCompoundHeader(),
+            new LegacyWordImportOptions { SourceName = "archive.lwp" }));
     }
 
     [Fact]

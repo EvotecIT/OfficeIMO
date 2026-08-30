@@ -30,7 +30,9 @@ internal static class LegacySpreadsheetReaderAdapter {
 
     private static LegacySpreadsheetImportOptions Prepare(LegacySpreadsheetImportOptions? source, string? sourceName, ReaderOptions readerOptions) {
         OfficeLegacyImportLimits limits = (source?.Limits ?? new OfficeLegacyImportLimits()).Clone();
-        if (readerOptions.MaxInputBytes.HasValue) limits.MaxInputBytes = (int)Math.Min(int.MaxValue, readerOptions.MaxInputBytes.Value);
+        if (readerOptions.MaxInputBytes.HasValue) {
+            limits.MaxInputBytes = (int)Math.Min(limits.MaxInputBytes, Math.Min(int.MaxValue, readerOptions.MaxInputBytes.Value));
+        }
         return new LegacySpreadsheetImportOptions {
             Limits = limits,
             FormatHint = source?.FormatHint,

@@ -19,6 +19,8 @@ internal sealed class WordStarStructuredParser {
     private int _characterCount;
     private int _sequenceCount;
     private int _itemCount;
+    private int _unknownDotCommandCount;
+    private string? _paragraphStyleName;
     private bool _nextPageBreak;
 
     internal WordStarStructuredParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
@@ -72,6 +74,7 @@ internal sealed class WordStarStructuredParser {
         }
         FlushParagraph(force: _model.Paragraphs.Count == 0);
         if (_sequenceCount > 0) _model.Metadata["WordStarSymmetricalSequenceCount"] = _sequenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_unknownDotCommandCount > 0) _model.Metadata["WordStarUnknownDotCommandCount"] = _unknownDotCommandCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         return _model;
     }
 
@@ -108,6 +111,7 @@ internal sealed class WordStarStructuredParser {
                 FlushRun();
                 if (payloadText.Length > 0) {
                     ConsumeText(payloadText.Length);
+                    _paragraphStyleName = payloadText;
                     _model.Metadata["WordStarParagraphStyle"] = payloadText;
                 }
                 break;
@@ -181,7 +185,10 @@ internal sealed class WordStarStructuredParser {
             return;
         }
         ConsumeItem("paragraph");
-        var paragraph = new LegacyWordParagraph(_runs) { PageBreakBefore = _nextPageBreak };
+        var paragraph = new LegacyWordParagraph(_runs) {
+            PageBreakBefore = _nextPageBreak,
+            StyleName = _paragraphStyleName
+        };
         _nextPageBreak = false;
         if (text.StartsWith("- ", StringComparison.Ordinal) || text.StartsWith("* ", StringComparison.Ordinal)) {
             paragraph.IsList = true;
@@ -210,7 +217,10 @@ internal sealed class WordStarStructuredParser {
             case "HE": _model.Metadata["Header"] = argument; return true;
             case "FO": _model.Metadata["Footer"] = argument; return true;
             default:
-                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_DOT_COMMAND", "Layout", $"WordStar dot command .{command} was kept inert and omitted."));
+                _unknownDotCommandCount++;
+                if (_unknownDotCommandCount == 1) {
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_DOT_COMMAND", "Layout", "One or more unrecognized WordStar dot commands were kept inert and omitted; the total is available in metadata."));
+                }
                 return true;
         }
     }

@@ -14,7 +14,10 @@ internal enum WkRecordLayout {
 }
 
 internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapterBase {
-    protected LegacySpreadsheetModel ParseWkRecords(byte[] data, OfficeLegacyImportLimits limits, string familyName, CancellationToken cancellationToken, WkRecordLayout layout = WkRecordLayout.Dos, bool translateFormulas = true) {
+    protected LegacySpreadsheetModel ParseWkRecords(byte[] data, OfficeLegacyImportLimits limits, string familyName,
+        byte expectedProduct0, byte expectedProduct1, CancellationToken cancellationToken,
+        WkRecordLayout layout = WkRecordLayout.Dos, bool translateFormulas = true) {
+        ValidateBof(data, familyName, expectedProduct0, expectedProduct1);
         var model = new LegacySpreadsheetModel { Quality = OfficeLegacyImportQuality.Structured };
         var sheets = new Dictionary<byte, LegacySpreadsheetSheet>();
         int offset = 0;
@@ -35,13 +38,14 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
             switch (type) {
                 case 0x0000:
+                    if (offset != 0) throw new InvalidDataException($"The {familyName} record stream contains a duplicate BOF record.");
                     model.Metadata["BofPayload"] = ToHex(data, payload, Math.Min(length, (ushort)8));
                     break;
                 case 0x0001:
                     foundEnd = true;
                     break;
                 case 0x000B:
-                    CaptureName(model, data, payload, length, limits, ref recoveredTextCharacters);
+                    CaptureName(model, sheets, data, payload, length, limits, ref recoveredTextCharacters);
                     break;
                 case 0x000C:
                     ValidateCellHeader(data, payload, length, layout);
@@ -70,7 +74,8 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     AddCell(model, sheets, limits, data, payload, value, null, alignment, ref reportedUnsupportedFormat, isText: true, layout: layout);
                     break;
                 case 0x0010:
-                    ParseFormulaCell(model, sheets, limits, data, payload, length, ref reportedUnsupportedFormula, ref reportedUnsupportedFormat, layout, translateFormulas);
+                    ParseFormulaCell(model, sheets, limits, data, payload, length, ref recoveredTextCharacters,
+                        ref reportedUnsupportedFormula, ref reportedUnsupportedFormat, layout, translateFormulas);
                     break;
                 case 0x0033:
                     if (!reportedStringFormula) {
@@ -97,11 +102,12 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         }
         if (model.Charts.Count > 0) model.Findings.Add(Loss("LEGACY_CHART_METADATA_ONLY", "Chart", "Chart records were inventoried as metadata but were not converted into potentially misleading live charts."));
         if (model.RecoveredCellCount == 0) throw new InvalidDataException($"The {familyName} record stream contained no supported cells.");
-        DetectInertContent(model, data, cancellationToken);
         return model;
     }
 
-    private static void ParseFormulaCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets, OfficeLegacyImportLimits limits, byte[] data, int payload, int length, ref bool reportedUnsupportedFormula, ref bool reportedUnsupportedFormat, WkRecordLayout layout, bool translateFormulas) {
+    private static void ParseFormulaCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
+        OfficeLegacyImportLimits limits, byte[] data, int payload, int length, ref int recoveredTextCharacters,
+        ref bool reportedUnsupportedFormula, ref bool reportedUnsupportedFormat, WkRecordLayout layout, bool translateFormulas) {
         int dataOffset = DataOffset(layout);
         if (length < dataOffset + 10) throw new InvalidDataException("Truncated WK formula cell record envelope.");
         double cached = ReadDouble(data, payload + dataOffset);
@@ -112,7 +118,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         if (translateFormulas) {
             int rowZeroBased = ReadRow(data, payload, layout);
             int columnZeroBased = ReadColumn(data, payload, layout);
-            if (WkFormulaDecoder.TryDecode(data, payload + dataOffset + 10, tokenLength, rowZeroBased, columnZeroBased, limits, out formula, out error)) {
+            int remainingTextCharacters = limits.MaxTextCharacters - recoveredTextCharacters;
+            if (WkFormulaDecoder.TryDecode(data, payload + dataOffset + 10, tokenLength, rowZeroBased, columnZeroBased,
+                    limits, remainingTextCharacters, out formula, out error)) {
+                AddTextCharacters(ref recoveredTextCharacters, formula!.Length, limits);
                 AddCell(model, sheets, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, layout: layout);
                 return;
             }
@@ -152,7 +161,8 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         return sheet;
     }
 
-    private static void CaptureName(LegacySpreadsheetModel model, byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters) {
+    private static void CaptureName(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
+        byte[] data, int payload, int length, OfficeLegacyImportLimits limits, ref int recoveredTextCharacters) {
         if (length < 24) {
             string metadataName = ReadNullTerminatedAscii(data, payload, length).Trim();
             if (metadataName.Length == 0) return;
@@ -172,7 +182,15 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int lastRow = OfficeLegacyImportBuffer.ReadUInt16(data, payload + 22) + 1;
         if (firstRow > 1048576 || lastRow > 1048576 || firstColumn > 16384 || lastColumn > 16384) throw new InvalidDataException("WK named range is outside the workbook model.");
         if (model.Names.Count >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured name limit.");
-        model.Names.Add(new LegacySpreadsheetName(name, "Sheet1", firstRow, firstColumn, lastRow, lastColumn));
+        LegacySpreadsheetSheet sheet = GetSheet(model, sheets, 0);
+        model.Names.Add(new LegacySpreadsheetName(name, sheet.Name, firstRow, firstColumn, lastRow, lastColumn));
+    }
+
+    private static void ValidateBof(byte[] data, string familyName, byte expectedProduct0, byte expectedProduct1) {
+        if (data.Length < 6 || OfficeLegacyImportBuffer.ReadUInt16(data, 0) != 0x0000 ||
+            OfficeLegacyImportBuffer.ReadUInt16(data, 2) != 2 || data[4] != expectedProduct0 || data[5] != expectedProduct1) {
+            throw new InvalidDataException($"The {familyName} record stream does not begin with its validated family BOF record.");
+        }
     }
 
     private static void ValidateCellHeader(byte[] data, int payload, int length, WkRecordLayout layout) {
@@ -202,14 +220,14 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int available = Math.Min(length, data.Length - offset);
         int count = 0;
         while (count < available && data[offset + count] != 0) count++;
-        return Encoding.ASCII.GetString(data, offset, count).Trim();
+        return Encoding.ASCII.GetString(data, offset, count);
     }
 
     private static string ReadPascalAscii(byte[] data, int offset, int length) {
         if (length < 1) throw new InvalidDataException("Truncated Pascal string.");
         int count = data[offset];
         if (count > length - 1) throw new InvalidDataException("Pascal string length exceeds its record.");
-        return Encoding.ASCII.GetString(data, offset + 1, count).Trim();
+        return Encoding.ASCII.GetString(data, offset + 1, count);
     }
 
     private static string ToHex(byte[] data, int offset, int length) {
@@ -218,15 +236,4 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         return builder.ToString();
     }
 
-    private static void DetectInertContent(LegacySpreadsheetModel model, byte[] data, CancellationToken cancellationToken) {
-        string printable = OfficeLegacyImportBuffer.ExtractPrintableText(data, 0, data.Length, Math.Min(data.Length, 256 * 1024), false, cancellationToken: cancellationToken);
-        if (printable.IndexOf("http://", StringComparison.OrdinalIgnoreCase) >= 0 || printable.IndexOf("https://", StringComparison.OrdinalIgnoreCase) >= 0) {
-            model.InertContent |= OfficeLegacyInertContentKind.ExternalLinks;
-            model.Findings.Add(Inert("LEGACY_EXTERNAL_LINK_INERT", "Security", "External link text was discovered but never resolved or refreshed."));
-        }
-        if (printable.IndexOf("macro", StringComparison.OrdinalIgnoreCase) >= 0) {
-            model.InertContent |= OfficeLegacyInertContentKind.Macros | OfficeLegacyInertContentKind.EmbeddedCode;
-            model.Findings.Add(Inert("LEGACY_MACRO_INERT", "Security", "Macro markers were discovered but never executed or projected as executable code."));
-        }
-    }
 }

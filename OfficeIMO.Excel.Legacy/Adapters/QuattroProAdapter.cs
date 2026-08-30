@@ -17,6 +17,10 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
             reason = "Quattro Pro WQ/WB BOF payload signature.";
             return 100;
         }
+        if (ExtensionIs(sourceName, ".qpw") && OfficeLegacyCompoundInspector.IsValidCompound(data)) {
+            reason = "Validated compound workbook with Quattro Pro extension.";
+            return 95;
+        }
         if (ExtensionIs(sourceName, ".wq1", ".wq2", ".wb1", ".wb2", ".wb3", ".qpw")) {
             reason = "Quattro Pro family source extension only; use FormatHint when the family is independently known.";
             return 35;
@@ -27,10 +31,10 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)) {
-            return ParseWkRecords(data, limits, "Quattro Pro WQ1", cancellationToken, translateFormulas: false);
+            return ParseWkRecords(data, limits, "Quattro Pro WQ1", 0x20, 0x51, cancellationToken, translateFormulas: false);
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)) {
-            return ParseWkRecords(data, limits, "Quattro Pro WQ2", cancellationToken, WkRecordLayout.QuattroWq2, translateFormulas: false);
+            return ParseWkRecords(data, limits, "Quattro Pro WQ2", 0x21, 0x51, cancellationToken, WkRecordLayout.QuattroWq2, translateFormulas: false);
         }
         LegacySpreadsheetModel model = ParseDelimitedSalvage(data, limits,
             "Quattro Pro compound-workbook text was salvaged; workbook structure, formulas, formatting, comments, and charts were not reconstructed.", cancellationToken);

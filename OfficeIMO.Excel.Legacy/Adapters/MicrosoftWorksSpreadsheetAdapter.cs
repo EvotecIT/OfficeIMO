@@ -3,12 +3,12 @@ namespace OfficeIMO.Excel.Legacy;
 internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.MicrosoftWorks;
     public override string ProfileId => "microsoft-works-spreadsheet-selected";
-    public override string GetProfileId(byte[] data) => OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00)
-        ? "microsoft-works-wks-dos-records" : OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0)
+    public override string GetProfileId(byte[] data) => OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)
+        ? "microsoft-works-wks-dos-records" : OfficeLegacyCompoundInspector.IsValidCompound(data)
             ? "microsoft-works-xlr-compound-salvage" : "microsoft-works-spreadsheet-binary-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00) && ExtensionIs(sourceName, ".wks")) {
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04) && ExtensionIs(sourceName, ".wks")) {
             reason = "Early WK record-stream BOF signature with Microsoft Works spreadsheet extension.";
             return 95;
         }
@@ -16,7 +16,7 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
             reason = "Microsoft Works 3.x spreadsheet signature.";
             return 100;
         }
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0) && ExtensionIs(sourceName, ".xlr")) {
+        if (ExtensionIs(sourceName, ".xlr") && OfficeLegacyCompoundInspector.IsValidCompound(data)) {
             reason = "OLE compound workbook with Microsoft Works spreadsheet extension.";
             return 95;
         }
@@ -29,7 +29,7 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
     }
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00)) return ParseWkRecords(data, limits, "Microsoft Works WKS", cancellationToken);
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)) return ParseWkRecords(data, limits, "Microsoft Works WKS", 0x04, 0x04, cancellationToken);
         LegacySpreadsheetModel model = ParseDelimitedSalvage(data, limits,
             "Microsoft Works spreadsheet text was salvaged; sheet structure, formulas, formatting, comments, and charts were not reconstructed.", cancellationToken);
         model.InertContent |= OfficeLegacyCompoundInspector.Inspect(data, limits, out bool inspectionIncomplete, cancellationToken);

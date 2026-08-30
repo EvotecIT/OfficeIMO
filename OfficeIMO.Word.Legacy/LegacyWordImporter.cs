@@ -1,10 +1,15 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OpenXmlStyle = DocumentFormat.OpenXml.Wordprocessing.Style;
 
 namespace OfficeIMO.Word.Legacy;
 
@@ -63,28 +68,53 @@ public static class LegacyWordImporter {
         }
 
         WordDocument document = Project(model, cancellationToken);
-        string text = string.Join(Environment.NewLine, model.Paragraphs.Select(static paragraph => paragraph.Text)
-            .Concat(model.Notes.Select(static note => "[" + note.Kind + "] " + note.Text)));
+        string text = BuildPlainText(model, effective.Limits, cancellationToken);
         var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Notes.Count + model.Resources.Count);
         return new LegacyWordImportResult(document, detection, report, text,
             new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase)),
             new LegacyWordContent(model));
     }
 
+    private static string BuildPlainText(LegacyWordModel model, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
+        var text = new StringBuilder(Math.Min(limits.MaxTextCharacters, 4096));
+        bool hasEntry = false;
+        foreach (LegacyWordParagraph paragraph in model.Paragraphs) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AppendPlainTextEntry(text, paragraph.Text, ref hasEntry, limits.MaxTextCharacters);
+        }
+        foreach (LegacyWordNote note in model.Notes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AppendPlainTextEntry(text, "[" + note.Kind + "] " + note.Text, ref hasEntry, limits.MaxTextCharacters);
+        }
+        return text.ToString();
+    }
+
+    private static void AppendPlainTextEntry(StringBuilder target, string value, ref bool hasEntry, int maxCharacters) {
+        int separatorLength = hasEntry ? 1 : 0;
+        if (value.Length > maxCharacters - target.Length - separatorLength) {
+            throw new InvalidDataException("Legacy word plain-text projection exceeds the configured character limit.");
+        }
+        if (hasEntry) target.Append('\n');
+        target.Append(value);
+        hasEntry = true;
+    }
+
     private static WordDocument Project(LegacyWordModel model, CancellationToken cancellationToken) {
         WordDocument document = WordDocument.Create();
         try {
             WordList? activeList = null;
+            var styleIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (LegacyWordParagraph source in model.Paragraphs) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (source.IsList) {
                     activeList ??= document.AddListBulleted();
                     WordParagraph paragraph = activeList.AddItem(string.Empty, Math.Max(0, Math.Min(8, source.ListLevel)));
-                    ProjectParagraph(source, paragraph);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds);
                 } else {
                     activeList = null;
                     WordParagraph paragraph = document.AddParagraph();
-                    ProjectParagraph(source, paragraph);
+                    ProjectParagraph(source, paragraph, document, styleIds, usedStyleIds);
                 }
             }
             foreach (LegacyWordNote note in model.Notes) {
@@ -101,7 +131,8 @@ public static class LegacyWordImporter {
         }
     }
 
-    private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph) {
+    private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph, WordDocument document,
+        IDictionary<string, string> styleIds, ISet<string> usedStyleIds) {
         foreach (LegacyWordRun sourceRun in source.Runs) {
             WordParagraph run = paragraph.AddFormattedText(sourceRun.Text, sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
             if (sourceRun.Strike) run.SetStrike();
@@ -117,6 +148,43 @@ public static class LegacyWordImporter {
         paragraph.LineSpacingPoints = source.LineSpacingPoints;
         paragraph.LineSpacingBeforePoints = source.SpacingBeforePoints;
         paragraph.LineSpacingAfterPoints = source.SpacingAfterPoints;
+        if (!string.IsNullOrWhiteSpace(source.StyleName)) {
+            string styleId = GetOrCreateLegacyStyleId(source.StyleName!, styleIds, usedStyleIds);
+            paragraph.SetStyleId(styleId);
+            EnsureLegacyParagraphStyle(document, styleId, source.StyleName!);
+        }
+    }
+
+    private static string GetOrCreateLegacyStyleId(string styleName, IDictionary<string, string> styleIds, ISet<string> usedStyleIds) {
+        if (styleIds.TryGetValue(styleName, out string? existing)) return existing;
+        var identifier = new StringBuilder("Legacy");
+        foreach (char value in styleName) {
+            if (identifier.Length >= 56) break;
+            if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9')) identifier.Append(value);
+        }
+        if (identifier.Length == 6) identifier.Append("Style");
+        string basis = identifier.ToString();
+        string candidate = basis;
+        for (int suffix = 2; !usedStyleIds.Add(candidate); suffix++) candidate = basis + suffix.ToString(CultureInfo.InvariantCulture);
+        styleIds.Add(styleName, candidate);
+        return candidate;
+    }
+
+    private static void EnsureLegacyParagraphStyle(WordDocument document, string styleId, string styleName) {
+        MainDocumentPart mainPart = document.OpenXmlDocument.MainDocumentPart
+            ?? throw new InvalidDataException("The projected Word document has no main document part.");
+        StyleDefinitionsPart stylePart = mainPart.StyleDefinitionsPart
+            ?? throw new InvalidDataException("The projected Word document has no style definitions part.");
+        Styles styles = stylePart.Styles ??= new Styles();
+        if (styles.Elements<OpenXmlStyle>().Any(style => string.Equals(style.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))) return;
+        styles.Append(new OpenXmlStyle(
+            new StyleName { Val = styleName },
+            new BasedOn { Val = "Normal" },
+            new NextParagraphStyle { Val = "Normal" }) {
+            Type = StyleValues.Paragraph,
+            StyleId = styleId,
+            CustomStyle = true
+        });
     }
 
     private static (ILegacyWordAdapter Adapter, LegacyWordDetection Detection) SelectAdapter(byte[] data, LegacyWordImportOptions options) {

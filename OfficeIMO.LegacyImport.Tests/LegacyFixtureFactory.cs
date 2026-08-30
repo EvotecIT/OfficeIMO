@@ -24,6 +24,16 @@ internal static class LegacyFixtureFactory {
         return bytes.ToArray();
     }
 
+    internal static byte[] WordStarWithStyles() {
+        var bytes = new List<byte>();
+        bytes.AddRange(WordStarSequence(0x11, "Body"));
+        bytes.AddRange(Encoding.ASCII.GetBytes("Body paragraph\r\n"));
+        bytes.AddRange(WordStarSequence(0x11, "Heading"));
+        bytes.AddRange(Encoding.ASCII.GetBytes("Heading paragraph\r\n"));
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
     internal static byte[] WordPerfect() {
         byte[] text = Encoding.ASCII.GetBytes("Recovered WordPerfect text\r\nSecond paragraph");
         byte[] data = new byte[16 + text.Length];
@@ -52,12 +62,12 @@ internal static class LegacyFixtureFactory {
         return data;
     }
 
-    internal static byte[] Wk(byte product0 = 0x04, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null) {
+    internal static byte[] Wk(byte product0 = 0x06, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null, string label = "Name") {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
         Record(writer, 0x0000, new[] { product0, product1 });
         Record(writer, 0x000B, NamePayload("Input", 0, 0, 1, 0));
-        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes("Name\0"), cellFormat));
+        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes(label + "\0"), cellFormat));
         Record(writer, 0x000D, CellPayload(1, 0, BitConverter.GetBytes((short)42), cellFormat));
         if (includeBlank) Record(writer, 0x000C, CellPayload(3, 0, Array.Empty<byte>(), cellFormat));
         if (includeFormulaAndChart) {
@@ -74,9 +84,35 @@ internal static class LegacyFixtureFactory {
     internal static byte[] WkWithNames(params string[] names) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
-        Record(writer, 0x0000, new byte[] { 0x04, 0x04 });
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
         foreach (string name in names) Record(writer, 0x000B, NamePayload(name, 0, 0, 0, 0));
         Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)1)));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static byte[] WkWithWideColumnName() {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        Record(writer, 0x000B, NamePayload("Wide", 256, 0, 257, 0));
+        Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)7)));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
+    internal static byte[] WkWithRepeatedFormulas() {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        Record(writer, 0x000B, NamePayload("Input", 0, 0, 1, 0));
+        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes("Name\0")));
+        byte[] tokens = { 0x01, 0, 0, 0, 0, 0x01, 1, 0, 0, 0, 0x09, 0x03 };
+        byte[] envelope = BitConverter.GetBytes(84d).Concat(BitConverter.GetBytes((ushort)tokens.Length)).Concat(tokens).ToArray();
+        Record(writer, 0x0010, CellPayload(1, 0, envelope));
+        Record(writer, 0x0010, CellPayload(2, 0, envelope));
         Record(writer, 0x0001, Array.Empty<byte>());
         writer.Flush();
         return stream.ToArray();
@@ -97,7 +133,7 @@ internal static class LegacyFixtureFactory {
     internal static byte[] WkMultiSheet() {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
-        Record(writer, 0x0000, new byte[] { 0x04, 0x04 });
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
         Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)1)));
         Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)2), sheet: 1));
         Record(writer, 0x0001, Array.Empty<byte>());
@@ -112,11 +148,59 @@ internal static class LegacyFixtureFactory {
 
     internal static byte[] CompoundSheet() => CompoundLike("Name\tValue\nA\t10");
 
+    internal static byte[] TruncatedCompoundHeader() =>
+        new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }
+            .Concat(Encoding.ASCII.GetBytes("Recoverable text")).ToArray();
+
     private static byte[] CompoundLike(string text) {
-        byte[] data = new byte[128];
-        new byte[] { 0xD0, 0xCF, 0x11, 0xE0 }.CopyTo(data, 0);
-        Encoding.ASCII.GetBytes(text).CopyTo(data, 32);
-        return data;
+        const int sectorSize = 4096;
+        const uint freeSect = 0xffffffff;
+        const uint endOfChain = 0xfffffffe;
+        const uint fatSect = 0xfffffffd;
+        byte[] compound = new byte[sectorSize * 3];
+        new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }.CopyTo(compound, 0);
+        WriteUInt16(compound, 24, 0x003e);
+        WriteUInt16(compound, 26, 0x0004);
+        WriteUInt16(compound, 28, 0xfffe);
+        WriteUInt16(compound, 30, 0x000c);
+        WriteUInt16(compound, 32, 0x0006);
+        WriteUInt32(compound, 40, 1);
+        WriteUInt32(compound, 44, 1);
+        WriteUInt32(compound, 48, 0);
+        WriteUInt32(compound, 56, 4096);
+        WriteUInt32(compound, 60, endOfChain);
+        WriteUInt32(compound, 68, endOfChain);
+        for (int index = 0; index < 109; index++) WriteUInt32(compound, 76 + index * 4, index == 0 ? 1U : freeSect);
+
+        int directoryOffset = sectorSize;
+        byte[] rootName = Encoding.Unicode.GetBytes("Root Entry\0");
+        Buffer.BlockCopy(rootName, 0, compound, directoryOffset, rootName.Length);
+        WriteUInt16(compound, directoryOffset + 64, checked((ushort)rootName.Length));
+        compound[directoryOffset + 66] = 5;
+        compound[directoryOffset + 67] = 1;
+        WriteUInt32(compound, directoryOffset + 68, freeSect);
+        WriteUInt32(compound, directoryOffset + 72, freeSect);
+        WriteUInt32(compound, directoryOffset + 76, freeSect);
+        WriteUInt32(compound, directoryOffset + 116, endOfChain);
+        Encoding.ASCII.GetBytes(text).CopyTo(compound, directoryOffset + 256);
+
+        int fatOffset = sectorSize * 2;
+        WriteUInt32(compound, fatOffset, endOfChain);
+        WriteUInt32(compound, fatOffset + 4, fatSect);
+        for (int index = 2; index < sectorSize / 4; index++) WriteUInt32(compound, fatOffset + index * 4, freeSect);
+        return compound;
+    }
+
+    private static void WriteUInt16(byte[] bytes, int offset, ushort value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+    }
+
+    private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
     }
 
     private static byte[] CellPayload(byte column, ushort row, byte[] value, byte format = 0, byte sheet = 0) =>

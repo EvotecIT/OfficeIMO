@@ -11,9 +11,34 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
     public static OfficeDocumentReaderBuilder AddWordHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderWordOptions? options = null,
+        bool replaceExisting = false) => AddWordHandlerCore(builder, options, null, routeWordForDos: true, replaceExisting);
+
+    /// <summary>Adds the normal and legacy Word handlers with one immutable option set for every legacy route, including content-routed Word for DOS <c>.doc</c>.</summary>
+    public static OfficeDocumentReaderBuilder AddWordAndLegacyHandlers(
+        this OfficeDocumentReaderBuilder builder,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions = null,
+        ReaderWordOptions? options = null,
         bool replaceExisting = false) {
+        AddWordHandlerCore(builder, options, legacyImportOptions, routeWordForDos: true, replaceExisting);
+        return AddLegacyWordHandler(builder, legacyImportOptions, options, replaceExisting);
+    }
+
+    internal static OfficeDocumentReaderBuilder AddWordHandlerWithLegacyRouting(
+        this OfficeDocumentReaderBuilder builder,
+        ReaderWordOptions? options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions,
+        bool routeWordForDos) =>
+        AddWordHandlerCore(builder, options, legacyImportOptions, routeWordForDos, replaceExisting: false);
+
+    private static OfficeDocumentReaderBuilder AddWordHandlerCore(
+        OfficeDocumentReaderBuilder builder,
+        ReaderWordOptions? options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions,
+        bool routeWordForDos,
+        bool replaceExisting) {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderWordOptions configured = WordReaderAdapter.Clone(options);
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredLegacyImport = LegacyWordReaderAdapter.Clone(legacyImportOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = HandlerId,
@@ -21,8 +46,8 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             Description = "OfficeIMO.Word Markdown and structured document projection.",
             Kind = ReaderInputKind.Word,
             Extensions = global::OfficeIMO.Word.WordFormatCatalog.All.Select(format => format.Extension).ToArray(),
-            ReadDocumentPath = (path, readerOptions, token) => WordReaderAdapter.ReadDocument(path, readerOptions, configured, token),
-            ReadDocumentStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, token),
+            ReadDocumentPath = (path, readerOptions, token) => WordReaderAdapter.ReadDocument(path, readerOptions, configured, configuredLegacyImport, routeWordForDos, token),
+            ReadDocumentStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredLegacyImport, routeWordForDos, token),
             ProbeStream = (stream, sourceName, readerOptions, token) => WordReaderAdapter.ProbeEncryptedOpenXml(stream, readerOptions, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true
@@ -30,6 +55,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
     }
 
     /// <summary>Adds safe read-only handlers for selected legacy word-processing families.</summary>
+    /// <remarks>This bounded legacy handler intentionally does not claim the ambiguous <c>.doc</c> extension. Use <see cref="AddWordAndLegacyHandlers"/> when Word for DOS <c>.doc</c> must share these import options while compound-binary <c>.doc</c> remains on the normal Word path.</remarks>
     public static OfficeDocumentReaderBuilder AddLegacyWordHandler(
         this OfficeDocumentReaderBuilder builder,
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? importOptions = null,

@@ -14,12 +14,20 @@ internal static class WordReaderAdapter {
         PageLocationOptions = source?.PageLocationOptions?.Clone()
     };
 
-    internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions, bool routeWordForDos, CancellationToken cancellationToken) {
+        if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(path, cancellationToken)) {
+            return LegacyWordReaderAdapter.ReadWordForDosDocument(path, readerOptions, options, legacyImportOptions, cancellationToken);
+        }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);
     }
 
-    internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions, bool routeWordForDos, CancellationToken cancellationToken) {
+        if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(stream, sourceName, cancellationToken)) {
+            return LegacyWordReaderAdapter.ReadWordForDosDocument(stream, sourceName, readerOptions, options, legacyImportOptions, cancellationToken);
+        }
         using WordDocument document = Load(stream, readerOptions);
         return Project(document, string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!, readerOptions, options, cancellationToken);
     }

@@ -3,6 +3,8 @@ using OfficeIMO.Word.Legacy;
 namespace OfficeIMO.Reader.Word;
 
 internal static class LegacyWordReaderAdapter {
+    private const int WordForDosHeaderLength = 97;
+
     internal static LegacyWordImportOptions? Clone(LegacyWordImportOptions? source) {
         if (source == null) return null;
         return new LegacyWordImportOptions {
@@ -28,9 +30,53 @@ internal static class LegacyWordReaderAdapter {
         return WordReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
+    internal static bool HasWordForDosHeader(string path, CancellationToken cancellationToken) {
+        if (!string.Equals(Path.GetExtension(path), ".doc", StringComparison.OrdinalIgnoreCase)) return false;
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        return HasWordForDosHeader(stream, path, cancellationToken);
+    }
+
+    internal static bool HasWordForDosHeader(Stream stream, string? sourceName, CancellationToken cancellationToken) {
+        if (!string.Equals(Path.GetExtension(sourceName), ".doc", StringComparison.OrdinalIgnoreCase) || !stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            var header = new byte[WordForDosHeaderLength];
+            int total = 0;
+            while (total < header.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = stream.Read(header, total, header.Length - total);
+                if (read <= 0) break;
+                total += read;
+            }
+            return total == header.Length && (header[0] == 0x31 || header[0] == 0x32) &&
+                   header[1] == 0xBE && header[5] == 0xAB && header[96] == 0;
+        } finally {
+            stream.Position = position;
+        }
+    }
+
+    internal static OfficeDocumentReadResult ReadWordForDosDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,
+        LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
+        LegacyWordImportOptions configured = Prepare(importOptions, path, readerOptions);
+        configured.FormatHint = LegacyWordFormat.WordForDos;
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(path, configured, cancellationToken);
+        return WordReaderAdapter.Project(imported.Document, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+    }
+
+    internal static OfficeDocumentReadResult ReadWordForDosDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
+        LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
+        string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-document.doc" : sourceName!;
+        LegacyWordImportOptions configured = Prepare(importOptions, sourceName, readerOptions);
+        configured.FormatHint = LegacyWordFormat.WordForDos;
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(stream, configured, cancellationToken);
+        return WordReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+    }
+
     private static LegacyWordImportOptions Prepare(LegacyWordImportOptions? source, string? sourceName, ReaderOptions readerOptions) {
         OfficeLegacyImportLimits limits = (source?.Limits ?? new OfficeLegacyImportLimits()).Clone();
-        if (readerOptions.MaxInputBytes.HasValue) limits.MaxInputBytes = (int)Math.Min(int.MaxValue, readerOptions.MaxInputBytes.Value);
+        if (readerOptions.MaxInputBytes.HasValue) {
+            limits.MaxInputBytes = (int)Math.Min(limits.MaxInputBytes, Math.Min(int.MaxValue, readerOptions.MaxInputBytes.Value));
+        }
         return new LegacyWordImportOptions {
             Limits = limits,
             FormatHint = source?.FormatHint,

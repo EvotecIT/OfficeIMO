@@ -8,6 +8,12 @@ namespace OfficeIMO.Reader.All;
 /// does not change a built reader.
 /// </remarks>
 public sealed class ReaderAllOptions {
+    /// <summary>Gets or sets whether the preset registers safe legacy-word handlers. Default: true.</summary>
+    public bool IncludeLegacyWord { get; set; } = true;
+
+    /// <summary>Gets or sets whether the preset registers safe legacy-spreadsheet handlers. Default: true.</summary>
+    public bool IncludeLegacySpreadsheet { get; set; } = true;
+
     /// <summary>Gets or sets AsciiDoc adapter options.</summary>
     public AsciiDoc.ReaderAsciiDocOptions? AsciiDoc { get; set; }
 

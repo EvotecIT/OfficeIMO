@@ -10,7 +10,7 @@ internal sealed class WordForDosAdapter : LegacyWordAdapterBase {
             reason = "Selected Word for DOS binary header and zero DOS discriminator.";
             return 100;
         }
-        if (ExtensionIs(sourceName, ".doc") && data.Length > 0 && !OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0)) {
+        if (ExtensionIs(sourceName, ".doc") && data.Length > 0 && !OfficeLegacyCompoundInspector.IsValidCompound(data)) {
             reason = "Weak extension-assisted Word for DOS candidate.";
             return 20;
         }

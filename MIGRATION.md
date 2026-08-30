@@ -9,6 +9,22 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: aggregate Reader legacy-format registrations
+
+`AddAllOfficeIMOHandlers()` now includes safe legacy-word and legacy-spreadsheet handlers. Applications that already register handlers for extensions such as `.wpd`, `.wps`, `.wk1`, or `.wq1` must opt out of the corresponding preset family to avoid an extension conflict, then add their application-owned registration:
+
+```csharp
+new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+        IncludeLegacyWord = false,
+        IncludeLegacySpreadsheet = false
+    })
+    .AddHandler(applicationLegacyWordHandler)
+    .AddHandler(applicationLegacySpreadsheetHandler);
+```
+
+Either flag can be disabled independently. Both default to `true`.
+
 ## OfficeIMO 3.2: bounded email body resource projections
 
 `EmailBodyProjection.Create(...)` now indexes at most 128 resources, accepts at most 128 MiB from one resource, and reads or declares at most 256 MiB across one projection by default. Older versions had no resource-count or projection-wide byte ceiling. Exceeding a ceiling throws `EmailLimitExceededException`; repeated and parallel reads share the same projection-wide budget.

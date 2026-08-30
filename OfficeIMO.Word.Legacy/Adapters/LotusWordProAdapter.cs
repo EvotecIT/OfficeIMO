@@ -5,7 +5,7 @@ internal sealed class LotusWordProAdapter : LegacyWordAdapterBase {
     public override string ProfileId => "lotus-word-pro-lwp-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0) && ExtensionIs(sourceName, ".lwp")) {
+        if (ExtensionIs(sourceName, ".lwp") && OfficeLegacyCompoundInspector.IsValidCompound(data)) {
             reason = "OLE compound document with Lotus Word Pro extension.";
             return 90;
         }

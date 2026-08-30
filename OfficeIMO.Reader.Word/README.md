@@ -34,11 +34,14 @@ Selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Works/Write, and Word f
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddWordHandler()
-    .AddLegacyWordHandler()
+    .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
+        Limits = new OfficeLegacyImportLimits { MaxInputBytes = 64 * 1024 * 1024 }
+    })
     .Build();
 
 OfficeDocumentReadResult document = reader.ReadDocument("archive.wpd");
 ```
+
+The combined registration applies the same immutable legacy options to both the family-specific extensions and content-routed Word for DOS `.doc`; compound-binary `.doc` remains on the normal Word path. `AddLegacyWordHandler(...)` remains available when only the unambiguous legacy extensions are wanted and deliberately does not claim `.doc`.
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes source macros or embedded code.

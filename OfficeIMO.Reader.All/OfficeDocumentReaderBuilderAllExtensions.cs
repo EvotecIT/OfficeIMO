@@ -44,14 +44,17 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
         ReaderOneNoteOptions oneNoteOptions = configured.OneNote ?? new ReaderOneNoteOptions {
             AllowTableOfContentsSiblingFileReads = false
         };
-        return builder
+        builder
             .AddPlainTextHandlers()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
-            .AddExcelHandler(configured.Excel)
-            .AddLegacySpreadsheetHandler(configured.LegacySpreadsheet, configured.Excel)
+            .AddExcelHandler(configured.Excel);
+        if (configured.IncludeLegacySpreadsheet) {
+            builder.AddLegacySpreadsheetHandler(configured.LegacySpreadsheet, configured.Excel);
+        }
+        builder
             .AddHtmlHandler(configured.Html)
             .AddImageHandler(configured.Image)
             .AddJsonHandler(configured.Json)
@@ -65,8 +68,11 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddRtfHandler(configured.Rtf)
             .AddSubtitleHandler(configured.Subtitles)
             .AddVisioHandler(configured.Visio)
-            .AddWordHandler(configured.Word)
-            .AddLegacyWordHandler(configured.LegacyWord, configured.Word)
+            .AddWordHandlerWithLegacyRouting(configured.Word, configured.LegacyWord, configured.IncludeLegacyWord);
+        if (configured.IncludeLegacyWord) {
+            builder.AddLegacyWordHandler(configured.LegacyWord, configured.Word);
+        }
+        return builder
             .AddXmlHandler(configured.Xml)
             .AddYamlHandler(configured.Yaml)
             .AddZipHandler(configured.ZipTraversal, configured.Zip);

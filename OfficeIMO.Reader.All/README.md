@@ -77,6 +77,19 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 Registrations are copied into the builder's immutable snapshot. The preset does not mutate process-wide reader state.
 
+Applications that already own one of the legacy extension families can disable those registrations before adding their custom handlers:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+        IncludeLegacyWord = false,
+        IncludeLegacySpreadsheet = false
+    })
+    .AddHandler(applicationLegacyWordHandler)
+    .AddHandler(applicationLegacySpreadsheetHandler)
+    .Build();
+```
+
 ## Dependency boundary
 
 This package contains no parser, provider, model, native binary, process launcher, or network client. It references OfficeIMO's existing local adapter packages and therefore carries their established managed dependency graph. OCR packages are deliberately excluded because they require an engine or executable; add one explicitly only when the host chooses it.

@@ -22,4 +22,5 @@
   <ItemGroup><None Include="README.md" Pack="True" PackagePath="README.md" /></ItemGroup>
   <ItemGroup><Using Include="System" /><Using Include="System.Collections.Generic" /><Using Include="System.IO" /><Using Include="System.Linq" /><Using Include="System.Threading" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.All" /></ItemGroup>
 </Project>

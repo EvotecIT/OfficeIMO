@@ -26,10 +26,10 @@ internal static class WkFormulaDecoder {
     };
 
     internal static bool TryDecode(byte[] data, int offset, int length, int currentRowZeroBased, int currentColumnZeroBased,
-        OfficeLegacyImportLimits limits, out string? formula, out string error) {
+        OfficeLegacyImportLimits limits, int maxTextCharacters, out string? formula, out string error) {
         formula = null;
         error = string.Empty;
-        int maximumCharacters = Math.Min(ExcelFormulaCharacterLimit, limits.MaxTextCharacters);
+        int maximumCharacters = Math.Min(ExcelFormulaCharacterLimit, Math.Max(0, maxTextCharacters));
         int maximumNodes = Math.Min(ExcelFormulaCharacterLimit, limits.MaxItems);
         var stack = new Stack<ExpressionNode>();
         int end = offset + length;
