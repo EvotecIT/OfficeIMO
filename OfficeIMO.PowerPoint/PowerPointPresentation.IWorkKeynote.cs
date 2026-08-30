@@ -170,6 +170,8 @@ public sealed partial class PowerPointPresentation {
 
     private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection) {
         const double MaximumPointMeasurement = int.MaxValue / 12700d;
+        const long MaximumDestinationTableCells = 1_000_000;
+        long destinationTableCells = 0;
         if (projection.SlideSize is { } slideSize
             && (!FitsPositiveMeasurement(slideSize.WidthPoints, MaximumPointMeasurement)
                 || !FitsPositiveMeasurement(slideSize.HeightPoints, MaximumPointMeasurement))) {
@@ -229,10 +231,15 @@ public sealed partial class PowerPointPresentation {
                 }
             }
             foreach (IWorkTable table in slide.Tables) {
+                long tableCells = (long)table.RowCount * table.ColumnCount;
                 if (table.RowCount > 4096 || table.ColumnCount > 4096
-                    || (long)table.RowCount * table.ColumnCount > 100_000) {
+                    || tableCells > 100_000) {
                     return $"Keynote table '{table.Name}' is too large for bounded PPTX table reconstruction.";
                 }
+                if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
+                    return "Keynote tables exceed the bounded PPTX destination cell budget.";
+                }
+                destinationTableCells += tableCells;
                 double fallbackWidth = table.DefaultColumnWidth.GetValueOrDefault(72d) * table.ColumnCount;
                 double fallbackHeight = table.DefaultRowHeight.GetValueOrDefault(24d) * table.RowCount;
                 if (table.Geometry == null

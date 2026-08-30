@@ -195,6 +195,8 @@ public partial class WordDocument {
     }
 
     private static string? FindWordProjectionLimitation(IWorkPagesProjection projection) {
+        const long MaximumDestinationTableCells = 1_000_000;
+        long destinationTableCells = 0;
         if (projection.TextBoxObjects.Any(textBox => textBox.Hyperlink != null)
             || projection.Images.Any(image => image.Hyperlink != null)) {
             return "Pages contains a drawable hyperlink that cannot be represented by the DOCX owner.";
@@ -221,12 +223,17 @@ public partial class WordDocument {
             return "The Pages page layout exceeds the DOCX measurement range.";
         }
         foreach (IWorkTable table in projection.Tables) {
+            long tableCells = (long)table.RowCount * table.ColumnCount;
             if (table.ColumnCount > 63) {
                 return $"Pages table '{table.Name}' exceeds Word's supported 63-column table layout.";
             }
-            if (table.RowCount > 32_767 || (long)table.RowCount * table.ColumnCount > 100_000) {
+            if (table.RowCount > 32_767 || tableCells > 100_000) {
                 return $"Pages table '{table.Name}' is too large for bounded DOCX table reconstruction.";
             }
+            if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
+                return "Pages tables exceed the bounded DOCX destination cell budget.";
+            }
+            destinationTableCells += tableCells;
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) {
             if (textBox.Geometry is { } geometry
@@ -309,19 +316,29 @@ public partial class WordDocument {
                 paragraph.AddText(marker + " ");
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
-                WordParagraph run;
-                if (sourceRun.Hyperlink != null
-                    && Uri.TryCreate(sourceRun.Hyperlink, UriKind.Absolute, out Uri? uri)) {
-                    paragraph.AddHyperLink(sourceRun.Text, uri);
-                    run = paragraph;
-                } else {
-                    run = paragraph.AddText(sourceRun.Text);
-                }
-                ApplyTextStyle(run, sourceRun.Style);
+                AddStyledTextRun(paragraph, sourceRun);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();
             else if (sourceParagraph.BreakKind is IWorkParagraphBreakKind.Section
                      or IWorkParagraphBreakKind.Layout) addSectionBreak?.Invoke(sourceParagraph.BreakKind);
+        }
+    }
+
+    private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun) {
+        string[] lines = sourceRun.Text.Split('\n');
+        for (int index = 0; index < lines.Length; index++) {
+            if (index > 0) paragraph.AddBreak();
+            if (lines[index].Length == 0) continue;
+
+            WordParagraph run;
+            if (sourceRun.Hyperlink != null
+                && Uri.TryCreate(sourceRun.Hyperlink, UriKind.Absolute, out Uri? uri)) {
+                paragraph.AddHyperLink(lines[index], uri);
+                run = new WordParagraph(paragraph._document, paragraph._paragraph, paragraph._hyperlink!);
+            } else {
+                run = paragraph.AddText(lines[index]);
+            }
+            ApplyTextStyle(run, sourceRun.Style);
         }
     }
 

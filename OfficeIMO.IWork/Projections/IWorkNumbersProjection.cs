@@ -155,7 +155,7 @@ internal static class IWorkNumbersReader {
                 }
                 if (drawable.MessageType == TableInfoArchive) {
                     projectionBudget.AddTable();
-                    IWorkTable? table = IWorkTableReader.Read(source, drawable, diagnostics,
+                    IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
                         ref materializedCellCount, ref supportsEditableReconstruction);
                     if (table != null) tables.Add(table);
                 } else if (drawable.MessageType == TextShapeArchive) {
@@ -195,7 +195,8 @@ internal static class IWorkNumbersReader {
     }
 
     internal static IWorkTable? ReadTableInfo(IWorkSourceDocument source, IWorkArchiveRecord tableRecord,
-        List<IWorkDiagnostic> diagnostics, ref int materializedCellCount,
+        IWorkProjectionBudget projectionBudget, List<IWorkDiagnostic> diagnostics,
+        ref int materializedCellCount,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage recordMessage = source.Index.Message(tableRecord);
         IWorkWireMessage? tableInfo = tableRecord.MessageType switch {
@@ -242,12 +243,13 @@ internal static class IWorkNumbersReader {
                     tableRecord.EntryPath, tableRecord.Identifier));
             }
         }
-        return ReadTable(source, source.Index, model, geometry, diagnostics,
+        return ReadTable(source, source.Index, model, geometry, projectionBudget, diagnostics,
             ref materializedCellCount, ref supportsEditableReconstruction);
     }
 
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
-        IWorkArchiveRecord model, IWorkGeometry? geometry, List<IWorkDiagnostic> diagnostics,
+        IWorkArchiveRecord model, IWorkGeometry? geometry, IWorkProjectionBudget projectionBudget,
+        List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(model);
         if (HasUnsupportedTableScalarEncoding(message)) {
@@ -279,7 +281,8 @@ internal static class IWorkNumbersReader {
             return CreateTable();
         }
 
-        IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store, out bool stringStorageComplete);
+        IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
+            projectionBudget, out bool stringStorageComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             out bool formulaStorageComplete);
         if (!stringStorageComplete) {
@@ -482,7 +485,8 @@ internal static class IWorkNumbersReader {
             record.EntryPath, record.Identifier));
     }
 
-    private static IReadOnlyDictionary<uint, string> ReadStrings(IWorkObjectIndex index, IWorkWireMessage store,
+    private static IReadOnlyDictionary<uint, string> ReadStrings(IWorkObjectIndex index,
+        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
         out bool fullyReconstructed) {
         var strings = new Dictionary<uint, string>();
         fullyReconstructed = true;
@@ -498,6 +502,7 @@ internal static class IWorkNumbersReader {
                 fullyReconstructed = false;
                 continue;
             }
+            projectionBudget.AddTextCharacters(value.Length);
             uint normalizedKey = (uint)key.Value;
             if (strings.ContainsKey(normalizedKey)) fullyReconstructed = false;
             else strings.Add(normalizedKey, value);

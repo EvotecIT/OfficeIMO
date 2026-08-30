@@ -94,6 +94,7 @@ internal static class IWorkImageInfo {
         bool hasImageData = false;
         bool imageDataEnded = false;
         bool hasPalette = false;
+        int paletteEntryCount = 0;
         byte bitDepth = 0;
         byte colorType = 0;
         byte interlace = 0;
@@ -136,6 +137,7 @@ internal static class IWorkImageInfo {
                     || dataLength < 3 || dataLength % 3 != 0
                     || dataLength > maximumPaletteLength) return false;
                 hasPalette = true;
+                paletteEntryCount = dataLength / 3;
             } else if (isImageData) {
                 if (colorType == 3 && !hasPalette) return false;
                 if (imageDataEnded || dataLength == 0) return false;
@@ -151,7 +153,7 @@ internal static class IWorkImageInfo {
             if (isEnd) {
                 return dataLength == 0 && hasImageData && offset == bytes.Length
                     && ValidatePngImageData(imageData.ToArray(), width, height,
-                        bitDepth, colorType, interlace, maximumDecodedBytes);
+                        bitDepth, colorType, interlace, paletteEntryCount, maximumDecodedBytes);
             }
         }
         return false;
@@ -167,7 +169,8 @@ internal static class IWorkImageInfo {
     };
 
     private static bool ValidatePngImageData(byte[] data, int width, int height,
-        byte bitDepth, byte colorType, byte interlace, long maximumDecodedBytes) {
+        byte bitDepth, byte colorType, byte interlace, int paletteEntryCount,
+        long maximumDecodedBytes) {
         if (data.Length < 6) return false;
         byte compressionMethod = (byte)(data[0] & 0x0f);
         int windowSize = data[0] >> 4;
@@ -194,11 +197,26 @@ internal static class IWorkImageInfo {
             foreach ((int passWidth, int passHeight) in PngPasses(width, height, interlace)) {
                 int channels = colorType switch { 0 or 3 => 1, 2 => 3, 4 => 2, 6 => 4, _ => 0 };
                 long rowBytes = checked(((long)passWidth * channels * bitDepth + 7) / 8);
+                byte[]? previousIndexedRow = null;
+                byte[]? indexedRow = null;
+                if (colorType == 3) {
+                    if (rowBytes > int.MaxValue
+                        || decodedLength > maximumDecodedBytes - checked(rowBytes * 2)) return false;
+                    previousIndexedRow = new byte[(int)rowBytes];
+                    indexedRow = new byte[(int)rowBytes];
+                }
                 for (int row = 0; row < passHeight; row++) {
                     int filter = ReadPngByte(inflater, ref first, ref second, ref decoded);
                     if (filter is < 0 or > 4) return false;
-                    if (!ReadPngBytes(inflater, buffer, rowBytes,
-                            ref first, ref second, ref decoded)) return false;
+                    if (indexedRow != null && previousIndexedRow != null) {
+                        if (!ReadPngBytes(inflater, indexedRow, indexedRow.Length,
+                                ref first, ref second, ref decoded)
+                            || !UnfilterIndexedPngRow(indexedRow, previousIndexedRow, filter)
+                            || !IndexedPngRowUsesPalette(indexedRow, passWidth,
+                                bitDepth, paletteEntryCount)) return false;
+                        (previousIndexedRow, indexedRow) = (indexedRow, previousIndexedRow);
+                    } else if (!ReadPngBytes(inflater, buffer, rowBytes,
+                                   ref first, ref second, ref decoded)) return false;
                 }
             }
             if (decoded != decodedLength || inflater.ReadByte() != -1) return false;
@@ -206,6 +224,47 @@ internal static class IWorkImageInfo {
         } catch (Exception exception) when (exception is InvalidDataException or IOException) {
             return false;
         }
+    }
+
+    private static bool UnfilterIndexedPngRow(byte[] row, byte[] previous, int filter) {
+        for (int index = 0; index < row.Length; index++) {
+            byte left = index > 0 ? row[index - 1] : (byte)0;
+            byte above = previous[index];
+            byte upperLeft = index > 0 ? previous[index - 1] : (byte)0;
+            int reconstructed = filter switch {
+                0 => row[index],
+                1 => row[index] + left,
+                2 => row[index] + above,
+                3 => row[index] + ((left + above) >> 1),
+                4 => row[index] + PaethPredictor(left, above, upperLeft),
+                _ => -1
+            };
+            if (reconstructed < 0) return false;
+            row[index] = unchecked((byte)reconstructed);
+        }
+        return true;
+    }
+
+    private static int PaethPredictor(int left, int above, int upperLeft) {
+        int estimate = left + above - upperLeft;
+        int leftDistance = Math.Abs(estimate - left);
+        int aboveDistance = Math.Abs(estimate - above);
+        int upperLeftDistance = Math.Abs(estimate - upperLeft);
+        return leftDistance <= aboveDistance && leftDistance <= upperLeftDistance
+            ? left
+            : aboveDistance <= upperLeftDistance ? above : upperLeft;
+    }
+
+    private static bool IndexedPngRowUsesPalette(byte[] row, int width,
+        byte bitDepth, int paletteEntryCount) {
+        int mask = (1 << bitDepth) - 1;
+        for (int pixel = 0; pixel < width; pixel++) {
+            int bitOffset = pixel * bitDepth;
+            int shift = 8 - bitDepth - bitOffset % 8;
+            int index = row[bitOffset / 8] >> shift & mask;
+            if (index >= paletteEntryCount) return false;
+        }
+        return true;
     }
 
     private static long ExpectedPngDataLength(int width, int height, byte bitDepth,

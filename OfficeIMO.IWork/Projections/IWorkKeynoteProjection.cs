@@ -228,7 +228,7 @@ internal static class IWorkKeynoteReader {
         foreach (IWorkArchiveRecord drawable in candidates) {
             if (drawable.MessageType == 6000) {
                 projectionBudget.AddTable();
-                IWorkTable? table = IWorkTableReader.Read(source, drawable, diagnostics,
+                IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
                     ref materializedCellCount, ref supportsEditableReconstruction);
                 if (table != null) tables.Add(table);
                 continue;

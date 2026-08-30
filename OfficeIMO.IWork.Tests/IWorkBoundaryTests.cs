@@ -591,21 +591,17 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Duplicate_primary_identifiers_remain_in_the_loss_report() {
+    public void Duplicate_primary_identifiers_are_rejected_before_projection() {
         byte[] records = Message(
             ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
             ArchiveRecord(2, 2, Message(StringField(1, "Sheet"))),
             ArchiveRecord(2, 9999, Message()));
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(records)));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
-        IWorkNumbersProjection projection = source.ReadNumbers();
 
-        IWorkImportReport report = projection.CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers));
 
-        Assert.True(projection.HasEditableContent);
-        Assert.Equal(3, report.TotalRecordCount);
-        Assert.Contains(report.UnsupportedRecords, record =>
-            record.Identifier == 2 && record.MessageType == 9999);
+        Assert.Contains("primary IWA record", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -928,12 +924,12 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreatePagesPackageWithStyleChain(int depth,
         bool invalidFontName = false, bool malformedColor = false, bool wrongWireBold = false,
         bool invalidAlignment = false, bool includePreview = false,
-        bool naturalAlignment = false) {
+        bool naturalAlignment = false, string bodyText = "Styled", bool bold = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong firstStyleId = 10;
         byte[] styleEntry = Message(VarintField(1, 0), ReferenceField(2, firstStyleId));
-        byte[] body = Message(StringField(3, "Styled"),
+        byte[] body = Message(StringField(3, bodyText),
             BytesField(5, Message(BytesField(1, styleEntry))));
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
@@ -952,6 +948,8 @@ public sealed partial class IWorkBoundaryTests {
             }
             if (index == 0 && wrongWireBold) {
                 fields.Add(BytesField(11, Message(FloatField(1, 1f))));
+            } else if (index == 0 && bold) {
+                fields.Add(BytesField(11, Message(VarintField(1, 1))));
             }
             if (index == 0 && invalidAlignment) {
                 fields.Add(BytesField(12, Message(VarintField(1, 99))));

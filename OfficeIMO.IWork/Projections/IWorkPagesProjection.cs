@@ -256,7 +256,7 @@ internal static class IWorkPagesReader {
         foreach (IWorkArchiveRecord tableRecord in documentDrawables
                      .Where(record => record.MessageType is 6000 or 6007)) {
             projectionBudget.AddTable();
-            IWorkTable? table = IWorkTableReader.Read(source, tableRecord, diagnostics,
+            IWorkTable? table = IWorkTableReader.Read(source, tableRecord, projectionBudget, diagnostics,
                 ref materializedCellCount, ref supportsEditableReconstruction);
             if (table != null) tables.Add(table);
         }

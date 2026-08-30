@@ -8,7 +8,12 @@ internal sealed class IWorkObjectIndex {
         _options = options;
         _objects = new Dictionary<ulong, IWorkArchiveRecord>();
         foreach (IWorkArchiveRecord record in records) {
-            if (record.IsPrimary && !_objects.ContainsKey(record.Identifier)) _objects.Add(record.Identifier, record);
+            if (!record.IsPrimary) continue;
+            if (_objects.ContainsKey(record.Identifier)) {
+                throw new InvalidDataException(
+                    $"More than one primary IWA record declares object identifier {record.Identifier}.");
+            }
+            _objects.Add(record.Identifier, record);
         }
     }
 

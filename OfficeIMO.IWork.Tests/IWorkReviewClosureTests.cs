@@ -330,7 +330,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(string.Empty, texts.Skip(first + 1).Take(second - first - 1));
     }
 
-    private static MemoryStream CreatePagesPackageWithUnlabeledList() {
+    private static MemoryStream CreatePagesPackageWithUnlabeledList(bool nested = false,
+        bool includePreview = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong listStyleId = 3;
@@ -341,8 +342,13 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(bodyId, 2001,
                 Message(StringField(3, "Item"), BytesField(7, listTable)),
                 new[] { listStyleId }),
-            ArchiveRecord(listStyleId, 2023, Message(VarintField(11, 1))));
-        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+            ArchiveRecord(listStyleId, 2023, nested
+                ? Message(VarintField(11, 1), VarintField(11, 1))
+                : Message(VarintField(11, 1))));
+        return includePreview
+            ? CreatePackage(("Index/Document.iwa", FrameIwa(records)),
+                ("preview.png", ValidPreviewPng()))
+            : CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
     private static MemoryStream CreateKeynotePackageWithLinkedNotes() {

@@ -17,7 +17,8 @@ internal static class IWorkTextReader {
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, projectionBudget, ref complete);
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, projectionBudget, ref complete);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
-        var listStyleCache = new Dictionary<ulong, Cached<(int Level, string? Label)>>();
+        var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints),
+            Cached<(int Level, string? Label)>>();
         var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
         var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
         var paragraphs = new List<IWorkTextParagraph>();
@@ -28,6 +29,7 @@ internal static class IWorkTextReader {
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
                 projectionBudget, paragraphStyleCache, ref complete);
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
+                paragraphStyle.LeftIndentPoints,
                 projectionBudget, listStyleCache, ref complete);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
@@ -321,10 +323,13 @@ internal static class IWorkTextReader {
     }
 
     private static (int Level, string? Label) ResolveList(IWorkObjectIndex index,
-        ulong? identifier, IWorkProjectionBudget projectionBudget,
-        Dictionary<ulong, Cached<(int Level, string? Label)>> cache, ref bool complete) {
+        ulong? identifier, double? paragraphLeftIndentPoints,
+        IWorkProjectionBudget projectionBudget,
+        Dictionary<(ulong Identifier, double? LeftIndentPoints), Cached<(int Level, string? Label)>> cache,
+        ref bool complete) {
         if (!identifier.HasValue) return (-1, null);
-        if (cache.TryGetValue(identifier.Value, out Cached<(int Level, string? Label)> cached)) {
+        var cacheKey = (identifier.Value, paragraphLeftIndentPoints);
+        if (cache.TryGetValue(cacheKey, out Cached<(int Level, string? Label)> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
@@ -348,20 +353,54 @@ internal static class IWorkTextReader {
                     labelTypes = Array.Empty<ulong>();
                 }
             }
-            if (labelTypes.Count > 0) data.LabelType = labelTypes[0];
+            if (labelTypes.Count > 0) data.LabelTypes = labelTypes;
             if (message.LacksWireKind(16, IWorkWireKind.Bytes)) resolvedCompletely = false;
+            var labels = new List<string>();
             foreach (byte[] bytes in message.EnumerateRepeatedBytes(16)) {
-                if (!TryDecodeUtf8(bytes, projectionBudget, out string label)) resolvedCompletely = false;
-                else if (label.Length > 0 && data.Label == null) data.Label = label;
+                if (!TryDecodeUtf8(bytes, projectionBudget, out string decodedLabel)) resolvedCompletely = false;
+                else labels.Add(decodedLabel);
             }
+            if (labels.Count > 0) data.Labels = labels;
+            if (message.LacksWireKind(13, IWorkWireKind.Fixed32)) resolvedCompletely = false;
+            IReadOnlyList<float> indents = message.GetRepeatedFloat(13);
+            if (indents.Count > 0) data.LeftIndents = indents;
         }
-        (int Level, string? Label) result = data.LabelType.GetValueOrDefault() == 0
+        int level = ResolveListLevel(data, paragraphLeftIndentPoints, ref resolvedCompletely);
+        ulong labelType = level >= 0 && level < data.LabelTypes.Count
+            ? data.LabelTypes[level]
+            : 0;
+        string? selectedLabel = level >= 0 && level < data.Labels.Count
+            ? data.Labels[level]
+            : null;
+        (int Level, string? Label) result = labelType == 0
             || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
             ? (-1, null)
-            : (0, data.Label);
-        cache.Add(identifier.Value, new Cached<(int Level, string? Label)>(result, resolvedCompletely));
+            : (level, selectedLabel);
+        cache.Add(cacheKey, new Cached<(int Level, string? Label)>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
+    }
+
+    private static int ResolveListLevel(ListStyleData data, double? paragraphLeftIndentPoints,
+        ref bool complete) {
+        if (data.LabelTypes.Count <= 1 || data.LabelTypes.All(type => type == 0)) return 0;
+        if (!paragraphLeftIndentPoints.HasValue
+            || data.LeftIndents.Count != data.LabelTypes.Count
+            || data.LeftIndents.Any(indent => float.IsNaN(indent) || float.IsInfinity(indent))) {
+            complete = false;
+            return 0;
+        }
+        int bestLevel = 0;
+        double bestDistance = double.MaxValue;
+        for (int level = 0; level < data.LeftIndents.Count; level++) {
+            double distance = Math.Abs(data.LeftIndents[level] - paragraphLeftIndentPoints.Value);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestLevel = level;
+            }
+        }
+        if (bestDistance > 0.05d) complete = false;
+        return bestLevel;
     }
 
     private static string? ResolveHyperlink(IWorkObjectIndex index, ulong? identifier,
@@ -604,8 +643,9 @@ internal static class IWorkTextReader {
 
     private sealed class ListStyleData {
         internal string? Name;
-        internal ulong? LabelType;
-        internal string? Label;
+        internal IReadOnlyList<ulong> LabelTypes = Array.Empty<ulong>();
+        internal IReadOnlyList<string> Labels = Array.Empty<string>();
+        internal IReadOnlyList<float> LeftIndents = Array.Empty<float>();
     }
 
     private sealed class TextSpan {
