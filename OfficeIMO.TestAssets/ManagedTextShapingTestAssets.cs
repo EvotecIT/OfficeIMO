@@ -42,18 +42,72 @@ internal static class ManagedTextShapingTestAssets {
             glyphCount: 3);
     }
 
+    internal static byte[] CreateFontWithVariationSequence(int scalar, int variationSelector) {
+        if (scalar < 0 || scalar > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(scalar));
+        if (variationSelector < 0xFE00 || variationSelector > 0xFE0F) {
+            throw new ArgumentOutOfRangeException(nameof(variationSelector));
+        }
+        return CreateFontFromCmap(CreateUnicodeCmapWithVariationSequence(
+            scalar,
+            variationSelector,
+            nonDefaultGlyph: null,
+            variationPlatform: 0,
+            variationEncoding: 5));
+    }
+
+    internal static byte[] CreateFontWithNonDefaultVariationSequence(int scalar, int variationSelector) {
+        if (scalar < 0 || scalar > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(scalar));
+        if (variationSelector < 0xFE00 || variationSelector > 0xFE0F) {
+            throw new ArgumentOutOfRangeException(nameof(variationSelector));
+        }
+        return CreateFontFromCmap(
+            CreateUnicodeCmapWithVariationSequence(
+                scalar,
+                variationSelector,
+                nonDefaultGlyph: 2,
+                variationPlatform: 0,
+                variationEncoding: 5),
+            glyphCount: 3,
+            distinctSecondGlyph: true);
+    }
+
+    internal static byte[] CreateFontWithMistypedVariationSequenceRecord(int scalar, int variationSelector) =>
+        CreateFontFromCmap(CreateUnicodeCmapWithVariationSequence(
+            scalar,
+            variationSelector,
+            nonDefaultGlyph: null,
+            variationPlatform: 3,
+            variationEncoding: 10));
+
+    internal static byte[] CreateFontWithLargeNonDefaultVariationSequence(int scalar, int variationSelector) {
+        const int mappingCount = 4097;
+        if (scalar < mappingCount - 1) throw new ArgumentOutOfRangeException(nameof(scalar));
+        return CreateFontFromCmap(
+            CreateUnicodeCmapWithVariationSequence(
+                scalar,
+                variationSelector,
+                nonDefaultGlyph: 2,
+                variationPlatform: 0,
+                variationEncoding: 5,
+                nonDefaultMappingCount: mappingCount),
+            glyphCount: 3,
+            distinctSecondGlyph: true);
+    }
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
         int glyphCount = 2,
-        byte[]? kern = null) {
-        byte[] glyph = CreateVisibleGlyph();
+        byte[]? kern = null,
+        bool distinctSecondGlyph = false) {
+        byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - 1) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
         var hmtx = new byte[4 + (glyphCount - 1) * 2];
         Array.Copy(new byte[] { 0x01, 0xF4, 0x00, 0x00 }, hmtx, 4);
         for (int glyphIndex = 1; glyphIndex < glyphCount; glyphIndex++) {
-            Array.Copy(glyph, 0, glyf, (glyphIndex - 1) * glyph.Length, glyph.Length);
+            byte[] currentGlyph = distinctSecondGlyph && glyphIndex == 2 ? CreateVisibleGlyph(600) : glyph;
+            Array.Copy(currentGlyph, 0, glyf, (glyphIndex - 1) * glyph.Length, glyph.Length);
             WriteUInt16(loca, (glyphIndex + 1) * 2, checked((ushort)(glyphIndex * glyph.Length / 2)));
         }
         if (!includeTrailingMetric && glyphCount == 2) hmtx = new byte[] { 0x01, 0xF4, 0x00, 0x00 };
@@ -234,6 +288,57 @@ internal static class ManagedTextShapingTestAssets {
         return data;
     }
 
+    private static byte[] CreateUnicodeCmapWithVariationSequence(
+        int scalar,
+        int variationSelector,
+        int? nonDefaultGlyph,
+        int variationPlatform,
+        int variationEncoding,
+        int nonDefaultMappingCount = 1) {
+        const int cmapHeaderLength = 20;
+        const int format12Length = 28;
+        if (nonDefaultMappingCount <= 0) throw new ArgumentOutOfRangeException(nameof(nonDefaultMappingCount));
+        int format14Length = nonDefaultGlyph.HasValue ? checked(25 + nonDefaultMappingCount * 5) : 29;
+        int format12 = cmapHeaderLength;
+        int format14 = format12 + format12Length;
+        var data = new byte[cmapHeaderLength + format12Length + format14Length];
+        WriteUInt16(data, 2, 2);
+
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, (uint)format12);
+        WriteUInt16(data, 12, checked((ushort)variationPlatform));
+        WriteUInt16(data, 14, checked((ushort)variationEncoding));
+        WriteUInt32(data, 16, (uint)format14);
+
+        WriteUInt16(data, format12, 12);
+        WriteUInt32(data, format12 + 4, format12Length);
+        WriteUInt32(data, format12 + 12, 1);
+        WriteUInt32(data, format12 + 16, checked((uint)scalar));
+        WriteUInt32(data, format12 + 20, checked((uint)scalar));
+        WriteUInt32(data, format12 + 24, 1);
+
+        WriteUInt16(data, format14, 14);
+        WriteUInt32(data, format14 + 2, (uint)format14Length);
+        WriteUInt32(data, format14 + 6, 1);
+        WriteUInt24(data, format14 + 10, variationSelector);
+        WriteUInt32(data, format14 + 13, nonDefaultGlyph.HasValue ? 0U : 21U);
+        WriteUInt32(data, format14 + 17, nonDefaultGlyph.HasValue ? 21U : 0U);
+        WriteUInt32(data, format14 + 21, nonDefaultGlyph.HasValue ? checked((uint)nonDefaultMappingCount) : 1U);
+        if (nonDefaultGlyph.HasValue) {
+            int firstScalar = checked(scalar - nonDefaultMappingCount + 1);
+            for (int index = 0; index < nonDefaultMappingCount; index++) {
+                int mapping = format14 + 25 + index * 5;
+                WriteUInt24(data, mapping, firstScalar + index);
+                WriteUInt16(data, mapping + 3, checked((ushort)nonDefaultGlyph.Value));
+            }
+        } else {
+            WriteUInt24(data, format14 + 25, scalar);
+            data[format14 + 28] = 0;
+        }
+        return data;
+    }
+
     private static byte[] CreateFormat12Cmap(
         int firstScalar,
         int firstGlyph,
@@ -353,18 +458,18 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, offset + 26, 1);
     }
 
-    private static byte[] CreateVisibleGlyph() {
+    private static byte[] CreateVisibleGlyph(int width) {
         var glyph = new byte[34];
         WriteUInt16(glyph, 0, 1);
-        WriteUInt16(glyph, 6, 400);
+        WriteUInt16(glyph, 6, checked((ushort)width));
         WriteUInt16(glyph, 8, 700);
         WriteUInt16(glyph, 10, 3);
         glyph[14] = 0x01;
         glyph[15] = 0x01;
         glyph[16] = 0x01;
         glyph[17] = 0x01;
-        WriteUInt16(glyph, 20, 400);
-        WriteUInt16(glyph, 24, unchecked((ushort)-400));
+        WriteUInt16(glyph, 20, checked((ushort)width));
+        WriteUInt16(glyph, 24, unchecked((ushort)-width));
         WriteUInt16(glyph, 30, 700);
         return glyph;
     }
@@ -403,6 +508,12 @@ internal static class ManagedTextShapingTestAssets {
     private static void WriteUInt16(byte[] data, int offset, ushort value) {
         data[offset] = (byte)(value >> 8);
         data[offset + 1] = (byte)value;
+    }
+
+    private static void WriteUInt24(byte[] data, int offset, int value) {
+        data[offset] = (byte)(value >> 16);
+        data[offset + 1] = (byte)(value >> 8);
+        data[offset + 2] = (byte)value;
     }
 
     private static void WriteUInt32(byte[] data, int offset, uint value) {

@@ -172,7 +172,9 @@ internal static partial class PdfPrintProductionStructureInspector {
                         case "scn":
                         case "SCN":
                             if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string patternName) {
-                                AddPatternContent(patternName, context.Resources, context.ContentDepth + 1, activeFontObject);
+                                if (!AddPatternContent(patternName, context.Resources, context.ContentDepth + 1, activeFontObject)) {
+                                    contextWasUninspectable = true;
+                                }
                             }
                             break;
                         case "Tj":
@@ -211,18 +213,35 @@ internal static partial class PdfPrintProductionStructureInspector {
             _fonts.Add(font);
         }
 
-        private void AddPatternContent(string name, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {
+        private bool AddPatternContent(string name, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {
             if (!TryResolveResource(resources, "Pattern", name, out PdfObject? patternObject) ||
-                ResolveObject(_objects, patternObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfStream pattern) return;
-            PdfObject? patternType = ResolveObject(
-                _objects,
-                pattern.Dictionary.Items.TryGetValue("PatternType", out PdfObject? value) ? value : null,
-                0,
-                _limits.MaxObjectNestingDepth,
-                out _);
-            if (patternType is PdfNumber { Value: 1D }) {
-                AddStream(pattern, ResolveStreamResources(pattern, resources), contentDepth, selectedFontObject);
+                ResolveObject(_objects, patternObject, 0, _limits.MaxObjectNestingDepth, out int patternDepth) is not PdfObject resolved) {
+                return false;
             }
+            if (resolved is PdfStream tilingPattern &&
+                PdfPrintProductionColorInspector.IsStructurallyValidTilingPatternResource(
+                    tilingPattern.Dictionary,
+                    patternDepth,
+                    _objects,
+                    _limits.MaxObjectNestingDepth)) {
+                AddStream(tilingPattern, ResolveStreamResources(tilingPattern, resources), contentDepth, selectedFontObject);
+                return true;
+            }
+
+            PdfDictionary? shadingPattern = resolved switch {
+                PdfDictionary dictionary => dictionary,
+                PdfStream stream => stream.Dictionary,
+                _ => null
+            };
+            if (shadingPattern == null ||
+                !PdfPrintProductionColorInspector.IsStructurallyValidShadingPatternResource(
+                    shadingPattern,
+                    patternDepth,
+                    _objects,
+                    _limits.MaxObjectNestingDepth,
+                    out PdfObject? graphicsStateObject)) return false;
+            return graphicsStateObject == null ||
+                AddSoftMaskContent(graphicsStateObject, resources, contentDepth, selectedFontObject);
         }
 
         private bool AddSoftMaskContent(PdfObject graphicsStateObject, PdfDictionary? resources, int contentDepth, PdfObject? selectedFontObject) {

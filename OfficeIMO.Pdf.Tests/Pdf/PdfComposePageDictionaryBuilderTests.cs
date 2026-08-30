@@ -375,6 +375,45 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void PageDictionaryBuilder_RejectsPrintProductionBoxCollapsedBySerialization() {
+            var boxes = new PdfPrintProductionPageBoxes(
+                PageMargins.Uniform(49.9996D),
+                PageMargins.Uniform(0D));
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
+                    2,
+                    100,
+                    100,
+                    10,
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<int>(),
+                    printProductionPageBoxes: boxes));
+
+            Assert.Contains("TrimBox", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PageDictionaryBuilder_RejectsMediaBoxCollapsedBySerialization() {
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+                PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
+                    2,
+                    0.0004D,
+                    100,
+                    10,
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<(string Name, int Id)>(),
+                    Array.Empty<int>()));
+
+            Assert.Contains("MediaBox", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void StructTreeRootDictionaryBuilder_EmitsParentTreeNextKey() {
             var parentTreeEntries = new[] {
                 PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(0, new[] { 6 }),
