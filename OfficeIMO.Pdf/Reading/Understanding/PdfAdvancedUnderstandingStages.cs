@@ -100,6 +100,7 @@ public static class PdfAdvancedUnderstandingStages {
         public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) {
             var remaining = new HashSet<int>(Enumerable.Range(0, lines.Count));
             var regions = new List<PdfUnderstandingRegion>();
+            AddCanonicalTableRegions(context, lines, remaining, regions);
             while (remaining.Count > 0) {
                 int seed = remaining.First();
                 remaining.Remove(seed);
@@ -119,6 +120,73 @@ public static class PdfAdvancedUnderstandingStages {
                 }));
             }
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
+        }
+
+        private static void AddCanonicalTableRegions(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines,
+            HashSet<int> remaining,
+            List<PdfUnderstandingRegion> regions) {
+            if (context.DecodedRuns.Count == 0 || lines.Count == 0) return;
+
+            StructuredPage structure = ContentStructureExtractor.Extract(
+                context.DecodedRuns,
+                context.LayoutOptions.ToEngineOptions(),
+                context.Height);
+            foreach (StructuredTable table in structure.TablesDetailed) {
+                if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase) || table.Columns.Count < 2) continue;
+
+                double top = Math.Max(table.YTop, table.YBottom);
+                double bottom = Math.Min(table.YTop, table.YBottom);
+                double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
+                double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+                int[] tableLineIndexes = remaining
+                    .Where(index => IsInsideTable(lines[index], top, bottom, left, right))
+                    .OrderByDescending(index => lines[index].BaselineY)
+                    .ThenBy(index => lines[index].XStart)
+                    .ToArray();
+                if (tableLineIndexes.Length < 2) continue;
+
+                PdfUnderstandingLine[] tableLines = tableLineIndexes.Select(index => lines[index]).ToArray();
+                if (!HasSemanticTableEvidence(table, tableLines)) continue;
+
+                foreach (int index in tableLineIndexes) remaining.Remove(index);
+                double confidence = PdfInference.Clamp(tableLines.Average(static line => line.Confidence));
+                regions.Add(new PdfUnderstandingRegion(tableLines, confidence, new[] {
+                    new PdfInferenceEvidence(
+                        "region.canonical-table",
+                        "The canonical layout engine recovered these aligned lines as one validated table.",
+                        0.9D)
+                }));
+            }
+        }
+
+        private static bool HasSemanticTableEvidence(
+            StructuredTable table,
+            IReadOnlyList<PdfUnderstandingLine> tableLines) {
+            if (table.Rows.Skip(1).SelectMany(static row => row).Any(TableDetector.IsTabularValue)) return true;
+
+            double headerY = tableLines.Max(static line => line.BaselineY);
+            PdfTextSpan[] headerRuns = tableLines
+                .Where(line => Math.Abs(line.BaselineY - headerY) <= 2D)
+                .SelectMany(static line => line.Words)
+                .SelectMany(static word => word.SourceRuns)
+                .Where(static run => !string.IsNullOrWhiteSpace(run.Text))
+                .Distinct()
+                .ToArray();
+            return headerRuns.Length >= 2 && headerRuns.All(static run => TableDetector.IsEmphasizedFont(run.BaseFont));
+        }
+
+        private static bool IsInsideTable(
+            PdfUnderstandingLine line,
+            double top,
+            double bottom,
+            double left,
+            double right) {
+            double verticalTolerance = Math.Max(1D, line.FontSize * 0.5D);
+            if (line.BaselineY > top + verticalTolerance || line.BaselineY < bottom - verticalTolerance) return false;
+            double overlap = Math.Min(line.XEnd, right) - Math.Max(line.XStart, left);
+            return overlap > 0.001D;
         }
 
         private static bool AreSpatialNeighbors(PdfUnderstandingLine left, PdfUnderstandingLine right) {
@@ -151,6 +219,7 @@ public static class PdfAdvancedUnderstandingStages {
             if (region.YBottom <= context.Height * 0.08D && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
             if (region.YBottom <= context.Height * 0.05D) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "The region occupies the bottom five percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
+            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (LooksLikeTable(region)) return (PdfUnderstandingSemanticKind.Table, 0.83D, "semantic.column-alignment", "Several lines share aligned word columns with large horizontal gaps.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");

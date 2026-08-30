@@ -692,7 +692,8 @@ internal static class TableDetector {
         if (table.Rows.Count != 2 || sourceLines.Count != 2) return false;
         if (!LooksLikeHeaderRow(table.Rows[0])) return false;
         if (table.Rows[0].Any(static cell => cell.Any(char.IsDigit))) return false;
-        return table.Rows[1].Any(IsTabularValue);
+        return table.Rows[1].Any(IsTabularValue) ||
+               (HasStableColumnAnchors(table, sourceLines) && HasEmphasizedHeader(sourceLines));
     }
 
     private static bool HasCompactCellGrid(StructuredTable table) {
@@ -759,13 +760,13 @@ internal static class TableDetector {
         return headerSpans.Length >= 2 && headerSpans.All(static span => IsEmphasizedFont(span.BaseFont));
     }
 
-    private static bool IsEmphasizedFont(string? baseFont) =>
+    internal static bool IsEmphasizedFont(string? baseFont) =>
         baseFont?.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("Demi", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("SemiBold", StringComparison.OrdinalIgnoreCase) >= 0;
 
-    private static bool IsTabularValue(string value) =>
+    internal static bool IsTabularValue(string value) =>
         HasManyDigits(value) ||
         string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||

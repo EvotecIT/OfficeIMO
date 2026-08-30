@@ -190,6 +190,32 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
     }
 
+    [Fact]
+    public void AdvancedPipeline_UsesCanonicalLayoutTableRegions() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Quality", "Premium" }
+            })
+            .ToBytes();
+
+        PdfUnderstandingPageResult page = Assert.Single(
+            new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced())
+                .Run(PdfReadDocument.Open(pdf))
+                .Pages);
+
+        PdfUnderstandingSemanticElement table = Assert.Single(
+            page.Elements,
+            static element => element.Kind == PdfUnderstandingSemanticKind.Table);
+        Assert.Contains("Metric", table.Region.Text, StringComparison.Ordinal);
+        Assert.Contains("Premium", table.Region.Text, StringComparison.Ordinal);
+        Assert.Contains(table.Region.Evidence, static evidence => evidence.Code == "region.canonical-table");
+        Assert.DoesNotContain(
+            page.Elements,
+            static element => element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+                              element.Region.Text.Contains("Premium", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -219,7 +245,11 @@ public class PdfUnderstandingPipelineTests {
     [InlineData(true, "2.3.1)Deep numbered item")]
     [InlineData(false, "3.Compact numbered item")]
     [InlineData(true, "3.Compact numbered item")]
-    public void Pipeline_ClassifiesHierarchicalAndCompactNumberedListItems(bool advanced, string text) {
+    [InlineData(false, "(a)Compact parenthesized item")]
+    [InlineData(true, "(a)Compact parenthesized item")]
+    [InlineData(false, "(1)Compact numeric parenthesized item")]
+    [InlineData(true, "(1)Compact numeric parenthesized item")]
+    public void Pipeline_ClassifiesHierarchicalAndCompactListItems(bool advanced, string text) {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = advanced
             ? PdfUnderstandingPipelineOptions.Advanced()

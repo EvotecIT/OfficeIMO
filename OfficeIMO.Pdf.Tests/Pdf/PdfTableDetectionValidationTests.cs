@@ -96,18 +96,18 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
-    public void LogicalTables_RetainTwoRowTablesWithTabularBodyEvidence() {
+    public void LogicalTables_RetainTwoRowTablesWithStableColumns() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {
                 new[] { "Metric", "Value" },
-                new[] { "Quality", "Premium 95" }
+                new[] { "Quality", "Premium" }
             })
             .ToBytes();
 
         PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Quality", data.Rows.SelectMany(static row => row));
-        Assert.Contains("Premium 95", data.Rows.SelectMany(static row => row));
+        Assert.Contains("Premium", data.Rows.SelectMany(static row => row));
     }
 
     [Theory]
@@ -142,7 +142,7 @@ public sealed class PdfTableDetectionValidationTests {
     public void TableDetector_DoesNotUseBoldAloneAsTwoRowTableEvidence() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D, ("Summary", 50D, 55D, "Helvetica-Bold"), ("Notes", 220D, 40D, "Helvetica-Bold")) },
-            new() { CreateLine(500D, ("Management", 50D, 70D, "Helvetica"), ("review", 220D, 38D, "Helvetica")) }
+            new() { CreateLine(500D, ("Management", 75D, 70D, "Helvetica"), ("review", 245D, 38D, "Helvetica")) }
         };
 
         Assert.Empty(TableDetector.DetectTablesFromBands(bands));

@@ -106,6 +106,7 @@ public sealed class PdfUnderstandingPipeline {
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        context.DecodedRuns = runs;
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("glyph-decoding", _glyphDecoding.GetType(), 0, runs.Count));
         IReadOnlyList<PdfUnderstandingWord> words = NotNull(_wordGrouping.GroupWords(context, runs), nameof(IPdfWordGroupingStage));

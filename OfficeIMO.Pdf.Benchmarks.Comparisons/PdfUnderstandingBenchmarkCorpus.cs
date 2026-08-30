@@ -52,6 +52,12 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 string statusOne = "S1-P" + suffix + " Approved";
                 string statusTwo = "S2-P" + suffix + " Review";
                 string statusThree = "S3-P" + suffix + " Approved";
+                string tableRegionText = string.Join(" ", new[] {
+                    table, ownerHeader, amountHeader, statusHeader,
+                    accountOne, ownerOne, amountOne, statusOne,
+                    accountTwo, ownerTwo, amountTwo, statusTwo,
+                    accountThree, ownerThree, amountThree, statusThree
+                });
 
                 content.Canvas(canvas => canvas
                     .Text(header + " semantic benchmark running header", 36D, 8D, 520D, 22D, fontSize: 10D)
@@ -98,7 +104,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         [rightThree] = rightThree + " right closing",
                         [list] = "1. " + list + " classified list item",
                         [caption] = "Table 1. " + caption + " classified table caption",
-                        [table] = table,
+                        [table] = tableRegionText,
                         [footer] = footer + " semantic benchmark running footer"
                     },
                     new Dictionary<string, PdfUnderstandingSemanticKind>(StringComparer.Ordinal) {
@@ -112,22 +118,7 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         [rightThree] = PdfUnderstandingSemanticKind.Paragraph,
                         [list] = PdfUnderstandingSemanticKind.ListItem,
                         [caption] = PdfUnderstandingSemanticKind.Caption,
-                        [table] = PdfUnderstandingSemanticKind.Paragraph,
-                        [ownerHeader] = PdfUnderstandingSemanticKind.Paragraph,
-                        [amountHeader] = PdfUnderstandingSemanticKind.Paragraph,
-                        [statusHeader] = PdfUnderstandingSemanticKind.Paragraph,
-                        [accountOne] = PdfUnderstandingSemanticKind.Paragraph,
-                        [ownerOne] = PdfUnderstandingSemanticKind.Paragraph,
-                        [amountOne] = PdfUnderstandingSemanticKind.Paragraph,
-                        [statusOne] = PdfUnderstandingSemanticKind.Paragraph,
-                        [accountTwo] = PdfUnderstandingSemanticKind.Paragraph,
-                        [ownerTwo] = PdfUnderstandingSemanticKind.Paragraph,
-                        [amountTwo] = PdfUnderstandingSemanticKind.Paragraph,
-                        [statusTwo] = PdfUnderstandingSemanticKind.Paragraph,
-                        [accountThree] = PdfUnderstandingSemanticKind.Paragraph,
-                        [ownerThree] = PdfUnderstandingSemanticKind.Paragraph,
-                        [amountThree] = PdfUnderstandingSemanticKind.Paragraph,
-                        [statusThree] = PdfUnderstandingSemanticKind.Paragraph,
+                        [table] = PdfUnderstandingSemanticKind.Table,
                         [footer] = PdfUnderstandingSemanticKind.Footer
                     }));
             }
