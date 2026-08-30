@@ -118,6 +118,45 @@ public sealed class DrawingOpenTypeKerningTests {
     }
 
     [Fact]
+    public void GposPairPositioningAppliesVariationIndexAdjustments() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WritePairVariationPositioningSubtable(data, subtable: 254, rightGlyph: 2);
+        var kerning = new OfficeOpenTypeKerning(
+            data,
+            kern: 0,
+            gpos: 64,
+            includeExtendedGpos: true,
+            variationDelta: (outer, inner) => checked((outer * 100) + inner));
+
+        OfficeOpenTypePairPositioning positioning = kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT");
+
+        Assert.Equal(193, positioning.FirstGlyphXPlacement);
+        Assert.Equal(385, positioning.FirstGlyphXAdvance);
+    }
+
+    [Fact]
+    public void GposClassPairPositioningAppliesVariationIndexAdjustments() {
+        byte[] data = CreateKerningTables(
+            legacyAdjustment: -80,
+            gposAdjustment: -30,
+            gposRightGlyph: 2);
+        WriteClassPairVariationPositioningSubtable(data, subtable: 254);
+        var kerning = new OfficeOpenTypeKerning(
+            data,
+            kern: 0,
+            gpos: 64,
+            variationDelta: (outer, inner) => checked((outer * 100) + inner));
+
+        OfficeOpenTypePairPositioning positioning = kerning.Positioning(left: 1, right: 2, scriptTag: "DFLT");
+
+        Assert.Equal(193, positioning.FirstGlyphXPlacement);
+        Assert.Equal(385, positioning.FirstGlyphXAdvance);
+    }
+
+    [Fact]
     public void GposRunSkipsTheSecondGlyphWhenValueRecord2IsPresent() {
         byte[] data = CreateKerningTables(
             legacyAdjustment: 0,
@@ -290,6 +329,68 @@ public sealed class DrawingOpenTypeKerningTests {
         WriteUInt16(data, classDef2 + 2, 2);
         WriteUInt16(data, classDef2 + 4, 1);
         WriteUInt16(data, classDef2 + 6, 1);
+    }
+
+    private static void WritePairVariationPositioningSubtable(byte[] data, int subtable, ushort rightGlyph) {
+        WriteUInt16(data, subtable, 1);
+        WriteUInt16(data, subtable + 2, 12);
+        WriteUInt16(data, subtable + 4, 0x0055);
+        WriteUInt16(data, subtable + 6, 0);
+        WriteUInt16(data, subtable + 8, 1);
+        WriteUInt16(data, subtable + 10, 18);
+        WriteUInt16(data, subtable + 12, 1);
+        WriteUInt16(data, subtable + 14, 1);
+        WriteUInt16(data, subtable + 16, 1);
+        WriteUInt16(data, subtable + 18, 1);
+        WriteUInt16(data, subtable + 20, rightGlyph);
+        WriteInt16(data, subtable + 22, -10);
+        WriteInt16(data, subtable + 24, -20);
+        WriteUInt16(data, subtable + 26, 46);
+        WriteUInt16(data, subtable + 28, 52);
+        WriteVariationIndex(data, subtable + 64, outer: 2, inner: 3);
+        WriteVariationIndex(data, subtable + 70, outer: 4, inner: 5);
+    }
+
+    private static void WriteClassPairVariationPositioningSubtable(byte[] data, int subtable) {
+        WriteUInt16(data, subtable, 2);
+        WriteUInt16(data, subtable + 2, 64);
+        WriteUInt16(data, subtable + 4, 0x0055);
+        WriteUInt16(data, subtable + 6, 0);
+        WriteUInt16(data, subtable + 8, 70);
+        WriteUInt16(data, subtable + 10, 78);
+        WriteUInt16(data, subtable + 12, 2);
+        WriteUInt16(data, subtable + 14, 2);
+
+        int classRecord = subtable + 16 + (3 * 8);
+        WriteInt16(data, classRecord, -10);
+        WriteInt16(data, classRecord + 2, -20);
+        WriteUInt16(data, classRecord + 4, 52);
+        WriteUInt16(data, classRecord + 6, 58);
+        WriteVariationIndex(data, subtable + 52, outer: 2, inner: 3);
+        WriteVariationIndex(data, subtable + 58, outer: 4, inner: 5);
+
+        int coverage = subtable + 64;
+        WriteUInt16(data, coverage, 1);
+        WriteUInt16(data, coverage + 2, 1);
+        WriteUInt16(data, coverage + 4, 1);
+
+        int classDef1 = subtable + 70;
+        WriteUInt16(data, classDef1, 1);
+        WriteUInt16(data, classDef1 + 2, 1);
+        WriteUInt16(data, classDef1 + 4, 1);
+        WriteUInt16(data, classDef1 + 6, 1);
+
+        int classDef2 = subtable + 78;
+        WriteUInt16(data, classDef2, 1);
+        WriteUInt16(data, classDef2 + 2, 2);
+        WriteUInt16(data, classDef2 + 4, 1);
+        WriteUInt16(data, classDef2 + 6, 1);
+    }
+
+    private static void WriteVariationIndex(byte[] data, int offset, ushort outer, ushort inner) {
+        WriteUInt16(data, offset, outer);
+        WriteUInt16(data, offset + 2, inner);
+        WriteUInt16(data, offset + 4, 0x8000);
     }
 
     private static void WriteSequencedPairPositioningSubtable(byte[] data, int subtable) {

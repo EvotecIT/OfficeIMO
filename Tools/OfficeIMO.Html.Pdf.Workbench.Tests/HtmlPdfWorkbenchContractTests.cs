@@ -173,6 +173,33 @@ public sealed class HtmlPdfWorkbenchContractTests {
     }
 
     [Fact]
+    public void ArtifactStore_EvictsOldestEntriesToEnforceAggregateByteBudget() {
+        var store = new WorkbenchArtifactStore(maximumArtifacts: 32, maximumRetainedBytes: 10);
+        var evidence = new HtmlPdfWorkbenchEvidence(
+            "test", DateTimeOffset.UtcNow, "Managed", "test", "input", "output", 1, 6, 1, false,
+            new HtmlPdfWorkbenchSettings(), Array.Empty<HtmlPdfWorkbenchDiagnostic>(), null);
+        var result = new HtmlPdfWorkbenchResult(new byte[] { 1, 2, 3, 4 }, new byte[] { 5, 6 }, evidence);
+
+        WorkbenchArtifactLink first = store.Add(result);
+        WorkbenchArtifactLink second = store.Add(result);
+
+        Assert.False(store.TryGet(first.Token, out _));
+        Assert.True(store.TryGet(second.Token, out WorkbenchArtifact? retained));
+        Assert.Equal(6, retained!.PdfBytes.Length + retained.EvidenceBytes.Length);
+    }
+
+    [Fact]
+    public void ArtifactStore_RejectsOneArtifactLargerThanAggregateByteBudget() {
+        var store = new WorkbenchArtifactStore(maximumArtifacts: 32, maximumRetainedBytes: 5);
+        var evidence = new HtmlPdfWorkbenchEvidence(
+            "test", DateTimeOffset.UtcNow, "Managed", "test", "input", "output", 1, 6, 1, false,
+            new HtmlPdfWorkbenchSettings(), Array.Empty<HtmlPdfWorkbenchDiagnostic>(), null);
+        var result = new HtmlPdfWorkbenchResult(new byte[] { 1, 2, 3, 4 }, new byte[] { 5, 6 }, evidence);
+
+        Assert.Throws<ArgumentException>(() => store.Add(result));
+    }
+
+    [Fact]
     [Trait("Category", "Live")]
     public async Task ChromiumConversion_ProducesBrowserEvidenceUnderOfflinePolicy() {
         await using var renderer = new HtmlBrowserPdfRenderer(new HtmlBrowserPdfRendererOptions(

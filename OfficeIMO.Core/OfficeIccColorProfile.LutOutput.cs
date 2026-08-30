@@ -17,7 +17,7 @@ public sealed partial class OfficeIccColorProfile {
 
         uint type = ReadUInt32(bytes, range.Offset);
         int precision = type == Lut8TypeSignature ? 1 : type == Lut16TypeSignature ? 2 : 0;
-        if (precision == 0 || (precision == 1 && !pcsIsLab) ||
+        if (precision == 0 ||
             !AreZero(bytes, range.Offset + 4, 4) || bytes[range.Offset + 11] != 0) {
             return false;
         }
@@ -27,9 +27,10 @@ public sealed partial class OfficeIccColorProfile {
         int gridPoints = bytes[range.Offset + 10];
         if (inputChannels != 3 || outputChannels != expectedOutputChannels ||
             outputChannels is < 3 or > 4 || gridPoints is < 2 or > MaximumLegacyOutputLutGridPoints ||
-            !HasIdentityLutMatrix(bytes, range.Offset + 12)) {
+            pcsIsLab && !HasIdentityLutMatrix(bytes, range.Offset + 12)) {
             return false;
         }
+        double[] matrix = ReadLegacyLutMatrix(bytes, range.Offset + 12);
 
         int inputEntries = precision == 1 ? 256 : ReadUInt16(bytes, range.Offset + 48);
         int outputEntries = precision == 1 ? 256 : ReadUInt16(bytes, range.Offset + 50);
@@ -55,8 +56,17 @@ public sealed partial class OfficeIccColorProfile {
             tableOffset,
             checked(tableOffset + (int)inputBytes),
             checked(tableOffset + (int)inputBytes + (int)clutBytes),
-            pcsIsLab);
+            pcsIsLab,
+            matrix);
         return true;
+    }
+
+    private static double[] ReadLegacyLutMatrix(byte[] bytes, int offset) {
+        var matrix = new double[9];
+        for (int index = 0; index < matrix.Length; index++) {
+            matrix[index] = ReadS15Fixed16(bytes, offset + index * 4);
+        }
+        return matrix;
     }
 
     private sealed class LutPcsToDeviceTransform : IPcsToDeviceTransform {
@@ -71,6 +81,7 @@ public sealed partial class OfficeIccColorProfile {
         private readonly int _clutOffset;
         private readonly int _outputOffset;
         private readonly bool _pcsIsLab;
+        private readonly double[] _matrix;
 
         internal LutPcsToDeviceTransform(
             byte[] payload,
@@ -82,7 +93,8 @@ public sealed partial class OfficeIccColorProfile {
             int inputOffset,
             int clutOffset,
             int outputOffset,
-            bool pcsIsLab) {
+            bool pcsIsLab,
+            double[] matrix) {
             _payload = payload;
             _outputChannels = outputChannels;
             _gridPoints = gridPoints;
@@ -93,9 +105,10 @@ public sealed partial class OfficeIccColorProfile {
             _clutOffset = clutOffset;
             _outputOffset = outputOffset;
             _pcsIsLab = pcsIsLab;
+            _matrix = matrix;
         }
 
-        public long RetainedByteCount => checked(96L + _payload.LongLength);
+        public long RetainedByteCount => checked(96L + _payload.LongLength + (_matrix.LongLength * sizeof(double)));
 
         public bool TryTransform(XyzValue pcsXyz, XyzValue whitePoint, out DeviceComponentValues components) {
             double input0;
@@ -116,6 +129,12 @@ public sealed partial class OfficeIccColorProfile {
                 input0 = pcsXyz.X / PcsXyzScale;
                 input1 = pcsXyz.Y / PcsXyzScale;
                 input2 = pcsXyz.Z / PcsXyzScale;
+                double transformed0 = (_matrix[0] * input0) + (_matrix[1] * input1) + (_matrix[2] * input2);
+                double transformed1 = (_matrix[3] * input0) + (_matrix[4] * input1) + (_matrix[5] * input2);
+                double transformed2 = (_matrix[6] * input0) + (_matrix[7] * input1) + (_matrix[8] * input2);
+                input0 = transformed0;
+                input1 = transformed1;
+                input2 = transformed2;
             }
 
             input0 = LookupTable(_inputOffset, _inputEntries, input0);

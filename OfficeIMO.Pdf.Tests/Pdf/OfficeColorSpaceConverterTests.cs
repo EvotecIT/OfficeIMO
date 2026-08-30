@@ -341,6 +341,28 @@ public class OfficeColorSpaceConverterTests {
         Assert.False(profile.TryConvertToDevice(OfficeColor.Red, out _));
     }
 
+    [Theory]
+    [InlineData(1, 33)]
+    [InlineData(2, 37)]
+    public void IccLegacyXyzOutputLut_AppliesMatrixBeforeInputTables(int precision, int gridPoints) {
+        byte[] identityBytes = IccLutTestProfiles.CreateCmykXyzLutWithOutputTransform(precision, gridPoints);
+        byte[] transformedBytes = (byte[])identityBytes.Clone();
+        int transformOffset = FindTagOffset(transformedBytes, "B2A0");
+        WriteS15Fixed16(transformedBytes, transformOffset + 12, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(identityBytes, out OfficeIccColorProfile? identityProfile));
+        Assert.True(OfficeIccColorProfile.TryCreate(transformedBytes, out OfficeIccColorProfile? transformedProfile));
+        Assert.True(identityProfile!.HasOutputTransform);
+        Assert.True(transformedProfile!.HasOutputTransform);
+        Assert.True(identityProfile.TryConvertToDevice(OfficeColor.Red, out double[] identity));
+        Assert.True(transformedProfile.TryConvertToDevice(OfficeColor.Red, out double[] transformed));
+
+        Assert.Equal(4, transformed.Length);
+        Assert.True(transformed[0] < identity[0]);
+        Assert.Equal(identity[1], transformed[1], precision == 1 ? 2 : 4);
+        Assert.Equal(identity[2], transformed[2], precision == 1 ? 2 : 4);
+    }
+
     [Fact]
     public void IccMatrixProfile_AppliesMediaWhitePointForAbsoluteColorimetricIntent() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;

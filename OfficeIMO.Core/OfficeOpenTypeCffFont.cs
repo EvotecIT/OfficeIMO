@@ -29,7 +29,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         _reader = reader;
         _cff = cff;
         _variations = variations;
-        _kerning = OfficeOpenTypeKerning.FromReader(reader);
+        _kerning = OfficeOpenTypeKerning.FromReader(reader, variations);
         _hvar = variations.IsVariable
             ? OfficeOpenTypeHvarMetrics.TryParse(reader, variations)
             : null;

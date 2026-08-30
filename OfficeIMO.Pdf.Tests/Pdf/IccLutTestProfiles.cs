@@ -29,6 +29,12 @@ internal static class IccLutTestProfiles {
             precision,
             outputGridPoints);
 
+    internal static byte[] CreateCmykXyzLutWithOutputTransform(int precision, int outputGridPoints) =>
+        AppendOutputLut(
+            Create("CMYK", 4, precision: 2),
+            precision,
+            outputGridPoints);
+
     private static byte[] AppendOutputLut(byte[] inputProfile, int precision, int gridPoints) {
         int inputEntries = precision == 1 ? 256 : 2;
         int outputEntries = precision == 1 ? 256 : 2;

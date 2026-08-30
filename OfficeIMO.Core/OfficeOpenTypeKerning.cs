@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 
 namespace OfficeIMO.Drawing;
 
@@ -52,21 +53,62 @@ internal sealed class OfficeOpenTypeKerning {
     private readonly int _kern;
     private readonly int _gpos;
     private readonly bool _includeExtendedGpos;
+    private readonly Func<int, int, int>? _variationDelta;
 
-    internal OfficeOpenTypeKerning(byte[] data, int kern, int gpos, bool includeExtendedGpos = true) {
+    internal OfficeOpenTypeKerning(
+        byte[] data,
+        int kern,
+        int gpos,
+        bool includeExtendedGpos = true,
+        Func<int, int, int>? variationDelta = null) {
         _data = data ?? throw new ArgumentNullException(nameof(data));
         _kern = kern;
         _gpos = gpos;
         _includeExtendedGpos = includeExtendedGpos;
+        _variationDelta = variationDelta;
     }
 
-    internal static OfficeOpenTypeKerning FromReader(OfficeOpenTypeReader reader) {
+    internal static OfficeOpenTypeKerning FromReader(
+        OfficeOpenTypeReader reader,
+        OfficeFontVariationModel? variations = null) {
         if (reader == null) throw new ArgumentNullException(nameof(reader));
+        Func<int, int, int>? variationDelta = TryCreateGdefVariationEvaluator(
+            reader,
+            variations ?? OfficeFontVariationModel.None);
         return new OfficeOpenTypeKerning(
             reader.Data,
             reader.TryGetTable("kern", out int kern, out _) ? kern : -1,
             reader.TryGetTable("GPOS", out int gpos, out _) ? gpos : -1,
-            includeExtendedGpos: true);
+            includeExtendedGpos: true,
+            variationDelta);
+    }
+
+    private static Func<int, int, int>? TryCreateGdefVariationEvaluator(
+        OfficeOpenTypeReader reader,
+        OfficeFontVariationModel variations) {
+        if (!variations.IsVariable || !reader.TryGetTable("GDEF", out int gdef, out int length)) return null;
+        int end = checked(gdef + length);
+        if (length < 4 || reader.ReadUInt16(gdef) != 1) {
+            throw new InvalidDataException("The OpenType GDEF table header is invalid.");
+        }
+        int minorVersion = reader.ReadUInt16(gdef + 2);
+        if (minorVersion < 3) return null;
+        if (length < 18) throw new InvalidDataException("The OpenType GDEF variation-store header is truncated.");
+        uint relativeOffset = reader.ReadUInt32(gdef + 14);
+        if (relativeOffset == 0) return null;
+        if (relativeOffset > int.MaxValue) {
+            throw new InvalidDataException("The OpenType GDEF variation-store offset is invalid.");
+        }
+        int storeOffset = checked(gdef + (int)relativeOffset);
+        if (storeOffset < gdef || storeOffset >= end) {
+            throw new InvalidDataException("The OpenType GDEF variation-store offset is invalid.");
+        }
+        OfficeOpenTypeItemVariationStore store = OfficeOpenTypeItemVariationStore.Parse(
+            reader,
+            storeOffset,
+            end,
+            variations);
+        return store.Evaluate;
     }
 
     internal int Adjustment(int left, int right) => Positioning(left, right, "DFLT").TotalXAdvance;
@@ -390,8 +432,8 @@ internal sealed class OfficeOpenTypeKerning {
             if (!InBounds(record, recordSize)) return false;
             ushort candidate = ReadUInt16(record);
             if (candidate == right) {
-                OfficeOpenTypePairValue first = ReadValueRecordHorizontal(record + 2, valueFormat1);
-                OfficeOpenTypePairValue second = ReadValueRecordHorizontal(record + 2 + value1Size, valueFormat2);
+                OfficeOpenTypePairValue first = ReadValueRecordHorizontal(pairSet, record + 2, valueFormat1);
+                OfficeOpenTypePairValue second = ReadValueRecordHorizontal(pairSet, record + 2 + value1Size, valueFormat2);
                 adjustment = new OfficeOpenTypePairPositioning(
                     first.XPlacement,
                     first.XAdvance,
@@ -429,8 +471,8 @@ internal sealed class OfficeOpenTypeKerning {
         int recordIndex = checked((class1 * class2Count) + class2);
         int record = checked(subtable + 16 + (recordIndex * recordSize));
         if (!InBounds(record, recordSize)) return false;
-        OfficeOpenTypePairValue first = ReadValueRecordHorizontal(record, valueFormat1);
-        OfficeOpenTypePairValue second = ReadValueRecordHorizontal(record + value1Size, valueFormat2);
+        OfficeOpenTypePairValue first = ReadValueRecordHorizontal(subtable, record, valueFormat1);
+        OfficeOpenTypePairValue second = ReadValueRecordHorizontal(subtable, record + value1Size, valueFormat2);
         adjustment = new OfficeOpenTypePairPositioning(
             first.XPlacement,
             first.XAdvance,
@@ -502,7 +544,7 @@ internal sealed class OfficeOpenTypeKerning {
         return -1;
     }
 
-    private OfficeOpenTypePairValue ReadValueRecordHorizontal(int offset, ushort valueFormat) {
+    private OfficeOpenTypePairValue ReadValueRecordHorizontal(int subtable, int offset, ushort valueFormat) {
         int xPlacement = 0;
         int xAdvance = 0;
         if ((valueFormat & 0x0001) != 0) {
@@ -510,8 +552,33 @@ internal sealed class OfficeOpenTypeKerning {
             offset += 2;
         }
         if ((valueFormat & 0x0002) != 0) offset += 2;
-        if ((valueFormat & 0x0004) != 0) xAdvance = ReadInt16(offset);
+        if ((valueFormat & 0x0004) != 0) {
+            xAdvance = ReadInt16(offset);
+            offset += 2;
+        }
+        if ((valueFormat & 0x0008) != 0) offset += 2;
+        if ((valueFormat & 0x0010) != 0) {
+            xPlacement = checked(xPlacement + ReadVariationAdjustment(subtable, ReadUInt16(offset)));
+            offset += 2;
+        }
+        if ((valueFormat & 0x0020) != 0) offset += 2;
+        if ((valueFormat & 0x0040) != 0) {
+            xAdvance = checked(xAdvance + ReadVariationAdjustment(subtable, ReadUInt16(offset)));
+        }
         return new OfficeOpenTypePairValue(xPlacement, xAdvance);
+    }
+
+    private int ReadVariationAdjustment(int subtable, ushort relativeOffset) {
+        if (relativeOffset == 0) return 0;
+        int variationIndex = checked(subtable + relativeOffset);
+        if (!InBounds(variationIndex, 6)) {
+            throw new InvalidDataException("A GPOS device or variation-index table is truncated.");
+        }
+        if (ReadUInt16(variationIndex + 4) != 0x8000) return 0;
+        if (_variationDelta == null) {
+            throw new InvalidDataException("A GPOS VariationIndex requires a GDEF ItemVariationStore.");
+        }
+        return _variationDelta(ReadUInt16(variationIndex), ReadUInt16(variationIndex + 2));
     }
 
     private static int ValueRecordSize(ushort valueFormat) {

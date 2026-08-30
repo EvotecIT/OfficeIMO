@@ -212,6 +212,20 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void VariableFontPairPositioningUsesGdefVariationStore() {
+        byte[] data = ReadAsset("RobotoFlex.ttf");
+        OfficeFontFace defaults = Load(data, new Dictionary<string, float>());
+        OfficeFontFace selected = Load(data, new Dictionary<string, float> { ["wght"] = 900F });
+        const string pair = "\"V";
+
+        double defaultPairAdjustment = PairAdjustment(defaults.Program, pair);
+        double selectedPairAdjustment = PairAdjustment(selected.Program, pair);
+
+        Assert.Equal(60D, defaultPairAdjustment, 6);
+        Assert.Equal(10D, selectedPairAdjustment, 6);
+    }
+
+    [Fact]
     public void VariableFontRegistrationRejectsAnImplicitHvarMapOutsideTheVariationStore() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         int hvar = FindTableOffset(data, "HVAR");
@@ -463,6 +477,13 @@ public sealed class DrawingTrueTypeVariableFontTests {
             out _,
             out string? error), error);
         return Assert.Single(fonts.Faces);
+    }
+
+    private static double PairAdjustment(IOfficeFontProgram font, string pair) {
+        double fontSize = font.UnitsPerEm;
+        return font.Measure(pair, fontSize)
+            - font.Measure(pair[0].ToString(), fontSize)
+            - font.Measure(pair[1].ToString(), fontSize);
     }
 
     private sealed class CapturingFontProgramProvider : IOfficeFontProgramProvider {

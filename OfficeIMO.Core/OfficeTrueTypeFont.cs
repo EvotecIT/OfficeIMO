@@ -29,8 +29,6 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _head;
     private readonly int _hhea;
     private readonly int _hmtx;
-    private readonly int _gpos;
-    private readonly int _kern;
     private readonly OfficeOpenTypeKerning _kerning;
     private readonly int _loca;
     private readonly int _maxp;
@@ -66,9 +64,16 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         _head = tables["head"];
         _hhea = tables["hhea"];
         _hmtx = tables["hmtx"];
-        _gpos = tables.TryGetValue("GPOS", out var gpos) ? gpos : -1;
-        _kern = tables.TryGetValue("kern", out var kern) ? kern : -1;
-        _kerning = new OfficeOpenTypeKerning(_data, _kern, _gpos, includeExtendedGpos: true);
+        int gpos = tables.TryGetValue("GPOS", out int gposOffset) ? gposOffset : -1;
+        int kern = tables.TryGetValue("kern", out int kernOffset) ? kernOffset : -1;
+        OfficeOpenTypeReader? reader = null;
+        if (_variationModel.IsVariable) {
+            reader = OfficeOpenTypeReader.TryCreate(data)
+                ?? throw new InvalidDataException("The variable TrueType font table directory is invalid.");
+        }
+        _kerning = reader != null
+            ? OfficeOpenTypeKerning.FromReader(reader, _variationModel)
+            : new OfficeOpenTypeKerning(_data, kern, gpos, includeExtendedGpos: true);
         _loca = tables["loca"];
         _maxp = tables["maxp"];
         _name = tables.TryGetValue("name", out var name) ? name : -1;
@@ -85,11 +90,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             OfficeOpenTypeCmap.MaximumFormat12Groups);
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
-        OfficeOpenTypeMvarMetrics? mvar = _variationModel.IsVariable
-            ? OfficeOpenTypeMvarMetrics.TryParse(
-                OfficeOpenTypeReader.TryCreate(data)
-                    ?? throw new InvalidDataException("The TrueType font table directory is invalid."),
-                _variationModel)
+        OfficeOpenTypeMvarMetrics? mvar = reader != null
+            ? OfficeOpenTypeMvarMetrics.TryParse(reader, _variationModel)
             : null;
         _ascender = checked(ReadInt16(_data, _hhea + 4) + (mvar?.HorizontalAscenderDelta ?? 0));
         _descender = checked(ReadInt16(_data, _hhea + 6) + (mvar?.HorizontalDescenderDelta ?? 0));
