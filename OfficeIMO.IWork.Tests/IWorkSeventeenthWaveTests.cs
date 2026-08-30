@@ -6,6 +6,7 @@ using OfficeIMO.IWork;
 using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
+using DrawingWordprocessing = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -21,14 +22,30 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic => diagnostic.Code == "IWORK_PAGES_IMAGE_UNSUPPORTED");
     }
 
-    [Fact]
-    public void Positioned_pages_images_use_visual_fallback() {
-        using MemoryStream package = CreatePagesPackageWithImage(masked: false, left: 12, rotation: 0);
+    [Theory]
+    [InlineData(0f)]
+    [InlineData(12f)]
+    public void Pages_images_preserve_page_relative_position(float left) {
+        using MemoryStream package = CreatePagesPackageWithImage(masked: false, left: left, rotation: 0);
 
         using var result = WordDocument.LoadPagesWithReport(package);
 
-        Assert.True(result.IsVisualFallback);
+        Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
+        using var saved = new MemoryStream();
+        result.Document.Save(saved);
+        saved.Position = 0;
+        using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
+        DrawingWordprocessing.Anchor anchor = Assert.Single(document.MainDocumentPart?.Document?
+            .Descendants<DrawingWordprocessing.Anchor>()
+            ?? throw new InvalidDataException("The reconstructed DOCX has no main document."));
+        Assert.Equal(DrawingWordprocessing.HorizontalRelativePositionValues.Page,
+            anchor.HorizontalPosition?.RelativeFrom?.Value);
+        Assert.Equal(DrawingWordprocessing.VerticalRelativePositionValues.Page,
+            anchor.VerticalPosition?.RelativeFrom?.Value);
+        Assert.Equal((left * 12700f).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            anchor.HorizontalPosition?.PositionOffset?.Text);
+        Assert.Equal("0", anchor.VerticalPosition?.PositionOffset?.Text);
     }
 
     [Theory]

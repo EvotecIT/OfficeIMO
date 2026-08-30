@@ -426,6 +426,19 @@ internal static class IWorkKeynoteReader {
             MarkTextMetadataIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         }
         if (slideName != null) projectionBudget.AddTextCharacters(slideName.Length);
+        IEnumerable<IWorkTextContent> slideText =
+            (title == null ? Array.Empty<IWorkTextContent>() : new[] { title.Content })
+            .Concat(textBoxes.Select(textBox => textBox.Content))
+            .Append(notes);
+        if (slideText.SelectMany(content => content.Paragraphs).Any(paragraph =>
+                paragraph.Style.PageBreakBefore == true
+                || paragraph.Style.KeepWithNext == true
+                || paragraph.Style.KeepLinesTogether == true)) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED",
+                "Keynote paragraph page/keep flags have no PPTX slide-text equivalent; editable text is preserved without those pagination flags.",
+                slide.EntryPath, slide.Identifier));
+        }
         return new IWorkKeynoteSlide(position, slideName ?? string.Empty,
             title, textBoxes, notes, images, tables, drawables, skipped);
     }

@@ -130,6 +130,9 @@ internal static class IWorkTextReader {
                 reference?.GetUnsigned(1), hasObject));
         }
         AttributeBoundary[] ordered = result.OrderBy(boundary => boundary.Index).ToArray();
+        for (int index = 1; index < ordered.Length; index++) {
+            if (ordered[index - 1].Index == ordered[index].Index) complete = false;
+        }
         ulong? carried = null;
         foreach (AttributeBoundary boundary in ordered) {
             if (boundary.HasObject) carried = boundary.Identifier;

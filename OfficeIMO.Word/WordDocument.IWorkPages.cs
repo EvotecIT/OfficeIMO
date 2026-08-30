@@ -1,3 +1,4 @@
+using System.Globalization;
 using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
 using OpenXmlParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
@@ -6,6 +7,7 @@ using OpenXmlNumberingId = DocumentFormat.OpenXml.Wordprocessing.NumberingId;
 using OpenXmlNumberingLevelReference = DocumentFormat.OpenXml.Wordprocessing.NumberingLevelReference;
 using OpenXmlNumberingProperties = DocumentFormat.OpenXml.Wordprocessing.NumberingProperties;
 using OpenXmlParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
+using DrawingWordprocessing = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
@@ -84,9 +86,23 @@ public partial class WordDocument {
                     if (sourceImage.Geometry == null) {
                         (width, height) = FitInside(width, height, contentWidth, contentHeight);
                     }
-                    document.AddParagraph().AddImage(image, sourceImage.FileName,
+                    WordImage targetImage = document.AddParagraph().InsertImage(image, sourceImage.FileName,
                         width, height, WordImageTextWrapping.Square,
                         sourceImage.AccessibilityDescription ?? "Image imported from Pages");
+                    if (sourceImage.Geometry is { } geometry) {
+                        targetImage.horizontalPosition.RelativeFrom =
+                            DrawingWordprocessing.HorizontalRelativePositionValues.Page;
+                        targetImage.horizontalPosition.PositionOffset =
+                            new DrawingWordprocessing.PositionOffset {
+                                Text = ToEmusInt32(geometry.LeftPoints).ToString(CultureInfo.InvariantCulture)
+                            };
+                        targetImage.verticalPosition.RelativeFrom =
+                            DrawingWordprocessing.VerticalRelativePositionValues.Page;
+                        targetImage.verticalPosition.PositionOffset =
+                            new DrawingWordprocessing.PositionOffset {
+                                Text = ToEmusInt32(geometry.TopPoints).ToString(CultureInfo.InvariantCulture)
+                            };
+                    }
                 }
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
@@ -326,8 +342,8 @@ public partial class WordDocument {
                 && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0
                     || !FitsEmuExtent(geometry.WidthPoints)
                     || !FitsEmuExtent(geometry.HeightPoints)
-                    || Math.Abs(geometry.LeftPoints) > 0.000001d
-                    || Math.Abs(geometry.TopPoints) > 0.000001d
+                    || !FitsEmuOffset(geometry.LeftPoints)
+                    || !FitsEmuOffset(geometry.TopPoints)
                     || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
                 return "A Pages image has unsupported placement, rotation, or extent for the DOCX image owner.";
             }

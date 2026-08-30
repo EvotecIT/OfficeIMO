@@ -88,7 +88,7 @@ public sealed partial class IWorkSourceDocument {
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(path, resolved);
         IWorkDocumentKind? extensionKind = KindFromExtension(Path.GetExtension(path));
-        return Create(package, extensionKind ?? expectedKind, resolved, expectedKind);
+        return Create(package, expectedKind ?? extensionKind, resolved, expectedKind);
     }
 
     private static IWorkSourceDocument Create(IWorkPackageData package, IWorkDocumentKind? hint,
