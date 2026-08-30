@@ -79,7 +79,7 @@ public sealed class BibliographyIdentifier {
 
     /// <summary>Identifier scheme.</summary>
     public string Scheme { get => _scheme; set => _scheme = ValidateScheme(value, nameof(value)); }
-    /// <summary>Identifier value.</summary>
+    /// <summary>Identifier value, preserving nonempty source whitespace.</summary>
     public string Value { get => _value; set => _value = ValidateValue(value, nameof(value)); }
 
     private static string ValidateScheme(string? value, string parameterName) {
@@ -88,7 +88,7 @@ public sealed class BibliographyIdentifier {
         return value.Trim();
     }
 
-    private static string ValidateValue(string? value, string parameterName) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Identifier value cannot be empty.", parameterName) : value!.Trim();
+    private static string ValidateValue(string? value, string parameterName) => string.IsNullOrWhiteSpace(value) ? throw new ArgumentException("Identifier value cannot be empty.", parameterName) : value!;
 }
 
 /// <summary>An ordered native field retained outside the typed model.</summary>

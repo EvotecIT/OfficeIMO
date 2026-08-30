@@ -28,7 +28,7 @@ public sealed class BibliographyReviewWave28RegressionTests {
         }
         document.Items.Add(item);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
+        cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() =>
             EndNoteXmlCodec.Write(document, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), cancellation.Token));

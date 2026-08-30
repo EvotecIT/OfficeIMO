@@ -65,13 +65,14 @@ public sealed class BibliographyItem {
     /// <summary>Sets or removes the first identifier matching a scheme.</summary>
     public void SetIdentifier(string scheme, string? value) {
         if (string.IsNullOrWhiteSpace(scheme)) throw new ArgumentException("Identifier scheme cannot be empty.", nameof(scheme));
-        BibliographyIdentifier? existing = Identifiers.FirstOrDefault(identifier => string.Equals(identifier.Scheme, scheme, StringComparison.OrdinalIgnoreCase));
+        string normalizedScheme = scheme.Trim();
+        BibliographyIdentifier? existing = Identifiers.FirstOrDefault(identifier => string.Equals(identifier.Scheme, normalizedScheme, StringComparison.OrdinalIgnoreCase));
         if (string.IsNullOrWhiteSpace(value)) {
             if (existing != null) Identifiers.Remove(existing);
         } else if (existing == null) {
-            Identifiers.Add(new BibliographyIdentifier(scheme, value!));
+            Identifiers.Add(new BibliographyIdentifier(normalizedScheme, value!));
         } else {
-            existing!.Value = value!.Trim();
+            existing!.Value = value!;
         }
     }
 

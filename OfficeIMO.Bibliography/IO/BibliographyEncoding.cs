@@ -9,10 +9,10 @@ internal static class BibliographyEncoding {
         if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xFE && bytes[3] == 0xFF) return new UTF32Encoding(true, true, true);
         if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) return new UnicodeEncoding(false, true, true);
         if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) return new UnicodeEncoding(true, true, true);
-        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x00 && bytes[3] == 0x3C) return new UTF32Encoding(true, false, true);
-        if (bytes.Length >= 4 && bytes[0] == 0x3C && bytes[1] == 0x00 && bytes[2] == 0x00 && bytes[3] == 0x00) return new UTF32Encoding(false, false, true);
-        if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x3C && bytes[2] == 0x00 && bytes[3] == 0x3F) return new UnicodeEncoding(true, false, true);
-        if (bytes.Length >= 4 && bytes[0] == 0x3C && bytes[1] == 0x00 && bytes[2] == 0x3F && bytes[3] == 0x00) return new UnicodeEncoding(false, false, true);
+        if (StartsWithXmlMarkup(bytes, 4, true)) return new UTF32Encoding(true, false, true);
+        if (StartsWithXmlMarkup(bytes, 4, false)) return new UTF32Encoding(false, false, true);
+        if (StartsWithXmlMarkup(bytes, 2, true)) return new UnicodeEncoding(true, false, true);
+        if (StartsWithXmlMarkup(bytes, 2, false)) return new UnicodeEncoding(false, false, true);
 
         var fallback = new UTF8Encoding(false, true);
         string prefix = Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, 4096));
@@ -129,5 +129,19 @@ internal static class BibliographyEncoding {
         if (preamble.Length == 0 || bytes.Length < preamble.Length) return false;
         for (int index = 0; index < preamble.Length; index++) if (bytes[index] != preamble[index]) return false;
         return true;
+    }
+
+    private static bool StartsWithXmlMarkup(byte[] bytes, int width, bool bigEndian) {
+        int maximum = Math.Min(bytes.Length - bytes.Length % width, 4096);
+        for (int offset = 0; offset < maximum; offset += width) {
+            uint value = 0;
+            for (int index = 0; index < width; index++) {
+                int sourceIndex = bigEndian ? offset + index : offset + width - index - 1;
+                value = (value << 8) | bytes[sourceIndex];
+            }
+            if (value == '<') return true;
+            if (value != ' ' && value != '\t' && value != '\r' && value != '\n' && value != 0xFEFF) return false;
+        }
+        return false;
     }
 }

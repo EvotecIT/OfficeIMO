@@ -158,8 +158,8 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
                 Loss(report, item, "contributors", "BIBCONV236", $"A structured contributor name contains a comma that is indistinguishable from {format} name-component separators.", BibliographyConversionAction.Approximated);
-            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix)))
-                Loss(report, item, "contributors", "BIBCONV243", $"A structured contributor name contains surrounding whitespace that is trimmed by {format} name parsing.", BibliographyConversionAction.Approximated);
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix) || HasLeadingWhitespace(contributor.Name.Literal)))
+                Loss(report, item, "contributors", "BIBCONV243", $"A contributor name contains whitespace that is trimmed by {format} name parsing.", BibliographyConversionAction.Approximated);
         }
         if (ReordersContributors(item, format, cancellationToken))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
@@ -196,6 +196,7 @@ internal static class BibliographyConversionInspector {
 
     private static bool ContainsComma(string? value) => value?.IndexOf(',') >= 0;
     private static bool HasSurroundingWhitespace(string? value) => value != null && !string.Equals(value, value.Trim(), StringComparison.Ordinal);
+    private static bool HasLeadingWhitespace(string? value) => !string.IsNullOrEmpty(value) && char.IsWhiteSpace(value![0]);
 
     private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
@@ -225,7 +226,7 @@ internal static class BibliographyConversionInspector {
                  !date.EndYear.HasValue && (date.EndMonth.HasValue || date.EndDay.HasValue));
             if (cslOmitsNumericParts || format != BibliographyFormat.CslJson && ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue))
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
-            if (date.EndYear.HasValue && format != BibliographyFormat.CslJson && format != BibliographyFormat.BibLatex && format != BibliographyFormat.EndNoteXml)
+            if (date.EndYear.HasValue && !CanRoundTripDateRange(format, date.Role))
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);
             if (format != BibliographyFormat.CslJson && date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal))
                 Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV221", $"The literal date value is not represented alongside numeric date parts in {format}.", BibliographyConversionAction.Omitted);
@@ -233,6 +234,14 @@ internal static class BibliographyConversionInspector {
                 !date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal) && CodecMappings.IsStructuredDateText(date.Literal!))
                 Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV240", $"A parseable literal date is reopened as structured numeric parts in {format}.", BibliographyConversionAction.Approximated);
         }
+    }
+
+    private static bool CanRoundTripDateRange(BibliographyFormat format, BibliographyDateRole role) {
+        if (format == BibliographyFormat.CslJson)
+            return role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event;
+        if (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris)
+            return role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed;
+        return (format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) && role == BibliographyDateRole.Issued;
     }
 
     private static bool IsValidDate(int? year, int? month, int? day) {

@@ -559,7 +559,7 @@ internal static class TaggedCodec {
     internal static bool CanRoundTripNbibIdentifier(BibliographyIdentifier identifier) =>
         string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) ||
-        identifier.Scheme.IndexOf(" [", StringComparison.Ordinal) < 0;
+        string.Equals(identifier.Value, identifier.Value.Trim(), StringComparison.Ordinal) && identifier.Scheme.IndexOf(" [", StringComparison.Ordinal) < 0;
     internal static bool CanRoundTripNbibType(BibliographyItemType type) => TryGetNbibPublicationType(type, out _);
     private static bool TryGetNbibPublicationType(BibliographyItemType type, out string? value) {
         switch (type) {

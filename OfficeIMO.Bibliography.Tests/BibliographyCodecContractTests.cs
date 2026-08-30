@@ -176,7 +176,7 @@ public sealed class BibliographyCodecContractTests {
     public void Date_range_reports_loss_for_destination_without_exact_range_contract() {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"range\",\"type\":\"book\",\"issued\":{\"date-parts\":[[2024],[2025]]}}]", BibliographyFormat.CslJson).Document;
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.Ris, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.BibTex, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV219");
     }
