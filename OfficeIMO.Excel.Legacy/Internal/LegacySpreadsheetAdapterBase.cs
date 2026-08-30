@@ -38,9 +38,11 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
         var sheet = new LegacySpreadsheetSheet("Sheet1");
         model.Sheets.Add(sheet);
         int row = 1;
+        int inspectedRecords = 0;
         int truncatedCellCount = 0;
         foreach (string line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (++inspectedRecords > limits.MaxRecords) throw new InvalidDataException("Legacy spreadsheet exceeds the configured record limit.");
             if (string.IsNullOrWhiteSpace(line)) continue;
             if (row > 1048576) throw new InvalidDataException("Legacy spreadsheet row is outside the supported workbook model.");
             char separator = line.IndexOf('\t') >= 0 ? '\t' : line.IndexOf(',') >= 0 ? ',' : '\0';

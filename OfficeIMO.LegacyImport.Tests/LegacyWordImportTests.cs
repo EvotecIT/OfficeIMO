@@ -257,6 +257,34 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void RecoveredStylesDoNotReuseApplicationRegisteredStyleIds() {
+        const string sourceStyleName = "BodyCollisionProbe2405";
+        const string registeredStyleId = "LegacyBodyCollisionProbe2405";
+        WordParagraphStyle.RegisterCustomStyle(registeredStyleId, new WordParagraphStyleDefinition(registeredStyleId) {
+            Name = "Unrelated application style",
+            Bold = true
+        });
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarWithStyle(sourceStyleName),
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        DocumentFormat.OpenXml.Packaging.WordprocessingDocument package = imported.Document.OpenXmlDocument
+            ?? throw new InvalidDataException("Imported document has no Open XML package.");
+        DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart = package.MainDocumentPart
+            ?? throw new InvalidDataException("Imported document has no main document part.");
+        DocumentFormat.OpenXml.Wordprocessing.Document mainDocument = mainPart.Document
+            ?? throw new InvalidDataException("Imported document has no document root.");
+        DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph = mainDocument.Body!
+            .Elements<DocumentFormat.OpenXml.Wordprocessing.Paragraph>().Single();
+        Assert.Equal(registeredStyleId + "2", paragraph.ParagraphProperties!.ParagraphStyleId!.Val!.Value);
+        DocumentFormat.OpenXml.Wordprocessing.Style projectedStyle = mainPart.StyleDefinitionsPart!.Styles!
+            .Elements<DocumentFormat.OpenXml.Wordprocessing.Style>()
+            .Single(style => style.StyleId?.Value == registeredStyleId + "2");
+        Assert.Equal(sourceStyleName, projectedStyle.StyleName!.Val!.Value);
+    }
+
+    [Fact]
     public void WordStarStyleSequenceTextCannotExceedTheSharedCharacterBudget() {
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
             LegacyFixtureFactory.WordStarWithStyle(new string('S', 32)),

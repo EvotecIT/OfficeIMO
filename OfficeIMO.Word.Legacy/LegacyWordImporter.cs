@@ -107,9 +107,17 @@ public static class LegacyWordImporter {
     private static WordDocument Project(LegacyWordModel model, CancellationToken cancellationToken) {
         WordDocument document = WordDocument.Create();
         try {
+            document.EnsureStyleDefinitionsInitialized();
             WordList? activeList = null;
             var styleIds = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var usedStyleIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            Styles? existingStyles = document.OpenXmlDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (existingStyles != null) {
+                foreach (OpenXmlStyle style in existingStyles.Elements<OpenXmlStyle>()) {
+                    string? styleId = style.StyleId?.Value;
+                    if (!string.IsNullOrWhiteSpace(styleId)) usedStyleIds.Add(styleId!);
+                }
+            }
             foreach (LegacyWordParagraph source in model.Paragraphs) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (source.IsList) {

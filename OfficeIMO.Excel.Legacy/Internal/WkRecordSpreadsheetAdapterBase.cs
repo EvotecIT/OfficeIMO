@@ -278,6 +278,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         int count = 0;
         while (count < available && data[offset + count] != 0) count++;
         if (count == available) throw new InvalidDataException("WK label text is missing its required null terminator.");
+        if (count != available - 1) throw new InvalidDataException("WK label text has unconsumed bytes after its null terminator.");
         return DecodeStrictAscii(data, offset, count);
     }
 
@@ -285,6 +286,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         if (length < 1) throw new InvalidDataException("Truncated Pascal string.");
         int count = data[offset];
         if (count > length - 1) throw new InvalidDataException("Pascal string length exceeds its record.");
+        if (count != length - 1) throw new InvalidDataException("Pascal string has unconsumed bytes in its record.");
         return DecodeStrictAscii(data, offset + 1, count);
     }
 

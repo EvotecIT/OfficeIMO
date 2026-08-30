@@ -267,6 +267,25 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
     }
 
+    [Theory]
+    [InlineData(false, "archive.wk1")]
+    [InlineData(true, "archive.wq2")]
+    public void StructuredWkLabelsRejectTrailingPayload(bool pascal, string sourceName) {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkLabelWithTrailingByte(pascal),
+            new LegacySpreadsheetImportOptions { SourceName = sourceName, RequireStructured = true }));
+    }
+
+    [Fact]
+    public void SalvageSpreadsheetParsingEnforcesTheRecordLimit() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Multiplan(),
+            new LegacySpreadsheetImportOptions {
+                FormatHint = LegacySpreadsheetFormat.Multiplan,
+                Limits = new OfficeLegacyImportLimits { MaxRecords = 1, MaxItems = 100 }
+            }));
+    }
+
     [Fact]
     public void WkParserRejectsRecordsAfterEofAndBoundsMetadataText() {
         byte[] trailingCell = { 0x0D, 0x00, 0x07, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x63, 0x00 };

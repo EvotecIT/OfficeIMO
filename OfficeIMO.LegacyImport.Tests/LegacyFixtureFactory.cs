@@ -137,6 +137,19 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] WkLabelWithTrailingByte(bool pascal) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, pascal ? new byte[] { 0x21, 0x51 } : new byte[] { 0x06, 0x04 });
+        byte[] payload = pascal
+            ? new byte[] { 0, 0, 0, 0, 0, 0, (byte)'\'', 1, (byte)'A', 0x7F }
+            : LabelPayload(0, 0, (byte)'\'', new byte[] { (byte)'A', 0, 0x7F });
+        Record(writer, 0x000F, payload);
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] WkFixedCellWithTrailingByte(ushort recordType) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
