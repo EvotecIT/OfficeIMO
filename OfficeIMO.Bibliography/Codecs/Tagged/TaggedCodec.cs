@@ -509,8 +509,9 @@ internal static class TaggedCodec {
     }
     private static void WriteRisIdentifier(StringBuilder builder, BibliographyIdentifier identifier, string lineEnding) { if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "DO", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "SN", identifier.Value, lineEnding); else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "AN", identifier.Value.IndexOf(':') >= 0 ? "accession:" + identifier.Value : identifier.Value, lineEnding); else WriteTag(builder, "AN", identifier.Scheme + ":" + identifier.Value, lineEnding); }
     internal static bool CanRoundTripRisIdentifier(BibliographyIdentifier identifier) {
-        if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return true;
-        if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.OrdinalIgnoreCase);
+        if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, "DOI", StringComparison.Ordinal);
+        if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, "accession", StringComparison.Ordinal);
+        if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.Ordinal);
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
     internal static bool CanRoundTripRisType(BibliographyItemType type) =>
@@ -557,8 +558,9 @@ internal static class TaggedCodec {
         else if (CanRoundTripNbibIdentifier(identifier)) WriteTag(builder, NbibIdentifierTag(item, identifier), identifier.Value + " [" + identifier.Scheme + "]", lineEnding);
     }
     internal static bool CanRoundTripNbibIdentifier(BibliographyIdentifier identifier) =>
-        string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(identifier.Scheme, "PMID", StringComparison.Ordinal) ||
+        string.Equals(identifier.Scheme, "ISSN", StringComparison.Ordinal) ||
+        !string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) &&
         string.Equals(identifier.Value, identifier.Value.Trim(), StringComparison.Ordinal) && identifier.Scheme.IndexOf(" [", StringComparison.Ordinal) < 0;
     internal static bool CanRoundTripNbibType(BibliographyItemType type) => TryGetNbibPublicationType(type, out _);
     private static bool TryGetNbibPublicationType(BibliographyItemType type, out string? value) {

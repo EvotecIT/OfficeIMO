@@ -1,6 +1,7 @@
 namespace OfficeIMO.Bibliography;
 
 public sealed partial class BibliographyDocument {
+    private const int SynchronousWriteChunkSize = 81920;
     /// <summary>Loads bibliography data from a path, detecting format by extension and content when needed.</summary>
     public static BibliographyReadResult Load(string path, BibliographyFormat? format = null, BibliographyReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
@@ -45,7 +46,8 @@ public sealed partial class BibliographyDocument {
     public BibliographyWriteResult Save(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         BibliographyWriteResult result = Write(options, cancellationToken);
-        File.WriteAllBytes(path, result.Bytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)) WriteAllBytes(stream, result.Bytes, cancellationToken);
         return result;
     }
 
@@ -53,8 +55,9 @@ public sealed partial class BibliographyDocument {
     public BibliographyWriteResult Save(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         BibliographyWriteResult result = Write(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PrepareOutputStream(stream);
-        stream.Write(result.Bytes, 0, result.Bytes.Length);
+        WriteAllBytes(stream, result.Bytes, cancellationToken);
         RewindOutputStream(stream);
         return result;
     }
@@ -86,6 +89,16 @@ public sealed partial class BibliographyDocument {
 
     private static void RewindOutputStream(Stream stream) {
         if (stream.CanSeek) stream.Position = 0;
+    }
+
+    private static void WriteAllBytes(Stream stream, byte[] bytes, CancellationToken cancellationToken) {
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(SynchronousWriteChunkSize, bytes.Length - offset);
+            stream.Write(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static byte[] ReadAllBytes(Stream stream, long maximum, CancellationToken cancellationToken) {

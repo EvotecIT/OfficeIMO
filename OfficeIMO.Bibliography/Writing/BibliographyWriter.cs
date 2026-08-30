@@ -303,7 +303,10 @@ internal static class BibliographyConversionInspector {
         }
         if (format != BibliographyFormat.EndNoteXml) return;
         foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) {
-            if (!string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase))
+            bool exactSerial = string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase);
+            bool exactDoi = string.Equals(identifier.Scheme, "DOI", StringComparison.Ordinal);
+            bool exactAccession = string.Equals(identifier.Scheme, "accession", StringComparison.Ordinal);
+            if (!exactSerial && !exactDoi && !exactAccession)
                 Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV204", $"Identifier scheme '{identifier.Scheme}' is not represented in EndNote XML.", BibliographyConversionAction.Omitted);
         }
     }

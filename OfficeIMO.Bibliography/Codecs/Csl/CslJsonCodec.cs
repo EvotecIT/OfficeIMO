@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Text.Json;
 
 namespace OfficeIMO.Bibliography;
@@ -533,48 +534,55 @@ internal static class CslJsonCodec {
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (!stream.TryGetBuffer(out ArraySegment<byte> buffer) || buffer.Array == null) throw new InvalidOperationException("The CSL JSON input buffer is unavailable.");
-        ValidateBeforeMaterialization(new ReadOnlySpan<byte>(buffer.Array, buffer.Offset, checked((int)stream.Length)), options, partialItems, cancellationToken);
+        ValidateBeforeMaterialization(buffer.Array, buffer.Offset, checked((int)stream.Length), options, partialItems, cancellationToken);
         stream.Position = 0;
         return JsonDocument.ParseAsync(stream, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth }, cancellationToken).GetAwaiter().GetResult();
     }
 
-    private static void ValidateBeforeMaterialization(ReadOnlySpan<byte> source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
-        if (source.Length >= 3 && source[0] == 0xEF && source[1] == 0xBB && source[2] == 0xBF) source = source.Slice(3);
+    private static void ValidateBeforeMaterialization(byte[] sourceBytes, int sourceOffset, int sourceLength, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
+        int utf16BaseOffset = 0;
+        if (sourceLength >= 3 && sourceBytes[sourceOffset] == 0xEF && sourceBytes[sourceOffset + 1] == 0xBB && sourceBytes[sourceOffset + 2] == 0xBF) {
+            sourceOffset += 3;
+            sourceLength -= 3;
+            utf16BaseOffset = 1;
+        }
+        ReadOnlySpan<byte> source = new ReadOnlySpan<byte>(sourceBytes, sourceOffset, sourceLength);
         var limits = new BibliographyLimitGuard(options);
-        var reader = new Utf8JsonReader(source, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
+        using var cancellationAwareSource = new CancellationAwareJsonSequence(sourceBytes, sourceOffset, sourceLength, cancellationToken);
+        var reader = new Utf8JsonReader(cancellationAwareSource.Sequence, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
         var arrayContainers = new List<bool>();
         var containerOffsets = new List<int>();
         var containerUtf16Starts = new List<int>();
         var boundedContainers = new List<bool>();
         bool rootIsArray = false;
         int measuredByteOffset = 0;
-        int measuredUtf16Offset = 0;
+        int measuredUtf16Offset = utf16BaseOffset;
         int tokenCount = 0;
         while (reader.Read()) {
             if ((tokenCount++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            int tokenByteOffset = checked((int)reader.TokenStartIndex);
+            AdvanceJsonUtf16Offset(source, tokenByteOffset, ref measuredByteOffset, ref measuredUtf16Offset, cancellationToken);
+            int tokenUtf16Offset = measuredUtf16Offset;
             JsonTokenType token = reader.TokenType;
             bool parentIsArray = arrayContainers.Count > 0 && arrayContainers[arrayContainers.Count - 1];
             if (token == JsonTokenType.PropertyName) {
-                int offset = checked((int)reader.TokenStartIndex);
-                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped), offset);
-                limits.AddValue(partialItems, null, offset);
+                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(ref reader, cancellationToken), tokenUtf16Offset);
+                limits.AddValue(partialItems, null, tokenUtf16Offset);
                 continue;
             }
             if (token == JsonTokenType.StartObject || token == JsonTokenType.StartArray || token == JsonTokenType.String || token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null) {
-                if (parentIsArray && !(rootIsArray && arrayContainers.Count == 1)) limits.AddValue(partialItems, null, checked((int)reader.TokenStartIndex));
+                if (parentIsArray && !(rootIsArray && arrayContainers.Count == 1)) limits.AddValue(partialItems, null, tokenUtf16Offset);
                 if (token == JsonTokenType.StartObject && (arrayContainers.Count == 0 || rootIsArray && arrayContainers.Count == 1))
-                    limits.AddItem(partialItems, checked((int)reader.TokenStartIndex));
+                    limits.AddItem(partialItems, tokenUtf16Offset);
             }
             if (token == JsonTokenType.String)
-                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped), checked((int)reader.TokenStartIndex));
+                limits.CheckValueLength(partialItems, GetJsonStringUtf16Length(ref reader, cancellationToken), tokenUtf16Offset);
             else if (token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null)
-                limits.CheckValueLength(partialItems, reader.ValueSpan.Length, checked((int)reader.TokenStartIndex));
+                limits.CheckValueLength(partialItems, checked((int)(reader.HasValueSequence ? reader.ValueSequence.Length : reader.ValueSpan.Length)), tokenUtf16Offset);
             if (token == JsonTokenType.StartArray || token == JsonTokenType.StartObject) {
                 bool rootContainer = arrayContainers.Count == 0;
                 bool itemContainer = token == JsonTokenType.StartObject && (rootContainer || rootIsArray && arrayContainers.Count == 1);
-                int containerOffset = checked((int)reader.TokenStartIndex);
-                AdvanceJsonUtf16Offset(source, containerOffset, ref measuredByteOffset, ref measuredUtf16Offset, cancellationToken);
-                containerOffsets.Add(containerOffset);
+                containerOffsets.Add(tokenUtf16Offset);
                 containerUtf16Starts.Add(measuredUtf16Offset);
                 boundedContainers.Add(!rootContainer && !itemContainer);
             }
@@ -614,9 +622,42 @@ internal static class CslJsonCodec {
         byteOffset = targetByteOffset;
     }
 
-    private static int GetJsonStringUtf16Length(ReadOnlySpan<byte> value, bool escaped) {
+    private static int GetJsonStringUtf16Length(ref Utf8JsonReader reader, CancellationToken cancellationToken) {
+        if (!reader.HasValueSequence) return GetJsonStringUtf16Length(reader.ValueSpan, reader.ValueIsEscaped, cancellationToken);
+        int length = 0;
+        int processed = 0;
+        int utf8ContinuationBytes = 0;
+        int unicodeEscapeDigits = 0;
+        bool escapeCodePending = false;
+        foreach (ReadOnlyMemory<byte> memory in reader.ValueSequence) {
+            ReadOnlySpan<byte> segment = memory.Span;
+            for (int index = 0; index < segment.Length; index++) {
+                if ((processed++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                byte current = segment[index];
+                if (utf8ContinuationBytes > 0) { utf8ContinuationBytes--; continue; }
+                if (unicodeEscapeDigits > 0) { unicodeEscapeDigits--; continue; }
+                if (escapeCodePending) {
+                    escapeCodePending = false;
+                    if (current == (byte)'u') unicodeEscapeDigits = 4;
+                    continue;
+                }
+                if (reader.ValueIsEscaped && current == (byte)'\\') {
+                    length++;
+                    escapeCodePending = true;
+                } else if (current < 0x80) length++;
+                else if (current < 0xE0) { length++; utf8ContinuationBytes = 1; }
+                else if (current < 0xF0) { length++; utf8ContinuationBytes = 2; }
+                else { length += 2; utf8ContinuationBytes = 3; }
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return length;
+    }
+
+    private static int GetJsonStringUtf16Length(ReadOnlySpan<byte> value, bool escaped, CancellationToken cancellationToken) {
         int length = 0;
         for (int index = 0; index < value.Length;) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = value[index];
             if (escaped && current == (byte)'\\') {
                 length++;
@@ -635,7 +676,68 @@ internal static class CslJsonCodec {
                 index += 4;
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return length;
+    }
+
+    private sealed class CancellationAwareJsonSequence : IDisposable {
+        private const int SegmentSize = 4096;
+        private readonly List<CancellationAwareMemoryManager> _managers = new List<CancellationAwareMemoryManager>();
+
+        internal CancellationAwareJsonSequence(byte[] source, int offset, int length, CancellationToken cancellationToken) {
+            if (length == 0) { Sequence = ReadOnlySequence<byte>.Empty; return; }
+            JsonSequenceSegment? first = null;
+            JsonSequenceSegment? last = null;
+            int end = checked(offset + length);
+            for (int position = offset; position < end;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(SegmentSize, end - position);
+                var manager = new CancellationAwareMemoryManager(source, position, count, cancellationToken);
+                _managers.Add(manager);
+                if (first == null) first = last = new JsonSequenceSegment(manager.Memory);
+                else last = last!.Append(manager.Memory);
+                position += count;
+            }
+            Sequence = new ReadOnlySequence<byte>(first!, 0, last!, last!.Memory.Length);
+        }
+
+        internal ReadOnlySequence<byte> Sequence { get; }
+
+        public void Dispose() {
+            foreach (CancellationAwareMemoryManager manager in _managers) ((IDisposable)manager).Dispose();
+        }
+    }
+
+    private sealed class JsonSequenceSegment : ReadOnlySequenceSegment<byte> {
+        internal JsonSequenceSegment(ReadOnlyMemory<byte> memory) => Memory = memory;
+        internal JsonSequenceSegment Append(ReadOnlyMemory<byte> memory) {
+            var segment = new JsonSequenceSegment(memory) { RunningIndex = RunningIndex + Memory.Length };
+            Next = segment;
+            return segment;
+        }
+    }
+
+    private sealed class CancellationAwareMemoryManager : MemoryManager<byte> {
+        private readonly byte[] _source;
+        private readonly int _offset;
+        private readonly int _length;
+        private readonly CancellationToken _cancellationToken;
+
+        internal CancellationAwareMemoryManager(byte[] source, int offset, int length, CancellationToken cancellationToken) {
+            _source = source;
+            _offset = offset;
+            _length = length;
+            _cancellationToken = cancellationToken;
+        }
+
+        public override Span<byte> GetSpan() {
+            _cancellationToken.ThrowIfCancellationRequested();
+            return new Span<byte>(_source, _offset, _length);
+        }
+
+        public override MemoryHandle Pin(int elementIndex = 0) => throw new NotSupportedException();
+        public override void Unpin() { }
+        protected override void Dispose(bool disposing) { }
     }
     private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
