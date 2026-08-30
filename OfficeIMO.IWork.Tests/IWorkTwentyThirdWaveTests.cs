@@ -40,6 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
+    [InlineData("1", PowerPointNumberingScheme.ArabicPlain, 1)]
     [InlineData("1.", PowerPointNumberingScheme.ArabicPeriod, 1)]
     [InlineData("a.", PowerPointNumberingScheme.AlphaLowerCharacterPeriod, 1)]
     [InlineData("iv.", PowerPointNumberingScheme.RomanLowerCharacterPeriod, 4)]

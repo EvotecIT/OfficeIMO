@@ -503,7 +503,7 @@ internal static class IWorkPagesReader {
             if (text == null) throw new InvalidDataException("The cached Pages text content is unavailable.");
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             if (text.PlainText.Length == 0) continue;
-            projectionBudget.AddTextContentUse(text, includeCharacters: reused);
+            if (reused) projectionBudget.AddTextContentUse(text, includeCharacters: true);
             destination.Add(text);
         }
     }
@@ -535,6 +535,9 @@ internal static class IWorkPagesReader {
     internal static string CleanText(string value) => value
         .Replace("\uFFFC", string.Empty)
         .Replace("\uFFFB", string.Empty)
+        .Replace("\u0004", "\n")
+        .Replace("\u0005", "\n")
+        .Replace("\u000C", "\n")
         .Replace("\u2028", "\n")
         .Replace("\u2029", "\n")
         .Replace("\r\n", "\n")

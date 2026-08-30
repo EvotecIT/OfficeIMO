@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_pages_headers_are_charged_by_destination_text_complexity() {
         using MemoryStream package = CreatePagesPackageWithRepeatedHeader(sectionCount: 2);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaximumProjectedTextItems = 7 });
+            new IWorkReadOptions { MaximumProjectedTextItems = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 

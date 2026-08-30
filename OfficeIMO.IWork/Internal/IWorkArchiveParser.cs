@@ -116,8 +116,7 @@ internal static class IWorkArchiveParser {
         IWorkReadOptions options) {
         var records = new List<IWorkArchiveRecord>();
         long totalDecompressedBytes = 0;
-        foreach (IWorkPackageEntry entry in entries.Where(candidate =>
-                     candidate.Path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase))) {
+        foreach (IWorkPackageEntry entry in entries.Where(candidate => IsIndexArchivePath(candidate.Path))) {
             byte[] stream;
             try {
                 long remaining = options.MaximumTotalDecompressedIwaBytes - totalDecompressedBytes;
@@ -130,6 +129,10 @@ internal static class IWorkArchiveParser {
         }
         return records;
     }
+
+    internal static bool IsIndexArchivePath(string path) =>
+        path.StartsWith("Index/", StringComparison.OrdinalIgnoreCase)
+        && path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
 
     private static void ParseStream(byte[] stream, string entryPath, List<IWorkArchiveRecord> records,
         IWorkReadOptions options) {

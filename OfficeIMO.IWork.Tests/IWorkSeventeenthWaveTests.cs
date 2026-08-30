@@ -231,13 +231,15 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
     }
 
-    private static byte[] CreateOnePageClassicPdf(bool validKids) {
+    private static byte[] CreateOnePageClassicPdf(bool validKids,
+        string pageDictionaryPrefix = "", string trailerDictionaryPrefix = "") {
         const string header = "%PDF-1.4\n";
         const string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
         string pages = validKids
             ? "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n"
             : "2 0 obj\n<< /Type /Pages /Count 1 /Kids [] >>\nendobj\n";
-        const string page = "3 0 obj\n<< /Type /Page /Parent 2 0 R >>\nendobj\n";
+        string page = "3 0 obj\n<< /Type /Page " + pageDictionaryPrefix
+            + "/Parent 2 0 R >>\nendobj\n";
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);
         int pageOffset = Encoding.ASCII.GetByteCount(header + catalog + pages);
@@ -247,7 +249,8 @@ public sealed partial class IWorkBoundaryTests {
             + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
             + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
             + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
-            + "trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n"
+            + "trailer\n<< " + trailerDictionaryPrefix
+            + "/Size 4 /Root 1 0 R >>\nstartxref\n"
             + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n%%EOF\n";
         return Encoding.ASCII.GetBytes(prefix + suffix);

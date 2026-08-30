@@ -112,7 +112,8 @@ internal static class IWorkPdfInfo {
         trailerOffset = offset;
         int dictionaryStart = IndexOf(bytes, "<<", offset + 7, Math.Min(limit, offset + 65536));
         if (dictionaryStart < 0) return false;
-        int dictionaryEnd = IndexOf(bytes, ">>", dictionaryStart + 2, Math.Min(limit, dictionaryStart + 65536));
+        int dictionaryEnd = FindDictionaryEnd(bytes, dictionaryStart,
+            Math.Min(limit, dictionaryStart + 65536));
         if (dictionaryEnd < 0
             || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Size", out size)
             || size <= 0 || IndexOfDictionaryName(bytes, "/XRefStm", dictionaryStart, dictionaryEnd) >= 0) {
@@ -261,8 +262,66 @@ internal static class IWorkPdfInfo {
         int objectEnd = IndexOf(bytes, "endobj", offset + 3, Math.Min(limit, offset + 65536));
         if (objectEnd < 0) return false;
         dictionaryStart = IndexOf(bytes, "<<", offset + 3, objectEnd);
-        dictionaryEnd = dictionaryStart < 0 ? -1 : IndexOf(bytes, ">>", dictionaryStart + 2, objectEnd);
+        dictionaryEnd = dictionaryStart < 0 ? -1 : FindDictionaryEnd(bytes, dictionaryStart, objectEnd);
         return dictionaryStart >= 0 && dictionaryEnd >= 0;
+    }
+
+    private static int FindDictionaryEnd(byte[] bytes, int start, int limit) {
+        if (start < 0 || start >= limit - 1
+            || bytes[start] != (byte)'<' || bytes[start + 1] != (byte)'<') return -1;
+        int depth = 0;
+        int literalDepth = 0;
+        bool escaped = false;
+        bool inHexString = false;
+        bool inComment = false;
+        for (int offset = start; offset < limit; offset++) {
+            byte current = bytes[offset];
+            if (inComment) {
+                if (current is 0x0a or 0x0d) inComment = false;
+                continue;
+            }
+            if (literalDepth > 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == (byte)'\\') {
+                    escaped = true;
+                } else if (current == (byte)'(') {
+                    literalDepth++;
+                } else if (current == (byte)')') {
+                    literalDepth--;
+                }
+                continue;
+            }
+            if (inHexString) {
+                if (current == (byte)'>') inHexString = false;
+                continue;
+            }
+            if (current == (byte)'%') {
+                inComment = true;
+                continue;
+            }
+            if (current == (byte)'(') {
+                literalDepth = 1;
+                continue;
+            }
+            if (current == (byte)'<' && offset + 1 < limit) {
+                if (bytes[offset + 1] == (byte)'<') {
+                    depth++;
+                    offset++;
+                } else {
+                    inHexString = true;
+                }
+                continue;
+            }
+            if (current == (byte)'>' && offset + 1 < limit
+                && bytes[offset + 1] == (byte)'>') {
+                depth--;
+                if (depth == 0) return offset;
+                if (depth < 0) return -1;
+                offset++;
+            }
+        }
+        return -1;
     }
 
     private static bool HasDictionaryNameValue(byte[] bytes, int start, int end,
@@ -276,13 +335,115 @@ internal static class IWorkPdfInfo {
     }
 
     private static int IndexOfDictionaryName(byte[] bytes, string name, int start, int end) {
-        int offset = Math.Max(0, start);
-        while (offset < end) {
-            int found = IndexOf(bytes, name, offset, end);
-            if (found < 0) return -1;
-            int after = found + name.Length;
-            if (after >= end || IsDelimiter(bytes[after])) return found;
-            offset = found + 1;
+        int dictionaryDepth = 0;
+        int arrayDepth = 0;
+        int literalDepth = 0;
+        bool escaped = false;
+        bool inHexString = false;
+        bool inComment = false;
+        bool expectingKey = true;
+        bool literalCompletesValue = false;
+        bool hexCompletesValue = false;
+        bool dictionaryCompletesValue = false;
+        bool arrayCompletesValue = false;
+        for (int offset = Math.Max(0, start); offset < end; offset++) {
+            byte current = bytes[offset];
+            if (inComment) {
+                if (current is 0x0a or 0x0d) inComment = false;
+                continue;
+            }
+            if (literalDepth > 0) {
+                if (escaped) {
+                    escaped = false;
+                } else if (current == (byte)'\\') {
+                    escaped = true;
+                } else if (current == (byte)'(') {
+                    literalDepth++;
+                } else if (current == (byte)')') {
+                    literalDepth--;
+                    if (literalDepth == 0 && literalCompletesValue) {
+                        expectingKey = true;
+                        literalCompletesValue = false;
+                    }
+                }
+                continue;
+            }
+            if (inHexString) {
+                if (current == (byte)'>') {
+                    inHexString = false;
+                    if (hexCompletesValue) {
+                        expectingKey = true;
+                        hexCompletesValue = false;
+                    }
+                }
+                continue;
+            }
+            if (current == (byte)'%') {
+                inComment = true;
+                continue;
+            }
+            if (current == (byte)'(') {
+                literalDepth = 1;
+                literalCompletesValue = dictionaryDepth == 1 && arrayDepth == 0 && !expectingKey;
+                continue;
+            }
+            if (current == (byte)'<' && offset + 1 < end) {
+                if (bytes[offset + 1] == (byte)'<') {
+                    if (dictionaryDepth == 1 && arrayDepth == 0 && !expectingKey) {
+                        dictionaryCompletesValue = true;
+                    }
+                    dictionaryDepth++;
+                    offset++;
+                } else {
+                    inHexString = true;
+                    hexCompletesValue = dictionaryDepth == 1 && arrayDepth == 0 && !expectingKey;
+                }
+                continue;
+            }
+            if (current == (byte)'>' && offset + 1 < end && bytes[offset + 1] == (byte)'>') {
+                dictionaryDepth--;
+                if (dictionaryDepth < 0) return -1;
+                if (dictionaryDepth == 1 && dictionaryCompletesValue) {
+                    expectingKey = true;
+                    dictionaryCompletesValue = false;
+                }
+                offset++;
+                continue;
+            }
+            if (current == (byte)'[') {
+                if (dictionaryDepth == 1 && arrayDepth == 0 && !expectingKey) {
+                    arrayCompletesValue = true;
+                }
+                arrayDepth++;
+                continue;
+            }
+            if (current == (byte)']') {
+                if (arrayDepth == 0) return -1;
+                arrayDepth--;
+                if (arrayDepth == 0 && arrayCompletesValue) {
+                    expectingKey = true;
+                    arrayCompletesValue = false;
+                }
+                continue;
+            }
+            if (dictionaryDepth != 1 || arrayDepth != 0 || IsWhitespace(current)) continue;
+            if (current == (byte)'/') {
+                int nameOffset = offset;
+                int tokenEnd = offset + 1;
+                while (tokenEnd < end && !IsDelimiter(bytes[tokenEnd])) tokenEnd++;
+                if (!expectingKey) {
+                    expectingKey = true;
+                    offset = tokenEnd - 1;
+                    continue;
+                }
+                bool matches = tokenEnd - offset == name.Length
+                    && StartsWith(bytes, offset, name);
+                expectingKey = false;
+                offset = tokenEnd - 1;
+                if (matches) return nameOffset;
+                continue;
+            }
+            if (!expectingKey) expectingKey = true;
         }
         return -1;
     }

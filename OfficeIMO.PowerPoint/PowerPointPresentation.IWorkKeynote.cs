@@ -393,12 +393,11 @@ public sealed partial class PowerPointPresentation {
         if (source.ListLevel >= 0) {
             paragraph.Level = Math.Min(8, source.ListLevel);
             if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
-            else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
-            else if (TryParseNumbering(source.ListLabel, out PowerPointNumberingScheme scheme,
+            else if (TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
                          out int start)) {
                 if (startsNewList) paragraph.SetNumbered(scheme, start);
                 else paragraph.SetNumbered(scheme);
-            }
+            } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
         }
     }
 

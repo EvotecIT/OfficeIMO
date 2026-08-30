@@ -93,7 +93,7 @@ public sealed partial class IWorkSourceDocument {
 
     private static IWorkSourceDocument Create(IWorkPackageData package, IWorkDocumentKind? hint,
         IWorkReadOptions options, IWorkDocumentKind? expectedKind) {
-        if (!package.Entries.Any(entry => entry.Path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase))) {
+        if (!package.Entries.Any(entry => IWorkArchiveParser.IsIndexArchivePath(entry.Path))) {
             string[] legacyMarkers = { "index.xml", "index.apxl", "index.apxl.gz" };
             if (package.Entries.Any(entry => legacyMarkers.Contains(entry.Path, StringComparer.OrdinalIgnoreCase))) {
                 throw new NotSupportedException("Pre-2013 iWork packages are not supported; this reader requires IWA archives.");
