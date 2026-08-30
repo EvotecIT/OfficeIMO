@@ -175,7 +175,10 @@ public sealed partial class DocBookDocument {
                 (expectedInfoName != null
                     ? !string.Equals(localName, expectedInfoName, StringComparison.Ordinal)
                     : parentKind != DocBookNodeKind.Unknown);
-            bool invalidParent = kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
+            bool invalidInlineParent = (kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference) &&
+                (parent == null || !CanContainInlineContent(parent));
+            bool invalidParent = invalidInlineParent ||
+                kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
                     parent?.Name != Namespace + "tfoot" ||
@@ -309,6 +312,22 @@ public sealed partial class DocBookDocument {
         RootElement.Add(chapter);
         MarkModified();
         return chapter;
+    }
+
+    internal bool CanContainInlineContent(XElement element) {
+        DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
+        return kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
+            kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.ProgramListing ||
+            kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Entry;
+    }
+
+    internal bool CanContainParagraphContent(XElement element) {
+        if (GetComponentInfoElementName(element) != null) return true;
+        DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
+        return kind == DocBookNodeKind.ListItem || kind == DocBookNodeKind.Note ||
+            kind == DocBookNodeKind.Tip || kind == DocBookNodeKind.Important ||
+            kind == DocBookNodeKind.Caution || kind == DocBookNodeKind.Warning ||
+            kind == DocBookNodeKind.Caption;
     }
 
     internal string? GetComponentInfoElementName(XElement component) {

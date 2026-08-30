@@ -599,6 +599,61 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void ProfileConversionDropsStaleDefaultNamespaceDeclarationsOnTypedVocabulary() {
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section xmlns=\"http://docbook.org/ns/docbook\"><title>Five</title></section></article>";
+        DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook45).Value;
+        XElement fourSection = asFour.Xml.Descendants().Single(element => element.Name.LocalName == "section");
+
+        Assert.Equal(XNamespace.None, fourSection.Name.Namespace);
+        Assert.DoesNotContain(fourSection.Attributes(), attribute => attribute.IsNamespaceDeclaration &&
+            attribute.Value == DocBookSchemaProfiles.DocBook52.NamespaceUri);
+
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section xmlns=\"\"><title>Four</title></section></article>";
+        DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
+            DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
+            profile: DocBookProfile.DocBook52).Value;
+        XElement fiveSection = asFive.Xml.Descendants().Single(element => element.Name.LocalName == "section");
+
+        Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, fiveSection.Name.NamespaceName);
+        Assert.DoesNotContain(fiveSection.Attributes(), attribute =>
+            attribute.IsNamespaceDeclaration && attribute.Value.Length == 0);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void AddLinkWrapsBlockContainersAndRejectsMetadataContainers(DocBookProfile profile) {
+        DocBookDocument article = DocBookDocument.CreateArticle(profile);
+        article.Root.AddLink("Root", "https://example.test/root");
+        article.AddSection("Section").AddLink("Section", "https://example.test/section");
+
+        Assert.All(article.Xml.Descendants().Where(element => element.Name.LocalName == "link" || element.Name.LocalName == "ulink"),
+            link => Assert.Equal("para", link.Parent!.Name.LocalName));
+        Assert.True(article.Validate().IsValid);
+        Assert.Throws<InvalidOperationException>(() =>
+            article.Root.Add(DocBookNodeKind.Info).AddLink("Metadata", "https://example.test/metadata"));
+
+        DocBookDocument book = DocBookDocument.CreateBook(profile);
+        book.Root.AddLink("Book", "https://example.test/book");
+
+        XElement bookLink = book.Xml.Descendants().Single(element => element.Name.LocalName == "link" || element.Name.LocalName == "ulink");
+        Assert.Equal("para", bookLink.Parent!.Name.LocalName);
+        Assert.Equal("chapter", bookLink.Parent.Parent!.Name.LocalName);
+        Assert.True(book.Validate().IsValid);
+    }
+
+    [Fact]
+    public void ValidationRejectsInlineLinksOutsideInlineContentParents() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><link xl:href=\"https://example.test/\">Site</link></article>");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB015" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void PrimaryTitleLookupIgnoresNamespacedExtensionTitles() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><section><x:title>Extension</x:title><para>Body</para></section></article>";
 

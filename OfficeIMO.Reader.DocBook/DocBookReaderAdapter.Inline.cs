@@ -98,14 +98,11 @@ internal static partial class DocBookReaderAdapter {
 
         internal string Text { get; }
         internal string? Destination { get; }
-
-        internal string ToMarkdown(string text) {
-            if (Destination == null) return text;
-            return "[" + EscapeLabel(text) + "](" + EscapeDestination(Destination) + ")";
-        }
-
-        private static string EscapeLabel(string value) =>
-            value.Replace("\\", "\\\\").Replace("[", "\\[").Replace("]", "\\]");
+        internal string MarkdownPrefix => Destination == null ? string.Empty : "[";
+        internal string MarkdownSuffix => Destination == null
+            ? string.Empty
+            : "](" + EscapeDestination(Destination) + ")";
+        internal bool EscapesMarkdownText => Destination != null;
 
         private static string EscapeDestination(string value) {
             var escaped = new System.Text.StringBuilder(value.Length);

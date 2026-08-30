@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Xml.Linq;
 using OfficeIMO;
@@ -127,12 +128,13 @@ internal static partial class DocBookReaderAdapter {
                 TryBuildInlineFragments(inlineProjectionNode, out IReadOnlyList<InlineFragment> inlineFragments)) {
                 int inlinePart = 0;
                 foreach (InlineFragment fragment in inlineFragments) {
-                    string markdown = fragment.ToMarkdown(fragment.Text);
+                    string markdownPrefix = fragment.MarkdownPrefix;
                     if (inlinePart == 0 && IsHeadingNode(node)) {
-                        markdown = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdown;
+                        markdownPrefix = new string('#', Math.Min(node.Level ?? 1, 6)) + " " + markdownPrefix;
                     }
-                    if (inlinePart == 0 && listMarker != null) markdown = listMarker.TakePrefix() + markdown;
-                    foreach (ProjectionPart projectionPart in SplitProjection(fragment.Text, markdown, reader.MaxChars)) {
+                    if (inlinePart == 0 && listMarker != null) markdownPrefix = listMarker.TakePrefix() + markdownPrefix;
+                    foreach (ProjectionPart projectionPart in SplitProjection(
+                                 fragment.Text, markdownPrefix, fragment.MarkdownSuffix, fragment.EscapesMarkdownText, reader.MaxChars)) {
                         yield return new ReaderChunk {
                             Id = inlinePart == 0 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (inlinePart + 1),
                             Kind = ReaderInputKind.DocBook,
@@ -157,15 +159,21 @@ internal static partial class DocBookReaderAdapter {
             string projectedText = structuralTitle?.Text ?? node.Text;
             if (!emittedInlineProjection && (!compoundExtension || structuralTitle != null) && !string.IsNullOrWhiteSpace(projectedText) &&
                 node.Kind != "metadata" && node.Kind != "author") {
-                string markdown;
+                string markdownPrefix;
+                string markdownSuffix;
                 if (preformatted) {
                     string codeFence = CreateCodeFence(projectedText);
-                    markdown = codeFence + "\n" + projectedText + "\n" + codeFence;
+                    markdownPrefix = codeFence + "\n";
+                    markdownSuffix = "\n" + codeFence;
                 } else {
-                    markdown = (IsHeadingNode(node) ? new string('#', Math.Min(node.Level ?? 1, 6)) + " " : string.Empty) + projectedText;
+                    markdownPrefix = IsHeadingNode(node)
+                        ? new string('#', Math.Min(node.Level ?? 1, 6)) + " "
+                        : string.Empty;
+                    markdownSuffix = string.Empty;
                 }
-                if (listMarker != null) markdown = listMarker.TakePrefix() + markdown;
-                IReadOnlyList<ProjectionPart> parts = SplitProjection(projectedText, markdown, reader.MaxChars);
+                if (listMarker != null) markdownPrefix = listMarker.TakePrefix() + markdownPrefix;
+                IReadOnlyList<ProjectionPart> parts = SplitProjection(
+                    projectedText, markdownPrefix, markdownSuffix, false, reader.MaxChars);
                 for (int part = 0; part < parts.Count; part++) {
                     yield return new ReaderChunk {
                         Id = parts.Count == 1 ? "docbook-" + currentSource : "docbook-" + currentSource + "-part-" + (part + 1),
@@ -271,22 +279,86 @@ internal static partial class DocBookReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<ProjectionPart> SplitProjection(string text, string markdown, int maxChars) {
+    private static IReadOnlyList<ProjectionPart> SplitProjection(
+        string text,
+        string markdownPrefix,
+        string markdownSuffix,
+        bool escapeMarkdownText,
+        int maxChars) {
         int effectiveMaxChars = Math.Max(1, maxChars);
-        IReadOnlyList<string> textParts = text.Length == 0
-            ? Array.Empty<string>()
-            : DocumentReaderEngine.SplitAdapterProjection(text, effectiveMaxChars);
-        IReadOnlyList<string> markdownParts = markdown.Length == 0
-            ? Array.Empty<string>()
-            : DocumentReaderEngine.SplitAdapterProjection(markdown, effectiveMaxChars);
-        int partCount = Math.Max(1, Math.Max(textParts.Count, markdownParts.Count));
-        var parts = new ProjectionPart[partCount];
-        for (int index = 0; index < partCount; index++) {
-            parts[index] = new ProjectionPart(
-                index < textParts.Count ? textParts[index] : string.Empty,
-                index < markdownParts.Count ? markdownParts[index] : string.Empty);
-        }
+        var parts = new List<ProjectionPart>();
+        var textPart = new StringBuilder();
+        var markdownPart = new StringBuilder();
+
+        AppendMarkup(markdownPrefix);
+        if (escapeMarkdownText) AppendEscapedText(); else AppendPlainText();
+        AppendMarkup(markdownSuffix);
+        Flush();
+        if (parts.Count == 0) parts.Add(new ProjectionPart(string.Empty, string.Empty));
         return parts;
+
+        void AppendPlainText() {
+            int offset = 0;
+            while (offset < text.Length) {
+                if (markdownPart.Length >= effectiveMaxChars) Flush();
+                int available = effectiveMaxChars - markdownPart.Length;
+                int length = Math.Min(available, text.Length - offset);
+                if (length > 0 && offset + length < text.Length &&
+                    char.IsHighSurrogate(text[offset + length - 1]) && char.IsLowSurrogate(text[offset + length])) {
+                    if (length == 1 && markdownPart.Length > 0) {
+                        Flush();
+                        continue;
+                    }
+                    length = length == 1 ? 2 : length - 1;
+                }
+                textPart.Append(text, offset, length);
+                markdownPart.Append(text, offset, length);
+                offset += length;
+                if (markdownPart.Length >= effectiveMaxChars) Flush();
+            }
+        }
+
+        void AppendEscapedText() {
+            for (int offset = 0; offset < text.Length;) {
+                int sourceLength = char.IsHighSurrogate(text[offset]) && offset + 1 < text.Length &&
+                    char.IsLowSurrogate(text[offset + 1]) ? 2 : 1;
+                bool escaped = sourceLength == 1 && (text[offset] == '\\' || text[offset] == '[' || text[offset] == ']');
+                int markdownLength = sourceLength + (escaped ? 1 : 0);
+                if (markdownPart.Length > 0 && markdownPart.Length + markdownLength > effectiveMaxChars) Flush();
+                textPart.Append(text, offset, sourceLength);
+                if (escaped) markdownPart.Append('\\');
+                markdownPart.Append(text, offset, sourceLength);
+                offset += sourceLength;
+                if (markdownPart.Length >= effectiveMaxChars) Flush();
+            }
+        }
+
+        void AppendMarkup(string value) {
+            int offset = 0;
+            while (offset < value.Length) {
+                if (markdownPart.Length >= effectiveMaxChars) Flush();
+                int available = effectiveMaxChars - markdownPart.Length;
+                int length = Math.Min(available, value.Length - offset);
+                if (length > 0 && offset + length < value.Length &&
+                    char.IsHighSurrogate(value[offset + length - 1]) && char.IsLowSurrogate(value[offset + length])) {
+                    if (length == 1 && markdownPart.Length > 0) {
+                        Flush();
+                        continue;
+                    }
+                    length = length == 1 ? 2 : length - 1;
+                }
+                markdownPart.Append(value, offset, length);
+                offset += length;
+                if (markdownPart.Length >= effectiveMaxChars) Flush();
+            }
+        }
+
+        void Flush() {
+            if (textPart.Length == 0 && markdownPart.Length == 0) return;
+            parts.Add(new ProjectionPart(textPart.ToString(), markdownPart.ToString()));
+            textPart.Clear();
+            markdownPart.Clear();
+        }
     }
 
     private static string CreateCodeFence(string text) {

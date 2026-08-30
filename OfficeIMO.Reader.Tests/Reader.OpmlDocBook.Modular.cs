@@ -241,6 +241,25 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterKeepsFormattedMarkdownSlicesAlignedWithTheirText() {
+        const string headingSource = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>ABCDEFG</title></section></article>";
+        ReaderChunk[] headingChunks = DocBookReaderAdapter.Read(
+            DocBookDocument.Parse(headingSource), readerOptions: new ReaderOptions { MaxChars = 5 }).ToArray();
+
+        Assert.Equal(new[] { "ABC", "DEFG" }, headingChunks.Select(chunk => chunk.Text));
+        Assert.Equal(new[] { "# ABC", "DEFG" }, headingChunks.Select(chunk => chunk.Markdown));
+
+        const string codeSource = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><programlisting>ABCDEFG</programlisting></article>";
+        ReaderChunk[] codeChunks = DocBookReaderAdapter.Read(
+            DocBookDocument.Parse(codeSource), readerOptions: new ReaderOptions { MaxChars = 5 }).ToArray();
+
+        Assert.Equal("ABCDEFG", string.Concat(codeChunks.Select(chunk => chunk.Text)));
+        Assert.Equal("```\nABCDEFG\n```", string.Concat(codeChunks.Select(chunk => chunk.Markdown)));
+        Assert.All(codeChunks.Where(chunk => chunk.Text.Length > 0), chunk =>
+            Assert.Contains(chunk.Text, chunk.Markdown, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void DocBookAdapterFencesScreenContentAsPreformattedText() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><screen># prompt\n```\nstill screen</screen></article>";
 

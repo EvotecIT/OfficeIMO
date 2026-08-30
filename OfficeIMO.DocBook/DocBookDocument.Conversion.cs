@@ -689,6 +689,10 @@ public sealed partial class DocBookDocument {
             foreach (KeyValuePair<string, string> attribute in source.Attributes) {
                 try {
                     XName attributeName = XName.Get(attribute.Key);
+                    if (requalifySourceVocabulary && profileOwnedNode &&
+                        attributeName.NamespaceName.Length == 0 && attributeName.LocalName == "xmlns") {
+                        continue;
+                    }
                     if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook52 && attributeName == XName.Get("id")) {
                         attributeName = XNamespace.Xml + "id";
                     } else if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook45 && attributeName == XNamespace.Xml + "id") {

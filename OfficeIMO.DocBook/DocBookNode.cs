@@ -75,7 +75,16 @@ public sealed class DocBookNode {
     }
     /// <summary>Adds an external link.</summary>
     public DocBookNode AddLink(string text, string href) {
-        DocBookNode link = _document.Profile == DocBookProfile.DocBook45 ? AddRaw("ulink", text) : Add(DocBookNodeKind.Link, text);
+        DocBookNode inlineParent = this;
+        if (!_document.CanContainInlineContent(Element)) {
+            if (!_document.CanContainParagraphContent(Element)) {
+                throw new InvalidOperationException($"DocBook {Name} elements cannot contain links in the bounded common-structure profile.");
+            }
+            inlineParent = AddParagraph(string.Empty);
+        }
+        DocBookNode link = _document.Profile == DocBookProfile.DocBook45
+            ? inlineParent.AddRaw("ulink", text)
+            : inlineParent.Add(DocBookNodeKind.Link, text);
         XName attribute = _document.Profile == DocBookProfile.DocBook52
             ? XName.Get("href", "http://www.w3.org/1999/xlink") : XName.Get("url");
         link.SetAttribute(attribute, href);
