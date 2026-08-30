@@ -11,9 +11,9 @@ internal static class BibliographyWriter {
 
         if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModified && document.OriginalText != null) {
             Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding) : options.Encoding;
-            if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report);
+            if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report, cancellationToken);
             if (options.RequireNoLoss) report.RequireNoLoss();
-            byte[] bytes = document.OriginalBytes != null ? (byte[])document.OriginalBytes.Clone() : Encode(document.OriginalText, preservedEncoding);
+            byte[] bytes = document.OriginalBytes != null ? BibliographyEncoding.CloneBytes(document.OriginalBytes, cancellationToken) : BibliographyEncoding.Encode(document.OriginalText, preservedEncoding, cancellationToken);
             return new BibliographyWriteResult(document.OriginalText, bytes, format, true, report);
         }
 
@@ -39,26 +39,13 @@ internal static class BibliographyWriter {
             default:
                 throw new ArgumentOutOfRangeException(nameof(options), format, "Unknown bibliography format.");
         }
-        InspectEncoding(content, options.Encoding, report);
+        InspectEncoding(content, options.Encoding, report, cancellationToken);
         if (options.RequireNoLoss) report.RequireNoLoss();
-        return new BibliographyWriteResult(content, Encode(content, options.Encoding), format, false, report);
+        return new BibliographyWriteResult(content, BibliographyEncoding.Encode(content, options.Encoding, cancellationToken), format, false, report);
     }
 
-    private static byte[] Encode(string value, Encoding encoding) {
-        byte[] preamble = encoding.GetPreamble();
-        byte[] content = encoding.GetBytes(value);
-        if (preamble.Length == 0) return content;
-        var result = new byte[preamble.Length + content.Length];
-        Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length); Buffer.BlockCopy(content, 0, result, preamble.Length, content.Length);
-        return result;
-    }
-
-    private static void InspectEncoding(string value, Encoding encoding, BibliographyConversionReport report) {
-        var strictEncoding = (Encoding)encoding.Clone();
-        strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
-        try {
-            strictEncoding.GetByteCount(value);
-        } catch (EncoderFallbackException) {
+    private static void InspectEncoding(string value, Encoding encoding, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        if (!BibliographyEncoding.CanEncode(value, encoding, cancellationToken)) {
             report.Add("BIBCONV220", BibliographyDiagnosticSeverity.Warning, $"The selected {encoding.WebName} encoding cannot represent all output characters without replacement.", BibliographyConversionAction.Approximated, field: "encoding");
         }
     }
@@ -171,6 +158,8 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
                 Loss(report, item, "contributors", "BIBCONV236", $"A structured contributor name contains a comma that is indistinguishable from {format} name-component separators.", BibliographyConversionAction.Approximated);
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix)))
+                Loss(report, item, "contributors", "BIBCONV243", $"A structured contributor name contains surrounding whitespace that is trimmed by {format} name parsing.", BibliographyConversionAction.Approximated);
         }
         if (ReordersContributors(item, format, cancellationToken))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
@@ -206,6 +195,7 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool ContainsComma(string? value) => value?.IndexOf(',') >= 0;
+    private static bool HasSurroundingWhitespace(string? value) => value != null && !string.Equals(value, value.Trim(), StringComparison.Ordinal);
 
     private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
@@ -230,7 +220,10 @@ internal static class BibliographyConversionInspector {
                 !date.Year.HasValue && !date.Month.HasValue && !date.Day.HasValue && !date.EndYear.HasValue && !date.EndMonth.HasValue && !date.EndDay.HasValue && date.Literal == null)
                 Loss(report, item, "dates." + date.Role, "BIBCONV242", $"A null-valued empty date reopens with an empty literal in {format}.", BibliographyConversionAction.Approximated);
             bool classicBibMonthOnly = format == BibliographyFormat.BibTex && date.Role == BibliographyDateRole.Issued && !date.Year.HasValue && date.Month is >= 1 and <= 12 && !date.Day.HasValue;
-            if ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
+            bool cslOmitsNumericParts = format == BibliographyFormat.CslJson &&
+                (!date.Year.HasValue && (date.Month.HasValue || date.Day.HasValue || date.EndYear.HasValue || date.EndMonth.HasValue || date.EndDay.HasValue) ||
+                 !date.EndYear.HasValue && (date.EndMonth.HasValue || date.EndDay.HasValue));
+            if (cslOmitsNumericParts || format != BibliographyFormat.CslJson && ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue))
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && format != BibliographyFormat.CslJson && format != BibliographyFormat.BibLatex && format != BibliographyFormat.EndNoteXml)
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);

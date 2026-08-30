@@ -1,6 +1,8 @@
 namespace OfficeIMO.Bibliography;
 
 internal static class BibliographyEncoding {
+    private const int EncodingCharacterChunkSize = 4096;
+
     internal static Encoding Detect(byte[] bytes) {
         if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return new UTF8Encoding(true, true);
         if (bytes.Length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0x00 && bytes[3] == 0x00) return new UTF32Encoding(false, true, true);
@@ -59,6 +61,68 @@ internal static class BibliographyEncoding {
             if (!completed && bytesUsed == 0 && charactersUsed == 0) throw new InvalidDataException("Bibliography input could not be decoded within the configured character limit.");
         }
         return builder.ToString();
+    }
+
+    internal static bool CanEncode(string value, Encoding encoding, CancellationToken cancellationToken) {
+        var strictEncoding = (Encoding)encoding.Clone();
+        strictEncoding.EncoderFallback = EncoderFallback.ExceptionFallback;
+        try {
+            ConvertChunks(value, strictEncoding, null, 0, cancellationToken);
+            return true;
+        } catch (EncoderFallbackException) {
+            return false;
+        }
+    }
+
+    internal static byte[] Encode(string value, Encoding encoding, CancellationToken cancellationToken) {
+        byte[] preamble = encoding.GetPreamble();
+        int contentLength = ConvertChunks(value, encoding, null, 0, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        var result = new byte[checked(preamble.Length + contentLength)];
+        if (preamble.Length > 0) Buffer.BlockCopy(preamble, 0, result, 0, preamble.Length);
+        int written = ConvertChunks(value, encoding, result, preamble.Length, cancellationToken);
+        if (written != contentLength) throw new InvalidDataException("Bibliography output encoding produced an inconsistent byte count.");
+        return result;
+    }
+
+    internal static byte[] CloneBytes(byte[] source, CancellationToken cancellationToken) {
+        var result = new byte[source.Length];
+        for (int offset = 0; offset < source.Length; offset += 1024 * 1024) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(1024 * 1024, source.Length - offset);
+            Buffer.BlockCopy(source, offset, result, offset, count);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
+    }
+
+    private static int ConvertChunks(string value, Encoding encoding, byte[]? destination, int destinationOffset, CancellationToken cancellationToken) {
+        Encoder encoder = encoding.GetEncoder();
+        var characters = new char[EncodingCharacterChunkSize];
+        byte[]? scratch = destination == null ? new byte[encoding.GetMaxByteCount(characters.Length)] : null;
+        int sourceOffset = 0;
+        int totalBytes = 0;
+        while (sourceOffset < value.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int characterCount = Math.Min(characters.Length, value.Length - sourceOffset);
+            value.CopyTo(sourceOffset, characters, 0, characterCount);
+            bool flush = sourceOffset + characterCount == value.Length;
+            int characterOffset = 0;
+            bool completed = false;
+            while (!completed) {
+                cancellationToken.ThrowIfCancellationRequested();
+                byte[] bytes = destination ?? scratch!;
+                int byteOffset = destination == null ? 0 : destinationOffset + totalBytes;
+                int byteCount = destination == null ? bytes.Length : bytes.Length - byteOffset;
+                encoder.Convert(characters, characterOffset, characterCount - characterOffset, bytes, byteOffset, byteCount, flush, out int charactersUsed, out int bytesUsed, out completed);
+                if (!completed && charactersUsed == 0 && bytesUsed == 0) throw new InvalidDataException("Bibliography output could not be encoded incrementally.");
+                characterOffset += charactersUsed;
+                totalBytes = checked(totalBytes + bytesUsed);
+            }
+            sourceOffset += characterCount;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return totalBytes;
     }
 
     private static bool HasPreamble(byte[] bytes, byte[] preamble) {

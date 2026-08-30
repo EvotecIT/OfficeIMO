@@ -12,6 +12,8 @@ internal static class BibliographyReader {
         var nativeEntries = new List<BibliographyNativeEntry>();
         bool cslJsonSingleObjectRoot = false;
         bool endNoteRecordsRoot = false;
+        string? endNoteRootElementName = null;
+        string? endNoteRecordsElementName = null;
         IList<BibliographyItem> items;
         try {
             switch (format) {
@@ -29,7 +31,7 @@ internal static class BibliographyReader {
                     items = TaggedCodec.ParseNbib(source, options, diagnostics, cancellationToken);
                     break;
                 case BibliographyFormat.EndNoteXml:
-                    items = EndNoteXmlCodec.Parse(source, options, diagnostics, nativeEntries, out endNoteRecordsRoot, cancellationToken);
+                    items = EndNoteXmlCodec.Parse(source, options, diagnostics, nativeEntries, out endNoteRecordsRoot, out endNoteRootElementName, out endNoteRecordsElementName, cancellationToken);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown bibliography format.");
@@ -42,7 +44,7 @@ internal static class BibliographyReader {
             items = exception.PartialItems;
         }
 
-        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly(), cslJsonSingleObjectRoot, endNoteRecordsRoot);
+        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly(), cslJsonSingleObjectRoot, endNoteRecordsRoot, endNoteRootElementName, endNoteRecordsElementName);
         return new BibliographyReadResult(document, document.Diagnostics);
     }
 }

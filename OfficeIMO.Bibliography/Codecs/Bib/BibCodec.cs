@@ -65,7 +65,7 @@ internal static class BibCodec {
             }
             foreach (BibliographyIdentifier identifier in item.Identifiers) {
                 cancellationToken.ThrowIfCancellationRequested();
-                string fieldName = identifier.Scheme.ToLowerInvariant();
+                string fieldName = identifier.Scheme;
                 if (CodecMappings.IsBibIdentifierScheme(identifier.Scheme) && IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);
                 else report.Add("BIBCONV129", BibliographyDiagnosticSeverity.Warning, $"Identifier scheme '{identifier.Scheme}' cannot be represented as a safe, non-conflicting BibTeX field.", BibliographyConversionAction.Omitted, item, "identifiers." + identifier.Scheme);
             }
@@ -452,7 +452,7 @@ internal static class BibCodec {
                 case "year": SetYear(item, value); break;
                 case "month": SetMonth(item, value); break;
                 case "urldate": item.Dates.Add(CodecMappings.ParseDate(BibliographyDateRole.Accessed, value)); break;
-                case "doi": case "isbn": case "issn": case "pmid": case "pmcid": AddIdentifier(item, field, value); break;
+                case "doi": case "isbn": case "issn": case "pmid": case "pmcid": AddIdentifier(item, name, value); break;
                 case "keywords": AddKeywords(item, value); break;
                 case "note": item.Notes.Add(value); break;
                 default: item.NativeFields.Add(new BibliographyNativeField(_format, name, value)); break;
