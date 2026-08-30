@@ -54,7 +54,12 @@ public sealed class OfficeFontUnicodeRangeSet : IEquatable<OfficeFontUnicodeRang
     }
 
     /// <summary>Returns true when every scalar in the supplied text is included.</summary>
-    public bool ContainsText(string? text) {
+    public bool ContainsText(string? text) => ContainsTextCore(text, ignoreFontCoverageControls: false);
+
+    internal bool ContainsFontCoverageText(string? text) =>
+        ContainsTextCore(text, ignoreFontCoverageControls: true);
+
+    private bool ContainsTextCore(string? text, bool ignoreFontCoverageControls) {
         if (string.IsNullOrEmpty(text)) return true;
         for (int index = 0; index < text!.Length; index++) {
             int scalar = text[index];
@@ -63,6 +68,7 @@ public sealed class OfficeFontUnicodeRangeSet : IEquatable<OfficeFontUnicodeRang
                 && char.IsLowSurrogate(text[index + 1])) {
                 scalar = char.ConvertToUtf32(text[index], text[++index]);
             }
+            if (ignoreFontCoverageControls && OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
             if (!Contains(scalar)) return false;
         }
         return true;

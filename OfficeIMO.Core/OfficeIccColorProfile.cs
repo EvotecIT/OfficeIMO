@@ -5,11 +5,9 @@ namespace OfficeIMO.Drawing;
 
 /// <summary>Provides bounded, dependency-free conversion for supported ICC color profiles.</summary>
 /// <remarks>
-/// Supports RGB and Gray matrix/TRC input profiles, RGB and CMYK LUT8 input transforms with a Lab
-/// profile connection space, and RGB and CMYK LUT16 input transforms with an XYZ or Lab profile
-/// connection space. Bounded RGB and CMYK ICC v4 AToB transforms using the mAB type and BToA
-/// output transforms using the mBA type are also supported. Other transform types are rejected
-/// for explicit fallback.
+/// Supports RGB and Gray matrix/TRC input profiles, RGB and CMYK LUT8/LUT16 input transforms,
+/// legacy LUT8/LUT16 output transforms, and bounded ICC v4 AToB/BToA transforms using the mAB/mBA
+/// types. Unsupported transform types are rejected for explicit fallback.
 /// </remarks>
 public sealed partial class OfficeIccColorProfile {
     private const uint InputDeviceClassSignature = 0x73636E72U;
@@ -55,6 +53,7 @@ public sealed partial class OfficeIccColorProfile {
 
     private OfficeIccColorProfile(
         int componentCount,
+        OfficeIccProfileClass profileClass,
         ToneCurve redCurve,
         ToneCurve greenCurve,
         ToneCurve blueCurve,
@@ -65,6 +64,7 @@ public sealed partial class OfficeIccColorProfile {
         XyzValue mediaWhitePoint,
         IPcsToDeviceTransform?[]? pcsToDeviceTransforms = null) {
         ComponentCount = componentCount;
+        ProfileClass = profileClass;
         _redCurve = redCurve;
         _greenCurve = greenCurve;
         _blueCurve = blueCurve;
@@ -85,11 +85,13 @@ public sealed partial class OfficeIccColorProfile {
 
     private OfficeIccColorProfile(
         int componentCount,
+        OfficeIccProfileClass profileClass,
         IDeviceToPcsTransform?[] deviceToPcsTransforms,
         IPcsToDeviceTransform?[]? pcsToDeviceTransforms,
         XyzValue whitePoint,
         XyzValue mediaWhitePoint) {
         ComponentCount = componentCount;
+        ProfileClass = profileClass;
         _redCurve = ToneCurve.Identity;
         _greenCurve = ToneCurve.Identity;
         _blueCurve = ToneCurve.Identity;
@@ -108,6 +110,9 @@ public sealed partial class OfficeIccColorProfile {
 
     /// <summary>Gets the number of device components accepted by this profile.</summary>
     public int ComponentCount { get; }
+
+    /// <summary>Gets the device class declared by the ICC profile header.</summary>
+    public OfficeIccProfileClass ProfileClass { get; }
 
     /// <summary>Gets a conservative byte count for the retained parsed representation.</summary>
     internal long RetainedByteCount { get; }
@@ -132,7 +137,7 @@ public sealed partial class OfficeIccColorProfile {
             ? 0U
             : ReadUInt32(profileBytes, 20);
         if (profileBytes == null || !OfficeIccProfileValidator.TryValidate(profileBytes, 0, profileBytes.Length) ||
-            !IsSupportedProfileClass(ReadUInt32(profileBytes, 12)) ||
+            !TryGetProfileClass(ReadUInt32(profileBytes, 12), out OfficeIccProfileClass profileClass) ||
             (profileConnectionSpace != XyzSignature && profileConnectionSpace != LabSignature) ||
             !TryReadXyz(profileBytes, 68, profileBytes.Length - 68, requireTypeHeader: false, out XyzValue whitePoint) ||
             !whitePoint.IsPositive || !IsD50Illuminant(whitePoint)) {
@@ -149,6 +154,7 @@ public sealed partial class OfficeIccColorProfile {
                 !mediaWhitePoint.IsNormalizedMediaWhitePoint) return false;
             profile = new OfficeIccColorProfile(
                 1,
+                profileClass,
                 grayCurve,
                 ToneCurve.Identity,
                 ToneCurve.Identity,
@@ -195,6 +201,7 @@ public sealed partial class OfficeIccColorProfile {
             }
             profile = new OfficeIccColorProfile(
                 3,
+                profileClass,
                 redCurve,
                 greenCurve,
                 blueCurve,
@@ -226,17 +233,29 @@ public sealed partial class OfficeIccColorProfile {
             XyzValue mediaWhitePoint = TryReadXyzTag(profileBytes, tags, MediaWhitePointTagSignature, out XyzValue authoredMediaWhite) && authoredMediaWhite.IsPositive
                 ? authoredMediaWhite
                 : whitePoint;
-            profile = new OfficeIccColorProfile(lutComponentCount, transforms, outputTransforms, whitePoint, mediaWhitePoint);
+            profile = new OfficeIccColorProfile(lutComponentCount, profileClass, transforms, outputTransforms, whitePoint, mediaWhitePoint);
             return true;
         }
 
         return false;
     }
 
-    private static bool IsSupportedProfileClass(uint signature) =>
-        signature == InputDeviceClassSignature ||
-        signature == DisplayDeviceClassSignature ||
-        signature == OutputDeviceClassSignature;
+    private static bool TryGetProfileClass(uint signature, out OfficeIccProfileClass profileClass) {
+        switch (signature) {
+            case InputDeviceClassSignature:
+                profileClass = OfficeIccProfileClass.InputDevice;
+                return true;
+            case DisplayDeviceClassSignature:
+                profileClass = OfficeIccProfileClass.DisplayDevice;
+                return true;
+            case OutputDeviceClassSignature:
+                profileClass = OfficeIccProfileClass.OutputDevice;
+                return true;
+            default:
+                profileClass = default;
+                return false;
+        }
+    }
 
     private static long RetainedTransformBytes(IDeviceToPcsTransform?[]? transforms) {
         if (transforms == null) return 0L;

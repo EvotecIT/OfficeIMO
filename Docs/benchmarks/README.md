@@ -450,6 +450,14 @@ third-party packages remain benchmark-only dependencies. See its README for the
 equivalence checks, corpus provenance, Word COM workflow, mutation-blocker
 interpretation, memory limits, and PowerForge runner commands.
 
+`html-pdf-artifact-evidence/` contains the compact Windows and Linux High-scale
+artifact summaries for the identical-HTML lane. Each summary binds the four
+engines, exact source commits, input bytes, correctness and accessibility
+contracts, cancellation support, process-tree memory, output sizes, and
+managed plus external visual hashes to a validated artifact manifest. The raw
+PDF and PNG bundles remain temporary because their hashes and measurements are
+the reproducible evidence contract.
+
 ## Word comparisons
 
 `OfficeIMO.Word.Benchmarks` contains validated BenchmarkDotNet comparisons for

@@ -30,6 +30,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />

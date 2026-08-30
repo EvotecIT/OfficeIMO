@@ -72,6 +72,199 @@ public sealed class DrawingFontContainerTests {
         Assert.Contains("WOFF 2", error, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OfficeFontFaceCollection_UsesOptionalProviderForBoundedWoff2Programs() {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var provider = new TestFontProgramProvider(decodedByteCount: 32);
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = provider
+        };
+
+        Assert.True(fonts.TryAdd("Provider Demo", woff2));
+
+        OfficeFontFace face = Assert.Single(fonts.Faces);
+        Assert.Equal(OfficeFontContainerFormat.Woff2, face.ContainerFormat);
+        Assert.False(face.CanEmbedAsStaticPdfFont);
+        Assert.Equal("A", Assert.Single(fonts.PlanFallbackRuns("A", "Provider Demo")).Text);
+        Assert.True(fonts.TryMeasureText(
+            "A",
+            12D,
+            "Provider Demo",
+            OfficeFontStyle.Regular,
+            out double width));
+        Assert.Equal(42D, width);
+        Assert.Same(provider, fonts.Clone().FontProgramProvider);
+        Assert.Equal(OfficeFontContainerFormat.Woff2, provider.LastRequest!.ContainerFormat);
+        Assert.Equal("Provider Demo", provider.LastRequest.FamilyName);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollection_RejectsProviderProgramsThatExceedTheDecodedLimit() {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = new TestFontProgramProvider(decodedByteCount: 65)
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: 64,
+            out int decodedBytes,
+            out string? error));
+
+        Assert.Equal(0, decodedBytes);
+        Assert.Contains("limit", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(fonts.Faces);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeFontFaceCollection_CountsProviderAndFaceBuffersIndependently(bool includeStaticSnapshot) {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = new TestFontProgramProvider(
+                decodedByteCount: 57,
+                staticOpenTypeData: includeStaticSnapshot ? woff2 : null)
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: 64,
+            out int rejectedBytes,
+            out string? rejectedError));
+        Assert.Equal(0, rejectedBytes);
+        Assert.Contains("limit", rejectedError, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(fonts.Faces);
+
+        Assert.True(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: 65,
+            out int acceptedBytes,
+            out string? acceptedError), acceptedError);
+        Assert.Equal(65, acceptedBytes);
+        Assert.Single(fonts.Faces);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollection_RejectsProviderAndFaceBufferTotalsBeyondInt32() {
+        byte[] woff2 = { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 };
+        var fonts = new OfficeFontFaceCollection {
+            FontProgramProvider = new TestFontProgramProvider(int.MaxValue)
+        };
+
+        Assert.False(fonts.TryAddBounded(
+            "Provider Demo",
+            woff2,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: int.MaxValue,
+            out int decodedBytes,
+            out string? error));
+
+        Assert.Equal(0, decodedBytes);
+        Assert.Contains("limit", error, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(fonts.Faces);
+    }
+
+    [Fact]
+    public void TrueTypeShapingDataReturnsIndependentSnapshots() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add("Snapshot Demo", source).Faces);
+
+        byte[] first = face.Program.GetFontDataForShaping();
+        byte original = first[0];
+        first[0] ^= 0xFF;
+        byte[] second = face.Program.GetFontDataForShaping();
+
+        Assert.NotSame(first, second);
+        Assert.Equal(original, second[0]);
+    }
+
+    [Fact]
+    public void OfficeFontFaceCollection_CountsBuiltInTrueTypeAndFaceBuffersIndependently() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        var fonts = new OfficeFontFaceCollection();
+
+        Assert.False(fonts.TryAddBounded(
+            "Bounded TrueType",
+            source,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: source.Length * 2 - 1,
+            out int rejectedBytes,
+            out string? rejectedError));
+        Assert.Equal(0, rejectedBytes);
+        Assert.Contains("limit", rejectedError, StringComparison.OrdinalIgnoreCase);
+
+        Assert.True(fonts.TryAddBounded(
+            "Bounded TrueType",
+            source,
+            OfficeFontStyle.Regular,
+            OfficeFontUnicodeRangeSet.All,
+            maximumDecodedBytes: source.Length * 2,
+            out int acceptedBytes,
+            out string? acceptedError), acceptedError);
+        Assert.Equal(source.Length * 2, acceptedBytes);
+        Assert.Single(fonts.Faces);
+    }
+
+    private sealed class TestFontProgramProvider : IOfficeFontProgramProvider {
+        private readonly int _decodedByteCount;
+        private readonly byte[]? _staticOpenTypeData;
+
+        internal TestFontProgramProvider(int decodedByteCount, byte[]? staticOpenTypeData = null) {
+            _decodedByteCount = decodedByteCount;
+            _staticOpenTypeData = staticOpenTypeData;
+        }
+
+        internal OfficeFontProgramLoadRequest? LastRequest { get; private set; }
+
+        public OfficeFontProgramLoadResult? TryLoad(OfficeFontProgramLoadRequest request) {
+            LastRequest = request;
+            return new OfficeFontProgramLoadResult(new TestFontProgram(), _decodedByteCount, _staticOpenTypeData);
+        }
+    }
+
+    private sealed class TestFontProgram : IOfficeFontProgram {
+        public string Fingerprint => "test-font-program-v1";
+        public string? DisplayName => "Test font program";
+        public int? CollectionIndex => null;
+        public int UnitsPerEm => 1000;
+        public bool IsOpenTypeCff => false;
+        public bool ProvidesComplexTextLayout => true;
+        public double LineSpacingRatio => 1D;
+        public byte[] GetFontDataForShaping() => new byte[] { 1 };
+        public bool HasGlyphs(string text) => !string.IsNullOrEmpty(text);
+        public double Measure(string text, double fontSize) => text.Length * 42D;
+        public IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) =>
+            elements.Select(element => element.Length * 42D).ToArray();
+        public double LineHeight(double fontSize) => fontSize;
+        public List<List<OfficePoint>> GetTextContours(string text, double x, double y, double fontSize) =>
+            new List<List<OfficePoint>>();
+        public bool TryGetGlyphMetrics(int scalar, out int glyphId, out int advanceWidth) {
+            glyphId = scalar;
+            advanceWidth = 42;
+            return true;
+        }
+        public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) =>
+            Measure(text, fontSize);
+        public List<List<OfficePoint>> GetShapedTextContours(
+            string text,
+            OfficeTextShapingResult result,
+            double x,
+            double y,
+            double fontSize) => GetTextContours(text, x, y, fontSize);
+    }
+
     private static int FindTableOffset(byte[] font, string tag) {
         int tableCount = (font[4] << 8) | font[5];
         for (int index = 0; index < tableCount; index++) {

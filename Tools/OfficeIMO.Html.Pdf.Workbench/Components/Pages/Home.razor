@@ -1,0 +1,121 @@
+@page "/"
+@rendermode InteractiveServer
+@inject HtmlPdfWorkbenchConversionService ConversionService
+@inject WorkbenchArtifactStore ArtifactStore
+@implements IDisposable
+
+<PageTitle>OfficeIMO HTML to PDF Workbench</PageTitle>
+
+<div class="workbench" data-workbench-ready="true" data-engine="@_engine.ToString().ToLowerInvariant()">
+    <header class="hero">
+        <div>
+            <p class="overline">OFFICEIMO · LOCAL DEVELOPER TOOL</p>
+            <h1>HTML to PDF<br><span>Workbench</span></h1>
+            <p class="hero-copy">Edit once, inspect live, and render through the dependency-free managed engine or a secured Chromium lane.</p>
+        </div>
+        <aside class="privacy-card">
+            <span class="status-dot"></span>
+            <div><strong>Loopback only</strong><small>Chromium networking is offline. Artifacts expire after 30 minutes.</small></div>
+        </aside>
+    </header>
+
+    <section class="toolbar" aria-label="Conversion controls">
+        <HtmlPdfEngineSelector Engine="_engine" EngineChanged="HandleEngineChanged" />
+        <div class="toolbar-actions">
+            @if (_isBusy) { <button type="button" class="button secondary" @onclick="Cancel">Cancel</button> }
+            <button type="button" class="button primary" data-convert-button="true" disabled="@_isBusy" @onclick="ConvertAsync">
+                @(_isBusy ? "Rendering…" : "Render PDF")
+            </button>
+        </div>
+    </section>
+
+    <div class="workspace-grid">
+        <section class="column editor-column" aria-label="Source editor">
+            <HtmlPdfEditor @ref="_editor" Templates="HtmlPdfWorkbenchTemplates.All"
+                           SelectedTemplateId="@_templateId"
+                           SelectedTemplateIdChanged="LoadTemplate"
+                           Html="@_html"
+                           HtmlChanged="HandleHtmlChanged"
+                           Css="@_css"
+                           CssChanged="HandleCssChanged"
+                           Changed="MarkDirty" />
+            <HtmlPdfSettings Settings="_settings" Engine="_engine" Changed="MarkDirty" />
+        </section>
+
+        <section class="column preview-column" aria-label="Preview and output">
+            <div class="panel preview-panel">
+                <div class="panel-heading"><div><p>LIVE SOURCE</p><h2>HTML preview</h2></div><span>Sandboxed · offline CSP</span></div>
+                <iframe class="html-preview" srcdoc="@PreviewHtml" sandbox tabindex="-1" title="Live HTML preview"></iframe>
+            </div>
+            <HtmlPdfArtifactPanel Artifact="_artifact" Evidence="_evidence" IsDirty="_isDirty" IsBusy="_isBusy" />
+            <HtmlPdfDiagnosticsPanel Evidence="_evidence" Error="@_error" />
+        </section>
+    </div>
+</div>
+
+@code {
+    private string _templateId = HtmlPdfWorkbenchTemplates.Default.Id;
+    private string _html = HtmlPdfWorkbenchTemplates.Default.Html;
+    private string _css = HtmlPdfWorkbenchTemplates.Default.Css;
+    private HtmlPdfWorkbenchEngine _engine = HtmlPdfWorkbenchEngine.Managed;
+    private readonly HtmlPdfWorkbenchSettings _settings = new();
+    private WorkbenchArtifactLink? _artifact;
+    private HtmlPdfWorkbenchEvidence? _evidence;
+    private CancellationTokenSource? _conversionCancellation;
+    private string? _error;
+    private bool _isBusy;
+    private bool _isDirty = true;
+    private long _revision;
+    private HtmlPdfEditor? _editor;
+
+    private string PreviewHtml => HtmlPdfPreviewComposer.Compose(_html, _css);
+
+    private Task HandleEngineChanged(HtmlPdfWorkbenchEngine engine) { _engine = engine; MarkDirty(); return Task.CompletedTask; }
+    private Task HandleHtmlChanged(string value) { _html = value; return Task.CompletedTask; }
+    private Task HandleCssChanged(string value) { _css = value; return Task.CompletedTask; }
+    private void MarkDirty() { _revision++; _isDirty = true; }
+
+    private Task LoadTemplate(string id) {
+        HtmlPdfWorkbenchTemplate template = HtmlPdfWorkbenchTemplates.Find(id);
+        _templateId = template.Id;
+        _html = template.Html;
+        _css = template.Css;
+        MarkDirty();
+        return Task.CompletedTask;
+    }
+
+    private async Task ConvertAsync() {
+        _conversionCancellation?.Cancel();
+        _conversionCancellation?.Dispose();
+        _conversionCancellation = new CancellationTokenSource();
+        _isBusy = true;
+        _error = null;
+        try {
+            long conversionRevision = _revision;
+            if (_editor is not null) {
+                (string html, string css) = await _editor.FlushAsync();
+                _html = html;
+                _css = css;
+            }
+            HtmlPdfWorkbenchResult result = await ConversionService.ConvertAsync(
+                new HtmlPdfWorkbenchRequest(_html, _css, _engine, _settings.Clone()),
+                _conversionCancellation.Token);
+            _artifact = ArtifactStore.Add(result);
+            _evidence = result.Evidence;
+            _isDirty = conversionRevision != _revision;
+        } catch (OperationCanceledException) {
+            _error = "Conversion cancelled.";
+        } catch (Exception exception) {
+            _error = exception.Message;
+        } finally {
+            _isBusy = false;
+        }
+    }
+
+    private void Cancel() => _conversionCancellation?.Cancel();
+
+    public void Dispose() {
+        _conversionCancellation?.Cancel();
+        _conversionCancellation?.Dispose();
+    }
+}

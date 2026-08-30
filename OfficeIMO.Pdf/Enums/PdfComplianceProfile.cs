@@ -31,5 +31,9 @@ public enum PdfComplianceProfile {
     /// <summary>PDF/A-4f archival profile with embedded-file support.</summary>
     PdfA4F = 12,
     /// <summary>PDF/UA-2 accessibility profile.</summary>
-    PdfUa2 = 13
+    PdfUa2 = 13,
+    /// <summary>PDF/X-1a:2003 print-production profile.</summary>
+    PdfX1A2003 = 14,
+    /// <summary>PDF/X-4 print-production profile.</summary>
+    PdfX4 = 15
 }

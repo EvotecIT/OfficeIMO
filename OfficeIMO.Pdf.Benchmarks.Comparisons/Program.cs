@@ -15,6 +15,14 @@ if (args.Length > 0 && string.Equals(args[0], "semantic-evidence", StringCompari
     return PdfUnderstandingEvidenceRunner.Run(args);
 }
 
+if (args.Length > 0 && string.Equals(args[0], "html-evidence", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlPdfEvidenceRunner.RunAsync(args);
+}
+
+if (args.Length > 0 && string.Equals(args[0], "html-evidence-worker", StringComparison.OrdinalIgnoreCase)) {
+    return await HtmlPdfEvidenceWorker.RunAsync(args);
+}
+
 if (args.Length > 0 && string.Equals(args[0], "prepare-rich-word", StringComparison.OrdinalIgnoreCase)) {
     string repositoryRoot = ReadOption(args, "--repo-root") ?? FindRepositoryRoot();
     string outputDirectory = Path.GetFullPath(

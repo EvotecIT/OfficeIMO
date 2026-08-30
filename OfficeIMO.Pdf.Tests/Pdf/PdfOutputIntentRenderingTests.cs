@@ -889,6 +889,29 @@ public class PdfOutputIntentRenderingTests {
             diagnostic => diagnostic.Code == PdfRenderCapabilities.OutputIntentTransparencyId);
     }
 
+    [Theory]
+    [InlineData("99 0 R")]
+    [InlineData("/NotAnOutputIntent")]
+    public void InspectorPreservesIncompleteOutputIntentArraySignal(string malformedEntry) {
+        byte[] profileBytes = IccMabTestProfiles.CreateCmykLab8Bidirectional();
+        string outputIntents =
+            "[<< /Type /OutputIntent /S /GTS_PDFX /OutputConditionIdentifier (FOGRA51) /DestOutputProfile 6 0 R >> " +
+            malformedEntry + "]";
+        byte[] pdf = BuildPdf(profileBytes, string.Empty, outputIntents: outputIntents);
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.Single(document.OutputIntents);
+        Assert.False(document.OutputIntentsAreComplete);
+        Assert.Single(info.OutputIntents);
+        Assert.False(info.OutputIntentsAreComplete);
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.PdfX4, pdf);
+        Assert.Equal(
+            PdfComplianceRequirementStatus.Missing,
+            report.FindRequirement("readback-pdfx-output-intent")!.Status);
+    }
+
     [Fact]
     public void RenderDiagnostics_RejectsDctThatForcedOutputNormalizationCannotDecode() {
         byte[] profileBytes = IccMabTestProfiles.CreateRgbXyz16WithDistinctOutputIntents();

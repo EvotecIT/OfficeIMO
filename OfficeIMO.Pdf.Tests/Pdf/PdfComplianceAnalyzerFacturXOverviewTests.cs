@@ -14,7 +14,8 @@ public partial class PdfComplianceAnalyzerTests {
             }
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
-            .AddFacturXInvoiceXml(invoiceXml);
+            .AddFacturXInvoiceXml(invoiceXml)
+            .SetEmbeddedFileModificationDate("factur-x.xml", new System.DateTimeOffset(2026, 8, 24, 8, 30, 0, System.TimeSpan.Zero));
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
 
@@ -63,7 +64,8 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXGroundworkHelperSatisfiesConfiguredEinvoiceReadinessWithoutEnablingProfile() {
         var options = new PdfOptions()
-            .ConfigureFacturXGroundwork(CreateCiiXml());
+            .ConfigureFacturXGroundwork(CreateCiiXml())
+            .SetEmbeddedFileModificationDate("factur-x.xml", new System.DateTimeOffset(2026, 8, 24, 8, 30, 0, System.TimeSpan.Zero));
 
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
 
