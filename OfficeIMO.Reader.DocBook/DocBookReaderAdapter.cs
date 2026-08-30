@@ -324,6 +324,16 @@ internal static partial class DocBookReaderAdapter {
                     char.IsLowSurrogate(text[offset + 1]) ? 2 : 1;
                 bool escaped = sourceLength == 1 && (text[offset] == '\\' || text[offset] == '[' || text[offset] == ']');
                 int markdownLength = sourceLength + (escaped ? 1 : 0);
+                if (escaped && markdownLength > effectiveMaxChars) {
+                    if (markdownPart.Length > 0) Flush();
+                    markdownPart.Append('\\');
+                    Flush();
+                    textPart.Append(text, offset, sourceLength);
+                    markdownPart.Append(text, offset, sourceLength);
+                    offset += sourceLength;
+                    Flush();
+                    continue;
+                }
                 if (markdownPart.Length > 0 && markdownPart.Length + markdownLength > effectiveMaxChars) Flush();
                 textPart.Append(text, offset, sourceLength);
                 if (escaped) markdownPart.Append('\\');

@@ -46,11 +46,16 @@ public sealed partial class DocBookDocument {
         };
 
     private static readonly ISet<string> KnownUntypedDocBookElementNames = new HashSet<string>(StringComparer.Ordinal) {
-        "appendix", "article", "authorgroup", "bibliography", "chapter", "colophon", "colspec", "dedication",
-        "entrytbl", "firstname", "glossary", "honorific", "lineage", "lot", "othername", "part", "personname",
-        "phrase", "preface", "primary", "reference", "setindex", "spanspec", "surname", "term", "textobject",
-        "tfoot", "titleabbrev", "toc", "varlistentry"
+        "address", "affiliation", "appendix", "article", "authorinitials", "authorgroup", "bibliography", "chapter",
+        "city", "collab", "collabname", "colophon", "colspec", "contrib", "country", "dedication", "email",
+        "entrytbl", "fax", "firstname", "glossary", "honorific", "jobtitle", "lineage", "lot", "orgdiv", "orgname",
+        "othername", "part", "personname", "phone", "phrase", "pob", "postcode", "preface", "primary", "reference",
+        "setindex", "shortaffil", "spanspec", "state", "street", "surname", "term", "textobject", "tfoot",
+        "titleabbrev", "toc", "varlistentry"
     };
+
+    internal static bool IsKnownUntypedDocBookLocalName(string localName) =>
+        KnownUntypedDocBookElementNames.Contains(localName);
 
     private static bool IsKnownUntypedDocBookElement(System.Xml.Linq.XName name, System.Xml.Linq.XNamespace sourceNamespace) =>
         name.Namespace == sourceNamespace && KnownUntypedDocBookElementNames.Contains(name.LocalName);
@@ -59,8 +64,10 @@ public sealed partial class DocBookDocument {
         !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodesById[block.Id].Any(node =>
             string.Equals(node.Kind, block.Kind, StringComparison.OrdinalIgnoreCase) && node.Level == block.Level &&
             (string.Equals(node.Text, block.Text, StringComparison.Ordinal) ||
-             ShouldReplaceChildrenWithPrimaryText(node) &&
-             string.Equals(GetRepresentedPrimaryChildText(node), block.Text, StringComparison.Ordinal)));
+             (ShouldReplaceChildrenWithPrimaryText(node) &&
+              string.Equals(GetRepresentedPrimaryChildText(node), block.Text, StringComparison.Ordinal) ||
+              ShouldReplaceRepresentedPrimaryChild(node) &&
+              string.Equals(GetRepresentedTypedPrimaryChildText(node), block.Text, StringComparison.Ordinal))));
 
     private static bool ShouldReplaceChildrenWithPrimaryText(OfficeDocumentModelNode source) {
         if (source.Children.Count == 0 || string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) return false;
@@ -68,6 +75,28 @@ public sealed partial class DocBookDocument {
         return acceptsDirectText &&
             !string.Equals(source.Text, GetRepresentedPrimaryChildText(source), StringComparison.Ordinal);
     }
+
+    private static bool ShouldReplaceRepresentedPrimaryChild(OfficeDocumentModelNode source) {
+        if (string.IsNullOrEmpty(source.Id) || !source.Id.StartsWith("docbook-", StringComparison.Ordinal) ||
+            !TryMapKind(source.Kind, out DocBookNodeKind kind) ||
+            !NodeUsesTitleText(kind)) return false;
+        OfficeDocumentModelNode? primaryChild = GetRepresentedTypedPrimaryChild(source, kind);
+        return primaryChild != null && !string.Equals(source.Text,
+            GetRepresentedSubtreeText(primaryChild), StringComparison.Ordinal);
+    }
+
+    private static OfficeDocumentModelNode? GetRepresentedTypedPrimaryChild(
+        OfficeDocumentModelNode source,
+        DocBookNodeKind kind) {
+        string representedKind = NodeUsesTitleText(kind) ? "title" : NodeUsesParagraphText(kind) ? "paragraph" : string.Empty;
+        return representedKind.Length == 0 ? null : source.Children.FirstOrDefault(child =>
+            string.Equals(child.Kind, representedKind, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string GetRepresentedTypedPrimaryChildText(OfficeDocumentModelNode source) =>
+        TryMapKind(source.Kind, out DocBookNodeKind kind) && GetRepresentedTypedPrimaryChild(source, kind) is OfficeDocumentModelNode child
+            ? GetRepresentedSubtreeText(child)
+            : string.Empty;
 
     private static string GetRepresentedPrimaryChildText(OfficeDocumentModelNode source) =>
         TryMapKind(source.Kind, out DocBookNodeKind nodeKind) && nodeKind == DocBookNodeKind.Author
@@ -267,7 +296,9 @@ public sealed partial class DocBookDocument {
             ? "informal-table" : "table";
         foreach (OfficeDocumentModelNode node in nodesByTableIndex[tableLocation.TableIndex.Value]) {
             if (consumedNodes.Contains(node) || !string.Equals(node.Kind, expectedKind, StringComparison.OrdinalIgnoreCase) ||
-                !string.Equals(node.Text, table.Title ?? string.Empty, StringComparison.Ordinal) ||
+                !(string.Equals(node.Text, table.Title ?? string.Empty, StringComparison.Ordinal) ||
+                  ShouldReplaceRepresentedPrimaryChild(node) &&
+                  string.Equals(GetRepresentedTypedPrimaryChildText(node), table.Title ?? string.Empty, StringComparison.Ordinal)) ||
                 node.Location?.TableIndex != tableLocation.TableIndex) continue;
             string expectedPath = OfficeDocumentHeadingPath.Append(node.Location?.HeadingPath, table.Title, " / ");
             if (!string.Equals(expectedPath, tableLocation.HeadingPath, StringComparison.Ordinal)) continue;

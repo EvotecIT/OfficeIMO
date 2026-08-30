@@ -167,6 +167,13 @@ public sealed class DocBookNode {
             XElement? metadata = parent.Elements().FirstOrDefault(child =>
                 DocBookNames.GetKind(child.Name, _document.Namespace) == DocBookNodeKind.Info);
             if (metadata == null) parent.AddFirst(element); else metadata.AddAfterSelf(element);
+        } else if (localName == "subtitle" && _document.IsTitleBearingContainer(parent)) {
+            XElement? header = parent.Elements().TakeWhile(child => {
+                DocBookNodeKind childKind = DocBookNames.GetKind(child.Name, _document.Namespace);
+                return childKind == DocBookNodeKind.Info || childKind == DocBookNodeKind.Title ||
+                    childKind == DocBookNodeKind.Subtitle;
+            }).LastOrDefault();
+            if (header == null) parent.AddFirst(element); else header.AddAfterSelf(element);
         } else {
             parent.Add(element);
         }

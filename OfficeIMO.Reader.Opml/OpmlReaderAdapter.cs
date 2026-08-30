@@ -74,7 +74,7 @@ internal static partial class OpmlReaderAdapter {
 
         IEnumerable<ReaderChunk> BuildOutline(OpmlOutline outline, int level, string parentPath) {
             cancellationToken.ThrowIfCancellationRequested();
-            string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " > ");
+            string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " / ");
             int currentSource = sourceIndex++;
             int maxChars = Math.Max(1, reader.MaxChars);
             string headingPrefix = new string('#', Math.Min(level, 6)) + " ";

@@ -646,6 +646,7 @@ public sealed partial class DocBookDocument {
             DocBookNode target;
             bool profileOwnedNode = !source.Kind.StartsWith("extension:", StringComparison.Ordinal);
             bool replaceChildrenWithPrimaryText = PrimaryTextShouldTakePrecedence(source);
+            bool replaceRepresentedPrimaryChild = ShouldReplaceRepresentedPrimaryChild(source);
             if (string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) {
                 parent.AddText(source.Text);
                 return;
@@ -689,7 +690,7 @@ public sealed partial class DocBookDocument {
                 target = nodeKind == DocBookNodeKind.Link && selectedProfile == DocBookProfile.DocBook45 && externalLink
                     ? parent.AddRaw("ulink", directText) : parent.Add(nodeKind, directText);
                 if (!string.IsNullOrEmpty(source.Text) && !NodeAcceptsDirectText(nodeKind) &&
-                    !SourceChildrenRepresentText(source, nodeKind)) {
+                    (replaceRepresentedPrimaryChild || !SourceChildrenRepresentText(source, nodeKind))) {
                     if (NodeUsesTitleText(nodeKind)) {
                         target.Add(DocBookNodeKind.Title, source.Text);
                     } else if (NodeUsesParagraphText(nodeKind)) {
@@ -708,7 +709,7 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB101", DocBookDiagnosticSeverity.Warning,
                     $"Shared node kind '{source.Kind}' was represented as a role-qualified paragraph.", source.Location.HeadingPath));
             }
-            if (replaceChildrenWithPrimaryText) {
+            if (replaceChildrenWithPrimaryText || replaceRepresentedPrimaryChild) {
                 diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
                     $"Primary text on shared node '{source.Kind}' differed from its recursive child projection; the primary text took precedence and the stale child projection was omitted.",
                     source.Location?.HeadingPath));
@@ -737,7 +738,11 @@ public sealed partial class DocBookDocument {
                 }
             }
             if (!replaceChildrenWithPrimaryText) {
-                foreach (OfficeDocumentModelNode child in source.Children) Add(child, target);
+                foreach (OfficeDocumentModelNode child in source.Children) {
+                    if (replaceRepresentedPrimaryChild && TryMapKind(source.Kind, out DocBookNodeKind sourceKind) &&
+                        ReferenceEquals(child, GetRepresentedTypedPrimaryChild(source, sourceKind))) continue;
+                    Add(child, target);
+                }
             }
         }
 

@@ -12,12 +12,17 @@ public sealed class ReaderOpmlDocBookModularTests {
     [Fact]
     public void OpmlAdapterEmitsNestedOutlineChunksAndRegistersExtension() {
         OpmlDocument document = OpmlDocument.Create();
-        document.AddOutline("Root").AddChild("Child");
+        OpmlOutline child = document.AddOutline("Root").AddChild("Child");
+        child.Url = "https://example.test/child";
 
         ReaderChunk[] chunks = OpmlReaderAdapter.Read(document, "tree.opml").ToArray();
         Assert.Equal(new[] { "Root", "Child" }, chunks.Select(chunk => chunk.Text));
-        Assert.Equal("Root > Child", chunks[1].Location.HeadingPath);
+        Assert.Equal("Root / Child", chunks[1].Location.HeadingPath);
         Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Opml, chunk.Kind));
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(document.ToOpml()));
+        OfficeDocumentReadResult result = OpmlReaderAdapter.ReadDocument(stream, sourceName: "tree.opml");
+        Assert.Equal(chunks[1].Location.HeadingPath, Assert.Single(result.Links).Location!.HeadingPath);
 
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddOpmlHandler().Build();
         Assert.Equal(ReaderInputKind.Opml, reader.DetectKind("tree.opml"));
@@ -273,6 +278,21 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal("```\nABCDEFG\n```", string.Concat(codeChunks.Select(chunk => chunk.Markdown)));
         Assert.All(codeChunks.Where(chunk => chunk.Text.Length > 0), chunk =>
             Assert.Contains(chunk.Text, chunk.Markdown, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocBookAdapterBoundsEscapedLinkLabelsAtOneCharacter() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"https://example.test\">[\\]</link></para></article>";
+        DocBookDocument document = DocBookDocument.Parse(source);
+        string expectedMarkdown = string.Concat(DocBookReaderAdapter.Read(
+            document, readerOptions: new ReaderOptions { MaxChars = 256 }).Select(chunk => chunk.Markdown));
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(
+            document, readerOptions: new ReaderOptions { MaxChars = 1 }).ToArray();
+
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 1));
+        Assert.Equal("[\\]", string.Concat(chunks.Select(chunk => chunk.Text)));
+        Assert.Equal(expectedMarkdown, string.Concat(chunks.Select(chunk => chunk.Markdown)));
     }
 
     [Fact]

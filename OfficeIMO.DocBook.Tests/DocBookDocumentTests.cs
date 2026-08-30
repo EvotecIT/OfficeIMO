@@ -764,12 +764,13 @@ public sealed class DocBookDocumentTests {
     [Theory]
     [InlineData(DocBookProfile.DocBook45)]
     [InlineData(DocBookProfile.DocBook52)]
-    public void TypedTitlesAreInsertedBeforeBodyAndValidationRejectsLateParsedTitles(DocBookProfile profile) {
+    public void TypedTitlesAndSubtitlesAreInsertedBeforeBodyAndValidationRejectsLateParsedHeaders(DocBookProfile profile) {
         DocBookDocument article = DocBookDocument.CreateArticle(profile);
         DocBookNode section = article.Root.Add(DocBookNodeKind.Section);
         section.AddParagraph("Body");
+        section.Add(DocBookNodeKind.Subtitle, "Late subtitle");
         section.Add(DocBookNodeKind.Title, "Late section");
-        Assert.Equal(new[] { "title", "para" }, section.Children.Select(child => child.Name));
+        Assert.Equal(new[] { "title", "subtitle", "para" }, section.Children.Select(child => child.Name));
 
         DocBookNode table = article.Root.Add(DocBookNodeKind.Table);
         DocBookNode tableGroup = table.Add(DocBookNodeKind.TableGroup);
@@ -783,8 +784,9 @@ public sealed class DocBookDocumentTests {
         book.AddParagraph("Book body");
         DocBookNode chapter = book.Root.Children.Single(child => child.Name == "chapter");
         chapter.Children.Single(child => child.Kind == DocBookNodeKind.Title).Remove();
+        chapter.Add(DocBookNodeKind.Subtitle, "Late subtitle");
         chapter.Add(DocBookNodeKind.Title, "Late chapter");
-        Assert.Equal("title", chapter.Children.First().Name);
+        Assert.Equal(new[] { "title", "subtitle", "para" }, chapter.Children.Select(child => child.Name));
 
         Assert.True(article.Validate().IsValid);
         Assert.True(book.Validate().IsValid);
@@ -794,6 +796,12 @@ public sealed class DocBookDocumentTests {
             : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section><para>Body</para><title>Late</title></section></article>";
         Assert.Contains(DocBookDocument.Parse(parsedSource).Validate().Diagnostics, diagnostic =>
             diagnostic.Code == "DB020" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+
+        string parsedSubtitleSource = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Title</title><para>Body</para><subtitle>Late</subtitle></section></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section><title>Title</title><para>Body</para><subtitle>Late</subtitle></section></article>";
+        Assert.Contains(DocBookDocument.Parse(parsedSubtitleSource).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB022" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -1421,13 +1429,13 @@ public sealed class DocBookDocumentTests {
 
     [Fact]
     public void ProfileConversionRequalifiesUntypedDocBookVocabularyButNotExtensions() {
-        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname xml:id=\"five-person\"><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><custom flag=\"five\">native</custom><x:box><x:item>value</x:item></x:box></article>";
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname xml:id=\"five-person\"><firstname>Jane</firstname><surname>Doe</surname></personname><affiliation><orgname>Example</orgname></affiliation></author></info><indexterm><primary>topic</primary></indexterm><custom flag=\"five\">native</custom><x:box><x:item>value</x:item></x:box></article>";
         DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook45).Value;
         XElement[] fourVocabulary = asFour.Xml.Descendants()
-            .Where(element => new[] { "personname", "firstname", "surname", "primary" }.Contains(element.Name.LocalName)).ToArray();
-        Assert.Equal(4, fourVocabulary.Length);
+            .Where(element => new[] { "personname", "firstname", "surname", "affiliation", "orgname", "primary" }.Contains(element.Name.LocalName)).ToArray();
+        Assert.Equal(6, fourVocabulary.Length);
         Assert.All(fourVocabulary,
             element => Assert.Equal(XNamespace.None, element.Name.Namespace));
         Assert.Equal("five-person", (string?)fourVocabulary.Single(element => element.Name.LocalName == "personname").Attribute("id"));
@@ -1436,14 +1444,15 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, fourCustom.Name.NamespaceName);
         Assert.Equal("five", (string?)fourCustom.Attribute("flag"));
         Assert.Equal("urn:extension", asFour.Xml.Descendants().Single(element => element.Name.LocalName == "box").Name.NamespaceName);
+        Assert.DoesNotContain(asFour.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB023");
 
-        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname id=\"four-person\"><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm><custom flag=\"four\">native</custom></article>";
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname id=\"four-person\"><firstname>Jane</firstname><surname>Doe</surname></personname><affiliation><orgname>Example</orgname></affiliation></author></articleinfo><indexterm><primary>topic</primary></indexterm><custom flag=\"four\">native</custom></article>";
         DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook52).Value;
         XElement[] fiveVocabulary = asFive.Xml.Descendants()
-            .Where(element => new[] { "personname", "firstname", "surname", "primary" }.Contains(element.Name.LocalName)).ToArray();
-        Assert.Equal(4, fiveVocabulary.Length);
+            .Where(element => new[] { "personname", "firstname", "surname", "affiliation", "orgname", "primary" }.Contains(element.Name.LocalName)).ToArray();
+        Assert.Equal(6, fiveVocabulary.Length);
         Assert.All(fiveVocabulary,
             element => Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, element.Name.NamespaceName));
         Assert.Equal("four-person", (string?)fiveVocabulary.Single(element => element.Name.LocalName == "personname").Attribute(XNamespace.Xml + "id"));
@@ -1451,6 +1460,15 @@ public sealed class DocBookDocumentTests {
         XElement fiveCustom = asFive.Xml.Descendants().Single(element => element.Name.LocalName == "custom");
         Assert.Equal(XNamespace.None, fiveCustom.Name.Namespace);
         Assert.Equal("four", (string?)fiveCustom.Attribute("flag"));
+        Assert.DoesNotContain(asFive.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB023");
+    }
+
+    [Theory]
+    [InlineData("<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article xmlns:d=\"http://docbook.org/ns/docbook\"><articleinfo><author><d:affiliation><d:orgname>Wrong</d:orgname></d:affiliation></author></articleinfo></article>")]
+    [InlineData("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><author><affiliation xmlns=\"\"><orgname>Wrong</orgname></affiliation></author></info></article>")]
+    public void ValidationRejectsKnownVocabularyFromTheOtherProfileNamespace(string source) {
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB023" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -1591,6 +1609,30 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125");
         XElement element = Assert.Single(converted.Value.Xml.Descendants(), candidate => candidate.Name.LocalName == localName);
         Assert.Equal("Edited", element.Value);
+    }
+
+    [Fact]
+    public void SharedReverseConversionPreservesEditedStructuralTitlesAndTheirBodyContent() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><para>Section body</para></section><table><title>Table</title><tgroup cols=\"1\"><tbody><row><entry>Cell</entry></row></tbody></tgroup></table><figure><title>Figure</title><mediaobject><imageobject><imagedata fileref=\"image.png\"/></imageobject></mediaobject></figure></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        FindStructureNode(model.Structure, "section").Text = "Edited section";
+        FindStructureNode(model.Structure, "table").Text = "Edited table";
+        FindStructureNode(model.Structure, "figure").Text = "Edited figure";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal("Edited section", converted.Value.Xml.Descendants().Single(element =>
+            element.Name.LocalName == "section").Elements().Single(element => element.Name.LocalName == "title").Value);
+        Assert.Equal("Section body", converted.Value.Xml.Descendants().Single(element => element.Name.LocalName == "para").Value);
+        XElement table = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "table");
+        Assert.Equal("Edited table", table.Elements().Single(element => element.Name.LocalName == "title").Value);
+        Assert.Equal("Cell", table.Descendants().Single(element => element.Name.LocalName == "entry").Value);
+        XElement figure = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "figure");
+        Assert.Equal("Edited figure", figure.Elements().Single(element => element.Name.LocalName == "title").Value);
+        Assert.Equal("image.png", (string?)figure.Descendants().Single(element =>
+            element.Name.LocalName == "imagedata").Attribute("fileref"));
+        Assert.Equal(3, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("Primary text", StringComparison.Ordinal) >= 0));
     }
 
     [Fact]

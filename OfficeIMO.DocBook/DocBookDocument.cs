@@ -191,6 +191,23 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
                     "title must appear in the container header before subtitle and body content.", path));
             }
+            bool misplacedSubtitle = kind == DocBookNodeKind.Subtitle && parent != null && IsTitleBearingContainer(parent) &&
+                element.ElementsBeforeSelf().Any(sibling => {
+                    DocBookNodeKind siblingKind = DocBookNames.GetKind(sibling.Name, Namespace);
+                    return siblingKind != DocBookNodeKind.Info && siblingKind != DocBookNodeKind.Title &&
+                        siblingKind != DocBookNodeKind.Subtitle;
+                });
+            if (misplacedSubtitle) {
+                diagnostics.Add(new DocBookDiagnostic("DB022", DocBookDiagnosticSeverity.Error,
+                    "subtitle must appear in the container header before body content.", path));
+            }
+            if (element != root && element.Name.Namespace != Namespace &&
+                IsKnownUntypedDocBookLocalName(localName) &&
+                (element.Name.Namespace == XNamespace.None ||
+                 element.Name.NamespaceName == DocBookSchemaProfiles.DocBook52.NamespaceUri)) {
+                diagnostics.Add(new DocBookDiagnostic("DB023", DocBookDiagnosticSeverity.Error,
+                    $"{localName} must use the selected DocBook profile namespace.", path));
+            }
             if (kind == DocBookNodeKind.TableGroup &&
                 (!int.TryParse((string?)element.Attribute("cols"), System.Globalization.NumberStyles.None,
                     System.Globalization.CultureInfo.InvariantCulture, out int columnCount) || columnCount <= 0)) {
