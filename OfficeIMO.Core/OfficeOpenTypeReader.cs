@@ -129,6 +129,24 @@ internal sealed class OfficeOpenTypeReader {
         return glyph != 0 ? glyph : MapFallbackCmapSubtable(table, cmapEnd, scalar);
     }
 
+    internal bool HasGlyphs(string text) => OfficeOpenTypeCmap.HasGlyphs(
+        text,
+        MapGlyph,
+        MapVariationGlyph);
+
+    internal int ReadMappedGlyph(string text, ref int index, out int scalar) =>
+        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, MapGlyph, MapVariationGlyph, out scalar);
+
+    private int MapVariationGlyph(int scalar, int selector) =>
+        OfficeOpenTypeCmap.MapVariationSequence(
+            _data,
+            _cmap.Offset,
+            _cmap.Length,
+            GlyphCount,
+            scalar,
+            selector,
+            MapGlyph);
+
     private int MapCmapSubtable(int table, int cmapEnd, int scalar) {
         int format = ReadUInt16(table);
         return format == 12

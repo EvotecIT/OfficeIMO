@@ -59,10 +59,9 @@ public sealed class DrawingFontUnicodeRangeTests {
             });
     }
 
-    [Theory]
-    [InlineData("A\uFE0F")]
-    [InlineData("A\u200D")]
-    public void FontCollection_IgnoresShapingControlsWhenMatchingUnicodeRanges(string text) {
+    [Fact]
+    public void FontCollection_IgnoresJoiningControlsWhenMatchingUnicodeRanges() {
+        const string text = "A\u200D";
         byte[] font = ManagedTextShapingTestAssets.CreateFont('A');
         Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+0041", out OfficeFontUnicodeRangeSet? latin));
         var fonts = new OfficeFontFaceCollection().Add("Scoped", font, OfficeFontStyle.Regular, latin!);
