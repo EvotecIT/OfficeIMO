@@ -280,6 +280,7 @@ internal static partial class PdfPrintProductionColorInspector {
                                         contentDepths,
                                         objects,
                                         shadings,
+                                        graphicsStates,
                                         limits,
                                         ref transparencyGroups,
                                         colorState.Capture())) {
@@ -624,6 +625,7 @@ internal static partial class PdfPrintProductionColorInspector {
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         List<ShadingContext> shadings,
+        HashSet<PdfDictionary> graphicsStates,
         PdfReadLimits limits,
         ref int transparencyGroups,
         ContentColorStateSnapshot initialColorState) {
@@ -672,6 +674,30 @@ internal static partial class PdfPrintProductionColorInspector {
                 initialColorState: initialColorState);
         }
         if (patternType.Value == 2D && pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
+            if (!HasOptionalExactFiniteNumberArray(pattern, "Matrix", 6, objects, limits.MaxObjectNestingDepth)) return false;
+            if (pattern.Items.TryGetValue("ExtGState", out PdfObject? graphicsStateObject)) {
+                PdfObject? resolvedGraphicsState = ResolveObject(
+                        objects,
+                        graphicsStateObject,
+                        patternDepth + 1,
+                        limits.MaxObjectNestingDepth,
+                        out int graphicsStateDepth);
+                if (resolvedGraphicsState is not PdfNull) {
+                    if (resolvedGraphicsState is not PdfDictionary graphicsState) return false;
+                    graphicsStates.Add(graphicsState);
+                    if (!TryAddSoftMaskStream(
+                            graphicsState,
+                            graphicsStateDepth,
+                            context,
+                            contentDepth,
+                            streams,
+                            contentDepths,
+                            objects,
+                            limits,
+                            ref transparencyGroups,
+                            initialColorState)) return false;
+                }
+            }
             return AddResolvedShadingContext(
                 shadingObject,
                 patternDepth + 1,

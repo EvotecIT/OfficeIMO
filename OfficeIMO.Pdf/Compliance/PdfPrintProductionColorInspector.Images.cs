@@ -4,6 +4,109 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionColorInspector {
+    private static bool IsStructurallyInspectableSoftMask(
+        ImageContext owner,
+        PdfStream softMask,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
+        PdfDictionary dictionary = softMask.Dictionary;
+        if (dictionary.Items.ContainsKey("Mask") || dictionary.Items.ContainsKey("SMask")) return false;
+
+        PdfObject? softMaskColorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpace)
+            ? colorSpace
+            : null;
+        ColorSpaceUsage softMaskUsage = ClassifyColorSpace(
+            softMaskColorSpace,
+            objects,
+            maximumObjectDepth,
+            maximumDecodedStreamBytes,
+            owner.Aliases);
+        if (!softMaskUsage.IsKnown || softMaskUsage.ComponentCount != 1 || softMaskUsage.UsesPattern ||
+            !IsStructurallyInspectableImage(
+                dictionary,
+                softMask.Data,
+                componentCount: 1,
+                objects,
+                maximumObjectDepth,
+                maximumDecodedStreamBytes)) {
+            return false;
+        }
+
+        if (!dictionary.Items.TryGetValue("Matte", out PdfObject? matteObject) ||
+            ResolveObject(objects, matteObject, 0, maximumObjectDepth) is PdfNull) return true;
+        PdfObject? ownerColorSpace = owner.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? ownerColorSpaceObject)
+            ? ownerColorSpaceObject
+            : null;
+        ColorSpaceUsage ownerUsage = ClassifyColorSpace(
+            ownerColorSpace,
+            objects,
+            maximumObjectDepth,
+            maximumDecodedStreamBytes,
+            owner.Aliases);
+        return ownerUsage.IsKnown && ownerUsage.ComponentCount > 0 &&
+            HasExactFiniteNumberArray(
+                dictionary,
+                "Matte",
+                ownerUsage.ComponentCount,
+                objects,
+                maximumObjectDepth,
+                out _);
+    }
+
+    private static bool HasStructurallyValidExplicitMask(
+        ImageContext owner,
+        int componentCount,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        int maximumDecodedStreamBytes) {
+        bool hasSoftMask = owner.Dictionary.Items.TryGetValue("SMask", out PdfObject? softMaskObject) &&
+            ResolveObject(objects, softMaskObject, 0, maximumObjectDepth) is not PdfNull and not PdfName { Name: "None" };
+        if (!owner.Dictionary.Items.TryGetValue("Mask", out PdfObject? maskObject) ||
+            ResolveObject(objects, maskObject, 0, maximumObjectDepth) is PdfNull) return true;
+        if (hasSoftMask || componentCount < 1) return false;
+
+        PdfObject? resolvedMask = ResolveObject(objects, maskObject, 0, maximumObjectDepth);
+        if (resolvedMask is PdfArray colorKeyMask) {
+            if (colorKeyMask.Items.Count != checked(componentCount * 2) ||
+                !TryResolveInteger(owner.Dictionary, "BitsPerComponent", objects, maximumObjectDepth, 1, 16, out int bitsPerComponent)) {
+                return false;
+            }
+            int maximumSample = (1 << bitsPerComponent) - 1;
+            for (int component = 0; component < componentCount; component++) {
+                if (!TryResolveBoundedInteger(colorKeyMask.Items[component * 2], objects, maximumObjectDepth, 0, maximumSample, out int minimum) ||
+                    !TryResolveBoundedInteger(colorKeyMask.Items[component * 2 + 1], objects, maximumObjectDepth, minimum, maximumSample, out _)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        if (resolvedMask is not PdfStream maskStream ||
+            !string.Equals(
+                ResolveName(
+                    maskStream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Image",
+                StringComparison.Ordinal) ||
+            maskStream.Dictionary.Items.ContainsKey("Mask") ||
+            maskStream.Dictionary.Items.ContainsKey("SMask") ||
+            ResolveObject(
+                objects,
+                maskStream.Dictionary.Items.TryGetValue("ImageMask", out PdfObject? imageMaskObject) ? imageMaskObject : null,
+                0,
+                maximumObjectDepth) is not PdfBoolean { Value: true }) {
+            return false;
+        }
+        return IsStructurallyInspectableImageMask(
+            maskStream.Dictionary,
+            maskStream.Data,
+            objects,
+            maximumObjectDepth,
+            maximumDecodedStreamBytes);
+    }
+
     private static bool IsStructurallyInspectableImage(
         ImageContext context,
         int componentCount,

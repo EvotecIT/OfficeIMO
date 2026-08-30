@@ -114,7 +114,8 @@ internal static partial class PdfPrintProductionStructureInspector {
         PdfDictionary fontWithDescriptor = font;
         string? programFontSubtype = subtype;
         if (string.Equals(subtype, "Type0", StringComparison.Ordinal)) {
-            if (!font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) ||
+            if (!HasRequiredType0ParentEntries(font, objects, maximumObjectDepth) ||
+                !font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject) ||
                 ResolveObject(objects, descendantsObject, 0, maximumObjectDepth, out _) is not PdfArray descendants ||
                 descendants.Items.Count != 1 ||
                 ResolveObject(objects, descendants.Items[0], 0, maximumObjectDepth, out _) is not PdfDictionary descendant) {
@@ -130,6 +131,7 @@ internal static partial class PdfPrintProductionStructureInspector {
                 !string.Equals(descendantSubtype, "CIDFontType2", StringComparison.Ordinal)) {
                 return false;
             }
+            if (!HasRequiredCidFontEntries(descendant, objects, maximumObjectDepth)) return false;
             fontWithDescriptor = descendant;
             programFontSubtype = descendantSubtype;
         }
@@ -143,6 +145,60 @@ internal static partial class PdfPrintProductionStructureInspector {
             objects,
             maxDecodedStreamBytes,
             maximumObjectDepth);
+    }
+
+    private static bool HasRequiredType0ParentEntries(
+        PdfDictionary font,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!string.Equals(ResolveName(
+                font.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                objects,
+                maximumObjectDepth), "Font", StringComparison.Ordinal) ||
+            ResolveObject(
+                objects,
+                font.Items.TryGetValue("BaseFont", out PdfObject? baseFontObject) ? baseFontObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is not PdfName { Name.Length: > 0 }) return false;
+        if (!font.Items.TryGetValue("Encoding", out PdfObject? encodingObject)) return false;
+        PdfObject? encoding = ResolveObject(objects, encodingObject, 0, maximumObjectDepth, out _);
+        return encoding is PdfName { Name.Length: > 0 } or PdfStream;
+    }
+
+    private static bool HasRequiredCidFontEntries(
+        PdfDictionary descendant,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!string.Equals(ResolveName(
+                descendant.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                objects,
+                maximumObjectDepth), "Font", StringComparison.Ordinal) ||
+            ResolveObject(
+                objects,
+                descendant.Items.TryGetValue("BaseFont", out PdfObject? baseFontObject) ? baseFontObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is not PdfName { Name.Length: > 0 } ||
+            ResolveObject(
+                objects,
+                descendant.Items.TryGetValue("CIDSystemInfo", out PdfObject? systemInfoObject) ? systemInfoObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is not PdfDictionary systemInfo) return false;
+        if (ResolveObject(
+                objects,
+                systemInfo.Items.TryGetValue("Registry", out PdfObject? registryObject) ? registryObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is not PdfStringObj { Value.Length: > 0 } ||
+            ResolveObject(
+                objects,
+                systemInfo.Items.TryGetValue("Ordering", out PdfObject? orderingObject) ? orderingObject : null,
+                0,
+                maximumObjectDepth,
+                out _) is not PdfStringObj { Value.Length: > 0 }) return false;
+        return TryReadInteger(systemInfo, "Supplement", objects, maximumObjectDepth, 0, int.MaxValue, out _);
     }
 
     private static bool HasValidType3FontProgram(

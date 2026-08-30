@@ -13,6 +13,7 @@ internal static partial class PdfPrintProductionColorInspector {
         if (componentCount < 1 ||
             !TryResolveInteger(shading, "ShadingType", objects, maximumObjectDepth, 1, 7, out int shadingType) ||
             !HasOptionalExactFiniteNumberArray(shading, "BBox", 4, objects, maximumObjectDepth) ||
+            !HasOptionalExactFiniteNumberArray(shading, "Background", componentCount, objects, maximumObjectDepth) ||
             !HasOptionalBoolean(shading, "AntiAlias", objects, maximumObjectDepth)) {
             return false;
         }

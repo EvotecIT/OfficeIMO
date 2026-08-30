@@ -121,7 +121,13 @@ internal static partial class PdfPrintProductionColorInspector {
                         objects,
                         maximumObjectDepth),
                     "Image",
-                    StringComparison.Ordinal)) {
+                    StringComparison.Ordinal) ||
+                !IsStructurallyInspectableSoftMask(
+                    context,
+                    softMaskStream,
+                    objects,
+                    maximumObjectDepth,
+                    maximumDecodedStreamBytes)) {
                 uninspectable++;
                 continue;
             }
@@ -170,6 +176,12 @@ internal static partial class PdfPrintProductionColorInspector {
                     context.Aliases);
                 hasUnknownContext |= !usage.IsKnown ||
                     !IsStructurallyInspectableImage(
+                        context,
+                        usage.ComponentCount,
+                        objects,
+                        maximumObjectDepth,
+                        maximumDecodedStreamBytes) ||
+                    !HasStructurallyValidExplicitMask(
                         context,
                         usage.ComponentCount,
                         objects,
@@ -796,7 +808,13 @@ internal static partial class PdfPrintProductionColorInspector {
                             maximumDecodedStreamBytes,
                             out OfficeIMO.Drawing.OfficeIccColorProfile? parsedProfile) ||
                         parsedProfile == null ||
-                        parsedProfile.ComponentCount != (int)components) {
+                        parsedProfile.ComponentCount != (int)components ||
+                        !HasValidIccBasedOptions(
+                            profile.Dictionary,
+                            (int)components,
+                            objects,
+                            maximumObjectDepth,
+                            maximumDecodedStreamBytes)) {
                         return ColorSpaceUsage.Unknown;
                     }
                     return ColorSpaceUsage.DeviceIndependentWithComponents((int)components);

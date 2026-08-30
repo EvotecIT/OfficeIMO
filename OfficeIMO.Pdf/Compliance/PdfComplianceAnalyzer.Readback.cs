@@ -247,19 +247,27 @@ internal static partial class PdfComplianceAnalyzer {
             TryGetSinglePdfXOutputIntent(info.OutputIntents, out PdfOutputIntentInfo? singleOutputIntent)
             ? singleOutputIntent
             : null;
-        bool hasMatchingProfileSize = outputIntent?.DestinationOutputProfileSizeBytes is int actualProfileSize &&
-            outputIntent.DestinationOutputProfileDeclaredSizeBytes is int declaredProfileSize &&
-            actualProfileSize >= 128 &&
-            actualProfileSize == declaredProfileSize;
+        bool hasValidOutputIntentProfile = false;
+        if (outputIntent != null) {
+            try {
+                hasValidOutputIntentProfile =
+                    outputIntent.DestinationOutputProfileSizeBytes is int actualProfileSize &&
+                    outputIntent.DestinationOutputProfileDeclaredSizeBytes is int declaredProfileSize &&
+                    actualProfileSize >= 128 &&
+                    actualProfileSize == declaredProfileSize &&
+                    outputIntent.DestinationOutputProfileColorComponents == 4 &&
+                    outputIntent.DestinationOutputProfileHasIccSignature == true &&
+                    string.Equals(outputIntent.DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal) &&
+                    string.Equals(outputIntent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
+                    outputIntent.DestinationOutputProfileHasSupportedOutputTransform == true;
+            } catch (InvalidDataException) {
+                hasValidOutputIntentProfile = false;
+            }
+        }
         Add(requirements, "readback-pdfx-output-intent", "Readback PDF/X CMYK output intent",
             outputIntent != null &&
             !string.IsNullOrWhiteSpace(outputIntent.OutputConditionIdentifier) &&
-            outputIntent.DestinationOutputProfileColorComponents == 4 &&
-            outputIntent.DestinationOutputProfileHasIccSignature == true &&
-            string.Equals(outputIntent.DestinationOutputProfileColorSpace, "CMYK", StringComparison.Ordinal) &&
-            string.Equals(outputIntent.DestinationOutputProfileDeviceClass, "prtr", StringComparison.Ordinal) &&
-            hasMatchingProfileSize &&
-            outputIntent.DestinationOutputProfileHasSupportedOutputTransform == true,
+            hasValidOutputIntentProfile,
             "The saved PDF contains a /GTS_PDFX output intent backed by a readable CMYK output-device ICC profile.",
             "The saved PDF must contain a named /GTS_PDFX output intent backed by a size-consistent, parseable CMYK output-device ICC profile with a supported output transform and matching /N value.");
 

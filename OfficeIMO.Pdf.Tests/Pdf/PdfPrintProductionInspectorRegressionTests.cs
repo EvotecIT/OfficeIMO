@@ -619,20 +619,20 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
-    public void ColorInspectorClassifiesReachableImageSoftMaskColorSpace() {
+    public void ColorInspectorAcceptsReachableGrayscaleImageSoftMask() {
         byte[] pdf = BuildInspectionPdf(
             "/Im1 Do",
             resources: "/XObject << /Im1 5 0 R >>",
             extraObjects:
                 "5 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8 /SMask 6 0 R /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n" +
-                "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>\nstream\nrgb\nendstream\nendobj\n");
+                "6 0 obj\n<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Length 1 >>\nstream\ng\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
         Assert.True(evidence.IsComplete);
         Assert.Equal(1, evidence.TransparentImageCount);
         Assert.Equal(1, evidence.DeviceCmykImageCount);
-        Assert.Equal(1, evidence.DeviceRgbImageCount);
+        Assert.Equal(0, evidence.DeviceRgbImageCount);
     }
 
     [Fact]
