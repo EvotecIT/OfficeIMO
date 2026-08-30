@@ -360,8 +360,12 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
     private static string DecodeStrictAscii(byte[] data, int offset, int count) {
         for (int index = 0; index < count; index++) {
-            if (data[offset + index] > 0x7F) {
+            byte value = data[offset + index];
+            if (value > 0x7F) {
                 throw new InvalidDataException("Structured WK text contains an extended character byte outside the validated ASCII profile.");
+            }
+            if (value < 0x20 && value != (byte)'\t' && value != (byte)'\r' && value != (byte)'\n') {
+                throw new InvalidDataException("Structured WK text contains a control byte outside the XML-safe validated ASCII profile.");
             }
         }
         return Encoding.ASCII.GetString(data, offset, count);

@@ -276,6 +276,15 @@ public sealed class LegacyWordImportTests {
         Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
     }
 
+    [Theory]
+    [InlineData("[ver]\n4\n[ver]\n4\n[edoc]\nOne\n")]
+    [InlineData("[ver]\n4\n[edoc]\nOne\n[edoc]\nTwo\n")]
+    public void AmiProRejectsDuplicateSingletonSections(string source) {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(source),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true }));
+    }
+
     [Fact]
     public void AmiProUnterminatedInlineOpenersAreScannedLinearlyWithoutHidingLaterStyleReferences() {
         string text = string.Concat(Enumerable.Repeat("<x", 100_000));

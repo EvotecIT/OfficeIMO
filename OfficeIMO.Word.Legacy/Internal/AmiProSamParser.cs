@@ -66,6 +66,8 @@ internal sealed class AmiProSamParser {
 
     internal LegacyWordModel Parse() {
         if (_lines.Length > _limits.MaxRecords) throw new InvalidDataException("Ami Pro source exceeds the configured record limit.");
+        ValidateSingletonSection("ver");
+        ValidateSingletonSection("edoc");
         int versionIndex = FindSection("ver");
         if (versionIndex < 0 || versionIndex + 1 >= _lines.Length || !int.TryParse(_lines[versionIndex + 1].Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int version)) {
             throw new InvalidDataException("Ami Pro SAM source has no valid [ver] value.");
@@ -391,6 +393,16 @@ internal sealed class AmiProSamParser {
     private int FindSection(string name) {
         for (int index = 0; index < _lines.Length; index++) if (IsSection(_lines[index], name)) return index;
         return -1;
+    }
+
+    private void ValidateSingletonSection(string name) {
+        int count = 0;
+        for (int index = 0; index < _lines.Length; index++) {
+            if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            if (IsSection(_lines[index], name) && ++count > 1) {
+                throw new InvalidDataException($"Ami Pro SAM contains more than one [{name}] singleton section.");
+            }
+        }
     }
 
     private int FindNextTopLevelSection(int start) {

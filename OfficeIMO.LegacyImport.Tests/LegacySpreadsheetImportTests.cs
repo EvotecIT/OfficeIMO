@@ -385,6 +385,19 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Theory]
+    [InlineData((char)0x01)]
+    [InlineData((char)0x0B)]
+    [InlineData((char)0x0C)]
+    public void StructuredWkTextRejectsXmlInvalidAsciiControls(char control) {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, label: "A" + control + "B"),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithNames("A" + control + "B"),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
+    }
+
+    [Theory]
     [InlineData(0x000C)]
     [InlineData(0x000D)]
     [InlineData(0x000E)]
