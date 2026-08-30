@@ -187,6 +187,32 @@ public sealed class LegacyWordImportTests {
         Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
     }
 
+    [Theory]
+    [InlineData("Body Text\n0\n[fnt]", "Body Text\nbad\n[fnt]")]
+    [InlineData("240\n255\n16385", "240\nbad\n16385")]
+    [InlineData("255\n16385\n[algn]", "255\nbad\n[algn]")]
+    [InlineData("[algn]\n1\n0\n0\n0\n0", "[algn]\nbad\n0\n0\n0\n0")]
+    [InlineData("[algn]\n1\n0\n0\n0\n0", "[algn]\n1\nbad\n0\n0\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\nbad\n240\n0\n0\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\nbad\n0\n0\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\nbad\n0\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\nbad\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\n0\nbad")]
+    [InlineData("[brk]\n16\n[edoc]", "[brk]\nbad\n[edoc]")]
+    public void AmiProMalformedStyleNumericFieldsRemainExplicitLoss(string sourceValue, string replacement) {
+        string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
+        string malformed = fixture.Replace(sourceValue, replacement, StringComparison.Ordinal);
+        Assert.NotEqual(fixture, malformed);
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(malformed),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_BLOCK_MALFORMED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
     [Fact]
     public void AmiProUnterminatedInlineOpenersAreScannedLinearlyWithoutHidingLaterStyleReferences() {
         string text = string.Concat(Enumerable.Repeat("<x", 100_000));
@@ -598,13 +624,16 @@ public sealed class LegacyWordImportTests {
         byte[] source = LegacyFixtureFactory.Write(write: false);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
-                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = 128 }
             })
             .Build();
         using var stream = new NonSeekableStream(source);
 
         IOException exception = Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.doc"));
         Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(97, stream.RequestedCounts[0]);
+        Assert.All(stream.RequestedCounts.Skip(1), count => Assert.InRange(count, 1, 32));
+        Assert.Equal(129, stream.BytesRead);
     }
 
     [Fact]
@@ -612,13 +641,16 @@ public sealed class LegacyWordImportTests {
         byte[] source = LegacyFixtureFactory.Write(write: false);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddWordAndLegacyHandlers(new LegacyWordImportOptions {
-                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = 128 }
             })
             .Build();
         using var stream = new NonSeekableStream(source);
 
         IOException exception = await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "archive.doc"));
         Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(97, stream.RequestedCounts[0]);
+        Assert.All(stream.RequestedCounts.Skip(1), count => Assert.InRange(count, 1, 32));
+        Assert.Equal(129, stream.BytesRead);
     }
 
     [Fact]
@@ -695,6 +727,7 @@ public sealed class LegacyWordImportTests {
 
         internal NonSeekableStream(byte[] data) => _inner = new MemoryStream(data, writable: false);
         internal long BytesRead { get; private set; }
+        internal List<int> RequestedCounts { get; } = new();
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
@@ -702,7 +735,14 @@ public sealed class LegacyWordImportTests {
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
         public override int Read(byte[] buffer, int offset, int count) {
+            RequestedCounts.Add(count);
             int read = _inner.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            RequestedCounts.Add(count);
+            int read = await _inner.ReadAsync(buffer, offset, count, cancellationToken);
             BytesRead += read;
             return read;
         }

@@ -124,40 +124,34 @@ public static class ReaderInputLimits {
         Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
         try {
             var chunk = new byte[64 * 1024];
-            byte[]? prefix = inputLimitProbe == null ? null : new byte[inputLimitProbe.PrefixLength];
-            int prefixLength = 0;
-            bool probeResolved = inputLimitProbe == null;
             long totalBytes = 0;
+            if (inputLimitProbe != null) {
+                var prefix = new byte[inputLimitProbe.PrefixLength];
+                int prefixLength = 0;
+                while (prefixLength < prefix.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int requested = GetNextReadSize(prefix.Length - prefixLength, totalBytes, maxInputBytes);
+                    int read = stream.Read(prefix, prefixLength, requested);
+                    if (read <= 0) break;
+                    totalBytes += read;
+                    ThrowIfInputExceeds(totalBytes, maxInputBytes);
+                    buffer.Write(prefix, prefixLength, read);
+                    prefixLength += read;
+                }
+
+                maxInputBytes = CombineMaxInputBytes(maxInputBytes,
+                    inputLimitProbe.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
+                ThrowIfInputExceeds(totalBytes, maxInputBytes);
+            }
+
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var read = stream.Read(chunk, 0, chunk.Length);
+                int requested = GetNextReadSize(chunk.Length, totalBytes, maxInputBytes);
+                int read = stream.Read(chunk, 0, requested);
                 if (read <= 0) break;
-
-                if (!probeResolved && prefix != null) {
-                    int copy = Math.Min(read, prefix.Length - prefixLength);
-                    Buffer.BlockCopy(chunk, 0, prefix, prefixLength, copy);
-                    prefixLength += copy;
-                    if (prefixLength == prefix.Length) {
-                        maxInputBytes = CombineMaxInputBytes(maxInputBytes,
-                            inputLimitProbe!.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
-                        probeResolved = true;
-                    }
-                }
-
                 totalBytes += read;
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-                }
+                ThrowIfInputExceeds(totalBytes, maxInputBytes);
                 buffer.Write(chunk, 0, read);
-            }
-            if (!probeResolved && prefix != null) {
-                maxInputBytes = CombineMaxInputBytes(maxInputBytes,
-                    inputLimitProbe!.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-                }
             }
         } catch {
             buffer.Dispose();
@@ -223,40 +217,32 @@ public static class ReaderInputLimits {
         Stream buffer = CreateBoundedSnapshotBuffer(maxInputBytes);
         try {
             var chunk = new byte[64 * 1024];
-            byte[]? prefix = inputLimitProbe == null ? null : new byte[inputLimitProbe.PrefixLength];
-            int prefixLength = 0;
-            bool probeResolved = inputLimitProbe == null;
             long totalBytes = 0;
-            while (true) {
-                int read = await stream.ReadAsync(chunk, 0, chunk.Length, cancellationToken).ConfigureAwait(false);
-                if (read <= 0) break;
-
-                if (!probeResolved && prefix != null) {
-                    int copy = Math.Min(read, prefix.Length - prefixLength);
-                    Buffer.BlockCopy(chunk, 0, prefix, prefixLength, copy);
-                    prefixLength += copy;
-                    if (prefixLength == prefix.Length) {
-                        maxInputBytes = CombineMaxInputBytes(maxInputBytes,
-                            inputLimitProbe!.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
-                        probeResolved = true;
-                    }
+            if (inputLimitProbe != null) {
+                var prefix = new byte[inputLimitProbe.PrefixLength];
+                int prefixLength = 0;
+                while (prefixLength < prefix.Length) {
+                    int requested = GetNextReadSize(prefix.Length - prefixLength, totalBytes, maxInputBytes);
+                    int read = await stream.ReadAsync(prefix, prefixLength, requested, cancellationToken).ConfigureAwait(false);
+                    if (read <= 0) break;
+                    totalBytes += read;
+                    ThrowIfInputExceeds(totalBytes, maxInputBytes);
+                    await buffer.WriteAsync(prefix, prefixLength, read, cancellationToken).ConfigureAwait(false);
+                    prefixLength += read;
                 }
 
-                totalBytes += read;
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-                }
-
-                await buffer.WriteAsync(chunk, 0, read, cancellationToken).ConfigureAwait(false);
-            }
-            if (!probeResolved && prefix != null) {
                 maxInputBytes = CombineMaxInputBytes(maxInputBytes,
-                    inputLimitProbe!.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
-                if (maxInputBytes.HasValue && totalBytes > maxInputBytes.Value) {
-                    throw new IOException(
-                        $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-                }
+                    inputLimitProbe.ResolveMaxInputBytes(new ReadOnlyMemory<byte>(prefix, 0, prefixLength)));
+                ThrowIfInputExceeds(totalBytes, maxInputBytes);
+            }
+
+            while (true) {
+                int requested = GetNextReadSize(chunk.Length, totalBytes, maxInputBytes);
+                int read = await stream.ReadAsync(chunk, 0, requested, cancellationToken).ConfigureAwait(false);
+                if (read <= 0) break;
+                totalBytes += read;
+                ThrowIfInputExceeds(totalBytes, maxInputBytes);
+                await buffer.WriteAsync(chunk, 0, read, cancellationToken).ConfigureAwait(false);
             }
         } catch {
             buffer.Dispose();
@@ -303,6 +289,19 @@ public static class ReaderInputLimits {
     private static long? CombineMaxInputBytes(long? configured, long? probed) {
         if (probed.HasValue && probed.Value < 1) throw new InvalidOperationException("An input-limit prefix resolver returned a value below 1.");
         return configured.HasValue && probed.HasValue ? Math.Min(configured.Value, probed.Value) : configured ?? probed;
+    }
+
+    private static int GetNextReadSize(int preferredSize, long totalBytes, long? maxInputBytes) {
+        if (!maxInputBytes.HasValue) return preferredSize;
+        long remaining = maxInputBytes.Value - totalBytes;
+        if (remaining < 0) ThrowIfInputExceeds(totalBytes, maxInputBytes);
+        return remaining >= preferredSize ? preferredSize : checked((int)remaining + 1);
+    }
+
+    private static void ThrowIfInputExceeds(long totalBytes, long? maxInputBytes) {
+        if (!maxInputBytes.HasValue || totalBytes <= maxInputBytes.Value) return;
+        throw new IOException(
+            $"Input exceeds MaxInputBytes ({totalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
     }
 
     private static Stream CreateBoundedSnapshotBuffer(long? maxInputBytes) {

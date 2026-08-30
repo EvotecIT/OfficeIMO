@@ -22,6 +22,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         ValidateBof(data, familyName, expectedProduct0, expectedProduct1);
         var model = new LegacySpreadsheetModel { Quality = OfficeLegacyImportQuality.Structured };
         var sheets = new Dictionary<byte, LegacySpreadsheetSheet>();
+        var occupiedCellAddresses = new HashSet<long>();
         int offset = 0;
         int records = 0;
         int recoveredTextCharacters = 0;
@@ -58,15 +59,15 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     break;
                 case 0x000C:
                     ValidateFixedCellLength(data, payload, length, DataOffset(layout), "blank");
-                    AddCell(model, sheets, limits, data, payload, null, null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
+                    AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, null, null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
                     break;
                 case 0x000D:
                     ValidateFixedCellLength(data, payload, length, DataOffset(layout) + 2, "integer");
-                    AddCell(model, sheets, limits, data, payload, OfficeLegacyImportBuffer.ReadInt16(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
+                    AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, OfficeLegacyImportBuffer.ReadInt16(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
                     break;
                 case 0x000E:
                     ValidateFixedCellLength(data, payload, length, DataOffset(layout) + 8, "floating-point");
-                    AddCell(model, sheets, limits, data, payload, ReadDouble(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
+                    AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, ReadDouble(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
                     break;
                 case 0x000F:
                     int labelOffset = DataOffset(layout);
@@ -87,10 +88,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                         : prefix == (byte)'"' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Right
                         : prefix == (byte)'\'' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Left
                         : prefix == (byte)'\\' ? OfficeIMO.Excel.ExcelHorizontalAlignment.Fill : null;
-                    AddCell(model, sheets, limits, data, payload, value, null, alignment, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, isText: true, layout: layout);
+                    AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, value, null, alignment, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, isText: true, layout: layout);
                     break;
                 case 0x0010:
-                    ParseFormulaCell(model, sheets, limits, data, payload, length, ref recoveredTextCharacters,
+                    ParseFormulaCell(model, sheets, occupiedCellAddresses, limits, data, payload, length, ref recoveredTextCharacters,
                         ref reportedUnsupportedFormula, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection,
                         ref formulaFallbackCount, layout, translateFormulas, cancellationToken);
                     break;
@@ -140,6 +141,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
     }
 
     private static void ParseFormulaCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
+        HashSet<long> occupiedCellAddresses,
         OfficeLegacyImportLimits limits, byte[] data, int payload, int length, ref int recoveredTextCharacters,
         ref bool reportedUnsupportedFormula, ref bool reportedUnsupportedFormat, ref bool reportedUnsupportedProtection,
         ref int formulaFallbackCount, WkRecordLayout layout, bool translateFormulas, CancellationToken cancellationToken) {
@@ -157,7 +159,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             if (WkFormulaDecoder.TryDecode(data, payload + dataOffset + 10, tokenLength, rowZeroBased, columnZeroBased,
                     limits, remainingTextCharacters, cancellationToken, out formula, out error)) {
                 AddTextCharacters(ref recoveredTextCharacters, formula!.Length, limits);
-                AddCell(model, sheets, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
+                AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
                 return;
             }
         }
@@ -171,10 +173,13 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                 model.Metadata[$"FormulaFallback.Sample.{formulaFallbackCount}"] = error;
             }
         }
-        AddCell(model, sheets, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
+        AddCell(model, sheets, occupiedCellAddresses, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, ref reportedUnsupportedProtection, layout: layout);
     }
 
-    private static void AddCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets, OfficeLegacyImportLimits limits, byte[] data, int payload, object? value, string? formula, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment, ref bool reportedUnsupportedFormat, ref bool reportedUnsupportedProtection, bool isText = false, WkRecordLayout layout = WkRecordLayout.SingleSheetDos) {
+    private static void AddCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets,
+        HashSet<long> occupiedCellAddresses, OfficeLegacyImportLimits limits, byte[] data, int payload, object? value,
+        string? formula, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment, ref bool reportedUnsupportedFormat,
+        ref bool reportedUnsupportedProtection, bool isText = false, WkRecordLayout layout = WkRecordLayout.SingleSheetDos) {
         if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
         ValidateCellHeader(data, payload, layout);
         byte format = layout == WkRecordLayout.QuattroWq2 ? (byte)0 : data[payload];
@@ -182,6 +187,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         byte sheetId = ReadSheet(data, payload, layout);
         int row = ReadRow(data, payload, layout) + 1;
         if (row < 1 || row > 1048576 || column < 1 || column > 16384) throw new InvalidDataException("Legacy cell address is outside the supported workbook model.");
+        long addressKey = ((long)sheetId << 28) | ((long)(row - 1) << 8) | (uint)(column - 1);
+        if (!occupiedCellAddresses.Add(addressKey)) {
+            throw new InvalidDataException("The structured WK record stream contains duplicate cell addresses.");
+        }
         string? numberFormat = WkCellFormatDecoder.Decode(format, isText);
         if (format != 0 && numberFormat == null && !reportedUnsupportedFormat) {
             model.Findings.Add(Loss("WK_CELL_FORMAT_PARTIAL", "Formatting", "At least one WK cell-format byte used a format family that is not safely mapped; supported numeric formats and label alignment were still projected."));
@@ -211,7 +220,6 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             string metadataName = length >= 16
                 ? ReadStructuredName(data, payload, length)
                 : ReadNullTerminatedAscii(data, payload, length);
-            if (metadataName.Length == 0) return;
             AddTextCharacters(ref recoveredTextCharacters, metadataName.Length, limits);
             unresolvedNameCount++;
             if (unresolvedNameCount <= MetadataSampleLimit) {
@@ -224,7 +232,6 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             return;
         }
         string name = ReadStructuredName(data, payload, length);
-        if (name.Length == 0) return;
         AddTextCharacters(ref recoveredTextCharacters, name.Length, limits);
         int firstColumn;
         int firstRow;

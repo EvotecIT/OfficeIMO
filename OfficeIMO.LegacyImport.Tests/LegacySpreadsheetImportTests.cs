@@ -239,6 +239,27 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void EmptyWkNamesRemainObservableAsInvalidSourceRecords() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithEmptyName(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        LegacySpreadsheetNameContent name = Assert.Single(imported.Names);
+        Assert.Equal(string.Empty, name.Name);
+        Assert.Null(name.ProjectedName);
+        Assert.Equal("1", imported.Metadata["UnprojectedInvalidNameCount"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void StructuredWkProfilesRejectDuplicateCellAddresses() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithDuplicateCell(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
+    }
+
+    [Fact]
     public void WkCellProtectionCannotDisappearFromNoLossClaims() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(cellFormat: 0x80, includeFormulaAndChart: false),
