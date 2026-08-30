@@ -3,80 +3,9 @@ using System.Globalization;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One materialized, non-empty Numbers cell.</summary>
-public sealed class IWorkNumbersCell {
-    internal IWorkNumbersCell(int row, int column, IWorkCellKind kind, object? value,
-        string? formula = null, string? error = null, IWorkCellKind? valueKind = null) {
-        Row = row;
-        Column = column;
-        Kind = kind;
-        ValueKind = valueKind ?? kind;
-        Value = value;
-        Formula = formula;
-        Error = error;
-    }
-
-    /// <summary>Gets the one-based row position.</summary>
-    public int Row { get; }
-    /// <summary>Gets the one-based column position.</summary>
-    public int Column { get; }
-    /// <summary>Gets the recovered value kind.</summary>
-    public IWorkCellKind Kind { get; }
-    /// <summary>Gets the type of <see cref="Value"/>, including the cached-value type of a formula cell.</summary>
-    public IWorkCellKind ValueKind { get; }
-    /// <summary>Gets the typed cached value, when one was recovered.</summary>
-    public object? Value { get; }
-    /// <summary>Gets a formula marker when the source formula cannot yet be reconstructed.</summary>
-    public string? Formula { get; }
-    /// <summary>Gets a cell-level decode error without failing the surrounding table.</summary>
-    public string? Error { get; }
-    /// <summary>Gets a culture-invariant display representation of the recovered value.</summary>
-    public string DisplayText => Kind switch {
-        IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
-        IWorkCellKind.DateTime when Value is DateTime date => date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
-        IWorkCellKind.Duration when Value is double seconds => seconds.ToString("R", CultureInfo.InvariantCulture) + "s",
-        IWorkCellKind.Formula => Formula ?? "=?",
-        IWorkCellKind.Error => Error ?? "#ERROR",
-        _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
-    };
-}
-
-/// <summary>A sparse Numbers table projection with declared dimensions.</summary>
-public sealed class IWorkNumbersTable {
-    private readonly Dictionary<long, IWorkNumbersCell> _cells;
-
-    internal IWorkNumbersTable(string name, int rowCount, int columnCount,
-        IReadOnlyList<IWorkNumbersCell> cells) {
-        Name = name;
-        RowCount = rowCount;
-        ColumnCount = columnCount;
-        _cells = new Dictionary<long, IWorkNumbersCell>();
-        foreach (IWorkNumbersCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
-        Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
-    }
-
-    /// <summary>Gets the source table name.</summary>
-    public string Name { get; }
-    /// <summary>Gets the declared row count without allocating an equivalent dense grid.</summary>
-    public int RowCount { get; }
-    /// <summary>Gets the declared column count without allocating an equivalent dense grid.</summary>
-    public int ColumnCount { get; }
-    /// <summary>Gets materialized non-empty or diagnostic cells.</summary>
-    public IReadOnlyList<IWorkNumbersCell> Cells { get; }
-
-    /// <summary>Returns a materialized cell at a one-based position, or null when the source cell is empty.</summary>
-    public IWorkNumbersCell? GetCell(int row, int column) {
-        if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
-        if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
-        return _cells.TryGetValue(Key(row, column), out IWorkNumbersCell? cell) ? cell : null;
-    }
-
-    private static long Key(int row, int column) => ((long)row << 32) | (uint)column;
-}
-
 /// <summary>One Numbers sheet and its semantic drawables.</summary>
 public sealed class IWorkNumbersSheet {
-    internal IWorkNumbersSheet(string name, IReadOnlyList<IWorkNumbersTable> tables,
+    internal IWorkNumbersSheet(string name, IReadOnlyList<IWorkTable> tables,
         IReadOnlyList<string> textBoxes) {
         Name = name;
         Tables = Array.AsReadOnly(tables.ToArray());
@@ -86,7 +15,7 @@ public sealed class IWorkNumbersSheet {
     /// <summary>Gets the source sheet name.</summary>
     public string Name { get; }
     /// <summary>Gets tables in drawable order.</summary>
-    public IReadOnlyList<IWorkNumbersTable> Tables { get; }
+    public IReadOnlyList<IWorkTable> Tables { get; }
     /// <summary>Gets text-box content in drawable order.</summary>
     public IReadOnlyList<string> TextBoxes { get; }
 }
@@ -147,6 +76,7 @@ internal static class IWorkNumbersReader {
     private const uint DocumentArchive = 1;
     private const uint SheetArchive = 2;
     private const uint TableInfoArchive = 6000;
+    private const uint WordProcessingTableInfoArchive = 6007;
     private const uint TableModelArchive = 6001;
     private const uint TableTileArchive = 6002;
     private const uint TextStorageArchive = 2001;
@@ -201,7 +131,7 @@ internal static class IWorkNumbersReader {
                 continue;
             }
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
-            var tables = new List<IWorkNumbersTable>();
+            var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();
             IReadOnlyList<IWorkArchiveRecord> drawables = index.DereferenceAll(
                 sheetMessage, 2, out int unresolvedDrawableCount);
@@ -224,22 +154,15 @@ internal static class IWorkNumbersReader {
                     continue;
                 }
                 if (drawable.MessageType == TableInfoArchive) {
-                    IWorkArchiveRecord? model = index.Dereference(index.Message(drawable), 2);
-                    if (model != null && model.MessageType == TableModelArchive) {
-                        projectionBudget.AddTable();
-                        tables.Add(ReadTable(source, index, model, diagnostics,
-                            ref materializedCellCount, ref supportsEditableReconstruction));
-                    } else {
-                        supportsEditableReconstruction = false;
-                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                            "IWORK_NUMBERS_TABLE_MODEL_UNSUPPORTED",
-                            "A Numbers table does not reference a supported table model; editable reconstruction is incomplete.",
-                            drawable.EntryPath, drawable.Identifier));
-                    }
+                    projectionBudget.AddTable();
+                    IWorkTable? table = IWorkTableReader.Read(source, drawable, diagnostics,
+                        ref materializedCellCount, ref supportsEditableReconstruction);
+                    if (table != null) tables.Add(table);
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
                     if (storage != null && storage.MessageType == TextStorageArchive) {
-                        string text = IWorkPagesReader.StorageText(index.Message(storage), out bool textComplete).Trim();
+                        string text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
+                            out bool textComplete).Trim();
                         if (!textComplete) {
                             supportsEditableReconstruction = false;
                             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED")) {
@@ -267,57 +190,135 @@ internal static class IWorkNumbersReader {
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction);
     }
 
-    private static IWorkNumbersTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
-        IWorkArchiveRecord model, List<IWorkDiagnostic> diagnostics,
+    internal static IWorkTable? ReadTableInfo(IWorkSourceDocument source, IWorkArchiveRecord tableRecord,
+        List<IWorkDiagnostic> diagnostics, ref int materializedCellCount,
+        ref bool supportsEditableReconstruction) {
+        IWorkWireMessage recordMessage = source.Index.Message(tableRecord);
+        IWorkWireMessage? tableInfo = tableRecord.MessageType switch {
+            TableInfoArchive => recordMessage,
+            WordProcessingTableInfoArchive => IWorkObjectIndex.TryGetMessage(recordMessage, 1),
+            _ => null
+        };
+        if (tableInfo == null) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_INFO_UNSUPPORTED",
+                "An iWork table has no supported table-info payload; editable reconstruction is incomplete.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+            return null;
+        }
+        IWorkArchiveRecord? model = source.Index.Dereference(tableInfo, 2);
+        if (model == null || model.MessageType != TableModelArchive) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_MODEL_UNSUPPORTED",
+                "An iWork table does not reference a supported table model; editable reconstruction is incomplete.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+            return null;
+        }
+        IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(tableInfo, 1, out bool malformedDrawable);
+        if (malformedDrawable || tableInfo.HasBytes(1) && drawable == null) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_DRAWABLE_UNSUPPORTED",
+                "An iWork table contains malformed drawable geometry; editable reconstruction is incomplete.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+        }
+        bool geometryComplete = true;
+        IWorkGeometry? geometry = drawable == null
+            ? null
+            : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete);
+        if (drawable != null && !geometryComplete) {
+            supportsEditableReconstruction = false;
+            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_DRAWABLE_UNSUPPORTED"
+                    && diagnostic.RecordIdentifier == tableRecord.Identifier)) {
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_TABLE_DRAWABLE_UNSUPPORTED",
+                    "An iWork table contains malformed drawable geometry; editable reconstruction is incomplete.",
+                    tableRecord.EntryPath, tableRecord.Identifier));
+            }
+        }
+        return ReadTable(source, source.Index, model, geometry, diagnostics,
+            ref materializedCellCount, ref supportsEditableReconstruction);
+    }
+
+    private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
+        IWorkArchiveRecord model, IWorkGeometry? geometry, List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(model);
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
         string name = message.GetString(8) ?? string.Empty;
-        var cells = new List<IWorkNumbersCell>();
+        int headerRows = CheckedSubDimension(message.GetUnsigned(9), rows, "header row", model);
+        int headerColumns = CheckedSubDimension(message.GetUnsigned(10), columns, "header column", model);
+        int footerRows = CheckedSubDimension(message.GetUnsigned(11), rows, "footer row", model);
+        double? defaultRowHeight = ValidDimension(message.GetDouble(16));
+        double? defaultColumnWidth = ValidDimension(message.GetDouble(17));
+        IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
+            source.Options.MaximumTableMergedRanges, model, diagnostics, ref supportsEditableReconstruction);
+        var cells = new List<IWorkTableCell>();
         var coordinates = new HashSet<long>();
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
         if (store == null) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
-            return new IWorkNumbersTable(name, rows, columns, cells);
+            return CreateTable();
         }
 
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store, out bool stringStorageComplete);
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
+            out bool formulaStorageComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                "IWORK_NUMBERS_STRING_STORAGE_UNSUPPORTED",
-                "A Numbers string table contains malformed or duplicate entries; editable reconstruction is incomplete.",
+                "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED",
+                "An iWork string table contains malformed or duplicate entries; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+        }
+        if (!formulaStorageComplete) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED",
+                "An iWork formula table contains malformed or duplicate entries; affected formulas retain cached values only.",
                 model.EntryPath, model.Identifier));
         }
         IWorkWireMessage? tileStorage = IWorkObjectIndex.TryGetMessage(store, 3);
         if (tileStorage == null) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
-            return new IWorkNumbersTable(name, rows, columns, cells);
+            return CreateTable();
         }
         IReadOnlyList<IWorkWireMessage> tileEntries = IWorkObjectIndex.TryGetMessages(
             tileStorage, 1, out bool malformedTileEntries);
         if (malformedTileEntries) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
-            return new IWorkNumbersTable(name, rows, columns, cells);
+            return CreateTable();
         }
+        var tileIndexes = new HashSet<ulong>();
+        var tileIdentifiers = new HashSet<ulong>();
         foreach (IWorkWireMessage tileEntry in tileEntries) {
-            ulong rawTileId = tileEntry.GetUnsigned(1) ?? 0;
-            if (rawTileId > int.MaxValue) {
+            ulong? declaredTileId = tileEntry.GetUnsigned(1);
+            if (!declaredTileId.HasValue || declaredTileId.Value > int.MaxValue) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_NUMBERS_TILE_INDEX_UNSUPPORTED",
-                    "A Numbers table tile index exceeds the supported range; editable reconstruction is incomplete.",
+                    "IWORK_TABLE_TILE_INDEX_UNSUPPORTED",
+                    "An iWork table tile index is missing or exceeds the supported range; editable reconstruction is incomplete.",
                     model.EntryPath, model.Identifier));
+                continue;
+            }
+            ulong rawTileId = declaredTileId.Value;
+            if (!tileIndexes.Add(rawTileId)) {
+                MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
             IWorkArchiveRecord? tile = index.Dereference(tileEntry, 2);
             if (tile == null || tile.MessageType != TableTileArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_NUMBERS_TILE_UNSUPPORTED",
-                    "A Numbers table references a missing or unsupported tile object; editable reconstruction is incomplete.",
+                    "IWORK_TABLE_TILE_UNSUPPORTED",
+                    "An iWork table references a missing or unsupported tile object; editable reconstruction is incomplete.",
                     model.EntryPath, model.Identifier));
+                continue;
+            }
+            if (!tileIdentifiers.Add(tile.Identifier)) {
+                MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
             IReadOnlyList<IWorkWireMessage> rowsInTile = IWorkObjectIndex.TryGetMessages(
@@ -325,10 +326,11 @@ internal static class IWorkNumbersReader {
             if (malformedRows) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_NUMBERS_TILE_ROWS_UNSUPPORTED",
-                    "A Numbers table tile contains malformed row metadata; editable reconstruction is incomplete.",
+                    "IWORK_TABLE_TILE_ROWS_UNSUPPORTED",
+                    "An iWork table tile contains malformed row metadata; editable reconstruction is incomplete.",
                     tile.EntryPath, tile.Identifier));
             }
+            var rowIndexes = new HashSet<ulong>();
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
@@ -336,22 +338,34 @@ internal static class IWorkNumbersReader {
                     || (rowInfo.GetBytes(4)?.Length ?? 0) > 0;
                 if ((currentBuffer == null || currentOffsets == null) && hasPreBncStorage) {
                     supportsEditableReconstruction = false;
-                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_LEGACY_CELL_STORAGE")) {
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_LEGACY_CELL_STORAGE")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                            "IWORK_NUMBERS_LEGACY_CELL_STORAGE",
-                            "The source uses pre-BNC Numbers cell storage. Records are preserved, but editable reconstruction is unavailable.",
+                            "IWORK_TABLE_LEGACY_CELL_STORAGE",
+                            "The source uses pre-BNC iWork table cell storage. Records are preserved, but editable reconstruction is unavailable.",
                             tile.EntryPath, tile.Identifier));
                     }
                     continue;
                 }
-                ulong rawRow = rowInfo.GetUnsigned(1) ?? 0;
+                ulong? declaredRow = rowInfo.GetUnsigned(1);
+                if (!declaredRow.HasValue || declaredRow.Value >= TileRowStride
+                    || !rowIndexes.Add(declaredRow.Value)) {
+                    supportsEditableReconstruction = false;
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROW_UNSUPPORTED")) {
+                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                            "IWORK_TABLE_TILE_ROW_UNSUPPORTED",
+                            "An iWork table tile contains a missing, repeated, or out-of-range row index; editable reconstruction is incomplete.",
+                            tile.EntryPath, tile.Identifier));
+                    }
+                    continue;
+                }
+                ulong rawRow = declaredRow.Value;
                 long zeroBasedRow = checked((long)rawTileId * TileRowStride + (long)rawRow);
                 if (zeroBasedRow < 0 || zeroBasedRow >= rows) {
                     supportsEditableReconstruction = false;
-                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TILE_ROW_UNSUPPORTED")) {
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROW_UNSUPPORTED")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                            "IWORK_NUMBERS_TILE_ROW_UNSUPPORTED",
-                            "A Numbers tile contains a row outside the declared table bounds; editable reconstruction is incomplete.",
+                            "IWORK_TABLE_TILE_ROW_UNSUPPORTED",
+                            "An iWork table tile contains a row outside the declared table bounds; editable reconstruction is incomplete.",
                             tile.EntryPath, tile.Identifier));
                     }
                     continue;
@@ -364,18 +378,19 @@ internal static class IWorkNumbersReader {
                     int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
                     if (encodedOffset == ushort.MaxValue) continue;
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
-                    IWorkNumbersCell cell = DecodeCell(buffer, offset, checked((int)zeroBasedRow + 1), column + 1, strings);
+                    IWorkTableCell cell = DecodeCell(buffer, offset, checked((int)zeroBasedRow + 1), column + 1,
+                        strings, formulas, source.Options);
                     if (cell.Kind == IWorkCellKind.Empty) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
-                        throw new InvalidDataException($"Numbers cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
+                        throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
                     }
                     long coordinate = ((long)cell.Row << 32) | (uint)cell.Column;
                     if (!coordinates.Add(coordinate)) {
                         supportsEditableReconstruction = false;
-                        if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_DUPLICATE_CELL")) {
+                        if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_DUPLICATE_CELL")) {
                             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                                "IWORK_NUMBERS_DUPLICATE_CELL",
-                                "A Numbers table defines more than one value for the same cell; editable reconstruction is incomplete.",
+                                "IWORK_TABLE_DUPLICATE_CELL",
+                                "An iWork table defines more than one value for the same cell; editable reconstruction is incomplete.",
                                 tile.EntryPath, tile.Identifier));
                         }
                         continue;
@@ -386,21 +401,41 @@ internal static class IWorkNumbersReader {
             }
         }
 
-        int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error);
+        int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error && cell.Error != "#ERROR");
         if (errorCount > 0) {
             supportsEditableReconstruction = false;
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_DECODE",
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_CELL_DECODE",
                 $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier));
         }
-        return new IWorkNumbersTable(name, rows, columns, cells);
+        int incompleteFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula && !cell.FormulaIsComplete);
+        if (incompleteFormulaCount > 0) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_FORMULA_PARTIAL",
+                $"{incompleteFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
+                model.EntryPath, model.Identifier));
+        }
+        return CreateTable();
+
+        IWorkTable CreateTable() => new(name, rows, columns, cells,
+            headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
+            mergedRanges, geometry);
+    }
+
+    private static void MarkDuplicateTile(IWorkArchiveRecord model,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_DUPLICATE_TILE")) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_TABLE_DUPLICATE_TILE",
+            "An iWork table repeats a logical or physical tile; editable reconstruction is incomplete.",
+            model.EntryPath, model.Identifier));
     }
 
     private static void MarkTableStorageUnsupported(IWorkArchiveRecord model,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         supportsEditableReconstruction = false;
         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-            "IWORK_NUMBERS_TABLE_STORAGE_UNSUPPORTED",
-            "A Numbers table has no supported tile storage; editable reconstruction is incomplete.",
+            "IWORK_TABLE_STORAGE_UNSUPPORTED",
+            "An iWork table has no supported tile storage; editable reconstruction is incomplete.",
             model.EntryPath, model.Identifier));
     }
 
@@ -427,16 +462,112 @@ internal static class IWorkNumbersReader {
         return strings;
     }
 
-    private static int CheckedDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
+    private static IReadOnlyDictionary<uint, IWorkWireMessage> ReadFormulas(IWorkObjectIndex index,
+        IWorkWireMessage store, out bool fullyReconstructed) {
+        var formulas = new Dictionary<uint, IWorkWireMessage>();
+        fullyReconstructed = true;
+        IWorkArchiveRecord? list = index.Dereference(store, 6);
+        if (list == null) return formulas;
+        IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
+            index.Message(list), 3, out bool malformedEntries);
+        if (malformedEntries) fullyReconstructed = false;
+        foreach (IWorkWireMessage entry in entries) {
+            ulong? key = entry.GetUnsigned(1);
+            IWorkWireMessage? formula = IWorkObjectIndex.TryGetMessage(entry, 5, out bool malformedFormula);
+            if (!key.HasValue || key.Value > uint.MaxValue || malformedFormula || formula == null) {
+                fullyReconstructed = false;
+                continue;
+            }
+            uint normalizedKey = (uint)key.Value;
+            if (formulas.ContainsKey(normalizedKey)) fullyReconstructed = false;
+            else formulas.Add(normalizedKey, formula);
+        }
+        return formulas;
+    }
+
+    private static IReadOnlyList<IWorkTableMergeRange> ReadMergedRanges(IWorkWireMessage table,
+        int rowCount, int columnCount, int maximumRanges, IWorkArchiveRecord model,
+        List<IWorkDiagnostic> diagnostics,
+        ref bool supportsEditableReconstruction) {
+        IWorkWireMessage? mergeOwner = IWorkObjectIndex.TryGetMessage(table, 47, out bool malformedOwner);
+        if (malformedOwner) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+            return Array.Empty<IWorkTableMergeRange>();
+        }
+        if (mergeOwner == null) return Array.Empty<IWorkTableMergeRange>();
+        IWorkWireMessage? formulaStore = IWorkObjectIndex.TryGetMessage(mergeOwner, 2, out bool malformedStore);
+        if (malformedStore || formulaStore == null) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+            return Array.Empty<IWorkTableMergeRange>();
+        }
+        IReadOnlyList<IWorkWireMessage> pairs = IWorkObjectIndex.TryGetMessages(formulaStore, 3, out bool malformedPairs);
+        if (malformedPairs) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+            return Array.Empty<IWorkTableMergeRange>();
+        }
+        if (pairs.Count > maximumRanges) {
+            throw new InvalidDataException($"iWork table merged-range count {pairs.Count} in object {model.Identifier} exceeds the configured limit of {maximumRanges}.");
+        }
+        var result = new List<IWorkTableMergeRange>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (IWorkWireMessage pair in pairs) {
+            IWorkWireMessage? formula = IWorkObjectIndex.TryGetMessage(pair, 2, out bool malformedFormula);
+            if (malformedFormula || formula == null
+                || !IWorkFormulaReader.TryReadAbsoluteRange(formula,
+                    out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                || firstRow >= rowCount || lastRow >= rowCount
+                || firstColumn >= columnCount || lastColumn >= columnCount) {
+                MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+                continue;
+            }
+            if (firstRow == lastRow && firstColumn == lastColumn) continue;
+            string key = firstRow.ToString(CultureInfo.InvariantCulture) + ":"
+                + firstColumn.ToString(CultureInfo.InvariantCulture) + ":"
+                + lastRow.ToString(CultureInfo.InvariantCulture) + ":"
+                + lastColumn.ToString(CultureInfo.InvariantCulture);
+            if (!seen.Add(key)) continue;
+            result.Add(new IWorkTableMergeRange(firstRow + 1, firstColumn + 1, lastRow + 1, lastColumn + 1));
+        }
+        if (IWorkMergeRangeValidator.HasOverlaps(result, columnCount)) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+        }
+        return Array.AsReadOnly(result.ToArray());
+    }
+
+    private static void MarkMergeStorageUnsupported(IWorkArchiveRecord model,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_MERGE_UNSUPPORTED"
+                && diagnostic.RecordIdentifier == model.Identifier)) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_TABLE_MERGE_UNSUPPORTED",
+            "An iWork table contains a malformed or unsupported merged range; editable reconstruction is incomplete.",
+            model.EntryPath, model.Identifier));
+    }
+
+    private static int CheckedSubDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
         ulong resolved = value ?? 0;
         if (resolved > (ulong)maximum || resolved > int.MaxValue) {
-            throw new InvalidDataException($"Numbers table {label} count {resolved} in object {record.Identifier} exceeds the configured limit of {maximum}.");
+            throw new InvalidDataException($"iWork table {label} count {resolved} in object {record.Identifier} exceeds the table dimensions.");
         }
         return (int)resolved;
     }
 
-    private static IWorkNumbersCell DecodeCell(byte[] buffer, int offset, int row, int column,
-        IReadOnlyDictionary<uint, string> strings) {
+    private static double? ValidDimension(double? value) => value.HasValue && IsFinite(value.Value) && value.Value > 0
+        ? value
+        : null;
+
+    private static int CheckedDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
+        ulong resolved = value ?? 0;
+        if (resolved > (ulong)maximum || resolved > int.MaxValue) {
+            throw new InvalidDataException($"iWork table {label} count {resolved} in object {record.Identifier} exceeds the configured limit of {maximum}.");
+        }
+        return (int)resolved;
+    }
+
+    private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int row, int column,
+        IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
+        IWorkReadOptions options) {
         if (offset < 0 || offset > buffer.Length - 12) return Error(row, column, "Truncated cell record.");
         int version = buffer[offset];
         int type = buffer[offset + 1];
@@ -447,6 +578,7 @@ internal static class IWorkNumbersReader {
         double doubleValue = 0;
         double dateValue = 0;
         uint stringIdentifier = 0;
+        uint formulaIdentifier = 0;
         bool hasDecimal = false;
         bool hasDouble = false;
         bool hasDate = false;
@@ -474,6 +606,7 @@ internal static class IWorkNumbersReader {
                     hasString = true;
                     break;
                 case 9:
+                    formulaIdentifier = IWorkProtobuf.ReadUInt32(buffer, position);
                     hasFormula = true;
                     break;
             }
@@ -482,27 +615,27 @@ internal static class IWorkNumbersReader {
 
         switch (type) {
             case 0:
-                return new IWorkNumbersCell(row, column, IWorkCellKind.Empty, null);
+                return new IWorkTableCell(row, column, IWorkCellKind.Empty, null);
             case 2:
             case 10:
-                if (hasDecimal) return FiniteNumber(row, column, decimalValue, hasFormula);
-                if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula);
-                return hasFormula ? Formula(row, column) : Error(row, column, "Number cell has no value field.");
+                if (hasDecimal) return FiniteNumber(row, column, decimalValue, hasFormula, formulaIdentifier, formulas, options);
+                if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options);
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : Error(row, column, "Number cell has no value field.");
             case 3:
                 if (hasString && strings.TryGetValue(stringIdentifier, out string? text)) {
                     return hasFormula
-                        ? Formula(row, column, text, IWorkCellKind.Text)
-                        : new IWorkNumbersCell(row, column, IWorkCellKind.Text, text);
+                        ? Formula(row, column, formulaIdentifier, formulas, options, text, IWorkCellKind.Text)
+                        : new IWorkTableCell(row, column, IWorkCellKind.Text, text);
                 }
-                return hasFormula ? Formula(row, column) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
             case 5:
                 if (!hasDate) return Error(row, column, "Date cell has no date value field.");
                 if (!IsFinite(dateValue)) return Error(row, column, "Date cell has a non-finite value.");
                 try {
                     DateTime value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue);
                     return hasFormula
-                        ? Formula(row, column, value, IWorkCellKind.DateTime)
-                        : new IWorkNumbersCell(row, column, IWorkCellKind.DateTime, value);
+                        ? Formula(row, column, formulaIdentifier, formulas, options, value, IWorkCellKind.DateTime)
+                        : new IWorkTableCell(row, column, IWorkCellKind.DateTime, value);
                 } catch (ArgumentOutOfRangeException) {
                     return Error(row, column, "Date cell is outside the supported DateTime range.");
                 }
@@ -511,35 +644,48 @@ internal static class IWorkNumbersReader {
                 if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
                 bool booleanValue = doubleValue != 0;
                 return hasFormula
-                    ? Formula(row, column, booleanValue, IWorkCellKind.Boolean)
-                    : new IWorkNumbersCell(row, column, IWorkCellKind.Boolean, booleanValue);
+                    ? Formula(row, column, formulaIdentifier, formulas, options, booleanValue, IWorkCellKind.Boolean)
+                    : new IWorkTableCell(row, column, IWorkCellKind.Boolean, booleanValue);
             case 7:
                 if (!hasDouble) return Error(row, column, "Duration cell has no value field.");
                 if (!IsFinite(doubleValue)) return Error(row, column, "Duration cell has a non-finite value.");
                 return hasFormula
-                    ? Formula(row, column, doubleValue, IWorkCellKind.Duration)
-                    : new IWorkNumbersCell(row, column, IWorkCellKind.Duration, doubleValue);
+                    ? Formula(row, column, formulaIdentifier, formulas, options, doubleValue, IWorkCellKind.Duration)
+                    : new IWorkTableCell(row, column, IWorkCellKind.Duration, doubleValue);
             case 8:
-                return Error(row, column, "#ERROR");
+                return hasFormula
+                    ? Formula(row, column, formulaIdentifier, formulas, options, "#ERROR", IWorkCellKind.Error)
+                    : Error(row, column, "#ERROR");
             case 9:
-                return hasFormula ? Formula(row, column) : new IWorkNumbersCell(row, column, IWorkCellKind.Text, string.Empty);
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : new IWorkTableCell(row, column, IWorkCellKind.Text, string.Empty);
             default:
                 return Error(row, column, $"Unknown cell type {type}.");
         }
     }
 
-    private static IWorkNumbersCell Formula(int row, int column, object? cachedValue = null,
-        IWorkCellKind? cachedValueKind = null) =>
-        new(row, column, IWorkCellKind.Formula, cachedValue, formula: "=?", valueKind: cachedValueKind);
+    private static IWorkTableCell Formula(int row, int column, uint formulaIdentifier,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkReadOptions options,
+        object? cachedValue = null,
+        IWorkCellKind? cachedValueKind = null) {
+        IWorkFormulaResult result = formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)
+            ? IWorkFormulaReader.Render(formula, row - 1, column - 1,
+                options.MaximumFormulaNodes, options.MaximumFormulaCharacters)
+            : new IWorkFormulaResult("=?", false);
+        return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
+            formula: result.Text.Length == 0 ? "=?" : result.Text, valueKind: cachedValueKind,
+            formulaIsComplete: result.IsComplete);
+    }
 
-    private static IWorkNumbersCell FiniteNumber(int row, int column, double value, bool hasFormula) =>
+    private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,
+        uint formulaIdentifier, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
+        IWorkReadOptions options) =>
         IsFinite(value)
             ? hasFormula
-                ? Formula(row, column, value, IWorkCellKind.Number)
-                : new IWorkNumbersCell(row, column, IWorkCellKind.Number, value)
+                ? Formula(row, column, formulaIdentifier, formulas, options, value, IWorkCellKind.Number)
+                : new IWorkTableCell(row, column, IWorkCellKind.Number, value)
             : Error(row, column, "Number cell has a non-finite value.");
 
-    private static IWorkNumbersCell Error(int row, int column, string message) =>
+    private static IWorkTableCell Error(int row, int column, string message) =>
         new(row, column, IWorkCellKind.Error, null, error: message);
 
     private static double ReadDouble(byte[] buffer, int offset) =>

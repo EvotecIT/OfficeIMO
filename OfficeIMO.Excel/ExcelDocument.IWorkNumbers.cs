@@ -60,7 +60,7 @@ public partial class ExcelDocument {
                     }
                     if (sourceSheet.TextBoxes.Count > 0 && sourceSheet.Tables.Count > 0) targetRow++;
                     for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {
-                        IWorkNumbersTable table = sourceSheet.Tables[tableIndex];
+                        IWorkTable table = sourceSheet.Tables[tableIndex];
                         if (targetRow > 1_048_576 - Math.Max(table.RowCount - 1, 0)) {
                             string splitName = sourceSheet.Name + " - "
                                 + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
@@ -68,7 +68,7 @@ public partial class ExcelDocument {
                             targetRow = 1;
                         }
                         int tableStartRow = targetRow;
-                        foreach (IWorkNumbersCell cell in table.Cells) {
+                        foreach (IWorkTableCell cell in table.Cells) {
                             object? value = cell.Kind switch {
                                 IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
                                     && cell.Value is double formulaSeconds => TimeSpan.FromSeconds(formulaSeconds),
@@ -77,7 +77,31 @@ public partial class ExcelDocument {
                                 IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
                                 _ => cell.Value
                             };
-                            sheet.CellAt(tableStartRow + cell.Row - 1, cell.Column).SetValue(value);
+                            ExcelCell targetCell = sheet.CellAt(tableStartRow + cell.Row - 1, cell.Column);
+                            targetCell.SetValue(value);
+                            if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
+                                || cell.Row > table.RowCount - table.FooterRowCount) {
+                                targetCell.SetBold();
+                            }
+                            if (cell.Kind == IWorkCellKind.Formula && cell.FormulaIsComplete
+                                && !string.IsNullOrEmpty(cell.Formula)) {
+                                targetCell.SetFormula(cell.Formula!);
+                            }
+                        }
+                        foreach (IWorkTableMergeRange merge in table.MergedRanges) {
+                            sheet.MergeRange(CellReference(tableStartRow + merge.FirstRow - 1, merge.FirstColumn)
+                                + ":" + CellReference(tableStartRow + merge.LastRow - 1, merge.LastColumn));
+                        }
+                        if (table.DefaultRowHeight is > 0 and <= 409 && table.RowCount <= 4096) {
+                            for (int row = 0; row < table.RowCount; row++) {
+                                sheet.SetRowHeight(tableStartRow + row, table.DefaultRowHeight.Value);
+                            }
+                        }
+                        if (table.DefaultColumnWidth is > 0) {
+                            double width = Math.Min(255d, Math.Max(0.1d, table.DefaultColumnWidth.Value / 7d));
+                            for (int column = 1; column <= table.ColumnCount; column++) {
+                                sheet.SetColumnWidth(column, width);
+                            }
                         }
                         targetRow = checked(tableStartRow + Math.Max(table.RowCount, 1) + 1);
                     }
@@ -105,16 +129,19 @@ public partial class ExcelDocument {
             if (sheet.TextBoxes.Any(text => text.Length > 32_767)) {
                 return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
             }
-            foreach (IWorkNumbersTable table in sheet.Tables) {
+            foreach (IWorkTable table in sheet.Tables) {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                foreach (IWorkNumbersCell cell in table.Cells) {
+                foreach (IWorkTableCell cell in table.Cells) {
                     string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText
                         : cell.Value as string ?? (cell.Kind == IWorkCellKind.Formula ? cell.DisplayText : null);
                     if (text?.Length > 32_767) {
                         return $"Numbers table '{table.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
+                    }
+                    if (cell.FormulaIsComplete && cell.Formula?.Length > 8192) {
+                        return $"Numbers table '{table.Name}' contains a formula longer than the XLSX limit of 8,192 characters.";
                     }
                     if ((cell.Kind == IWorkCellKind.Duration
                             || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.Duration)
@@ -134,5 +161,16 @@ public partial class ExcelDocument {
         double scale = Math.Min(1d, Math.Min(1600d / width, 1600d / height));
         return (Math.Max(1, (int)Math.Round(width * scale, MidpointRounding.AwayFromZero)),
             Math.Max(1, (int)Math.Round(height * scale, MidpointRounding.AwayFromZero)));
+    }
+
+    private static string CellReference(int row, int column) {
+        string letters = string.Empty;
+        int value = column;
+        while (value > 0) {
+            int remainder = (value - 1) % 26;
+            letters = (char)('A' + remainder) + letters;
+            value = (value - remainder - 1) / 26;
+        }
+        return letters + row.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 }

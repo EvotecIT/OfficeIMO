@@ -103,9 +103,9 @@ _Dependency footprint:_ zero third-party runtime dependencies.
 
 - [x] Bounded ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, ArchiveInfo, MessageInfo, and protobuf-envelope reading
 - [x] Application detection, producer build history, raster/PDF preview discovery, defensive package-entry access, and preservation of primary and auxiliary IWA payloads
-- [x] Typed Pages paragraphs, headers/footers, and text boxes; sparse typed Numbers sheets/tables/cells; and Keynote slides, skipped state, text, and presenter notes
+- [x] Extended semantic projections: rich Pages content/layout/images/tables; sparse typed Numbers cells/formulas/merges/table metadata; and positioned Keynote rich text/images/tables/notes
 - [x] Thin `WordDocument.LoadPages*`, `ExcelDocument.LoadNumbers*`, and `PowerPointPresentation.LoadKeynote*` owner APIs with editable reconstruction versus visual fallback reports
-- [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5
+- [x] Independently sourced corpus evidence across Pages 14.1/14.5, Numbers 11.1–15.1 histories, and Keynote 8.1/14.5/15.2.1
 - [x] Explicit read-only boundary: unsupported payloads remain inspectable, while Pages, Numbers, and Keynote authoring is intentionally absent
 
 _Dependency footprint:_ only `OfficeIMO.Core`; the package and IWA readers are first-party implementations. Word, Excel, and PowerPoint consume the typed projections for their destination models.
@@ -140,7 +140,7 @@ _Dependency footprint:_ ChartForgeX and the OfficeIMO Word, Excel, PowerPoint, P
 
 - [x] Create, load, edit, append, inspect, and save `.docx` documents
 - [x] Read, write, and convert the supported first-party Word 97–2003 `.doc` subset with loss preflight
-- [x] Read modern Apple Pages sources through the shared bounded iWork layer and project supported text into editable Word content or an explicit visual fallback
+- [x] Read modern Apple Pages sources through the shared bounded iWork layer and project rich text, page layout, headers/footers, images, and tables into editable Word content or an explicit visual fallback
 - [x] Rich runs, fonts, colors, highlights, borders, shading, tabs, spacing, line breaks, and custom paragraph styles
 - [x] Bullets, numbering, picture bullets, nested lists, start values, cloning, and list-style detection
 - [x] Tables with styles, borders, cell margins, merge/split, nested tables, repeated header rows, widths, heights, and page-break control
@@ -161,7 +161,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core` and `OfficeIMO.IWork`
 
 - [x] Create, load, edit, inspect, and save `.xlsx` workbooks
 - [x] Read, write, and convert the supported first-party BIFF8 `.xls` subset with loss preflight
-- [x] Read modern Apple Numbers sources through the shared bounded iWork layer and project sparse typed cells into editable Excel content or an explicit visual fallback
+- [x] Read modern Apple Numbers sources through the shared bounded iWork layer and project sparse typed cells, supported formulas, merges, and table sizing into editable Excel content or an explicit visual fallback
 - [x] Worksheets, cells, range algebra, merges, mutable table schemas, complete filter state, freeze panes, hyperlinks, local/workbook names, and named styles
 - [x] Object, dictionary, `DataTable`, `DataSet`, row, stream, and typed-model import/export with editable-row workflows
 - [x] Streaming reads, direct package writers, parallel compute/apply phases, progress, cancellation, and large-workbook controls
@@ -187,7 +187,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Core` and `OfficeIMO.IWork`
 
 - [x] Create, load, edit, inspect, and save editable `.pptx` presentations
 - [x] Read, author, edit, preserve, encrypt, and convert `.ppt`, `.pot`, and `.pps` through a versioned capability contract and loss preflight
-- [x] Read modern Apple Keynote sources through the shared bounded iWork layer and project slides, text, and notes into editable PowerPoint content or an explicit visual fallback
+- [x] Read modern Apple Keynote sources through the shared bounded iWork layer and project slide geometry, rich text, images, editable tables, and notes into editable PowerPoint content or an explicit visual fallback
 - [x] Slide creation, duplication, deletion, reordering, sections, presentation sizes, layouts, placeholders, and templates
 - [x] Text boxes, rich runs, paragraphs, bullets, alignment, spacing, auto-fit, hyperlinks, and theme-aware typography
 - [x] PNG/JPEG/SVG pictures from files and streams with crop, replacement, validation, positioning, and effects

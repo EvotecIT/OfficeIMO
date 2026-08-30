@@ -68,9 +68,24 @@ internal sealed class IWorkWireMessage {
         return value == null ? null : (uint)value.Unsigned;
     }
 
+    internal float? GetFloat(int field) {
+        uint? value = GetFixed32(field);
+        return value.HasValue ? BitConverter.ToSingle(BitConverter.GetBytes(value.Value), 0) : null;
+    }
+
+    internal IReadOnlyList<float> GetRepeatedFloat(int field) => Values(field)
+        .Where(candidate => candidate.Kind == IWorkWireKind.Fixed32)
+        .Select(candidate => BitConverter.ToSingle(BitConverter.GetBytes((uint)candidate.Unsigned), 0))
+        .ToArray();
+
     internal ulong? GetFixed64(int field) {
         IWorkWireValue? value = Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Fixed64);
         return value?.Unsigned;
+    }
+
+    internal double? GetDouble(int field) {
+        ulong? value = GetFixed64(field);
+        return value.HasValue ? BitConverter.Int64BitsToDouble(unchecked((long)value.Value)) : null;
     }
 
     internal byte[]? GetBytes(int field) =>
@@ -79,10 +94,29 @@ internal sealed class IWorkWireMessage {
     internal bool HasBytes(int field) =>
         Values(field).Any(candidate => candidate.Kind == IWorkWireKind.Bytes);
 
+    internal bool HasField(int field) => Values(field).Count > 0;
+
+    internal bool LacksWireKind(int field, params IWorkWireKind[] expectedKinds) {
+        IReadOnlyList<IWorkWireValue> values = Values(field);
+        return values.Count > 0 && !values.Any(value => expectedKinds.Contains(value.Kind));
+    }
+
     internal IReadOnlyList<byte[]> GetRepeatedBytes(int field) => Values(field)
         .Where(candidate => candidate.Kind == IWorkWireKind.Bytes && candidate.Bytes != null)
         .Select(candidate => candidate.Bytes!)
         .ToArray();
+
+    internal IEnumerable<byte[]> EnumerateRepeatedBytes(int field) {
+        foreach (IWorkWireValue value in Values(field)) {
+            if (value.Kind == IWorkWireKind.Bytes && value.Bytes != null) yield return value.Bytes;
+        }
+    }
+
+    internal IWorkWireMessage ParseNestedMessage(byte[] bytes) =>
+        IWorkProtobuf.Parse(bytes, _options, _depth + 1);
+
+    internal int CountNestedFields(byte[] bytes, int field) =>
+        IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount);
 
     internal string? GetString(int field) {
         byte[]? bytes = GetBytes(field);
@@ -114,6 +148,52 @@ internal sealed class IWorkWireMessage {
 }
 
 internal static class IWorkProtobuf {
+    internal static int CountFields(byte[] data, int targetField, int maximumFields) {
+        int offset = 0;
+        int fieldCount = 0;
+        int matchCount = 0;
+        while (offset < data.Length) {
+            int keyOffset = offset;
+            ulong key = ReadVarint(data, ref offset);
+            if (key >> 3 == 0 || key >> 3 > int.MaxValue) {
+                throw new InvalidDataException($"Invalid protobuf field number at offset {keyOffset}.");
+            }
+            int field = (int)(key >> 3);
+            int wire = (int)(key & 7);
+            if (field == targetField) matchCount++;
+            switch (wire) {
+                case 0:
+                    ReadVarint(data, ref offset);
+                    break;
+                case 1:
+                    EnsureAvailable(data, offset, 8, "fixed64");
+                    offset += 8;
+                    break;
+                case 2:
+                    ulong rawLength = ReadVarint(data, ref offset);
+                    if (rawLength > int.MaxValue) {
+                        throw new InvalidDataException("A protobuf field exceeds the supported length.");
+                    }
+                    int length = (int)rawLength;
+                    EnsureAvailable(data, offset, length, "length-delimited field");
+                    offset += length;
+                    break;
+                case 5:
+                    EnsureAvailable(data, offset, 4, "fixed32");
+                    offset += 4;
+                    break;
+                default:
+                    throw new InvalidDataException($"Unsupported protobuf wire type {wire} at offset {keyOffset}.");
+            }
+            fieldCount++;
+            if (fieldCount > maximumFields) {
+                throw new InvalidDataException(
+                    $"A protobuf message exceeds the configured field limit of {maximumFields}.");
+            }
+        }
+        return matchCount;
+    }
+
     internal static IWorkWireMessage Parse(byte[] data, IWorkReadOptions options, int depth = 0) {
         if (depth > options.MaximumProtobufDepth) {
             throw new InvalidDataException($"Protobuf nesting exceeds the configured depth of {options.MaximumProtobufDepth}.");

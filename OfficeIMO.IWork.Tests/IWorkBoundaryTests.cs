@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Wide", 1, 1, 42d, wideOffsets: true)
         });
 
-        IWorkNumbersTable table = Assert.Single(Assert.Single(
+        IWorkTable table = Assert.Single(Assert.Single(
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers().Sheets).Tables);
 
         Assert.Equal(42d, Assert.IsType<double>(table.GetCell(1, 1)!.Value), 10);
@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula", 1, 1, 42d, hasFormula: true)
         });
 
-        IWorkNumbersCell cell = Assert.Single(Assert.Single(Assert.Single(
+        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers().Sheets).Tables).Cells);
 
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_LEGACY_CELL_STORAGE");
+            diagnostic.Code == "IWORK_TABLE_LEGACY_CELL_STORAGE");
         Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6002);
     }
 
@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_TABLE_MODEL_UNSUPPORTED");
+            diagnostic.Code == "IWORK_TABLE_MODEL_UNSUPPORTED");
         Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6000);
     }
 
@@ -120,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_TILE_UNSUPPORTED");
+            diagnostic.Code == "IWORK_TABLE_TILE_UNSUPPORTED");
         Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6001);
     }
 
@@ -292,6 +292,30 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Pages_owner_projects_text_boxes_with_source_geometry() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating text",
+            includePreview: false, textBoxDrawable: GeometryDrawable(36f, 72f, 216f, 108f));
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        WordTextBox textBox = Assert.Single(result.Document.TextBoxes);
+        Assert.Equal("Floating text", Assert.Single(textBox.Paragraphs).Text);
+        Assert.Equal(36 * 12700, textBox.HorizontalPositionOffset!.Value);
+        Assert.Equal(72 * 12700, textBox.VerticalPositionOffset!.Value);
+        Assert.Equal(216L * 12700L, textBox.Width);
+        Assert.Equal(108L * 12700L, textBox.Height);
+        using var bytes = new MemoryStream();
+        result.Document.Save(bytes);
+        bytes.Position = 0;
+        using WordDocument reopened = WordDocument.Load(bytes);
+        WordTextBox persisted = Assert.Single(reopened.TextBoxes);
+        Assert.Equal("Floating text", Assert.Single(persisted.Paragraphs).Text);
+        Assert.Equal(36 * 12700, persisted.HorizontalPositionOffset!.Value);
+        Assert.Equal(216L * 12700L, persisted.Width);
+    }
+
+    [Fact]
     public void Empty_pages_body_is_valid_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
             bodyText: string.Empty);
@@ -303,6 +327,152 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(result.Projection.Paragraphs);
         Assert.Equal(IWorkProjectionKind.EditableReconstruction, result.ImportReport.ProjectionKind);
         Assert.Equal(0, result.ImportReport.ReconstructedItemCount);
+    }
+
+    [Fact]
+    public void Enforces_source_wide_projected_text_character_bounds_before_materialization() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
+            includePreview: false, bodyText: "12345");
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
+            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
+
+        Assert.Contains("character count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Enforces_source_wide_text_character_bounds_for_numbers_text_shapes() {
+        using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "12345");
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
+            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
+
+        Assert.Contains("character count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Enforces_bounded_iterative_text_style_inheritance() {
+        using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 3);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
+            new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 2 });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
+
+        Assert.Contains("style inheritance", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Enforces_text_attribute_bounds_before_nested_entry_projection() {
+        using MemoryStream package = CreatePagesPackageWithTwoCharacterStyles();
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
+            new IWorkReadOptions { MaximumProjectedTextItems = 1 });
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
+
+        Assert.Contains("attribute count", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Invalid_utf8_in_rich_style_fields_disables_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
+            invalidFontName: true, includePreview: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.Body.IsComplete);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Malformed_rich_text_colors_disable_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
+            malformedColor: true, includePreview: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.Body.IsComplete);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Wrong_wire_rich_text_flags_disable_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
+            wrongWireBold: true, includePreview: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.Body.IsComplete);
+    }
+
+    [Fact]
+    public void Unknown_paragraph_alignment_disables_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
+            invalidAlignment: true, includePreview: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.Body.IsComplete);
+    }
+
+    [Fact]
+    public void Preserves_each_adjacent_rich_text_style_boundary() {
+        using MemoryStream package = CreatePagesPackageWithTwoCharacterStyles();
+
+        IWorkPagesProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        IWorkTextParagraph paragraph = Assert.Single(projection.Body.Paragraphs);
+
+        Assert.Collection(paragraph.Runs,
+            run => {
+                Assert.Equal("A", run.Text);
+                Assert.False(run.Style.Bold);
+            },
+            run => {
+                Assert.Equal("B", run.Text);
+                Assert.True(run.Style.Bold);
+            });
+    }
+
+    [Fact]
+    public void Malformed_nested_drawable_geometry_disables_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating",
+            includePreview: true, textBoxDrawable: Message(BytesField(1, new byte[] { 0x08, 0x80 })));
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Wrong_wire_drawable_geometry_disables_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating",
+            includePreview: true, textBoxDrawable: Message(VarintField(1, 1)));
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Pages_owner_falls_back_before_oversized_destination_measurements() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
+            includePreview: true, documentLayoutFields: PageLayoutFields(float.MaxValue));
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Equal(IWorkProjectionKind.VisualFallback, result.ImportReport.ProjectionKind);
     }
 
     [Fact]
@@ -318,13 +488,66 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Pages_headers_are_deduplicated_in_source_order() {
+    public void Pages_preserves_distinct_header_storages_in_section_order() {
         using MemoryStream package = CreatePagesPackageWithDuplicateHeaders();
 
         IWorkPagesProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.True(projection.HasEditableContent);
-        Assert.Equal("Header", Assert.Single(projection.Headers));
+        IWorkPagesSection section = Assert.Single(projection.Sections);
+        Assert.Equal(2, section.HeaderContents.Count);
+        Assert.Equal(new[] { "Header", "Header" }, projection.Headers);
+    }
+
+    [Fact]
+    public void Pages_owner_preserves_header_footer_association_across_sections() {
+        using MemoryStream package = CreatePagesPackageWithTwoSections();
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(2, result.Projection.Sections.Count);
+        Assert.Equal(2, result.Document.Sections.Count);
+        Assert.Contains(result.Document.Sections[0].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "First header");
+        Assert.Contains(result.Document.Sections[1].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second header");
+        Assert.Contains(result.Document.Sections[1].Footer.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second footer");
+        using var bytes = new MemoryStream();
+        result.Document.Save(bytes);
+        bytes.Position = 0;
+        using WordDocument reopened = WordDocument.Load(bytes);
+        Assert.Equal(2, reopened.Sections.Count);
+        Assert.Contains(reopened.Sections[0].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "First header");
+        Assert.Contains(reopened.Sections[1].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second header");
+    }
+
+    [Fact]
+    public void Pages_layout_breaks_do_not_shift_later_section_headers_and_footers() {
+        using MemoryStream package = CreatePagesPackageWithTwoSections(includeLayoutBreak: true);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(2, result.Projection.Sections.Count);
+        Assert.Equal(3, result.Document.Sections.Count);
+        Assert.Contains(result.Document.Sections[0].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "First header");
+        Assert.Null(result.Document.Sections[1].Header.Default);
+        Assert.Contains(result.Document.Sections[2].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second header");
+        Assert.Contains(result.Document.Sections[2].Footer.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second footer");
+        using var bytes = new MemoryStream();
+        result.Document.Save(bytes);
+        bytes.Position = 0;
+        using WordDocument reopened = WordDocument.Load(bytes);
+        Assert.Equal(3, reopened.Sections.Count);
+        Assert.Contains(reopened.Sections[2].Header.Default!.Paragraphs,
+            paragraph => paragraph.Text == "Second header");
     }
 
     [Fact]
@@ -398,7 +621,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Duplicate_numbers_cell_coordinates_disable_editable_reconstruction() {
+    public void Duplicate_numbers_tile_indexes_disable_editable_reconstruction_before_replay() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Duplicate", 1, 1, 1d, duplicateCell: true)
         }, includePreview: true);
@@ -408,7 +631,35 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_DUPLICATE_CELL");
+            diagnostic.Code == "IWORK_TABLE_DUPLICATE_TILE");
+    }
+
+    [Fact]
+    public void Duplicate_numbers_physical_tiles_disable_editable_reconstruction_before_replay() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Duplicate physical tile", 257, 1, 1d, duplicateTileIdentity: true)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_DUPLICATE_TILE");
+    }
+
+    [Fact]
+    public void Duplicate_numbers_rows_within_a_tile_disable_editable_reconstruction() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Duplicate row", 1, 1, 1d, duplicateTileRow: true)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_TILE_ROW_UNSUPPORTED");
     }
 
     [Fact]
@@ -422,7 +673,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_STRING_STORAGE_UNSUPPORTED");
+            diagnostic.Code == "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED");
     }
 
     [Fact]
@@ -614,6 +865,98 @@ public sealed partial class IWorkBoundaryTests {
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
+    private static MemoryStream CreatePagesPackageWithTwoSections(bool includeLayoutBreak = false) {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong firstSectionId = 3;
+        const ulong secondSectionId = 4;
+        const ulong firstHeaderFooterId = 5;
+        const ulong secondHeaderFooterId = 6;
+        const ulong firstHeaderId = 7;
+        const ulong secondHeaderId = 8;
+        const ulong secondFooterId = 9;
+        byte[] sectionTable = Message(
+            BytesField(1, Message(ReferenceField(2, firstSectionId))),
+            BytesField(1, Message(ReferenceField(2, secondSectionId))));
+        string bodyText = includeLayoutBreak ? "First\u0005Layout\u0004Second" : "First\u0004Second";
+        byte[] body = Message(StringField(3, bodyText), BytesField(17, sectionTable));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, body, new[] { firstSectionId, secondSectionId }),
+            ArchiveRecord(firstSectionId, 10011, Message(ReferenceField(23, firstHeaderFooterId)),
+                new[] { firstHeaderFooterId }),
+            ArchiveRecord(secondSectionId, 10011, Message(ReferenceField(23, secondHeaderFooterId)),
+                new[] { secondHeaderFooterId }),
+            ArchiveRecord(firstHeaderFooterId, 10143, Message(ReferenceField(1, firstHeaderId)),
+                new[] { firstHeaderId }),
+            ArchiveRecord(secondHeaderFooterId, 10143,
+                Message(ReferenceField(1, secondHeaderId), ReferenceField(2, secondFooterId)),
+                new[] { secondHeaderId, secondFooterId }),
+            ArchiveRecord(firstHeaderId, 2001, Message(StringField(3, "First header"))),
+            ArchiveRecord(secondHeaderId, 2001, Message(StringField(3, "Second header"))),
+            ArchiveRecord(secondFooterId, 2001, Message(StringField(3, "Second footer"))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+    }
+
+    private static MemoryStream CreatePagesPackageWithStyleChain(int depth,
+        bool invalidFontName = false, bool malformedColor = false, bool wrongWireBold = false,
+        bool invalidAlignment = false, bool includePreview = false) {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong firstStyleId = 10;
+        byte[] styleEntry = Message(VarintField(1, 0), ReferenceField(2, firstStyleId));
+        byte[] body = Message(StringField(3, "Styled"),
+            BytesField(5, Message(BytesField(1, styleEntry))));
+        var records = new List<byte[]> {
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, body, new[] { firstStyleId })
+        };
+        for (int index = 0; index < depth; index++) {
+            ulong identifier = firstStyleId + (ulong)index;
+            ulong? parent = index + 1 < depth ? identifier + 1 : null;
+            var fields = new List<byte[]>();
+            if (parent.HasValue) fields.Add(BytesField(1, Message(ReferenceField(3, parent.Value))));
+            if (index == 0 && invalidFontName) {
+                fields.Add(BytesField(11, Message(BytesField(5, new byte[] { 0xc3, 0x28 }))));
+            }
+            if (index == 0 && malformedColor) {
+                fields.Add(BytesField(11, Message(BytesField(7, new byte[] { 0x08, 0x80 }))));
+            }
+            if (index == 0 && wrongWireBold) {
+                fields.Add(BytesField(11, Message(FloatField(1, 1f))));
+            }
+            if (index == 0 && invalidAlignment) {
+                fields.Add(BytesField(12, Message(VarintField(1, 99))));
+            }
+            records.Add(ArchiveRecord(identifier, 2022, Message(fields.ToArray()),
+                parent.HasValue ? new[] { parent.Value } : Array.Empty<ulong>()));
+        }
+        byte[] iwaStream = Message(records.ToArray());
+        return includePreview
+            ? CreatePackage(("Index/Document.iwa", FrameIwa(iwaStream)), ("preview.png", ValidPreviewPng()))
+            : CreatePackage(("Index/Document.iwa", FrameIwa(iwaStream)));
+    }
+
+    private static MemoryStream CreatePagesPackageWithTwoCharacterStyles() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong firstStyleId = 10;
+        const ulong secondStyleId = 11;
+        byte[] characterTable = Message(
+            BytesField(1, Message(VarintField(1, 0), ReferenceField(2, firstStyleId))),
+            BytesField(1, Message(VarintField(1, 1), ReferenceField(2, secondStyleId))));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001,
+                Message(StringField(3, "AB"), BytesField(8, characterTable)),
+                new[] { firstStyleId, secondStyleId }),
+            ArchiveRecord(firstStyleId, 2021,
+                Message(BytesField(11, Message(VarintField(1, 0))))),
+            ArchiveRecord(secondStyleId, 2021,
+                Message(BytesField(11, Message(VarintField(1, 1))))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+    }
+
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false) {
@@ -640,7 +983,9 @@ public sealed partial class IWorkBoundaryTests {
             byte[] rowInfo = table.LegacyStorage
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
                 : CreateBncRow(table);
-            byte[] tilePayload = Message(BytesField(5, rowInfo));
+            byte[] tilePayload = table.DuplicateTileRow
+                ? Message(BytesField(5, rowInfo), BytesField(5, rowInfo))
+                : Message(BytesField(5, rowInfo));
             if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
@@ -649,6 +994,9 @@ public sealed partial class IWorkBoundaryTests {
                 ulong duplicateTileId = tileId + 100_000;
                 records.Add(ArchiveRecord(duplicateTileId, 6002, tilePayload));
                 byte[] duplicateEntry = Message(VarintField(1, 0), ReferenceField(2, duplicateTileId));
+                tileStorage = Message(BytesField(1, tileEntry), BytesField(1, duplicateEntry));
+            } else if (table.DuplicateTileIdentity) {
+                byte[] duplicateEntry = Message(VarintField(1, 1), ReferenceField(2, tileId));
                 tileStorage = Message(BytesField(1, tileEntry), BytesField(1, duplicateEntry));
             } else {
                 tileStorage = Message(BytesField(1, tileEntry));
@@ -720,7 +1068,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
         string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
-        byte[]? bodyBytes = null) {
+        byte[]? bodyBytes = null, byte[]? textBoxDrawable = null, byte[]? documentLayoutFields = null) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong shapeId = 3;
@@ -730,12 +1078,17 @@ public sealed partial class IWorkBoundaryTests {
         if (textBox != null) documentReferences.Add(shapeId);
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 10000,
-                includeBody ? Message(ReferenceField(4, bodyId)) : Message(), documentReferences)
+                Message(includeBody ? ReferenceField(4, bodyId) : Array.Empty<byte>(),
+                    documentLayoutFields ?? Array.Empty<byte>()), documentReferences)
         };
         if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(
             bodyBytes != null ? BytesField(3, bodyBytes) : StringField(3, bodyText))));
         if (textBox != null) {
-            records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId)),
+            byte[] shape = textBoxDrawable == null
+                ? Message(ReferenceField(2, shapeStorageId))
+                : Message(BytesField(1, Message(BytesField(1, textBoxDrawable))),
+                    ReferenceField(2, shapeStorageId));
+            records.Add(ArchiveRecord(shapeId, 2011, shape,
                 new[] { shapeStorageId }));
             records.Add(ArchiveRecord(shapeStorageId, 2001, Message(StringField(3, textBox))));
         }
@@ -792,6 +1145,19 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] VarintField(int field, ulong value) =>
         Message(Varint(checked((ulong)(field << 3))), Varint(value));
+
+    private static byte[] GeometryDrawable(float left, float top, float width, float height) =>
+        Message(BytesField(1, Message(
+            BytesField(1, Message(FloatField(1, left), FloatField(2, top))),
+            BytesField(2, Message(FloatField(1, width), FloatField(2, height))))));
+
+    private static byte[] PageLayoutFields(float topMargin) => Message(
+        FloatField(30, 612f), FloatField(31, 792f), FloatField(32, 72f),
+        FloatField(33, 72f), FloatField(34, topMargin), FloatField(35, 72f),
+        FloatField(36, 36f), FloatField(37, 36f));
+
+    private static byte[] FloatField(int field, float value) =>
+        Message(Varint(checked((ulong)((field << 3) | 5))), BitConverter.GetBytes(value));
 
     private static byte[] BytesField(int field, byte[] value) =>
         Message(Varint(checked((ulong)((field << 3) | 2))), Varint(checked((ulong)value.Length)), value);
@@ -918,7 +1284,8 @@ public sealed partial class IWorkBoundaryTests {
             bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
             bool missingModel = false, bool missingTile = false, string? textValue = null,
             bool duration = false, bool duplicateCell = false, bool duplicateString = false,
-            bool decimal128HighBit = false) {
+            bool decimal128HighBit = false, bool duplicateTileIdentity = false,
+            bool duplicateTileRow = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -933,6 +1300,8 @@ public sealed partial class IWorkBoundaryTests {
             DuplicateCell = duplicateCell;
             DuplicateString = duplicateString;
             Decimal128HighBit = decimal128HighBit;
+            DuplicateTileIdentity = duplicateTileIdentity;
+            DuplicateTileRow = duplicateTileRow;
         }
 
         internal string Name { get; }
@@ -949,5 +1318,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool DuplicateCell { get; }
         internal bool DuplicateString { get; }
         internal bool Decimal128HighBit { get; }
+        internal bool DuplicateTileIdentity { get; }
+        internal bool DuplicateTileRow { get; }
     }
 }

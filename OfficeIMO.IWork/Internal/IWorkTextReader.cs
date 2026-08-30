@@ -1,0 +1,552 @@
+namespace OfficeIMO.IWork.Internal;
+
+internal static class IWorkTextReader {
+    private static readonly System.Text.UTF8Encoding StrictUtf8 = new(false, true);
+    private const uint CharacterStyleArchive = 2021;
+    private const uint ParagraphStyleArchive = 2022;
+    private const uint ListStyleArchive = 2023;
+    private const uint HyperlinkArchive = 2032;
+
+    internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
+        IWorkProjectionBudget projectionBudget) {
+        IWorkWireMessage message = index.Message(storage);
+        bool complete = true;
+        string text = ReadText(message, projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, projectionBudget, ref complete);
+        var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
+        var listStyleCache = new Dictionary<ulong, Cached<(int Level, string? Label)>>();
+        var paragraphs = new List<IWorkTextParagraph>();
+        foreach (TextSpan paragraph in ParagraphSpans(text)) {
+            projectionBudget.AddTextItem();
+            ulong? paragraphStyleId = ObjectAt(paragraphStyles, paragraph.Start, carryMissing: true);
+            ulong? listStyleId = ObjectAt(listStyles, paragraph.Start, carryMissing: true);
+            IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
+                projectionBudget, paragraphStyleCache, ref complete);
+            (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
+                projectionBudget, listStyleCache, ref complete);
+            var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
+            AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
+            AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
+            int[] ordered = boundaries.ToArray();
+            var runs = new List<IWorkTextRun>();
+            var textStyleCache = new Dictionary<ulong, Cached<IWorkTextStyle>>();
+            for (int runIndex = 0; runIndex + 1 < ordered.Length; runIndex++) {
+                int start = ordered[runIndex];
+                int end = ordered[runIndex + 1];
+                if (end <= start) continue;
+                string runText = NormalizeInlineText(text.Substring(start, end - start));
+                if (runText.Length == 0) continue;
+                projectionBudget.AddTextItem();
+                ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
+                IWorkTextStyle characterStyle = ResolveTextStyle(index, characterStyleId,
+                    paragraphStyle.TextStyle, projectionBudget,
+                    textStyleCache, ref complete);
+                string? hyperlink = ResolveHyperlink(index,
+                    ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget, ref complete);
+                runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink));
+            }
+            paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listLevel, listLabel,
+                paragraph.BreakKind));
+        }
+        return new IWorkTextContent(paragraphs, complete);
+    }
+
+    private static string ReadText(IWorkWireMessage message, IWorkProjectionBudget projectionBudget,
+        ref bool complete) {
+        var parts = new List<string>();
+        if (message.LacksWireKind(3, IWorkWireKind.Bytes)) complete = false;
+        foreach (byte[] bytes in message.EnumerateRepeatedBytes(3)) {
+            if (TryDecodeUtf8(bytes, projectionBudget, out string part)) parts.Add(part);
+            else complete = false;
+        }
+        return string.Concat(parts);
+    }
+
+    private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
+        int field, IWorkProjectionBudget projectionBudget, ref bool complete) {
+        if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
+        if (storage.LacksWireKind(field, IWorkWireKind.Bytes)) {
+            complete = false;
+            return Array.Empty<AttributeBoundary>();
+        }
+        byte[] tableBytes = storage.GetBytes(field)!;
+        int boundaryCount;
+        try {
+            boundaryCount = storage.CountNestedFields(tableBytes, 1);
+        } catch (InvalidDataException) {
+            complete = false;
+            return Array.Empty<AttributeBoundary>();
+        }
+        projectionBudget.AddTextBoundaries(boundaryCount);
+        IWorkWireMessage? table = IWorkObjectIndex.TryGetMessage(storage, field, out bool malformedTable);
+        if (malformedTable || table == null) {
+            complete = false;
+            return Array.Empty<AttributeBoundary>();
+        }
+        var result = new List<AttributeBoundary>();
+        if (table.LacksWireKind(1, IWorkWireKind.Bytes)) complete = false;
+        foreach (byte[] entryBytes in table.EnumerateRepeatedBytes(1)) {
+            IWorkWireMessage entry;
+            try {
+                entry = table.ParseNestedMessage(entryBytes);
+            } catch (InvalidDataException) {
+                complete = false;
+                continue;
+            }
+            ulong? rawIndex = entry.GetUnsigned(1);
+            if (entry.LacksWireKind(1, IWorkWireKind.Varint)
+                || !rawIndex.HasValue || rawIndex.Value > int.MaxValue) {
+                complete = false;
+                continue;
+            }
+            bool hasObject = entry.HasField(2);
+            bool malformedReference = false;
+            IWorkWireMessage? reference = hasObject
+                ? IWorkObjectIndex.TryGetMessage(entry, 2, out malformedReference)
+                : null;
+            if (hasObject && (entry.LacksWireKind(2, IWorkWireKind.Bytes)
+                    || malformedReference || reference?.GetUnsigned(1) == null
+                    || reference.LacksWireKind(1, IWorkWireKind.Varint))) {
+                complete = false;
+                continue;
+            }
+            result.Add(new AttributeBoundary((int)rawIndex.Value,
+                reference?.GetUnsigned(1), hasObject));
+        }
+        AttributeBoundary[] ordered = result.OrderBy(boundary => boundary.Index).ToArray();
+        ulong? carried = null;
+        foreach (AttributeBoundary boundary in ordered) {
+            if (boundary.HasObject) carried = boundary.Identifier;
+            boundary.CarriedIdentifier = carried;
+        }
+        return ordered;
+    }
+
+    private static ulong? ObjectAt(IReadOnlyList<AttributeBoundary> boundaries, int offset,
+        bool carryMissing) {
+        int upper = UpperBound(boundaries, offset);
+        if (upper == 0) return null;
+        AttributeBoundary boundary = boundaries[upper - 1];
+        return carryMissing ? boundary.CarriedIdentifier
+            : boundary.HasObject ? boundary.Identifier : null;
+    }
+
+    private static void AddBoundaries(SortedSet<int> destination,
+        IReadOnlyList<AttributeBoundary> source, int start, int end) {
+        int index = UpperBound(source, start);
+        while (index < source.Count && source[index].Index < end) {
+            destination.Add(source[index].Index);
+            index++;
+        }
+    }
+
+    private static int UpperBound(IReadOnlyList<AttributeBoundary> boundaries, int offset) {
+        int low = 0;
+        int high = boundaries.Count;
+        while (low < high) {
+            int middle = low + (high - low) / 2;
+            if (boundaries[middle].Index <= offset) low = middle + 1;
+            else high = middle;
+        }
+        return low;
+    }
+
+    private static IWorkParagraphStyle ResolveParagraphStyle(IWorkObjectIndex index,
+        ulong? identifier, IWorkProjectionBudget projectionBudget,
+        Dictionary<ulong, Cached<IWorkParagraphStyle>> cache,
+        ref bool complete) {
+        if (!identifier.HasValue) return new ParagraphStyleData().ToPublic();
+        if (cache.TryGetValue(identifier.Value, out Cached<IWorkParagraphStyle> cached)) {
+            if (!cached.IsComplete) complete = false;
+            return cached.Value;
+        }
+        bool resolvedCompletely = true;
+        var data = new ParagraphStyleData();
+        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+            projectionBudget.MaximumTextStyleInheritanceDepth,
+            type => type == ParagraphStyleArchive, ref resolvedCompletely);
+        for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
+            IWorkWireMessage message = chain[styleIndex];
+            ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
+            IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
+            if (malformedCharacter || message.LacksWireKind(11, IWorkWireKind.Bytes)
+                || message.HasField(11) && character == null) resolvedCompletely = false;
+            if (character != null) OverlayText(character, data.Text, projectionBudget, ref resolvedCompletely);
+            IWorkWireMessage? paragraph = IWorkObjectIndex.TryGetMessage(message, 12, out bool malformedParagraph);
+            if (malformedParagraph || message.LacksWireKind(12, IWorkWireKind.Bytes)
+                || message.HasField(12) && paragraph == null) resolvedCompletely = false;
+            if (paragraph != null) OverlayParagraph(paragraph, data, ref resolvedCompletely);
+        }
+        IWorkParagraphStyle result = data.ToPublic();
+        cache.Add(identifier.Value, new Cached<IWorkParagraphStyle>(result, resolvedCompletely));
+        if (!resolvedCompletely) complete = false;
+        return result;
+    }
+
+    private static IWorkTextStyle ResolveTextStyle(IWorkObjectIndex index, ulong? identifier,
+        IWorkTextStyle inherited, IWorkProjectionBudget projectionBudget,
+        Dictionary<ulong, Cached<IWorkTextStyle>> cache,
+        ref bool complete) {
+        if (!identifier.HasValue) return inherited;
+        if (cache.TryGetValue(identifier.Value, out Cached<IWorkTextStyle> cached)) {
+            if (!cached.IsComplete) complete = false;
+            return cached.Value;
+        }
+        bool resolvedCompletely = true;
+        var data = TextStyleData.From(inherited);
+        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+            projectionBudget.MaximumTextStyleInheritanceDepth,
+            type => type is CharacterStyleArchive or ParagraphStyleArchive,
+            ref resolvedCompletely);
+        for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
+            IWorkWireMessage message = chain[styleIndex];
+            ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
+            IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
+            if (malformedCharacter || message.LacksWireKind(11, IWorkWireKind.Bytes)
+                || message.HasField(11) && character == null) resolvedCompletely = false;
+            if (character != null) OverlayText(character, data, projectionBudget, ref resolvedCompletely);
+        }
+        IWorkTextStyle result = data.ToPublic();
+        cache.Add(identifier.Value, new Cached<IWorkTextStyle>(result, resolvedCompletely));
+        if (!resolvedCompletely) complete = false;
+        return result;
+    }
+
+    private static IReadOnlyList<IWorkWireMessage> ReadStyleChain(IWorkObjectIndex index,
+        ulong identifier, int maximumDepth, Func<uint, bool> allowedType, ref bool complete) {
+        var chain = new List<IWorkWireMessage>();
+        var seen = new HashSet<ulong>();
+        ulong current = identifier;
+        while (true) {
+            if (chain.Count >= maximumDepth) {
+                throw new InvalidDataException(
+                    $"iWork text style inheritance exceeds the configured depth of {maximumDepth}.");
+            }
+            if (!seen.Add(current)) {
+                complete = false;
+                break;
+            }
+            IWorkArchiveRecord? record = index.Find(current);
+            if (record == null || !allowedType(record.MessageType)) {
+                complete = false;
+                break;
+            }
+            IWorkWireMessage message = index.Message(record);
+            chain.Add(message);
+            IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
+            if (malformedSuper || message.LacksWireKind(1, IWorkWireKind.Bytes)
+                || message.HasField(1) && super == null) {
+                complete = false;
+                break;
+            }
+            if (super == null) break;
+            IWorkArchiveRecord? parent = index.Dereference(super, 3);
+            if (super.LacksWireKind(3, IWorkWireKind.Bytes)
+                || super.HasField(3) && parent == null) {
+                complete = false;
+                break;
+            }
+            if (parent == null) break;
+            current = parent.Identifier;
+        }
+        return chain;
+    }
+
+    private static void ApplyStyleName(IWorkWireMessage message, Action<string> apply,
+        IWorkProjectionBudget projectionBudget, ref bool complete) {
+        IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
+        if (malformedSuper || message.LacksWireKind(1, IWorkWireKind.Bytes)
+            || message.HasField(1) && super == null) {
+            complete = false;
+            return;
+        }
+        if (super == null || !super.HasField(1)) return;
+        if (super.LacksWireKind(1, IWorkWireKind.Bytes)
+            || !TryDecodeUtf8(super.GetBytes(1)!, projectionBudget, out string name)) complete = false;
+        else apply(name);
+    }
+
+    private static void OverlayText(IWorkWireMessage message, TextStyleData data,
+        IWorkProjectionBudget projectionBudget, ref bool complete) {
+        OverlayFlag(message, 1, value => data.Bold = value, ref complete);
+        OverlayFlag(message, 2, value => data.Italic = value, ref complete);
+        OverlayFlag(message, 11, value => data.Underline = value, ref complete);
+        OverlayFlag(message, 12, value => data.Strikethrough = value, ref complete);
+        float? size = message.GetFloat(3);
+        if (message.LacksWireKind(3, IWorkWireKind.Fixed32)) complete = false;
+        else if (size.HasValue && IsFinitePositive(size.Value)) data.FontSizePoints = size.Value;
+        else if (message.HasField(3)) complete = false;
+        ulong? clearFont = ReadUnsigned(message, 4, ref complete);
+        if (clearFont == 1) data.FontName = null;
+        else if (message.HasField(5)) {
+            if (message.LacksWireKind(5, IWorkWireKind.Bytes)
+                || !TryDecodeUtf8(message.GetBytes(5)!, projectionBudget, out string fontName)) complete = false;
+            else data.FontName = fontName;
+        }
+        ulong? clearColor = ReadUnsigned(message, 6, ref complete);
+        if (clearColor == 1) data.Color = null;
+        else if (TryColor(message, 7, out IWorkColor? color, ref complete)) data.Color = color;
+        ulong? clearBackground = ReadUnsigned(message, 25, ref complete);
+        if (clearBackground == 1) data.BackgroundColor = null;
+        else if (TryColor(message, 26, out IWorkColor? background, ref complete)) data.BackgroundColor = background;
+    }
+
+    private static void OverlayParagraph(IWorkWireMessage message, ParagraphStyleData data,
+        ref bool complete) {
+        ulong? alignment = ReadUnsigned(message, 1, ref complete);
+        if (alignment.HasValue) {
+            if (alignment.Value > 4) complete = false;
+            else data.Alignment = alignment.Value switch {
+                0 => IWorkTextAlignment.Left,
+                1 => IWorkTextAlignment.Right,
+                2 => IWorkTextAlignment.Center,
+                3 => IWorkTextAlignment.Justified,
+                _ => IWorkTextAlignment.Natural
+            };
+        }
+        OverlayFinite(message, 7, value => data.FirstLineIndentPoints = value, ref complete);
+        OverlayFinite(message, 11, value => data.LeftIndentPoints = value, ref complete);
+        OverlayFinite(message, 19, value => data.RightIndentPoints = value, ref complete);
+        OverlayFinite(message, 20, value => data.SpaceAfterPoints = value, ref complete);
+        OverlayFinite(message, 21, value => data.SpaceBeforePoints = value, ref complete);
+        OverlayFlag(message, 14, value => data.PageBreakBefore = value, ref complete);
+        OverlayFlag(message, 9, value => data.KeepLinesTogether = value, ref complete);
+        OverlayFlag(message, 10, value => data.KeepWithNext = value, ref complete);
+    }
+
+    private static (int Level, string? Label) ResolveList(IWorkObjectIndex index,
+        ulong? identifier, IWorkProjectionBudget projectionBudget,
+        Dictionary<ulong, Cached<(int Level, string? Label)>> cache, ref bool complete) {
+        if (!identifier.HasValue) return (-1, null);
+        if (cache.TryGetValue(identifier.Value, out Cached<(int Level, string? Label)> cached)) {
+            if (!cached.IsComplete) complete = false;
+            return cached.Value;
+        }
+        bool resolvedCompletely = true;
+        var data = new ListStyleData();
+        IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
+            projectionBudget.MaximumTextStyleInheritanceDepth,
+            type => type == ListStyleArchive, ref resolvedCompletely);
+        for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
+            IWorkWireMessage message = chain[styleIndex];
+            ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
+            IReadOnlyList<ulong> labelTypes;
+            if (message.LacksWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {
+                resolvedCompletely = false;
+                labelTypes = Array.Empty<ulong>();
+            } else {
+                try {
+                    labelTypes = message.GetRepeatedUnsigned(11, packed: true);
+                } catch (InvalidDataException) {
+                    resolvedCompletely = false;
+                    labelTypes = Array.Empty<ulong>();
+                }
+            }
+            if (labelTypes.Count > 0) data.LabelType = labelTypes[0];
+            if (message.LacksWireKind(16, IWorkWireKind.Bytes)) resolvedCompletely = false;
+            foreach (byte[] bytes in message.EnumerateRepeatedBytes(16)) {
+                if (!TryDecodeUtf8(bytes, projectionBudget, out string label)) resolvedCompletely = false;
+                else if (label.Length > 0 && data.Label == null) data.Label = label;
+            }
+        }
+        (int Level, string? Label) result = data.LabelType.GetValueOrDefault() == 0
+            || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
+            ? (-1, null)
+            : (0, data.Label);
+        cache.Add(identifier.Value, new Cached<(int Level, string? Label)>(result, resolvedCompletely));
+        if (!resolvedCompletely) complete = false;
+        return result;
+    }
+
+    private static string? ResolveHyperlink(IWorkObjectIndex index, ulong? identifier,
+        IWorkProjectionBudget projectionBudget, ref bool complete) {
+        if (!identifier.HasValue) return null;
+        IWorkArchiveRecord? record = index.Find(identifier.Value);
+        if (record == null || record.MessageType != HyperlinkArchive) {
+            complete = false;
+            return null;
+        }
+        IWorkWireMessage message = index.Message(record);
+        if (!message.HasField(2) || message.LacksWireKind(2, IWorkWireKind.Bytes)
+            || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
+            complete = false;
+            return null;
+        }
+        return value;
+    }
+
+    private static bool TryColor(IWorkWireMessage owner, int field, out IWorkColor? color,
+        ref bool complete) {
+        color = null;
+        bool hasColor = owner.HasField(field);
+        IWorkWireMessage? message = IWorkObjectIndex.TryGetMessage(owner, field, out bool malformedColor);
+        if (owner.LacksWireKind(field, IWorkWireKind.Bytes)
+            || malformedColor || hasColor && message == null) {
+            complete = false;
+            return false;
+        }
+        if (message == null) return false;
+        float? white = message.GetFloat(11);
+        float red = white ?? message.GetFloat(3) ?? 0;
+        float green = white ?? message.GetFloat(4) ?? 0;
+        float blue = white ?? message.GetFloat(5) ?? 0;
+        float alpha = message.GetFloat(6) ?? 1;
+        if (new[] { 3, 4, 5, 6, 11 }.Any(component =>
+                message.LacksWireKind(component, IWorkWireKind.Fixed32)
+                || message.HasField(component) && !message.GetFloat(component).HasValue)
+            || !new[] { red, green, blue, alpha }.All(IsFinite)) {
+            complete = false;
+            return false;
+        }
+        color = new IWorkColor(Component(red), Component(green), Component(blue), Component(alpha));
+        return true;
+    }
+
+    private static void OverlayFinite(IWorkWireMessage message, int field, Action<double> apply,
+        ref bool complete) {
+        float? value = message.GetFloat(field);
+        if (message.LacksWireKind(field, IWorkWireKind.Fixed32)) complete = false;
+        else if (value.HasValue && IsFinite(value.Value)) apply(value.Value);
+        else if (message.HasField(field)) complete = false;
+    }
+
+    private static ulong? ReadUnsigned(IWorkWireMessage message, int field, ref bool complete) {
+        if (message.LacksWireKind(field, IWorkWireKind.Varint)) complete = false;
+        return message.GetUnsigned(field);
+    }
+
+    private static void OverlayFlag(IWorkWireMessage message, int field, Action<bool> apply,
+        ref bool complete) {
+        ulong? value = ReadUnsigned(message, field, ref complete);
+        if (value.HasValue) apply(value.Value != 0);
+    }
+
+    private static IEnumerable<TextSpan> ParagraphSpans(string text) {
+        if (text.Length == 0) yield break;
+        int start = 0;
+        for (int index = 0; index < text.Length; index++) {
+            IWorkParagraphBreakKind kind = BreakKind(text[index]);
+            if (kind == IWorkParagraphBreakKind.None) continue;
+            yield return new TextSpan(start, index, kind);
+            start = index + 1;
+        }
+        if (start <= text.Length) yield return new TextSpan(start, text.Length, IWorkParagraphBreakKind.None);
+    }
+
+    private static IWorkParagraphBreakKind BreakKind(char value) => value switch {
+        '\n' => IWorkParagraphBreakKind.Paragraph,
+        '\r' => IWorkParagraphBreakKind.Paragraph,
+        '\u2029' => IWorkParagraphBreakKind.Paragraph,
+        '\u0004' => IWorkParagraphBreakKind.Section,
+        '\u0005' => IWorkParagraphBreakKind.Layout,
+        '\u000c' => IWorkParagraphBreakKind.Page,
+        _ => IWorkParagraphBreakKind.None
+    };
+
+    private static string NormalizeInlineText(string value) => value
+        .Replace('\u2028', '\n')
+        .Replace("\ufffc", string.Empty);
+
+    internal static bool TryDecodeUtf8(byte[] bytes, IWorkProjectionBudget projectionBudget,
+        out string value) {
+        try {
+            int characterCount = StrictUtf8.GetCharCount(bytes);
+            projectionBudget.AddTextCharacters(characterCount);
+            value = StrictUtf8.GetString(bytes);
+            return true;
+        } catch (System.Text.DecoderFallbackException) {
+            value = string.Empty;
+            return false;
+        }
+    }
+
+    private static double? Finite(float? value) => value.HasValue && IsFinite(value.Value)
+        ? value.Value
+        : (double?)null;
+    private static bool IsFinitePositive(float value) => IsFinite(value) && value > 0;
+    private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
+    private static byte Component(float value) => (byte)Math.Round(Math.Max(0, Math.Min(1, value)) * 255,
+        MidpointRounding.AwayFromZero);
+
+    private sealed class AttributeBoundary {
+        internal AttributeBoundary(int index, ulong? identifier, bool hasObject) {
+            Index = index;
+            Identifier = identifier;
+            HasObject = hasObject;
+        }
+        internal int Index { get; }
+        internal ulong? Identifier { get; }
+        internal bool HasObject { get; }
+        internal ulong? CarriedIdentifier { get; set; }
+    }
+
+    private readonly struct Cached<T> {
+        internal Cached(T value, bool isComplete) {
+            Value = value;
+            IsComplete = isComplete;
+        }
+        internal T Value { get; }
+        internal bool IsComplete { get; }
+    }
+
+    private sealed class TextStyleData {
+        internal string? Name;
+        internal bool? Bold;
+        internal bool? Italic;
+        internal bool? Underline;
+        internal bool? Strikethrough;
+        internal double? FontSizePoints;
+        internal string? FontName;
+        internal IWorkColor? Color;
+        internal IWorkColor? BackgroundColor;
+
+        internal static TextStyleData From(IWorkTextStyle style) => new() {
+            Name = style.Name, Bold = style.Bold, Italic = style.Italic,
+            Underline = style.Underline, Strikethrough = style.Strikethrough,
+            FontSizePoints = style.FontSizePoints, FontName = style.FontName,
+            Color = style.Color, BackgroundColor = style.BackgroundColor
+        };
+
+        internal IWorkTextStyle ToPublic() => new(Name, Bold, Italic, Underline,
+            Strikethrough, FontSizePoints, FontName, Color, BackgroundColor);
+    }
+
+    private sealed class ParagraphStyleData {
+        internal string? Name;
+        internal IWorkTextAlignment? Alignment;
+        internal double? FirstLineIndentPoints;
+        internal double? LeftIndentPoints;
+        internal double? RightIndentPoints;
+        internal double? SpaceBeforePoints;
+        internal double? SpaceAfterPoints;
+        internal bool? PageBreakBefore;
+        internal bool? KeepWithNext;
+        internal bool? KeepLinesTogether;
+        internal TextStyleData Text { get; } = new();
+
+        internal IWorkParagraphStyle ToPublic() => new(Name, Alignment,
+            FirstLineIndentPoints, LeftIndentPoints, RightIndentPoints,
+            SpaceBeforePoints, SpaceAfterPoints, PageBreakBefore, KeepWithNext,
+            KeepLinesTogether, Text.ToPublic());
+    }
+
+    private sealed class ListStyleData {
+        internal string? Name;
+        internal ulong? LabelType;
+        internal string? Label;
+    }
+
+    private sealed class TextSpan {
+        internal TextSpan(int start, int end, IWorkParagraphBreakKind breakKind) {
+            Start = start;
+            End = end;
+            BreakKind = breakKind;
+        }
+        internal int Start { get; }
+        internal int End { get; }
+        internal IWorkParagraphBreakKind BreakKind { get; }
+    }
+}

@@ -19,6 +19,9 @@ internal sealed class IWorkObjectIndex {
     internal IWorkArchiveRecord? FirstOfType(uint type) =>
         _objects.Values.FirstOrDefault(record => record.MessageType == type);
 
+    internal IWorkArchiveRecord? Find(ulong identifier) =>
+        _objects.TryGetValue(identifier, out IWorkArchiveRecord? record) ? record : null;
+
     internal IReadOnlyCollection<IWorkArchiveRecord> ReachableFrom(params IWorkArchiveRecord[] roots) {
         var result = new Dictionary<ulong, IWorkArchiveRecord>();
         var pending = new Stack<IWorkArchiveRecord>(roots);

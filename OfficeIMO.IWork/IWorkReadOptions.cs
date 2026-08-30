@@ -47,13 +47,13 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum nested protobuf message depth.</summary>
     public int MaximumProtobufDepth { get; set; } = 64;
 
-    /// <summary>Gets or sets the maximum projected row count of one Numbers table.</summary>
+    /// <summary>Gets or sets the maximum projected row count of one iWork table.</summary>
     public int MaximumTableRows { get; set; } = 1_048_576;
 
-    /// <summary>Gets or sets the maximum projected column count of one Numbers table.</summary>
+    /// <summary>Gets or sets the maximum projected column count of one iWork table.</summary>
     public int MaximumTableColumns { get; set; } = 16_384;
 
-    /// <summary>Gets or sets the maximum number of materialized non-empty cells across one Numbers source.</summary>
+    /// <summary>Gets or sets the maximum number of materialized non-empty cells across one iWork source.</summary>
     public int MaximumMaterializedCells { get; set; } = 10_000_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
@@ -62,11 +62,26 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of projected slides across one Keynote source.</summary>
     public int MaximumProjectedSlides { get; set; } = 10_000;
 
-    /// <summary>Gets or sets the maximum number of projected tables across one Numbers source.</summary>
+    /// <summary>Gets or sets the maximum number of projected tables across one iWork source.</summary>
     public int MaximumProjectedTables { get; set; } = 4096;
+
+    /// <summary>Gets or sets the maximum number of merged ranges projected from one iWork table.</summary>
+    public int MaximumTableMergedRanges { get; set; } = 100_000;
+
+    /// <summary>Gets or sets the maximum number of syntax nodes decoded from one iWork formula.</summary>
+    public int MaximumFormulaNodes { get; set; } = 4096;
+
+    /// <summary>Gets or sets the maximum reconstructed formula length in characters.</summary>
+    public int MaximumFormulaCharacters { get; set; } = 8192;
 
     /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>
     public int MaximumProjectedTextItems { get; set; } = 100_000;
+
+    /// <summary>Gets or sets the maximum number of decoded text characters across one semantic projection.</summary>
+    public long MaximumProjectedTextCharacters { get; set; } = 16L * 1024 * 1024;
+
+    /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text style.</summary>
+    public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
 
     internal IWorkReadOptions Snapshot() {
         ValidatePositive(MaximumPackageBytes, nameof(MaximumPackageBytes));
@@ -88,7 +103,12 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));
+        ValidatePositive(MaximumTableMergedRanges, nameof(MaximumTableMergedRanges));
+        ValidatePositive(MaximumFormulaNodes, nameof(MaximumFormulaNodes));
+        ValidatePositive(MaximumFormulaCharacters, nameof(MaximumFormulaCharacters));
         ValidatePositive(MaximumProjectedTextItems, nameof(MaximumProjectedTextItems));
+        ValidatePositive(MaximumProjectedTextCharacters, nameof(MaximumProjectedTextCharacters));
+        ValidatePositive(MaximumTextStyleInheritanceDepth, nameof(MaximumTextStyleInheritanceDepth));
 
         if (MaximumEntryBytes > MaximumTotalEntryBytes) {
             throw new ArgumentException($"{nameof(MaximumEntryBytes)} cannot exceed {nameof(MaximumTotalEntryBytes)}.");

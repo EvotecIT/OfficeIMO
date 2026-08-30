@@ -14,6 +14,11 @@ public sealed class IWorkCorpusTests {
         yield return new object[] { "iwork-converter/a.numbers", IWorkDocumentKind.Numbers };
         yield return new object[] { "iwork-converter/a.key", IWorkDocumentKind.Keynote };
         yield return new object[] { "numbers-parser/issue-102-v15.1.numbers", IWorkDocumentKind.Numbers };
+        yield return new object[] { "numbers-parser/test-9-merges.numbers", IWorkDocumentKind.Numbers };
+        yield return new object[] { "numbers-parser/test-10-formulas.numbers", IWorkDocumentKind.Numbers };
+        yield return new object[] { "picodocs/sample-v14.4.pages", IWorkDocumentKind.Pages };
+        yield return new object[] { "keynotekit/tabledeck-v15.2.1.key", IWorkDocumentKind.Keynote };
+        yield return new object[] { "keynotekit/imagedeck-v15.2.1.key", IWorkDocumentKind.Keynote };
     }
 
     [Theory]
@@ -50,7 +55,7 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Reads_current_numbers_as_sparse_typed_cells() {
         IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.numbers")).ReadNumbers();
-        IWorkNumbersTable table = Assert.Single(Assert.Single(numbers.Sheets).Tables);
+        IWorkTable table = Assert.Single(Assert.Single(numbers.Sheets).Tables);
 
         Assert.Equal(3, table.RowCount);
         Assert.Equal(3, table.ColumnCount);
@@ -59,6 +64,80 @@ public sealed class IWorkCorpusTests {
         Assert.Equal(2d, Assert.IsType<double>(table.GetCell(2, 2)!.Value), 10);
         Assert.Equal("Z", table.GetCell(3, 3)!.Value);
         Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(2, 4));
+    }
+
+    [Fact]
+    public void Numbers_recovers_complete_formulas_cached_values_and_table_metadata() {
+        IWorkNumbersProjection numbers = IWorkSourceDocument.Open(
+            Fixture("numbers-parser/test-10-formulas.numbers")).ReadNumbers();
+        IWorkTable table = numbers.Sheets[0].Tables[0];
+
+        Assert.True(numbers.HasEditableContent);
+        Assert.InRange(table.DefaultRowHeight!.Value, 19.92d, 19.94d);
+        Assert.Equal(98d, table.DefaultColumnWidth);
+        IWorkTableCell arithmetic = table.GetCell(2, 2)!;
+        Assert.Equal(IWorkCellKind.Formula, arithmetic.Kind);
+        Assert.Equal("=A1+A2", arithmetic.Formula);
+        Assert.True(arithmetic.FormulaIsComplete);
+        Assert.Equal(3d, Assert.IsType<double>(arithmetic.Value), 10);
+        Assert.Equal("=SUM(A1:A2)", table.GetCell(6, 2)!.Formula);
+        Assert.Equal("=IF(A6>6,TRUE,FALSE)", table.GetCell(6, 3)!.Formula);
+        Assert.Equal("=LEFT(A3,1)", numbers.Sheets[1].Tables[0].GetCell(3, 2)!.Formula);
+    }
+
+    [Fact]
+    public void Numbers_recovers_merges_and_excel_projects_them_as_editable_ranges() {
+        const string RelativePath = "numbers-parser/test-9-merges.numbers";
+        IWorkNumbersProjection numbers = IWorkSourceDocument.Open(Fixture(RelativePath)).ReadNumbers();
+        IWorkTable first = numbers.Sheets[0].Tables[0];
+
+        Assert.True(numbers.HasEditableContent);
+        Assert.Equal(5, first.MergedRanges.Count);
+        Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 2 && merge.FirstColumn == 1
+            && merge.LastRow == 2 && merge.LastColumn == 2);
+        Assert.Contains(first.MergedRanges, merge => merge.FirstRow == 7 && merge.FirstColumn == 4
+            && merge.LastRow == 8 && merge.LastColumn == 5);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(Fixture(RelativePath));
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(5, result.Document.Sheets[0].GetMergedRanges().Count);
+        Assert.Contains(result.Document.Sheets[0].GetMergedRanges(), merge => merge.A1Range == "A2:B2");
+    }
+
+    [Fact]
+    public void Numbers_enforces_the_configured_merged_range_bound() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("numbers-parser/test-9-merges.numbers"),
+            new IWorkReadOptions { MaximumTableMergedRanges = 1 });
+
+        Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
+    }
+
+    [Fact]
+    public void Numbers_owner_projects_source_formulas_with_cached_values() {
+        using var result = ExcelDocument.LoadNumbersWithReport(
+            Fixture("numbers-parser/test-10-formulas.numbers"));
+
+        Assert.False(result.IsVisualFallback);
+        ExcelSheet first = result.Document.Sheets[0];
+        Assert.Equal("A1+A2", first.GetFormulaText(2, 2));
+        Assert.Equal("SUM(A1:A2)", first.GetFormulaText(6, 2));
+        Assert.Equal(3d, first.CellAt(2, 2).GetValue<double>(), 10);
+    }
+
+    [Fact]
+    public void Numbers_formula_projection_honors_node_and_character_bounds() {
+        const string RelativePath = "numbers-parser/test-10-formulas.numbers";
+        IWorkSourceDocument nodeBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
+            new IWorkReadOptions { MaximumFormulaNodes = 1 });
+        Assert.Throws<InvalidDataException>(() => nodeBounded.ReadNumbers());
+
+        IWorkNumbersProjection characterBounded = IWorkSourceDocument.Open(Fixture(RelativePath),
+            new IWorkReadOptions { MaximumFormulaCharacters = 4 }).ReadNumbers();
+        IWorkTableCell formula = characterBounded.Sheets[0].Tables[0].GetCell(2, 2)!;
+        Assert.False(formula.FormulaIsComplete);
+        Assert.Equal("=#FORMULA!", formula.Formula);
+        Assert.Equal(3d, Assert.IsType<double>(formula.Value), 10);
     }
 
     [Fact]
@@ -85,10 +164,138 @@ public sealed class IWorkCorpusTests {
         Assert.Equal(253, olderNumbers.Sheets[0].Tables.Sum(table => table.Cells.Count));
         Assert.Single(keynote.Slides);
         Assert.NotEmpty(keynote.Slides[0].Body);
-        IWorkNumbersTable newerTable = Assert.Single(Assert.Single(newerNumbers.Sheets).Tables);
+        IWorkTable newerTable = Assert.Single(Assert.Single(newerNumbers.Sheets).Tables);
         Assert.Equal(7, newerTable.RowCount);
         Assert.Equal(11, newerTable.ColumnCount);
         Assert.Equal("Cats", newerTable.GetCell(1, 3)!.Value);
+    }
+
+    [Fact]
+    public void Pages_rich_text_preserves_inherited_typography_and_empty_paragraphs() {
+        IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages")).ReadPages();
+
+        Assert.True(pages.Body.IsComplete);
+        Assert.Equal(45, pages.Body.Paragraphs.Count);
+        IWorkTextParagraph title = pages.Body.Paragraphs[0];
+        IWorkTextRun titleRun = Assert.Single(title.Runs);
+        Assert.Equal("购 销 合 同", title.Text);
+        Assert.Equal(IWorkTextAlignment.Center, title.Style.Alignment);
+        Assert.True(titleRun.Style.Bold);
+        Assert.False(titleRun.Style.Italic);
+        Assert.Equal(26d, titleRun.Style.FontSizePoints);
+        Assert.Equal("SimSun", titleRun.Style.FontName);
+        Assert.Equal("000000", titleRun.Style.Color!.RgbHex);
+        Assert.Empty(pages.Body.Paragraphs[1].Runs);
+    }
+
+    [Fact]
+    public void Pages_owner_projects_rich_typography_into_word_runs() {
+        using var result = WordDocument.LoadPagesWithReport(Fixture("iwork-converter/a.pages"));
+
+        WordParagraph title = result.Document.Paragraphs.First(paragraph => paragraph.Text == "购 销 合 同");
+        Assert.Equal(WordParagraphAlignment.Center, title.ParagraphAlignment);
+        Assert.True(title.Bold);
+        Assert.Equal(26d, title.FontSizePoints);
+        Assert.Equal("SimSun", title.FontFamily);
+    }
+
+    [Fact]
+    public void Pages_recovers_embedded_image_and_shared_editable_tables() {
+        IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
+
+        Assert.True(pages.HasEditableContent);
+        Assert.Equal(3, pages.Tables.Count);
+        Assert.Equal((5, 4), (pages.Tables[0].RowCount, pages.Tables[0].ColumnCount));
+        Assert.Equal(18, pages.Tables[0].Cells.Count);
+        Assert.Equal(4, pages.Tables[2].Cells.Count(cell => cell.Kind == IWorkCellKind.Formula));
+        IWorkImageAsset image = Assert.Single(pages.Images);
+        Assert.Equal("image/png", image.MediaType);
+        Assert.Equal(1000, image.PixelWidth);
+        Assert.Equal(520, image.PixelHeight);
+    }
+
+    [Fact]
+    public void Pages_owner_projects_tables_and_embedded_image_into_word() {
+        using var result = WordDocument.LoadPagesWithReport(Fixture("picodocs/sample-v14.4.pages"));
+
+        Assert.False(result.IsVisualFallback);
+        Assert.Equal(3, result.Document.Tables.Count);
+        Assert.Equal(5, result.Document.Tables[0].RowsCount);
+        Assert.Equal(4, result.Document.Tables[0].Rows[0].CellsCount);
+        Assert.NotEmpty(result.Document.Images);
+    }
+
+    [Fact]
+    public void Keynote_recovers_slide_size_positioned_rich_text_and_typography() {
+        IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(Fixture("iwork-converter/a.key")).ReadKeynote();
+
+        Assert.Equal(1920d, keynote.SlideSize!.WidthPoints);
+        Assert.Equal(1080d, keynote.SlideSize.HeightPoints);
+        IWorkKeynoteSlide slide = Assert.Single(keynote.Slides);
+        Assert.Equal(22, slide.TextBoxes.Count);
+        IWorkTextBox box = slide.TextBoxes.First(item => item.Content.PlainText == "账户passport");
+        Assert.InRange(box.Geometry!.LeftPoints, 371.74d, 371.75d);
+        Assert.InRange(box.Geometry.TopPoints, 537.95d, 537.96d);
+        IWorkTextRun run = Assert.Single(Assert.Single(box.Content.Paragraphs).Runs);
+        Assert.Equal(IWorkTextAlignment.Center, box.Content.Paragraphs[0].Style.Alignment);
+        Assert.Equal(28d, run.Style.FontSizePoints);
+        Assert.Equal("HelveticaNeue-Medium", run.Style.FontName);
+    }
+
+    [Fact]
+    public void Keynote_owner_projects_source_canvas_geometry_and_rich_text() {
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(Fixture("iwork-converter/a.key"));
+
+        Assert.Equal(1920d, result.Document.SlideSize.WidthPoints, 3);
+        Assert.Equal(1080d, result.Document.SlideSize.HeightPoints, 3);
+        PowerPointSlide slide = Assert.Single(result.Document.Slides);
+        PowerPointTextBox box = slide.TextBoxes.First(item => item.Text == "账户passport");
+        Assert.InRange(box.LeftPoints, 371.74d, 371.75d);
+        Assert.InRange(box.TopPoints, 537.95d, 537.96d);
+        PowerPointTextRun run = Assert.Single(Assert.Single(box.Paragraphs).Runs);
+        Assert.Equal(28d, run.FontSizePoints);
+        Assert.Equal("HelveticaNeue-Medium", run.FontName);
+    }
+
+    [Fact]
+    public void Keynote_recovers_independently_produced_editable_table_and_image() {
+        IWorkKeynoteProjection tableDeck = IWorkSourceDocument.Open(
+            Fixture("keynotekit/tabledeck-v15.2.1.key")).ReadKeynote();
+        IWorkTable table = Assert.Single(Assert.Single(tableDeck.Slides).Tables);
+
+        Assert.True(tableDeck.HasEditableContent);
+        Assert.Equal((3, 3), (table.RowCount, table.ColumnCount));
+        Assert.Equal("Product", table.GetCell(1, 1)!.Value);
+        Assert.Equal(24_000d, Assert.IsType<double>(table.GetCell(2, 3)!.Value), 10);
+        Assert.InRange(table.Geometry!.LeftPoints, 94.99d, 95.01d);
+        Assert.InRange(table.Geometry.WidthPoints, 1729.99d, 1730.01d);
+
+        IWorkKeynoteProjection imageDeck = IWorkSourceDocument.Open(
+            Fixture("keynotekit/imagedeck-v15.2.1.key")).ReadKeynote();
+        IWorkImageAsset image = Assert.Single(Assert.Single(imageDeck.Slides).Images);
+        Assert.Equal("red.png", image.FileName);
+        Assert.Equal("image/png", image.MediaType);
+        Assert.Equal((400, 300), (image.PixelWidth, image.PixelHeight));
+    }
+
+    [Fact]
+    public void Keynote_owner_projects_table_and_image_as_editable_powerpoint_shapes() {
+        using var tableResult = PowerPointPresentation.LoadKeynoteWithReport(
+            Fixture("keynotekit/tabledeck-v15.2.1.key"));
+        PowerPointTable table = Assert.Single(Assert.Single(tableResult.Document.Slides).Tables);
+
+        Assert.False(tableResult.IsVisualFallback);
+        Assert.Equal((3, 3), (table.Rows, table.Columns));
+        Assert.Equal("Product", table.GetCell(0, 0).Text);
+        Assert.Equal("24000", table.GetCell(1, 2).Text);
+        Assert.InRange(table.LeftPoints, 94.99d, 95.01d);
+        Assert.InRange(table.WidthPoints, 1729.99d, 1730.01d);
+
+        using var imageResult = PowerPointPresentation.LoadKeynoteWithReport(
+            Fixture("keynotekit/imagedeck-v15.2.1.key"));
+        PowerPointPicture picture = Assert.Single(Assert.Single(imageResult.Document.Slides).Pictures);
+        Assert.Equal("image/png", picture.ContentType);
+        Assert.True(picture.GetImageBytes().Length > 100);
     }
 
     [Fact]

@@ -2,6 +2,8 @@
 
 OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one bounded `OfficeIMO.IWork` package layer. It then projects supported semantics into the existing Word, Excel, and PowerPoint owners. The source layer is read-only.
 
+The current level is **extended semantic reconstruction**. Normal document content becomes editable destination objects with recovered structure, typography, sizing, and geometry where the corpus proves those fields. It is not a pixel-identical renderer or a claim that every application-only feature can be translated.
+
 ## Public ownership
 
 | Source | Typed source projection | Editable destination owner | Entry points |
@@ -24,15 +26,15 @@ OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
 | Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
 
-`IWorkReadOptions` supplies all configurable limits. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, and the source-wide record count at 1,000,000. Semantic projection also has source-wide text-item limits; Numbers adds row, column, sparse materialized-cell, projected-sheet, and projected-table limits, while Keynote adds a projected-slide limit.
+`IWorkReadOptions` supplies all configurable limits. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, and the source-wide record count at 1,000,000. Semantic projection also bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, sparse materialized cells, tables, merged ranges, table dimensions, Numbers sheets, and Keynote slides.
 
 ## Editable semantic coverage
 
 | Application | Reconstructed today | Preserved or diagnosed rather than reconstructed |
 |---|---|---|
-| Pages | Body paragraphs, section header/footer text, and text-box text | Exact typography, layout geometry, styles, lists, tables, charts, equations, media, comments, change tracking, fields, and application-only metadata |
-| Numbers | Sheets, tables, declared dimensions, sparse typed text/number/Boolean/date/duration cells, cached formula values with source markers, cell decode errors, and text-box text | Pre-BNC cell storage, exact canvas positions, formatting, formula expressions, rich-text runs, merges, filters, names, charts, forms, comments, media, and application-only metadata |
-| Keynote | Slide order, skipped-slide state, title/body text, and presenter notes | Masters, layouts, exact geometry, typography, themes, tables, charts, builds, media, transitions, animations, comments, and application-only metadata |
+| Pages | Rich body paragraphs and runs, hyperlinks, paragraph alignment and list structure, page size and margins, section-specific headers/footers, positioned and sized rich-text boxes, embedded PNG/JPEG images, and editable tables with typed cells and merges | Exact floating-object order/wrapping/rotation, vector shapes, charts, equations, advanced table styling, masks/crops, comments, change tracking, fields, and application-only metadata |
+| Numbers | Ordered sheets and tables, declared dimensions, sparse typed text/number/Boolean/date/duration cells, complete supported formulas plus typed cached values, merged ranges, header/footer metadata, default row/column sizing, and text-box text | Pre-BNC cell storage, unsupported formula functions and cross-table references, per-cell rich text and exact styling, filters, names, charts, forms, comments, media, and application-only metadata |
+| Keynote | Slide order and size, skipped state, positioned rich title/body text, typography, hyperlinks, presenter notes, embedded PNG/JPEG images, and positioned editable tables with typed cells and merges | Master/layout recreation, exact themes, vector shapes, charts, builds, transitions, animations, masks/crops, comments, and application-only metadata |
 
 Editable reconstruction means the supported content is represented as normal DOCX, XLSX, or PPTX objects and can be edited and saved through its owner. It does not mean the destination is visually identical or that unsupported iWork records are written into the Office package.
 
@@ -44,15 +46,15 @@ Every owner report exposes `IWorkProjectionKind.EditableReconstruction` or `IWor
 
 ## Corpus evidence
 
-The checked-in interoperability corpus uses unmodified, MIT-licensed fixtures with recorded source revisions:
+The checked-in interoperability corpus uses unmodified fixtures with recorded source revisions and reproduced MIT or 0BSD notices:
 
 | Application | Producer/build history exercised |
 |---|---|
-| Pages | 14.1 and 14.5 |
-| Numbers | 11.1, build histories spanning 13.x and 14.x, 14.5, and 15.1 |
-| Keynote | 8.1 and 14.5 |
+| Pages | 14.1 and 14.5, including a 14.4.1 package history with images and tables |
+| Numbers | 11.1, build histories spanning 13.x and 14.x, 14.5, and 15.1, including formulas and merged ranges |
+| Keynote | 8.1, 14.5, and 15.2.1, including independently maintained image and editable-table fixtures |
 
-Tests assert path/stream parity, cumulative decompression and materialization bounds, application detection, source-record retention, typed projections including wide Numbers offsets, explicit handling of pre-BNC cell storage, strict preview selection, destination row limits, explicit visual fallback, and save/reopen of the resulting DOCX, XLSX, and PPTX packages. Fixture sources, revisions, expected content, and licenses are recorded in `OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md`.
+Tests assert path/stream parity, cumulative decompression and materialization bounds, application detection, source-record retention, rich text and drawable geometry, bounded style inheritance, section-specific headers/footers, formulas and cached values, merges and tables across all three applications, embedded images, explicit handling of pre-BNC cell storage, strict preview selection, destination limits, explicit visual fallback, and save/reopen of the resulting DOCX, XLSX, and PPTX packages. Fixture sources, revisions, expected content, checksums, and licenses are recorded in `OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md`.
 
 This corpus proves the current read contract; it does not establish a stable iWork write contract.
 

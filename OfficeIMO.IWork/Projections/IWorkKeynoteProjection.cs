@@ -4,17 +4,37 @@ namespace OfficeIMO.IWork;
 
 /// <summary>One Keynote slide recovered in presentation order.</summary>
 public sealed class IWorkKeynoteSlide {
-    internal IWorkKeynoteSlide(int index, string title, IReadOnlyList<string> body,
-        string presenterNotes, bool isSkipped) {
+    internal IWorkKeynoteSlide(int index, string name, IWorkTextBox? titleBox,
+        IReadOnlyList<IWorkTextBox> textBoxes, IWorkTextContent presenterNoteContent,
+        IReadOnlyList<IWorkImageAsset> images, IReadOnlyList<IWorkTable> tables, bool isSkipped) {
         Index = index;
-        Title = title;
-        PresenterNotes = presenterNotes;
+        Name = name;
+        TitleBox = titleBox;
+        TextBoxes = Array.AsReadOnly(textBoxes.ToArray());
+        PresenterNoteContent = presenterNoteContent;
+        Images = Array.AsReadOnly(images.ToArray());
+        Tables = Array.AsReadOnly(tables.ToArray());
+        Title = titleBox?.Content.PlainText ?? string.Empty;
+        Body = Array.AsReadOnly(TextBoxes.Select(textBox => textBox.Content.PlainText)
+            .Where(text => text.Length > 0).ToArray());
+        PresenterNotes = presenterNoteContent.PlainText;
         IsSkipped = isSkipped;
-        Body = Array.AsReadOnly(body.ToArray());
     }
 
     /// <summary>Gets the one-based slide position.</summary>
     public int Index { get; }
+    /// <summary>Gets the source slide name.</summary>
+    public string Name { get; }
+    /// <summary>Gets the positioned rich title placeholder.</summary>
+    public IWorkTextBox? TitleBox { get; }
+    /// <summary>Gets positioned rich body and freeform text boxes.</summary>
+    public IReadOnlyList<IWorkTextBox> TextBoxes { get; }
+    /// <summary>Gets rich presenter-note content.</summary>
+    public IWorkTextContent PresenterNoteContent { get; }
+    /// <summary>Gets embedded images in drawable order.</summary>
+    public IReadOnlyList<IWorkImageAsset> Images { get; }
+    /// <summary>Gets editable tables in drawable order.</summary>
+    public IReadOnlyList<IWorkTable> Tables { get; }
     /// <summary>Gets title-placeholder text.</summary>
     public string Title { get; }
     /// <summary>Gets remaining editable text blocks.</summary>
@@ -31,15 +51,19 @@ public sealed class IWorkKeynoteProjection {
     private readonly bool _supportsEditableReconstruction;
 
     internal IWorkKeynoteProjection(IWorkSourceDocument source, IReadOnlyList<IWorkKeynoteSlide> slides,
+        IWorkCanvasSize? slideSize,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction) {
         _source = source;
         Slides = Array.AsReadOnly(slides.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        SlideSize = slideSize;
         _supportsEditableReconstruction = supportsEditableReconstruction;
     }
 
     /// <summary>Gets presented slides in source order.</summary>
     public IReadOnlyList<IWorkKeynoteSlide> Slides { get; }
+    /// <summary>Gets the source presentation canvas size.</summary>
+    public IWorkCanvasSize? SlideSize { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets whether at least one editable slide was recovered and all required slide references were resolved.</summary>
@@ -51,8 +75,9 @@ public sealed class IWorkKeynoteProjection {
         return _source.CreateReport(kind, Diagnostics, preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
-                : Slides.Count + Slides.Sum(slide => slide.Body.Count + (slide.Title.Length > 0 ? 1 : 0)
-                    + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
+                : Slides.Count + Slides.Sum(slide => slide.Body.Count + slide.Images.Count + slide.Tables.Count
+                    + slide.Tables.Sum(table => table.Cells.Count)
+                    + (slide.Title.Length > 0 ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
@@ -70,7 +95,7 @@ public sealed partial class IWorkSourceDocument {
     public IWorkKeynoteProjection ReadKeynote() {
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
         if (RequestedImportMode == IWorkImportMode.VisualOnly) {
-            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(),
+            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(), null,
                 new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
         }
         return IWorkKeynoteReader.Read(this);
@@ -89,24 +114,33 @@ internal static class IWorkKeynoteReader {
         if (document == null) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_DOCUMENT_MISSING",
                 "No supported Keynote document root was found; editable reconstruction is unavailable."));
-            return new IWorkKeynoteProjection(source, slides, diagnostics, supportsEditableReconstruction: false);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkArchiveRecord? show = index.Dereference(index.Message(document), 2);
         if (show == null) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
                 "The Keynote document root does not reference a supported show object.", document.EntryPath, document.Identifier));
-            return new IWorkKeynoteProjection(source, slides, diagnostics, supportsEditableReconstruction: false);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkWireMessage? slideTree = IWorkObjectIndex.TryGetMessage(index.Message(show), 3);
         if (slideTree == null) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
-            return new IWorkKeynoteProjection(source, slides, diagnostics, supportsEditableReconstruction: false);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
 
-        int position = 0;
-        var projectionBudget = new IWorkProjectionBudget(source.Options);
         bool supportsEditableReconstruction = true;
+        IWorkCanvasSize? slideSize = ReadSlideSize(index.Message(show), out bool slideSizeComplete);
+        if (!slideSizeComplete) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_SLIDE_SIZE_UNSUPPORTED",
+                "The Keynote show declares an invalid slide size; editable reconstruction is incomplete.",
+                show.EntryPath, show.Identifier));
+        }
+        int position = 0;
+        int materializedCellCount = 0;
+        var projectionBudget = new IWorkProjectionBudget(source.Options);
         IReadOnlyList<IWorkArchiveRecord> nodes = index.DereferenceAll(
             slideTree, 2, out int unresolvedNodeCount);
         if (nodes.Count > source.Options.MaximumProjectedSlides) {
@@ -142,14 +176,16 @@ internal static class IWorkKeynoteReader {
                 MarkDuplicateSlide(show, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
-            slides.Add(ReadSlide(index, slide, position, skipped, projectionBudget, diagnostics,
+            slides.Add(ReadSlide(source, index, slide, position, skipped, projectionBudget,
+                ref materializedCellCount, diagnostics,
                 ref supportsEditableReconstruction));
         }
-        return new IWorkKeynoteProjection(source, slides, diagnostics, supportsEditableReconstruction);
+        return new IWorkKeynoteProjection(source, slides, slideSize, diagnostics, supportsEditableReconstruction);
     }
 
-    private static IWorkKeynoteSlide ReadSlide(IWorkObjectIndex index, IWorkArchiveRecord slide,
+    private static IWorkKeynoteSlide ReadSlide(IWorkSourceDocument source, IWorkObjectIndex index, IWorkArchiveRecord slide,
         int position, bool skipped, IWorkProjectionBudget projectionBudget,
+        ref int materializedCellCount,
         List<IWorkDiagnostic> diagnostics,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(slide);
@@ -173,36 +209,148 @@ internal static class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
         }
 
-        string title = string.Empty;
-        var body = new List<string>();
+        IWorkTextBox? title = null;
+        var textBoxes = new List<IWorkTextBox>();
+        var images = new List<IWorkImageAsset>();
+        var tables = new List<IWorkTable>();
         var seenStorages = new HashSet<ulong>();
         foreach (IWorkArchiveRecord drawable in candidates) {
-            IWorkArchiveRecord? storage = DrawableStorage(index, drawable);
+            if (drawable.MessageType == 6000) {
+                projectionBudget.AddTable();
+                IWorkTable? table = IWorkTableReader.Read(source, drawable, diagnostics,
+                    ref materializedCellCount, ref supportsEditableReconstruction);
+                if (table != null) tables.Add(table);
+                continue;
+            }
+            if (drawable.MessageType == 3005) {
+                IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable, out bool imageComplete);
+                if (!imageComplete || image == null) {
+                    supportsEditableReconstruction = false;
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_IMAGE_UNSUPPORTED",
+                        "A Keynote slide image could not be resolved completely; editable reconstruction is incomplete.",
+                        drawable.EntryPath, drawable.Identifier));
+                } else {
+                    images.Add(image);
+                }
+                continue;
+            }
+            IWorkArchiveRecord? storage = DrawableStorage(index, drawable, out bool storageComplete);
+            if (!storageComplete) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                        "A Keynote drawable contains malformed or unresolved text storage; editable reconstruction is incomplete.",
+                        drawable.EntryPath, drawable.Identifier));
+                }
+            }
             if (storage == null || storage.MessageType != TextStorageArchive || !seenStorages.Add(storage.Identifier)) continue;
-            string text = IWorkPagesReader.StorageText(index.Message(storage), out bool textComplete).Trim();
-            if (!textComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
-            if (text.Length == 0) continue;
-            projectionBudget.AddTextItem();
-            if (titlePlaceholder != null && drawable.Identifier == titlePlaceholder.Identifier && title.Length == 0) title = text;
-            else body.Add(text);
+            IWorkTextContent text = IWorkTextReader.Read(index, storage, projectionBudget);
+            if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+            if (text.PlainText.Length == 0) continue;
+            IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
+                out bool drawableComplete);
+            if (!drawableComplete) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                        "A Keynote drawable contains malformed geometry; editable reconstruction is incomplete.",
+                        drawable.EntryPath, drawable.Identifier));
+                }
+            }
+            bool geometryComplete = true;
+            IWorkGeometry? geometry = drawableMessage == null
+                ? null
+                : IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete);
+            if (drawableMessage != null && !geometryComplete) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                        "A Keynote drawable contains malformed geometry; editable reconstruction is incomplete.",
+                        drawable.EntryPath, drawable.Identifier));
+                }
+            }
+            if (titlePlaceholder != null && drawable.Identifier == titlePlaceholder.Identifier && title == null) {
+                if (IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedTitleGeometry)
+                    is IWorkWireMessage titleGeometry) {
+                    IWorkGeometry? placeholderGeometry = IWorkDrawingReader.ReadGeometryArchive(
+                        titleGeometry, out bool titleGeometryComplete);
+                    if (titleGeometryComplete) geometry = placeholderGeometry;
+                    else MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                } else if (malformedTitleGeometry) {
+                    MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                }
+                title = new IWorkTextBox(text, geometry, drawableMessage?.GetString(4), drawableMessage?.GetString(8));
+            } else {
+                if (index.Dereference(message, 6)?.Identifier == drawable.Identifier) {
+                    IWorkWireMessage? bodyGeometry = IWorkObjectIndex.TryGetMessage(
+                        message, 14, out bool malformedBodyGeometry);
+                    if (bodyGeometry != null) {
+                        IWorkGeometry? placeholderGeometry = IWorkDrawingReader.ReadGeometryArchive(
+                            bodyGeometry, out bool bodyGeometryComplete);
+                        if (bodyGeometryComplete) geometry = placeholderGeometry;
+                        else MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                    } else if (malformedBodyGeometry) {
+                        MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                    }
+                }
+                textBoxes.Add(new IWorkTextBox(text, geometry, drawableMessage?.GetString(4), drawableMessage?.GetString(8)));
+            }
         }
 
-        string notes = string.Empty;
-        bool hasNoteReference = message.HasBytes(27);
+        IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(), isComplete: true);
+        bool hasNoteReference = message.HasField(27);
         IWorkArchiveRecord? note = index.Dereference(message, 27);
-        if (hasNoteReference && note == null) {
+        if (message.LacksWireKind(27, IWorkWireKind.Bytes)
+            || hasNoteReference && note == null) {
             MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         } else if (note != null) {
             IWorkArchiveRecord? storage = index.Dereference(index.Message(note), 1);
             if (storage != null && storage.MessageType == TextStorageArchive) {
-                notes = IWorkPagesReader.StorageText(index.Message(storage), out bool textComplete).TrimStart('\n');
-                if (!textComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
-                if (notes.Length > 0) projectionBudget.AddTextItem();
+                notes = IWorkTextReader.Read(index, storage, projectionBudget);
+                if (!notes.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             } else {
                 MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
             }
         }
-        return new IWorkKeynoteSlide(position, title, body, notes, skipped);
+        return new IWorkKeynoteSlide(position, message.GetString(10) ?? string.Empty,
+            title, textBoxes, notes, images, tables, skipped);
+    }
+
+    private static void MarkDrawableIncomplete(IWorkArchiveRecord drawable,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+            "A Keynote drawable contains malformed geometry; editable reconstruction is incomplete.",
+            drawable.EntryPath, drawable.Identifier));
+    }
+
+    private static IWorkCanvasSize? ReadSlideSize(IWorkWireMessage show, out bool complete) {
+        complete = true;
+        if (!show.HasField(4)) return null;
+        IWorkWireMessage? size = IWorkObjectIndex.TryGetMessage(show, 4, out bool malformedSize);
+        if (show.LacksWireKind(4, IWorkWireKind.Bytes) || malformedSize || size == null) {
+            complete = false;
+            return null;
+        }
+        IWorkWireMessage declaredSize = size;
+        double width = declaredSize.GetFloat(1) ?? 0;
+        double height = declaredSize.GetFloat(2) ?? 0;
+        if (!declaredSize.HasField(1) || !declaredSize.HasField(2)
+            || declaredSize.LacksWireKind(1, IWorkWireKind.Fixed32)
+            || declaredSize.LacksWireKind(2, IWorkWireKind.Fixed32)
+            || !declaredSize.GetFloat(1).HasValue || !declaredSize.GetFloat(2).HasValue
+            || width <= 0 || height <= 0 || double.IsNaN(width) || double.IsInfinity(width)
+            || double.IsNaN(height) || double.IsInfinity(height)) {
+            complete = false;
+            return null;
+        }
+        return new IWorkCanvasSize(width, height);
     }
 
     private static void MarkNotesIncomplete(IWorkArchiveRecord slide,
@@ -235,13 +383,20 @@ internal static class IWorkKeynoteReader {
             storage.EntryPath, storage.Identifier));
     }
 
-    private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable) {
+    private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
+        out bool complete) {
+        complete = true;
         IWorkWireMessage message = index.Message(drawable);
-        IWorkArchiveRecord? direct = index.Dereference(message, 2);
+        IWorkArchiveRecord? field4 = index.Dereference(message, 4);
+        IWorkArchiveRecord? field2 = index.Dereference(message, 2);
+        IWorkArchiveRecord? direct = field4 ?? field2;
+        if ((message.HasBytes(4) && field4 == null) || (message.HasBytes(2) && field2 == null)) complete = false;
         if (direct != null && direct.MessageType == TextStorageArchive) return direct;
-        IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1);
+        IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
+        if (malformedSuper) complete = false;
         if (super == null) return null;
         IWorkArchiveRecord? nested = index.Dereference(super, 2);
+        if (super.HasBytes(2) && nested == null) complete = false;
         return nested != null && nested.MessageType == TextStorageArchive ? nested : null;
     }
 }

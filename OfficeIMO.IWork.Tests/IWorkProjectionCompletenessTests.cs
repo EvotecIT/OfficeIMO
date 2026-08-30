@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
         });
 
         using var result = ExcelDocument.LoadNumbersWithReport(package);
-        IWorkNumbersCell cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
+        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Decimal128", 1, 1, 0d, decimal128HighBit: true)
         });
 
-        IWorkNumbersCell cell = Assert.Single(Assert.Single(Assert.Single(
+        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers().Sheets).Tables).Cells);
 
         Assert.Equal(Math.Pow(2d, 112), Assert.IsType<double>(cell.Value), 12);
@@ -216,7 +216,39 @@ public sealed partial class IWorkBoundaryTests {
         Assert.InRange(image.Height.GetValueOrDefault(), 1d, contentHeight);
     }
 
-    private static MemoryStream CreateKeynotePackageWithRepeatedSlides(int referenceCount) {
+    [Fact]
+    public void Keynote_rotation_outside_the_pptx_range_uses_visual_fallback() {
+        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: float.MaxValue);
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
+    }
+
+    [Fact]
+    public void Keynote_font_size_outside_the_pptx_range_uses_visual_fallback() {
+        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, fontSize: 5000f);
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
+    }
+
+    [Fact]
+    public void Wrong_wire_keynote_slide_size_disables_editable_reconstruction() {
+        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, wrongWireSlideSize: true);
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_SLIDE_SIZE_UNSUPPORTED");
+    }
+
+    private static MemoryStream CreateKeynotePackageWithRepeatedSlides(int referenceCount,
+        float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -226,15 +258,36 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(Enumerable.Range(0, referenceCount)
             .Select(_ => ReferenceField(2, nodeId))
             .ToArray());
-        byte[] records = Message(
+        var shapeFields = new List<byte[]> { ReferenceField(2, storageId) };
+        if (rotation.HasValue) {
+            byte[] geometry = Message(FloatField(4, rotation.Value));
+            byte[] drawable = Message(BytesField(1, geometry));
+            byte[] shape = Message(BytesField(1, drawable));
+            shapeFields.Insert(0, BytesField(1, shape));
+        }
+        var storageFields = new List<byte[]> { StringField(3, "Title") };
+        var extraRecords = new List<byte[]>();
+        if (fontSize.HasValue) {
+            const ulong characterStyleId = 7;
+            byte[] styleEntry = Message(VarintField(1, 0), ReferenceField(2, characterStyleId));
+            storageFields.Add(BytesField(8, Message(BytesField(1, styleEntry))));
+            extraRecords.Add(ArchiveRecord(characterStyleId, 2021,
+                Message(BytesField(11, Message(FloatField(3, fontSize.Value))))));
+        }
+        byte[] showPayload = wrongWireSlideSize
+            ? Message(BytesField(3, slideTree), VarintField(4, 1))
+            : Message(BytesField(3, slideTree));
+        var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
+            ArchiveRecord(showId, 7000, showPayload),
             ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 7002, Message(ReferenceField(5, shapeId))),
-            ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))),
-            ArchiveRecord(storageId, 2001, Message(StringField(3, "Title"))));
+            ArchiveRecord(shapeId, 2011, Message(shapeFields.ToArray())),
+            ArchiveRecord(storageId, 2001, Message(storageFields.ToArray()))
+        };
+        records.AddRange(extraRecords);
         return CreatePackage(
-            ("Index/Slide.iwa", FrameIwa(records)),
+            ("Index/Slide.iwa", FrameIwa(Message(records.ToArray()))),
             ("preview.png", ValidPreviewPng()));
     }
 
