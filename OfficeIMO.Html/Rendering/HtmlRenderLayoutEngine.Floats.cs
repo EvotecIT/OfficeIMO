@@ -533,7 +533,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             baseline: segment.Run.Style.Baseline,
                             baselineLevel: segment.Run.Style.BaselineLevel,
                             baselineScale: segment.Run.Style.BaselineScale,
-                            baselineOffset: segment.Run.Style.BaselineOffset));
+                            baselineOffset: segment.Run.Style.BaselineOffset,
+                            textPaintWidth: paintSegment.Width));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||
                         !string.Equals(segment.Text, segment.LogicalText, StringComparison.Ordinal) ||

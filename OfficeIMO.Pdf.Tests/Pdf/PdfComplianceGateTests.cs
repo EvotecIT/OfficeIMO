@@ -11,6 +11,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfComplianceGateTests {
     private const string ProofOutputEnv = "OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT";
+    private static readonly DateTimeOffset EmbeddedFileModificationDate = new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero);
 
     [Fact]
     public void PdfA2BFixture_ContainsArchivalPrimitivesAndEmbeddedFonts() {
@@ -68,7 +69,7 @@ public class PdfComplianceGateTests {
         Assert.Contains("pdfaid:conformance", raw, StringComparison.Ordinal);
         Assert.Contains("/EmbeddedFiles", raw, StringComparison.Ordinal);
         Assert.Contains("/AF [", raw, StringComparison.Ordinal);
-        Assert.Contains("/Params << /Size 29 /CheckSum <AEEE18719BF2A42A30C88BB9B14D60FE> >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 29 /CheckSum <AEEE18719BF2A42A30C88BB9B14D60FE> /ModDate <443A32303236303832343038333030302B303027303027> >>", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3 ", raw, StringComparison.Ordinal);
     }
 
@@ -244,6 +245,50 @@ public class PdfComplianceGateTests {
     }
 
     [Theory]
+    [InlineData(PdfComplianceProfile.PdfX1A2003, "PDF/X-1a:2003", "officeimo-pdfx1a2003.pdf")]
+    [InlineData(PdfComplianceProfile.PdfX4, "PDF/X-4", "officeimo-pdfx4.pdf")]
+    public void PdfXFixture_IsInternallyReadyForQualifiedExternalPreflight(
+        PdfComplianceProfile profile,
+        string expectedIdentification,
+        string fileName) {
+        PdfComplianceArtifact artifact = CreatePdfXDocument(profile).CreateComplianceArtifact(profile);
+        WriteProofPdf(fileName, artifact.ToBytes());
+
+        Assert.Equal(expectedIdentification, PdfInspector.Inspect(artifact.ToBytes()).XmpMetadata!.PdfXVersion);
+        PdfComplianceProofReport proof = artifact.AssessProof();
+        string gaps = string.Join("; ", proof.Readiness.Requirements
+            .Where(requirement => requirement.Status != PdfComplianceRequirementStatus.Satisfied)
+            .Select(requirement => requirement.Id + ": " + requirement.Diagnostic));
+        Assert.True(proof.IsInternallyReady, gaps);
+        Assert.True(proof.ReadyForExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfX1A2003, "PDF/X-1a:2003", "officeimo-pdfx1a2003.pdf", "pdfx-pdfx1a2003.txt")]
+    [InlineData(PdfComplianceProfile.PdfX4, "PDF/X-4", "officeimo-pdfx4.pdf", "pdfx-pdfx4.txt")]
+    public void PdfXValidatorGate_AcceptsExactPrintProductionFixture(
+        PdfComplianceProfile profile,
+        string validatorProfile,
+        string fileName,
+        string diagnosticFileName) {
+        byte[] fixture = CreatePdfXDocument(profile).CreateComplianceArtifact(profile).ToBytes();
+        WriteProofPdf(fileName, fixture);
+        PdfExternalValidator validator = PdfExternalValidator.PdfX(validatorProfile);
+        if (!validator.IsAvailable) {
+            WriteProofText(diagnosticFileName, validator.GetNotConfiguredText());
+            PdfExternalValidator.SkipUnlessRequired(validator);
+            return;
+        }
+
+        PdfExternalProcessResult result = validator.Run(fixture, fileName);
+        WriteProofText(diagnosticFileName, result.GetDiagnosticText());
+
+        Assert.Equal(0, result.ExitCode);
+        Assert.NotEmpty(result.GetDiagnosticText());
+    }
+
+    [Theory]
     [InlineData(PdfComplianceProfile.PdfUa2, "PDF/UA identification XMP")]
     public void FormalProfiles_StillFailClosedUntilValidatorBackedGenerationExists(PdfComplianceProfile profile, string expectedRequirement) {
         var exception = Assert.Throws<NotSupportedException>(() =>
@@ -270,6 +315,8 @@ public class PdfComplianceGateTests {
             WriteProofPdf("officeimo-zugferd.pdf", CreateElectronicInvoiceFixture(PdfComplianceProfile.Zugferd));
             WriteProofPdf("officeimo-pdfua1.pdf", CreatePdfUa1Fixture());
             WriteProofPdf("officeimo-html-pdfua1.pdf", CreateHtmlPdfUa1Fixture());
+            WriteProofPdf("officeimo-pdfx1a2003.pdf", CreatePdfXDocument(PdfComplianceProfile.PdfX1A2003).CreateComplianceArtifact(PdfComplianceProfile.PdfX1A2003).ToBytes());
+            WriteProofPdf("officeimo-pdfx4.pdf", CreatePdfXDocument(PdfComplianceProfile.PdfX4).CreateComplianceArtifact(PdfComplianceProfile.PdfX4).ToBytes());
             WriteProfileProofContract();
             WriteProofText("verapdf-pdfa3b.txt", "validator diagnostic");
             WriteProofText("verapdf-facturx.txt", "validator diagnostic");
@@ -277,6 +324,8 @@ public class PdfComplianceGateTests {
             WriteProofText("mustang-facturx.txt", "validator diagnostic");
             WriteProofText("mustang-zugferd.txt", "validator diagnostic");
             WriteProofText("pdfua-pdfua1.txt", "validator diagnostic");
+            WriteProofText("pdfx-pdfx1a2003.txt", "validator diagnostic");
+            WriteProofText("pdfx-pdfx4.txt", "validator diagnostic");
 
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfa3b.pdf")));
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfa2b.pdf")));
@@ -284,6 +333,8 @@ public class PdfComplianceGateTests {
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-zugferd.pdf")));
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfua1.pdf")));
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-profile-proof-contract.json")));
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfx1a2003.pdf")));
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfx4.pdf")));
             Assert.True(File.Exists(Path.Combine(directory, "verapdf-pdfa3b.txt")));
             Assert.True(File.Exists(Path.Combine(directory, "verapdf-facturx.txt")));
             Assert.True(File.Exists(Path.Combine(directory, "verapdf-zugferd.txt")));
@@ -316,7 +367,7 @@ public class PdfComplianceGateTests {
             Assert.Equal(4, root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal("ExactArtifactValidationInjectedByProofExporter", root.GetProperty("externalEvidenceMode").GetString());
             JsonElement profiles = root.GetProperty("profiles");
-            Assert.Equal(5, profiles.GetArrayLength());
+            Assert.Equal(7, profiles.GetArrayLength());
             Assert.Contains(profiles.EnumerateArray(), profile =>
                 string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.PdfA2B), StringComparison.Ordinal) &&
                 profile.GetProperty("isInternallyReady").GetBoolean() &&
@@ -337,6 +388,11 @@ public class PdfComplianceGateTests {
                     string.Equals(validator.GetProperty("status").GetString(), nameof(PdfExternalValidatorProofStatus.Missing), StringComparison.Ordinal) &&
                     validator.GetProperty("blocksConformanceClaim").GetBoolean()) &&
                 profile.GetProperty("canClaimConformance").GetBoolean() == false);
+            Assert.Contains(profiles.EnumerateArray(), profile =>
+                string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.PdfX4), StringComparison.Ordinal) &&
+                profile.GetProperty("isInternallyReady").GetBoolean() &&
+                profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.PdfXValidator), StringComparison.Ordinal)) &&
+                profile.GetProperty("canClaimConformance").GetBoolean() == false);
         } finally {
             Environment.SetEnvironmentVariable(ProofOutputEnv, string.IsNullOrEmpty(previousOutput) ? null : previousOutput);
             TryDeleteDirectory(directory);
@@ -352,7 +408,13 @@ public class PdfComplianceGateTests {
             .Meta(title: "OfficeIMO PDF/A-3b", author: "OfficeIMO")
             .Language("en-US")
             .SrgbOutputIntent()
-            .AttachFile("source-data.xml", Encoding.UTF8.GetBytes("<source><id>123</id></source>"), "application/xml", PdfAssociatedFileRelationship.Data, "Source data")
+            .AttachFile(new PdfEmbeddedFile(
+                "source-data.xml",
+                Encoding.UTF8.GetBytes("<source><id>123</id></source>"),
+                "application/xml",
+                PdfAssociatedFileRelationship.Data,
+                "Source data",
+                modificationDate: EmbeddedFileModificationDate))
             .H1("Archival PDF with Associated Data")
             .Paragraph(p => p.Text("This exact artifact is validated as PDF/A-3b before OfficeIMO claims conformance."));
     }
@@ -397,6 +459,34 @@ public class PdfComplianceGateTests {
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");
     }
 
+    private static PdfDocument CreatePdfXDocument(PdfComplianceProfile profile) {
+        string? fontPath = profile == PdfComplianceProfile.PdfX1A2003
+            ? PdfComplianceTestFonts.FindBundledTrueTypeFont()
+            : PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        string outputCondition = profile == PdfComplianceProfile.PdfX1A2003 ? "FOGRA39" : "FOGRA51";
+        var options = new PdfOptions()
+            .ConfigurePdfX(
+                profile,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                outputCondition,
+                PdfTrappingStatus.False)
+            .SetPdfXProductionMetadata(new PdfXProductionMetadata(
+                new DateTimeOffset(2026, 8, 24, 8, 0, 0, TimeSpan.Zero),
+                new DateTimeOffset(2026, 8, 24, 8, 15, 0, TimeSpan.Zero),
+                new Guid("3a8a4ff7-e129-46ec-b6f4-caf6579a2375"),
+                profile == PdfComplianceProfile.PdfX1A2003
+                    ? new Guid("a4492a42-e424-4659-9d59-f0eb1730892f")
+                    : new Guid("9d8cbf49-32b0-48f9-8fd1-8d7041c738a9")))
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Source Serif")
+            .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");
+        return PdfDocument.Create(options)
+            .Meta(title: "OfficeIMO " + (profile == PdfComplianceProfile.PdfX1A2003 ? "PDF/X-1a:2003" : "PDF/X-4"), author: "OfficeIMO")
+            .H1("Print production proof")
+            .Paragraph(paragraph => paragraph.Text("This exact CMYK artifact is ready for qualified external PDF/X preflight."));
+    }
+
     private static byte[] CreateElectronicInvoiceFixture(PdfComplianceProfile profile) {
         return CreateElectronicInvoiceDocument(profile).ToBytes();
     }
@@ -422,6 +512,7 @@ public class PdfComplianceGateTests {
                 profile,
                 invoiceXml,
                 relationship: PdfAssociatedFileRelationship.Alternative)
+            .SetEmbeddedFileModificationDate("factur-x.xml", EmbeddedFileModificationDate)
             .RequireCompliance(profile)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Source Serif")
             .EmbedStandardFont(PdfStandardFont.HelveticaBold, fontData, "OfficeIMO Source Serif");
@@ -593,6 +684,10 @@ public class PdfComplianceGateTests {
             .CreateComplianceArtifact(PdfComplianceProfile.Zugferd);
         PdfComplianceArtifact pdfUa1Artifact = CreatePdfUa1Document()
             .CreateComplianceArtifact(PdfComplianceProfile.PdfUa1);
+        PdfComplianceArtifact pdfX1AArtifact = CreatePdfXDocument(PdfComplianceProfile.PdfX1A2003)
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfX1A2003);
+        PdfComplianceArtifact pdfX4Artifact = CreatePdfXDocument(PdfComplianceProfile.PdfX4)
+            .CreateComplianceArtifact(PdfComplianceProfile.PdfX4);
         var contract = new ProfileProofContract {
             SchemaVersion = 4,
             GeneratedBy = nameof(PdfComplianceArtifact) + "." + nameof(PdfComplianceArtifact.AssessProof),
@@ -602,7 +697,9 @@ public class PdfComplianceGateTests {
                 CreateProofContractRow(pdfA3BArtifact),
                 CreateProofContractRow(pdfUa1Artifact),
                 CreateProofContractRow(facturXArtifact),
-                CreateProofContractRow(zugferdArtifact)
+                CreateProofContractRow(zugferdArtifact),
+                CreateProofContractRow(pdfX1AArtifact),
+                CreateProofContractRow(pdfX4Artifact)
             }
         };
         string json = JsonSerializer.Serialize(contract, new JsonSerializerOptions {

@@ -117,7 +117,33 @@ result.Save("report.pdf").RequireNoLoss();
 
 ## Fonts and text shaping
 
-The dependency-light path loads policy-approved TrueType-glyf OpenType and WOFF 1 faces and provides deterministic managed Unicode, bidirectional, and bounded core-Arabic behavior. WOFF 2 transformed tables and CFF outlines are not silently substituted: font loading reports `HtmlRenderFontFormatUnsupported` unless the host pre-converts the face to a supported static font.
+The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding; variable instances and shaped results that cannot use the scalar PDF text path are rendered as vector outlines plus logical `ActualText`, preserving extraction and accessibility.
+
+PDF outline expansion is fail-closed. The selected program must implement
+`IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
+and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
+`MaxOutlinedTextPathCommands` budget. The defaults are 16,384 UTF-16 characters per
+run and 1,000,000 path commands per conversion. Raise them only for trusted inputs.
+
+No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
+
+```csharp
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
+using OfficeIMO.Html.Pdf;
+
+var options = new HtmlPdfSaveOptions();
+options.Fonts.FontVariationResolver = request =>
+    request.FamilyName == "Report Variable"
+        ? new Dictionary<string, float> {
+            ["wght"] = 720,
+            ["wdth"] = 110
+        }
+        : null;
+
+options.MaxOutlinedTextCharactersPerRun = 16_384;
+options.MaxOutlinedTextPathCommands = 1_000_000;
+```
 
 For complete OpenType GSUB/GPOS shaping, add the optional `OfficeIMO.Drawing.HarfBuzz` adapter and assign its provider to the same options object used by PDF and image output:
 
@@ -131,7 +157,7 @@ var options = new HtmlPdfSaveOptions {
 options.Fonts.Add("Report Arabic", File.ReadAllBytes("ReportArabic.ttf"));
 ```
 
-If a configured provider declines a joining-script run, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback.
+If no configured provider accepts a run that requires provider-owned complex shaping, OfficeIMO retains logical searchable text and reports `HtmlRenderComplexTextShapingUnsupported`; strict mode rejects that fallback, including outlined-font output.
 
 Install `OfficeIMO.Mhtml.Pdf` when the source is an MHT/MHTML archive. That bridge adds MIME parsing and embedded-resource resolution without putting `OfficeIMO.Email` into ordinary HTML/PDF applications.
 

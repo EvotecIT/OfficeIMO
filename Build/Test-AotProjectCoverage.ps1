@@ -53,6 +53,11 @@ $managedOnly = @(
         evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Html.Pdf.Workbench'
+        classification = 'managed-cross-platform'
+        evidence = 'The local ASP.NET Core workbench is validated as a managed browser-hosted tool and is not distributed or advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
         classification = 'managed-windows'
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'
@@ -64,6 +69,9 @@ if ($securityRootedLibraries.Count -ne 1 -or $securityRootedLibraries[0] -ne 'Of
 }
 if ($c2paRootedLibraries.Count -ne 1 -or $c2paRootedLibraries[0] -ne 'OfficeIMO.Provenance.C2pa') {
     throw "The optional C2PA NativeAOT host must root exactly OfficeIMO.Provenance.C2pa; found $($c2paRootedLibraries -join ', ')."
+}
+if ($fullyRootedLibraries.Count -ne 98) {
+    throw "Expected 98 fully rooted production libraries across the ordinary and optional-adapter hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."

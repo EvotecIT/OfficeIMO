@@ -239,7 +239,9 @@ public class DrawingArchitectureTests {
 
         foreach (string projectFolder in projectFolders) {
             foreach (string filePath in Directory.GetFiles(Path.Combine(RepositoryRoot, projectFolder), "*.cs", SearchOption.AllDirectories)) {
-                if (!filePath.Replace('\\', '/').Contains("/obj/", StringComparison.OrdinalIgnoreCase)) {
+                string normalized = filePath.Replace('\\', '/');
+                if (!normalized.Contains("/obj/", StringComparison.OrdinalIgnoreCase) &&
+                    !normalized.EndsWith("/Properties/AssemblyInfo.cs", StringComparison.OrdinalIgnoreCase)) {
                     yield return filePath;
                 }
             }
@@ -252,6 +254,7 @@ public class DrawingArchitectureTests {
             normalized.Contains("/OfficeIMO.VerifyTests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Tests/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains(".Benchmarks", StringComparison.OrdinalIgnoreCase) ||
+            normalized.Contains("/Build/PackageSmoke/", StringComparison.OrdinalIgnoreCase) ||
             normalized.Contains("/OfficeIMO.Examples/", StringComparison.OrdinalIgnoreCase);
     }
 

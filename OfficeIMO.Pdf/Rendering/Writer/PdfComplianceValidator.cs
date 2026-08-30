@@ -35,6 +35,15 @@ internal static class PdfComplianceValidator {
         "Mustang validation fixtures in the build lane"
     };
 
+    private static readonly string[] PdfXRequirements = {
+        "profile-specific pdfxid XMP identification",
+        "CMYK print-condition ICC output intent with /GTS_PDFX subtype",
+        "embedded-font coverage for every generated glyph",
+        "black-preserving source-color conversion and exact color-space proof",
+        "profile-specific transparency, annotation, form, layer, page-box, and self-containment policy",
+        "qualified external PDF/X preflight validation bound to the exact artifact"
+    };
+
     internal static void ValidateGenerationOptions(PdfOptions options) {
         Guard.NotNull(options, nameof(options));
         Guard.ComplianceProfile(options.ComplianceProfile, nameof(options.ComplianceProfile));
@@ -44,7 +53,8 @@ internal static class PdfComplianceValidator {
             options.ComplianceProfile == PdfComplianceProfile.PdfA3B ||
             options.ComplianceProfile == PdfComplianceProfile.PdfUa1 ||
             options.ComplianceProfile == PdfComplianceProfile.FacturX ||
-            options.ComplianceProfile == PdfComplianceProfile.Zugferd) {
+            options.ComplianceProfile == PdfComplianceProfile.Zugferd ||
+            IsPdfX(options.ComplianceProfile)) {
             return;
         }
 
@@ -58,19 +68,16 @@ internal static class PdfComplianceValidator {
             options.ComplianceProfile != PdfComplianceProfile.PdfA3B &&
             options.ComplianceProfile != PdfComplianceProfile.PdfUa1 &&
             options.ComplianceProfile != PdfComplianceProfile.FacturX &&
-            options.ComplianceProfile != PdfComplianceProfile.Zugferd) {
+            options.ComplianceProfile != PdfComplianceProfile.Zugferd &&
+            !IsPdfX(options.ComplianceProfile)) {
             return;
         }
 
         PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessDocument(
             options.ComplianceProfile,
             options,
-            evidence.StandardFonts,
-            evidence.FontUsages,
-            documentTitle,
-            evidence.Images,
-            evidence.Drawings,
-            evidence.Forms);
+            evidence,
+            documentTitle);
         PdfComplianceRequirement[] gaps = readiness.Requirements
             .Where(requirement =>
                 !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
@@ -82,6 +89,33 @@ internal static class PdfComplianceValidator {
 
         throw new InvalidOperationException(
             GetDisplayName(options.ComplianceProfile) + " generation requirements are not satisfied: " +
+            string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
+    }
+
+    internal static bool RequiresExactArtifactValidation(PdfOptions options) => IsPdfX(options.ComplianceProfile);
+
+    internal static void ValidateGeneratedArtifact(
+        PdfOptions options,
+        byte[] artifact,
+        System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(artifact, nameof(artifact));
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!IsPdfX(options.ComplianceProfile)) return;
+
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessReadback(
+            options.ComplianceProfile,
+            artifact,
+            cancellationToken);
+        PdfComplianceRequirement[] gaps = readiness.Requirements
+            .Where(requirement =>
+                !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
+                requirement.Status != PdfComplianceRequirementStatus.Satisfied)
+            .ToArray();
+        if (gaps.Length == 0) return;
+
+        throw new InvalidOperationException(
+            GetDisplayName(options.ComplianceProfile) + " exact-artifact requirements are not satisfied: " +
             string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
     }
 
@@ -117,6 +151,12 @@ internal static class PdfComplianceValidator {
                 yield return requirement;
             }
         }
+
+        if (profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4) {
+            foreach (string requirement in PdfXRequirements) {
+                yield return requirement;
+            }
+        }
     }
 
     private static IEnumerable<string> GetBaseRequirements(PdfComplianceProfile profile) =>
@@ -147,6 +187,10 @@ internal static class PdfComplianceValidator {
         profile == PdfComplianceProfile.FacturX ||
         profile == PdfComplianceProfile.Zugferd;
 
+    private static bool IsPdfX(PdfComplianceProfile profile) =>
+        profile == PdfComplianceProfile.PdfX1A2003 ||
+        profile == PdfComplianceProfile.PdfX4;
+
     private static string GetProfileFamily(PdfComplianceProfile profile) {
         if (profile == PdfComplianceProfile.PdfUa1 || profile == PdfComplianceProfile.PdfUa2) {
             return "PDF/UA";
@@ -154,6 +198,10 @@ internal static class PdfComplianceValidator {
 
         if (RequiresElectronicInvoice(profile)) {
             return "EN 16931 e-invoice";
+        }
+
+        if (profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4) {
+            return "PDF/X";
         }
 
         return "PDF/A";
@@ -174,6 +222,8 @@ internal static class PdfComplianceValidator {
             PdfComplianceProfile.PdfUa2 => "PDF/UA-2",
             PdfComplianceProfile.FacturX => "Factur-X",
             PdfComplianceProfile.Zugferd => "ZUGFeRD",
+            PdfComplianceProfile.PdfX1A2003 => "PDF/X-1a:2003",
+            PdfComplianceProfile.PdfX4 => "PDF/X-4",
             _ => "None"
         };
 }

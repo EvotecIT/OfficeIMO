@@ -1,6 +1,6 @@
 # OfficeIMO PDF library comparisons
 
-This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.sln`: QuestPDF, PeachPDF, PDFsharp/MigraDoc, PdfPig, and iText are benchmark tools, not OfficeIMO runtime dependencies.
+This opt-in project measures complete, validated PDF workflows. It is deliberately outside `OfficeIMO.sln`: QuestPDF, PeachPDF, PDFsharp/MigraDoc, PdfPig, iText, pdfHTML, HtmlTinkerX, and Chromium are benchmark tools, not OfficeIMO runtime dependencies.
 
 ## Workload matrix
 
@@ -15,7 +15,7 @@ Each page contains a heading, narrative text, and a four-column account/status t
 The benchmark families intentionally answer different questions:
 
 - `PdfGenerationBenchmarks`: OfficeIMO, QuestPDF, MigraDoc/PDFsharp, and iText generate the same structured report from the same logical model. The measured operation includes document construction, layout, font embedding, compression, and in-memory serialization.
-- `PdfHtmlBenchmarks`: OfficeIMO.Html.Pdf and PeachPDF parse and render the exact same HTML string. The measured operation includes HTML/CSS parsing, paged layout, and in-memory PDF serialization.
+- `PdfHtmlBenchmarks`: OfficeIMO.Html.Pdf, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX parse and render the exact same HTML string. Every engine emits tagged PDF bytes and must preserve the exact page count, narrative, and table content before its measurements are accepted. The managed engines include HTML/CSS parsing, paged layout, and in-memory serialization. Chromium reuses one HtmlTinkerX-owned browser session per benchmark case; each measured operation still replaces and reparses the complete page before printing, so warmed browser throughput is not mislabeled as process startup.
 - `PdfHtmlPayloadBenchmarks`: OfficeIMO.Html.Pdf and PeachPDF render exact 21 KiB plain-text, table-heavy, and multilingual HTML payloads as tagged PDFs. The multilingual lane makes the same bundled Carlito font the primary CSS family for both engines and requires every measured Latin, Greek, and Cyrillic sample plus the embedded font in the resulting artifact. It therefore runs portably without host-font dependencies or role mismatches. The quick runner uses BenchmarkDotNet's process-isolated `Dry` job for cold-start evidence; full runs measure warmed throughput. Cleanup reopens each result, checks page count, first/last content, the unique terminal marker, all multilingual samples, and reports HTML bytes, PDF bytes, pages, and extracted-text length.
 - `PdfFormatConversionBenchmarks` and `PdfExtendedFormatConversionBenchmarks`: all fourteen advertised OfficeIMO source routes parse deterministic source bytes and produce a PDF in one measured operation. DOCX, XLSX, PPTX, HTML, Markdown, RTF, AsciiDoc, LaTeX, MHTML, OneNote, ODT, ODS, ODP, and Visio outputs are reopened independently; every lane requires all four semantic fields for each of 120 records and reports source bytes, PDF bytes, pages, and extracted-text length. This is an OfficeIMO route-health benchmark, not a third-party comparison: adapters with materially different format contracts are not forced into artificial parity. The shared runner can execute this local health lane, but never writes it to the library-comparison evidence catalog, including when `all` or `-Publish` selects it.
 - `PdfReadBenchmarks`: OfficeIMO.Pdf, PdfPig, and iText open identical bytes, enumerate every page, and extract the complete text payload. The corpus is repeated for OfficeIMO-, QuestPDF-, PeachPDF-, MigraDoc-, and iText-produced PDFs to avoid a single-producer result.
@@ -46,13 +46,51 @@ After a read pass, the corpus selects the last, middle, and first pages, splits 
 
 ## Measurements
 
-BenchmarkDotNet reports mean/median timing, statistical error, rank, GC collections, and managed allocated bytes per operation. `Allocated` is managed allocation volume, not peak memory or total resident memory. This distinction matters for QuestPDF because its Skia work uses native memory.
+BenchmarkDotNet reports mean/median timing, statistical error, rank, GC collections, and managed allocated bytes per operation. `Allocated` is managed allocation volume, not peak memory or total resident memory. This distinction matters for QuestPDF because its Skia work uses native memory and for Chromium because the browser process is outside the benchmark host's managed heap.
 
-The existing `OfficeIMO.Pdf.Benchmarks` budget runner remains the OfficeIMO-only source for sampled peak managed heap and retained writer-buffer evidence. A future process-isolated lane is required before comparing total peak resident memory across managed and native engines; do not relabel BenchmarkDotNet managed allocations as total memory.
+The artifact evidence runner complements BenchmarkDotNet with a fresh worker process per engine and iteration. It samples the complete worker process tree, including Chromium and its descendants, from process start through renderer shutdown. Those sampled peak working-set values have an equivalent process boundary and are marked comparable; they remain sampled resident-memory observations rather than exact allocation accounting. The existing `OfficeIMO.Pdf.Benchmarks` budget runner remains the OfficeIMO-only source for sampled peak managed heap and retained writer-buffer evidence.
 
 Deep deterministic-content validation remains outside measured operations. The manipulation benchmarks deliberately include the equivalent producer-native post-save reopen described above. Output byte length is observed but is not treated as a correctness substitute: compression and font subsetting legitimately produce different file sizes.
 
 ## Run
+
+Generate a reviewable HTML-to-PDF evidence bundle before interpreting benchmark timings. This command renders the same deterministic HTML two or more times with OfficeIMO, PeachPDF, iText pdfHTML, and Chromium through HtmlTinkerX. It writes the source HTML, every PDF, first-page PNG previews, and `html-pdf-evidence.json`. The report records exact-byte, semantic, and visual repeatability; page and content checks; tagged-PDF structure; output size; cancellation capability; managed allocation volume; and sampled peak process-tree working set.
+
+Every conversion iteration runs in a fresh worker. The coordinator validates and renders previews only after the worker exits, so its own PDF inspection and rasterization memory is excluded. The report records the sampler identity, sample count, observed process-count range, and peak working set for each worker tree. When Poppler's `pdftoppm` is on `PATH`, the runner also creates independent external previews. Use `--require-external-rasterizer` for a visual gate that must fail when Poppler is unavailable.
+
+```powershell
+$repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
+$env:HTMLTINKERX_PROJECT_PATH = Join-Path $repoRoot 'HtmlTinkerX/Sources/HtmlTinkerX/HtmlTinkerX.csproj'
+$output = Join-Path 'Ignore/Benchmarks/HtmlPdfEvidence' (Get-Date -Format 'yyyyMMdd-HHmmss')
+try {
+    dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+        -c Release `
+        -f net10.0 `
+        -- html-evidence `
+        --output $output `
+        --scale Easy `
+        --iterations 3 `
+        --require-external-rasterizer `
+        --require-clean-source
+} finally {
+    Remove-Item Env:HTMLTINKERX_PROJECT_PATH -ErrorAction SilentlyContinue
+}
+```
+
+The evidence runner validates artifacts but is not a statistical performance runner. Continue to use BenchmarkDotNet through the shared script for performance results.
+
+After a reviewed Windows or Linux High-scale run, validate every referenced PDF and preview against the report and write the compact committed summary. Raw PDFs and PNGs remain temporary; the summary retains their paths, sizes, SHA-256 hashes, aggregate manifest hash, exact source commits, contracts, and measurements:
+
+```powershell
+pwsh Build/Export-HtmlPdfArtifactEvidence.ps1 `
+    -EvidencePath $output `
+    -Platform windows `
+    -OutputPath Docs/benchmarks/html-pdf-artifact-evidence/html-pdf-artifact-evidence-net10.0-windows-high.json
+
+pwsh Build/Test-HtmlPdfArtifactEvidence.ps1
+```
+
+The release gate requires matching Windows and Linux summaries from the same clean OfficeIMO and HtmlTinkerX source commits. Any production renderer or evidence-runner change makes them stale. A package-pin-only HtmlTinkerX change is instead proven by the packed browser consumer gate because these runs compile the recorded HtmlTinkerX source checkout directly.
 
 Run one quick correctness/performance smoke through the shared PowerForge evidence path:
 
@@ -65,6 +103,17 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode quick 
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
+```
+
+To validate a specific HtmlTinkerX source checkout, pass either its repository root or project path. The runner records the exact clean HtmlTinkerX commit and carries the project reference into BenchmarkDotNet child builds. Without this option, the benchmark uses the pinned package version:
+
+```powershell
+$repoRoot = if ($env:EVOTEC_GITHUB_ROOT) { $env:EVOTEC_GITHUB_ROOT } else { 'C:\Support\GitHub' }
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
+    -Workload pdfhtml `
+    -RunMode quick `
+    -Framework net10.0 `
+    -HtmlTinkerXRoot (Join-Path $repoRoot 'HtmlTinkerX')
 ```
 
 Use `-RunMode full` for publication-quality BenchmarkDotNet statistics. `-Publish` is valid only with a full run and updates the shared benchmark evidence catalog. Raw BenchmarkDotNet artifacts stay under the ignored output root.
@@ -101,6 +150,6 @@ pwsh Build/Run-PdfWordComCorpus.ps1 -Framework net10.0
 
 ## Benchmark-only libraries
 
-Versions are pinned in the benchmark project so evidence is reproducible. PDFsharp/MigraDoc is MIT, PeachPDF is BSD-3-Clause, and PdfPig is Apache-2.0. QuestPDF uses its Community license for this open-source benchmark project. iText is AGPL/commercial and remains isolated here for benchmark use; it is not linked by or distributed with an OfficeIMO runtime package.
+Versions are pinned in the benchmark project so evidence is reproducible. PDFsharp/MigraDoc and HtmlTinkerX are MIT, PeachPDF is BSD-3-Clause, and PdfPig is Apache-2.0. QuestPDF uses its Community license for this open-source benchmark project. iText Core and pdfHTML are AGPL/commercial and remain isolated here for benchmark use; they are not linked by or distributed with an OfficeIMO runtime package.
 
 The benchmark uses the maintained cross-platform PDFsharp 6.x package. PdfSharpCore 1.3.67 is not included: restoring it currently reports NuGet vulnerability advisories through its ImageSharp 1.0.4 dependency, while PDFsharp 6.x already covers the equivalent cross-platform split, merge, selection, and MigraDoc generation workflows.

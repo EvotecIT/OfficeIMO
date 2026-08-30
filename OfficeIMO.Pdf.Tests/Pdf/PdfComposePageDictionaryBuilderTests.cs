@@ -356,6 +356,25 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void PageDictionaryBuilder_EmitsResolvedPrintProductionBoxes() {
+            string page = PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
+                2,
+                612,
+                792,
+                10,
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<int>(),
+                printProductionPageBoxes: new PdfPrintProductionPageBoxes(
+                    PageMargins.Uniform(9D),
+                    PageMargins.Uniform(3D)));
+
+            Assert.Contains("/TrimBox [9 9 603 783] /BleedBox [3 3 609 789]", page, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void StructTreeRootDictionaryBuilder_EmitsParentTreeNextKey() {
             var parentTreeEntries = new[] {
                 PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(0, new[] { 6 }),
@@ -819,6 +838,32 @@ namespace OfficeIMO.Tests.Pdf {
                     0.5D,
                     0.5D,
                     new[] { new OfficeGradientStop(0D, OfficeColor.Black), new OfficeGradientStop(1D, OfficeColor.White) }));
+        }
+
+        [Fact]
+        public void VisualResourceDictionaryBuilder_SamplesNonlinearPrintGradientTransform() {
+            var options = new PdfOptions().ConfigurePdfXGroundwork(
+                PdfComplianceProfile.PdfX4,
+                IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+                "FOGRA51",
+                PdfTrappingStatus.False);
+            PdfPrintColorTransform transform = Assert.IsType<PdfPrintColorTransform>(PdfPrintColorTransform.Create(options));
+
+            string shading = PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                0D,
+                0D,
+                100D,
+                0D,
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                },
+                transform);
+
+            Assert.Contains("/ColorSpace /DeviceCMYK", shading, StringComparison.Ordinal);
+            Assert.Contains("/FunctionType 3", shading, StringComparison.Ordinal);
+            Assert.Contains("/Bounds [", shading, StringComparison.Ordinal);
+            Assert.True(CountOccurrences(shading, "/FunctionType 2") > 1);
         }
 
         private static int CountOccurrences(string text, string value) {

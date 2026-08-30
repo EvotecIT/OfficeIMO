@@ -1,0 +1,14 @@
+<fieldset class="engine-selector">
+    <legend>Rendering engine</legend>
+    @foreach (HtmlPdfWorkbenchEngine value in Enum.GetValues<HtmlPdfWorkbenchEngine>()) {
+        <label class="engine-option @(Engine == value ? "selected" : null)">
+            <input type="radio" name="engine" value="@value" checked="@(Engine == value)" @onchange="() => EngineChanged.InvokeAsync(value)" />
+            <span><strong>@value</strong><small>@(value == HtmlPdfWorkbenchEngine.Managed ? "Dependency-free · deterministic layout" : "Web fidelity · secured browser lifecycle")</small></span>
+        </label>
+    }
+</fieldset>
+
+@code {
+    [Parameter, EditorRequired] public HtmlPdfWorkbenchEngine Engine { get; set; }
+    [Parameter, EditorRequired] public EventCallback<HtmlPdfWorkbenchEngine> EngineChanged { get; set; }
+}

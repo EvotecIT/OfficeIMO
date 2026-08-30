@@ -139,6 +139,10 @@ internal static partial class PdfComplianceAnalyzer {
             validators.Add(PdfExternalValidatorKind.Mustang);
         }
 
+        if (IsPdfX(profile)) {
+            validators.Add(PdfExternalValidatorKind.PdfXValidator);
+        }
+
         return validators.AsReadOnly();
     }
 }

@@ -52,4 +52,20 @@ if ($zipTraversal.Count -ne 1 -or
     throw 'The non-equivalent ZIP safety-overhead diagnostic can reach library-comparison publication.'
 }
 
-Write-Host 'Library comparison runner policy verified for standalone diagnostics and mixed comparison selection.'
+$pdfHtml = @(
+    & $runner -Workload pdfhtml -RunMode quick -PlanOnly
+)
+if ($pdfHtml.Count -ne 1 -or
+    $pdfHtml[0].ComparisonId -ne 'pdf-html-generation-net10.0' -or
+    $pdfHtml[0].ExpectedCaseCount -ne 12) {
+    throw 'The HTML-to-PDF comparison plan does not require all four engines at all three scales.'
+}
+
+$unrelated = @(
+    & $runner -Workload csv -RunMode quick -HtmlTinkerXRoot 'missing-htmltinkerx-that-must-not-be-resolved' -PlanOnly
+)
+if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
+    throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
+}
+
+Write-Host 'Library comparison runner policy verified for standalone diagnostics, HTML-to-PDF route health, and mixed comparison selection.'

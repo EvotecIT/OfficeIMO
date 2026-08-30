@@ -146,10 +146,23 @@ public sealed partial class OfficeIccColorProfile {
                 if (index == 0) return false;
                 continue;
             }
-            if (!TryReadMbaTransform(bytes, range, expectedOutputChannels, pcsIsLab, out MbaTransform transform)) {
+            if (TryReadLutPcsToDeviceTransform(
+                    bytes,
+                    range,
+                    expectedOutputChannels,
+                    pcsIsLab,
+                    out LutPcsToDeviceTransform legacyTransform)) {
+                transforms[index] = legacyTransform;
+            } else if (TryReadMbaTransform(
+                    bytes,
+                    range,
+                    expectedOutputChannels,
+                    pcsIsLab,
+                    out MbaTransform transform)) {
+                transforms[index] = transform;
+            } else {
                 return false;
             }
-            transforms[index] = transform;
         }
         return true;
     }

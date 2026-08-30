@@ -98,6 +98,53 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Determines whether text contains a Unicode variation selector.</summary>
+    public static bool ContainsVariationSelector(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar >= 0xFE00 && scalar <= 0xFE0F ||
+                scalar >= 0xE0100 && scalar <= 0xE01EF) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Determines whether text contains a combining mark or Unicode joining control.</summary>
+    public static bool ContainsCombiningMarkOrJoiner(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x200C || scalar == 0x200D) return true;
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (category == UnicodeCategory.NonSpacingMark ||
+                category == UnicodeCategory.SpacingCombiningMark ||
+                category == UnicodeCategory.EnclosingMark) return true;
+        }
+        return false;
+    }
+
+    internal static bool ContainsZeroWidthJoinerSequence(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x200D && index < value.Length) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Determines whether a scalar is a shaping or directional control that does not require a
+    /// standalone glyph during font fallback coverage checks.
+    /// </summary>
+    public static bool IsIgnorableFontCoverageScalar(int scalar) =>
+        scalar == 0x061C || scalar == 0x200C || scalar == 0x200D || scalar == 0x2060
+        || scalar >= 0x200E && scalar <= 0x200F
+        || scalar >= 0x202A && scalar <= 0x202E
+        || scalar >= 0x2066 && scalar <= 0x2069
+        || scalar >= 0xFE00 && scalar <= 0xFE0F
+        || scalar >= 0xE0100 && scalar <= 0xE01EF;
+
     /// <summary>Resolves base direction from the first strong Unicode character.</summary>
     public static OfficeTextDirection ResolveBaseDirection(string? value) {
         if (string.IsNullOrEmpty(value)) {

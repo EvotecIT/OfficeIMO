@@ -20,6 +20,7 @@ on:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
@@ -44,6 +45,7 @@ on:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalEngineProofTests.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Build/Invoke-CallasPdfXValidator.ps1'
       - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
@@ -52,7 +54,7 @@ on:
   workflow_dispatch:
     inputs:
       require_validators:
-        description: 'Fail if veraPDF, PDF/UA validator, or Mustang are unavailable'
+        description: 'Fail if veraPDF, PDF/UA, Mustang, or PDF/X validation is unavailable'
         required: false
         default: false
         type: boolean
@@ -83,6 +85,16 @@ on:
         type: string
       mustang_args:
         description: 'Optional Mustang arguments; use {pdf} for the fixture path'
+        required: false
+        default: ''
+        type: string
+      pdfx_validator_path:
+        description: 'Optional qualified PDF/X validator executable or PowerShell adapter path'
+        required: false
+        default: ''
+        type: string
+      pdfx_validator_args:
+        description: 'Optional PDF/X validator arguments; use {profile} and {pdf} placeholders'
         required: false
         default: ''
         type: string
@@ -183,6 +195,8 @@ jobs:
           PDFUA_VALIDATOR_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.pdfua_validator_args || '' }}
           MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
           MUSTANG_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_args || '' }}
+          PDFX_VALIDATOR_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.pdfx_validator_path || '' }}
+          PDFX_VALIDATOR_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.pdfx_validator_args || '' }}
         run: |
           $parameters = @{
             OutputDirectory = '${{ env.PROOF_PATH }}'
@@ -231,6 +245,14 @@ jobs:
 
           if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_ARGS)) {
             $parameters.MustangArgs = $env:MUSTANG_ARGS
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:PDFX_VALIDATOR_PATH)) {
+            $parameters.PdfXValidatorPath = $env:PDFX_VALIDATOR_PATH
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:PDFX_VALIDATOR_ARGS)) {
+            $parameters.PdfXValidatorArgs = $env:PDFX_VALIDATOR_ARGS
           }
 
           ./Build/Export-PdfComplianceProof.ps1 @parameters
@@ -312,6 +334,7 @@ jobs:
           $lines.Add("- veraPDF configured: ``$($proof.validatorConfiguration.veraPdfExecutableConfigured)``")
           $lines.Add("- PDF/UA validator configured: ``$($proof.validatorConfiguration.pdfUaValidatorExecutableConfigured)``")
           $lines.Add("- Mustang configured: ``$($proof.validatorConfiguration.mustangExecutableConfigured)``")
+          $lines.Add("- PDF/X validator configured: ``$($proof.validatorConfiguration.pdfXValidatorExecutableConfigured)``")
           $lines.Add('')
           $lines.Add('### PDF Fixtures')
           $lines.Add('')

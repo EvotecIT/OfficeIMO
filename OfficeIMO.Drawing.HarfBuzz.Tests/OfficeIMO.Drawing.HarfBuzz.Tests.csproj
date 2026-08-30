@@ -36,6 +36,21 @@
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Fonts\SourceSerif4-Regular.otf"
           Link="Fonts\SourceSerif4-Regular.otf"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansDevanagari-Regular.ttf"
+          Link="Fonts\NotoSansDevanagari-Regular.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansSC-BaselineSubset.ttf"
+          Link="Fonts\NotoSansSC-BaselineSubset.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoEmoji-VariableFont_wght.ttf"
+          Link="Fonts\NotoEmoji-VariableFont_wght.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\RobotoFlex.ttf"
+          Link="Fonts\RobotoFlex.ttf"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\AdobeVFPrototype-Subset.otf"
+          Link="Fonts\AdobeVFPrototype-Subset.otf"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
