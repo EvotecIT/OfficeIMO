@@ -155,6 +155,15 @@ internal static class IWorkPagesReader {
 
         var reachable = new HashSet<ulong>(index.ReachableFrom(document)
             .Select(record => record.Identifier));
+        IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
+            documentMessage, out bool drawableGraphComplete);
+        if (!drawableGraphComplete) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                "The Pages drawable graph is malformed or contains unresolved references; editable reconstruction is incomplete.",
+                document.EntryPath, document.Identifier));
+        }
         var skippedStorages = new HashSet<ulong>();
         if (body != null) skippedStorages.Add(body.Identifier);
         foreach (IWorkArchiveRecord record in index.PrimaryRecords
@@ -166,10 +175,8 @@ internal static class IWorkPagesReader {
             }
         }
         var textCache = new Dictionary<ulong, IWorkTextContent>();
-        foreach (IWorkArchiveRecord shape in index.PrimaryRecords
-                     .Where(record => record.MessageType == ShapeInfoArchive)
-                     .Where(record => reachable.Contains(record.Identifier))
-                     .OrderBy(record => record.Identifier)) {
+        foreach (IWorkArchiveRecord shape in documentDrawables
+                     .Where(record => record.MessageType == ShapeInfoArchive)) {
             IWorkWireMessage shapeMessage = index.Message(shape);
             IWorkArchiveRecord? field4Storage = index.Dereference(shapeMessage, 4);
             IWorkArchiveRecord? field2Storage = index.Dereference(shapeMessage, 2);
@@ -248,17 +255,6 @@ internal static class IWorkPagesReader {
                 }
             }
             textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
-        }
-        IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
-            documentMessage, out bool drawableGraphComplete);
-        if (!drawableGraphComplete) {
-            supportsEditableReconstruction = false;
-            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
-                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
-                    "The Pages drawable graph is malformed or contains unresolved references; editable reconstruction is incomplete.",
-                    document.EntryPath, document.Identifier));
-            }
         }
         IWorkArchiveRecord? unsupportedDrawable = documentDrawables.FirstOrDefault(record =>
             record.MessageType is not TextStorageArchive and not ShapeInfoArchive
@@ -349,7 +345,8 @@ internal static class IWorkPagesReader {
         }
         var reachable = new HashSet<ulong>(index.ReachableFrom(document).Select(record => record.Identifier));
         foreach (IWorkArchiveRecord record in index.PrimaryRecords.Where(record =>
-                     reachable.Contains(record.Identifier) && record.MessageType is 3005 or 6000 or 6007)) Add(record);
+                     reachable.Contains(record.Identifier)
+                     && record.MessageType is ShapeInfoArchive or 3005 or 6000 or 6007)) Add(record);
         return Array.AsReadOnly(ordered.ToArray());
     }
 
