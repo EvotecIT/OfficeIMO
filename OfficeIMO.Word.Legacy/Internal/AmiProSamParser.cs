@@ -168,7 +168,8 @@ internal sealed class AmiProSamParser {
             !int.TryParse(lines[16], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedSpacing) ||
             !int.TryParse(lines[17], NumberStyles.Integer, CultureInfo.InvariantCulture, out int before) ||
             !int.TryParse(lines[18], NumberStyles.Integer, CultureInfo.InvariantCulture, out int after) ||
-            reservedSpacing != 0 || ((spacing & 8) != 0 && customSpacing <= 0)) return null;
+            reservedSpacing != 0 || before < 0 || after < 0 ||
+            ((spacing & 8) != 0 && customSpacing <= 0)) return null;
         RecordUnsupportedStyleFlags(spacing & ~SupportedStyleSpacingMask, ref _unsupportedStyleSpacingFlags);
         if ((spacing & 1) != 0) style.LineSpacingPoints = 12;
         else if ((spacing & 2) != 0) style.LineSpacingPoints = 18;

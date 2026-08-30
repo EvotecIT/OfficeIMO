@@ -8,11 +8,16 @@ namespace OfficeIMO.Word {
         private const int MaximumInspectionNoteDepth = 32;
 
         private sealed class InspectionExpansionContext {
+            internal InspectionExpansionContext(IReadOnlyDictionary<string, string?> paragraphStyleNames) {
+                ParagraphStyleNames = paragraphStyleNames;
+            }
+
             internal HashSet<string> ActiveNoteKeys { get; } = new(StringComparer.Ordinal);
+            internal IReadOnlyDictionary<string, string?> ParagraphStyleNames { get; }
         }
 
         public WordDocumentSnapshot CreateInspectionSnapshot() {
-            var expansionContext = new InspectionExpansionContext();
+            var expansionContext = new InspectionExpansionContext(BuildParagraphStyleNameLookup());
             var snapshot = new WordDocumentSnapshot {
                 FilePath = string.IsNullOrWhiteSpace(FilePath) ? null : FilePath,
                 Title = BuiltinDocumentProperties?.Title,
@@ -152,7 +157,7 @@ namespace OfficeIMO.Word {
             var snapshot = new WordParagraphSnapshot {
                 Text = string.Concat(paragraph.GetRuns().Select(run => run.Text)),
                 StyleId = paragraph.StyleId,
-                StyleName = ResolveParagraphStyleName(paragraph),
+                StyleName = ResolveParagraphStyleName(paragraph, expansionContext.ParagraphStyleNames),
                 IsListItem = paragraph.IsListItem,
                 IsOrderedList = ResolveOrderedList(paragraph),
                 ListLevel = paragraph.ListItemLevel,
@@ -254,15 +259,31 @@ namespace OfficeIMO.Word {
             return snapshot;
         }
 
-        private string? ResolveParagraphStyleName(WordParagraph paragraph) {
+        private IReadOnlyDictionary<string, string?> BuildParagraphStyleNameLookup() {
+            var lookup = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+            var styles = _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles;
+            if (styles == null) return lookup;
+
+            foreach (Style candidate in styles.Elements<Style>()) {
+                string? styleId = candidate.StyleId?.Value;
+                if (!string.IsNullOrWhiteSpace(styleId) && !lookup.ContainsKey(styleId!)) {
+                    lookup.Add(styleId!, candidate.StyleName?.Val?.Value);
+                }
+            }
+
+            return lookup;
+        }
+
+        private static string? ResolveParagraphStyleName(
+            WordParagraph paragraph,
+            IReadOnlyDictionary<string, string?> paragraphStyleNames) {
             WordParagraphStyles? style = paragraph.Style;
             if (style != WordParagraphStyles.Custom) return style?.ToString();
             string? styleId = paragraph.StyleId;
             if (string.IsNullOrWhiteSpace(styleId)) return style?.ToString();
-            return _wordprocessingDocument.MainDocumentPart?.StyleDefinitionsPart?.Styles?
-                .Elements<Style>()
-                .FirstOrDefault(candidate => string.Equals(candidate.StyleId?.Value, styleId, StringComparison.OrdinalIgnoreCase))?
-                .StyleName?.Val?.Value ?? style?.ToString();
+            return paragraphStyleNames.TryGetValue(styleId!, out string? styleName)
+                ? styleName ?? style?.ToString()
+                : style?.ToString();
         }
 
         private WordTableSnapshot BuildTableSnapshot(WordTable table, InspectionExpansionContext expansionContext) {

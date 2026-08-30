@@ -246,6 +246,8 @@ public sealed class LegacyWordImportTests {
     [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\nbad\n0\n0")]
     [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\nbad\n0")]
     [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\n0\nbad")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\n-1\n0")]
+    [InlineData("[spc]\n1\n240\n0\n0\n0", "[spc]\n1\n240\n0\n0\n-1")]
     [InlineData("[brk]\n16\n[edoc]", "[brk]\nbad\n[edoc]")]
     public void AmiProMalformedStyleNumericFieldsRemainExplicitLoss(string sourceValue, string replacement) {
         string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
