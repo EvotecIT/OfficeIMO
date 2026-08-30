@@ -8,9 +8,9 @@ public sealed class IWorkKeynoteSlide {
         string presenterNotes, bool isSkipped) {
         Index = index;
         Title = title;
-        Body = body;
         PresenterNotes = presenterNotes;
         IsSkipped = isSkipped;
+        Body = Array.AsReadOnly(body.ToArray());
     }
 
     /// <summary>Gets the one-based slide position.</summary>
@@ -28,16 +28,16 @@ public sealed class IWorkKeynoteSlide {
 /// <summary>Read-only Keynote structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkKeynoteProjection {
     private readonly IWorkSourceDocument _source;
-    private readonly IReadOnlyCollection<ulong> _recognizedIdentifiers;
+    private readonly IReadOnlyCollection<IWorkArchiveRecord> _recognizedRecords;
     private readonly bool _supportsEditableReconstruction;
 
     internal IWorkKeynoteProjection(IWorkSourceDocument source, IReadOnlyList<IWorkKeynoteSlide> slides,
-        IReadOnlyCollection<ulong> recognizedIdentifiers, IReadOnlyList<IWorkDiagnostic> diagnostics,
+        IReadOnlyCollection<IWorkArchiveRecord> recognizedRecords, IReadOnlyList<IWorkDiagnostic> diagnostics,
         bool supportsEditableReconstruction) {
         _source = source;
-        Slides = slides;
-        _recognizedIdentifiers = recognizedIdentifiers;
-        Diagnostics = diagnostics;
+        Slides = Array.AsReadOnly(slides.ToArray());
+        _recognizedRecords = Array.AsReadOnly(recognizedRecords.ToArray());
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
     }
 
@@ -51,7 +51,7 @@ public sealed class IWorkKeynoteProjection {
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
+        return _source.CreateReport(kind, _recognizedRecords, Diagnostics, preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Slides.Count + Slides.Sum(slide => slide.Body.Count + (slide.Title.Length > 0 ? 1 : 0)
@@ -73,7 +73,7 @@ public sealed partial class IWorkSourceDocument {
     public IWorkKeynoteProjection ReadKeynote() {
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
         if (RequestedImportMode == IWorkImportMode.VisualOnly) {
-            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(), Array.Empty<ulong>(),
+            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(), Array.Empty<IWorkArchiveRecord>(),
                 new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
         }
         return IWorkKeynoteReader.Read(this);
@@ -85,7 +85,7 @@ internal static class IWorkKeynoteReader {
     private const uint TextStorageArchive = 2001;
 
     internal static IWorkKeynoteProjection Read(IWorkSourceDocument source) {
-        var recognized = new HashSet<ulong>();
+        var recognized = new HashSet<IWorkArchiveRecord>();
         var diagnostics = new List<IWorkDiagnostic>();
         var slides = new List<IWorkKeynoteSlide>();
         IWorkObjectIndex index = source.Index;
@@ -95,14 +95,14 @@ internal static class IWorkKeynoteReader {
                 "No supported Keynote document root was found; editable reconstruction is unavailable."));
             return new IWorkKeynoteProjection(source, slides, recognized, diagnostics, supportsEditableReconstruction: false);
         }
-        recognized.Add(document.Identifier);
+        recognized.Add(document);
         IWorkArchiveRecord? show = index.Dereference(index.Message(document), 2);
         if (show == null) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
                 "The Keynote document root does not reference a supported show object.", document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, recognized, diagnostics, supportsEditableReconstruction: false);
         }
-        recognized.Add(show.Identifier);
+        recognized.Add(show);
         IWorkWireMessage? slideTree = IWorkObjectIndex.TryGetMessage(index.Message(show), 3);
         if (slideTree == null) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
@@ -116,7 +116,7 @@ internal static class IWorkKeynoteReader {
             slideTree, 2, out int unresolvedNodeCount);
         if (unresolvedNodeCount > 0) {
             supportsEditableReconstruction = false;
-            recognized.Remove(show.Identifier);
+            recognized.Remove(show);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_SLIDE_NODE_MISSING",
                 "The Keynote slide tree references a missing node; editable reconstruction is incomplete.",
@@ -135,8 +135,8 @@ internal static class IWorkKeynoteReader {
                     node.EntryPath, node.Identifier));
                 continue;
             }
-            recognized.Add(node.Identifier);
-            recognized.Add(slide.Identifier);
+            recognized.Add(node);
+            recognized.Add(slide);
             slides.Add(ReadSlide(index, slide, position, skipped, recognized, diagnostics,
                 ref supportsEditableReconstruction));
         }
@@ -144,23 +144,24 @@ internal static class IWorkKeynoteReader {
     }
 
     private static IWorkKeynoteSlide ReadSlide(IWorkObjectIndex index, IWorkArchiveRecord slide,
-        int position, bool skipped, HashSet<ulong> recognized, List<IWorkDiagnostic> diagnostics,
+        int position, bool skipped, HashSet<IWorkArchiveRecord> recognized, List<IWorkDiagnostic> diagnostics,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(slide);
         IWorkArchiveRecord? titlePlaceholder = index.Dereference(message, 5);
         var candidates = new List<IWorkArchiveRecord>();
+        var candidateIdentifiers = new HashSet<ulong>();
         bool hasUnresolvedDrawable = false;
         foreach (int field in new[] { 5, 6, 7, 42 }) {
             IReadOnlyList<IWorkArchiveRecord> fieldCandidates = index.DereferenceAll(
                 message, field, out int unresolvedDrawableCount);
             hasUnresolvedDrawable |= unresolvedDrawableCount > 0;
             foreach (IWorkArchiveRecord candidate in fieldCandidates) {
-                if (!candidates.Any(existing => existing.Identifier == candidate.Identifier)) candidates.Add(candidate);
+                if (candidateIdentifiers.Add(candidate.Identifier)) candidates.Add(candidate);
             }
         }
         if (hasUnresolvedDrawable) {
             supportsEditableReconstruction = false;
-            recognized.Remove(slide.Identifier);
+            recognized.Remove(slide);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
                 "A Keynote slide contains an unresolved drawable reference; editable reconstruction is incomplete.",
@@ -175,23 +176,39 @@ internal static class IWorkKeynoteReader {
             if (storage == null || storage.MessageType != TextStorageArchive || !seenStorages.Add(storage.Identifier)) continue;
             string text = IWorkPagesReader.StorageText(index.Message(storage)).Trim();
             if (text.Length == 0) continue;
-            recognized.Add(drawable.Identifier);
-            recognized.Add(storage.Identifier);
+            recognized.Add(drawable);
+            recognized.Add(storage);
             if (titlePlaceholder != null && drawable.Identifier == titlePlaceholder.Identifier && title.Length == 0) title = text;
             else body.Add(text);
         }
 
         string notes = string.Empty;
+        bool hasNoteReference = message.HasBytes(27);
         IWorkArchiveRecord? note = index.Dereference(message, 27);
-        if (note != null) {
+        if (hasNoteReference && note == null) {
+            MarkNotesIncomplete(slide, recognized, diagnostics, ref supportsEditableReconstruction);
+        } else if (note != null) {
             IWorkArchiveRecord? storage = index.Dereference(index.Message(note), 1);
             if (storage != null && storage.MessageType == TextStorageArchive) {
                 notes = IWorkPagesReader.StorageText(index.Message(storage)).TrimStart('\n');
-                recognized.Add(note.Identifier);
-                recognized.Add(storage.Identifier);
+                recognized.Add(note);
+                recognized.Add(storage);
+            } else {
+                MarkNotesIncomplete(slide, recognized, diagnostics, ref supportsEditableReconstruction);
             }
         }
         return new IWorkKeynoteSlide(position, title, body, notes, skipped);
+    }
+
+    private static void MarkNotesIncomplete(IWorkArchiveRecord slide,
+        HashSet<IWorkArchiveRecord> recognized, List<IWorkDiagnostic> diagnostics,
+        ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        recognized.Remove(slide);
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_KEYNOTE_NOTES_UNSUPPORTED",
+            "A Keynote slide contains an unresolved presenter-note reference; editable reconstruction is incomplete.",
+            slide.EntryPath, slide.Identifier));
     }
 
     private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable) {

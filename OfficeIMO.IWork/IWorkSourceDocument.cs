@@ -13,16 +13,16 @@ public sealed partial class IWorkSourceDocument {
         IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
         Kind = kind;
         ContainerKind = package.ContainerKind;
-        Entries = package.Entries;
-        Records = records;
+        Entries = Array.AsReadOnly(package.Entries.ToArray());
+        Records = Array.AsReadOnly(records.ToArray());
         _options = options;
-        _index = new IWorkObjectIndex(records, options);
-        BuildVersions = ReadBuildVersions(package.Entries);
-        Previews = ReadPreviews(package.Entries);
-        Diagnostics = new[] {
+        _index = new IWorkObjectIndex(Records, options);
+        BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries).ToArray());
+        Previews = Array.AsReadOnly(ReadPreviews(Entries).ToArray());
+        Diagnostics = Array.AsReadOnly(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_SOURCE_READ",
                 $"Read {records.Count} IWA payload records from {package.Entries.Count} package entries.")
-        };
+        });
     }
 
     /// <summary>Gets the source application.</summary>
@@ -65,11 +65,11 @@ public sealed partial class IWorkSourceDocument {
     internal IWorkReadOptions Options => _options;
 
     internal IWorkImportReport CreateReport(IWorkProjectionKind projectionKind,
-        IReadOnlyCollection<ulong> recognizedIdentifiers, IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
+        IReadOnlyCollection<IWorkArchiveRecord> recognizedRecords, IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
         IWorkPreviewAsset? preview, int reconstructedItemCount) {
-        HashSet<ulong> recognized = new(recognizedIdentifiers);
+        HashSet<IWorkArchiveRecord> recognized = new(recognizedRecords);
         IWorkArchiveRecord[] allUnsupported = Records
-            .Where(record => !record.IsPrimary || !recognized.Contains(record.Identifier))
+            .Where(record => !record.IsPrimary || !recognized.Contains(record))
             .ToArray();
         IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
             ? allUnsupported

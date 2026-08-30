@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using OfficeIMO.Internal;
 
 namespace OfficeIMO.IWork.Internal;
 
@@ -73,8 +74,7 @@ internal static class IWorkContainerReader {
                     throw new InvalidDataException("Directory bundle size exceeds a configured package limit.");
                 }
                 byte[] bytes;
-                using (var input = new FileStream(full, FileMode.Open, FileAccess.Read, FileShare.Read,
-                           bufferSize: 81920, FileOptions.SequentialScan)) {
+                using (FileStream input = OfficePathIdentity.OpenRegularFileForRead(full, 81920)) {
                     bytes = ReadBounded(input, readLimit, relative);
                 }
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);

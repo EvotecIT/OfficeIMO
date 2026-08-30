@@ -112,6 +112,19 @@ namespace OfficeIMO.Internal {
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
         }
 
+        internal static FileStream OpenRegularFileForRead(string path, int bufferSize) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+            string fullPath = Path.GetFullPath(path);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                return OpenWindowsRegularFileForRead(fullPath, bufferSize);
+            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                return OpenUnixRegularFileForRead(fullPath, bufferSize);
+            }
+            throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
+        }
+
         internal static bool IsCaseInsensitiveFileSystem(string path) {
             return TryGetFileSystemCaseBehavior(path, out bool caseInsensitive)
                 ? caseInsensitive

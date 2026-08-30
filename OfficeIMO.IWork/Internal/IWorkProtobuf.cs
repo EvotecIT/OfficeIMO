@@ -76,6 +76,9 @@ internal sealed class IWorkWireMessage {
     internal byte[]? GetBytes(int field) =>
         Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Bytes)?.Bytes;
 
+    internal bool HasBytes(int field) =>
+        Values(field).Any(candidate => candidate.Kind == IWorkWireKind.Bytes);
+
     internal IReadOnlyList<byte[]> GetRepeatedBytes(int field) => Values(field)
         .Where(candidate => candidate.Kind == IWorkWireKind.Bytes && candidate.Bytes != null)
         .Select(candidate => candidate.Bytes!)

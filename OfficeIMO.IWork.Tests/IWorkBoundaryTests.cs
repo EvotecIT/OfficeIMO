@@ -132,6 +132,19 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Missing_keynote_presenter_notes_disable_editable_reconstruction() {
+        using MemoryStream package = CreateKeynotePackageWithMissingNotes();
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_NOTES_UNSUPPORTED");
+        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.Identifier == 4);
+    }
+
+    [Fact]
     public void Visual_only_numbers_import_bypasses_semantic_table_limits() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Large", 100, 1, 42d)
@@ -186,6 +199,27 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Directory_bundles_reject_fifo_entries_without_blocking() {
+        if (OperatingSystem.IsWindows()) return;
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-iwork-fifo-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path.Combine(directory, "Index"));
+        try {
+            File.WriteAllBytes(Path.Combine(directory, "Index", "Document.iwa"),
+                FrameIwa(ArchiveRecord(1, 1, Array.Empty<byte>())));
+            string fifo = Path.Combine(directory, "blocking.fifo");
+            Assert.Equal(0, CreateFifo(fifo, 0x180));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                IWorkSourceDocument.Open(directory, IWorkDocumentKind.Numbers));
+
+            Assert.Contains("regular file", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Splits_the_first_numbers_table_when_leading_text_would_overflow_xlsx_rows() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Full Height", 1_048_576, 1, 42d)
@@ -226,6 +260,75 @@ public sealed class IWorkBoundaryTests {
         Assert.False(result.Projection.HasEditableContent);
         Assert.Equal("Floating text", Assert.Single(result.Projection.TextBoxes));
         Assert.Contains(result.Projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_BODY_MISSING");
+    }
+
+    [Fact]
+    public void Empty_pages_body_is_valid_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
+            bodyText: string.Empty);
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.False(result.IsVisualFallback);
+        Assert.True(result.Projection.HasEditableContent);
+        Assert.Empty(result.Projection.Paragraphs);
+        Assert.Equal(IWorkProjectionKind.EditableReconstruction, result.ImportReport.ProjectionKind);
+        Assert.Equal(0, result.ImportReport.ReconstructedItemCount);
+    }
+
+    [Fact]
+    public void Wrong_numbers_sheet_record_types_disable_editable_reconstruction() {
+        byte[] records = Message(
+            ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
+            ArchiveRecord(2, 6000, Message()));
+        using MemoryStream package = CreatePackage(
+            ("Index/Document.iwa", FrameIwa(records)),
+            ("preview.png", ValidPreviewPng()));
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_SHEET_TYPE_UNSUPPORTED");
+        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.Identifier == 2);
+    }
+
+    [Fact]
+    public void Duplicate_primary_identifiers_remain_in_the_loss_report() {
+        byte[] records = Message(
+            ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
+            ArchiveRecord(2, 2, Message(StringField(1, "Sheet"))),
+            ArchiveRecord(2, 9999, Message()));
+        using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
+        IWorkNumbersProjection projection = source.ReadNumbers();
+
+        IWorkImportReport report = projection.CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+
+        Assert.True(projection.HasEditableContent);
+        Assert.Equal(3, report.TotalRecordCount);
+        IWorkArchiveRecord duplicate = Assert.Single(report.UnsupportedRecords);
+        Assert.Equal((ulong)2, duplicate.Identifier);
+        Assert.Equal((uint)9999, duplicate.MessageType);
+    }
+
+    [Fact]
+    public void Public_source_and_projection_collections_are_immutable() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkPagesProjection projection = source.ReadPages();
+
+        var records = Assert.IsAssignableFrom<IList<IWorkArchiveRecord>>(source.Records);
+        var entries = Assert.IsAssignableFrom<IList<IWorkPackageEntry>>(source.Entries);
+        var paragraphs = Assert.IsAssignableFrom<IList<string>>(projection.Paragraphs);
+
+        Assert.True(records.IsReadOnly);
+        Assert.True(entries.IsReadOnly);
+        Assert.True(paragraphs.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => records.Clear());
+        Assert.Throws<NotSupportedException>(() => entries.Clear());
+        Assert.Throws<NotSupportedException>(() => paragraphs.Clear());
     }
 
     [Fact]
@@ -347,6 +450,23 @@ public sealed class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
     }
 
+    private static MemoryStream CreateKeynotePackageWithMissingNotes() {
+        const ulong documentId = 1;
+        const ulong showId = 2;
+        const ulong nodeId = 3;
+        const ulong slideId = 4;
+        const ulong missingNoteId = 5;
+        byte[] slideTree = Message(ReferenceField(2, nodeId));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
+            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
+            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, slideId))),
+            ArchiveRecord(slideId, 7002, Message(ReferenceField(27, missingNoteId))));
+        return CreatePackage(
+            ("Index/Slide.iwa", FrameIwa(records)),
+            ("preview.png", ValidPreviewPng()));
+    }
+
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null) {
         const ulong documentId = 1;
@@ -431,7 +551,7 @@ public sealed class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
-        string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null) {
+        string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body") {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong shapeId = 3;
@@ -440,7 +560,7 @@ public sealed class IWorkBoundaryTests {
             ArchiveRecord(documentId, 10000,
                 includeBody ? Message(ReferenceField(4, bodyId)) : Message())
         };
-        if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(StringField(3, "Body"))));
+        if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(StringField(3, bodyText))));
         if (textBox != null) {
             records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId))));
             records.Add(ArchiveRecord(shapeStorageId, 2001, Message(StringField(3, textBox))));
@@ -600,6 +720,10 @@ public sealed class IWorkBoundaryTests {
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "mkfifo", SetLastError = true,
+        CharSet = System.Runtime.InteropServices.CharSet.Ansi)]
+    private static extern int CreateFifo(string path, uint mode);
 
     private sealed class TableSpec {
         internal TableSpec(string name, int rows, int columns, double value,

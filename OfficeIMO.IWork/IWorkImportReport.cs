@@ -8,9 +8,9 @@ public sealed class IWorkImportReport {
         int totalRecordCount, int unsupportedRecordCount, int reconstructedItemCount) {
         SourceKind = sourceKind;
         ProjectionKind = projectionKind;
-        BuildVersions = buildVersions;
-        UnsupportedRecords = unsupportedRecords;
-        Diagnostics = diagnostics;
+        BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
+        UnsupportedRecords = Array.AsReadOnly(unsupportedRecords.ToArray());
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         VisualPreview = visualPreview;
         TotalRecordCount = totalRecordCount;
         UnsupportedRecordCount = unsupportedRecordCount;

@@ -6,6 +6,20 @@ using System.Text;
 
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
+        private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize) {
+            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
+                bufferSize, FileOptions.SequentialScan);
+            try {
+                if (!GetWindowsMetadata(path, stream.SafeFileHandle).IsRegularFile) {
+                    throw new InvalidDataException("The filesystem entry is not a regular file.");
+                }
+                return stream;
+            } catch {
+                stream.Dispose();
+                throw;
+            }
+        }
+
         private const int FileIdInfo = 18;
         private const int FileCaseSensitiveInfo = 23;
         private const uint FileCaseSensitiveDirectory = 0x00000001;

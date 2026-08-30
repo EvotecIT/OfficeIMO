@@ -5,20 +5,20 @@ namespace OfficeIMO.IWork;
 /// <summary>Read-only Pages structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkPagesProjection {
     private readonly IWorkSourceDocument _source;
-    private readonly IReadOnlyCollection<ulong> _recognizedIdentifiers;
+    private readonly IReadOnlyCollection<IWorkArchiveRecord> _recognizedRecords;
     private readonly bool _supportsEditableReconstruction;
 
     internal IWorkPagesProjection(IWorkSourceDocument source, IReadOnlyList<string> paragraphs,
         IReadOnlyList<string> headers, IReadOnlyList<string> footers, IReadOnlyList<string> textBoxes,
-        IReadOnlyCollection<ulong> recognizedIdentifiers, IReadOnlyList<IWorkDiagnostic> diagnostics,
+        IReadOnlyCollection<IWorkArchiveRecord> recognizedRecords, IReadOnlyList<IWorkDiagnostic> diagnostics,
         bool supportsEditableReconstruction) {
         _source = source;
-        Paragraphs = paragraphs;
-        Headers = headers;
-        Footers = footers;
-        TextBoxes = textBoxes;
-        _recognizedIdentifiers = recognizedIdentifiers;
-        Diagnostics = diagnostics;
+        Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
+        Headers = Array.AsReadOnly(headers.ToArray());
+        Footers = Array.AsReadOnly(footers.ToArray());
+        TextBoxes = Array.AsReadOnly(textBoxes.ToArray());
+        _recognizedRecords = Array.AsReadOnly(recognizedRecords.ToArray());
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
     }
 
@@ -32,14 +32,13 @@ public sealed class IWorkPagesProjection {
     public IReadOnlyList<string> TextBoxes { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
-    /// <summary>Gets whether supported editable content was recovered.</summary>
-    public bool HasEditableContent => _supportsEditableReconstruction
-        && (Paragraphs.Count > 0 || Headers.Count > 0 || Footers.Count > 0 || TextBoxes.Count > 0);
+    /// <summary>Gets whether the supported editable document structure was recovered completely.</summary>
+    public bool HasEditableContent => _supportsEditableReconstruction;
 
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
+        return _source.CreateReport(kind, _recognizedRecords, Diagnostics, preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Paragraphs.Count + Headers.Count + Footers.Count + TextBoxes.Count);
@@ -61,7 +60,7 @@ public sealed partial class IWorkSourceDocument {
         if (Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException($"The source is {Kind}, not Pages.");
         if (RequestedImportMode == IWorkImportMode.VisualOnly) {
             return new IWorkPagesProjection(this, Array.Empty<string>(), Array.Empty<string>(),
-                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<ulong>(),
+                Array.Empty<string>(), Array.Empty<string>(), Array.Empty<IWorkArchiveRecord>(),
                 new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
         }
         return IWorkPagesReader.Read(this);
@@ -76,7 +75,7 @@ internal static class IWorkPagesReader {
     private const uint ShapeInfoArchive = 2011;
 
     internal static IWorkPagesProjection Read(IWorkSourceDocument source) {
-        var recognized = new HashSet<ulong>();
+        var recognized = new HashSet<IWorkArchiveRecord>();
         var diagnostics = new List<IWorkDiagnostic>();
         var paragraphs = new List<string>();
         var headers = new List<string>();
@@ -91,21 +90,21 @@ internal static class IWorkPagesReader {
                 supportsEditableReconstruction: false);
         }
 
-        recognized.Add(document.Identifier);
+        recognized.Add(document);
         bool supportsEditableReconstruction = true;
         IWorkWireMessage documentMessage = index.Message(document);
         IWorkArchiveRecord? body = index.Dereference(documentMessage, 4);
         if (body == null || body.MessageType != TextStorageArchive) {
             supportsEditableReconstruction = false;
-            recognized.Remove(document.Identifier);
+            recognized.Remove(document);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
                 "The Pages document root does not reference a supported body text storage.", document.EntryPath, document.Identifier));
         } else {
-            recognized.Add(body.Identifier);
+            recognized.Add(body);
             foreach (string paragraph in SplitParagraphs(StorageText(index.Message(body)))) paragraphs.Add(paragraph);
             ReadHeadersAndFooters(index, body, recognized, headers, footers, diagnostics,
                 ref supportsEditableReconstruction);
-            if (!supportsEditableReconstruction) recognized.Remove(document.Identifier);
+            if (!supportsEditableReconstruction) recognized.Remove(document);
         }
 
         var skippedStorages = new HashSet<ulong>();
@@ -125,8 +124,8 @@ internal static class IWorkPagesReader {
                 || skippedStorages.Contains(storage.Identifier) || !seenTextStorages.Add(storage.Identifier)) continue;
             string text = StorageText(index.Message(storage)).Trim();
             if (text.Length == 0) continue;
-            recognized.Add(shape.Identifier);
-            recognized.Add(storage.Identifier);
+            recognized.Add(shape);
+            recognized.Add(storage);
             textBoxes.Add(text);
         }
         return new IWorkPagesProjection(source, paragraphs, headers, footers, textBoxes, recognized, diagnostics,
@@ -134,7 +133,7 @@ internal static class IWorkPagesReader {
     }
 
     private static void ReadHeadersAndFooters(IWorkObjectIndex index, IWorkArchiveRecord body,
-        HashSet<ulong> recognized, List<string> headers, List<string> footers,
+        HashSet<IWorkArchiveRecord> recognized, List<string> headers, List<string> footers,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         IWorkWireMessage? sectionTable = IWorkObjectIndex.TryGetMessage(index.Message(body), 17);
         if (sectionTable == null) return;
@@ -150,12 +149,12 @@ internal static class IWorkPagesReader {
         foreach (IWorkWireMessage entry in entries) {
             IWorkArchiveRecord? section = index.Dereference(entry, 2);
             if (section == null || section.MessageType != SectionArchive) continue;
-            recognized.Add(section.Identifier);
+            recognized.Add(section);
             IWorkWireMessage sectionMessage = index.Message(section);
             foreach (int field in new[] { 23, 24, 25 }) {
                 IWorkArchiveRecord? archive = index.Dereference(sectionMessage, field);
                 if (archive == null || archive.MessageType != HeadersFootersArchive) continue;
-                recognized.Add(archive.Identifier);
+                recognized.Add(archive);
                 IWorkWireMessage archiveMessage = index.Message(archive);
                 AddDistinctStorageText(index, archiveMessage, 1, archive, recognized, headers,
                     diagnostics, ref supportsEditableReconstruction);
@@ -166,13 +165,13 @@ internal static class IWorkPagesReader {
     }
 
     private static void AddDistinctStorageText(IWorkObjectIndex index, IWorkWireMessage message, int field,
-        IWorkArchiveRecord archive, HashSet<ulong> recognized, List<string> destination,
+        IWorkArchiveRecord archive, HashSet<IWorkArchiveRecord> recognized, List<string> destination,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         IReadOnlyList<IWorkArchiveRecord> storages = index.DereferenceAll(
             message, field, out int unresolvedStorageCount);
         if (unresolvedStorageCount > 0) {
             supportsEditableReconstruction = false;
-            recognized.Remove(archive.Identifier);
+            recognized.Remove(archive);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED",
                 "A Pages header or footer contains an unresolved text reference; editable reconstruction is incomplete.",
@@ -182,7 +181,7 @@ internal static class IWorkPagesReader {
             if (storage.MessageType != TextStorageArchive) continue;
             string text = StorageText(index.Message(storage)).Trim();
             if (text.Length == 0 || destination.Contains(text)) continue;
-            recognized.Add(storage.Identifier);
+            recognized.Add(storage);
             destination.Add(text);
         }
     }

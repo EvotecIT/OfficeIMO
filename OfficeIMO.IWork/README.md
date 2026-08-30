@@ -4,22 +4,6 @@
 
 Keep `OfficeIMO.IWork`, `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` on the same coordinated OfficeIMO version.
 
-## Install
-
-Install the shared source reader when the application directly inspects iWork packages:
-
-```powershell
-dotnet add package OfficeIMO.IWork
-```
-
-Install the semantic owner that will create the editable Office document. Owner packages bring in the shared iWork reader transitively, so direct inspection applications are the only ones that also need the first command:
-
-```powershell
-dotnet add package OfficeIMO.Word       # Pages to DOCX
-dotnet add package OfficeIMO.Excel      # Numbers to XLSX
-dotnet add package OfficeIMO.PowerPoint # Keynote to PPTX
-```
-
 ## Read and inspect a source
 
 ```csharp

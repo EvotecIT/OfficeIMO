@@ -9,9 +9,9 @@ public sealed class IWorkArchiveRecord {
         string entryPath, int payloadIndex, byte[] payload) {
         Identifier = identifier;
         MessageType = messageType;
-        Versions = versions;
-        ObjectReferences = objectReferences;
-        DataReferences = dataReferences;
+        Versions = Array.AsReadOnly(versions.ToArray());
+        ObjectReferences = Array.AsReadOnly(objectReferences.ToArray());
+        DataReferences = Array.AsReadOnly(dataReferences.ToArray());
         EntryPath = entryPath;
         PayloadIndex = payloadIndex;
         _payload = payload;

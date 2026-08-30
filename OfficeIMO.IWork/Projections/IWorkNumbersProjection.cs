@@ -49,7 +49,7 @@ public sealed class IWorkNumbersTable {
         ColumnCount = columnCount;
         _cells = new Dictionary<long, IWorkNumbersCell>();
         foreach (IWorkNumbersCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
-        Cells = _cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray();
+        Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
     }
 
     /// <summary>Gets the source table name.</summary>
@@ -76,8 +76,8 @@ public sealed class IWorkNumbersSheet {
     internal IWorkNumbersSheet(string name, IReadOnlyList<IWorkNumbersTable> tables,
         IReadOnlyList<string> textBoxes) {
         Name = name;
-        Tables = tables;
-        TextBoxes = textBoxes;
+        Tables = Array.AsReadOnly(tables.ToArray());
+        TextBoxes = Array.AsReadOnly(textBoxes.ToArray());
     }
 
     /// <summary>Gets the source sheet name.</summary>
@@ -91,16 +91,16 @@ public sealed class IWorkNumbersSheet {
 /// <summary>Read-only Numbers structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkNumbersProjection {
     private readonly IWorkSourceDocument _source;
-    private readonly IReadOnlyCollection<ulong> _recognizedIdentifiers;
+    private readonly IReadOnlyCollection<IWorkArchiveRecord> _recognizedRecords;
     private readonly bool _supportsEditableReconstruction;
 
     internal IWorkNumbersProjection(IWorkSourceDocument source, IReadOnlyList<IWorkNumbersSheet> sheets,
-        IReadOnlyCollection<ulong> recognizedIdentifiers, IReadOnlyList<IWorkDiagnostic> diagnostics,
+        IReadOnlyCollection<IWorkArchiveRecord> recognizedRecords, IReadOnlyList<IWorkDiagnostic> diagnostics,
         bool supportsEditableReconstruction) {
         _source = source;
-        Sheets = sheets;
-        _recognizedIdentifiers = recognizedIdentifiers;
-        Diagnostics = diagnostics;
+        Sheets = Array.AsReadOnly(sheets.ToArray());
+        _recognizedRecords = Array.AsReadOnly(recognizedRecords.ToArray());
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
     }
 
@@ -114,7 +114,7 @@ public sealed class IWorkNumbersProjection {
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, _recognizedIdentifiers, Diagnostics, preview,
+        return _source.CreateReport(kind, _recognizedRecords, Diagnostics, preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
@@ -136,7 +136,7 @@ public sealed partial class IWorkSourceDocument {
     public IWorkNumbersProjection ReadNumbers() {
         if (Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException($"The source is {Kind}, not Numbers.");
         if (RequestedImportMode == IWorkImportMode.VisualOnly) {
-            return new IWorkNumbersProjection(this, Array.Empty<IWorkNumbersSheet>(), Array.Empty<ulong>(),
+            return new IWorkNumbersProjection(this, Array.Empty<IWorkNumbersSheet>(), Array.Empty<IWorkArchiveRecord>(),
                 new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
         }
         return IWorkNumbersReader.Read(this);
@@ -145,6 +145,7 @@ public sealed partial class IWorkSourceDocument {
 
 internal static class IWorkNumbersReader {
     private const uint DocumentArchive = 1;
+    private const uint SheetArchive = 2;
     private const uint TableInfoArchive = 6000;
     private const uint TableModelArchive = 6001;
     private const uint TableTileArchive = 6002;
@@ -153,7 +154,7 @@ internal static class IWorkNumbersReader {
     private const int TileRowStride = 256;
 
     internal static IWorkNumbersProjection Read(IWorkSourceDocument source) {
-        var recognized = new HashSet<ulong>();
+        var recognized = new HashSet<IWorkArchiveRecord>();
         var diagnostics = new List<IWorkDiagnostic>();
         var sheets = new List<IWorkNumbersSheet>();
         IWorkObjectIndex index = source.Index;
@@ -163,14 +164,14 @@ internal static class IWorkNumbersReader {
                 "No supported Numbers document root was found; editable reconstruction is unavailable."));
             return new IWorkNumbersProjection(source, sheets, recognized, diagnostics, supportsEditableReconstruction: false);
         }
-        recognized.Add(document.Identifier);
+        recognized.Add(document);
         int materializedCellCount = 0;
         bool supportsEditableReconstruction = true;
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = index.DereferenceAll(
             index.Message(document), 1, out int unresolvedSheetCount);
         if (unresolvedSheetCount > 0) {
             supportsEditableReconstruction = false;
-            recognized.Remove(document.Identifier);
+            recognized.Remove(document);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_SHEET_UNSUPPORTED",
                 "The Numbers document references a missing sheet; editable reconstruction is incomplete.",
@@ -178,7 +179,16 @@ internal static class IWorkNumbersReader {
         }
 
         foreach (IWorkArchiveRecord sheetRecord in sheetRecords) {
-            recognized.Add(sheetRecord.Identifier);
+            if (sheetRecord.MessageType != SheetArchive) {
+                supportsEditableReconstruction = false;
+                recognized.Remove(document);
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_SHEET_TYPE_UNSUPPORTED",
+                    "The Numbers document references an object that is not a supported sheet; editable reconstruction is incomplete.",
+                    sheetRecord.EntryPath, sheetRecord.Identifier));
+                continue;
+            }
+            recognized.Add(sheetRecord);
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
             var tables = new List<IWorkNumbersTable>();
             var textBoxes = new List<string>();
@@ -186,7 +196,7 @@ internal static class IWorkNumbersReader {
                 sheetMessage, 2, out int unresolvedDrawableCount);
             if (unresolvedDrawableCount > 0) {
                 supportsEditableReconstruction = false;
-                recognized.Remove(sheetRecord.Identifier);
+                recognized.Remove(sheetRecord);
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_DRAWABLE_UNSUPPORTED",
                     "A Numbers sheet references a missing drawable; editable reconstruction is incomplete.",
@@ -196,8 +206,8 @@ internal static class IWorkNumbersReader {
                 if (drawable.MessageType == TableInfoArchive) {
                     IWorkArchiveRecord? model = index.Dereference(index.Message(drawable), 2);
                     if (model != null && model.MessageType == TableModelArchive) {
-                        recognized.Add(drawable.Identifier);
-                        recognized.Add(model.Identifier);
+                        recognized.Add(drawable);
+                        recognized.Add(model);
                         tables.Add(ReadTable(source, index, model, recognized, diagnostics,
                             ref materializedCellCount, ref supportsEditableReconstruction));
                     } else {
@@ -212,8 +222,8 @@ internal static class IWorkNumbersReader {
                     if (storage != null && storage.MessageType == TextStorageArchive) {
                         string text = IWorkPagesReader.StorageText(index.Message(storage)).Trim();
                         if (text.Length > 0) textBoxes.Add(text);
-                        recognized.Add(drawable.Identifier);
-                        recognized.Add(storage.Identifier);
+                        recognized.Add(drawable);
+                        recognized.Add(storage);
                     } else {
                         supportsEditableReconstruction = false;
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -229,7 +239,7 @@ internal static class IWorkNumbersReader {
     }
 
     private static IWorkNumbersTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
-        IWorkArchiveRecord model, HashSet<ulong> recognized, List<IWorkDiagnostic> diagnostics,
+        IWorkArchiveRecord model, HashSet<IWorkArchiveRecord> recognized, List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(model);
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
@@ -258,7 +268,7 @@ internal static class IWorkNumbersReader {
             ulong rawTileId = tileEntry.GetUnsigned(1) ?? 0;
             if (rawTileId > int.MaxValue) {
                 supportsEditableReconstruction = false;
-                recognized.Remove(model.Identifier);
+                recognized.Remove(model);
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_TILE_INDEX_UNSUPPORTED",
                     "A Numbers table tile index exceeds the supported range; editable reconstruction is incomplete.",
@@ -268,7 +278,7 @@ internal static class IWorkNumbersReader {
             IWorkArchiveRecord? tile = index.Dereference(tileEntry, 2);
             if (tile == null || tile.MessageType != TableTileArchive) {
                 supportsEditableReconstruction = false;
-                recognized.Remove(model.Identifier);
+                recognized.Remove(model);
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_TILE_UNSUPPORTED",
                     "A Numbers table references a missing or unsupported tile object; editable reconstruction is incomplete.",
@@ -332,23 +342,23 @@ internal static class IWorkNumbersReader {
                     materializedCellCount++;
                 }
             }
-            if (tileFullyReconstructed) recognized.Add(tile.Identifier);
+            if (tileFullyReconstructed) recognized.Add(tile);
         }
 
         int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error);
         if (errorCount > 0) {
             supportsEditableReconstruction = false;
-            recognized.Remove(model.Identifier);
+            recognized.Remove(model);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_CELL_DECODE",
                 $"{errorCount} cells in table '{name}' could not be decoded completely.", model.EntryPath, model.Identifier));
         }
         return new IWorkNumbersTable(name, rows, columns, cells);
     }
 
-    private static void MarkTableStorageUnsupported(IWorkArchiveRecord model, HashSet<ulong> recognized,
+    private static void MarkTableStorageUnsupported(IWorkArchiveRecord model, HashSet<IWorkArchiveRecord> recognized,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         supportsEditableReconstruction = false;
-        recognized.Remove(model.Identifier);
+        recognized.Remove(model);
         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
             "IWORK_NUMBERS_TABLE_STORAGE_UNSUPPORTED",
             "A Numbers table has no supported tile storage; editable reconstruction is incomplete.",
@@ -356,11 +366,11 @@ internal static class IWorkNumbersReader {
     }
 
     private static IReadOnlyDictionary<uint, string> ReadStrings(IWorkObjectIndex index, IWorkWireMessage store,
-        HashSet<ulong> recognized) {
+        HashSet<IWorkArchiveRecord> recognized) {
         var strings = new Dictionary<uint, string>();
         IWorkArchiveRecord? list = index.Dereference(store, 4);
         if (list == null) return strings;
-        recognized.Add(list.Identifier);
+        recognized.Add(list);
         foreach (IWorkWireMessage entry in IWorkObjectIndex.TryGetMessages(index.Message(list), 3)) {
             ulong? key = entry.GetUnsigned(1);
             string? value = entry.GetString(3);
