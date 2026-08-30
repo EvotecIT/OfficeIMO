@@ -435,7 +435,8 @@ public sealed partial class PdfReadPage {
                     placement.RenderingIntent,
                     EffectiveOutputIntentColorTransform,
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                    pageContentBudget?.ColorFunctionResolutionContext));
+                    pageContentBudget?.ColorFunctionResolutionContext,
+                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent));
             }
         }
 
@@ -778,6 +779,7 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeBlendMode initialBlendMode = OfficeBlendMode.Normal,
+        OfficeBlendMode? initialAuthoredBlendMode = null,
         bool initialHasUnsupportedBlendMode = false,
         bool initialHasSoftMask = false,
         bool initialHasAuthoredRenderingIntent = false,
@@ -811,6 +813,7 @@ public sealed partial class PdfReadPage {
                      maxNestingDepth: _limits.MaxContentNestingDepth,
                      maxOperands: _limits.MaxContentOperands,
                      initialBlendMode: initialBlendMode,
+                     initialAuthoredBlendMode: initialAuthoredBlendMode,
                      initialHasUnsupportedBlendMode: initialHasUnsupportedBlendMode,
                      initialHasSoftMask: initialHasSoftMask,
                      initialHasAuthoredRenderingIntent: initialHasAuthoredRenderingIntent,
@@ -837,16 +840,22 @@ public sealed partial class PdfReadPage {
                     invocation.PaintOrder,
                     fillPattern: invocation.FillPattern,
                     effectiveResources: resources,
-                    blendMode: invocation.BlendMode,
+                    authoredBlendMode: invocation.AuthoredBlendMode,
                     hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     hasSoftMask: invocation.HasSoftMask,
                     hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                    renderingIntent: invocation.RenderingIntent);
+                    renderingIntent: invocation.RenderingIntent,
+                    objects: _objects);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
-            if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
+            if (TryGetImageXObject(
+                    resources,
+                    invocation.Name,
+                    out int imageObjectNumber,
+                    out int directStreamIdentity,
+                    out PdfStream? imageStream)) {
                 PdfImagePlacement placement = BuildImagePlacement(
                     pageNumber,
                     invocation.Name,
@@ -859,11 +868,13 @@ public sealed partial class PdfReadPage {
                     paintOrder: invocation.PaintOrder,
                     fillPattern: invocation.FillPattern,
                     effectiveResources: resources,
-                    blendMode: invocation.BlendMode,
+                    authoredBlendMode: invocation.AuthoredBlendMode,
                     hasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     hasSoftMask: invocation.HasSoftMask,
                     hasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
-                    renderingIntent: invocation.RenderingIntent);
+                    renderingIntent: invocation.RenderingIntent,
+                    imageDictionary: imageStream!.Dictionary,
+                    objects: _objects);
                 placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
@@ -901,6 +912,7 @@ public sealed partial class PdfReadPage {
                     paintOrderScale * 0.000000001D,
                     initialClipPath: invocation.ClipPath,
                     initialBlendMode: invocation.BlendMode,
+                    initialAuthoredBlendMode: invocation.AuthoredBlendMode,
                     initialHasUnsupportedBlendMode: invocation.HasUnsupportedBlendMode,
                     initialHasSoftMask: invocation.HasSoftMask,
                     initialHasAuthoredRenderingIntent: invocation.HasAuthoredRenderingIntent,
@@ -1015,11 +1027,22 @@ public sealed partial class PdfReadPage {
         double paintOrder = 0D,
         PdfPagePatternSelection? fillPattern = null,
         PdfDictionary? effectiveResources = null,
-        OfficeBlendMode blendMode = OfficeBlendMode.Normal,
+        OfficeBlendMode? authoredBlendMode = null,
         bool hasUnsupportedBlendMode = false,
         bool hasSoftMask = false,
         bool hasAuthoredRenderingIntent = false,
-        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric) {
+        OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
+        PdfDictionary? imageDictionary = null,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        PdfDictionary? intentOwner = imageDictionary ?? inlineImageStream?.Dictionary;
+        if (intentOwner is not null && objects is not null && PdfRenderingIntentResolver.TryRead(
+                intentOwner,
+                "Intent",
+                objects,
+                out OfficeIccRenderingIntent authoredImageIntent)) {
+            hasAuthoredRenderingIntent = true;
+            renderingIntent = authoredImageIntent;
+        }
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
         var p2 = transform.Transform(0D, 1D);
@@ -1052,7 +1075,7 @@ public sealed partial class PdfReadPage {
             paintOrder,
             fillPattern: fillPattern,
             effectiveResources: effectiveResources,
-            blendMode: blendMode,
+            blendMode: authoredBlendMode,
             hasUnsupportedBlendMode: hasUnsupportedBlendMode,
             hasSoftMask: hasSoftMask,
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent,

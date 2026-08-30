@@ -34,6 +34,15 @@ public sealed class ReaderPdfOptions {
     public PdfLogicalMarkdownOptions? MarkdownOptions { get; set; }
 
     /// <summary>
+    /// When true, projects conservative cross-page paragraph continuation evidence into document metadata.
+    /// Page-local text and chunks remain unchanged. Default: true.
+    /// </summary>
+    public bool IncludeParagraphContinuationMetadata { get; set; } = true;
+
+    /// <summary>Optional confidence and hyphenation policy for paragraph continuation metadata.</summary>
+    public PdfLogicalParagraphContinuationOptions? ParagraphContinuationOptions { get; set; }
+
+    /// <summary>
     /// When true, emits one or more chunks per logical source page. Default: true.
     /// </summary>
     public bool ChunkByPage { get; set; } = true;
@@ -45,6 +54,8 @@ public sealed class ReaderPdfOptions {
         LayoutOptions = CloneLayoutOptions(LayoutOptions),
         PageRanges = PageRanges?.ToArray(),
         MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
+        IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,
+        ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),
         ChunkByPage = ChunkByPage
     };
 
@@ -64,6 +75,18 @@ public sealed class ReaderPdfOptions {
             IgnoreFooterHeight = options.IgnoreFooterHeight,
             GapSpaceThresholdEm = options.GapSpaceThresholdEm,
             GapGlyphFactor = options.GapGlyphFactor
+        };
+    }
+
+    internal static PdfLogicalParagraphContinuationOptions? CloneParagraphContinuationOptions(PdfLogicalParagraphContinuationOptions? options) {
+        if (options is null) return null;
+
+        return new PdfLogicalParagraphContinuationOptions {
+            MergePageContinuations = options.MergePageContinuations,
+            RejoinLineEndingHyphens = options.RejoinLineEndingHyphens,
+            MaximumSegmentsPerParagraph = options.MaximumSegmentsPerParagraph,
+            GeometryTolerancePoints = options.GeometryTolerancePoints,
+            MinimumConfidence = options.MinimumConfidence
         };
     }
 
