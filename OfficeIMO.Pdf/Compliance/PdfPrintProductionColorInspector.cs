@@ -899,7 +899,9 @@ internal static partial class PdfPrintProductionColorInspector {
                     ColorSpaceUsage baseUsage = ClassifyColorSpaceCore(
                         array.Items[1], objects, maximumObjectDepth, maximumDecodedStreamBytes, aliases, normalizeInlineImageAbbreviations,
                         activeArrays, resolvedDepth + 1);
-                    return baseUsage.IsKnown ? baseUsage.WithPattern() : ColorSpaceUsage.Unknown;
+                    return baseUsage.IsKnown && !baseUsage.UsesPattern
+                        ? baseUsage.WithPattern()
+                        : ColorSpaceUsage.Unknown;
                 default:
                     return ColorSpaceUsage.Unknown;
             }

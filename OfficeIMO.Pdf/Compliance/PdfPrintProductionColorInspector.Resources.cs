@@ -185,7 +185,13 @@ internal static partial class PdfPrintProductionColorInspector {
                                         : null,
                                     objects,
                                     limits.MaxObjectNestingDepth);
-                                if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
+                                if (!HasValidOptionalDictionaryType(
+                                        xObjectStream.Dictionary,
+                                        "XObject",
+                                        objects,
+                                        limits.MaxObjectNestingDepth)) {
+                                    contextWasUninspectable = true;
+                                } else if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                                     AddImageContext(xObjectStream, context.Aliases, images);
                                 } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
                                     !IsStructurallyValidFormXObject(
@@ -648,6 +654,12 @@ internal static partial class PdfPrintProductionColorInspector {
             _ => null
         };
         if (pattern == null ||
+            !pattern.Items.TryGetValue("Type", out PdfObject? patternObjectType) ||
+            ResolveName(
+                patternObjectType,
+                objects,
+                limits.MaxObjectNestingDepth) is not string resolvedPatternType ||
+            !string.Equals(resolvedPatternType, "Pattern", StringComparison.Ordinal) ||
             !pattern.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ||
             ResolveObject(
                 objects,
@@ -655,7 +667,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 patternDepth + 1,
                 limits.MaxObjectNestingDepth) is not PdfNumber patternType) return false;
         if (patternType.Value == 1D && resolved is PdfStream tilingPattern) {
-            if (!IsStructurallyValidTilingPattern(
+            if (!IsStructurallyValidTilingPatternResource(
                     tilingPattern.Dictionary,
                     patternDepth,
                     objects,
@@ -736,12 +748,70 @@ internal static partial class PdfPrintProductionColorInspector {
         return true;
     }
 
+    internal static bool IsStructurallyValidTilingPatternResource(
+        PdfDictionary pattern,
+        int patternDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        return string.Equals(
+                ResolveName(
+                    pattern.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Pattern",
+                StringComparison.Ordinal) &&
+            TryResolveInteger(pattern, "PatternType", objects, maximumObjectDepth, 1, 1, out _) &&
+            IsStructurallyValidTilingPattern(pattern, patternDepth, objects, maximumObjectDepth);
+    }
+
+    internal static bool IsStructurallyValidShadingPatternResource(
+        PdfDictionary pattern,
+        int patternDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth,
+        out PdfObject? graphicsStateObject) {
+        graphicsStateObject = null;
+        if (!string.Equals(
+                ResolveName(
+                    pattern.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Pattern",
+                StringComparison.Ordinal) ||
+            !TryResolveInteger(pattern, "PatternType", objects, maximumObjectDepth, 2, 2, out _) ||
+            !pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject) ||
+            ResolveObject(objects, shadingObject, patternDepth + 1, maximumObjectDepth) is not (PdfDictionary or PdfStream) ||
+            !HasOptionalExactFiniteNumberArray(pattern, "Matrix", 6, objects, maximumObjectDepth)) {
+            return false;
+        }
+
+        if (!pattern.Items.TryGetValue("ExtGState", out graphicsStateObject)) return true;
+        PdfObject? resolvedGraphicsState = ResolveObject(
+            objects,
+            graphicsStateObject,
+            patternDepth + 1,
+            maximumObjectDepth);
+        if (resolvedGraphicsState is PdfNull) {
+            graphicsStateObject = null;
+            return true;
+        }
+        return resolvedGraphicsState is PdfDictionary;
+    }
+
     internal static bool IsStructurallyValidFormXObject(
         PdfDictionary form,
         int formDepth,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth) {
-        if (!HasExactFiniteNumberArray(form, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
+        if (!HasValidOptionalDictionaryType(form, "XObject", objects, maximumObjectDepth) ||
+            !string.Equals(
+                ResolveName(
+                    form.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Form",
+                StringComparison.Ordinal) ||
+            !HasExactFiniteNumberArray(form, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
             bounds[2] < bounds[0] || bounds[3] < bounds[1] ||
             !HasOptionalExactFiniteNumberArray(form, "Matrix", 6, objects, maximumObjectDepth)) {
             return false;
@@ -754,6 +824,19 @@ internal static partial class PdfPrintProductionColorInspector {
 
         return !form.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ||
             ResolveObject(objects, resourcesObject, formDepth + 1, maximumObjectDepth, out _) is PdfNull or PdfDictionary;
+    }
+
+    private static bool HasValidOptionalDictionaryType(
+        PdfDictionary dictionary,
+        string expectedType,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!dictionary.Items.TryGetValue("Type", out PdfObject? typeObject)) return true;
+        if (ResolveObject(objects, typeObject, 0, maximumObjectDepth) is PdfNull) return true;
+        return string.Equals(
+            ResolveName(typeObject, objects, maximumObjectDepth),
+            expectedType,
+            StringComparison.Ordinal);
     }
 
     private static bool TryAddShownType3CharProcs(
