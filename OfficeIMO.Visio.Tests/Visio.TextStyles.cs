@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
 using Color = OfficeIMO.Drawing.OfficeColor;
@@ -156,6 +157,122 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisioNativeTextDecorationsBaselineCapitalizationAndCasingRoundTrip() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioShape shape = document.AddPage("NativeText")
+                .AddRectangle(2, 4, 2.5, 1.1, "Mixed Case")
+                .ApplyTextStyle(new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 14,
+                    Bold = true,
+                    Italic = true,
+                    UnderlineStyle = OfficeTextDecorationStyle.Double,
+                    StrikethroughStyle = OfficeTextDecorationStyle.Double,
+                    SmallCaps = true,
+                    Capitalization = VisioTextCapitalization.AllCaps,
+                    Baseline = OfficeTextBaseline.Superscript
+                });
+            shape.TransformTextCase(OfficeTextCase.ToggleCase, System.Globalization.CultureInfo.InvariantCulture);
+            document.Save();
+
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement savedShape = FindShape(ReadXml(filePath, "visio/pages/page1.xml"), ns, "mIXED cASE");
+            XElement row = Assert.Single(SingleSection(savedShape, ns, "Character").Elements(ns + "Row"));
+            Assert.Equal("11", Cell(row, ns, "Style").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, ns, "DblUnderline").Attribute("V")?.Value);
+            Assert.Equal("0", Cell(row, ns, "Strikethru").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, ns, "DoubleStrikethrough").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, ns, "Case").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, ns, "Pos").Attribute("V")?.Value);
+
+            VisioShape loaded = Assert.Single(VisioDocument.Load(filePath).Pages[0].Shapes);
+            Assert.Equal("mIXED cASE", loaded.Text);
+            Assert.Equal(OfficeTextDecorationStyle.Double, loaded.TextStyle!.UnderlineStyle);
+            Assert.Equal(OfficeTextDecorationStyle.Double, loaded.TextStyle.StrikethroughStyle);
+            Assert.True(loaded.TextStyle.SmallCaps);
+            Assert.Equal(VisioTextCapitalization.AllCaps, loaded.TextStyle.Capitalization);
+            Assert.Equal(OfficeTextBaseline.Superscript, loaded.TextStyle.Baseline);
+
+            string svg = document.Pages[0].ToSvg();
+            Assert.Contains("text-decoration=\"underline line-through\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration-style=\"double\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-variant=\"small-caps\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void VisioInitialCapsPreservesExistingMixedCaseInRenderedOutputs() {
+            using var stream = new MemoryStream();
+            VisioDocument document = VisioDocument.Create(stream);
+            document.AddPage("InitialCaps").Size(4, 2)
+                .AddRectangle(2, 1, 3, 1, "iPhone PRO")
+                .ApplyTextStyle(new VisioTextStyle {
+                    Capitalization = VisioTextCapitalization.InitialCaps
+                });
+
+            string svg = document.Pages[0].ToSvg();
+            OfficeImageExportResult png = document.Pages[0].ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.Contains(">IPhone PRO<", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain("Iphone Pro", svg, StringComparison.Ordinal);
+            Assert.True(png.Bytes.Length > 32);
+        }
+
+        [Fact]
+        public void VisioSuperscriptFitsSvgUsingItsEffectiveRenderedSize() {
+            VisioDocument document = VisioDocument.Create(new MemoryStream());
+            document.AddPage("ScriptFit").Size(2, 1)
+                .AddRectangle(1, 0.5, 1.25, 0.6, "WWWW")
+                .ApplyTextStyle(new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 24,
+                    Baseline = OfficeTextBaseline.Superscript,
+                    TextWidth = 1.25,
+                    TextHeight = 0.6
+                });
+
+            XDocument svg = XDocument.Parse(document.Pages[0].ToSvg());
+            XElement text = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "text" && element.Value == "WWWW");
+            double renderedSize = double.Parse(text.Attribute("font-size")!.Value, System.Globalization.CultureInfo.InvariantCulture);
+
+            Assert.InRange(renderedSize, 20.7D, 20.9D);
+        }
+
+        [Theory]
+        [InlineData(OfficeImageExportFormat.Png)]
+        [InlineData(OfficeImageExportFormat.Svg)]
+        [InlineData(OfficeImageExportFormat.Jpeg)]
+        [InlineData(OfficeImageExportFormat.Tiff)]
+        [InlineData(OfficeImageExportFormat.Webp)]
+        public void NativeTypographyExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+            VisioDocument document = VisioDocument.Create(new MemoryStream());
+            document.AddPage("Typography").Size(3, 1.5)
+                .AddRectangle(1.5, 0.75, 2.5, 0.8, "Styled")
+                .ApplyTextStyle(new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 14,
+                    Color = Color.FromRgb(0x33, 0x66, 0x99),
+                    Bold = true,
+                    Italic = true,
+                    UnderlineStyle = OfficeTextDecorationStyle.Double,
+                    StrikethroughStyle = OfficeTextDecorationStyle.Single,
+                    Baseline = OfficeTextBaseline.Superscript
+                });
+
+            OfficeImageExportResult result = Assert.Single(document.ExportImages(format));
+
+            Assert.Equal(format, result.Format);
+            Assert.True(result.Bytes.Length > 32);
+            if (format == OfficeImageExportFormat.Svg) {
+                string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+                Assert.Contains("Styled", svg, StringComparison.Ordinal);
+                Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("text-decoration=\"line-through\"", svg, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("<tspan text-decoration=\"underline\" text-decoration-style=\"double\"", svg, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        [Fact]
         public void ConnectorLabelTextStyleWritesCharacterParagraphAndTextBlockCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -287,7 +404,7 @@ namespace OfficeIMO.Tests {
                     new XElement(ns + "Row",
                         new XAttribute("IX", "0"),
                         new XElement(ns + "Cell", new XAttribute("N", "Color"), new XAttribute("V", "#112233")),
-                        new XElement(ns + "Cell", new XAttribute("N", "Case"), new XAttribute("V", "1")))));
+                        new XElement(ns + "Cell", new XAttribute("N", "Overline"), new XAttribute("V", "1")))));
             });
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -299,7 +416,7 @@ namespace OfficeIMO.Tests {
             XElement charSection = Assert.Single(savedConnector.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Char");
             XElement row = Assert.Single(charSection.Elements(v + "Row"));
             Assert.Equal("#112233", Cell(row, v, "Color").Attribute("V")?.Value);
-            Assert.Equal("1", Cell(row, v, "Case").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, v, "Overline").Attribute("V")?.Value);
             Assert.Empty(VisioValidator.Validate(savedPath));
         }
 
@@ -320,7 +437,7 @@ namespace OfficeIMO.Tests {
                     new XElement(ns + "Row",
                         new XAttribute("IX", "0"),
                         new XElement(ns + "Cell", new XAttribute("N", "Color"), new XAttribute("V", "#112233")),
-                        new XElement(ns + "Cell", new XAttribute("N", "Case"), new XAttribute("V", "1")))));
+                        new XElement(ns + "Cell", new XAttribute("N", "Overline"), new XAttribute("V", "1")))));
             });
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -332,7 +449,7 @@ namespace OfficeIMO.Tests {
             XElement charSection = Assert.Single(savedShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Char");
             XElement row = Assert.Single(charSection.Elements(v + "Row"));
             Assert.Equal("#112233", Cell(row, v, "Color").Attribute("V")?.Value);
-            Assert.Equal("1", Cell(row, v, "Case").Attribute("V")?.Value);
+            Assert.Equal("1", Cell(row, v, "Overline").Attribute("V")?.Value);
             Assert.Empty(VisioValidator.Validate(savedPath));
         }
 
@@ -387,6 +504,19 @@ namespace OfficeIMO.Tests {
             Assert.False(first.TextStyle.Bold);
             Assert.True(second.TextStyle.Bold);
             Assert.Equal(VisioTextHorizontalAlignment.Center, second.TextStyle.HorizontalAlignment);
+        }
+
+        [Fact]
+        public void VisioTextStyleRejectsUnsupportedOrUndefinedNativeFormatting() {
+            Assert.Throws<ArgumentOutOfRangeException>(() => new VisioTextStyle {
+                UnderlineStyle = OfficeTextDecorationStyle.Wavy
+            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new VisioTextStyle {
+                Baseline = (OfficeTextBaseline)99
+            });
+            Assert.Throws<ArgumentOutOfRangeException>(() => new VisioTextStyle {
+                Capitalization = (VisioTextCapitalization)99
+            });
         }
 
         private static XDocument ReadXml(string vsdxPath, string entryName) {

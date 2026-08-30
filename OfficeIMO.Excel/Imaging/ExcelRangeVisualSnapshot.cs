@@ -241,7 +241,11 @@ namespace OfficeIMO.Excel {
     /// Visual rich text run metadata in an Excel cell snapshot.
     /// </summary>
     public sealed class ExcelVisualTextRun {
-        internal ExcelVisualTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough, string? fontColorArgb, string? fontName, double? fontSize) {
+        internal ExcelVisualTextRun(string text, bool bold, bool italic, bool underline, bool strikethrough,
+            string? fontColorArgb, string? fontName, double? fontSize,
+            ExcelUnderlineStyle? underlineStyle = null, ExcelVerticalTextAlignment? verticalTextAlignment = null,
+            bool boldSpecified = false, bool italicSpecified = false,
+            bool underlineSpecified = false, bool strikethroughSpecified = false) {
             Text = text ?? string.Empty;
             Bold = bold;
             Italic = italic;
@@ -250,6 +254,12 @@ namespace OfficeIMO.Excel {
             FontColorArgb = fontColorArgb;
             FontName = fontName;
             FontSize = fontSize;
+            UnderlineStyle = underlineStyle;
+            VerticalTextAlignment = verticalTextAlignment;
+            BoldSpecified = boldSpecified;
+            ItalicSpecified = italicSpecified;
+            UnderlineSpecified = underlineSpecified;
+            StrikethroughSpecified = strikethroughSpecified;
         }
 
         /// <summary>Run text.</summary>
@@ -264,8 +274,19 @@ namespace OfficeIMO.Excel {
         /// <summary>Whether the run is underlined.</summary>
         public bool Underline { get; }
 
+        /// <summary>Native Excel underline variant, when specified.</summary>
+        public ExcelUnderlineStyle? UnderlineStyle { get; }
+
         /// <summary>Whether the run is struck through.</summary>
         public bool Strikethrough { get; }
+
+        internal bool BoldSpecified { get; }
+        internal bool ItalicSpecified { get; }
+        internal bool UnderlineSpecified { get; }
+        internal bool StrikethroughSpecified { get; }
+
+        /// <summary>Native Excel run baseline, when specified.</summary>
+        public ExcelVerticalTextAlignment? VerticalTextAlignment { get; }
 
         /// <summary>Run font color in ARGB hexadecimal form, when specified.</summary>
         public string? FontColorArgb { get; }

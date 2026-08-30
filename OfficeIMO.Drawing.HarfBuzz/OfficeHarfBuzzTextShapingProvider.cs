@@ -16,7 +16,7 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// packages remain independent of HarfBuzz and its native assets.
 /// </remarks>
 public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
-    private readonly ConditionalWeakTable<byte[], CachedFontCollection> _fontCache = new();
+    private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
 
     /// <summary>Shared provider instance with a weak cache of parsed font faces.</summary>
     public static OfficeHarfBuzzTextShapingProvider Instance { get; } = new();
@@ -31,9 +31,10 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         if (request.Text.Length == 0) return null;
 
         byte[] fontData = request.FontDataForShaping;
+        object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
         CachedFontCollection fontCollection = _fontCache.GetValue(
-            fontData,
-            static data => new CachedFontCollection(data));
+            fontCacheKey,
+            _ => new CachedFontCollection(fontData));
         fontCollection.Shape(request, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
         if (glyphCount <= 1) return null;
         GC.KeepAlive(fontData);
@@ -112,6 +113,13 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
                 glyphCount = cached.Face.GlyphCount;
                 cached.Font.SetScale(request.UnitsPerEm, request.UnitsPerEm);
+                Variation[] variations = request.VariationCoordinatesForShaping
+                    .Select(static coordinate => new Variation {
+                        Tag = HarfBuzzSharp.Tag.Parse(coordinate.Key),
+                        Value = coordinate.Value
+                    })
+                    .ToArray();
+                cached.Font.SetVariations(variations);
                 using var buffer = new HarfBuzzSharp.Buffer();
                 buffer.AddUtf16(request.Text);
                 buffer.GuessSegmentProperties();

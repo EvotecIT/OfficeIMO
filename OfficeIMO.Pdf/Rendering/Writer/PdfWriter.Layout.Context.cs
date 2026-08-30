@@ -16,6 +16,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.IReadOnlyList<SectionBlock> sectionDefinitions;
         private readonly System.Collections.Generic.IReadOnlyDictionary<string, int> sectionPageNumbers;
         private readonly System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>> deferredMaterializations;
+        private readonly System.Threading.CancellationToken cancellationToken;
         private readonly System.Collections.Generic.List<SectionBlock> encounteredSectionDefinitions = new System.Collections.Generic.List<SectionBlock>();
         private readonly System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]> rowColumnKeepChainHeights = new System.Collections.Generic.Dictionary<System.Collections.Generic.List<ColItem>, double[]>();
         private bool encounteredTableOfContents;
@@ -44,8 +45,10 @@ internal static partial class PdfWriter {
             PdfOptions options,
             System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null,
             System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null,
-            System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null) {
+            System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null,
+            System.Threading.CancellationToken cancellationToken = default) {
             currentOpts = options;
+            this.cancellationToken = cancellationToken;
             pageContents = new PdfPageContentStore(options.PageContentMemoryLimitBytes);
             emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
             sectionDefinitions = sections ?? System.Array.Empty<SectionBlock>();
@@ -57,7 +60,9 @@ internal static partial class PdfWriter {
 
         public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
             try {
+                cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlocks(blocks);
+                cancellationToken.ThrowIfCancellationRequested();
                 FlushPage(pageDirty || HasCurrentPageNonContentObjects());
 
                 var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };

@@ -133,6 +133,23 @@ internal static class PdfContentStreamInterpreter {
                 }
             }
 
+            if (_dispatchInvalidOperations && (_hasInvalidOperand || _operands.Count > 0)) {
+                if (++_operationCount > _maxOperations) {
+                    throw PdfReadLimitException.Create(
+                        PdfReadLimitKind.ContentOperations,
+                        _maxOperations,
+                        _operationCount);
+                }
+                _operands.Clear();
+                _hasInvalidOperand = false;
+                return visit(new PdfContentOperation(
+                    string.Empty,
+                    Array.Empty<object>(),
+                    _content.Length,
+                    null,
+                    hasInvalidOperands: true));
+            }
+
             return true;
         }
 
@@ -251,6 +268,8 @@ internal static class PdfContentStreamInterpreter {
                 }
             }
 
+            if (depth != 0 || escaped) _hasInvalidOperand = true;
+
             return PdfStringParser.ParseLiteralToBytes(value.ToString());
         }
 
@@ -264,6 +283,8 @@ internal static class PdfContentStreamInterpreter {
             string hex = _content.Substring(start, _index - start);
             if (_index < _content.Length) {
                 _index++;
+            } else {
+                _hasInvalidOperand = true;
             }
 
             return PdfTextString.DecodeHexBytes(hex);
@@ -272,6 +293,7 @@ internal static class PdfContentStreamInterpreter {
         private object ReadArray(int nestingDepth) {
             _index++;
             var values = new List<object>();
+            bool terminated = false;
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
                 if (_index >= _content.Length) {
@@ -280,6 +302,7 @@ internal static class PdfContentStreamInterpreter {
 
                 if (_content[_index] == ']') {
                     _index++;
+                    terminated = true;
                     break;
                 }
 
@@ -307,6 +330,7 @@ internal static class PdfContentStreamInterpreter {
                     }
                 }
             }
+            if (!terminated) _hasInvalidOperand = true;
 
             if (values.All(value => value is double)) {
                 return values.Cast<double>().ToArray();
@@ -332,10 +356,12 @@ internal static class PdfContentStreamInterpreter {
             int dictionaryStart = _index;
             _index += 2;
             var dictionary = new PdfContentDictionary();
+            bool terminated = false;
             while (_index < _content.Length) {
                 SkipWhitespaceAndComments();
                 if (IsAt(">>")) {
                     _index += 2;
+                    terminated = true;
                     break;
                 }
 
@@ -366,6 +392,7 @@ internal static class PdfContentStreamInterpreter {
                     }
                 }
             }
+            if (!terminated) _hasInvalidOperand = true;
 
             dictionary.OptionalContentReferences = PdfInlineOptionalContentReferenceParser.Parse(
                 _content,
@@ -429,7 +456,9 @@ internal static class PdfContentStreamInterpreter {
                 }
             }
 
-            if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
+            if (_index < _content.Length && _content[_index] == '\r') {
+                _index += _index + 1 < _content.Length && _content[_index + 1] == '\n' ? 2 : 1;
+            } else if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
                 _index++;
             }
 
@@ -447,6 +476,8 @@ internal static class PdfContentStreamInterpreter {
             SkipWhitespaceAndComments();
             if (IsOperatorAt("EI")) {
                 _index += 2;
+            } else {
+                _hasInvalidOperand = true;
             }
 
             return new PdfContentInlineImage(dictionary, data);
@@ -658,7 +689,9 @@ internal static class PdfContentStreamInterpreter {
                 case "DeviceCMYK":
                     return 4;
                 default:
-                    return Math.Max(1, _inlineImageComponentCount?.Invoke(colorSpace) ?? 1);
+                    return _inlineImageComponentCount == null
+                        ? 1
+                        : Math.Max(0, _inlineImageComponentCount(colorSpace));
             }
         }
 

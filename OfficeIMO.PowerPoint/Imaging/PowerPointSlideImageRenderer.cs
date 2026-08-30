@@ -335,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void AddTextBox(OfficeDrawing drawing, PowerPointTextBox textBox, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
-            string text = textBox.Text;
+            string text = ResolvePowerPointDisplayText(textBox);
             bool hasVisibleFrame = HasVisibleFrame(textBox, colorScheme);
             if (string.IsNullOrEmpty(text) && !hasVisibleFrame) {
                 return;
@@ -355,6 +355,10 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
+
+            AddSmallCapsApproximationDiagnosticIfNeeded(textBox, diagnostics);
+            AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(textBox, diagnostics);
+            AddBaselineApproximationDiagnosticIfNeeded(textBox, diagnostics);
 
             double marginLeft = mapping.MapHorizontalLength(textBox.TextMarginLeftPoints ?? 0D);
             double marginTop = mapping.MapVerticalLength(textBox.TextMarginTopPoints ?? 0D);
@@ -742,21 +746,28 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeFontInfo CreateFont(PowerPointTextBox textBox, PowerPointShapeBoundsMapping mapping) {
+            PowerPointTextRun? firstRun = textBox.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeFontStyle style = OfficeFontStyle.Regular;
-            if (textBox.Bold) {
+            if (firstRun?.Bold == true || textBox.Bold) {
                 style |= OfficeFontStyle.Bold;
             }
 
-            if (textBox.Italic) {
+            if (firstRun?.Italic == true || textBox.Italic) {
                 style |= OfficeFontStyle.Italic;
             }
 
-            return new OfficeFontInfo(textBox.FontName ?? "Calibri", mapping.MapFontSize(textBox.FontSize ?? 18), style);
+            return new OfficeFontInfo(
+                firstRun?.FontName ?? textBox.FontName ?? "Calibri",
+                mapping.MapFontSize(firstRun?.FontSize ?? textBox.FontSize ?? 18),
+                style);
         }
 
         private static bool ShouldRenderRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 ||
-            (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough || richRuns[0].BackgroundColor.HasValue));
+            (richRuns.Count == 1 && (richRuns[0].Underline || richRuns[0].Strikethrough ||
+                richRuns[0].BackgroundColor.HasValue || richRuns[0].Baseline != OfficeTextBaseline.Normal));
 
         private static OfficeTextParagraphIndent CreateParagraphIndent(PowerPointParagraph? paragraph, PowerPointShapeBoundsMapping mapping) {
             if (paragraph == null) {
@@ -776,10 +787,10 @@ namespace OfficeIMO.PowerPoint {
             var numberingState = new Dictionary<int, int>();
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
                 PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-                IReadOnlyList<PowerPointTextRun> paragraphRuns = paragraph.Runs;
-                PowerPointTextRun? firstRun = paragraphRuns.Count > 0 ? paragraphRuns[0] : null;
+                IReadOnlyList<PowerPointParagraphInline> inlineNodes = paragraph.InlineNodes;
+                PowerPointTextRun? firstRun = inlineNodes.FirstOrDefault(node => node.Run != null)?.Run;
                 string? marker = CreateParagraphMarker(paragraph, numberingState);
-                bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || paragraphRuns.Any(run => !string.IsNullOrEmpty(run.Text));
+                bool paragraphHasVisibleText = !string.IsNullOrEmpty(marker) || inlineNodes.Any(node => !string.IsNullOrEmpty(node.Text));
                 if (!paragraphHasVisibleText) {
                     continue;
                 }
@@ -792,14 +803,14 @@ namespace OfficeIMO.PowerPoint {
                     richRuns.Add(CreateRichTextRun(marker!, firstRun, textBox, paragraph, colorScheme, mapping, markerRun: true));
                 }
 
-                for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    PowerPointTextRun run = paragraphRuns[runIndex];
-                    string runText = run.Text;
+                for (int inlineIndex = 0; inlineIndex < inlineNodes.Count; inlineIndex++) {
+                    PowerPointParagraphInline inline = inlineNodes[inlineIndex];
+                    string runText = inline.Text;
                     if (string.IsNullOrEmpty(runText)) {
                         continue;
                     }
 
-                    richRuns.Add(CreateRichTextRun(runText, run, textBox, paragraph, colorScheme, mapping));
+                    richRuns.Add(CreateRichTextRun(runText, inline.Run, textBox, paragraph, colorScheme, mapping));
                 }
             }
 
@@ -828,7 +839,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeColor color = ResolveTextRunColor(run, textBox, colorScheme);
             OfficeColor? backgroundColor = ResolveTextRunBackgroundColor(run, colorScheme);
             return new OfficeRichTextRun(
-                text,
+                ResolvePowerPointDisplayText(text, run, paragraph, markerRun),
                 mapping.MapFontSize(markerRun ? paragraph?.BulletSizePoints ?? run?.FontSize ?? textBox.FontSize ?? 18 : run?.FontSize ?? textBox.FontSize ?? 18),
                 color,
                 run?.Bold == true,
@@ -836,11 +847,148 @@ namespace OfficeIMO.PowerPoint {
                 run?.Underline == true,
                 markerRun ? paragraph?.BulletFontName ?? run?.FontName ?? textBox.FontName ?? "Calibri" : run?.FontName ?? textBox.FontName ?? "Calibri",
                 run?.Strikethrough == true,
-                backgroundColor);
+                backgroundColor,
+                MapUnderlineStyle(run?.UnderlineStyle),
+                MapStrikeStyle(run?.StrikeStyle),
+                MapBaseline(ResolvePowerPointBaselinePercent(run, paragraph)));
         }
 
+        private static string ResolvePowerPointDisplayText(string text, PowerPointTextRun? run, PowerPointParagraph? paragraph, bool markerRun = false) {
+            PowerPointCapitalization? capitalization = ResolvePowerPointCapitalization(run, paragraph);
+            if (markerRun || capitalization is not (PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps)) {
+                return text;
+            }
+
+            return OfficeTextCaseTransformer.Apply(text, OfficeTextCase.Uppercase,
+                ResolvePowerPointRunCulture(ResolvePowerPointLanguage(run, paragraph)));
+        }
+
+        private static string ResolvePowerPointDisplayText(PowerPointTextBox textBox) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    ResolvePowerPointCapitalization(node.Run, paragraph) is PowerPointCapitalization.AllCaps or PowerPointCapitalization.SmallCaps))) {
+                return textBox.Text;
+            }
+
+            return string.Join(Environment.NewLine, textBox.Paragraphs.Select(paragraph =>
+                string.Concat(paragraph.InlineNodes.Select(node =>
+                    node.Run == null ? node.Text : ResolvePowerPointDisplayText(node.Text, node.Run, paragraph)))));
+        }
+
+        private static PowerPointCapitalization? ResolvePowerPointCapitalization(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
+            if (run?.Capitalization.HasValue == true) return run.Capitalization;
+            A.TextCapsValues? inherited = paragraph?.Paragraph.ParagraphProperties?
+                .GetFirstChild<A.DefaultRunProperties>()?.Capital?.Value;
+            if (!inherited.HasValue) return null;
+            if (inherited.Value == A.TextCapsValues.None) return PowerPointCapitalization.None;
+            if (inherited.Value == A.TextCapsValues.Small) return PowerPointCapitalization.SmallCaps;
+            if (inherited.Value == A.TextCapsValues.All) return PowerPointCapitalization.AllCaps;
+            return null;
+        }
+
+        private static string? ResolvePowerPointLanguage(PowerPointTextRun? run, PowerPointParagraph? paragraph) =>
+            !string.IsNullOrWhiteSpace(run?.Language)
+                ? run!.Language
+                : paragraph?.Paragraph.ParagraphProperties?
+                    .GetFirstChild<A.DefaultRunProperties>()?.Language?.Value;
+
+        private static double? ResolvePowerPointBaselinePercent(PowerPointTextRun? run, PowerPointParagraph? paragraph) {
+            if (run?.BaselinePercent.HasValue == true) return run.BaselinePercent;
+            int? inherited = paragraph?.Paragraph.ParagraphProperties?
+                .GetFirstChild<A.DefaultRunProperties>()?.Baseline?.Value;
+            return inherited.HasValue ? inherited.Value / 1000D : (double?)null;
+        }
+
+        private static CultureInfo ResolvePowerPointRunCulture(string? language) {
+            if (!string.IsNullOrWhiteSpace(language)) {
+                try {
+                    return CultureInfo.GetCultureInfo(language!);
+                } catch (CultureNotFoundException) {
+                    // Invalid or unsupported tags fall back deterministically for image export.
+                }
+            }
+
+            return CultureInfo.InvariantCulture;
+        }
+
+        private static void AddSmallCapsApproximationDiagnosticIfNeeded(
+            PowerPointTextBox textBox,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    ResolvePowerPointCapitalization(node.Run, paragraph) == PowerPointCapitalization.SmallCaps && !string.IsNullOrEmpty(node.Text)))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.SmallCapsApproximated,
+                "Rendered native PowerPoint small caps as uppercase glyphs; reduced small-cap glyph sizing is approximated.",
+                DescribeShape(textBox),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static void AddBaselineApproximationDiagnosticIfNeeded(
+            PowerPointTextBox textBox,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.Any(paragraph => paragraph.InlineNodes.Any(node => node.Run != null &&
+                    IsPowerPointBaselineApproximated(ResolvePowerPointBaselinePercent(node.Run, paragraph))))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.BaselinePercentApproximated,
+                "Rendered a native PowerPoint baseline percentage using the shared superscript or subscript geometry; the exact authored percentage is not representable.",
+                DescribeShape(textBox),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static bool IsPowerPointBaselineApproximated(double? baselinePercent) =>
+            baselinePercent.HasValue && baselinePercent.Value != 0D &&
+            Math.Abs(baselinePercent.Value - 30D) > 0.0001D &&
+            Math.Abs(baselinePercent.Value + 25D) > 0.0001D;
+
+        private static void AddWavyDoubleUnderlineApproximationDiagnosticIfNeeded(
+            PowerPointTextBox textBox,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            if (!textBox.Paragraphs.SelectMany(paragraph => paragraph.InlineNodes)
+                .Any(node => node.Run?.UnderlineStyle == PowerPointUnderlineStyle.WavyDouble && !string.IsNullOrEmpty(node.Text))) {
+                return;
+            }
+
+            diagnostics.Add(new OfficeImageExportDiagnostic(
+                OfficeImageExportDiagnosticSeverity.Warning,
+                PowerPointImageExportDiagnosticCodes.WavyDoubleUnderlineApproximated,
+                "Rendered native PowerPoint double-wavy underline as a double solid underline because the shared Drawing model cannot represent the compound pattern.",
+                DescribeShape(textBox),
+                OfficeConversionLossKind.Approximation));
+        }
+
+        private static OfficeTextDecorationStyle MapUnderlineStyle(PowerPointUnderlineStyle? style) => style switch {
+            null or PowerPointUnderlineStyle.None => OfficeTextDecorationStyle.None,
+            PowerPointUnderlineStyle.Double or PowerPointUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+            PowerPointUnderlineStyle.Dotted or PowerPointUnderlineStyle.HeavyDotted => OfficeTextDecorationStyle.Dotted,
+            PowerPointUnderlineStyle.Dash or PowerPointUnderlineStyle.DashHeavy or
+                PowerPointUnderlineStyle.DashLong or PowerPointUnderlineStyle.DashLongHeavy or
+                PowerPointUnderlineStyle.DotDash or PowerPointUnderlineStyle.DotDashHeavy or
+                PowerPointUnderlineStyle.DotDotDash or PowerPointUnderlineStyle.DotDotDashHeavy => OfficeTextDecorationStyle.Dashed,
+            PowerPointUnderlineStyle.Wavy or PowerPointUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+            _ => OfficeTextDecorationStyle.Single
+        };
+
+        private static OfficeTextDecorationStyle MapStrikeStyle(PowerPointStrikeStyle? style) => style switch {
+            PowerPointStrikeStyle.Double => OfficeTextDecorationStyle.Double,
+            PowerPointStrikeStyle.Single => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static OfficeTextBaseline MapBaseline(double? baselinePercent) => baselinePercent switch {
+            > 0D => OfficeTextBaseline.Superscript,
+            < 0D => OfficeTextBaseline.Subscript,
+            _ => OfficeTextBaseline.Normal
+        };
+
         private static OfficeColor ResolveTextRunColor(PowerPointTextRun? run, PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? runColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             if (runColor.HasValue) {
                 return runColor.Value;
             }
@@ -849,9 +997,9 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor ResolveTextBoxColor(PowerPointTextBox textBox, A.ColorScheme? colorScheme) {
-            A.Run? run = textBox.Paragraphs
-                .SelectMany(paragraph => paragraph.Paragraph.Elements<A.Run>())
-                .FirstOrDefault();
+            PowerPointTextRun? run = textBox.Paragraphs
+                .SelectMany(paragraph => paragraph.InlineNodes)
+                .FirstOrDefault(node => node.Run != null && !string.IsNullOrEmpty(node.Text))?.Run;
             OfficeColor? textBoxColor = OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.SolidFill>(), colorScheme);
             return textBoxColor.HasValue
                 ? textBoxColor.Value
@@ -859,7 +1007,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OfficeColor? ResolveTextRunBackgroundColor(PowerPointTextRun? run, A.ColorScheme? colorScheme) {
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.Run.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(run?.RunProperties?.GetFirstChild<A.Highlight>(), colorScheme);
         }
 
         private static OfficeTextAlignment MapTextAlignment(PowerPointTextAlignment? alignment) {

@@ -519,7 +519,8 @@ internal sealed class HtmlInlineRun {
         double paintOffsetY = 0D,
         IElement? ownerElement = null,
         IElement? positionedMarkerElement = null,
-        string? logicalText = null) {
+        string? logicalText = null,
+        bool textTransformPending = false) {
         Text = text;
         LogicalText = logicalText ?? text;
         Style = style;
@@ -530,6 +531,7 @@ internal sealed class HtmlInlineRun {
         OwnerElement = ownerElement;
         PositionedMarkerElement = positionedMarkerElement;
         SemanticRole = style.SemanticRole;
+        TextTransformPending = textTransformPending;
     }
 
     internal HtmlInlineRun(
@@ -578,8 +580,8 @@ internal sealed class HtmlInlineRun {
         SemanticRole = style.SemanticRole;
     }
 
-    internal string Text { get; }
-    internal string LogicalText { get; }
+    internal string Text { get; private set; }
+    internal string LogicalText { get; private set; }
     internal HtmlRenderFlowBlock? AtomicBlock { get; }
     internal HtmlRenderFlowBlock? FloatingBlock { get; }
     internal HtmlRenderBoxStyle Style { get; }
@@ -604,6 +606,13 @@ internal sealed class HtmlInlineRun {
     internal string? BookmarkAnchorText { get; private set; }
     internal string FloatSide { get; } = "none";
     internal string ClearSide { get; } = "none";
+    internal bool TextTransformPending { get; private set; }
+
+    internal void CompleteTextTransform(string text) {
+        Text = text;
+        LogicalText = text;
+        TextTransformPending = false;
+    }
 
     internal void AssignSemanticNode(string role, int nodeId, string? bookmarkAnchorText = null, int? semanticFragmentOrder = null) {
         SemanticNodeId = nodeId;

@@ -40,8 +40,8 @@ public sealed partial class PdfOptions {
         Guard.PageNumberStyle(PageNumberStyle, nameof(PageNumberStyle));
         Guard.ComplianceProfile(ComplianceProfile, nameof(ComplianceProfile));
         PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
-        if (_encryption != null && HasPdfABackedGroundwork()) {
-            throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, Factur-X, or ZUGFeRD groundwork.");
+        if (_encryption != null && HasComplianceGroundworkThatProhibitsEncryption()) {
+            throw new System.ArgumentException("PDF Standard encryption cannot be combined with PDF/A, PDF/X, Factur-X, or ZUGFeRD groundwork.");
         }
 
         if (DefaultFontSize <= 0 || double.IsNaN(DefaultFontSize) || double.IsInfinity(DefaultFontSize)) {
@@ -147,8 +147,9 @@ public sealed partial class PdfOptions {
         }
     }
 
-    private bool HasPdfABackedGroundwork() =>
+    private bool HasComplianceGroundworkThatProhibitsEncryption() =>
         _pdfAIdentification != null ||
+        _pdfXIdentification != null ||
         _electronicInvoiceMetadata != null ||
         ComplianceProfile == PdfComplianceProfile.PdfA2B ||
         ComplianceProfile == PdfComplianceProfile.PdfA2U ||
@@ -159,6 +160,8 @@ public sealed partial class PdfOptions {
         ComplianceProfile == PdfComplianceProfile.PdfA4 ||
         ComplianceProfile == PdfComplianceProfile.PdfA4E ||
         ComplianceProfile == PdfComplianceProfile.PdfA4F ||
+        ComplianceProfile == PdfComplianceProfile.PdfX1A2003 ||
+        ComplianceProfile == PdfComplianceProfile.PdfX4 ||
         ComplianceProfile == PdfComplianceProfile.FacturX ||
         ComplianceProfile == PdfComplianceProfile.Zugferd;
 

@@ -44,14 +44,28 @@ public sealed class OdpParagraph {
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
     /// <summary>Explicit or inherited underline state.</summary>
     public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited native underline style.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle { get => Resolve(style => style.UnderlineStyle); set => EnsureStyle().UnderlineStyle = value; }
+    /// <summary>Explicit or inherited native underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType { get => Resolve(style => style.UnderlineType); set => EnsureStyle().UnderlineType = value; }
     /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidUnderlineStyle => Resolve(style => style.UsesNonSolidUnderlineStyle) == true;
     /// <summary>Explicit or inherited strike-through state.</summary>
     public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    /// <summary>Explicit or inherited native line-through style.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle { get => Resolve(style => style.LineThroughStyle); set => EnsureStyle().LineThroughStyle = value; }
+    /// <summary>Explicit or inherited native line-through line count.</summary>
+    public OdfTextDecorationType? LineThroughType { get => Resolve(style => style.LineThroughType); set => EnsureStyle().LineThroughType = value; }
     /// <summary>Whether the effective line-through uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidLineThroughStyle => Resolve(style => style.UsesNonSolidLineThroughStyle) == true;
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
+    /// <summary>Explicit or inherited baseline placement.</summary>
+    public OdfTextPosition? TextPosition { get => Resolve(style => style.TextPosition); set => EnsureStyle().TextPosition = value; }
+    /// <summary>Explicit or inherited display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform { get => Resolve(style => style.TextTransform); set => EnsureStyle().TextTransform = value; }
+    /// <summary>Explicit or inherited small-cap display formatting.</summary>
+    public bool? SmallCaps { get => Resolve(style => style.SmallCaps); set => EnsureStyle().SmallCaps = value; }
     /// <summary>Explicit or inherited font family.</summary>
     public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Effective ODF writing-mode token, such as <c>lr-tb</c> or <c>rl-tb</c>.</summary>
@@ -81,6 +95,12 @@ public sealed class OdpParagraph {
     public OdpParagraph AddText(string text) { OdfTextCodec.Append(_element, text); Dirty(); return this; }
     /// <summary>Adds an inline text run.</summary>
     public OdpRun AddRun(string? text = null) { var span = new XElement(OdfNamespaces.Text + "span"); OdfTextCodec.Append(span, text); _element.Add(span); Dirty(); return new OdpRun(_presentation, span); }
+    /// <summary>Changes the stored paragraph text casing while preserving the paragraph style.</summary>
+    public OdpParagraph TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
+        return this;
+    }
     /// <summary>Adds a hyperlink without resolving or fetching its target.</summary>
     public OdpHyperlink AddHyperlink(string text, string href) {
         if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("Hyperlink target cannot be empty.", nameof(href));
@@ -137,14 +157,28 @@ public sealed class OdpRun {
     public bool? Italic { get => Resolve(style => style.Italic); set => EnsureStyle().Italic = value; }
     /// <summary>Explicit or inherited underline state.</summary>
     public bool? Underline { get => Resolve(style => style.Underline); set => EnsureStyle().Underline = value; }
+    /// <summary>Explicit or inherited native underline style.</summary>
+    public OdfTextDecorationStyle? UnderlineStyle { get => Resolve(style => style.UnderlineStyle); set => EnsureStyle().UnderlineStyle = value; }
+    /// <summary>Explicit or inherited native underline line count.</summary>
+    public OdfTextDecorationType? UnderlineType { get => Resolve(style => style.UnderlineType); set => EnsureStyle().UnderlineType = value; }
     /// <summary>Whether the effective underline uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidUnderlineStyle => Resolve(style => style.UsesNonSolidUnderlineStyle) == true;
     /// <summary>Explicit or inherited strike-through state.</summary>
     public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    /// <summary>Explicit or inherited native line-through style.</summary>
+    public OdfTextDecorationStyle? LineThroughStyle { get => Resolve(style => style.LineThroughStyle); set => EnsureStyle().LineThroughStyle = value; }
+    /// <summary>Explicit or inherited native line-through line count.</summary>
+    public OdfTextDecorationType? LineThroughType { get => Resolve(style => style.LineThroughType); set => EnsureStyle().LineThroughType = value; }
     /// <summary>Whether the effective line-through uses a non-solid ODF decoration style.</summary>
     public bool UsesNonSolidLineThroughStyle => Resolve(style => style.UsesNonSolidLineThroughStyle) == true;
     /// <summary>Explicit or inherited font size.</summary>
     public OdfLength? FontSize { get => Resolve(style => style.FontSize); set => EnsureStyle().FontSize = value; }
+    /// <summary>Explicit or inherited baseline placement.</summary>
+    public OdfTextPosition? TextPosition { get => Resolve(style => style.TextPosition); set => EnsureStyle().TextPosition = value; }
+    /// <summary>Explicit or inherited display-time case transformation.</summary>
+    public OdfTextTransform? TextTransform { get => Resolve(style => style.TextTransform); set => EnsureStyle().TextTransform = value; }
+    /// <summary>Explicit or inherited small-cap display formatting.</summary>
+    public bool? SmallCaps { get => Resolve(style => style.SmallCaps); set => EnsureStyle().SmallCaps = value; }
     /// <summary>Explicit or inherited font family.</summary>
     public string? FontFamily { get => ResolveReference(style => style.FontFamily); set => EnsureStyle().FontFamily = value; }
     /// <summary>Explicit or inherited text color.</summary>
@@ -157,6 +191,12 @@ public sealed class OdpRun {
             return _presentation.Styles.ResolveTextBackgroundColor(style);
         }
         set => EnsureStyle().TextBackgroundColor = value;
+    }
+    /// <summary>Changes the stored run text casing while preserving its text style.</summary>
+    public OdpRun TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+        OdfTextCodec.TransformTextCase(_element, textCase, culture);
+        Dirty();
+        return this;
     }
     private OdfStyle EnsureStyle() => _presentation.Styles.EnsureAutomaticStyle(_element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofRun");
     private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {

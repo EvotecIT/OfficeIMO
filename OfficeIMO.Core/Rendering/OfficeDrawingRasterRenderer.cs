@@ -268,23 +268,32 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (!text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding) {
-            if (text.TextAdvanceWidth.HasValue) {
-                canvas.DrawPositionedText(
-                    text.Text,
-                    contentX,
-                    contentY,
-                    contentWidth,
-                    contentHeight,
-                    text.Color ?? OfficeColor.Black,
-                    text.Font.Size * scale,
-                    text.Alignment,
-                    text.Font.Style,
-                    text.Font.FamilyName,
-                    text.TextAdvanceWidth.Value * scale);
-                return;
-            }
+        bool supportsLegacyFastPath = Math.Abs(text.BaselineScale - 1D) < 0.000001D && Math.Abs(text.BaselineOffset) < 0.000001D &&
+            text.UnderlineStyle == OfficeTextDecorationStyle.None &&
+            text.StrikethroughStyle == OfficeTextDecorationStyle.None;
+        bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
+        if (text.TextAdvanceWidth.HasValue && supportsPositionedPath) {
+            double positionedSourceFontSize = Math.Max(1D, text.Font.Size * scale);
+            double renderedFontSize = positionedSourceFontSize * text.BaselineScale;
+            double positionedBaselineOffset = text.BaselineOffset * scale;
+            canvas.DrawPositionedText(
+                text.Text,
+                contentX,
+                contentY + positionedBaselineOffset,
+                contentWidth,
+                contentHeight,
+                text.Color ?? OfficeColor.Black,
+                renderedFontSize,
+                text.Alignment,
+                text.Font.Style,
+                text.Font.FamilyName,
+                text.TextAdvanceWidth.Value * scale,
+                text.UnderlineStyle,
+                text.StrikethroughStyle);
+            return;
+        }
 
+        if (supportsLegacyFastPath && supportsPositionedPath) {
             canvas.DrawText(
                 text.Text,
                 contentX,
@@ -299,7 +308,9 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        double fontSize = Math.Max(1D, text.Font.Size * scale);
+        double sourceFontSize = Math.Max(1D, text.Font.Size * scale);
+        double fontSize = sourceFontSize * text.BaselineScale;
+        double baselineOffset = text.BaselineOffset * scale;
         OfficeTextParagraphIndent paragraphIndent = text.ParagraphIndent.Scale(scale);
         double lineHeightFactor = text.LineHeight.HasValue && text.LineHeight.Value > 0D
             ? Math.Max(1D, (text.LineHeight.Value * scale) / fontSize)
@@ -343,7 +354,7 @@ public static partial class OfficeDrawingRasterRenderer {
             canvas,
             layout,
             contentX,
-            contentY,
+            contentY + baselineOffset,
             contentWidth,
             contentHeight,
             text.Color ?? OfficeColor.Black,
@@ -358,7 +369,10 @@ public static partial class OfficeDrawingRasterRenderer {
             strikethrough: (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
             fontFamily: text.Font.FamilyName,
             flipHorizontal: text.FlipHorizontal,
-            flipVertical: text.FlipVertical);
+            flipVertical: text.FlipVertical,
+            underlineStyle: text.UnderlineStyle,
+            strikethroughStyle: text.StrikethroughStyle,
+            baseline: OfficeTextBaseline.Normal);
     }
 
     private static void RenderRichText(OfficeRasterCanvas canvas, OfficeDrawingRichText text, double scale) {
@@ -422,7 +436,10 @@ public static partial class OfficeDrawingRasterRenderer {
                 run.Underline,
                 run.FontFamily,
                 run.Strikethrough,
-                run.BackgroundColor));
+                run.BackgroundColor,
+                run.UnderlineStyle,
+                run.StrikethroughStyle,
+                run.Baseline));
         }
 
         return scaled;

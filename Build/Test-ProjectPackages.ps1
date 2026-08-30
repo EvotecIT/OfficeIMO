@@ -122,6 +122,7 @@ try {
         'OfficeIMO.Word' = @('OfficeIMO.Core', 'OfficeIMO.IWork')
         'OfficeIMO.Excel' = @('OfficeIMO.Core', 'OfficeIMO.IWork')
         'OfficeIMO.PowerPoint' = @('OfficeIMO.Core', 'OfficeIMO.IWork')
+        'OfficeIMO.Drawing.HarfBuzz' = @('OfficeIMO.Core')
         'OfficeIMO.Html' = @('OfficeIMO.Core')
         'OfficeIMO.Html.Pdf.Browser' = @('OfficeIMO.Core', 'OfficeIMO.Pdf')
         'OfficeIMO.Html.Rtf' = @('OfficeIMO.Core', 'OfficeIMO.Html', 'OfficeIMO.Rtf')

@@ -14,7 +14,8 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
 - structured Presentation MathML routed through the shared OfficeIMO.Core expression and vector-rendering model
-- bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware WOFF 1/OpenType fonts
+- bounded CSS length math, caller stylesheets, deterministic media preferences, running strings and elements, and Unicode-range-aware font fallback packs
+- first-party TrueType/WOFF 1, .NET 8+ single-face WOFF 2, CFF/CFF2, and variable-font programs, plus an optional complete OpenType shaping provider
 - direct PNG, JPEG, TIFF, SVG, and lossless WebP export over `OfficeIMO.Drawing`
 - one typed semantic document projection shared by Excel, PowerPoint, and OneNote importers
 - executable target capability contracts, preflight analysis, and source-to-target diagnostic provenance

@@ -512,7 +512,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                string text = ResolveImageExportText(run, context);
+                string text = ResolveImageExportText(run, context, diagnostics);
                 if (string.IsNullOrEmpty(text)) {
                     continue;
                 }
@@ -525,7 +525,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool AddRichTextRuns(IReadOnlyList<WordParagraph> paragraphs, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, WordImageListMarker? listMarker, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme) {
-            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(paragraphs, colorScheme, context);
+            List<OfficeRichTextRun> richRuns = CreateRichTextRuns(paragraphs, colorScheme, context, diagnostics);
             if (richRuns.Count == 0) {
                 return false;
             }
@@ -600,7 +600,7 @@ namespace OfficeIMO.Word {
             OfficeFontInfo font = CreateFont(paragraph);
             double lineHeight = Math.Max(font.Size * 1.25D, 12D);
             WordImageTextLayout textLayout = ResolveTextLayout(context, listMarker, paragraph);
-            string text = ResolveImageExportText(paragraph, context);
+            string text = ResolveImageExportText(paragraph, context, diagnostics);
             List<string> lines = WrapTextIntoMeasuredLines(
                 text,
                 font,
@@ -622,12 +622,16 @@ namespace OfficeIMO.Word {
             return AddPaginatedTextRun(paragraph, lines, font, lineHeight, spacing, spacingState, listMarker, colorScheme, avoidWidowAndOrphan, context, diagnostics);
         }
 
-        private static List<OfficeRichTextRun> CreateRichTextRuns(IReadOnlyList<WordParagraph> paragraphs, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
+        private static List<OfficeRichTextRun> CreateRichTextRuns(
+            IReadOnlyList<WordParagraph> paragraphs,
+            DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme,
+            WordImageFlowContext? context = null,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>(paragraphs.Count);
             for (int i = 0; i < paragraphs.Count; i++) {
                 context?.ThrowIfCancellationRequested();
                 WordParagraph paragraph = paragraphs[i];
-                string text = ResolveImageExportText(paragraph, context);
+                string text = ResolveImageExportText(paragraph, context, diagnostics);
                 if (string.IsNullOrEmpty(text)) {
                     continue;
                 }
@@ -640,6 +644,7 @@ namespace OfficeIMO.Word {
 
         private static OfficeRichTextRun CreateRichTextRun(WordParagraph paragraph, DocumentFormat.OpenXml.Drawing.ColorScheme? colorScheme, string? text = null) {
             double fontSize = paragraph.FontSize ?? 11;
+            WordVerticalTextPosition? verticalTextAlignment = ResolveImageExportVerticalTextAlignment(paragraph);
             return new OfficeRichTextRun(
                 text ?? paragraph.Text,
                 fontSize,
@@ -649,8 +654,31 @@ namespace OfficeIMO.Word {
                 paragraph.Underline.HasValue && paragraph.Underline.Value != WordUnderlineStyle.None,
                 paragraph.FontFamily ?? "Calibri",
                 paragraph.Strike || paragraph.DoubleStrike,
-                ResolveRunBackgroundColor(paragraph, colorScheme));
+                ResolveRunBackgroundColor(paragraph, colorScheme),
+                MapWordUnderlineStyle(paragraph.Underline),
+                paragraph.DoubleStrike
+                    ? OfficeTextDecorationStyle.Double
+                    : paragraph.Strike
+                        ? OfficeTextDecorationStyle.Single
+                        : OfficeTextDecorationStyle.None,
+                verticalTextAlignment == WordVerticalTextPosition.Superscript
+                    ? OfficeTextBaseline.Superscript
+                    : verticalTextAlignment == WordVerticalTextPosition.Subscript
+                        ? OfficeTextBaseline.Subscript
+                        : OfficeTextBaseline.Normal);
         }
+
+        private static OfficeTextDecorationStyle MapWordUnderlineStyle(WordUnderlineStyle? style) => style switch {
+            null or WordUnderlineStyle.None => OfficeTextDecorationStyle.None,
+            WordUnderlineStyle.Double or WordUnderlineStyle.WavyDouble => OfficeTextDecorationStyle.Double,
+            WordUnderlineStyle.Dotted or WordUnderlineStyle.DottedHeavy => OfficeTextDecorationStyle.Dotted,
+            WordUnderlineStyle.Dash or WordUnderlineStyle.DashedHeavy or
+                WordUnderlineStyle.DashLong or WordUnderlineStyle.DashLongHeavy or
+                WordUnderlineStyle.DotDash or WordUnderlineStyle.DashDotHeavy or
+                WordUnderlineStyle.DotDotDash or WordUnderlineStyle.DashDotDotHeavy => OfficeTextDecorationStyle.Dashed,
+            WordUnderlineStyle.Wave or WordUnderlineStyle.WavyHeavy => OfficeTextDecorationStyle.Wavy,
+            _ => OfficeTextDecorationStyle.Single
+        };
 
         private static OfficeFontInfo CreateFont(WordParagraph paragraph) {
             OfficeFontStyle style = OfficeFontStyle.Regular;

@@ -100,6 +100,40 @@ jobs:
         shell: pwsh
         run: ./Build/Test-HtmlPackages.ps1
 
+  typography-package-consumers:
+    name: 'OfficeIMO typography providers / ${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Build, test, and package-smoke typography providers
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY
+          dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration Release --verbosity $env:TEST_VERBOSITY --filter "FullyQualifiedName~DrawingWoff2FontTests|FullyQualifiedName~DrawingCffFontTests|FullyQualifiedName~DrawingTrueTypeVariableFontTests"
+          ./Build/Test-TypographyPackages.ps1
+
   email-package-consumers:
     name: 'OfficeIMO email platform packed consumers'
     runs-on: windows-latest

@@ -88,6 +88,20 @@ public sealed partial class PdfPageCanvas {
     /// Child paint remains unchanged while readers that honor <c>ActualText</c> receive the supplied logical text once.
     /// </summary>
     public PdfPageCanvas ActualText(string text, Action<PdfPageCanvas> build) {
+        return AddActualText(text, 0D, 0D, hasPosition: false, build);
+    }
+
+    /// <summary>
+    /// Groups positioned paint under one logical replacement string and anchors the invisible
+    /// extraction span at an absolute top-left page coordinate.
+    /// </summary>
+    public PdfPageCanvas ActualText(string text, double x, double y, Action<PdfPageCanvas> build) {
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        return AddActualText(text, x, y, hasPosition: true, build);
+    }
+
+    private PdfPageCanvas AddActualText(string text, double x, double y, bool hasPosition, Action<PdfPageCanvas> build) {
         Guard.NotNull(text, nameof(text));
         if (text.Length == 0) throw new ArgumentException("Canvas actual text cannot be empty.", nameof(text));
         Guard.NotNull(build, nameof(build));
@@ -96,7 +110,7 @@ public sealed partial class PdfPageCanvas {
         if (nestedCanvas.Items.Count == 0) {
             throw new ArgumentException("Canvas actual-text groups require at least one content item.", nameof(build));
         }
-        _items.Add(new PdfCanvasActualTextItem(text, nestedCanvas.Items));
+        _items.Add(new PdfCanvasActualTextItem(text, x, y, hasPosition, nestedCanvas.Items));
         return this;
     }
 
@@ -478,7 +492,9 @@ public sealed partial class PdfPageCanvas {
                 run.TabLeader,
                 run.TabAlignment,
                 run.BackgroundColor,
-                run.FontFamily));
+                run.FontFamily,
+                run.UnderlineStyle,
+                run.StrikeStyle));
         }
 
         return styled.AsReadOnly();
@@ -596,13 +612,15 @@ internal sealed class PdfCanvasStructureItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasActualTextItem : PdfCanvasItem {
-    public PdfCanvasActualTextItem(string text, IReadOnlyList<PdfCanvasItem> items)
-        : base(0D, 0D) {
+    public PdfCanvasActualTextItem(string text, double x, double y, bool hasPosition, IReadOnlyList<PdfCanvasItem> items)
+        : base(x, y) {
         Text = text;
+        HasPosition = hasPosition;
         Items = items;
     }
 
     public string Text { get; }
+    public bool HasPosition { get; }
     public IReadOnlyList<PdfCanvasItem> Items { get; }
 }
 

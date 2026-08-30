@@ -35,6 +35,17 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             textBox.Color = textColor;
         }
 
+        foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
+            foreach (PowerPointTextRun run in paragraph.Runs) {
+                if (style.UnderlineStyle != null) run.UnderlineStyle = ToPowerPointUnderline(style.UnderlineStyle.Value);
+                if (style.StrikethroughStyle != null) run.StrikeStyle = ToPowerPointStrike(style.StrikethroughStyle.Value);
+                if (style.Baseline != null) ApplyBaseline(run, style.Baseline.Value);
+                if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) run.TransformTextCase(textCase, CultureInfo.InvariantCulture);
+                if (style.SmallCaps != null) run.Capitalization = style.SmallCaps.Value ? PowerPointCapitalization.SmallCaps : PowerPointCapitalization.None;
+                if (!string.IsNullOrWhiteSpace(style.HighlightColor)) run.HighlightColor = ToPowerPointColor(style.HighlightColor);
+            }
+        }
+
         var fillColor = ToPowerPointColor(style.FillColor);
         if (!string.IsNullOrWhiteSpace(fillColor)) {
             textBox.FillColor = fillColor;
@@ -49,6 +60,38 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         textBox.SetTextAutoFit(
             PowerPointTextAutoFit.Normal,
             new PowerPointTextAutoFitOptions(fontScalePercent: 82, lineSpaceReductionPercent: 18));
+    }
+
+    private static PowerPointUnderlineStyle ToPowerPointUnderline(OfficeTextDecorationStyle style) => style switch {
+        OfficeTextDecorationStyle.None => PowerPointUnderlineStyle.None,
+        OfficeTextDecorationStyle.Single => PowerPointUnderlineStyle.Single,
+        OfficeTextDecorationStyle.Double => PowerPointUnderlineStyle.Double,
+        OfficeTextDecorationStyle.Dotted => PowerPointUnderlineStyle.Dotted,
+        OfficeTextDecorationStyle.Dashed => PowerPointUnderlineStyle.Dash,
+        OfficeTextDecorationStyle.Wavy => PowerPointUnderlineStyle.Wavy,
+        _ => throw new ArgumentOutOfRangeException(nameof(style))
+    };
+
+    private static PowerPointStrikeStyle ToPowerPointStrike(OfficeTextDecorationStyle style) => style switch {
+        OfficeTextDecorationStyle.None => PowerPointStrikeStyle.None,
+        OfficeTextDecorationStyle.Double => PowerPointStrikeStyle.Double,
+        _ => PowerPointStrikeStyle.Single
+    };
+
+    private static void ApplyBaseline(PowerPointTextRun run, OfficeTextBaseline baseline) {
+        switch (baseline) {
+            case OfficeTextBaseline.Normal:
+                run.SetBaseline();
+                break;
+            case OfficeTextBaseline.Superscript:
+                run.SetSuperscript();
+                break;
+            case OfficeTextBaseline.Subscript:
+                run.SetSubscript();
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(baseline));
+        }
     }
 
     private static void AddPanel(PowerPointSlide slide, LayoutCursor box, OfficeMarkupResolvedStyle? style, string name) {

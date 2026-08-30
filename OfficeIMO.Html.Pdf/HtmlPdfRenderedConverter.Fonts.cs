@@ -32,14 +32,29 @@ internal static partial class HtmlPdfRenderedConverter {
     private static RegisteredWebFonts RegisterWebFonts(
         PdfCore.PdfDocument pdf,
         HtmlRenderDocument rendered,
+        HtmlDiagnosticReport diagnostics,
+        int maxOutlinedTextCharactersPerRun,
+        int maxOutlinedTextPathCommands,
+        IOfficeTextShapingProvider? textShapingProvider,
+        string? textShapingLanguage,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeFontFaceCollection faces = rendered.Fonts;
         var byFamily = faces.Faces
+            .Where(face => face.CanEmbedAsStaticPdfFont)
             .GroupBy(face => face.ResourceFamilyName, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.OrdinalIgnoreCase);
         var mappings = new Dictionary<string, PdfCore.PdfStandardFont>(StringComparer.OrdinalIgnoreCase);
-        if (byFamily.Count == 0) return new RegisteredWebFonts(mappings, faces);
+        var outlineBudget = new OutlinedTextBudget(
+            maxOutlinedTextCharactersPerRun,
+            maxOutlinedTextPathCommands);
+        if (byFamily.Count == 0) return new RegisteredWebFonts(
+            mappings,
+            faces,
+            diagnostics,
+            outlineBudget,
+            textShapingProvider,
+            textShapingLanguage);
 
         var orderedFamilies = new List<string>();
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -59,7 +74,13 @@ internal static partial class HtmlPdfRenderedConverter {
             }
         }
 
-        return new RegisteredWebFonts(mappings, faces);
+        return new RegisteredWebFonts(
+            mappings,
+            faces,
+            diagnostics,
+            outlineBudget,
+            textShapingProvider,
+            textShapingLanguage);
     }
 
     private static void ReserveUsedStandardFontSlots(
@@ -319,24 +340,70 @@ internal static partial class HtmlPdfRenderedConverter {
             (face.Style & (OfficeFontStyle.Bold | OfficeFontStyle.Italic)) == normalized);
     }
 
-    private static IEnumerable<string> EnumerateFamilies(string? familyNames) {
-        if (string.IsNullOrWhiteSpace(familyNames)) yield break;
-
-        foreach (string raw in familyNames!.Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)) {
-            string family = raw.Trim().Trim('"', '\'');
-            if (family.Length > 0) yield return family;
-        }
-    }
+    private static IEnumerable<string> EnumerateFamilies(string? familyNames) =>
+        HtmlRenderCssValues.FontFamilyNames(familyNames);
 
     private sealed class RegisteredWebFonts {
         internal RegisteredWebFonts(
             IReadOnlyDictionary<string, PdfCore.PdfStandardFont> slots,
-            OfficeFontFaceCollection faces) {
+            OfficeFontFaceCollection faces,
+            HtmlDiagnosticReport diagnostics,
+            OutlinedTextBudget outlineBudget,
+            IOfficeTextShapingProvider? textShapingProvider,
+            string? textShapingLanguage) {
             Slots = slots;
             Faces = faces;
+            Diagnostics = diagnostics;
+            OutlineBudget = outlineBudget;
+            TextShapingProvider = textShapingProvider;
+            TextShapingLanguage = textShapingLanguage;
         }
 
         internal IReadOnlyDictionary<string, PdfCore.PdfStandardFont> Slots { get; }
         internal OfficeFontFaceCollection Faces { get; }
+        internal HtmlDiagnosticReport Diagnostics { get; }
+        internal OutlinedTextBudget OutlineBudget { get; }
+        internal IOfficeTextShapingProvider? TextShapingProvider { get; }
+        internal string? TextShapingLanguage { get; }
+    }
+
+    private sealed class OutlinedTextBudget {
+        private int _remainingPathCommands;
+
+        internal OutlinedTextBudget(
+            int maximumCharactersPerRun,
+            int maximumPathCommands) {
+            if (maximumCharactersPerRun <= 0) throw new ArgumentOutOfRangeException(nameof(maximumCharactersPerRun));
+            if (maximumPathCommands <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPathCommands));
+            MaximumCharactersPerRun = maximumCharactersPerRun;
+            _remainingPathCommands = maximumPathCommands;
+            CffOperationBudget = new OfficeCffOperationBudget();
+        }
+
+        internal int MaximumCharactersPerRun { get; }
+
+        internal OfficeCffOperationBudget CffOperationBudget { get; }
+
+        internal int RemainingPointAllowance {
+            get {
+                if (_remainingPathCommands <= 0) {
+                    throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
+                }
+                return _remainingPathCommands;
+            }
+        }
+
+        internal void ValidateTextLength(int characterCount) {
+            if (characterCount > MaximumCharactersPerRun) {
+                throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured per-run character budget.");
+            }
+        }
+
+        internal void ConsumePathCommand() {
+            if (_remainingPathCommands <= 0) {
+                throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
+            }
+            _remainingPathCommands--;
+        }
     }
 }

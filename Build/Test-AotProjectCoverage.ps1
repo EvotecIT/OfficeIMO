@@ -53,6 +53,11 @@ $managedOnly = @(
         evidence = 'The optional Chromium bridge builds and executes as managed code on supported operating systems; its HtmlTinkerX and Playwright browser runtime is not advertised as NativeAOT-compatible.'
     }
     [ordered]@{
+        name = 'OfficeIMO.Html.Pdf.Workbench'
+        classification = 'managed-cross-platform'
+        evidence = 'The local ASP.NET Core workbench is validated as a managed browser-hosted tool and is not distributed or advertised as NativeAOT-compatible.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.MarkdownRenderer.Wpf'
         classification = 'managed-windows'
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'

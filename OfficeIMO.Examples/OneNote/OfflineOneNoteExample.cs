@@ -15,6 +15,15 @@ internal static class OfflineOneNoteExample {
         bold.Style.Bold = true;
         introduction.Runs.Add(bold);
         introduction.Runs.Add(new global::OfficeIMO.OneNote.OneNoteTextRun { Text = " works entirely offline." });
+        var decorated = new global::OfficeIMO.OneNote.OneNoteTextRun { Text = " Native strike, underline, and x2 script." };
+        decorated.Style.FontFamily = "Aptos";
+        decorated.Style.FontSize = 12;
+        decorated.Style.ColorArgb = 0xFF7030A0;
+        decorated.Style.Underline = true;
+        decorated.Style.Strikethrough = true;
+        decorated.Style.Superscript = true;
+        decorated.TransformTextCase(global::OfficeIMO.Drawing.OfficeTextCase.TitleCase);
+        introduction.Runs.Add(decorated);
         page.DirectContent.Add(introduction);
 
         var item = new global::OfficeIMO.OneNote.OneNoteParagraph {

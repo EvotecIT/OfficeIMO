@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         public ExcelCellValueType? OpenXmlType { get; }
 
         /// <summary>
-        /// Resolved date/time value when <see cref="Kind"/> is <see cref="ExcelCellValueKind.DateTime"/>.
+        /// Resolved date/time value for a date-like stored value, including a cached numeric result retained by a formula cell.
         /// </summary>
         public DateTime? DateTimeValue { get; }
     }

@@ -90,6 +90,7 @@ namespace OfficeIMO.Word.Html {
 
         private INode CreateEquationAdjacentTextNode(
             IHtmlDocument htmlDocument,
+            WordDocument document,
             WordParagraph run,
             string text,
             WordToHtmlOptions options,
@@ -110,16 +111,14 @@ namespace OfficeIMO.Word.Html {
                 emphasis.AppendChild(node);
                 node = emphasis;
             }
-            if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
-                var strike = CreateOutputElement(htmlDocument, "s");
-                strike.AppendChild(node);
-                node = strike;
-            }
-            if (run.Underline != null && !isHtmlInsertedText) {
-                var underline = CreateOutputElement(htmlDocument, "u");
-                underline.AppendChild(node);
-                node = underline;
-            }
+            node = ApplyWordTextDecorations(
+                htmlDocument,
+                run,
+                node,
+                options,
+                suppressUnderline: isHtmlInsertedText,
+                suppressStrikethrough: isHtmlDeletedText,
+                source: "word:equation-run");
             if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                 var superscript = CreateOutputElement(htmlDocument, "sup");
                 superscript.AppendChild(node);
@@ -205,9 +204,30 @@ namespace OfficeIMO.Word.Html {
             if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(span, "class", GetSafeStyleClassName(run.CharacterStyleId), "EquationRunFormatting:class");
-                span.AppendChild(node);
+                span.AppendChild(ApplyStyleDefinitionTextDecorations(
+                    document,
+                    htmlDocument,
+                    run.CharacterStyleId,
+                    node,
+                    "EquationRunStyleFormatting",
+                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null));
                 node = span;
                 runStyles.Add(run.CharacterStyleId!);
+            }
+            if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(run.StyleId)) {
+                node = ApplyStyleDefinitionTextDecorations(
+                    document,
+                    htmlDocument,
+                    run.StyleId,
+                    node,
+                    "EquationParagraphStyleFormatting",
+                    suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                    suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                    suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                    suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null);
             }
             string? language = NormalizeRunLanguage(run.Language, documentLanguage);
             if (!string.IsNullOrEmpty(language)) {

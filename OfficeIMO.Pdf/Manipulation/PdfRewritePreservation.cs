@@ -204,6 +204,7 @@ public static partial class PdfRewritePreservation {
             CompareNullableInt(issues, prefix + ".DestinationOutputProfileSizeBytes", before.DestinationOutputProfileSizeBytes, after.DestinationOutputProfileSizeBytes);
             CompareNullableInt(issues, prefix + ".DestinationOutputProfileDeclaredSizeBytes", before.DestinationOutputProfileDeclaredSizeBytes, after.DestinationOutputProfileDeclaredSizeBytes);
             CompareString(issues, prefix + ".DestinationOutputProfileColorSpace", before.DestinationOutputProfileColorSpace, after.DestinationOutputProfileColorSpace);
+            CompareString(issues, prefix + ".DestinationOutputProfileDeviceClass", before.DestinationOutputProfileDeviceClass, after.DestinationOutputProfileDeviceClass);
             CompareNullableBoolean(issues, prefix + ".DestinationOutputProfileHasIccSignature", before.DestinationOutputProfileHasIccSignature, after.DestinationOutputProfileHasIccSignature);
         }
     }

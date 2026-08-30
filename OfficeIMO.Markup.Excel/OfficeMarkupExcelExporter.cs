@@ -2,7 +2,7 @@ using OfficeIMO.Excel;
 
 namespace OfficeIMO.Markup.Excel;
 
-internal sealed class OfficeMarkupExcelExporter {
+internal sealed partial class OfficeMarkupExcelExporter {
     public ExcelDocument Convert(OfficeMarkupDocument document, MarkupToExcelOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
@@ -148,31 +148,13 @@ internal sealed class OfficeMarkupExcelExporter {
                 sheet.FormatCell(row, column, formatting.NumberFormat!);
             }
 
-            var fill = GetAttribute(formatting.Attributes, "fill") ?? GetAttribute(formatting.Attributes, "background");
+            var fill = GetAttribute(formatting.Attributes,
+                "fill", "background", "highlight", "highlight-color", "highlightColor");
             if (!string.IsNullOrWhiteSpace(fill)) {
                 sheet.CellBackground(row, column, fill!);
             }
 
-            var fontColor = GetAttribute(formatting.Attributes,
-                "color", "font-color", "fontColor", "text-color", "textColor", "textcolor");
-            if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sheet.CellFontColor(row, column, fontColor!);
-            }
-
-            var bold = GetAttribute(formatting.Attributes, "bold");
-            if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold)) {
-                sheet.CellBold(row, column, true);
-            }
-
-            var italic = GetAttribute(formatting.Attributes, "italic");
-            if (!string.IsNullOrWhiteSpace(italic) && IsTruthy(italic)) {
-                sheet.CellItalic(row, column, true);
-            }
-
-            var underline = GetAttribute(formatting.Attributes, "underline");
-            if (!string.IsNullOrWhiteSpace(underline) && IsTruthy(underline)) {
-                sheet.CellUnderline(row, column, true);
-            }
+            ApplyTextFormatting(sheet, row, column, formatting.Attributes);
 
             var alignment = GetAttribute(formatting.Attributes,
                 "align", "alignment", "horizontal-align", "horizontalAlign", "horizontalalignment", "text-align", "textAlign");

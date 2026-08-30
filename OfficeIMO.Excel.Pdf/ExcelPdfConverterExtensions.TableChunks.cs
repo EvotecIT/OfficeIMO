@@ -1,8 +1,32 @@
 using OfficeIMO.Drawing;
+using System.Globalization;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
+        private static void ReportAccountingUnderlineApproximations(
+            IReadOnlyList<WorksheetPdfExportPlan> plans,
+            ExcelPdfSaveOptions options) {
+            foreach (WorksheetPdfExportPlan plan in plans) {
+                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                if (styles == null) continue;
+                int count = 0;
+                for (int row = 0; row < styles.GetLength(0); row++) {
+                    for (int column = 0; column < styles.GetLength(1); column++) {
+                        if (styles[row, column]?.UnderlineStyle is ExcelUnderlineStyle.SingleAccounting
+                            or ExcelUnderlineStyle.DoubleAccounting) count++;
+                    }
+                }
+                if (count == 0) continue;
+                AddWarning(
+                    options,
+                    plan.SheetName,
+                    "AccountingUnderlineApproximation",
+                    count.ToString(CultureInfo.InvariantCulture)
+                    + " accounting underline cell(s) use a glyph-width line in PDF output instead of Excel's cell-width accounting line.");
+            }
+        }
+
         private static IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> CreateWorksheetImageMap(WorksheetPdfExportPlan plan) {
             if (!plan.HasTable || plan.Images.Count == 0 || plan.ExportData.CellReferences == null) {
                 return new Dictionary<string, IReadOnlyList<WorksheetImageExportData>>(StringComparer.Ordinal);
@@ -367,8 +391,20 @@ namespace OfficeIMO.Excel.Pdf {
                 ? authoredFontSize * fontScale
                 : null;
             string? fontFamily = string.IsNullOrWhiteSpace(style?.FontName) ? null : style!.FontName;
-            IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
-                ? new[] { new PdfCore.PdfTextRun(text, bold: bold, underline: style?.Underline == true, color: textColor, italic: style?.Italic == true, strike: style?.Strikethrough == true, fontSize: fontSize, font: font, fontFamily: fontFamily) }
+            IReadOnlyList<PdfCore.PdfTextRun> runs = (style != null && (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.VerticalTextAlignment.HasValue || fontSize.HasValue || font.HasValue || fontFamily != null)) || bold || textColor.HasValue
+                ? new[] { new PdfCore.PdfTextRun(
+                    text,
+                    bold: bold,
+                    underline: style?.Underline == true,
+                    color: textColor,
+                    italic: style?.Italic == true,
+                    strike: style?.Strikethrough == true,
+                    fontSize: fontSize,
+                    font: font,
+                    baseline: MapExcelPdfBaseline(style?.VerticalTextAlignment),
+                    fontFamily: fontFamily,
+                    underlineStyle: MapExcelPdfUnderline(style?.UnderlineStyle),
+                    strikeStyle: style?.Strikethrough == true ? OfficeTextDecorationStyle.Single : OfficeTextDecorationStyle.None) }
                 : new[] { PdfCore.PdfTextRun.Normal(text) };
 
             PdfCore.PdfTableCell cell = new PdfCore.PdfTableCell(
@@ -382,6 +418,18 @@ namespace OfficeIMO.Excel.Pdf {
                 namedDestinationName: cellDestinationName);
             return preserveWorksheetNoWrap ? cell.WithNoWrap(style?.WrapText != true) : cell;
         }
+
+        private static OfficeTextDecorationStyle MapExcelPdfUnderline(ExcelUnderlineStyle? style) => style switch {
+            ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting => OfficeTextDecorationStyle.Double,
+            ExcelUnderlineStyle.Single or ExcelUnderlineStyle.SingleAccounting => OfficeTextDecorationStyle.Single,
+            _ => OfficeTextDecorationStyle.None
+        };
+
+        private static PdfCore.PdfTextBaseline MapExcelPdfBaseline(ExcelVerticalTextAlignment? alignment) => alignment switch {
+            ExcelVerticalTextAlignment.Superscript => PdfCore.PdfTextBaseline.Superscript,
+            ExcelVerticalTextAlignment.Subscript => PdfCore.PdfTextBaseline.Subscript,
+            _ => PdfCore.PdfTextBaseline.Normal
+        };
 
         private static PdfCore.PdfStandardFont? MapFont(string? fontName, PdfCore.PdfStandardFont defaultFontFamily) {
             if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(fontName, out PdfCore.PdfStandardFont font)) {

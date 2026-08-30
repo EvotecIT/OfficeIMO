@@ -20,7 +20,7 @@ public sealed partial class PdfDocument {
         }
 
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(this, _blocks, _options);
-        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
+        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence, _title);
     }
 
     /// <summary>
@@ -56,15 +56,6 @@ public sealed partial class PdfDocument {
             _author,
             _subject,
             _keywords);
-        PdfComplianceReadinessReport generatedReadiness = PdfComplianceAnalyzer.AssessDocument(
-            profile,
-            _options,
-            evidence.StandardFonts,
-            evidence.FontUsages,
-            _title,
-            evidence.Images,
-            evidence.Drawings,
-            evidence.Forms);
         PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
         PdfReadOptions? readOptions = encryption == null
             ? null
@@ -72,7 +63,11 @@ public sealed partial class PdfDocument {
                 Password = encryption.UserPassword,
                 AesCryptographyProvider = encryption.AesCryptographyProvider
             };
-        return new PdfComplianceArtifact(bytes, generatedReadiness, readOptions);
+        bool isPdfX = profile == PdfComplianceProfile.PdfX1A2003 || profile == PdfComplianceProfile.PdfX4;
+        PdfComplianceReadinessReport artifactReadiness = isPdfX
+            ? PdfComplianceAnalyzer.AssessReadback(profile, bytes, readOptions)
+            : PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence, _title);
+        return new PdfComplianceArtifact(bytes, artifactReadiness, readOptions);
     }
 
     /// <summary>
@@ -198,7 +193,7 @@ public sealed partial class PdfDocument {
     public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         cancellationToken.ThrowIfCancellationRequested();
-        ThrowIfTextEncodingPreflightFails();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
         (long bytesWritten, PdfArtifactSnapshot output, PdfSerializationReport serialization) = await RenderToStreamWithEvidenceAsync(stream, cancellationToken).ConfigureAwait(false);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);
@@ -230,7 +225,7 @@ public sealed partial class PdfDocument {
         cancellationToken.ThrowIfCancellationRequested();
         EnsureOutputDirectory(fullPath);
 
-        ThrowIfTextEncodingPreflightFails();
+        ThrowIfTextEncodingPreflightFails(cancellationToken);
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
         PdfSerializationReport? serialization = null;
@@ -238,7 +233,7 @@ public sealed partial class PdfDocument {
             fullPath,
             stream => {
                 using var hashingStream = new PdfPipelineHashingStream(stream);
-                (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream);
+                (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream, cancellationToken);
                 output = hashingStream.Complete(pageCount);
             },
             cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -283,10 +278,12 @@ public sealed partial class PdfDocument {
         Stream stream,
         System.Threading.CancellationToken cancellationToken) {
         (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) output = default;
+        bool stagedExactArtifact = PdfComplianceValidator.RequiresExactArtifactValidation(_options);
         await OfficeStreamWriter.WriteAsync(
             stream,
-            destination => output = WritePdfCore(destination),
-            cancellationToken).ConfigureAwait(false);
+            destination => output = WritePdfCore(destination, cancellationToken),
+            cancellationToken,
+            commitIsNonCancellable: stagedExactArtifact).ConfigureAwait(false);
         return output;
     }
 
@@ -306,8 +303,11 @@ public sealed partial class PdfDocument {
         return (bytesWritten, output, serialization);
     }
 
-    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) WritePdfCore(Stream stream) {
+    private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) WritePdfCore(
+        Stream stream,
+        System.Threading.CancellationToken cancellationToken = default) {
         if (_source is not null) {
+            cancellationToken.ThrowIfCancellationRequested();
             stream.Write(_source.Bytes, 0, _source.Bytes.Length);
             int? sourcePageCount = _pipeline.Output?.PageCount;
             return (
@@ -335,13 +335,15 @@ public sealed partial class PdfDocument {
             _author,
             _subject,
             _keywords,
+            cancellationToken,
             out int pageCount,
             out PdfSerializationReport serializationReport);
         return (bytesWritten, pageCount, serializationReport);
     }
 
-    private void ThrowIfTextEncodingPreflightFails() {
-        if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+    private void ThrowIfTextEncodingPreflightFails(
+        System.Threading.CancellationToken cancellationToken = default) {
+        if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException, cancellationToken)) {
             throw preflightException!;
         }
     }

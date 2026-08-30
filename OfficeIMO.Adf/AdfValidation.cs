@@ -78,7 +78,7 @@ internal static class AdfValidator {
         };
 
     private static readonly HashSet<string> KnownMarks = new HashSet<string>(StringComparer.Ordinal) {
-        "strong", "em", "code", "strike", "link", "subsup", "textColor", "backgroundColor", "annotation",
+        "strong", "em", "code", "strike", "underline", "link", "subsup", "textColor", "backgroundColor", "annotation",
     };
 
     internal static AdfValidationResult Validate(AdfDocument document) {

@@ -3356,6 +3356,15 @@ public partial class DrawingTests {
         Assert.False(OfficeTextElements.IsRightToLeftScalar(0x1F600));
     }
 
+    [Theory]
+    [InlineData("A\u0301")]
+    [InlineData("A\u200CB")]
+    [InlineData("A\u200DB")]
+    public void OfficeTextElementsDetectsCombiningMarksAndJoiningControls(string text) {
+        Assert.True(OfficeTextElements.ContainsCombiningMarkOrJoiner(text));
+        Assert.False(OfficeTextElements.ContainsCombiningMarkOrJoiner("OfficeIMO"));
+    }
+
     [Fact]
     public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
         var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));
@@ -3389,6 +3398,86 @@ public partial class DrawingTests {
 
         Assert.NotNull(font);
         Assert.Equal(500D, font!.Measure("A", 1000D));
+    }
+
+    [Fact]
+    public void OpenTypeReadersRejectCmapSubtablesThatEscapeTheCmapTable() {
+        byte[] fontData = CreateMinimalTrueTypeFont(
+            CreateCrossTableFormat12Cmap(),
+            CreateFormat12Group(0x0041, glyphId: 1));
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Theory]
+    [InlineData(0x0042, 0x0041, 0x0041, 0x0041)]
+    [InlineData(0x0041, 0x0042, 0x0042, 0x0043)]
+    [InlineData(0x0043, 0x0043, 0x0041, 0x0041)]
+    [InlineData(0x110000, 0x110000, 0x0041, 0x0041)]
+    public void OpenTypeReadersRejectInvalidFormat12GroupSequences(
+        int firstStart,
+        int firstEnd,
+        int secondStart,
+        int secondEnd) {
+        byte[] cmap = CreateFormat12Cmap(
+            (firstStart, firstEnd, 1),
+            (secondStart, secondEnd, 1));
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Fact]
+    public void OpenTypeReadersIgnoreNonUnicodeCmapSubtables() {
+        byte[] cmap = CreateFormat12Cmap('A');
+        WriteUInt16(cmap, 4, 1); // Macintosh platform
+        WriteUInt16(cmap, 6, 0);
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenTypeReadersRejectFormat4GlyphIdsOutsideMaxp(bool useRangeOffset) {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat4Cmap(glyphId: 2, useRangeOffset));
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
+    }
+
+    [Theory]
+    [InlineData(0x0040, 0x0041, 0xFFFF, 0xFFFF)] // start exceeds end
+    [InlineData(0xFFFF, 0x0041, 0xFFFF, 0xFFFF)] // segments overlap
+    [InlineData(0x0041, 0x0041, 0xFFFE, 0xFFFE)] // missing terminal segment
+    public void OpenTypeReadersRejectInvalidFormat4SegmentSequences(
+        int firstEnd,
+        int firstStart,
+        int terminalEnd,
+        int terminalStart) {
+        byte[] cmap = CreateFormat4Cmap(glyphId: 1, useRangeOffset: false);
+        WriteUInt16(cmap, 26, firstEnd);
+        WriteUInt16(cmap, 28, terminalEnd);
+        WriteUInt16(cmap, 32, firstStart);
+        WriteUInt16(cmap, 34, terminalStart);
+        byte[] fontData = CreateMinimalTrueTypeFont(cmap);
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(fontData));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(fontData));
+
+        Assert.Equal(0, reader.MapGlyph('A'));
+        Assert.False(font.HasGlyphs("A"));
     }
 
     [Fact]
@@ -3606,8 +3695,28 @@ public partial class DrawingTests {
         return data;
     }
 
-    private static byte[] CreateFormat12Cmap(int scalar) {
-        var data = new byte[40];
+    private static byte[] CreateFormat12Cmap(int scalar) => CreateFormat12Cmap((scalar, scalar, 1));
+
+    private static byte[] CreateFormat12Cmap(params (int Start, int End, int GlyphId)[] groups) {
+        var data = new byte[checked(28 + groups.Length * 12)];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 12);
+        WriteUInt32(data, 16, checked((uint)(16 + groups.Length * 12)));
+        WriteUInt32(data, 24, checked((uint)groups.Length));
+        for (int index = 0; index < groups.Length; index++) {
+            int offset = 28 + index * 12;
+            WriteUInt32(data, offset, checked((uint)groups[index].Start));
+            WriteUInt32(data, offset + 4, checked((uint)groups[index].End));
+            WriteUInt32(data, offset + 8, checked((uint)groups[index].GlyphId));
+        }
+        return data;
+    }
+
+    private static byte[] CreateCrossTableFormat12Cmap() {
+        var data = new byte[28];
         WriteUInt16(data, 2, 1);
         WriteUInt16(data, 4, 3);
         WriteUInt16(data, 6, 10);
@@ -3615,19 +3724,47 @@ public partial class DrawingTests {
         WriteUInt16(data, 12, 12);
         WriteUInt32(data, 16, 28);
         WriteUInt32(data, 24, 1);
-        WriteUInt32(data, 28, (uint)scalar);
-        WriteUInt32(data, 32, (uint)scalar);
-        WriteUInt32(data, 36, 1);
         return data;
     }
 
-    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap) {
+    private static byte[] CreateFormat12Group(int scalar, int glyphId) {
+        var data = new byte[12];
+        WriteUInt32(data, 0, (uint)scalar);
+        WriteUInt32(data, 4, (uint)scalar);
+        WriteUInt32(data, 8, (uint)glyphId);
+        return data;
+    }
+
+    private static byte[] CreateFormat4Cmap(int glyphId, bool useRangeOffset) {
+        int formatLength = useRangeOffset ? 34 : 32;
+        var data = new byte[12 + formatLength];
+        WriteUInt16(data, 2, 1);
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 1);
+        WriteUInt32(data, 8, 12);
+        WriteUInt16(data, 12, 4);
+        WriteUInt16(data, 14, formatLength);
+        WriteUInt16(data, 18, 4);
+        WriteUInt16(data, 20, 4);
+        WriteUInt16(data, 22, 1);
+        WriteUInt16(data, 26, 0x0041);
+        WriteUInt16(data, 28, 0xFFFF);
+        WriteUInt16(data, 32, 0x0041);
+        WriteUInt16(data, 34, 0xFFFF);
+        WriteUInt16(data, 36, useRangeOffset ? 0 : unchecked((ushort)(glyphId - 0x0041)));
+        WriteUInt16(data, 38, 1);
+        WriteUInt16(data, 40, useRangeOffset ? 4 : 0);
+        if (useRangeOffset) WriteUInt16(data, 44, glyphId);
+        return data;
+    }
+
+    private static byte[] CreateMinimalTrueTypeFont(byte[] cmap, byte[]? glyfData = null) {
         var tables = new List<(string Tag, byte[] Data)> {
             ("cmap", cmap),
-            ("glyf", new byte[4]),
+            ("glyf", glyfData ?? new byte[4]),
             ("head", CreateHeadTable()),
             ("hhea", CreateHheaTable()),
-            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00 }),
+            ("hmtx", new byte[] { 0x01, 0xF4, 0x00, 0x00, 0x00, 0x00 }),
             ("loca", new byte[4]),
             ("maxp", new byte[] { 0x00, 0x01, 0x00, 0x00, 0x00, 0x02 })
         };

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -123,6 +124,48 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelCell SetUnderline(bool underline = true) {
             Sheet.CellUnderline(Row, Column, underline);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the native Excel underline style.
+        /// </summary>
+        public ExcelCell SetUnderline(ExcelUnderlineStyle underlineStyle) {
+            Sheet.CellUnderline(Row, Column, underlineStyle);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets or clears strikethrough font style.
+        /// </summary>
+        public ExcelCell SetStrikethrough(bool strikethrough = true) {
+            Sheet.CellStrikethrough(Row, Column, strikethrough);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the native Excel baseline, superscript, or subscript alignment.
+        /// </summary>
+        public ExcelCell SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment) {
+            Sheet.CellVerticalTextAlignment(Row, Column, alignment);
+            return this;
+        }
+
+        /// <summary>Formats the cell text as superscript.</summary>
+        public ExcelCell SetSuperscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Superscript);
+
+        /// <summary>Formats the cell text as subscript.</summary>
+        public ExcelCell SetSubscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Subscript);
+
+        /// <summary>Restores the cell text to the normal baseline.</summary>
+        public ExcelCell SetBaseline() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Baseline);
+
+        /// <summary>
+        /// Changes stored text casing while preserving cell or rich-run formatting.
+        /// Formulas and non-text values are left unchanged.
+        /// </summary>
+        public ExcelCell TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            Sheet.TransformCellTextCase(Row, Column, textCase, culture);
             return this;
         }
 
@@ -440,6 +483,54 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
+        /// <summary>Sets or clears italic font style for every cell in the range.</summary>
+        public ExcelRange SetItalic(bool italic = true) {
+            ForEachCell((row, column) => Sheet.CellItalic(row, column, italic));
+            return this;
+        }
+
+        /// <summary>Sets or clears single underline font style for every cell in the range.</summary>
+        public ExcelRange SetUnderline(bool underline = true) {
+            ForEachCell((row, column) => Sheet.CellUnderline(row, column, underline));
+            return this;
+        }
+
+        /// <summary>Sets the native Excel underline style for every cell in the range.</summary>
+        public ExcelRange SetUnderline(ExcelUnderlineStyle underlineStyle) {
+            ForEachCell((row, column) => Sheet.CellUnderline(row, column, underlineStyle));
+            return this;
+        }
+
+        /// <summary>Sets or clears strikethrough font style for every cell in the range.</summary>
+        public ExcelRange SetStrikethrough(bool strikethrough = true) {
+            ForEachCell((row, column) => Sheet.CellStrikethrough(row, column, strikethrough));
+            return this;
+        }
+
+        /// <summary>Sets the native Excel baseline, superscript, or subscript alignment for every cell in the range.</summary>
+        public ExcelRange SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment) {
+            ForEachCell((row, column) => Sheet.CellVerticalTextAlignment(row, column, alignment));
+            return this;
+        }
+
+        /// <summary>Formats every cell in the range as superscript.</summary>
+        public ExcelRange SetSuperscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Superscript);
+
+        /// <summary>Formats every cell in the range as subscript.</summary>
+        public ExcelRange SetSubscript() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Subscript);
+
+        /// <summary>Restores every cell in the range to the normal baseline.</summary>
+        public ExcelRange SetBaseline() => SetVerticalTextAlignment(ExcelVerticalTextAlignment.Baseline);
+
+        /// <summary>
+        /// Changes stored text casing in text cells while preserving cell and rich-run formatting.
+        /// Formulas and non-text values are left unchanged.
+        /// </summary>
+        public ExcelRange TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            ForEachCell((row, column) => Sheet.TransformCellTextCase(row, column, textCase, culture));
+            return this;
+        }
+
         /// <summary>
         /// Sets or clears shrink-to-fit text alignment for every cell in the range.
         /// </summary>
@@ -627,6 +718,12 @@ namespace OfficeIMO.Excel {
     /// Describes a run of rich text inside a cell.
     /// </summary>
     public sealed class ExcelRichTextRun {
+        private bool _bold;
+        private bool _italic;
+        private bool _underline;
+        private bool _strikethrough;
+        private ExcelUnderlineStyle? _underlineStyle;
+
         /// <summary>
         /// Creates a rich text run with the supplied text.
         /// </summary>
@@ -637,15 +734,53 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the run text.</summary>
         public string Text { get; set; }
         /// <summary>Gets or sets whether the run is bold.</summary>
-        public bool Bold { get; set; }
+        public bool Bold {
+            get => _bold;
+            set {
+                _bold = value;
+                BoldSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is italic.</summary>
-        public bool Italic { get; set; }
+        public bool Italic {
+            get => _italic;
+            set {
+                _italic = value;
+                ItalicSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is underlined.</summary>
-        public bool Underline { get; set; }
+        public bool Underline {
+            get => _underline;
+            set {
+                _underline = value;
+                if (!value) {
+                    _underlineStyle = ExcelUnderlineStyle.None;
+                } else if (!_underlineStyle.HasValue || _underlineStyle == ExcelUnderlineStyle.None) {
+                    _underlineStyle = ExcelUnderlineStyle.Single;
+                }
+                UnderlineSpecified = true;
+            }
+        }
         /// <summary>Gets or sets whether the run is struck through.</summary>
-        public bool Strikethrough { get; set; }
+        public bool Strikethrough {
+            get => _strikethrough;
+            set {
+                _strikethrough = value;
+                StrikethroughSpecified = true;
+            }
+        }
         /// <summary>Gets or sets the run underline style.</summary>
-        public ExcelUnderlineStyle? UnderlineStyle { get; set; }
+        public ExcelUnderlineStyle? UnderlineStyle {
+            get => _underlineStyle;
+            set {
+                _underlineStyle = value;
+                if (value.HasValue) {
+                    _underline = value != ExcelUnderlineStyle.None;
+                    UnderlineSpecified = true;
+                }
+            }
+        }
         /// <summary>Gets or sets the run font color as a hex value.</summary>
         public string? FontColor { get; set; }
         /// <summary>Gets or sets the run font name.</summary>
@@ -667,10 +802,76 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets or sets the run font character set byte.</summary>
         public byte? FontCharacterSet { get; set; }
 
+        internal bool BoldSpecified { get; private set; }
+        internal bool ItalicSpecified { get; private set; }
+        internal bool UnderlineSpecified { get; private set; }
+        internal bool StrikethroughSpecified { get; private set; }
+
         /// <summary>
         /// Creates a plain rich text run.
         /// </summary>
         public static ExcelRichTextRun Plain(string text) => new ExcelRichTextRun(text);
+
+        /// <summary>
+        /// Changes the stored run text casing while preserving rich-text formatting.
+        /// </summary>
+        public ExcelRichTextRun TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
+            Text = OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
+        /// <summary>Projects native run properties without losing explicit disabled values.</summary>
+        internal static ExcelRichTextRun FromOpenXml(string text, RunProperties? properties, string? resolvedFontColor = null) {
+            var result = new ExcelRichTextRun(text) {
+                FontColor = resolvedFontColor ?? properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                VerticalTextAlignment = GetVerticalTextAlignment(properties),
+                Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
+                Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
+                Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
+                Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
+                FontFamily = GetFontFamily(properties),
+                FontCharacterSet = GetFontCharacterSet(properties)
+            };
+
+            DocumentFormat.OpenXml.Spreadsheet.Bold? bold = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>();
+            if (bold != null) result.Bold = ExcelOpenXmlFontProperty.IsEnabled(bold);
+            DocumentFormat.OpenXml.Spreadsheet.Italic? italic = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>();
+            if (italic != null) result.Italic = ExcelOpenXmlFontProperty.IsEnabled(italic);
+            DocumentFormat.OpenXml.Spreadsheet.Underline? underline = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>();
+            if (underline != null) {
+                result.Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(underline);
+                result.UnderlineStyle = GetUnderlineStyle(properties);
+            }
+            Strike? strike = properties?.GetFirstChild<Strike>();
+            if (strike != null) result.Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(strike);
+            return result;
+        }
+
+        /// <summary>Copies a run while retaining which direct Boolean properties were present.</summary>
+        internal ExcelRichTextRun Clone(string? text = null) {
+            var result = new ExcelRichTextRun(text ?? Text) {
+                FontColor = FontColor,
+                FontName = FontName,
+                FontSize = FontSize,
+                VerticalTextAlignment = VerticalTextAlignment,
+                Outline = Outline,
+                Shadow = Shadow,
+                Condense = Condense,
+                Extend = Extend,
+                FontFamily = FontFamily,
+                FontCharacterSet = FontCharacterSet
+            };
+            if (BoldSpecified) result.Bold = Bold;
+            if (ItalicSpecified) result.Italic = Italic;
+            if (UnderlineSpecified) {
+                result.Underline = Underline;
+                result.UnderlineStyle = UnderlineStyle;
+            }
+            if (StrikethroughSpecified) result.Strikethrough = Strikethrough;
+            return result;
+        }
 
         internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {
             if (run.VerticalTextAlignment.HasValue) {

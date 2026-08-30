@@ -196,7 +196,9 @@ internal static partial class PdfWriter {
                 segment.Baseline,
                 segment.DestinationName,
                 backgroundColor: segment.BackgroundColor,
-                fontFamily: segment.NamedFont?.FamilyName);
+                fontFamily: segment.NamedFont?.FamilyName,
+                underlineStyle: segment.UnderlineStyle,
+                strikeStyle: segment.StrikeStyle);
 
         private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
             MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);

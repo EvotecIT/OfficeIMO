@@ -1,6 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Pdf;
+using OfficeIMO.Drawing;
 using OfficeIMO.TestAssets;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
@@ -969,7 +970,8 @@ namespace OfficeIMO.Tests {
                 new StyleRunProperties(
                     new Bold(),
                     new Italic(),
-                    new Underline { Val = UnderlineValues.Single },
+                    new Underline { Val = UnderlineValues.Wave },
+                    new DoubleStrike(),
                     new Color { Val = "C00000" },
                     new Highlight { Val = HighlightColorValues.Yellow },
                     new FontSize { Val = "28" }))
@@ -987,6 +989,7 @@ namespace OfficeIMO.Tests {
             directOverride._run.RunProperties.Bold = new Bold { Val = false };
             directOverride._run.RunProperties.Italic = new Italic { Val = false };
             directOverride._run.RunProperties.Underline = new Underline { Val = UnderlineValues.None };
+            directOverride._run.RunProperties.DoubleStrike = new DoubleStrike { Val = false };
             directOverride._run.RunProperties.Color = new Color { Val = "0000FF" };
             directOverride._run.RunProperties.FontSize = new FontSize { Val = "20" };
 
@@ -999,12 +1002,16 @@ namespace OfficeIMO.Tests {
             Assert.True(run.Bold);
             Assert.True(run.Italic);
             Assert.True(run.Underline);
+            Assert.Equal(OfficeTextDecorationStyle.Wavy, run.UnderlineStyle);
+            Assert.Equal(OfficeTextDecorationStyle.Double, run.StrikeStyle);
             Assert.Equal(PdfColor.FromRgb(192, 0, 0), run.Color);
             Assert.Equal(PdfColor.FromRgb(255, 255, 0), run.BackgroundColor);
             Assert.Equal(14D, run.FontSize);
             Assert.False(overrideRun.Bold);
             Assert.False(overrideRun.Italic);
             Assert.False(overrideRun.Underline);
+            Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.UnderlineStyle);
+            Assert.Equal(OfficeTextDecorationStyle.None, overrideRun.StrikeStyle);
             Assert.Equal(PdfColor.FromRgb(0, 0, 255), overrideRun.Color);
             Assert.Equal(10D, overrideRun.FontSize);
         }

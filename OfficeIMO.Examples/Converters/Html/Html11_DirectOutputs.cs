@@ -14,6 +14,9 @@ namespace OfficeIMO.Examples.Html {
                   body { font-family: Arial; color: #203040; }
                   .summary { display: flex; gap: 12px; }
                   .card { padding: 12px; border: 1px solid #9fb3c8; border-radius: 8px; }
+                  .typography { margin-top: 18px; font-family: Aptos, Arial, sans-serif; font-size: 20px; color: #336699; }
+                  .decorated { font-weight: 700; font-style: italic; text-decoration-line: underline line-through; text-decoration-style: wavy; }
+                  .small-caps { font-variant: small-caps; }
                 </style>
                 <main>
                   <h1>Quarterly status</h1>
@@ -21,6 +24,7 @@ namespace OfficeIMO.Examples.Html {
                     <section class="card"><strong>API</strong><br>Consistent</section>
                     <section class="card"><strong>Renderer</strong><br>Direct</section>
                   </div>
+                  <p class="typography"><span class="decorated">Styled output</span> H<sub>2</sub>O x<sup>2</sup> <span class="small-caps">Small caps</span></p>
                 </main>
                 """;
 

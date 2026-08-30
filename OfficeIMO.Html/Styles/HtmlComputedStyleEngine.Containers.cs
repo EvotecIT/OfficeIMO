@@ -282,11 +282,17 @@ public static partial class HtmlComputedStyleEngine {
         double inheritedFontSize = 16D,
         double rootFontSize = 16D,
         double containerUnitWidth = double.NaN,
-        double containerUnitHeight = double.NaN) =>
-        HtmlRenderCssValues.TryLength(style.GetValue("font-size"), inheritedFontSize, inheritedFontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double fontSize)
+        double containerUnitHeight = double.NaN) {
+        if (style.IsInheritedValue("font-size")) return inheritedFontSize;
+        string value = style.GetValue("font-size").Trim().ToLowerInvariant();
+        if (HtmlRenderCssValues.TryResolveFontSizeKeyword(value, inheritedFontSize, 16D, out double keywordSize)) {
+            return keywordSize;
+        }
+        return HtmlRenderCssValues.TryLength(value, inheritedFontSize, inheritedFontSize, rootFontSize, environment.Width, environment.Height, containerUnitWidth, containerUnitHeight, out double fontSize)
             && fontSize > 0D
             ? fontSize
             : inheritedFontSize;
+    }
 
     private static bool EvaluateContainerCondition(string condition, ContainerQueryContext context, MediaEnvironment environment) {
         string normalized = condition.Trim();

@@ -104,4 +104,26 @@ public class DrawingManagedTextShapingProviderTests {
         Assert.NotNull(result);
         Assert.Equal(new[] { 3, 2, 1 }, result!.Glyphs.Select(static glyph => glyph.TextIndex));
     }
+
+    [Fact]
+    public void ManagedProvider_AppliesKerningToThePreviousVisualGlyphAdvance() {
+        byte[] font = ManagedTextShapingTestAssets.CreateFontWithKerning('A', 'V', adjustment: -120);
+        var request = new OfficeTextShapingRequest(
+            "\u202EVA\u202C",
+            ManagedTextShapingTestAssets.FamilyName,
+            font,
+            isOpenTypeCff: false,
+            unitsPerEm: 1000,
+            direction: OfficeTextDirection.RightToLeft);
+
+        OfficeTextShapingResult? result = OfficeManagedTextShapingProvider.Instance.ShapeText(request);
+
+        Assert.NotNull(result);
+        Assert.Equal(new[] { 1, 2 }, result!.Glyphs.Select(static glyph => glyph.GlyphId));
+        Assert.All(result.Glyphs, static glyph => Assert.Null(glyph.AdvanceWidth));
+        Assert.Equal(-120, result.GetAdvanceAdjustment(0));
+        Assert.Equal(0, result.GetAdvanceAdjustment(1));
+        OfficeTrueTypeFont loaded = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(font));
+        Assert.Equal(880D, loaded.CreateShapedTextRun(request.Text, result).Measure(fontSize: 1000D), 6);
+    }
 }

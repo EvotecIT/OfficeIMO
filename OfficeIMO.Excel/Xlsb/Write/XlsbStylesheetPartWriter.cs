@@ -163,18 +163,18 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             ushort flags = 0;
-            if (font.Bold != null) flags |= 0x0001;
-            if (font.Italic != null) flags |= 0x0002;
-            if (font.Strike != null) flags |= 0x0008;
-            if (font.Outline != null) flags |= 0x0010;
-            if (font.Shadow != null) flags |= 0x0020;
-            if (font.Condense != null) flags |= 0x0040;
-            if (font.Extend != null) flags |= 0x0080;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Bold)) flags |= 0x0001;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Italic)) flags |= 0x0002;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Strike)) flags |= 0x0008;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Outline)) flags |= 0x0010;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Shadow)) flags |= 0x0020;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Condense)) flags |= 0x0040;
+            if (global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Extend)) flags |= 0x0080;
 
             using var payload = new MemoryStream(32 + name.Length * 2);
             WriteUInt16(payload, checked((ushort)Math.Round(size * 20D, MidpointRounding.AwayFromZero)));
             WriteUInt16(payload, flags);
-            WriteUInt16(payload, font.Bold != null ? (ushort)700 : (ushort)400);
+            WriteUInt16(payload, global::OfficeIMO.Excel.ExcelOpenXmlFontProperty.IsEnabled(font.Bold) ? (ushort)700 : (ushort)400);
             WriteUInt16(payload, ToScript(font.VerticalTextAlignment?.Val?.Value));
             payload.WriteByte(font.Underline == null
                 ? (byte)0

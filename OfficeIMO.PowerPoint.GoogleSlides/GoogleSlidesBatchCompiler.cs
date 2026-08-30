@@ -1,6 +1,9 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using System.Globalization;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
@@ -81,16 +84,22 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
                             PreserveShapeStyle(text.Style, shape);
                             PopulateTextRuns(text, textBox);
-                            PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
+                            GoogleSlidesTextStyleRun? firstRun = text.TextRuns.FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
-                                text.FontSize = firstRun.FontSize; text.FontFamily = firstRun.FontName; text.ForegroundColorHex = NormalizeColorHex(firstRun.Color);
-                                text.Hyperlink = firstRun.Hyperlink?.AbsoluteUri;
+                                text.Strikethrough = firstRun.Strikethrough;
+                                text.SmallCaps = firstRun.SmallCaps;
+                                text.BaselineOffset = firstRun.BaselineOffset;
+                                text.FontSize = firstRun.FontSize; text.FontFamily = firstRun.FontFamily; text.ForegroundColorHex = firstRun.ForegroundColorHex;
+                                text.Hyperlink = firstRun.Hyperlink;
                             }
                             target.Add(text); plan.NativeTextBoxCount++;
                             break;
                         case PowerPointTable table when !HasMergedCells(table):
-                            IReadOnlyList<IReadOnlyList<string>> cells = table.RowItems.Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => cell.Text).ToArray()).ToArray();
+                            IReadOnlyList<IReadOnlyList<GoogleSlidesTableCell>> cells = table.RowItems
+                                .Select((row, rowIndex) => (IReadOnlyList<GoogleSlidesTableCell>)row.Cells
+                                    .Select((cell, columnIndex) => BuildTableCell(table, cell, rowIndex, columnIndex))
+                                    .ToArray()).ToArray();
                             target.Add(PreserveTransform(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells), shape));
                             plan.NativeTableCount++;
                             break;
@@ -138,34 +147,222 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return batch;
         }
 
-        private static string BuildTextContent(PowerPointTextBox textBox) => string.Join(
-            "\n",
-            textBox.Paragraphs.Select(paragraph => string.Concat(paragraph.Runs.Select(run => run.Text))));
+        private static string BuildTextContent(PowerPointTextBox textBox) =>
+            BuildTextContent(textBox.Paragraphs, textBox.TextBody?.ListStyle, textBox.MasterTextStyle);
+
+        private static string BuildTextContent(
+            IReadOnlyList<PowerPointParagraph> paragraphs,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) => string.Join(
+                "\n",
+                paragraphs.Select(paragraph => string.Concat(paragraph.InlineNodes.Select(node =>
+                    GetGoogleInlineText(node, paragraph, listStyle, masterTextStyle, tableTextStyles)))));
 
         private static void PopulateTextRuns(GoogleSlidesTextBox target, PowerPointTextBox source) {
-            IReadOnlyList<PowerPointParagraph> paragraphs = source.Paragraphs;
+            PopulateTextRuns(target.TextRuns, source.Paragraphs, source.TextBody?.ListStyle, source.MasterTextStyle);
+        }
+
+        private static GoogleSlidesTableCell BuildTableCell(
+            PowerPointTable table,
+            PowerPointTableCell cell,
+            int row,
+            int column) {
+            var textRuns = new List<GoogleSlidesTextStyleRun>();
+            A.TextBody? textBody = cell.Cell.TextBody;
+            OpenXmlCompositeElement? masterTextStyle = cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?
+                .SlideMaster?.TextStyles?.OtherStyle;
+            IReadOnlyList<A.TableCellTextStyle> tableTextStyles =
+                PowerPointSlideImageRenderer.ResolveTableCellTextStylesForExport(table, row, column);
+            PopulateTextRuns(textRuns, cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles);
+            return new GoogleSlidesTableCell(BuildTextContent(cell.Paragraphs, textBody?.ListStyle, masterTextStyle, tableTextStyles), textRuns);
+        }
+
+        private static void PopulateTextRuns(
+            ICollection<GoogleSlidesTextStyleRun> target,
+            IReadOnlyList<PowerPointParagraph> paragraphs,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
             int offset = 0;
             for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
-                foreach (PowerPointTextRun run in paragraphs[paragraphIndex].Runs) {
-                    int endIndex = offset + run.Text.Length;
-                    if (endIndex > offset) {
-                        target.TextRuns.Add(new GoogleSlidesTextStyleRun {
+                PowerPointParagraph paragraph = paragraphs[paragraphIndex];
+                foreach (PowerPointParagraphInline node in paragraph.InlineNodes) {
+                    if (node.Kind == PowerPointParagraphInlineKind.LineBreak) {
+                        offset++;
+                        continue;
+                    }
+                    PowerPointTextRun? run = node.Run;
+                    if (run == null) continue;
+                    foreach (PowerPointEffectiveTextSegment segment in PowerPointEffectiveRunStyleResolver.ResolveSegments(
+                                 run, paragraph, listStyle, masterTextStyle, tableTextStyles)) {
+                        EffectiveGoogleRunStyle effective = ToGoogleRunStyle(segment.Style);
+                        string text = GetGoogleText(segment.Text, effective);
+                        int endIndex = offset + text.Length;
+                        if (endIndex <= offset) continue;
+                        target.Add(new GoogleSlidesTextStyleRun {
                             StartIndex = offset,
                             EndIndex = endIndex,
-                            Bold = run.Bold,
-                            Italic = run.Italic,
-                            Underline = run.Underline,
-                            FontSize = run.FontSize,
-                            FontFamily = run.FontName,
-                            ForegroundColorHex = NormalizeColorHex(run.Color),
-                            Hyperlink = run.Hyperlink?.AbsoluteUri,
+                            Bold = effective.Bold ?? false,
+                            Italic = effective.Italic ?? false,
+                            Underline = effective.Underline ?? false,
+                            Strikethrough = effective.Strikethrough ?? false,
+                            SmallCaps = effective.Capitalization == PowerPointCapitalization.SmallCaps,
+                            BaselineOffset = ToGoogleBaselineOffset(effective.BaselinePercent),
+                            FontSize = effective.FontSizePoints.HasValue
+                                ? (int?)Math.Round(effective.FontSizePoints.Value, MidpointRounding.AwayFromZero)
+                                : null,
+                            FontFamily = effective.FontName,
+                            ForegroundColorHex = NormalizeColorHex(effective.Color),
+                            Hyperlink = ToGoogleHyperlink(run.Hyperlink),
                         });
+                        offset = endIndex;
                     }
-                    offset = endIndex;
                 }
                 if (paragraphIndex + 1 < paragraphs.Count) offset++;
             }
         }
+
+        internal static string GetGoogleInlineText(
+            PowerPointParagraphInline node,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            if (node.Kind == PowerPointParagraphInlineKind.LineBreak) return "\n";
+            if (node.Run == null) return node.Text;
+            return GetGoogleText(node.Run, ResolveEffectiveRunStyle(node.Run, paragraph, listStyle, masterTextStyle, tableTextStyles));
+        }
+
+        internal static string? ToGoogleHyperlink(Uri? hyperlink) {
+            if (hyperlink == null) return null;
+            if (hyperlink.IsAbsoluteUri) return hyperlink.AbsoluteUri;
+            string value = hyperlink.OriginalString;
+            if (!value.StartsWith("#slide-", StringComparison.OrdinalIgnoreCase)
+                || !int.TryParse(value.Substring(7), NumberStyles.None, CultureInfo.InvariantCulture, out int slideNumber)
+                || slideNumber < 1) {
+                return null;
+            }
+            return "#slide-" + slideNumber.ToString(CultureInfo.InvariantCulture);
+        }
+
+        internal static string GetSlideObjectId(int slideNumber) =>
+            ObjectId("slide", slideNumber - 1, 0);
+
+        internal static string GetGoogleText(PowerPointTextRun run) {
+            string text = run.Text ?? string.Empty;
+            if (run.Capitalization != PowerPointCapitalization.AllCaps) return text;
+            return text.ToUpper(ResolveRunCulture(run.Language));
+        }
+
+        internal static string GetGoogleText(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle) =>
+            GetGoogleText(run, ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle));
+
+        internal static bool IsGoogleSmallCaps(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle) =>
+            ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle).Capitalization == PowerPointCapitalization.SmallCaps;
+
+        internal static string? GetGoogleBaselineOffset(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle) =>
+            ToGoogleBaselineOffset(ResolveEffectiveRunStyle(run, paragraph, listStyle, masterTextStyle).BaselinePercent);
+
+        private static string GetGoogleText(PowerPointTextRun run, EffectiveGoogleRunStyle effective) =>
+            GetGoogleText(run.Text ?? string.Empty, effective);
+
+        private static string GetGoogleText(string text, EffectiveGoogleRunStyle effective) {
+            if (effective.Capitalization != PowerPointCapitalization.AllCaps) return text;
+            return text.ToUpper(ResolveRunCulture(effective.Language));
+        }
+
+        internal static EffectiveGoogleRunStyle ResolveEffectiveRunStyle(
+            PowerPointTextRun run,
+            PowerPointParagraph paragraph,
+            A.ListStyle? listStyle,
+            OpenXmlCompositeElement? masterTextStyle,
+            IReadOnlyList<A.TableCellTextStyle>? tableTextStyles = null) {
+            PowerPointEffectiveRunStyle effective = PowerPointEffectiveRunStyleResolver.Resolve(
+                run, paragraph, listStyle, masterTextStyle, tableTextStyles);
+            return ToGoogleRunStyle(effective);
+        }
+
+        private static EffectiveGoogleRunStyle ToGoogleRunStyle(PowerPointEffectiveRunStyle effective) {
+            return new EffectiveGoogleRunStyle(
+                effective.Capitalization,
+                effective.BaselinePercent,
+                effective.Language,
+                effective.FontSizePoints,
+                effective.FontName,
+                effective.Color,
+                effective.Bold,
+                effective.Italic,
+                effective.UnderlineStyle.HasValue
+                    ? effective.UnderlineStyle.Value != PowerPointUnderlineStyle.None
+                    : (bool?)null,
+                effective.StrikeStyle.HasValue
+                    ? effective.StrikeStyle.Value != PowerPointStrikeStyle.None
+                    : (bool?)null);
+        }
+
+        internal readonly struct EffectiveGoogleRunStyle {
+            internal EffectiveGoogleRunStyle(
+                PowerPointCapitalization? capitalization,
+                double? baselinePercent,
+                string? language,
+                double? fontSizePoints,
+                string? fontName,
+                string? color,
+                bool? bold,
+                bool? italic,
+                bool? underline,
+                bool? strikethrough) {
+                Capitalization = capitalization;
+                BaselinePercent = baselinePercent;
+                Language = language;
+                FontSizePoints = fontSizePoints;
+                FontName = fontName;
+                Color = color;
+                Bold = bold;
+                Italic = italic;
+                Underline = underline;
+                Strikethrough = strikethrough;
+            }
+
+            internal PowerPointCapitalization? Capitalization { get; }
+            internal double? BaselinePercent { get; }
+            internal string? Language { get; }
+            internal double? FontSizePoints { get; }
+            internal string? FontName { get; }
+            internal string? Color { get; }
+            internal bool? Bold { get; }
+            internal bool? Italic { get; }
+            internal bool? Underline { get; }
+            internal bool? Strikethrough { get; }
+        }
+
+        private static CultureInfo ResolveRunCulture(string? language) {
+            if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+            try {
+                return CultureInfo.GetCultureInfo(language);
+            } catch (CultureNotFoundException) {
+                return CultureInfo.InvariantCulture;
+            }
+        }
+
+        internal static string? ToGoogleBaselineOffset(double? baselinePercent) => baselinePercent switch {
+            > 0 => "SUPERSCRIPT",
+            < 0 => "SUBSCRIPT",
+            _ => null,
+        };
 
         private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && (!IsSupportedSlidesImage(picture) || HasImageCrop(picture)))
             || (shape is PowerPointAutoShape autoShape && !TryMapShape(autoShape, out _))
@@ -234,7 +431,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             _ => ".png",
         };
 
-        private static string? NormalizeColorHex(string? value) {
+        internal static string? NormalizeColorHex(string? value) {
             if (string.IsNullOrWhiteSpace(value)) return null;
             string candidate = value!.Trim().TrimStart('#');
             if (candidate.Length >= 6) candidate = candidate.Substring(candidate.Length - 6);

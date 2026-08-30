@@ -36,6 +36,12 @@ public static class MarkdownEscaper {
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
     internal static string EscapeInsertedText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '+']);
+    /// <summary>Escapes literal text for placement between Markdown superscript delimiters.</summary>
+    public static string EscapeLiteralSuperscriptText(string? text) =>
+        EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text, additionalReserved: '^'));
+    /// <summary>Escapes literal text for placement between Markdown subscript delimiters.</summary>
+    public static string EscapeLiteralSubscriptText(string? text) =>
+        EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text, additionalReserved: '~'));
     internal static string EscapeSuperscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '^']);
     internal static string EscapeSubscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '~']);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
@@ -311,7 +317,10 @@ public static class MarkdownEscaper {
         return sb?.ToString() ?? text;
     }
 
-    private static string EncodeLiteralMarkdownText(string? text, bool encodeEntityLikeAmpersands = true) {
+    private static string EncodeLiteralMarkdownText(
+        string? text,
+        bool encodeEntityLikeAmpersands = true,
+        char? additionalReserved = null) {
         string value = text ?? string.Empty;
         if (value.Length == 0) {
             return string.Empty;
@@ -319,7 +328,9 @@ public static class MarkdownEscaper {
 
         StringBuilder? sb = null;
         for (int i = 0; i < value.Length; i++) {
-            string? replacement = value[i] switch {
+            string? replacement = additionalReserved.HasValue && value[i] == additionalReserved.Value
+                ? "\\" + value[i]
+                : value[i] switch {
                 '\\' => @"\\",
                 '[' => @"\[",
                 ']' => @"\]",
@@ -334,8 +345,8 @@ public static class MarkdownEscaper {
                 '<' => "&lt;",
                 '>' => "&gt;",
                 '&' when encodeEntityLikeAmpersands && IsEntityLikeAmpersand(value, i) => "&amp;",
-                _ => null
-            };
+                    _ => null
+                };
 
             if (replacement == null) {
                 sb?.Append(value[i]);

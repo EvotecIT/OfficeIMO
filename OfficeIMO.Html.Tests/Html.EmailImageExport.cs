@@ -87,6 +87,28 @@ public sealed class HtmlEmailImageExportTests {
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void StyledEmailExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+        var email = new EmailDocument { Subject = "Typography" };
+        email.Body.Html = "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled</span></p>";
+
+        OfficeImageExportResult result = Assert.Single(email.ExportImages(format));
+
+        Assert.Equal(format, result.Format);
+        Assert.True(result.Bytes.Length > 32);
+        if (format == OfficeImageExportFormat.Svg) {
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+            Assert.Contains("Styled", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Fact]
     public async Task HtmlEmailResolvesInlineContentIdImagesAsynchronously() {
         var email = new EmailDocument { Subject = "Inline image" };

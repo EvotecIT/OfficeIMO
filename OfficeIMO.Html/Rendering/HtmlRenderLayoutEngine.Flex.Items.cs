@@ -104,7 +104,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
-        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style.TextTransform), style, item.Link, item.Source);
+        var run = new HtmlInlineRun(ApplyTextTransform(item.AnonymousText, style), style, item.Link, item.Source);
         HtmlInlineLayout inline = LayoutInlineRuns(new[] { run }, contentWidth, style);
         double boxHeight = ResolveBoxHeight(inline.Height, boxWidth, style);
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
@@ -144,6 +144,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static HtmlRenderBoxStyle CreateAnonymousFlexStyle(HtmlRenderBoxStyle parentStyle) => new HtmlRenderBoxStyle {
         Display = "block",
         Font = parentStyle.Font,
+        UnderlineStyle = parentStyle.UnderlineStyle,
+        StrikethroughStyle = parentStyle.StrikethroughStyle,
+        Baseline = parentStyle.Baseline,
+        BaselineLevel = parentStyle.BaselineLevel,
+        BaselineScale = parentStyle.BaselineScale,
+        BaselineOffset = parentStyle.BaselineOffset,
+        FontVariant = parentStyle.FontVariant,
+        ApproximateSmallCaps = parentStyle.ApproximateSmallCaps,
+        Language = parentStyle.Language,
         Color = parentStyle.Color,
         Alignment = parentStyle.Alignment,
         LineHeight = parentStyle.LineHeight,
