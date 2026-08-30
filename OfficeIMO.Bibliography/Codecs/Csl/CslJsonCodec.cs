@@ -127,7 +127,7 @@ internal static class CslJsonCodec {
                 case "ISSN": BindIdentifier(item, property, "ISSN", items, limits); break;
                 case "PMID": BindIdentifier(item, property, "PMID", items, limits); break;
                 case "PMCID": BindIdentifier(item, property, "PMCID", items, limits); break;
-                case "keyword": if (TryReadScalar(item, property, items, limits, out string keyword) && !string.IsNullOrWhiteSpace(keyword)) item.Keywords.Add(keyword); break;
+                case "keyword": if (TryReadScalar(item, property, items, limits, out string keyword)) item.Keywords.Add(keyword); break;
                 case "note": if (TryReadScalar(item, property, items, limits, out string note)) item.Notes.Add(note); break;
                 default:
                     string raw = GetBoundedRawValue(property.Value, items, limits);

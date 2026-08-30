@@ -271,9 +271,9 @@ internal static class BibCodec {
                 int fieldStart = _position;
                 string name = ReadIdentifier();
                 _limits.CheckValueLength(_items, name, fieldStart);
-                if (name.Length == 0) { AddDiagnostic("BIBBIB005", "Expected a BibTeX field name.", fieldStart, item.Key, severity: BibliographyDiagnosticSeverity.Error); RecoverToDelimiter(close); continue; }
+                if (name.Length == 0) { AddDiagnostic("BIBBIB005", "Expected a BibTeX field name.", fieldStart, item.Key, severity: BibliographyDiagnosticSeverity.Error); RecoverField(close); continue; }
                 SkipWhitespace();
-                if (!Consume('=')) { AddDiagnostic("BIBBIB006", "Expected '=' after a BibTeX field name.", _position, item.Key, name, BibliographyDiagnosticSeverity.Error); RecoverToDelimiter(close); continue; }
+                if (!Consume('=')) { AddDiagnostic("BIBBIB006", "Expected '=' after a BibTeX field name.", _position, item.Key, name, BibliographyDiagnosticSeverity.Error); RecoverField(close); continue; }
                 string value = ReadValue(close);
                 _limits.AddValue(_items, value, fieldStart);
                 Bind(item, name, value);
@@ -516,7 +516,24 @@ internal static class BibCodec {
         private void SkipWhitespaceAndCommas() { while (_position < _source.Length && (char.IsWhiteSpace(_source[_position]) || _source[_position] == ',')) { CheckScanCancellation(); _position++; } }
         private void SkipTrivia() { while (_position < _source.Length) { CheckScanCancellation(); if (char.IsWhiteSpace(_source[_position]) || _source[_position] == '\uFEFF') { _position++; continue; } if (_source[_position] == '%') { int start = ++_position; var builder = new StringBuilder(); while (_position < _source.Length && _source[_position] != '\n' && _source[_position] != '\r') { CheckScanCancellation(); AppendValue(builder, _source[_position++], start); } string value = builder.ToString(); _limits.AddValue(_items, value, start); _nativeEntries.Add(new BibliographyNativeEntry(_format, "line-comment", value)); continue; } break; } }
         private void RecoverToNextEntry() { while (_position < _source.Length && _source[_position] != '@') { CheckScanCancellation(); _position++; } }
-        private void RecoverToDelimiter(char close) { while (_position < _source.Length && _source[_position] != ',' && _source[_position] != close) { CheckScanCancellation(); _position++; } }
+        private void RecoverField(char close) {
+            int braceDepth = 0;
+            bool quoted = false;
+            bool escaped = false;
+            while (_position < _source.Length) {
+                CheckScanCancellation();
+                char current = _source[_position];
+                if (escaped) { escaped = false; _position++; continue; }
+                if (current == '\\') { escaped = true; _position++; continue; }
+                if (current == '"' && braceDepth == 0) { quoted = !quoted; _position++; continue; }
+                if (!quoted) {
+                    if (current == '{') { braceDepth++; _position++; continue; }
+                    if (current == '}' && braceDepth > 0) { braceDepth--; _position++; continue; }
+                    if (braceDepth == 0 && (current == ',' || current == close)) return;
+                }
+                _position++;
+            }
+        }
         private void CheckScanCancellation() { if ((_position & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested(); }
         private void AddDiagnostic(string code, string message, int offset, string? key = null, string? field = null, BibliographyDiagnosticSeverity severity = BibliographyDiagnosticSeverity.Warning) {
             GetLocation(offset, out int line, out int column);

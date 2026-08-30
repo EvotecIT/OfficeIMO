@@ -93,7 +93,7 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(null, "record", recordNamespace);
                 WriteRecordAttributes(writer, item, report);
                 WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
-                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", ToEndNoteType(item.Type)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
+                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
                 WriteContributors(writer, item, recordNamespace); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
                 WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, recordNamespace);
@@ -179,8 +179,14 @@ internal static class EndNoteXmlCodec {
 
     private static void ParseDates(BibliographyItem item, XElement? dates) {
         if (dates == null) return;
-        string year = Value(dates, "year"); string pubDate = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"))?.Value ?? string.Empty;
-        if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) return;
+        XElement? yearElement = Child(dates, "year");
+        XElement? dateElement = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"));
+        string year = yearElement?.Value ?? string.Empty; string pubDate = dateElement?.Value ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) {
+            XElement? retained = dateElement ?? yearElement;
+            if (retained != null) item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = retained.Value });
+            return;
+        }
         BibliographyDate parsedYear = CodecMappings.ParseDate(BibliographyDateRole.Issued, year);
         BibliographyDate parsedPublication = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate);
         if (string.IsNullOrWhiteSpace(year)) item.Dates.Add(parsedPublication);
@@ -216,7 +222,7 @@ internal static class EndNoteXmlCodec {
     private static void WriteDates(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
         BibliographyDate? date = item.GetDate(BibliographyDateRole.Issued); if (date == null) return;
         writer.WriteStartElement(null, "dates", xmlNamespace); if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
-        string formatted = CodecMappings.FormatDate(date); if (!string.IsNullOrWhiteSpace(formatted)) { writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement(); } writer.WriteEndElement();
+        string formatted = CodecMappings.FormatDate(date); if (date.Literal != null || formatted.Length > 0) { writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement(); } writer.WriteEndElement();
     }
 
     private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
@@ -474,6 +480,9 @@ internal static class EndNoteXmlCodec {
     private static BibliographyContributorRole RoleFromElement(string name) { switch (name.ToLowerInvariant()) { case "authors": return BibliographyContributorRole.Author; case "secondary-authors": return BibliographyContributorRole.Editor; case "tertiary-authors": return BibliographyContributorRole.CollectionEditor; case "subsidiary-authors": return BibliographyContributorRole.Translator; default: return BibliographyContributorRole.Other; } }
     private static string ElementFromRole(BibliographyContributorRole role) { switch (role) { case BibliographyContributorRole.Author: return "authors"; case BibliographyContributorRole.Editor: return "secondary-authors"; case BibliographyContributorRole.CollectionEditor: return "tertiary-authors"; case BibliographyContributorRole.Translator: return "subsidiary-authors"; default: return "subsidiary-authors"; } }
     private static string ToEndNoteType(BibliographyItemType type) { switch (type) { case BibliographyItemType.ArticleJournal: return "Journal Article"; case BibliographyItemType.Book: return "Book"; case BibliographyItemType.Chapter: return "Book Section"; case BibliographyItemType.PaperConference: return "Conference Paper"; case BibliographyItemType.Report: return "Report"; case BibliographyItemType.Thesis: return "Thesis"; case BibliographyItemType.WebPage: return "Web Page"; case BibliographyItemType.Patent: return "Patent"; default: return "Generic"; } }
+    internal static bool CanPreserveNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        sourceFormat == BibliographyFormat.EndNoteXml && !string.IsNullOrWhiteSpace(item.NativeType) && CodecMappings.ParseType(item.NativeType) == item.Type;
+    private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) => CanPreserveNativeType(sourceFormat, item) ? item.NativeType! : ToEndNoteType(item.Type);
     private static int ToEndNoteNumber(BibliographyItemType type) { switch (type) { case BibliographyItemType.ArticleJournal: return 17; case BibliographyItemType.Book: return 6; case BibliographyItemType.Chapter: return 5; case BibliographyItemType.PaperConference: return 47; case BibliographyItemType.Report: return 27; case BibliographyItemType.Thesis: return 32; case BibliographyItemType.WebPage: return 12; case BibliographyItemType.Patent: return 21; default: return 13; } }
 
     private sealed class EncodingStringWriter : StringWriter {

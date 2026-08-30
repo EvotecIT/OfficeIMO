@@ -60,9 +60,13 @@ internal sealed class BibliographyLimitGuard {
     }
 
     internal void AddValue(IList<BibliographyItem> partial, string? value, int offset) {
+        AddValue(partial, value?.Length ?? 0, offset);
+    }
+
+    internal void AddValue(IList<BibliographyItem> partial, int valueLength, int offset) {
         _values++;
         if (_values > _options.MaximumValueCount) throw new BibliographyLimitException("Maximum bibliography value count was exceeded.", partial, offset);
-        if (value != null && value.Length > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
+        if (valueLength > _options.MaximumValueLength) throw new BibliographyLimitException("Maximum bibliography value length was exceeded.", partial, offset);
     }
 
     internal void CheckDepth(IList<BibliographyItem> partial, int depth, int offset) {
@@ -138,26 +142,27 @@ internal static class BibliographyFormatDetector {
         }
     }
 
-    internal static BibliographyFormat Detect(string source, BibliographyReadOptions? options = null) {
+    internal static BibliographyFormat Detect(string source, BibliographyReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         options ??= new BibliographyReadOptions();
         options.Validate();
         if (source.Length > options.MaximumInputCharacters) throw new InvalidDataException($"Bibliography input exceeds the configured {options.MaximumInputCharacters} character limit.");
-        int start = SkipWhitespace(source, 0);
+        cancellationToken.ThrowIfCancellationRequested();
+        int start = SkipWhitespace(source, 0, cancellationToken);
         if (start < source.Length && source[start] == '%') {
-            int bib = SkipLeadingComments(source, start, true);
+            int bib = SkipLeadingComments(source, start, true, cancellationToken);
             if (StartsWith(source, bib, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
             throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
         }
         if (start + 1 < source.Length && source[start] == '/' && (source[start + 1] == '/' || source[start + 1] == '*')) {
-            int json = SkipLeadingComments(source, start, false);
+            int json = SkipLeadingComments(source, start, false, cancellationToken);
             if (LooksLikeCsl(source, json)) return BibliographyFormat.CslJson;
             throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
         }
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
         if (start < source.Length && source[start] == '<') {
-            int xml = SkipLeadingXmlTrivia(source, start);
-            if (LooksLikeEndNoteRoot(source, xml)) return BibliographyFormat.EndNoteXml;
+            int xml = SkipLeadingXmlTrivia(source, start, cancellationToken);
+            if (LooksLikeEndNoteRoot(source, xml, cancellationToken)) return BibliographyFormat.EndNoteXml;
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;
@@ -165,21 +170,22 @@ internal static class BibliographyFormatDetector {
         throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
     }
 
-    private static int SkipLeadingComments(string source, int position, bool bibComments) {
+    private static int SkipLeadingComments(string source, int position, bool bibComments, CancellationToken cancellationToken) {
         while (position < source.Length) {
-            position = SkipWhitespace(source, position);
+            cancellationToken.ThrowIfCancellationRequested();
+            position = SkipWhitespace(source, position, cancellationToken);
             if (bibComments && position < source.Length && source[position] == '%') {
-                int end = source.IndexOf('\n', position + 1);
+                int end = FindCharacter(source, position + 1, '\n', cancellationToken);
                 position = end < 0 ? source.Length : end + 1;
                 continue;
             }
             if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '/') {
-                int end = source.IndexOf('\n', position + 2);
+                int end = FindCharacter(source, position + 2, '\n', cancellationToken);
                 position = end < 0 ? source.Length : end + 1;
                 continue;
             }
             if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '*') {
-                int end = source.IndexOf("*/", position + 2, StringComparison.Ordinal);
+                int end = FindSequence(source, position + 2, "*/", cancellationToken);
                 if (end < 0) return position;
                 position = end + 2;
                 continue;
@@ -189,17 +195,18 @@ internal static class BibliographyFormatDetector {
         return position;
     }
 
-    private static int SkipLeadingXmlTrivia(string source, int position) {
+    private static int SkipLeadingXmlTrivia(string source, int position, CancellationToken cancellationToken) {
         while (position < source.Length) {
-            position = SkipWhitespace(source, position);
+            cancellationToken.ThrowIfCancellationRequested();
+            position = SkipWhitespace(source, position, cancellationToken);
             if (StartsWith(source, position, "<!--", StringComparison.Ordinal)) {
-                int end = source.IndexOf("-->", position + 4, StringComparison.Ordinal);
+                int end = FindSequence(source, position + 4, "-->", cancellationToken);
                 if (end < 0) return position;
                 position = end + 3;
                 continue;
             }
             if (StartsWith(source, position, "<?", StringComparison.Ordinal)) {
-                int end = source.IndexOf("?>", position + 2, StringComparison.Ordinal);
+                int end = FindSequence(source, position + 2, "?>", cancellationToken);
                 if (end < 0) return position;
                 position = end + 2;
                 continue;
@@ -212,12 +219,15 @@ internal static class BibliographyFormatDetector {
     private static bool LooksLikeCsl(string source, int position) =>
         StartsWith(source, position, "[", StringComparison.Ordinal) || StartsWith(source, position, "{", StringComparison.Ordinal);
 
-    private static bool LooksLikeEndNoteRoot(string source, int position) {
+    private static bool LooksLikeEndNoteRoot(string source, int position, CancellationToken cancellationToken) {
         if (position < 0 || position >= source.Length || source[position] != '<' || position + 1 >= source.Length) return false;
         int nameStart = position + 1;
         if (source[nameStart] == '/' || source[nameStart] == '!' || source[nameStart] == '?') return false;
         int nameEnd = nameStart;
-        while (nameEnd < source.Length && !char.IsWhiteSpace(source[nameEnd]) && source[nameEnd] != '/' && source[nameEnd] != '>') nameEnd++;
+        while (nameEnd < source.Length && !char.IsWhiteSpace(source[nameEnd]) && source[nameEnd] != '/' && source[nameEnd] != '>') {
+            if (((nameEnd - nameStart) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            nameEnd++;
+        }
         if (nameEnd == nameStart) return false;
         int localStart = nameStart;
         for (int index = nameStart; index < nameEnd; index++) if (source[index] == ':') localStart = index + 1;
@@ -229,8 +239,32 @@ internal static class BibliographyFormatDetector {
     private static bool StartsWith(string source, int position, string value, StringComparison comparison) =>
         position >= 0 && position <= source.Length - value.Length && string.Compare(source, position, value, 0, value.Length, comparison) == 0;
 
-    private static int SkipWhitespace(string source, int position) {
-        while (position < source.Length && (char.IsWhiteSpace(source[position]) || source[position] == '\uFEFF')) position++;
+    private static int SkipWhitespace(string source, int position, CancellationToken cancellationToken) {
+        int start = position;
+        while (position < source.Length && (char.IsWhiteSpace(source[position]) || source[position] == '\uFEFF')) {
+            if (((position - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            position++;
+        }
         return position;
+    }
+
+    private static int FindCharacter(string source, int position, char value, CancellationToken cancellationToken) {
+        int start = position;
+        while (position < source.Length) {
+            if (((position - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (source[position] == value) return position;
+            position++;
+        }
+        return -1;
+    }
+
+    private static int FindSequence(string source, int position, string value, CancellationToken cancellationToken) {
+        int start = position;
+        while (position <= source.Length - value.Length) {
+            if (((position - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (StartsWith(source, position, value, StringComparison.Ordinal)) return position;
+            position++;
+        }
+        return -1;
     }
 }

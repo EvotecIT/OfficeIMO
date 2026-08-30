@@ -57,7 +57,7 @@ public sealed partial class BibliographyDocument {
     /// <summary>Parses bibliography text after bounded content detection.</summary>
     public static BibliographyReadResult Parse(string source, BibliographyReadOptions? options = null, CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        return Parse(source, BibliographyFormatDetector.Detect(source, options), options, cancellationToken);
+        return Parse(source, BibliographyFormatDetector.Detect(source, options, cancellationToken), options, cancellationToken);
     }
 
     /// <summary>Writes or converts the document.</summary>

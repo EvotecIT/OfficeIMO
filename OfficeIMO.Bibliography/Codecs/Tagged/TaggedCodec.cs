@@ -72,15 +72,14 @@ internal static class TaggedCodec {
             int lineOffset = offset;
             int lineEnd = FindLineEnd(source, lineOffset, cancellationToken);
             offset = lineEnd >= source.Length ? source.Length + 1 : lineEnd + (source[lineEnd] == '\r' && lineEnd + 1 < source.Length && source[lineEnd + 1] == '\n' ? 2 : 1);
-            string line = source.Substring(lineOffset, lineEnd - lineOffset);
-            if (lineIndex == 0 && line.Length > 0 && line[0] == '\uFEFF') line = line.Substring(1);
-            if (string.IsNullOrWhiteSpace(line)) {
+            int contentStart = lineOffset;
+            if (lineIndex == 0 && contentStart < lineEnd && source[contentStart] == '\uFEFF') contentStart++;
+            if (IsWhiteSpace(source, contentStart, lineEnd, cancellationToken)) {
                 if (format == BibliographyFormat.Nbib) current = null;
                 previousTag = null; previousNativeField = null; continue;
             }
-            if (TrySplitLine(line, format, out string tag, out string value)) {
+            if (TrySplitLine(source, contentStart, lineEnd, items, limits, lineOffset, cancellationToken, out string tag, out string value)) {
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "TY", StringComparison.OrdinalIgnoreCase)) {
-                    limits.AddValue(items, value, lineOffset);
                     current = NewItem(items, limits, lineOffset); current.NativeType = value; current.Type = CodecMappings.ParseRisType(value);
                     previousTag = tag;
                     previousNativeField = null;
@@ -89,7 +88,6 @@ internal static class TaggedCodec {
                     current = NewItem(items, limits, lineOffset);
                 } else if (current == null) current = NewItem(items, limits, lineOffset);
                 if (format == BibliographyFormat.Nbib && current!.Type == BibliographyItemType.Unknown) { current.Type = BibliographyItemType.ArticleJournal; current.NativeType = "Journal Article"; }
-                limits.AddValue(items, value, lineOffset);
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "ER", StringComparison.OrdinalIgnoreCase)) current = null;
                 else {
                     int nativeCount = current!.NativeFields.Count;
@@ -97,9 +95,10 @@ internal static class TaggedCodec {
                     previousNativeField = current.NativeFields.Count > nativeCount ? current.NativeFields[current.NativeFields.Count - 1] : null;
                 }
                 previousTag = tag;
-            } else if (current != null && previousTag != null && (char.IsWhiteSpace(line[0]) || format == BibliographyFormat.Ris)) {
-                string continuation = line.Trim();
-                limits.AddValue(items, continuation, lineOffset);
+            } else if (current != null && previousTag != null && (char.IsWhiteSpace(source[contentStart]) || format == BibliographyFormat.Ris)) {
+                GetTrimmedRange(source, contentStart, lineEnd, out int continuationStart, out int continuationLength);
+                limits.AddValue(items, continuationLength, lineOffset);
+                string continuation = source.Substring(continuationStart, continuationLength);
                 if (previousNativeField != null) previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
                 else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
@@ -120,15 +119,44 @@ internal static class TaggedCodec {
         return position;
     }
 
-    private static bool TrySplitLine(string line, BibliographyFormat format, out string tag, out string value) {
+    private static bool TrySplitLine(string source, int start, int end, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset, CancellationToken cancellationToken, out string tag, out string value) {
         tag = string.Empty; value = string.Empty;
-        if (line.Length == 0 || char.IsWhiteSpace(line[0])) return false;
-        int dashPosition = line.IndexOf('-');
-        if (dashPosition <= 0) return false;
-        tag = line.Substring(0, dashPosition).Trim();
-        if (tag.Length < 2 || tag.Length > 5 || !tag.All(char.IsLetterOrDigit)) { tag = string.Empty; return false; }
-        value = line.Substring(dashPosition + 1).TrimStart();
+        if (start >= end || char.IsWhiteSpace(source[start])) return false;
+        int dashPosition = start;
+        while (dashPosition < end && source[dashPosition] != '-') {
+            if (((dashPosition - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            dashPosition++;
+        }
+        if (dashPosition == start || dashPosition >= end) return false;
+        int tagStart = start;
+        int tagEnd = dashPosition;
+        while (tagStart < tagEnd && char.IsWhiteSpace(source[tagStart])) tagStart++;
+        while (tagEnd > tagStart && char.IsWhiteSpace(source[tagEnd - 1])) tagEnd--;
+        int tagLength = tagEnd - tagStart;
+        if (tagLength < 2 || tagLength > 5) return false;
+        for (int index = tagStart; index < tagEnd; index++) if (!char.IsLetterOrDigit(source[index])) return false;
+        int valueStart = dashPosition + 1;
+        while (valueStart < end && char.IsWhiteSpace(source[valueStart])) valueStart++;
+        int valueLength = end - valueStart;
+        limits.AddValue(items, valueLength, offset);
+        tag = source.Substring(tagStart, tagLength);
+        value = source.Substring(valueStart, valueLength);
         return true;
+    }
+
+    private static bool IsWhiteSpace(string source, int start, int end, CancellationToken cancellationToken) {
+        for (int index = start; index < end; index++) {
+            if (((index - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!char.IsWhiteSpace(source[index])) return false;
+        }
+        return true;
+    }
+
+    private static void GetTrimmedRange(string source, int start, int end, out int trimmedStart, out int length) {
+        while (start < end && char.IsWhiteSpace(source[start])) start++;
+        while (end > start && char.IsWhiteSpace(source[end - 1])) end--;
+        trimmedStart = start;
+        length = end - start;
     }
 
     private static void Bind(BibliographyItem item, BibliographyFormat format, string tag, string value) {
