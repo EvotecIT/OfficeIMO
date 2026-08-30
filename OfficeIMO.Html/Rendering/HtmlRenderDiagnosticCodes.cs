@@ -46,6 +46,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string FontFaceUnavailable = "HtmlRenderFontFaceUnavailable";
     /// <summary>A font source was not a supported TrueType glyf-outline font.</summary>
     public const string FontFormatUnsupported = "HtmlRenderFontFormatUnsupported";
+    /// <summary>A CSS font-variant used a documented managed-rendering approximation.</summary>
+    public const string FontVariantApproximated = "HtmlRenderFontVariantApproximated";
     /// <summary>Legacy diagnostic retained for source compatibility; bounded bidi positioning is active.</summary>
     public const string BidiLayoutUnsupported = "HtmlRenderBidiLayoutUnsupported";
     /// <summary>A complex-script run requires provider-owned shaping that no configured provider accepted.</summary>
@@ -225,6 +227,7 @@ public static class HtmlRenderDiagnosticCodes {
         FontFaceInvalid,
         FontFaceUnavailable,
         FontFormatUnsupported,
+        FontVariantApproximated,
         ComplexTextShapingUnsupported,
         InlinePaintEffectUnsupported,
         FlexLayoutPending,

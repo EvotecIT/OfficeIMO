@@ -252,6 +252,39 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_CapitalizationKeepsWordContextAcrossInlineFormattingBoundaries() {
+        const string html = "<p style='margin:0;text-transform:capitalize'>hel<span style='font-weight:bold'>lo</span> world</p>";
+
+        string renderedText = string.Concat(
+            EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(html).Pages[0].Scene)
+                .OfType<HtmlRenderText>()
+                .Select(static text => text.Text));
+
+        Assert.Equal("Hello World", renderedText);
+    }
+
+    [Fact]
+    public void HtmlRender_LetterSpacingUsesEffectiveSuperscriptFontMetrics() {
+        const string normal = "<p style='margin:0;font-family:Consolas;font-size:30px'><sup>A</sup></p>";
+        const string spaced = "<p style='margin:0;font-family:Consolas;font-size:30px'><sup style='letter-spacing:2px'>AB</sup></p>";
+
+        HtmlRenderText normalGlyph = Assert.Single(
+            EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(normal).Pages[0].Scene)
+                .OfType<HtmlRenderText>());
+        HtmlRenderText[] spacedGlyphs = EnumerateTextOverflowVisuals(HtmlRenderTestDriver.Render(spaced).Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .ToArray();
+
+        Assert.Equal(new[] { "A", "B" }, spacedGlyphs.Select(static glyph => glyph.Text).ToArray());
+        Assert.InRange(spacedGlyphs[0].Width - normalGlyph.Width, -0.25D, 0.25D);
+        Assert.InRange(
+            (spacedGlyphs[0].TextAdvanceWidth ?? spacedGlyphs[0].Width)
+            - (normalGlyph.TextAdvanceWidth ?? normalGlyph.Width),
+            1.75D,
+            2.25D);
+    }
+
+    [Fact]
     public void HtmlRender_LetterSpacingRetainsPerGraphemePaintForRightToLeftText() {
         const string html = "<p dir='rtl' style='margin:0;font-family:Arial;font-size:14px;letter-spacing:3px'>אב</p>";
 

@@ -528,6 +528,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             bidiVisualOrderResolved: segment.BidiResolved,
                             semanticFragmentOrder: segment.Run.SemanticFragmentOrder,
                             logicalTextOrder: segment.Run.LogicalTextOrder,
+                            underlineStyle: segment.Run.Style.UnderlineStyle,
+                            strikethroughStyle: segment.Run.Style.StrikethroughStyle,
+                            baseline: segment.Run.Style.Baseline,
+                            baselineLevel: segment.Run.Style.BaselineLevel,
+                            baselineScale: segment.Run.Style.BaselineScale,
+                            baselineOffset: segment.Run.Style.BaselineOffset,
                             textPaintWidth: paintSegment.Width));
                     }
                     HtmlRenderVisual textVisual = paintSegments.Count > 1 || segment.BidiResolved ||

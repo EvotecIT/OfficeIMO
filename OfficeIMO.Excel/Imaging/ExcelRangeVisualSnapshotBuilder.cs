@@ -327,7 +327,13 @@ namespace OfficeIMO.Excel {
                     run.Strikethrough,
                     NormalizeRunColor(run.FontColor),
                     string.IsNullOrWhiteSpace(run.FontName) ? null : run.FontName,
-                    run.FontSize));
+                    run.FontSize,
+                    run.UnderlineStyle,
+                    run.VerticalTextAlignment,
+                    run.BoldSpecified,
+                    run.ItalicSpecified,
+                    run.UnderlineSpecified,
+                    run.StrikethroughSpecified));
             }
 
             return visualRuns.Count == 0 ? Array.Empty<ExcelVisualTextRun>() : visualRuns.AsReadOnly();
@@ -557,6 +563,11 @@ namespace OfficeIMO.Excel {
                 Bold = format.FontBold ?? style.Bold,
                 Italic = format.FontItalic ?? style.Italic,
                 Underline = format.FontUnderline ?? style.Underline,
+                UnderlineStyle = format.FontUnderline.HasValue
+                    ? format.FontUnderline.Value ? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None
+                    : style.UnderlineStyle,
+                Strikethrough = style.Strikethrough,
+                VerticalTextAlignment = style.VerticalTextAlignment,
                 FontName = string.IsNullOrWhiteSpace(format.FontName) ? style.FontName : format.FontName,
                 IsFontFamilyExplicit = !string.IsNullOrWhiteSpace(format.FontName) || style.IsFontFamilyExplicit,
                 FontSize = format.FontSize ?? style.FontSize,

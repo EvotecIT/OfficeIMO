@@ -197,12 +197,24 @@ public static partial class OneNotePageRenderer {
                                 RenderPlainMath(item.Expression, cursorX, cursorY, fallbackWidth, fallbackHeight, item.MathOptions.Font, item.MathOptions.Color);
                             }
                         }
-                    } else if (item.Text.Length > 0) {
+                    } else if (item.RichText != null && item.Text.Length > 0) {
                         double drawableWidth = Math.Min(item.Width, _drawing.Width - cursorX);
                         double drawableHeight = Math.Min(item.Height, _drawing.Height - cursorY);
                         if (drawableWidth > 0D && drawableHeight > 0D) {
-                            _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
-                                ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
+                            if (item.RichText.Baseline == OfficeTextBaseline.Normal) {
+                                _drawing.AddText(item.Text, cursorX, cursorY, drawableWidth, drawableHeight, CreateFont(item.Run),
+                                    ResolveColor(item.Run.Style.ColorArgb), OfficeTextAlignment.Left, item.Height, wrapText: false);
+                            } else {
+                                _drawing.AddRichText(
+                                    new[] { item.RichText },
+                                    cursorX,
+                                    cursorY,
+                                    drawableWidth,
+                                    drawableHeight,
+                                    OfficeTextAlignment.Left,
+                                    lineHeight: item.Height,
+                                    wrapText: false);
+                            }
                         }
                     }
                     cursorX += item.Width;
@@ -321,27 +333,27 @@ public static partial class OneNotePageRenderer {
             if (token.Length == 0) return;
             string value = token.ToString();
             token.Clear();
-            OfficeFontInfo font = CreateFont(run);
-            double height = Math.Max(DefaultParagraphHeight, font.Size * 1.3D);
+            OfficeRichTextRun richText = CreateRichTextRun(run, value);
+            double height = Math.Max(DefaultParagraphHeight, richText.EffectiveFontSize * 1.3D);
             int start = 0;
             while (start < value.Length) {
                 int length = value.Length - start;
                 string part = value.Substring(start, length);
-                double measured = MeasureTextPoints(part, font);
+                double measured = MeasureRichTextPoints(part, richText.EffectiveFontSize, richText.FontFamily);
                 while (length > 1 && measured > maximumWidth) {
                     length = Math.Max(1, length / 2);
                     part = value.Substring(start, length);
-                    measured = MeasureTextPoints(part, font);
+                    measured = MeasureRichTextPoints(part, richText.EffectiveFontSize, richText.FontFamily);
                 }
                 while (start + length < value.Length) {
                     string candidate = value.Substring(start, length + 1);
-                    double candidateWidth = MeasureTextPoints(candidate, font);
+                    double candidateWidth = MeasureRichTextPoints(candidate, richText.EffectiveFontSize, richText.FontFamily);
                     if (candidateWidth > maximumWidth) break;
                     length++;
                     part = candidate;
                     measured = candidateWidth;
                 }
-                output.Add(InlineMathItem.TextRun(run, part, Math.Max(0D, measured), height));
+                output.Add(InlineMathItem.TextRun(run, CreateRichTextRun(run, part), Math.Max(0D, measured), height));
                 start += length;
             }
         }
@@ -382,7 +394,9 @@ public static partial class OneNotePageRenderer {
             internal bool IsLineBreak { get; private set; }
             internal OfficeMathExpression? Expression { get; private set; }
             internal OfficeMathRenderOptions? MathOptions { get; private set; }
-            internal static InlineMathItem TextRun(OneNoteTextRun run, string text, double width, double height) => new InlineMathItem(run, text, width, height);
+            internal OfficeRichTextRun? RichText { get; private set; }
+            internal static InlineMathItem TextRun(OneNoteTextRun run, OfficeRichTextRun richText, double width, double height) =>
+                new InlineMathItem(run, richText.Text, width, height) { RichText = richText };
             internal static InlineMathItem LineBreak(OneNoteTextRun run) => new InlineMathItem(run, string.Empty, 0D, DefaultParagraphHeight) { IsLineBreak = true };
             internal static InlineMathItem Math(OneNoteTextRun run, OfficeMathExpression expression, OfficeMathRenderOptions options, OfficeMathLayoutMetrics metrics) =>
                 new InlineMathItem(run, string.Empty, metrics.Width + 2D, System.Math.Max(DefaultParagraphHeight, metrics.Height)) { Expression = expression, MathOptions = options };
@@ -649,7 +663,10 @@ public static partial class OneNotePageRenderer {
             run.Style.Underline == true || !string.IsNullOrWhiteSpace(run.Hyperlink),
             run.Style.FontFamily ?? _options.DefaultFont.FamilyName,
             run.Style.Strikethrough == true,
-            run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null);
+            run.Style.HighlightColorArgb.HasValue ? ResolveColor(run.Style.HighlightColorArgb) : (OfficeColor?)null,
+            baseline: run.Style.Superscript == true
+                ? OfficeTextBaseline.Superscript
+                : run.Style.Subscript == true ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal);
 
         private OfficeFontInfo CreateFont(OneNoteTextRun run) {
             OfficeFontStyle style = OfficeFontStyle.Regular;
@@ -709,7 +726,6 @@ public static partial class OneNotePageRenderer {
             if (!argb.HasValue) return OfficeColor.Black;
             uint value = argb.Value;
             byte alpha = (byte)(value >> 24);
-            if (alpha == 0) alpha = 255;
             return OfficeColor.FromRgba((byte)(value >> 16), (byte)(value >> 8), (byte)value, alpha);
         }
 

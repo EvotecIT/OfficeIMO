@@ -119,6 +119,7 @@ internal static class EmailReaderProjection {
 
         EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(document,
             new EmailBodyProjectionOptions {
+                IncludeResources = false,
                 SelectionPolicy = EmailBodySelectionPolicy.Richest,
                 RemoteResourcePolicy = EmailRemoteResourcePolicy.Block
             });

@@ -587,7 +587,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 webFonts),
             linkUri: link,
             linkContents: link == null ? null : visual.Text,
-            fontFamily: visual.Font.FamilyName);
+            fontFamily: visual.Font.FamilyName,
+            baseline: MapTextBaseline(visual.Baseline),
+            underlineStyle: visual.UnderlineStyle,
+            strikeStyle: visual.StrikethroughStyle);
         canvas.Text(
             new[] { run },
             asSpan ? PdfCore.PdfCanvasTextStructureRole.Span : MapStructureRole(visual.SemanticRole),
@@ -610,6 +613,12 @@ internal static partial class HtmlPdfRenderedConverter {
         if (semanticRole == "heading-6") return PdfCore.PdfCanvasTextStructureRole.Heading6;
         return semanticRole == "span" ? PdfCore.PdfCanvasTextStructureRole.Span : PdfCore.PdfCanvasTextStructureRole.Paragraph;
     }
+
+    private static PdfCore.PdfTextBaseline MapTextBaseline(OfficeTextBaseline baseline) => baseline switch {
+        OfficeTextBaseline.Superscript => PdfCore.PdfTextBaseline.Superscript,
+        OfficeTextBaseline.Subscript => PdfCore.PdfTextBaseline.Subscript,
+        _ => PdfCore.PdfTextBaseline.Normal
+    };
 
     private static void AddImage(PdfCore.PdfPageCanvas canvas, HtmlRenderImage visual) {
         PdfCore.PdfCanvasImageResource? imageResource = GetSharedPdfImageResource(

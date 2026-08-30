@@ -955,16 +955,19 @@ namespace OfficeIMO.Word.Pdf {
 
         private readonly record struct NativeResolvedTextStyle(
             bool Bold,
-            bool Underline,
+            OfficeTextDecorationStyle UnderlineStyle,
             bool Italic,
-            bool Strike,
+            OfficeTextDecorationStyle StrikeStyle,
             bool AllCaps,
             PdfCore.PdfTextBaseline Baseline,
             double? FontSize,
             PdfCore.PdfStandardFont? Font,
             string? FontFamily,
             PdfCore.PdfColor? Color,
-            PdfCore.PdfColor? BackgroundColor);
+            PdfCore.PdfColor? BackgroundColor) {
+            internal bool Underline => UnderlineStyle != OfficeTextDecorationStyle.None;
+            internal bool Strike => StrikeStyle != OfficeTextDecorationStyle.None;
+        }
 
         private static void AddNativeText(
             PdfCore.PdfParagraphBuilder builder,
@@ -990,8 +993,8 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeTextStyle(PdfCore.PdfParagraphBuilder builder, NativeResolvedTextStyle style) {
             builder.Bold(style.Bold);
             builder.Italic(style.Italic);
-            builder.Underline(style.Underline);
-            builder.Strike(style.Strike);
+            builder.Underline(style.UnderlineStyle);
+            builder.Strike(style.StrikeStyle);
             builder.Baseline(style.Baseline);
             if (style.FontSize.HasValue) {
                 builder.FontSize(style.FontSize.Value);
@@ -1021,14 +1024,17 @@ namespace OfficeIMO.Word.Pdf {
 
             bool bold = ReadNativeOnOff(runProperties?.GetFirstChild<W.Bold>()) ?? characterStyleDefaults.Bold ?? styleDefaults.Bold ?? tableRunStyleDefaults.Bold ?? false;
             bool italic = ReadNativeOnOff(runProperties?.GetFirstChild<W.Italic>()) ?? characterStyleDefaults.Italic ?? styleDefaults.Italic ?? tableRunStyleDefaults.Italic ?? false;
-            bool underline = ReadNativeUnderline(runProperties?.GetFirstChild<W.Underline>()) ?? characterStyleDefaults.Underline ?? styleDefaults.Underline ?? tableRunStyleDefaults.Underline ?? false;
-            bool strike =
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>()) ??
-                ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>()) ??
-                characterStyleDefaults.Strike ??
-                styleDefaults.Strike ??
-                tableRunStyleDefaults.Strike ??
-                false;
+            OfficeTextDecorationStyle? directUnderlineStyle = MapNativeUnderlineStyle(runProperties?.GetFirstChild<W.Underline>());
+            OfficeTextDecorationStyle underlineStyle = directUnderlineStyle ??
+                characterStyleDefaults.UnderlineStyle ??
+                styleDefaults.UnderlineStyle ??
+                tableRunStyleDefaults.UnderlineStyle ??
+                OfficeTextDecorationStyle.None;
+            OfficeTextDecorationStyle strikeStyle = MapNativeStrikeStyle(runProperties) ??
+                characterStyleDefaults.StrikeStyle ??
+                styleDefaults.StrikeStyle ??
+                tableRunStyleDefaults.StrikeStyle ??
+                OfficeTextDecorationStyle.None;
             bool allCaps =
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.Caps>()) ??
                 ReadNativeOnOff(runProperties?.GetFirstChild<W.SmallCaps>()) ??
@@ -1054,7 +1060,33 @@ namespace OfficeIMO.Word.Pdf {
                 ? directBackground
                 : MapNativeHighlight(characterStyleDefaults.Highlight) ?? MapNativeHighlight(styleDefaults.Highlight) ?? MapNativeHighlight(tableRunStyleDefaults.Highlight);
 
-            return new NativeResolvedTextStyle(bold, underline, italic, strike, allCaps, baseline, fontSize, font, fontFamily, color, background);
+            return new NativeResolvedTextStyle(bold, underlineStyle, italic, strikeStyle, allCaps, baseline, fontSize, font, fontFamily, color, background);
+        }
+
+        private static OfficeTextDecorationStyle? MapNativeUnderlineStyle(W.Underline? underline) {
+            if (underline == null) return null;
+            W.UnderlineValues value = underline.Val?.Value ?? W.UnderlineValues.Single;
+            if (value == W.UnderlineValues.None) return OfficeTextDecorationStyle.None;
+            if (value == W.UnderlineValues.Double || value == W.UnderlineValues.WavyDouble) return OfficeTextDecorationStyle.Double;
+            if (value == W.UnderlineValues.Dotted || value == W.UnderlineValues.DottedHeavy) return OfficeTextDecorationStyle.Dotted;
+            if (value == W.UnderlineValues.Wave || value == W.UnderlineValues.WavyHeavy) return OfficeTextDecorationStyle.Wavy;
+            if (value == W.UnderlineValues.Dash || value == W.UnderlineValues.DashedHeavy ||
+                value == W.UnderlineValues.DashLong || value == W.UnderlineValues.DashLongHeavy ||
+                value == W.UnderlineValues.DotDash || value == W.UnderlineValues.DashDotHeavy ||
+                value == W.UnderlineValues.DotDotDash || value == W.UnderlineValues.DashDotDotHeavy) {
+                return OfficeTextDecorationStyle.Dashed;
+            }
+
+            return OfficeTextDecorationStyle.Single;
+        }
+
+        private static OfficeTextDecorationStyle? MapNativeStrikeStyle(DocumentFormat.OpenXml.OpenXmlElement? runProperties) {
+            bool? strike = ReadNativeOnOff(runProperties?.GetFirstChild<W.Strike>());
+            bool? doubleStrike = ReadNativeOnOff(runProperties?.GetFirstChild<W.DoubleStrike>());
+            if (!strike.HasValue && !doubleStrike.HasValue) return null;
+            if (doubleStrike == true) return OfficeTextDecorationStyle.Double;
+            if (strike == true) return OfficeTextDecorationStyle.Single;
+            return OfficeTextDecorationStyle.None;
         }
 
         private static PdfCore.PdfTextBaseline MapNativeTextBaseline(W.VerticalPositionValues? baseline) =>
@@ -1302,7 +1334,13 @@ namespace OfficeIMO.Word.Pdf {
                 baseline: style.Baseline,
                 linkDestinationName: bookmarkName,
                 backgroundColor: style.BackgroundColor,
-                fontFamily: style.FontFamily);
+                fontFamily: style.FontFamily,
+                underlineStyle: style.Underline || linkUri != null || bookmarkName != null
+                    ? style.UnderlineStyle == OfficeTextDecorationStyle.None
+                        ? OfficeTextDecorationStyle.Single
+                        : style.UnderlineStyle
+                    : OfficeTextDecorationStyle.None,
+                strikeStyle: style.StrikeStyle);
 
         private static string? GetNativeHyperLinkContents(WordHyperLink hyperlink) =>
             string.IsNullOrWhiteSpace(hyperlink.Tooltip) ? null : hyperlink.Tooltip;

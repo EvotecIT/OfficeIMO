@@ -1,4 +1,5 @@
 using OfficeIMO.Word;
+using OfficeIMO.Drawing;
 using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
@@ -28,7 +29,7 @@ internal sealed class OfficeMarkupWordExporter {
 
         WordDocument word = WordDocument.Create();
         try {
-            var context = new WordExportContext(word, options);
+            var context = new WordExportContext(word, options, OfficeMarkupStyleResolver.Create(document));
             foreach (var block in document.Blocks) {
                 ExportBlock(context, block);
             }
@@ -46,7 +47,7 @@ internal sealed class OfficeMarkupWordExporter {
                 AddHeading(context, heading);
                 break;
             case OfficeMarkupParagraphBlock paragraph:
-                context.AddParagraph(paragraph.Text);
+                ApplyTextStyle(context.AddParagraph(paragraph.Text), context.Styles.Resolve(paragraph));
                 break;
             case OfficeMarkupListBlock list:
                 AddList(context, list);
@@ -90,13 +91,15 @@ internal sealed class OfficeMarkupWordExporter {
     private static void AddHeading(WordExportContext context, OfficeMarkupHeadingBlock heading) {
         var paragraph = context.AddParagraph(heading.Text);
         paragraph.Style = HeadingStyle(heading.Level);
+        ApplyTextStyle(paragraph, context.Styles.Resolve(heading));
     }
 
     private static void AddList(WordExportContext context, OfficeMarkupListBlock list) {
         if (context.CurrentSection != null) {
             foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
                 string indent = new string(' ', entry.Depth * 2);
-                context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text);
+                ApplyTextStyle(context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text),
+                    context.Styles.Resolve("body", entry.SourceList.Attributes));
             }
 
             return;
@@ -114,7 +117,54 @@ internal sealed class OfficeMarkupWordExporter {
                 wordLists.Add(entry.SourceList, wordList);
             }
 
-            wordList.AddItem(entry.Item.Text, entry.Depth);
+            ApplyTextStyle(wordList.AddItem(entry.Item.Text, entry.Depth),
+                context.Styles.Resolve("body", entry.SourceList.Attributes));
+        }
+    }
+
+    private static void ApplyTextStyle(WordParagraph paragraph, OfficeMarkupResolvedStyle? style) {
+        if (style == null) return;
+        if (!string.IsNullOrWhiteSpace(style.FontName)) paragraph.FontFamily = style.FontName;
+        if (style.FontSize != null) paragraph.FontSizePoints = style.FontSize.Value;
+        if (style.Bold != null) paragraph.Bold = style.Bold.Value;
+        if (style.Italic != null) paragraph.Italic = style.Italic.Value;
+        if (style.UnderlineStyle != null) paragraph.Underline = ToWordUnderline(style.UnderlineStyle.Value);
+        if (style.StrikethroughStyle != null) {
+            paragraph.Strike = style.StrikethroughStyle is not OfficeTextDecorationStyle.None and not OfficeTextDecorationStyle.Double;
+            paragraph.DoubleStrike = style.StrikethroughStyle == OfficeTextDecorationStyle.Double;
+        }
+        if (style.Baseline != null) paragraph.VerticalTextAlignment = style.Baseline.Value switch {
+            OfficeTextBaseline.Normal => WordVerticalTextPosition.Baseline,
+            OfficeTextBaseline.Superscript => WordVerticalTextPosition.Superscript,
+            OfficeTextBaseline.Subscript => WordVerticalTextPosition.Subscript,
+            _ => throw new ArgumentOutOfRangeException(nameof(style))
+        };
+        if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) paragraph.TransformTextCase(textCase, CultureInfo.InvariantCulture);
+        if (style.SmallCaps != null) paragraph.CapsStyle = style.SmallCaps.Value ? WordCapsStyle.SmallCaps : WordCapsStyle.None;
+        if (!string.IsNullOrWhiteSpace(style.TextColor)) paragraph.ColorHex = style.TextColor!;
+        if (!string.IsNullOrWhiteSpace(style.HighlightColor)) paragraph.RunShadingFillColorHex = style.HighlightColor!;
+        if (!string.IsNullOrWhiteSpace(style.FillColor)) paragraph.ShadingFillColorHex = style.FillColor!;
+        if (TryParseAlignment(style.TextAlign, out WordParagraphAlignment alignment)) paragraph.ParagraphAlignment = alignment;
+    }
+
+    private static WordUnderlineStyle ToWordUnderline(OfficeTextDecorationStyle style) => style switch {
+        OfficeTextDecorationStyle.None => WordUnderlineStyle.None,
+        OfficeTextDecorationStyle.Single => WordUnderlineStyle.Single,
+        OfficeTextDecorationStyle.Double => WordUnderlineStyle.Double,
+        OfficeTextDecorationStyle.Dotted => WordUnderlineStyle.Dotted,
+        OfficeTextDecorationStyle.Dashed => WordUnderlineStyle.Dash,
+        OfficeTextDecorationStyle.Wavy => WordUnderlineStyle.Wave,
+        _ => throw new ArgumentOutOfRangeException(nameof(style))
+    };
+
+    private static bool TryParseAlignment(string? value, out WordParagraphAlignment alignment) {
+        switch (Normalize(value)) {
+            case "left": alignment = WordParagraphAlignment.Left; return true;
+            case "center": alignment = WordParagraphAlignment.Center; return true;
+            case "right": alignment = WordParagraphAlignment.Right; return true;
+            case "justify":
+            case "both": alignment = WordParagraphAlignment.Both; return true;
+            default: alignment = WordParagraphAlignment.Left; return false;
         }
     }
 
@@ -375,13 +425,15 @@ internal sealed class OfficeMarkupWordExporter {
         (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
 
     private sealed class WordExportContext {
-        public WordExportContext(WordDocument document, MarkupToWordOptions options) {
+        public WordExportContext(WordDocument document, MarkupToWordOptions options, OfficeMarkupStyleResolver styles) {
             Document = document;
             Options = options;
+            Styles = styles;
         }
 
         public WordDocument Document { get; }
         public MarkupToWordOptions Options { get; }
+        public OfficeMarkupStyleResolver Styles { get; }
         public WordSection? CurrentSection { get; set; }
 
         public WordParagraph AddParagraph(string text = "") =>

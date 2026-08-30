@@ -1,6 +1,8 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Drawing;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
+using System.Globalization;
 
 namespace OfficeIMO.Excel.OpenDocument;
 
@@ -65,6 +67,29 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         IDictionary<uint, string> dataStyles, ref int unsupported) {
         if (style.Bold) target.Bold = true;
         if (style.Italic) target.Italic = true;
+        ExcelUnderlineStyle? underlineStyle = style.UnderlineStyle;
+        bool underlined = underlineStyle.HasValue
+            ? underlineStyle.Value != ExcelUnderlineStyle.None
+            : style.Underline;
+        if (underlined) {
+            target.Underline = true;
+            target.UnderlineStyle = OdfTextDecorationStyle.Solid;
+            target.UnderlineType = underlineStyle is ExcelUnderlineStyle.Double or ExcelUnderlineStyle.DoubleAccounting
+                ? OdfTextDecorationType.Double
+                : OdfTextDecorationType.Single;
+            if (underlineStyle is ExcelUnderlineStyle.SingleAccounting or ExcelUnderlineStyle.DoubleAccounting) unsupported++;
+        }
+        if (style.Strikethrough) {
+            target.StrikeThrough = true;
+            target.LineThroughStyle = OdfTextDecorationStyle.Solid;
+            target.LineThroughType = OdfTextDecorationType.Single;
+        }
+        target.TextPosition = style.VerticalTextAlignment switch {
+            ExcelVerticalTextAlignment.Superscript => OdfTextPosition.Superscript,
+            ExcelVerticalTextAlignment.Subscript => OdfTextPosition.Subscript,
+            ExcelVerticalTextAlignment.Baseline => OdfTextPosition.Normal,
+            _ => null
+        };
         if (style.FontSize.HasValue) target.FontSize = OdfLength.Points(style.FontSize.Value);
         if (!string.IsNullOrWhiteSpace(style.FontName)) target.FontFamily = style.FontName;
         if (!string.IsNullOrWhiteSpace(style.FontColorHex)) target.Color = OdfColor.Parse(style.FontColorHex!);
@@ -141,7 +166,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         bool nonSolidPattern = !string.IsNullOrWhiteSpace(style.FillPatternType) &&
             !string.Equals(style.FillPatternType, "none", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(style.FillPatternType, "solid", StringComparison.OrdinalIgnoreCase);
-        return style.Underline || style.Strikethrough || style.Border != null ||
+        return style.Border != null ||
             nonSolidPattern || style.FillGradientUnsupported || style.FillGradientStops.Count > 0 ||
             style.TextRotation.HasValue || style.HorizontalAlignment != null || style.VerticalAlignment != null ||
             (style.TextIndent.HasValue && style.TextIndent.Value > 0U) || style.WrapText || style.ShrinkToFit;
@@ -153,11 +178,47 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         IReadOnlyDictionary<string, OdsDataStyle> dataStyles,
         out bool unsupportedDataStyleFormat,
         ref int approximatedFontFamilyLists,
-        ref int unsupportedFontFamilies) {
+        ref int unsupportedFontFamilies,
+        ref int approximatedTextDecorations,
+        ref int unsupportedCapitalization,
+        CultureInfo textCaseCulture) {
         int unsupported = 0;
         unsupportedDataStyleFormat = false;
         if (style.Bold == true) target.SetBold();
         if (style.Italic == true) target.SetItalic();
+        ExcelUnderlineStyle? underline = MapOdfUnderline(
+            style.Underline,
+            style.UnderlineStyle,
+            style.UnderlineType,
+            out bool approximatedUnderline);
+        if (underline.HasValue) target.SetUnderline(underline.Value);
+        if (approximatedUnderline) approximatedTextDecorations++;
+        bool hasStrike = style.StrikeThrough == true &&
+            style.LineThroughStyle != OdfTextDecorationStyle.None &&
+            style.LineThroughType != OdfTextDecorationType.None;
+        if (hasStrike) target.SetStrikethrough();
+        if (hasStrike && (style.LineThroughStyle is not null and not OdfTextDecorationStyle.Solid ||
+                          style.LineThroughType == OdfTextDecorationType.Double)) approximatedTextDecorations++;
+        if (style.TextPosition.HasValue) {
+            target.SetVerticalTextAlignment(style.TextPosition.Value switch {
+                OdfTextPosition.Superscript => ExcelVerticalTextAlignment.Superscript,
+                OdfTextPosition.Subscript => ExcelVerticalTextAlignment.Subscript,
+                _ => ExcelVerticalTextAlignment.Baseline
+            });
+        }
+        bool hasTextTransform = style.TextTransform is OdfTextTransform.Uppercase
+            or OdfTextTransform.Lowercase
+            or OdfTextTransform.Capitalize;
+        if (hasTextTransform && target.GetValue().HasFormula) {
+            unsupportedCapitalization++;
+        } else if (style.TextTransform == OdfTextTransform.Uppercase) {
+            target.TransformTextCase(OfficeTextCase.Uppercase, textCaseCulture);
+        } else if (style.TextTransform == OdfTextTransform.Lowercase) {
+            target.TransformTextCase(OfficeTextCase.Lowercase, textCaseCulture);
+        } else if (style.TextTransform == OdfTextTransform.Capitalize) {
+            target.TransformTextCase(OfficeTextCase.Capitalize, textCaseCulture);
+        }
+        if (style.SmallCaps == true) unsupportedCapitalization++;
         if (style.FontSize.HasValue) {
             if (style.FontSize.Value.TryToPoints(out double points)) target.SetFontSize(points);
             else unsupported++;
@@ -172,6 +233,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             else unsupportedDataStyleFormat = true;
         }
         return unsupported;
+    }
+
+    private static ExcelUnderlineStyle? MapOdfUnderline(
+        bool? enabled,
+        OdfTextDecorationStyle? style,
+        OdfTextDecorationType? type,
+        out bool approximated) {
+        approximated = false;
+        if (enabled != true || style == OdfTextDecorationStyle.None || type == OdfTextDecorationType.None) return null;
+        if (style is not null and not OdfTextDecorationStyle.Solid) approximated = true;
+        return type == OdfTextDecorationType.Double ? ExcelUnderlineStyle.Double : ExcelUnderlineStyle.Single;
     }
 
     private static string? SelectOdfFontFamily(string? value,

@@ -3,7 +3,7 @@
     <Description>Dependency-isolated safe HTML, RTF, text, and inline-resource projection for OfficeIMO email artifacts.</Description>
     <AssemblyName>OfficeIMO.Email.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Email.Html</AssemblyTitle>
-    <VersionPrefix>3.2.5</VersionPrefix>
+    <VersionPrefix>3.2.7</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>

@@ -701,6 +701,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void StyledMhtmlReachesPdfAndEverySharedImageFormat(OfficeImageExportFormat format) {
+        var archive = new MhtmlDocument(
+            "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled MHTML</span></p>");
+
+        PdfCore.PdfDocumentConversionResult pdf = archive.ToPdfDocumentResult();
+        OfficeImageExportResult image = Assert.Single(PdfCore.PdfImageExportExtensions.ExportImages(pdf, format));
+
+        Assert.Contains("Styled MHTML", PdfCore.PdfReadDocument.Open(pdf.ToBytes()).ExtractText(), StringComparison.Ordinal);
+        Assert.Equal(format, image.Format);
+        Assert.True(image.Bytes.Length > 32);
+    }
+
     [Fact]
     public void MhtmlPdf_SynchronousLifecycleResolvesEmbeddedCidAndContentLocationImages() {
         byte[] cidImage = PdfPngTestImages.CreateRgbPng(8, 5);

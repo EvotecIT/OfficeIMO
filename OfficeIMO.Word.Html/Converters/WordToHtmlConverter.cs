@@ -401,6 +401,7 @@ namespace OfficeIMO.Word.Html {
                         if (string.IsNullOrEmpty(segment.Text)) continue;
                         expandedNodes.Add(CreateEquationAdjacentTextNode(
                             htmlDoc,
+                            document,
                             sourceRun,
                             segment.Text!,
                             options,
@@ -526,17 +527,14 @@ namespace OfficeIMO.Word.Html {
                         node = em;
                     }
 
-                    if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
-                        var s = CreateOutputElement(htmlDoc, "s");
-                        s.AppendChild(node);
-                        node = s;
-                    }
-
-                    if (run.Underline != null && !isHtmlInsertedText) {
-                        var u = CreateOutputElement(htmlDoc, "u");
-                        u.AppendChild(node);
-                        node = u;
-                    }
+                    node = ApplyWordTextDecorations(
+                        htmlDoc,
+                        run,
+                        node,
+                        options,
+                        suppressUnderline: isHtmlInsertedText,
+                        suppressStrikethrough: isHtmlDeletedText,
+                        source: "word:run");
 
                     if (run.VerticalTextAlignment == WordVerticalTextPosition.Superscript) {
                         var sup = CreateOutputElement(htmlDoc, "sup");
@@ -597,15 +595,18 @@ namespace OfficeIMO.Word.Html {
                         node = span;
                     }
 
-                    // Caps / SmallCaps
+                    // Caps / SmallCaps. Direct explicit-off values must reset inherited style CSS.
+                    var capitalizationStyles = new List<string>();
                     if (run.CapsStyle == WordCapsStyle.SmallCaps) {
-                        var span = CreateOutputElement(htmlDoc, "span");
-                        SetOutputAttribute(span, "style", "font-variant:small-caps", "RunFormatting:caps");
-                        span.AppendChild(node);
-                        node = span;
+                        capitalizationStyles.Add("font-variant:small-caps");
                     } else if (run.CapsStyle == WordCapsStyle.Caps) {
+                        capitalizationStyles.Add("text-transform:uppercase");
+                    }
+                    if (IsExplicitlyDisabled(run._runProperties?.SmallCaps)) capitalizationStyles.Add("font-variant:normal");
+                    if (IsExplicitlyDisabled(run._runProperties?.Caps)) capitalizationStyles.Add("text-transform:none");
+                    if (capitalizationStyles.Count > 0) {
                         var span = CreateOutputElement(htmlDoc, "span");
-                        SetOutputAttribute(span, "style", "text-transform:uppercase", "RunFormatting:caps");
+                        SetOutputAttribute(span, "style", string.Join(";", capitalizationStyles), "RunFormatting:caps");
                         span.AppendChild(node);
                         node = span;
                     }
@@ -645,7 +646,16 @@ namespace OfficeIMO.Word.Html {
                     if (options.IncludeRunClasses && !string.IsNullOrEmpty(run.CharacterStyleId) && !handledHtmlStyle) {
                         var spanClass = CreateOutputElement(htmlDoc, "span");
                         SetOutputAttribute(spanClass, "class", GetSafeStyleClassName(run.CharacterStyleId), "RunFormatting:class");
-                        spanClass.AppendChild(node);
+                        spanClass.AppendChild(ApplyStyleDefinitionTextDecorations(
+                            document,
+                            htmlDoc,
+                            run.CharacterStyleId,
+                            node,
+                            "RunStyleFormatting",
+                            suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                            suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                            suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null));
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
                     }
@@ -656,6 +666,19 @@ namespace OfficeIMO.Word.Html {
                         SetOutputAttribute(spanLanguage, "lang", runLanguage!, "RunFormatting:language");
                         spanLanguage.AppendChild(node);
                         node = spanLanguage;
+                    }
+
+                    if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
+                        node = ApplyStyleDefinitionTextDecorations(
+                            document,
+                            htmlDoc,
+                            para.StyleId,
+                            node,
+                            "ParagraphStyleFormatting",
+                            suppressUnderline: run._runProperties?.Underline?.Val?.Value == UnderlineValues.None,
+                            suppressStrike: IsExplicitlyDisabled(run._runProperties?.Strike),
+                            suppressDoubleStrike: IsExplicitlyDisabled(run._runProperties?.DoubleStrike),
+                            suppressVerticalPosition: run._runProperties?.VerticalTextAlignment?.Val != null);
                     }
 
                     if (inQuote && quote != null) {

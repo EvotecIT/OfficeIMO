@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Drawing;
 using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Html;
@@ -211,18 +212,36 @@ public sealed class HtmlSemanticRun {
     internal HtmlSemanticRun(string text, string? hyperlink, bool bold, bool italic, bool underline,
         bool strikethrough, bool superscript, bool subscript, HtmlComputedStyle? style,
         HtmlSemanticSourceLocation? sourceLocation,
-        bool isLineBreak) {
+        bool isLineBreak,
+        IReadOnlyDictionary<string, string>? dataAttributes = null,
+        string? backgroundColor = null)
+        : this(text, hyperlink, bold, italic, underline, ResolveDecorationStyle(style),
+            strikethrough, ResolveDecorationStyle(style), superscript, subscript, style,
+            sourceLocation, isLineBreak, dataAttributes, backgroundColor) {
+    }
+
+    internal HtmlSemanticRun(string text, string? hyperlink, bool bold, bool italic, bool underline,
+        OfficeTextDecorationStyle underlineStyle, bool strikethrough, OfficeTextDecorationStyle strikethroughStyle,
+        bool superscript, bool subscript, HtmlComputedStyle? style,
+        HtmlSemanticSourceLocation? sourceLocation,
+        bool isLineBreak,
+        IReadOnlyDictionary<string, string>? dataAttributes = null,
+        string? backgroundColor = null) {
         Text = text;
         Hyperlink = hyperlink;
         Bold = bold;
         Italic = italic;
         Underline = underline;
+        UnderlineStyle = underline ? NormalizeDecorationStyle(underlineStyle) : OfficeTextDecorationStyle.None;
         Strikethrough = strikethrough;
+        StrikethroughStyle = strikethrough ? NormalizeDecorationStyle(strikethroughStyle) : OfficeTextDecorationStyle.None;
         Superscript = superscript;
         Subscript = subscript;
         Style = style;
         SourceLocation = sourceLocation;
         IsLineBreak = isLineBreak;
+        DataAttributes = dataAttributes ?? new ReadOnlyDictionary<string, string>(new Dictionary<string, string>());
+        BackgroundColor = backgroundColor;
     }
 
     /// <summary>Run text.</summary>
@@ -235,18 +254,42 @@ public sealed class HtmlSemanticRun {
     public bool Italic { get; }
     /// <summary>Whether the run is underlined.</summary>
     public bool Underline { get; }
+    /// <summary>Resolved underline pattern for targets that expose more than a Boolean underline flag.</summary>
+    public OfficeTextDecorationStyle UnderlineStyle { get; }
     /// <summary>Whether the run is struck through.</summary>
     public bool Strikethrough { get; }
+    /// <summary>Resolved strike-through pattern for targets that expose more than a Boolean strike flag.</summary>
+    public OfficeTextDecorationStyle StrikethroughStyle { get; }
     /// <summary>Whether the run is superscript.</summary>
     public bool Superscript { get; }
     /// <summary>Whether the run is subscript.</summary>
     public bool Subscript { get; }
+    /// <summary>Resolved run baseline.</summary>
+    public OfficeTextBaseline Baseline => Superscript
+        ? OfficeTextBaseline.Superscript
+        : Subscript ? OfficeTextBaseline.Subscript : OfficeTextBaseline.Normal;
     /// <summary>Computed style snapshot.</summary>
     public HtmlComputedStyle? Style { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
     /// <summary>Whether this run represents an explicit HTML line break.</summary>
     public bool IsLineBreak { get; }
+    /// <summary>Trusted converter metadata attached to the source run, keyed by normalized data-* attribute name.</summary>
+    public IReadOnlyDictionary<string, string> DataAttributes { get; }
+    /// <summary>Nearest effective nontransparent inline background color, suitable for native text highlighting.</summary>
+    public string? BackgroundColor { get; }
+
+    private static OfficeTextDecorationStyle NormalizeDecorationStyle(OfficeTextDecorationStyle value) =>
+        value == OfficeTextDecorationStyle.None ? OfficeTextDecorationStyle.Single : value;
+
+    private static OfficeTextDecorationStyle ResolveDecorationStyle(HtmlComputedStyle? style) =>
+        (style?.GetValue("text-decoration-style") ?? string.Empty).Trim().ToLowerInvariant() switch {
+            "double" => OfficeTextDecorationStyle.Double,
+            "dotted" => OfficeTextDecorationStyle.Dotted,
+            "dashed" => OfficeTextDecorationStyle.Dashed,
+            "wavy" => OfficeTextDecorationStyle.Wavy,
+            _ => OfficeTextDecorationStyle.Single
+        };
 }
 
 /// <summary>Typed semantic table.</summary>

@@ -750,7 +750,9 @@ internal static partial class PdfWriter {
                 run.TabLeader,
                 run.TabAlignment,
                 run.BackgroundColor,
-                run.FontFamily));
+                run.FontFamily,
+                run.UnderlineStyle,
+                run.StrikeStyle));
         }
 
         return scaledRuns.AsReadOnly();

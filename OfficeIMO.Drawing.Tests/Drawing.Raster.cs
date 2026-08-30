@@ -2701,7 +2701,10 @@ namespace OfficeIMO.Tests {
             var builder = new System.Text.StringBuilder();
             var firstLine = new OfficeRichTextLine(new[] {
                 new OfficeRichTextSegment("Alpha ", width: 30D, fontSize: 10D, color: OfficeColor.Red, bold: true, italic: false, underline: false, fontFamily: "Aptos"),
-                new OfficeRichTextSegment("Beta", width: 20D, fontSize: 12D, color: OfficeColor.Blue, bold: false, italic: true, underline: true, fontFamily: "Aptos", strikethrough: true)
+                new OfficeRichTextSegment("Beta", width: 20D, fontSize: 12D, color: OfficeColor.Blue,
+                    bold: false, italic: true, underline: true, fontFamily: "Aptos", strikethrough: true,
+                    underlineStyle: OfficeTextDecorationStyle.Double,
+                    strikethroughStyle: OfficeTextDecorationStyle.Dotted)
             });
             var secondLine = new OfficeRichTextLine(new[] {
                 new OfficeRichTextSegment("Tail", width: 18D, fontSize: 10D, color: OfficeColor.Black, bold: false, italic: false, underline: false, fontFamily: "Aptos")
@@ -2726,7 +2729,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<tspan", svg, StringComparison.Ordinal);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
             Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
-            Assert.Contains("text-decoration=\"underline line-through\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"line-through\" text-decoration-style=\"dotted\"><tspan text-decoration=\"underline\" text-decoration-style=\"double\">Beta</tspan></tspan>", svg, StringComparison.Ordinal);
             Assert.Contains(">Alpha </tspan>", svg, StringComparison.Ordinal);
             Assert.Contains(">Beta</tspan>", svg, StringComparison.Ordinal);
             Assert.Contains(">Tail</text>", svg, StringComparison.Ordinal);

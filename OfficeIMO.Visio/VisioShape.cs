@@ -164,6 +164,12 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string? Text { get; set; }
 
+        /// <summary>Transforms the stored shape text while preserving all shape and text formatting.</summary>
+        public VisioShape TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
+            if (Text != null) Text = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
+            return this;
+        }
+
         /// <summary>
         /// Gets or sets whole-shape text formatting.
         /// </summary>

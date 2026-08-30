@@ -62,6 +62,25 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_ReportsAccountingUnderlineApproximationOncePerSheet() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Accounting");
+        sheet.CellAt(1, 1).SetValue("Single").SetUnderline(ExcelUnderlineStyle.SingleAccounting);
+        sheet.CellAt(2, 1).SetValue("Double").SetUnderline(ExcelUnderlineStyle.DoubleAccounting);
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0
+        });
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings,
+            item => item.Code == "AccountingUnderlineApproximation");
+
+        Assert.Equal("Accounting", warning.Source);
+        Assert.Contains("2 accounting underline cell(s)", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("cell-width accounting line", warning.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_PreservesCellFontsWhenDefaultFontChangesAcrossPlatforms() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHelveticaCellWithTimesDefault.xlsx");
 

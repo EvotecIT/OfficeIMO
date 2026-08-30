@@ -57,6 +57,22 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void SemanticHtmlRendersSectionsAtMaximumSectionGroupDepth() {
+        var notebook = new OneNoteNotebook { Name = "Depth" };
+        var group = new OneNoteSectionGroup { Name = "Allowed group" };
+        group.Sections.Add(SectionWithPage("Deep section", "Deep page"));
+        notebook.SectionGroups.Add(group);
+
+        string html = notebook.ToHtmlDocument(new OneNoteMarkdownOptions {
+            MaxSectionGroupDepth = 1
+        });
+
+        Assert.Contains("Allowed group", html, StringComparison.Ordinal);
+        Assert.Contains("Deep section", html, StringComparison.Ordinal);
+        Assert.Contains("Deep page", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ProjectionProducesReusableMarkdownDocumentAndUtf8Bytes() {
         OneNoteSection section = CreateNotebook().SectionGroups[0].Sections[0];
 

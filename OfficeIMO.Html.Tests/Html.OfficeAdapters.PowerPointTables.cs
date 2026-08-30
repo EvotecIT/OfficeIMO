@@ -2,6 +2,7 @@ using OfficeIMO.Html;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests;
 
@@ -21,8 +22,9 @@ public class HtmlOfficeAdaptersPowerPointTables {
         using PowerPointPresentation imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
-        Assert.Contains("<td rowspan=\"2\" colspan=\"2\">Merged heading</td>", html, StringComparison.Ordinal);
-        Assert.Contains("<td colspan=\"2\"></td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td rowspan=\"2\" colspan=\"2\">", html, StringComparison.Ordinal);
+        Assert.Contains("Merged heading", html, StringComparison.Ordinal);
+        Assert.Contains("<td colspan=\"2\">", html, StringComparison.Ordinal);
         Assert.Equal(2, result.MergedRanges);
         Assert.Equal((2, 2), importedTable.GetCell(0, 0).Merge);
         Assert.True(importedTable.GetCell(0, 1).IsMergedCell);
@@ -89,5 +91,39 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Equal("Second", table.GetCell(0, 1).Text);
         Assert.True(table.GetCell(0, 1).Runs[0].Bold);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TableSpanInvalid);
+    }
+
+    [Fact]
+    public void PowerPointHtml_ExportsApplicableNativeTableStyleTypography() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
+        PowerPointSlide slide = presentation.AddSlide();
+        const string styleId = "{9A53DA13-207B-4877-931D-000000000240}";
+        DocumentFormat.OpenXml.Packaging.PresentationPart presentationPart = slide.SlidePart
+            .GetParentParts()
+            .OfType<DocumentFormat.OpenXml.Packaging.PresentationPart>()
+            .Single();
+        PowerPointUtils.CreateTableStylesPart(presentationPart);
+        A.TableStyleList styles = presentationPart.TableStylesPart!.TableStyleList!;
+        styles.RemoveAllChildren<A.TableStyleEntry>();
+        styles.Append(new A.TableStyleEntry(
+            $@"<a:tblStyle xmlns:a=""http://schemas.openxmlformats.org/drawingml/2006/main"" styleId=""{styleId}"" styleName=""HTML typography"">
+  <a:wholeTbl><a:tcTxStyle i=""on""><a:font><a:latin typeface=""Consolas"" /></a:font><a:srgbClr val=""112233"" /></a:tcTxStyle></a:wholeTbl>
+  <a:firstRow><a:tcTxStyle b=""on""><a:font><a:latin typeface=""Arial"" /></a:font><a:srgbClr val=""AABBCC"" /></a:tcTxStyle></a:firstRow>
+</a:tblStyle>"));
+
+        PowerPointTable table = slide.AddTablePoints(2, 1, 20, 30, 220, 100);
+        table.StyleId = styleId;
+        table.FirstRow = true;
+        table.GetCell(0, 0).Text = "Header";
+        table.GetCell(1, 0).Text = "Body";
+
+        string html = presentation.ToHtml();
+
+        Assert.Contains("font-weight:700", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;Arial&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("color:#AABBCC", html, StringComparison.Ordinal);
+        Assert.Contains("font-style:italic", html, StringComparison.Ordinal);
+        Assert.Contains("font-family:&#39;Consolas&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("color:#112233", html, StringComparison.Ordinal);
     }
 }

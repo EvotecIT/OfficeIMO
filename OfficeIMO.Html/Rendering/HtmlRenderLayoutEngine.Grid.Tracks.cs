@@ -462,7 +462,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 normalized.Add(run);
                 continue;
             }
-            string transformed = ApplyTextTransform(run.Text, run.Style.TextTransform);
+            string transformed = ApplyTextTransform(run.Text, run.Style);
             if (run.Style.PreserveWhitespace) {
                 if (pendingWhitespace) {
                     AppendNormalizedGridIntrinsicText(normalized, " ", run.Style);

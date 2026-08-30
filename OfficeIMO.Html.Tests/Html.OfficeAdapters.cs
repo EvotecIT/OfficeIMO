@@ -1075,7 +1075,7 @@ public partial class HtmlOfficeAdapters {
         });
 
         Assert.Contains("data-officeimo-profile=\"PowerPointSemanticSlides\"", html, StringComparison.Ordinal);
-        Assert.Contains(">Roadmap</p>", html, StringComparison.Ordinal);
+        Assert.Contains(">Roadmap</span></p>", html, StringComparison.Ordinal);
         Assert.Contains("HTML end to end", html, StringComparison.Ordinal);
         Assert.Contains("Presenter reminder", html, StringComparison.Ordinal);
         Assert.Contains("officeimo-source-markdown", html, StringComparison.Ordinal);

@@ -219,7 +219,10 @@ namespace OfficeIMO.Word {
                     RunShadingPattern = ((run.IsHyperLink ? run.Hyperlink?._runProperties : run._runProperties)
                         ?.Shading?.Val?.Value).ToOfficeEnum(),
                     VerticalTextAlignment = NormalizeOpenXmlEnumValue(run.VerticalTextAlignment),
-                    CapsStyle = run.CapsStyle == WordCapsStyle.None ? null : run.CapsStyle.ToString(),
+                    CapsStyle = WordDocumentImageRenderer.ResolveEffectiveCapsStyle(run) is WordCapsStyle effectiveCaps
+                        && effectiveCaps != WordCapsStyle.None
+                            ? effectiveCaps.ToString()
+                            : null,
                     IsHyperlink = hyperlink != null,
                     HyperlinkUri = hyperlink?.Uri?.ToString(),
                     HyperlinkAnchor = hyperlink?.Anchor,

@@ -189,6 +189,8 @@ public static partial class ExcelHtmlConverterExtensions {
 
                 bool hasSnapshot = sheet.TryGetCellValueSnapshot(cellRow, cellColumn, out ExcelCellValueSnapshot? snapshot) && snapshot != null;
                 string cellText = ReadCellText(sheet, cellRow, cellColumn, options.EmptyCellText);
+                ExcelCellStyleSnapshot cellStyle = sheet.GetCellStyle(cellRow, cellColumn);
+                IReadOnlyList<ExcelRichTextRun> richTextRuns = sheet.GetRichText(cellRow, cellColumn);
                 body.Append('<').Append(tag)
                     .Append(" data-officeimo-cell=\"")
                     .Append(OfficeHtmlText.EscapeAttribute(A1.CellReference(cellRow, cellColumn)))
@@ -200,6 +202,8 @@ public static partial class ExcelHtmlConverterExtensions {
                 if (tag == "th") {
                     body.Append(" scope=\"col\"");
                 }
+
+                bool splitCellDecorations = AppendExcelTextStyleAttributes(body, cellStyle, includeDecorations: richTextRuns.Count == 0);
 
                 if (hasSnapshot) {
                     ExcelCellValueSnapshot cellSnapshot = snapshot!;
@@ -213,7 +217,27 @@ public static partial class ExcelHtmlConverterExtensions {
                 }
 
                 body.Append('>');
-                body.Append(OfficeHtmlText.Escape(cellText));
+                if (richTextRuns.Count > 0) {
+                    foreach (ExcelRichTextRun run in richTextRuns) {
+                        body.Append("<span");
+                        bool splitRunDecorations = AppendExcelTextStyleAttributes(body, run, cellStyle);
+                        body.Append('>');
+                        if (splitRunDecorations) AppendIndependentExcelStrike(body, run.Text);
+                        else body.Append(OfficeHtmlText.Escape(run.Text));
+                        body.Append("</span>");
+                    }
+                } else {
+                    bool scriptedCell = cellStyle.VerticalTextAlignment is ExcelVerticalTextAlignment.Superscript
+                        or ExcelVerticalTextAlignment.Subscript;
+                    if (scriptedCell) {
+                        body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "<sup>" : "<sub>");
+                    }
+                    if (splitCellDecorations) AppendIndependentExcelStrike(body, cellText);
+                    else body.Append(OfficeHtmlText.Escape(cellText));
+                    if (scriptedCell) {
+                        body.Append(cellStyle.VerticalTextAlignment == ExcelVerticalTextAlignment.Superscript ? "</sup>" : "</sub>");
+                    }
+                }
                 body.Append("</").Append(tag).Append('>');
             }
 

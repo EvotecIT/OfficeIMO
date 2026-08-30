@@ -87,6 +87,28 @@ public sealed class HtmlEmailImageExportTests {
             StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Svg)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void StyledEmailExportsThroughEverySharedImageFormat(OfficeImageExportFormat format) {
+        var email = new EmailDocument { Subject = "Typography" };
+        email.Body.Html = "<p><span style='font-family:Aptos;font-size:18px;color:#336699;font-weight:700;font-style:italic;text-decoration-line:underline line-through;text-decoration-style:wavy;vertical-align:super'>Styled</span></p>";
+
+        OfficeImageExportResult result = Assert.Single(email.ExportImages(format));
+
+        Assert.Equal(format, result.Format);
+        Assert.True(result.Bytes.Length > 32);
+        if (format == OfficeImageExportFormat.Svg) {
+            string svg = System.Text.Encoding.UTF8.GetString(result.Bytes);
+            Assert.Contains("Styled", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("text-decoration-style=\"wavy\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     [Fact]
     public async Task HtmlEmailResolvesInlineContentIdImagesAsynchronously() {
         var email = new EmailDocument { Subject = "Inline image" };
@@ -173,6 +195,81 @@ public sealed class HtmlEmailImageExportTests {
     }
 
     [Fact]
+    public void EmailImageExportRejectsTooManyInlineResourcesBeforeRendering() {
+        var email = new EmailDocument { Subject = "Too many inline images" };
+        email.Body.Html = "<img src=\"cid:first@example\"><img src=\"cid:second@example\">";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            email.ExportImage(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions { MaxInlineResourceCount = 1 }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxResourceCount", exception.LimitName);
+    }
+
+    [Fact]
+    public async Task EmailImageExportRejectsAggregateInlineBytesBeforeRendering() {
+        var email = new EmailDocument { Subject = "Oversized inline image set" };
+        email.Body.Html = "<img src=\"cid:first@example\"><img src=\"cid:second@example\">";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        EmailLimitExceededException exception = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            email.ExportImageAsync(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions {
+                    MaxTotalInlineResourceBytes = PixelPng.LongLength * 2L - 1L
+                }));
+
+        Assert.Equal("EmailBodyProjectionOptions.MaxTotalResourceBytes", exception.LimitName);
+    }
+
+    [Fact]
+    public void DisabledInlineResourcesBypassResourceInventoryLimits() {
+        var email = new EmailDocument { Subject = "Body-only image" };
+        email.Body.Html = "<p>No inline resources are needed.</p>";
+        email.Attachments.Add(CreateInlineImage("first@example"));
+        email.Attachments.Add(CreateInlineImage("second@example"));
+
+        OfficeImageExportResult result = email.ExportImage(
+            OfficeImageExportFormat.Svg,
+            new EmailImageExportOptions {
+                IncludeInlineResources = false,
+                MaxInlineResourceCount = 1,
+                MaxTotalInlineResourceBytes = 1
+            });
+
+        Assert.NotEmpty(result.Bytes);
+    }
+
+    [Fact]
+    public async Task AggregateInlineReadFailureUsesTheOperationWideDiagnostic() {
+        var email = new EmailDocument { Subject = "Aggregate inline limit" };
+        email.Body.Html = "<img src=\"cid:logo@example\" alt=\"Logo\">";
+        EmailAttachment attachment = CreateInlineImage("logo@example");
+        attachment.Length = 0;
+        email.Attachments.Add(attachment);
+
+        OfficeImageExportPolicyException exception = await Assert.ThrowsAsync<OfficeImageExportPolicyException>(() =>
+            email.ExportImageAsync(
+                OfficeImageExportFormat.Png,
+                new EmailImageExportOptions {
+                    MaxTotalInlineResourceBytes = PixelPng.LongLength - 1L
+                }));
+
+        Assert.Contains(
+            exception.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
+        Assert.DoesNotContain(
+            exception.Diagnostics,
+            diagnostic => diagnostic.Code ==
+                          HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
+    }
+
+    [Fact]
     public void EmailSyncBatchCancellationReachesRetainedResourceRead() {
         using var cancellation = new CancellationTokenSource();
         var email = new EmailDocument { Subject = "Cancelable inline image" };
@@ -224,6 +321,57 @@ public sealed class HtmlEmailImageExportTests {
                 RestrictUrlSchemes = false,
                 DisallowFileUrls = true
             },
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+
+        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
+    public async Task EmptyRetainedHttpsResourceDoesNotFallThroughToTheAsyncFallback() {
+        var email = new EmailDocument { Subject = "Empty retained image" };
+        email.Body.Html = "<img src=\"https://assets.example/empty.png\" alt=\"empty\">";
+        email.Attachments.Add(new EmailAttachment {
+            FileName = "empty.png",
+            ContentType = "image/png",
+            ContentLocation = "https://assets.example/empty.png",
+            IsInline = true,
+            Content = Array.Empty<byte>(),
+            Length = 0
+        });
+        int fallbackCalls = 0;
+        var options = new EmailImageExportOptions {
+            RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver,
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                fallbackCalls++;
+                return Task.FromResult<HtmlResolvedResource?>(
+                    new HtmlResolvedResource(PixelPng, "image/png"));
+            }
+        };
+
+        await email.ExportImageAsync(OfficeImageExportFormat.Png, options);
+
+        Assert.Equal(0, fallbackCalls);
+    }
+
+    [Fact]
+    public async Task UnknownContentIdDoesNotFallThroughToAnExplicitCidFallback() {
+        var email = new EmailDocument { Subject = "Unknown CID" };
+        email.Body.Html = "<img src=\"cid:missing@example.test\" alt=\"missing\">";
+        int fallbackCalls = 0;
+        HtmlUrlPolicy fallbackPolicy = HtmlUrlPolicy.CreateWebResourceProfile();
+        fallbackPolicy.AllowedUrlSchemes.Add("cid");
+        var options = new EmailImageExportOptions {
+            RemoteResourcePolicy = EmailRemoteResourcePolicy.AllowByConsumerResolver,
+            ResourceUrlPolicy = fallbackPolicy,
             ResourceResolver = (request, cancellationToken) => {
                 cancellationToken.ThrowIfCancellationRequested();
                 fallbackCalls++;
@@ -295,6 +443,15 @@ public sealed class HtmlEmailImageExportTests {
             return Task.FromResult(OpenRead());
         }
     }
+
+    private static EmailAttachment CreateInlineImage(string contentId) => new EmailAttachment {
+        FileName = contentId + ".png",
+        ContentType = "image/png",
+        ContentId = contentId,
+        IsInline = true,
+        Content = PixelPng,
+        Length = PixelPng.Length
+    };
 
     private sealed class CancelOnReadStream : Stream {
         private readonly MemoryStream _inner;

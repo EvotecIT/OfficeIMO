@@ -4,7 +4,7 @@
     <Description>HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.</Description>
     <AssemblyName>OfficeIMO.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
-    <VersionPrefix>3.2.5</VersionPrefix>
+    <VersionPrefix>3.2.7</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -58,6 +58,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Html.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml" />
     <InternalsVisibleTo Include="OfficeIMO.Email.Image" />
+    <InternalsVisibleTo Include="OfficeIMO.Email.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Mhtml.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Html" />

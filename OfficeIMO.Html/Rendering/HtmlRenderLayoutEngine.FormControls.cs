@@ -460,8 +460,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             alignment,
             lineHeight,
             visuals.Count,
+            linkUri: null,
             source: source,
-            semanticRole: "form-control"));
+            semanticRole: "form-control",
+            layoutY: null,
+            semanticNodeId: null,
+            textAdvanceWidth: null,
+            bidiVisualOrderResolved: false,
+            semanticFragmentOrder: null,
+            logicalTextOrder: null,
+            underlineStyle: style.UnderlineStyle,
+            strikethroughStyle: style.StrikethroughStyle,
+            baseline: style.Baseline));
     }
 
     private void AddMultilineControlText(
@@ -493,8 +503,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 OfficeTextAlignment.Left,
                 lineHeight,
                 visuals.Count,
+                linkUri: null,
                 source: source,
-                semanticRole: "form-control"));
+                semanticRole: "form-control",
+                layoutY: null,
+                semanticNodeId: null,
+                textAdvanceWidth: null,
+                bidiVisualOrderResolved: false,
+                semanticFragmentOrder: null,
+                logicalTextOrder: null,
+                underlineStyle: style.UnderlineStyle,
+                strikethroughStyle: style.StrikethroughStyle,
+                baseline: style.Baseline));
         }
     }
 

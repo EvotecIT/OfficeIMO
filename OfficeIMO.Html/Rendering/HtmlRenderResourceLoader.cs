@@ -576,7 +576,12 @@ internal static class HtmlRenderResourceLoader {
                 PendingResource pendingResource = item.Pending;
                 HtmlResourceReference reference = pendingResource.Reference;
                 if (item.Exception != null) {
-                    if (item.Exception is HtmlRenderResourceByteLimitException byteLimit) {
+                    if (item.Exception is HtmlRenderTotalResourceByteLimitException totalByteLimit) {
+                        result.MarkAttempted(reference);
+                        diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded, "Resolved resources exceeded the configured total byte limit.", HtmlDiagnosticSeverity.Error, reference.Source, "bytes=" + totalByteLimit.ActualBytes, OfficeConversionLossKind.Omission);
+                        stop = true;
+                        break;
+                    } else if (item.Exception is HtmlRenderResourceByteLimitException byteLimit) {
                         result.MarkAttempted(reference);
                         diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded, "A resolved resource exceeded the configured per-resource byte limit.", HtmlDiagnosticSeverity.Warning, reference.Source, "bytes=" + byteLimit.ActualBytes, OfficeConversionLossKind.Omission);
                     } else if (item.Exception is OperationCanceledException) {

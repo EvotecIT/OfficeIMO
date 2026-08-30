@@ -33,6 +33,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             AddGeneratedInlineRun(generatedContentOwner, HtmlPseudoElementKind.After, width, containingHeight, parentStyle, null, 0D, 0D, runs);
         }
 
+        ApplyPendingInlineTextTransforms(runs);
         runs = ApplyScopedFontFallbacks(runs);
 
         if (formattingContainer != null && ShouldAssignNavigationNode(parentStyle)) {
@@ -53,10 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
 
             IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(run.Text, run.Style.Font.FamilyName, run.Style.Font.Style);
-            string shapedText = ResolveFontProgramPaintText(
-                fallbacks.Count == 1 ? fallbacks[0].Text : run.Text,
-                fallbacks.Count == 1 ? fallbacks[0].FamilyName : run.Style.Font.FamilyName,
-                run.Style.Font.Style);
+            string shapedText = OfficeArabicTextShaper.Shape(fallbacks.Count == 1 ? fallbacks[0].Text : run.Text);
             if (fallbacks.Count == 1
                 && string.Equals(fallbacks[0].Text, run.Text, StringComparison.Ordinal)
                 && string.Equals(fallbacks[0].FamilyName, run.Style.Font.FamilyName, StringComparison.Ordinal)
@@ -69,7 +67,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderBoxStyle style = run.Style.Clone();
                 style.Font = style.Font.WithFamilyName(fallback.FamilyName);
                 var resolvedRun = new HtmlInlineRun(
-                    ResolveFontProgramPaintText(fallback.Text, fallback.FamilyName, style.Font.Style),
+                    OfficeArabicTextShaper.Shape(fallback.Text),
                     style,
                     run.LinkUri,
                     run.Source,
@@ -89,18 +87,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return resolvedRuns;
-    }
-
-    private string ResolveFontProgramPaintText(
-        string logicalText,
-        string familyName,
-        OfficeFontStyle style) {
-        if (_fonts.TryResolveFaceForText(logicalText, familyName, style, out OfficeFontFace? face)
-            && face != null
-            && face.Program.ProvidesComplexTextLayout) {
-            return logicalText;
-        }
-        return OfficeArabicTextShaper.Shape(logicalText);
     }
 
     private static void AssignSemanticFragmentOrders(IEnumerable<HtmlInlineRun> runs) {
@@ -139,7 +125,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (node is IText textNode) {
             if (textNode.Data.Length > 0) {
                 ReportUnsupportedComplexTextShaping(textNode, inheritedStyle);
-                runs.Add(new HtmlInlineRun(ApplyTextTransform(textNode.Data, inheritedStyle.TextTransform), inheritedStyle, inheritedLink, inheritedStyle.SemanticRole, inheritedPaintOffsetX, inheritedPaintOffsetY, textNode.ParentElement));
+                runs.Add(new HtmlInlineRun(
+                    textNode.Data,
+                    inheritedStyle,
+                    inheritedLink,
+                    inheritedStyle.SemanticRole,
+                    inheritedPaintOffsetX,
+                    inheritedPaintOffsetY,
+                    textNode.ParentElement,
+                    textTransformPending: true));
             }
 
             return;
@@ -387,12 +381,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             measured = 0D;
             return false;
         }
-        if (_shapedTextMeasurementCache.TryGet(text, style.Font, out measured)) return true;
+        OfficeFontInfo effectiveFont = GetEffectiveTextFont(style);
+        if (_shapedTextMeasurementCache.TryGet(text, effectiveFont, out measured)) return true;
 
         IOfficeFontProgram? font = _fonts.ResolveForText(
             text,
-            style.Font.FamilyName,
-            style.Font.Style,
+            effectiveFont.FamilyName,
+            effectiveFont.Style,
             out OfficeFontStyle _);
         if (font == null) {
             measured = 0D;
@@ -403,7 +398,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string logicalText = OfficeArabicTextShaper.ToLogicalText(text);
         OfficeTextShapingResult? result = provider.ShapeText(new OfficeTextShapingRequest(
             logicalText,
-            font.DisplayName ?? style.Font.FamilyName,
+            font.DisplayName ?? effectiveFont.FamilyName,
             font.GetFontDataForShaping(),
             font.IsOpenTypeCff,
             font.UnitsPerEm,
@@ -419,8 +414,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return false;
         }
 
-        measured = font.MeasureShapedText(logicalText, result, style.Font.Size);
-        _shapedTextMeasurementCache.Store(text, style.Font, measured);
+        measured = font.MeasureShapedText(logicalText, result, effectiveFont.Size);
+        _shapedTextMeasurementCache.Store(text, effectiveFont, measured);
         return true;
     }
 
@@ -1145,7 +1140,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
         double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
-            : MeasureText(value, style.Font);
+            : MeasureText(value, GetEffectiveTextFont(style));
         if (Math.Abs(style.LetterSpacing) <= 0.000001D && Math.Abs(style.WordSpacing) <= 0.000001D) {
             return Math.Max(0.01D, measured);
         }
@@ -1215,21 +1210,63 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (token.Length > 0) yield return token.ToString();
     }
 
-    private static string ApplyTextTransform(string text, string transform) {
-        if (transform == "uppercase") return text.ToUpperInvariant();
-        if (transform == "lowercase") return text.ToLowerInvariant();
-        if (transform == "capitalize") {
-            var builder = new StringBuilder(text.Length);
-            bool capitalize = true;
-            foreach (char character in text) {
-                builder.Append(capitalize ? char.ToUpperInvariant(character) : character);
-                capitalize = char.IsWhiteSpace(character);
+    private static string ApplyTextTransform(string text, HtmlRenderBoxStyle style) =>
+        ApplyTextTransformSegments(new[] { text }, style)[0];
+
+    private static void ApplyPendingInlineTextTransforms(IReadOnlyList<HtmlInlineRun> runs) {
+        int start = 0;
+        while (start < runs.Count) {
+            HtmlInlineRun first = runs[start];
+            if (!first.TextTransformPending) {
+                start++;
+                continue;
             }
 
-            return builder.ToString();
-        }
+            int end = start + 1;
+            while (end < runs.Count
+                   && runs[end].TextTransformPending
+                   && HasEquivalentTextTransform(first.Style, runs[end].Style)) {
+                end++;
+            }
 
-        return text;
+            IReadOnlyList<string> transformed = ApplyTextTransformSegments(
+                runs.Skip(start).Take(end - start).Select(static run => run.Text).ToArray(),
+                first.Style);
+            for (int index = start; index < end; index++) {
+                runs[index].CompleteTextTransform(transformed[index - start]);
+            }
+            start = end;
+        }
+    }
+
+    private static bool HasEquivalentTextTransform(HtmlRenderBoxStyle left, HtmlRenderBoxStyle right) =>
+        string.Equals(left.TextTransform, right.TextTransform, StringComparison.OrdinalIgnoreCase)
+        && string.Equals(left.Language, right.Language, StringComparison.OrdinalIgnoreCase)
+        && left.ApproximateSmallCaps == right.ApproximateSmallCaps;
+
+    private static IReadOnlyList<string> ApplyTextTransformSegments(
+        IReadOnlyList<string> segments,
+        HtmlRenderBoxStyle style) {
+        CultureInfo culture = ResolveTextTransformCulture(style.Language);
+        OfficeTextCase textCase = style.TextTransform.ToLowerInvariant() switch {
+            "uppercase" => OfficeTextCase.Uppercase,
+            "lowercase" => OfficeTextCase.Lowercase,
+            "capitalize" => OfficeTextCase.Capitalize,
+            _ => OfficeTextCase.None
+        };
+        IReadOnlyList<string> transformed = OfficeTextCaseTransformer.ApplySegments(segments, textCase, culture);
+        return style.ApproximateSmallCaps
+            ? OfficeTextCaseTransformer.ApplySegments(transformed, OfficeTextCase.Uppercase, culture)
+            : transformed;
+    }
+
+    private static CultureInfo ResolveTextTransformCulture(string language) {
+        if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+        try {
+            return CultureInfo.GetCultureInfo(language);
+        } catch (CultureNotFoundException) {
+            return CultureInfo.InvariantCulture;
+        }
     }
 
     private static bool IsWhitespaceToken(string token) => token.Length > 0 && token.All(char.IsWhiteSpace);
@@ -1403,7 +1440,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private static double ResolveTextAscent(HtmlRenderBoxStyle style) {
-        double leading = Math.Max(0D, style.LineHeight - style.Font.Size);
-        return Math.Min(style.LineHeight, leading / 2D + style.Font.Size * 0.8D);
+        double effectiveSize = GetEffectiveTextFont(style).Size;
+        double leading = Math.Max(0D, style.LineHeight - effectiveSize);
+        return Math.Min(style.LineHeight, leading / 2D + effectiveSize * 0.8D);
     }
+
+    private static OfficeFontInfo GetEffectiveTextFont(HtmlRenderBoxStyle style) =>
+        Math.Abs(style.BaselineScale - 1D) < 0.000001D
+            ? style.Font
+            : style.Font.WithSize(style.Font.Size * style.BaselineScale);
 }

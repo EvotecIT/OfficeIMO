@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private readonly HtmlRenderOptions _options;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly Dictionary<IElement, HashSet<string>> _reportedUnsupportedColors = new Dictionary<IElement, HashSet<string>>();
+    private readonly HashSet<IElement> _reportedSmallCapsApproximations = new HashSet<IElement>();
     private double _viewportWidth;
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
@@ -80,21 +81,62 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
-        double fontSize = string.IsNullOrWhiteSpace(fontSizeValue)
+        double fontSize = computed.IsInheritedValue("font-size")
+            ? parentFontSize
+            : string.IsNullOrWhiteSpace(fontSizeValue)
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
             : ResolveFontSize(fontSizeValue, parentFontSize);
         OfficeFontStyle fontStyle = ResolveFontStyle(pseudoElement ? string.Empty : tag, computed);
+        OfficeTextDecorationStyle decorationStyle = ResolveTextDecorationStyle(computed.GetValue("text-decoration-style"));
         string defaultFamily = !pseudoElement && (tag == "code" || tag == "pre" || tag == "kbd" || tag == "samp")
             ? "Consolas"
             : parent?.Font.FamilyName ?? _options.DefaultFontFamily;
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
+        string language = ResolveLanguage(element, parent?.Language);
 
+        string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
+            ? parent?.FontVariant ?? "normal"
+            : computed.GetValue("font-variant").Trim().ToLowerInvariant();
+        string fontVariantCaps = string.IsNullOrWhiteSpace(computed.GetValue("font-variant-caps"))
+            ? fontVariant
+            : computed.GetValue("font-variant-caps").Trim().ToLowerInvariant();
+        string textTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform"))
+            ? parent?.TextTransform ?? "none"
+            : computed.GetValue("text-transform").Trim().ToLowerInvariant();
+        bool approximateSmallCaps = fontVariantCaps.IndexOf("small-caps", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        int baselineLevel = ResolveTextBaselineLevel(
+            pseudoElement ? string.Empty : tag,
+            computed.GetValue("vertical-align"),
+            parent?.BaselineLevel ?? 0);
+        (double baselineScale, double baselineOffset) = ResolveTextBaselineGeometry(
+            pseudoElement ? string.Empty : tag,
+            computed.GetValue("vertical-align"),
+            parent?.BaselineScale ?? 1D,
+            parent?.BaselineOffset ?? 0D,
+            parent?.Font.Size ?? fontSize,
+            parent?.LineHeight ?? fontSize * 1.2D);
+        if (baselineLevel == 0 && Math.Abs(baselineOffset) > 0.000001D) baselineLevel = baselineOffset < 0D ? 1 : -1;
         var style = new HtmlRenderBoxStyle {
             Display = pseudoElement ? ResolvePseudoDisplay(computed.GetValue("display")) : ResolveDisplay(element, computed.GetValue("display")),
             DisplayWasSpecified = !string.IsNullOrWhiteSpace(computed.GetValue("display")),
             PaintVisible = ResolvePaintVisibility(computed.GetValue("visibility"), parent),
             Font = new OfficeFontInfo(family, fontSize, fontStyle),
+            UnderlineStyle = (fontStyle & OfficeFontStyle.Underline) == OfficeFontStyle.Underline
+                ? decorationStyle
+                : OfficeTextDecorationStyle.None,
+            StrikethroughStyle = (fontStyle & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough
+                ? decorationStyle
+                : OfficeTextDecorationStyle.None,
+            Baseline = baselineOffset switch {
+                < 0D => OfficeTextBaseline.Superscript,
+                > 0D => OfficeTextBaseline.Subscript,
+                _ => OfficeTextBaseline.Normal
+            },
+            BaselineLevel = baselineLevel,
+            BaselineScale = baselineScale,
+            BaselineOffset = baselineOffset,
             Color = ResolveColor(element, computed.GetValue("color"), parent?.Color ?? OfficeColor.Black, pseudoElement, "color"),
             Alignment = ResolveAlignment(computed.GetValue("text-align"), direction, parent?.Alignment),
             LineHeight = ResolveLineHeight(computed.GetValue("line-height"), fontSize),
@@ -107,7 +149,10 @@ internal sealed partial class HtmlRenderStyleResolver {
             TextOverflow = ResolveTextOverflow(computed.GetValue("text-overflow")),
             LineClamp = ResolveLineClamp(computed),
             ListStyleType = ResolveListStyleType(computed),
-            TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
+            FontVariant = fontVariantCaps,
+            TextTransform = textTransform,
+            ApproximateSmallCaps = approximateSmallCaps,
+            Language = language,
             Direction = direction,
             OverflowWrap = ResolveOverflowWrap(computed.GetValue("overflow-wrap"), parent?.OverflowWrap),
             WordBreak = ResolveWordBreak(computed.GetValue("word-break"), parent?.WordBreak),
@@ -117,6 +162,16 @@ internal sealed partial class HtmlRenderStyleResolver {
             HyphenateLimitLast = ResolveHyphenateLimitLast(computed.GetValue("hyphenate-limit-last"), parent?.HyphenateLimitLast),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
+        if (approximateSmallCaps && _reportedSmallCapsApproximations.Add(element)) {
+            _diagnostics.Add(
+                "OfficeIMO.Html.Renderer",
+                HtmlRenderDiagnosticCodes.FontVariantApproximated,
+                "CSS small-caps used an uppercase managed-rendering approximation because synthetic small-cap glyph sizing is not available.",
+                HtmlDiagnosticSeverity.Warning,
+                DescribeSource(element),
+                "font-variant-caps=" + fontVariantCaps,
+                OfficeConversionLossKind.Approximation);
+        }
         ResolveTabSize(
             computed.GetValue("tab-size"),
             computed.IsInheritedValue("tab-size"),
@@ -427,6 +482,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         return normalized == "rtl" ? "rtl" : "ltr";
     }
 
+    private static string ResolveLanguage(IElement element, string? inherited) {
+        string? language = element.GetAttribute("lang");
+        if (string.IsNullOrWhiteSpace(language)) language = element.GetAttribute("xml:lang");
+        return string.IsNullOrWhiteSpace(language) ? inherited ?? string.Empty : language!.Trim();
+    }
+
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {
         string display = style.Display;
         if (display == "none" || display == "contents") return false;
@@ -446,16 +507,9 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double ResolveFontSize(string value, double parentFontSize) {
         if (string.IsNullOrWhiteSpace(value)) return parentFontSize;
         string normalized = value.Trim().ToLowerInvariant();
-        switch (normalized) {
-            case "xx-small": return parentFontSize * 0.6D;
-            case "x-small": return parentFontSize * 0.75D;
-            case "small": return parentFontSize * 0.89D;
-            case "medium": return _options.DefaultFontSize;
-            case "large": return parentFontSize * 1.2D;
-            case "x-large": return parentFontSize * 1.5D;
-            case "xx-large": return parentFontSize * 2D;
-            case "smaller": return parentFontSize * 0.8D;
-            case "larger": return parentFontSize * 1.2D;
+        if (HtmlRenderCssValues.TryResolveFontSizeKeyword(
+                normalized, parentFontSize, _options.DefaultFontSize, out double keywordSize)) {
+            return keywordSize;
         }
 
         return TryResolveLength(normalized, parentFontSize, parentFontSize, _options.DefaultFontSize, out double size) &&
@@ -481,6 +535,45 @@ internal sealed partial class HtmlRenderStyleResolver {
         if (tag == "u" || decoration.IndexOf("underline", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Underline;
         if (tag == "s" || tag == "strike" || tag == "del" || decoration.IndexOf("line-through", StringComparison.OrdinalIgnoreCase) >= 0) result |= OfficeFontStyle.Strikethrough;
         return result;
+    }
+
+    private static OfficeTextDecorationStyle ResolveTextDecorationStyle(string value) => value.Trim().ToLowerInvariant() switch {
+        "double" => OfficeTextDecorationStyle.Double,
+        "dotted" => OfficeTextDecorationStyle.Dotted,
+        "dashed" => OfficeTextDecorationStyle.Dashed,
+        "wavy" => OfficeTextDecorationStyle.Wavy,
+        _ => OfficeTextDecorationStyle.Single
+    };
+
+    private static int ResolveTextBaselineLevel(string tag, string value, int inherited) {
+        string normalized = value.Trim().ToLowerInvariant();
+        if (tag == "sup" || normalized == "super") return inherited + 1;
+        if (tag == "sub" || normalized == "sub") return inherited - 1;
+        if (normalized.Length == 0) return inherited;
+        if (normalized == "baseline") return inherited;
+        return 0;
+    }
+
+    private (double Scale, double Offset) ResolveTextBaselineGeometry(
+        string tag,
+        string value,
+        double inheritedScale,
+        double inheritedOffset,
+        double parentFontSize,
+        double parentLineHeight) {
+        string normalized = value.Trim().ToLowerInvariant();
+        double effectiveParentSize = Math.Max(0.01D, parentFontSize * inheritedScale);
+        if (tag == "sup" || normalized == "super") {
+            return (inheritedScale * 0.65D, inheritedOffset - effectiveParentSize * 0.30D);
+        }
+        if (tag == "sub" || normalized == "sub") {
+            return (inheritedScale * 0.65D, inheritedOffset + effectiveParentSize * 0.15D);
+        }
+        if (normalized.Length == 0 || normalized == "baseline") return (inheritedScale, inheritedOffset);
+        if (TryResolveLength(normalized, parentLineHeight, effectiveParentSize, _options.DefaultFontSize, out double shift)) {
+            return (inheritedScale, inheritedOffset - shift);
+        }
+        return (inheritedScale, inheritedOffset);
     }
 
     private static bool TryFontWeight(string value, out int weight) => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight);

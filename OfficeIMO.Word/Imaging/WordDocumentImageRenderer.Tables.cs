@@ -356,7 +356,8 @@ namespace OfficeIMO.Word {
             string text = GetCellText(
                 cell,
                 context,
-                context.CancellationToken);
+                context.CancellationToken,
+                diagnostics);
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
@@ -376,7 +377,8 @@ namespace OfficeIMO.Word {
                 cell,
                 colorScheme,
                 context,
-                context.CancellationToken);
+                context.CancellationToken,
+                diagnostics);
             if (ShouldRenderTableCellAsRichText(richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
@@ -458,7 +460,8 @@ namespace OfficeIMO.Word {
             WordTableCell cell,
             A.ColorScheme? colorScheme,
             WordImageFlowContext? context = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var richRuns = new List<OfficeRichTextRun>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -481,7 +484,7 @@ namespace OfficeIMO.Word {
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     WordParagraph run = paragraphRuns[runIndex];
-                    string text = ResolveImageExportText(run, context);
+                    string text = ResolveImageExportText(run, context, diagnostics);
                     if (!string.IsNullOrEmpty(text)) {
                         richRuns.Add(CreateRichTextRun(run, colorScheme, text));
                     }
@@ -734,7 +737,8 @@ namespace OfficeIMO.Word {
         private static string GetCellText(
             WordTableCell cell,
             WordImageFlowContext? context = null,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            List<OfficeImageExportDiagnostic>? diagnostics = null) {
             var paragraphs = new List<string>();
             foreach (IReadOnlyList<WordParagraph> runs in CreateTableCellParagraphRuns(
                          cell,
@@ -743,7 +747,7 @@ namespace OfficeIMO.Word {
                 var builder = new StringBuilder();
                 foreach (WordParagraph run in runs) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    builder.Append(ResolveImageExportText(run, context));
+                    builder.Append(ResolveImageExportText(run, context, diagnostics));
                 }
                 string text = builder.ToString();
                 if (!string.IsNullOrWhiteSpace(text)) {

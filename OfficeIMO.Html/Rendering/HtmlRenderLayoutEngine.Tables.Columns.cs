@@ -71,7 +71,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
-        string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style.TextTransform);
+        string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style);
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
         double insets = style.HorizontalInsets;
