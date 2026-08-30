@@ -352,9 +352,10 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wks" }));
 
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
-            LegacyFixtureFactory.WkMultiSheet(0x20, 0x51),
+            LegacyFixtureFactory.Wq1SheetsOutOfOrder(),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wq1", RequireStructured = true });
         Assert.Equal(2, imported.Document.Sheets.Count);
+        Assert.Equal(new[] { "Sheet1", "Sheet2" }, imported.Document.Sheets.Select(sheet => sheet.Name));
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet1" && Convert.ToInt32(cell.CachedValue) == 1);
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet2" && Convert.ToInt32(cell.CachedValue) == 2);
     }

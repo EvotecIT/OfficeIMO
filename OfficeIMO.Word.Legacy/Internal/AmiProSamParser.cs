@@ -74,6 +74,7 @@ internal sealed class AmiProSamParser {
         }
         if (version != 4) throw new InvalidDataException($"Ami Pro SAM version {version} is outside the structured sam-v4 profile.");
         _model.Metadata["AmiProVersion"] = version.ToString(CultureInfo.InvariantCulture);
+        ValidateStyleSectionContexts();
         InventoryUnsupportedSections();
         ParseStyles();
         ParseDocument();
@@ -420,6 +421,27 @@ internal sealed class AmiProSamParser {
             if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
             if (IsSection(_lines[index], name) && ++count > 1) {
                 throw new InvalidDataException($"Ami Pro SAM contains more than one [{name}] singleton section.");
+            }
+        }
+    }
+
+    private void ValidateStyleSectionContexts() {
+        var insideStyleBlock = new bool[_lines.Length];
+        for (int index = 0; index < _lines.Length; index++) {
+            if (!IsSection(_lines[index], "tag")) continue;
+            int end = FindNextTopLevelSection(index + 1);
+            for (int line = index + 1; line < end; line++) insideStyleBlock[line] = true;
+            index = end - 1;
+        }
+
+        for (int index = 0; index < _lines.Length; index++) {
+            if ((index & 0x0FFF) == 0) _cancellationToken.ThrowIfCancellationRequested();
+            bool styleSubSection = IsSection(_lines[index], "fnt") ||
+                IsSection(_lines[index], "algn") ||
+                IsSection(_lines[index], "spc") ||
+                IsSection(_lines[index], "brk");
+            if (styleSubSection && !insideStyleBlock[index]) {
+                throw new InvalidDataException("Ami Pro SAM contains a style sub-section outside a [tag] style block.");
             }
         }
     }

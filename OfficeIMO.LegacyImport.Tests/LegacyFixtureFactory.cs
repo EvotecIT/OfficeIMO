@@ -307,6 +307,17 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] Wq1SheetsOutOfOrder() {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x20, 0x51 });
+        Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)2), sheet: 1));
+        Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)1), sheet: 0));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] Multiplan() {
         byte[] body = Encoding.ASCII.GetBytes("Name\tValue\nA\t12\n");
         return new byte[] { 0x08, 0xE7 }.Concat(body).ToArray();

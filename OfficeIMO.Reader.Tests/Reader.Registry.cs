@@ -309,5 +309,67 @@ public sealed partial class ReaderRegistryTests {
         }
 
         Assert.Equal(0, dispatchCount);
+
+        int permissiveDispatchCount = 0;
+        OfficeDocumentReader permissiveReader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.extension-bounded",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".wrong" },
+                MaxInputBytesCeiling = 8,
+                ReadPath = (path, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>(),
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>()
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.detected-permissive",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".permissivepdf" },
+                MaxInputBytesCeiling = 1_024,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    permissiveDispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
+                    permissiveDispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Empty(permissiveReader.Read(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                _ = permissiveReader.ReadDocument(stream, "sample.wrong", options);
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Empty(await permissiveReader.ReadAsync(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                _ = await permissiveReader.ReadDocumentAsync(stream, "sample.wrong", options);
+            }
+        }
+
+        string permissivePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(permissivePath, source);
+            Assert.Empty(permissiveReader.Read(permissivePath, options));
+            _ = permissiveReader.ReadDocument(permissivePath, options);
+            Assert.Empty(await permissiveReader.ReadAsync(permissivePath, options));
+            _ = await permissiveReader.ReadDocumentAsync(permissivePath, options);
+        } finally {
+            if (File.Exists(permissivePath)) File.Delete(permissivePath);
+        }
+
+        Assert.Equal(12, permissiveDispatchCount);
     }
 }

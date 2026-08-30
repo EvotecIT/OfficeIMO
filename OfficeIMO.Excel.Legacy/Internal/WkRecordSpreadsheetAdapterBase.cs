@@ -128,6 +128,10 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
             model.Metadata["TruncatedStructuredCellCount"] = truncatedCellTextCount.ToString(CultureInfo.InvariantCulture);
             AddCellTextTruncationFinding(model);
         }
+        if (model.Sheets.Count > 1) {
+            model.Sheets.Clear();
+            model.Sheets.AddRange(sheets.OrderBy(static item => item.Key).Select(static item => item.Value));
+        }
         return model;
     }
 

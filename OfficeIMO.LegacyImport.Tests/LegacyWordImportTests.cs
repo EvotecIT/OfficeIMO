@@ -348,6 +348,29 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProRejectsStyleSubSectionsOutsideStyleBlocks() {
+        foreach (string section in new[] { "fnt", "algn", "spc", "brk" }) {
+            Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+                Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nVisible\n[" + section + "]\nDiscarded\n"),
+                new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true }));
+        }
+    }
+
+    [Fact]
+    public void WordStarPageBreakCommandRejectsTrailingOpcodeText() {
+        foreach (string command in new[] { ".PAGE heading", ".PA unexpected-text" }) {
+            using LegacyWordImportResult imported = LegacyWordImporter.Import(
+                Encoding.ASCII.GetBytes("\u0002\u0002" + command + "\r\nVisible\r\n\x1A"),
+                new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+            Assert.Equal("Visible", imported.PlainText);
+            Assert.DoesNotContain(imported.Content.Paragraphs, paragraph => paragraph.PageBreakBefore);
+            Assert.Contains(imported.Report.Findings, finding => finding.Code == "WORDSTAR_DOT_COMMAND");
+            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        }
+    }
+
+    [Fact]
     public void AmiProUnterminatedInlineOpenersAreScannedLinearlyWithoutHidingLaterStyleReferences() {
         string text = string.Concat(Enumerable.Repeat("<x", 100_000));
         byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + text + "@Missing@End\n");

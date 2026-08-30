@@ -270,7 +270,7 @@ internal sealed class WordStarStructuredParser {
         string command = text.Substring(1, 2).ToUpperInvariant();
         string argument = text.Length > 3 ? text.Substring(3).Trim() : string.Empty;
         switch (command) {
-            case "PA": _pendingPageBreakCount++; return true;
+            case "PA" when argument.Length == 0: _pendingPageBreakCount++; return true;
             case "HE":
                 _model.Metadata["Header"] = argument;
                 RecordHeaderFooterMetadataOnly();

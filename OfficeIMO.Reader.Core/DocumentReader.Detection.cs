@@ -169,7 +169,7 @@ internal static partial class DocumentReaderEngine {
         } else if (!TryResolveDetectedHandler(detection, pathInput: true, out handler)) {
             return false;
         }
-        EnforceFileSize(path, handler.MaxInputBytesCeiling);
+        EnforceFileSize(path, ResolveSelectedHandlerMaxInputBytes(handler, path, options));
         return true;
     }
 
@@ -207,7 +207,9 @@ internal static partial class DocumentReaderEngine {
         } else if (!TryResolveDetectedHandler(detection, pathInput: false, out handler)) {
             return false;
         }
-        ReaderInputLimits.EnforceSeekableStreamSize(stream, handler.MaxInputBytesCeiling);
+        ReaderInputLimits.EnforceSeekableStreamSize(
+            stream,
+            ResolveSelectedHandlerMaxInputBytes(handler, sourceName, options));
         return true;
     }
 

@@ -56,7 +56,7 @@ internal static partial class DocumentReaderEngine {
             stream,
             ResolveStreamMaxInputBytes(logicalSourceName, opt,
                 stream.CanSeek),
-            ResolveStreamInputLimitProbe(logicalSourceName),
+            ResolveStreamInputLimitProbe(logicalSourceName, opt),
             cancellationToken,
             out bool ownsReadStream);
         try {
