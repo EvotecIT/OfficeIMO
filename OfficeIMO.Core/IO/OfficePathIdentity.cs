@@ -77,7 +77,7 @@ namespace OfficeIMO.Internal {
             string normalizedCandidate = Normalize(candidate, caseInsensitive);
             string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
             if (string.Equals(normalizedCandidate, normalizedRoot, StringComparison.Ordinal)) return true;
-            return normalizedCandidate.StartsWith(normalizedRoot + Path.DirectorySeparatorChar,
+            return normalizedCandidate.StartsWith(DirectoryPrefix(normalizedRoot),
                 StringComparison.Ordinal);
         }
 
@@ -157,8 +157,14 @@ namespace OfficeIMO.Internal {
             bool caseInsensitive = IsCaseInsensitiveFileSystem(root);
             string candidate = Normalize(candidatePath, caseInsensitive);
             string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
-            return candidate.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);
+            return candidate.StartsWith(DirectoryPrefix(normalizedRoot), StringComparison.Ordinal);
         }
+
+        private static string DirectoryPrefix(string normalizedRoot) =>
+            normalizedRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                || normalizedRoot.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    ? normalizedRoot
+                    : normalizedRoot + Path.DirectorySeparatorChar;
 
         internal static bool IsCaseInsensitiveFileSystem(string path) {
             return TryGetFileSystemCaseBehavior(path, out bool caseInsensitive)

@@ -222,6 +222,8 @@ public sealed partial class PowerPointPresentation {
                     IWorkParagraphStyle style = paragraph.Style;
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
                         || !FitsTextCoordinate(style.LeftIndentPoints)
+                        || !FitsTextCoordinate(style.RightIndentPoints)
+                        || Math.Abs(style.RightIndentPoints.GetValueOrDefault()) > 0.000001d
                         || !FitsSpacing(style.SpaceBeforePoints)
                         || !FitsSpacing(style.SpaceAfterPoints)) {
                         return $"Keynote slide {slide.Index} contains paragraph formatting outside the PPTX range.";

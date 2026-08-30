@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Numbers_owner_isolates_tables_and_applies_default_width_in_constant_space() {
+    public void Numbers_owner_isolates_tables_and_converts_point_widths_in_constant_space() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Wide", 1, 16_384, 1d, defaultColumnWidth: 70d),
             new TableSpec("Narrow", 1, 1, 2d, defaultColumnWidth: 140d)
@@ -138,8 +138,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(2, result.Document.Sheets.Count);
         Assert.Equal(1d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
         Assert.Equal(2d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(10d, result.Document.Sheets[0].DefaultColumnWidth);
-        Assert.Equal(20d, result.Document.Sheets[1].DefaultColumnWidth);
+        Assert.Equal(12.62d, result.Document.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(25.95d, result.Document.Sheets[1].DefaultColumnWidth);
         Assert.Empty(result.Document.Sheets[0].GetColumnDefinitions());
         Assert.Empty(result.Document.Sheets[1].GetColumnDefinitions());
     }

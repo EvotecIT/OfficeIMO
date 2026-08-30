@@ -54,7 +54,8 @@ public partial class ExcelDocument {
             if (editable) {
                 foreach (IWorkNumbersSheet sourceSheet in projection.Sheets) {
                     if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
-                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name);
+                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name,
+                            ExcelSheetNameValidationMode.Strict);
                         for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
                             textSheet.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
                         }
@@ -66,7 +67,8 @@ public partial class ExcelDocument {
                                 ? sourceSheet.Name
                                 : sourceSheet.Name + " - "
                                     + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                        ExcelSheet sheet = document.AddWorksheet(tableSheetName);
+                        ExcelSheet sheet = document.AddWorksheet(tableSheetName,
+                            ExcelSheetNameValidationMode.Strict);
                         foreach (IWorkTableCell cell in table.Cells) {
                             object? value = cell.Kind switch {
                                 IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
@@ -95,7 +97,7 @@ public partial class ExcelDocument {
                             sheet.SetDefaultRowHeight(table.DefaultRowHeight.Value);
                         }
                         if (table.DefaultColumnWidth is > 0) {
-                            double width = table.DefaultColumnWidth.Value / 7d;
+                            double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
                             sheet.SetDefaultColumnWidth(width);
                         }
                     }
@@ -119,11 +121,25 @@ public partial class ExcelDocument {
     }
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {
+        var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            if (sheet.TextBoxes.Count > 0 || sheet.Tables.Count == 0) {
+                if (!TryAddExactSheetName(sheet.Name, destinationSheetNames)) {
+                    return $"Numbers sheet '{sheet.Name}' cannot be preserved as an exact XLSX worksheet name.";
+                }
+            }
             if (sheet.TextBoxes.Any(text => text.Length > 32_767)) {
                 return $"Numbers sheet '{sheet.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
             }
-            foreach (IWorkTable table in sheet.Tables) {
+            for (int tableIndex = 0; tableIndex < sheet.Tables.Count; tableIndex++) {
+                IWorkTable table = sheet.Tables[tableIndex];
+                string tableSheetName = sheet.Tables.Count == 1 && sheet.TextBoxes.Count == 0
+                    ? sheet.Name
+                    : sheet.Name + " - "
+                        + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
+                if (!TryAddExactSheetName(tableSheetName, destinationSheetNames)) {
+                    return $"Numbers table '{table.Name}' cannot be preserved as an exact unique XLSX worksheet name.";
+                }
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
@@ -132,7 +148,9 @@ public partial class ExcelDocument {
                     return $"Numbers table '{table.Name}' has a default row height outside the XLSX-supported range.";
                 }
                 if (table.DefaultColumnWidth is double columnWidth
-                    && (columnWidth / 7d > 255d || Math.Round(columnWidth / 7d, 2) <= 0d)) {
+                    && (!IsFinite(columnWidth)
+                        || PointsToExcelColumnWidth(columnWidth) > 255d
+                        || Math.Round(PointsToExcelColumnWidth(columnWidth), 2) <= 0d)) {
                     return $"Numbers table '{table.Name}' has a default column width outside the XLSX-supported range.";
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
@@ -162,6 +180,22 @@ public partial class ExcelDocument {
         }
         return null;
     }
+
+    private static bool TryAddExactSheetName(string name, HashSet<string> existing) {
+        if (string.IsNullOrEmpty(name) || name.Length > 31
+            || !string.Equals(name, name.Trim().Trim('\'', ' '), StringComparison.Ordinal)
+            || name.IndexOfAny(new[] { ':', '\\', '/', '?', '*', '[', ']' }) >= 0) {
+            return false;
+        }
+        return existing.Add(name);
+    }
+
+    private static double PointsToExcelColumnWidth(double points) {
+        double pixels = points * 96d / 72d;
+        return pixels <= 12d ? pixels / 12d : (pixels - 5d) / 7d;
+    }
+
+    private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static (int Width, int Height) PreviewSize(IWorkPreviewAsset preview) {
         double width = preview.PixelWidth.GetValueOrDefault(800);

@@ -456,13 +456,15 @@ internal static class IWorkPagesReader {
                 continue;
             }
             if (!seen.Add(storage.Identifier)) continue;
-            if (!textCache.TryGetValue(storage.Identifier, out IWorkTextContent? text)) {
+            bool reused = textCache.TryGetValue(storage.Identifier, out IWorkTextContent? text);
+            if (!reused) {
                 text = IWorkTextReader.Read(index, storage, projectionBudget);
                 textCache.Add(storage.Identifier, text);
             }
+            if (text == null) throw new InvalidDataException("The cached Pages text content is unavailable.");
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             if (text.PlainText.Length == 0) continue;
-            projectionBudget.AddTextContentUse(text);
+            projectionBudget.AddTextContentUse(text, includeCharacters: reused);
             destination.Add(text);
         }
     }

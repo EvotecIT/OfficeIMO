@@ -225,6 +225,11 @@ public partial class WordDocument {
                 .Any(paragraph => paragraph.ListLevel > 8)) {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
+        if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
+                .Any(paragraph => paragraph.ListLevel >= 0
+                    && !IWorkNativeListCatalog.CanPreserveStart(paragraph.ListLabel))) {
+            return "Pages contains an ordered-list marker that cannot be represented by DOCX numbering.";
+        }
         if (projection.PageLayout is { } layout
             && (layout.WidthPoints <= 0 || layout.HeightPoints <= 0
                 || layout.LeftMarginPoints + layout.RightMarginPoints >= layout.WidthPoints
@@ -427,8 +432,12 @@ public partial class WordDocument {
             if (startsNewList || _current == null) _current = WordList.AddCustomList(_document);
             WordList list = _current;
             WordListLevelKind levelKind = Classify(label);
+            bool createsTargetLevel = list.Numbering.Levels.Count <= level;
             while (list.Numbering.Levels.Count <= level) {
                 list.Numbering.AddLevel(new WordListLevel(levelKind));
+            }
+            if (createsTargetLevel && TryParseStart(label, levelKind, out int start) && start != 1) {
+                list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
                 ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
@@ -442,7 +451,7 @@ public partial class WordDocument {
             string marker = label!.Trim();
             bool bracket = marker.EndsWith(")", StringComparison.Ordinal);
             bool dot = marker.EndsWith(".", StringComparison.Ordinal);
-            string token = marker.TrimEnd('.', ')', '(', ' ');
+            string token = MarkerToken(marker);
             if (token.All(char.IsDigit)) {
                 return bracket ? WordListLevelKind.DecimalBracket
                     : dot ? WordListLevelKind.DecimalDot : WordListLevelKind.Decimal;
@@ -458,8 +467,8 @@ public partial class WordDocument {
                     : bracket ? WordListLevelKind.LowerRomanBracket
                         : dot ? WordListLevelKind.LowerRomanDot : WordListLevelKind.LowerRoman;
             }
-            if (token.Length == 1 && char.IsLetter(token[0])) {
-                bool upper = char.IsUpper(token[0]);
+            if (token.Length > 0 && token.All(char.IsLetter)) {
+                bool upper = token.All(char.IsUpper);
                 return upper
                     ? bracket ? WordListLevelKind.UpperLetterBracket
                         : dot ? WordListLevelKind.UpperLetterDot : WordListLevelKind.UpperLetter
@@ -468,6 +477,65 @@ public partial class WordDocument {
             }
             return WordListLevelKind.Bullet;
         }
+
+        private static bool TryParseStart(string? label, WordListLevelKind kind, out int start) {
+            start = 1;
+            if (string.IsNullOrWhiteSpace(label)) return false;
+            string token = MarkerToken(label!.Trim());
+            switch (kind) {
+                case WordListLevelKind.Decimal:
+                case WordListLevelKind.DecimalDot:
+                case WordListLevelKind.DecimalBracket:
+                    return int.TryParse(token, System.Globalization.NumberStyles.None,
+                        System.Globalization.CultureInfo.InvariantCulture, out start) && start > 0;
+                case WordListLevelKind.UpperLetter:
+                case WordListLevelKind.UpperLetterDot:
+                case WordListLevelKind.UpperLetterBracket:
+                case WordListLevelKind.LowerLetter:
+                case WordListLevelKind.LowerLetterDot:
+                case WordListLevelKind.LowerLetterBracket:
+                    start = 0;
+                    foreach (char character in token) {
+                        int digit = char.ToUpperInvariant(character) - 'A' + 1;
+                        if (digit < 1 || digit > 26 || start > (int.MaxValue - digit) / 26) return false;
+                        start = start * 26 + digit;
+                    }
+                    return start > 0;
+                case WordListLevelKind.UpperRoman:
+                case WordListLevelKind.UpperRomanDot:
+                case WordListLevelKind.UpperRomanBracket:
+                case WordListLevelKind.LowerRoman:
+                case WordListLevelKind.LowerRomanDot:
+                case WordListLevelKind.LowerRomanBracket:
+                    return TryParseRoman(token, out start);
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryParseRoman(string token, out int value) {
+            value = 0;
+            int previous = 0;
+            for (int index = token.Length - 1; index >= 0; index--) {
+                int current = char.ToUpperInvariant(token[index]) switch {
+                    'I' => 1, 'V' => 5, 'X' => 10, 'L' => 50,
+                    'C' => 100, 'D' => 500, 'M' => 1000, _ => 0
+                };
+                if (current == 0) return false;
+                int delta = current < previous ? -current : current;
+                if (delta > 0 && value > int.MaxValue - delta) return false;
+                value += delta;
+                if (current > previous) previous = current;
+            }
+            return value > 0;
+        }
+
+        internal static bool CanPreserveStart(string? label) {
+            WordListLevelKind kind = Classify(label);
+            return kind == WordListLevelKind.Bullet || TryParseStart(label, kind, out _);
+        }
+
+        private static string MarkerToken(string marker) => marker.TrimEnd('.', ')', '(', ' ');
     }
 
     private static uint ToTwips(double points) {
