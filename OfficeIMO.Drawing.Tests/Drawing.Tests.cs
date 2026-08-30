@@ -3356,6 +3356,15 @@ public partial class DrawingTests {
         Assert.False(OfficeTextElements.IsRightToLeftScalar(0x1F600));
     }
 
+    [Theory]
+    [InlineData("A\u0301")]
+    [InlineData("A\u200CB")]
+    [InlineData("A\u200DB")]
+    public void OfficeTextElementsDetectsCombiningMarksAndJoiningControls(string text) {
+        Assert.True(OfficeTextElements.ContainsCombiningMarkOrJoiner(text));
+        Assert.False(OfficeTextElements.ContainsCombiningMarkOrJoiner("OfficeIMO"));
+    }
+
     [Fact]
     public void OfficeTextMeasurerNormalizesFallbackFontInfo() {
         var measurer = OfficeTextMeasurer.Create(new OfficeFontInfo(null, 0));

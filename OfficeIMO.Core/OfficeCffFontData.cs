@@ -125,7 +125,13 @@ internal sealed class OfficeCffFontData {
                     ? ReadLocalSubroutines(data, 0, tableEnd, privateSize, privateOffset, isCff2: false)
                     : CffIndex.Empty(data);
             }
-            int[] fontDictionaryByGlyph = ReadFdSelect(data, fdSelectOffset, tableEnd, charStrings.Count, fdArray.Count);
+            int[] fontDictionaryByGlyph = ReadFdSelect(
+                data,
+                fdSelectOffset,
+                tableEnd,
+                charStrings.Count,
+                fdArray.Count,
+                isCff2: false);
             ValidateCharStrings(
                 isCff2: false,
                 charStrings,
@@ -286,7 +292,13 @@ internal sealed class OfficeCffFontData {
                     : CffIndex.Empty(data);
             }
             if (topDictionary.TryGetInteger(0x0C25, out int fdSelectRelative)) {
-                fontDictionaryByGlyph = ReadFdSelect(data, checked(tableOffset + fdSelectRelative), tableEnd, charStrings.Count, fdArray.Count);
+                fontDictionaryByGlyph = ReadFdSelect(
+                    data,
+                    checked(tableOffset + fdSelectRelative),
+                    tableEnd,
+                    charStrings.Count,
+                    fdArray.Count,
+                    isCff2);
             } else if (fdArray.Count > 1) {
                 throw new InvalidDataException("A multi-dictionary CFF font is missing FDSelect.");
             }
@@ -343,7 +355,13 @@ internal sealed class OfficeCffFontData {
         return CffIndex.ReadAt(data, subrOffset, tableEnd, isCff2 ? 4 : 2);
     }
 
-    private static int[] ReadFdSelect(byte[] data, int offset, int end, int glyphCount, int fdCount) {
+    private static int[] ReadFdSelect(
+        byte[] data,
+        int offset,
+        int end,
+        int glyphCount,
+        int fdCount,
+        bool isCff2) {
         EnsureRange(offset, 1, 0, end, "The CFF FDSelect table is truncated.");
         int format = data[offset++];
         var result = new int[glyphCount];
@@ -374,6 +392,7 @@ internal sealed class OfficeCffFontData {
             return result;
         }
         if (format == 4) {
+            if (!isCff2) throw new InvalidDataException("CFF FDSelect format 4 is only valid in CFF2.");
             uint rangeCountValue = ReadUInt32(data, offset, end);
             offset += 4;
             if (rangeCountValue == 0 || rangeCountValue > int.MaxValue) throw new InvalidDataException("The CFF FDSelect range count is invalid.");

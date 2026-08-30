@@ -252,6 +252,48 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
+    [Theory]
+    [InlineData("<< /Subtype 1 >>")]
+    [InlineData("<< /Subtype /Bogus >>")]
+    [InlineData("<< /Colorants 1 >>")]
+    [InlineData("<< /Colorants << /Cyan [/Separation /Magenta /DeviceCMYK 5 0 R] >> >>")]
+    [InlineData("<< /Process << /ColorSpace /DeviceCMYK >> >>")]
+    [InlineData("<< /Process << /ColorSpace /DeviceCMYK /Components [/Cyan] >> >>")]
+    [InlineData("<< /MixingHints << /Solidities << /Cyan 0.8 >> >> >>")]
+    [InlineData("<< /MixingHints << /Solidities << /Cyan 1.1 >> /PrintingOrder [/Cyan] >> >>")]
+    [InlineData("<< /MixingHints << /PrintingOrder [/Spot] >> >>")]
+    [InlineData("<< /Unvalidated true >>")]
+    public void ColorInspectorRejectsMalformedDeviceNAttributes(string attributes) {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0.5 sc",
+            resources: "/ColorSpace << /CS1 [/DeviceN [/Cyan] /DeviceCMYK 5 0 R " + attributes + "] >>",
+            extraObjects: BuildDeviceNTintFunctionObject());
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(0, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("<< /Subtype /DeviceN >>")]
+    [InlineData("<< /Subtype /NChannel /Colorants << /Cyan [/Separation /Cyan /DeviceCMYK 5 0 R] >> >>")]
+    [InlineData("<< /Subtype /NChannel /Process << /ColorSpace /DeviceCMYK /Components [/Cyan /Magenta /Yellow /Black] >> >>")]
+    [InlineData("<< /MixingHints << /Solidities << /Cyan 0.8 /Default 0 >> /PrintingOrder [/Cyan] >> >>")]
+    public void ColorInspectorAcceptsValidDeviceNAttributes(string attributes) {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs 0.5 sc",
+            resources: "/ColorSpace << /CS1 [/DeviceN [/Cyan] /DeviceCMYK 5 0 R " + attributes + "] >>",
+            extraObjects: BuildDeviceNTintFunctionObject());
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceCmykOperatorCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
     [Fact]
     public void ColorInspectorAppliesValidDefaultRgbIccProfile() {
         byte[] pdf = BuildInspectionPdf(
@@ -1460,6 +1502,9 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             " /Filter /ASCIIHexDecode /Length " + hex.Length + " >>\nstream\n" +
             hex + "\nendstream\nendobj\n";
     }
+
+    private static string BuildDeviceNTintFunctionObject() =>
+        "5 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 0 0 0] /C1 [1 0 0 0] /N 1 >>\nendobj\n";
 
     private static byte[] BuildType1InspectionPdf(byte[] type1Program) {
         byte[] content = Encoding.ASCII.GetBytes("BT /F1 12 Tf (A) Tj ET");

@@ -174,9 +174,11 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.All(shapingProvider.Requests, request => Assert.Same(cacheKey, request.FontProgramCacheKeyForShaping));
     }
 
-    [Fact]
-    public void HtmlPdfOutlinedRunReportsProviderDeclineAfterSuccessfulLayoutShaping() {
-        const string text = "A\uFE0F";
+    [Theory]
+    [InlineData("A\uFE0F")]
+    [InlineData("A\u0301")]
+    [InlineData("A\u200DB")]
+    public void HtmlPdfOutlinedRunReportsProviderDeclineAfterSuccessfulLayoutShaping(string text) {
         byte[] fontData = ReadFont("RobotoFlex.ttf");
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             FontHtml("Roboto Flex", "font/ttf", fontData, text, link: false));

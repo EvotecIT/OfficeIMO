@@ -843,7 +843,12 @@ internal static partial class PdfPrintProductionColorInspector {
                     if ((array.Items.Count != 4 && array.Items.Count != 5) ||
                         ResolveObject(objects, array.Items[1], resolvedDepth + 1, maximumObjectDepth) is not PdfArray colorants ||
                         colorants.Items.Count < 1 ||
-                        !AllArrayItemsAreNames(colorants, objects, maximumObjectDepth, resolvedDepth + 1) ||
+                        !TryReadUniqueNames(
+                            colorants,
+                            objects,
+                            maximumObjectDepth,
+                            resolvedDepth + 1,
+                            out HashSet<string> colorantNames) ||
                         (array.Items.Count == 5 &&
                             ResolveObject(objects, array.Items[4], resolvedDepth + 1, maximumObjectDepth) is not PdfDictionary)) {
                         return ColorSpaceUsage.Unknown;
@@ -853,6 +858,20 @@ internal static partial class PdfPrintProductionColorInspector {
                         activeArrays, resolvedDepth + 1);
                     if (!HasValidTintTransform(
                             array.Items[3], colorants.Items.Count, deviceNAlternate, objects, maximumDecodedStreamBytes)) {
+                        return ColorSpaceUsage.Unknown;
+                    }
+                    if (array.Items.Count == 5 &&
+                        ResolveObject(objects, array.Items[4], resolvedDepth + 1, maximumObjectDepth) is PdfDictionary attributes &&
+                        !HasValidDeviceNAttributes(
+                            attributes,
+                            colorantNames,
+                            objects,
+                            maximumObjectDepth,
+                            maximumDecodedStreamBytes,
+                            aliases,
+                            normalizeInlineImageAbbreviations,
+                            activeArrays,
+                            resolvedDepth + 1)) {
                         return ColorSpaceUsage.Unknown;
                     }
                     return deviceNAlternate.WithComponentCount(colorants.Items.Count);
@@ -913,17 +932,6 @@ internal static partial class PdfPrintProductionColorInspector {
             ResolveObject(objects, array.Items[0], 0, maximumObjectDepth) is PdfName family &&
             (string.Equals(family.Name, "Indexed", StringComparison.Ordinal) ||
              string.Equals(family.Name, "I", StringComparison.Ordinal));
-    }
-
-    private static bool AllArrayItemsAreNames(
-        PdfArray values,
-        Dictionary<int, PdfIndirectObject> objects,
-        int maximumObjectDepth,
-        int depth) {
-        for (int index = 0; index < values.Items.Count; index++) {
-            if (ResolveObject(objects, values.Items[index], depth, maximumObjectDepth) is not PdfName) return false;
-        }
-        return true;
     }
 
     private static void ApplyColorSpaceUsage(

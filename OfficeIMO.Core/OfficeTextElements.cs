@@ -109,6 +109,21 @@ public static class OfficeTextElements {
         return false;
     }
 
+    /// <summary>Determines whether text contains a combining mark or Unicode joining control.</summary>
+    public static bool ContainsCombiningMarkOrJoiner(string? value) {
+        if (string.IsNullOrEmpty(value)) return false;
+        for (int index = 0; index < value!.Length;) {
+            int scalarIndex = index;
+            int scalar = ReadScalar(value, ref index);
+            if (scalar == 0x200C || scalar == 0x200D) return true;
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(value, scalarIndex);
+            if (category == UnicodeCategory.NonSpacingMark ||
+                category == UnicodeCategory.SpacingCombiningMark ||
+                category == UnicodeCategory.EnclosingMark) return true;
+        }
+        return false;
+    }
+
     internal static bool ContainsZeroWidthJoinerSequence(string? value) {
         if (string.IsNullOrEmpty(value)) return false;
         for (int index = 0; index < value!.Length;) {

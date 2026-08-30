@@ -71,6 +71,23 @@ public sealed class DrawingCffFontTests {
             0, 1, 1, 1, 1,
             0, 0
         };
+        byte[] cidCff1WithCff2FdSelect = {
+            1, 0, 4, 1,
+            0, 1, 1, 1, 2, (byte)'A',
+            0, 1, 1, 1, 14,
+            139, 139, 139, 12, 30,
+            171, 17,
+            177, 12, 36,
+            182, 12, 37,
+            0, 0,
+            0, 0,
+            0, 1, 1, 1, 2, 14,
+            0, 1, 1, 1, 1,
+            4,
+            0, 0, 0, 1,
+            0, 0, 0, 0, 0, 0,
+            0, 0, 0, 1
+        };
 
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff1, isCff2: false));
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(validCff2, isCff2: true));
@@ -84,6 +101,7 @@ public sealed class DrawingCffFontTests {
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(cidKeyedCff1, isCff2: false, requireCidKeyed: false));
         Assert.True(OfficeCffFontData.IsStructurallyValidProgram(structurallyCompleteCidCff1, isCff2: false, requireCidKeyed: true));
         Assert.False(OfficeCffFontData.IsStructurallyValidProgram(structurallyCompleteCidCff1, isCff2: false, requireCidKeyed: false));
+        Assert.False(OfficeCffFontData.IsStructurallyValidProgram(cidCff1WithCff2FdSelect, isCff2: false, requireCidKeyed: true));
     }
 
     [Fact]

@@ -353,6 +353,7 @@ internal static partial class HtmlPdfRenderedConverter {
     private static bool RequiresConfiguredTextShaping(string text) =>
         OfficeTextElements.ContainsShapingRequiredScript(text)
         || OfficeTextElements.ContainsVariationSelector(text)
+        || OfficeTextElements.ContainsCombiningMarkOrJoiner(text)
         || OfficeTextElements.ContainsJoiningScript(text)
             && !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text);
 
