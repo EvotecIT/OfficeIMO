@@ -47,6 +47,26 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void LogicalTables_RetainRegularFontQualitativeTablesWithDigitBearingHeaders() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Phase 2026", "Phase 2027" },
+                new[] { "Planning", "Ready" },
+                new[] { "Review", "Complete" }
+            }, style: new PdfTableStyle {
+                HeaderBold = false,
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 220D, 220D }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("Phase 2026", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
+        Assert.Contains("Complete", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
     public void LogicalTables_RetainSparseSpanningRowsWhenTheTableHasStrongEvidence() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {
@@ -108,6 +128,21 @@ public sealed class PdfTableDetectionValidationTests {
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Quality", data.Rows.SelectMany(static row => row));
         Assert.Contains("Premium", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
+    public void LogicalTables_RetainTwoRowTablesWithDigitBearingHeadersAndValues() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Phase 2026", "Phase 2027" },
+                new[] { "10", "20" }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("Phase 2026", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
+        Assert.Contains("20", data.Rows.SelectMany(static row => row));
     }
 
     [Theory]

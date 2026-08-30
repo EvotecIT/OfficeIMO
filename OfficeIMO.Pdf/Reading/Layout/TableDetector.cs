@@ -620,7 +620,9 @@ internal static class TableDetector {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < cells.Length; i++) {
             string cell = cells[i].Trim();
-            if (cell.Length == 0 || !seen.Add(cell) || HasManyDigits(cell)) {
+            if (cell.Length == 0 ||
+                !seen.Add(cell) ||
+                (HasManyDigits(cell) && !cell.Any(char.IsLetter))) {
                 return false;
             }
         }
@@ -722,7 +724,6 @@ internal static class TableDetector {
         List<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count != 2 || sourceLines.Count != 2) return false;
         if (!LooksLikeHeaderRow(table.Rows[0])) return false;
-        if (table.Rows[0].Any(static cell => cell.Any(char.IsDigit))) return false;
         return table.Rows[1].Any(IsTabularValue) ||
                (HasStableColumnAnchors(table, sourceLines) && HasEmphasizedHeader(sourceLines));
     }

@@ -352,6 +352,14 @@ public class PdfUnderstandingPipelineTests {
         Assert.False(ContentStructureExtractor.IsListItemText(text));
     }
 
+    [Theory]
+    [InlineData("-.5 variance")]
+    [InlineData("-,25 margin")]
+    [InlineData("-$.5 variance")]
+    public void SharedListParser_DoesNotClassifyLeadingDecimalValuesAsCompactBullets(string text) {
+        Assert.False(ContentStructureExtractor.IsListItemText(text));
+    }
+
     private sealed class ReverseReadingOrderStage : IPdfReadingOrderStage {
         public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) => regions.Reverse().ToArray();
     }

@@ -536,6 +536,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(paragraph => paragraph.Text("1037.25 total"))
             .Paragraph(paragraph => paragraph.Text("-42 total"))
             .Paragraph(paragraph => paragraph.Text("-$42 total"))
+            .Paragraph(paragraph => paragraph.Text("-.5 variance"))
             .Paragraph(paragraph => paragraph.Text("1. Actual numbered item"))
             .Paragraph(paragraph => paragraph.Text("2)Compact numbered item"))
             .Paragraph(paragraph => paragraph.Text("(a)Compact parenthesized item"))
@@ -548,9 +549,11 @@ public partial class PdfLogicalDocumentTests {
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("1037.25", StringComparison.Ordinal));
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("-42", StringComparison.Ordinal));
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("-$42", StringComparison.Ordinal));
+        Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("-.5", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("1037.25 total", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("-42 total", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("-$42 total", StringComparison.Ordinal));
+        Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("-.5 variance", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Actual numbered item", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact numbered item", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact parenthesized item", StringComparison.Ordinal));
