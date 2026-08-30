@@ -296,16 +296,11 @@ internal static class PdfFastUnderstandingStages {
             if (context.LayoutOptions.IgnoreHeaderHeight > 0D && region.YTop >= context.Height - context.LayoutOptions.IgnoreHeaderHeight) return (PdfUnderstandingSemanticKind.Header, 0.9D, new PdfInferenceEvidence("semantic.header-band", "The region falls inside the configured header band.", 0.9D));
             if (context.LayoutOptions.IgnoreFooterHeight > 0D && region.YBottom <= context.LayoutOptions.IgnoreFooterHeight) return (PdfUnderstandingSemanticKind.Footer, 0.9D, new PdfInferenceEvidence("semantic.footer-band", "The region falls inside the configured footer band.", 0.9D));
             string text = region.Text.TrimStart();
-            if ((text.Length > 0 && (text[0] == '-' || text[0] == '*' || text[0] == '•')) || StartsWithNumberedMarker(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, new PdfInferenceEvidence("semantic.list-marker", "The region begins with a recognized bullet or numbered marker.", 0.9D));
+            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, new PdfInferenceEvidence("semantic.list-marker", "The region begins with a recognized bullet or numbered marker.", 0.9D));
             double largest = region.Lines.Count == 0 ? 0D : region.Lines.Max(static line => line.FontSize);
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, PdfInference.Clamp(0.65D + Math.Min(0.3D, (largest / median - 1.2D) * 0.5D)), new PdfInferenceEvidence("semantic.font-size-heading", "The largest font is materially larger than the page median.", 0.8D));
             return (PdfUnderstandingSemanticKind.Paragraph, 0.7D, new PdfInferenceEvidence("semantic.body-font", "The region uses the page's body-font range and has no stronger semantic marker.", 0.5D));
         }
 
-        private static bool StartsWithNumberedMarker(string text) {
-            int index = 0;
-            while (index < text.Length && char.IsDigit(text[index])) index++;
-            return index > 0 && index < text.Length && (text[index] == '.' || text[index] == ')');
-        }
     }
 }

@@ -529,4 +529,18 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal("ON", hiddenLayer.ExportState);
         Assert.Empty(logical.GetOptionalContentGroupsByName("Missing"));
     }
+
+    [Fact]
+    public void Load_DoesNotRemoveDecimalParagraphsAsListItems() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("1037.25 total"))
+            .Paragraph(paragraph => paragraph.Text("1. Actual numbered item"))
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("1037.25", StringComparison.Ordinal));
+        Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("1037.25 total", StringComparison.Ordinal));
+        Assert.Contains(logical.ListItems, item => item.Text.Contains("Actual numbered item", StringComparison.Ordinal));
+    }
 }

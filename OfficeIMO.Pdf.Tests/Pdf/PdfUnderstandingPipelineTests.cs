@@ -190,14 +190,18 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
     }
 
-    [Fact]
-    public void AdvancedPipeline_DoesNotClassifyDecimalAmountsAsListItems() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Pipeline_DoesNotClassifyDecimalAmountsAsListItems(bool advanced) {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("1037.25", "F1", 11, 50, 500, 45),
             new PdfTextSpan("1. Actual numbered item", "F1", 11, 50, 430, 120)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = advanced
+            ? PdfUnderstandingPipelineOptions.Advanced()
+            : new PdfUnderstandingPipelineOptions();
         options.GlyphDecoding = glyphs;
 
         PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
@@ -206,6 +210,22 @@ public class PdfUnderstandingPipelineTests {
             Assert.Single(page.Elements, element => element.Region.Text == "1037.25").Kind);
         Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
             Assert.Single(page.Elements, element => element.Region.Text == "1. Actual numbered item").Kind);
+    }
+
+    [Theory]
+    [InlineData("1.2. Nested numbered item")]
+    [InlineData("2.3.1) Deep numbered item")]
+    public void AdvancedPipeline_ClassifiesHierarchicalNumberedListItems(string text) {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan(text, "F1", 11, 50, 500, 180)
+        });
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
+            Assert.Single(page.Elements, element => element.Region.Text == text).Kind);
     }
 
     private sealed class ReverseReadingOrderStage : IPdfReadingOrderStage {

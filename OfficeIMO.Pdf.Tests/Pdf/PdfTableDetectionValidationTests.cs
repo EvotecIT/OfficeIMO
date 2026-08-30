@@ -61,4 +61,146 @@ public sealed class PdfTableDetectionValidationTests {
         Assert.Contains("SECTION-A", data.Rows.SelectMany(static row => row));
         Assert.Contains("1037.25", data.Rows.SelectMany(static row => row));
     }
+
+    [Theory]
+    [InlineData("Intervening narrative text must remain a paragraph.")]
+    [InlineData("Intervening narrative remains independent")]
+    public void LogicalTables_DoNotConsumeNarrativeBetweenAlignedTables(string narrative) {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "First owner", "First status" },
+                new[] { "North region", "Review pending" },
+                new[] { "South region", "Approved" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderBold = false,
+                ColumnWidthPoints = new List<double?> { 220D, 220D }
+            })
+            .Paragraph(paragraph => paragraph.Text(narrative))
+            .Table(new[] {
+                new[] { "Second owner", "Second status" },
+                new[] { "East region", "In progress" },
+                new[] { "West region", "Complete" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                HeaderBold = false,
+                ColumnWidthPoints = new List<double?> { 220D, 220D }
+            })
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        Assert.Equal(2, logical.Tables.Count);
+        Assert.Contains(logical.Paragraphs,
+            paragraph => paragraph.Text.Contains(narrative, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void LogicalTables_RetainTwoRowTablesWithTabularBodyEvidence() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Quality", "Premium 95" }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("Quality", data.Rows.SelectMany(static row => row));
+        Assert.Contains("Premium 95", data.Rows.SelectMany(static row => row));
+    }
+
+    [Theory]
+    [InlineData(PdfColumnAlign.Center)]
+    [InlineData(PdfColumnAlign.Right)]
+    public void LogicalTables_RetainAlignedRegularFontProseTables(PdfColumnAlign alignment) {
+        var cellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign>();
+        for (int row = 0; row < 3; row++) {
+            cellAlignments[(row, 0)] = alignment;
+            cellAlignments[(row, 1)] = alignment;
+        }
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Assigned owner", "Current workflow" },
+                new[] { "North region coordinator", "Review pending requests" },
+                new[] { "South team", "Approve all completed requests" }
+            }, style: new PdfTableStyle {
+                HeaderBold = false,
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 220D, 220D },
+                CellAlignments = cellAlignments
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("North region coordinator", data.Rows.SelectMany(static row => row));
+        Assert.Contains("Approve all completed requests", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
+    public void TableDetector_DoesNotUseBoldAloneAsTwoRowTableEvidence() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Summary", 50D, 55D, "Helvetica-Bold"), ("Notes", 220D, 40D, "Helvetica-Bold")) },
+            new() { CreateLine(500D, ("Management", 50D, 70D, "Helvetica"), ("review", 220D, 38D, "Helvetica")) }
+        };
+
+        Assert.Empty(TableDetector.DetectTablesFromBands(bands));
+    }
+
+    [Fact]
+    public void TableDetector_DoesNotMergeAcrossOrdinaryTightRhythmProse() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(500D, ("A-1", 50D, 24D, "Helvetica"), ("100", 220D, 24D, "Helvetica")) },
+            new() { CreateLine(480D, ("Management review remains pending.", 50D, 250D, "Helvetica")) },
+            new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
+        };
+
+        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+
+        Assert.DoesNotContain(tables.SelectMany(static table => table.Rows).SelectMany(static row => row),
+            cell => cell.Contains("Management", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableDetector_RetainsPunctuatedSpanningRowsWithGeometricEvidence() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(500D, ("A-1", 50D, 24D, "Helvetica"), ("100", 220D, 24D, "Helvetica")) },
+            new() { CreateLine(480D, ("Amounts exclude tax.", 50D, 250D, "Helvetica")) },
+            new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+
+        Assert.Contains(table.Rows.SelectMany(static row => row),
+            cell => cell.Contains("Amounts exclude tax.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableOwnership_RequiresHorizontalAsWellAsVerticalOverlap() {
+        var table = new StructuredTable { YTop = 500D, YBottom = 450D };
+        table.Columns.Add(new StructuredTableColumn { From = 50D, To = 150D });
+        table.Columns.Add(new StructuredTableColumn { From = 150D, To = 250D });
+        TextLayoutEngine.TextLine adjacent = CreateLine(475D, ("Adjacent prose", 400D, 90D, "Helvetica"));
+        TextLayoutEngine.TextLine overlapping = CreateLine(475D, ("Table prose", 100D, 90D, "Helvetica"));
+
+        Assert.False(ContentStructureExtractor.IsInsideTable(adjacent, new[] { table }));
+        Assert.True(ContentStructureExtractor.IsInsideTable(overlapping, new[] { table }));
+    }
+
+    private static TextLayoutEngine.TextLine CreateLine(
+        double y,
+        params (string Text, double X, double Advance, string Font)[] values) {
+        var spans = values
+            .Select(value => new PdfTextSpan(value.Text, value.Font, 11D, value.X, y, value.Advance))
+            .ToList();
+        return new TextLayoutEngine.TextLine(
+            y,
+            spans.Min(static span => span.X),
+            spans.Max(static span => span.X + span.Advance),
+            string.Join(" ", values.Select(static value => value.Text)),
+            spans);
+    }
 }

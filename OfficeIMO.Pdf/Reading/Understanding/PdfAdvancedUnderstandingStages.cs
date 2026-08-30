@@ -152,7 +152,7 @@ public static class PdfAdvancedUnderstandingStages {
             if (region.YBottom <= context.Height * 0.05D) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "The region occupies the bottom five percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
             if (LooksLikeTable(region)) return (PdfUnderstandingSemanticKind.Table, 0.83D, "semantic.column-alignment", "Several lines share aligned word columns with large horizontal gaps.");
-            if (StartsWithListMarker(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
+            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
         }
@@ -169,15 +169,6 @@ public static class PdfAdvancedUnderstandingStages {
             return alignedRows >= 2;
         }
 
-        private static bool StartsWithListMarker(string text) {
-            if (text.Length == 0) return false;
-            if (text[0] == '-' || text[0] == '*' || text[0] == '•') return true;
-            int index = 0; while (index < text.Length && char.IsDigit(text[index])) index++;
-            return index is > 0 and <= 4 &&
-                index + 1 < text.Length &&
-                (text[index] == '.' || text[index] == ')') &&
-                char.IsWhiteSpace(text[index + 1]);
-        }
     }
 
     private sealed class BaselineGroup {

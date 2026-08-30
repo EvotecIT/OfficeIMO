@@ -217,8 +217,7 @@ public sealed class StructuredLine {
 }
 
 internal static class ContentStructureExtractor {
-    private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\u25CF]\s*|[\-\*]\s+|\d+(?:\.\d+)*[\.)]\s*|\([A-Za-z0-9]+\)\s*).+", RegexOptions.Compiled);
-    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)]\s*(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)]\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])\s+)(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
@@ -226,6 +225,41 @@ internal static class ContentStructureExtractor {
         "ability", "ality", "able", "ible", "ance", "ence", "al", "ally",
         "er", "ers", "ed", "ly", "ology", "ologies"
     };
+
+    internal static bool IsListItemText(string text) =>
+        TryParseListItemText(text, out _, out _, out _);
+
+    internal static bool TryParseListItemText(
+        string text,
+        out string marker,
+        out string body,
+        out int level) {
+        marker = string.Empty;
+        body = string.Empty;
+        level = 1;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+
+        Match numbered = NumberListRegex.Match(text);
+        if (numbered.Success) {
+            marker = numbered.Groups["mark"].Value;
+            body = numbered.Groups["text"].Value.Trim();
+            level = Math.Max(1, marker.Count(static value => value == '.') + 1);
+            return body.Length > 0;
+        }
+
+        Match bullet = BulletRegex.Match(text);
+        if (bullet.Success) {
+            marker = bullet.Groups["mark"].Value;
+            body = bullet.Groups["text"].Value.Trim();
+            return body.Length > 0;
+        }
+
+        Match parenthesized = ParenRegex.Match(text);
+        if (!parenthesized.Success) return false;
+        marker = "(" + parenthesized.Groups["mark"].Value + ")";
+        body = parenthesized.Groups["text"].Value.Trim();
+        return body.Length > 0;
+    }
 
     public static StructuredPage Extract(
         IReadOnlyList<PdfTextSpan> spans,
@@ -252,21 +286,14 @@ internal static class ContentStructureExtractor {
                 AddLeaderRow(page, label, num.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 continue;
             }
-            if (ListRegex.IsMatch(t)) {
+            if (TryParseListItemText(t, out string marker, out string listText, out int listLevel)) {
                 page.ListItems.Add(t);
-                var mNum = NumberListRegex.Match(t);
-                if (mNum.Success) {
-                    string mark = mNum.Groups["mark"].Value;
-                    int level = Math.Max(1, mark.Count(c => c == '.') + 1);
-                    page.ListNodes.Add(new StructuredListItem { Level = level, Marker = mark, Text = mNum.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
-                } else {
-                    var mBul = BulletRegex.Match(t);
-                    if (mBul.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = mBul.Groups["mark"].Value, Text = mBul.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
-                    else {
-                        var mPar = ParenRegex.Match(t);
-                        if (mPar.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = "(" + mPar.Groups["mark"].Value + ")", Text = mPar.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
-                    }
-                }
+                page.ListNodes.Add(new StructuredListItem {
+                    Level = listLevel,
+                    Marker = marker,
+                    Text = listText,
+                    Line = ToStructuredLine(ln)
+                });
             }
             else {
                 if (TryParseLeaderRow(t, out string leaderLabel, out string leaderValue)) {
@@ -358,7 +385,7 @@ internal static class ContentStructureExtractor {
         foreach (var line in lines) {
             string text = line.Text.Trim();
             if (text.Length == 0 ||
-                ListRegex.IsMatch(text) ||
+                IsListItemText(text) ||
                 IsHeadingLine(line, page.Headings) ||
                 fallbackTableLines.Contains(line) ||
                 IsInsideTable(line, page.TablesDetailed)) {
@@ -432,7 +459,7 @@ internal static class ContentStructureExtractor {
         foreach (var line in lines) {
             string text = line.Text.Trim();
             if (text.Length == 0 ||
-                ListRegex.IsMatch(text) ||
+                IsListItemText(text) ||
                 IsInsideTable(line, page.TablesDetailed)) {
                 continue;
             }
@@ -449,7 +476,7 @@ internal static class ContentStructureExtractor {
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 text.Length > 160 ||
-                ListRegex.IsMatch(text) ||
+                IsListItemText(text) ||
                 IsInsideTable(line, page.TablesDetailed)) {
                 continue;
             }
@@ -531,16 +558,21 @@ internal static class ContentStructureExtractor {
         };
     }
 
-    private static bool IsInsideTable(TextLayoutEngine.TextLine line, List<StructuredTable> tables) {
+    internal static bool IsInsideTable(TextLayoutEngine.TextLine line, IReadOnlyList<StructuredTable> tables) {
         for (int i = 0; i < tables.Count; i++) {
             var table = tables[i];
             if (table.Columns.Count == 0) {
                 continue;
             }
 
-            if (line.Y <= table.YTop + 0.001 &&
-                line.Y >= table.YBottom - 0.001 &&
-                line.XEnd >= table.Columns[0].From - 2D) {
+            double tableLeft = table.Columns.Min(static column => Math.Min(column.From, column.To));
+            double tableRight = table.Columns.Max(static column => Math.Max(column.From, column.To));
+            double lineLeft = Math.Min(line.XStart, line.XEnd);
+            double lineRight = Math.Max(line.XStart, line.XEnd);
+            if (line.Y <= Math.Max(table.YTop, table.YBottom) + 0.001D &&
+                line.Y >= Math.Min(table.YTop, table.YBottom) - 0.001D &&
+                lineRight >= tableLeft - 2D &&
+                lineLeft <= tableRight + 2D) {
                 return true;
             }
         }

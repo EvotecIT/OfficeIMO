@@ -535,7 +535,7 @@ public sealed class PdfConversionReportTests {
             .TextField("Customer.Name", value: "Ada")
             .Table(new[] {
                 new[] { "Metric", "Value" },
-                new[] { "Quality", "Premium" }
+                new[] { "Quality", "Premium 95" }
             });
         var result = new PdfDocumentConversionResult(document, report);
 
