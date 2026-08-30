@@ -7,6 +7,8 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
     internal const uint MaximumFormat12Groups = 4096;
+    private const uint MaximumVariationSelectorRecords = 256;
+    private const uint MaximumVariationMappings = 4096;
 
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>
         platform == 0 ||
@@ -62,6 +64,9 @@ internal static class OfficeOpenTypeCmap {
         if (count <= 0 || count > MaximumSubtables || cmapLength < 4 + count * 8) return false;
         for (int index = 0; index < count; index++) {
             int record = cmapOffset + 4 + index * 8;
+            int platform = ReadUInt16(data, record);
+            int encoding = ReadUInt16(data, record + 2);
+            if (platform != 0 || encoding != 5) continue;
             uint relativeValue = ReadUInt32(data, record + 4);
             if (relativeValue > (uint)(cmapLength - 10)) continue;
             int table = cmapOffset + (int)relativeValue;
@@ -81,7 +86,7 @@ internal static class OfficeOpenTypeCmap {
         Func<int, int> mapGlyph) {
         uint lengthValue = ReadUInt32(data, table + 2);
         uint recordCountValue = ReadUInt32(data, table + 6);
-        if (lengthValue > int.MaxValue || recordCountValue > 4096) return false;
+        if (lengthValue > int.MaxValue || recordCountValue > MaximumVariationSelectorRecords) return false;
         int length = (int)lengthValue;
         int recordCount = (int)recordCountValue;
         if (length < 10 || table > cmapEnd - length || 10L + recordCount * 11L > length) return false;
@@ -109,7 +114,7 @@ internal static class OfficeOpenTypeCmap {
                     glyphCount,
                     scalar,
                     out int glyph)) return false;
-            if (glyph != 0) return true;
+            if (glyph != 0) return glyph == mapGlyph(scalar);
         }
         if (defaultOffset == 0 ||
             !TryResolveDefaultVariation(data, table, tableEnd, defaultOffset, scalar, out bool isDefault)) return false;
@@ -129,7 +134,7 @@ internal static class OfficeOpenTypeCmap {
         int offset = table + (int)relativeOffset;
         if (offset < table || offset > tableEnd - 4) return false;
         uint countValue = ReadUInt32(data, offset);
-        if (countValue > (uint)((tableEnd - offset - 4) / 5)) return false;
+        if (countValue > MaximumVariationMappings || countValue > (uint)((tableEnd - offset - 4) / 5)) return false;
         int previousScalar = -1;
         for (int index = 0; index < (int)countValue; index++) {
             int mapping = offset + 4 + index * 5;
@@ -155,7 +160,7 @@ internal static class OfficeOpenTypeCmap {
         int offset = table + (int)relativeOffset;
         if (offset < table || offset > tableEnd - 4) return false;
         uint countValue = ReadUInt32(data, offset);
-        if (countValue > (uint)((tableEnd - offset - 4) / 4)) return false;
+        if (countValue > MaximumVariationMappings || countValue > (uint)((tableEnd - offset - 4) / 4)) return false;
         int previousEnd = -1;
         for (int index = 0; index < (int)countValue; index++) {
             int range = offset + 4 + index * 4;

@@ -48,4 +48,22 @@ public sealed class DrawingOpenTypeCmapTests {
         Assert.Equal(fonts.Faces[1].ResourceFamilyName, run.FamilyName);
         Assert.NotEqual(fonts.Faces[0].ResourceFamilyName, run.FamilyName);
     }
+
+    [Fact]
+    public void ManagedFontDoesNotClaimANonDefaultVariationGlyphItCannotRender() {
+        const string sequence = "\u2764\uFE0F";
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(
+            ManagedTextShapingTestAssets.CreateFontWithNonDefaultVariationSequence(0x2764, 0xFE0F)));
+
+        Assert.False(font.HasGlyphs(sequence));
+    }
+
+    [Fact]
+    public void VariationCoverageRejectsFormat14OutsideTheUnicodeUvsEncodingRecord() {
+        const string sequence = "\u2764\uFE0F";
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(
+            ManagedTextShapingTestAssets.CreateFontWithMistypedVariationSequenceRecord(0x2764, 0xFE0F)));
+
+        Assert.False(font.HasGlyphs(sequence));
+    }
 }

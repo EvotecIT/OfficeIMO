@@ -755,7 +755,21 @@ internal static partial class PdfPrintProductionColorInspector {
         int formDepth,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth) {
-        if (!HasExactFiniteNumberArray(form, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
+        if (!string.Equals(
+                ResolveName(
+                    form.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "XObject",
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                ResolveName(
+                    form.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Form",
+                StringComparison.Ordinal) ||
+            !HasExactFiniteNumberArray(form, "BBox", 4, objects, maximumObjectDepth, out double[] bounds) ||
             bounds[2] < bounds[0] || bounds[3] < bounds[1] ||
             !HasOptionalExactFiniteNumberArray(form, "Matrix", 6, objects, maximumObjectDepth)) {
             return false;

@@ -552,6 +552,21 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
     }
 
+    [Fact]
+    public void ColorInspectorRejectsSoftMaskFormsWithoutTheXObjectType() {
+        byte[] pdf = BuildInspectionPdf(
+            "/GS1 gs",
+            resources: "/ExtGState << /GS1 << /SMask << /S /Alpha /G 5 0 R >> >> >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /Pattern /Subtype /Form /BBox [0 0 10 10] " +
+                "/Group << /S /Transparency >> /Length 0 >>\nstream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
     [Theory]
     [InlineData("/G 5 0 R", "/Group << /S /Transparency >>")]
     [InlineData("/S /Bogus /G 5 0 R", "/Group << /S /Transparency >>")]
