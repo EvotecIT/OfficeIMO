@@ -262,7 +262,7 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.CslJson) return;
         foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(contributor.Name.NativeFields, cancellationToken)) Loss(report, item, "contributors." + field.Name, "BIBCONV213", $"Native name property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) {
-            if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CanPreserveNativeDateField(date, field, cancellationToken)) continue;
+            if (format == BibliographyFormat.EndNoteXml && (EndNoteXmlCodec.CanPreserveNativeDateField(date, field, cancellationToken) || EndNoteXmlCodec.CanPreserveNativePublicationDateField(date, field, cancellationToken))) continue;
             Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
         }
     }

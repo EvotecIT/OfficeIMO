@@ -216,7 +216,10 @@ internal static class TaggedCodec {
             case "AB": SetScalar(item, BibliographyFormat.Nbib, "abstract", field, value, assigned => item.Abstract = assigned); break;
             case "LA": SetScalar(item, BibliographyFormat.Nbib, "language", field, value, assigned => item.Language = assigned); break;
             case "LID": case "AID": ParseNbibIdentifier(item, value, field); break;
-            case "IS": AddTaggedIdentifier(item, "ISSN", value, field); break;
+            case "IS":
+                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
+                else AddTaggedIdentifier(item, "ISSN", value, field);
+                break;
             case "OT": item.Keywords.Add(value); break;
             case "MH": item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
             case "GN": item.Notes.Add(value); break;
@@ -654,7 +657,8 @@ internal static class TaggedCodec {
             case "LA": return item.Language != null;
             case "LID": case "AID": return !WouldBindNbibIdentifier(field.Value);
             case "MH": return true;
-            case "PMID": case "PT": case "FAU": case "AU": case "CN": case "DP": case "IS": case "OT": case "GN": return false;
+            case "IS": return string.IsNullOrWhiteSpace(field.Value);
+            case "PMID": case "PT": case "FAU": case "AU": case "CN": case "DP": case "OT": case "GN": return false;
             default: return true;
         }
     }

@@ -89,11 +89,25 @@ internal static class BibCodec {
                 }
             }
 
+            var writableFields = new List<KeyValuePair<string, string>>(fields.Count);
             for (int index = 0; index < fields.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 KeyValuePair<string, string> field = fields[index];
-                builder.Append("  ").Append(field.Key).Append(" = {").Append(Escape(field.Value)).Append('}');
-                if (index + 1 < fields.Count) builder.Append(',');
+                bool normalizesTerminalBackslash = HasOddTrailingBackslash(field.Value);
+                string escaped = Escape(field.Value);
+                if (normalizesTerminalBackslash)
+                    report.Add("BIBCONV133", BibliographyDiagnosticSeverity.Warning, $"Bib field '{field.Key}' ends in an odd backslash run that must be normalized before the closing delimiter.", BibliographyConversionAction.Approximated, item, field.Key);
+                if (!IsSafeDelimitedValue(escaped)) {
+                    report.Add("BIBCONV134", BibliographyDiagnosticSeverity.Warning, $"Bib field '{field.Key}' cannot be enclosed safely after escaping and was omitted.", BibliographyConversionAction.Omitted, item, field.Key);
+                    continue;
+                }
+                writableFields.Add(new KeyValuePair<string, string>(field.Key, escaped));
+            }
+            for (int index = 0; index < writableFields.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                KeyValuePair<string, string> field = writableFields[index];
+                builder.Append("  ").Append(field.Key).Append(" = {").Append(field.Value).Append('}');
+                if (index + 1 < writableFields.Count) builder.Append(',');
                 builder.Append(options.LineEnding);
             }
             builder.Append('}').Append(options.LineEnding);
@@ -181,9 +195,27 @@ internal static class BibCodec {
             if (value[index] == '{') depth++;
             else if (value[index] == '}') { if (depth == 0) return EscapeAllBraces(value); depth--; }
         }
-        return depth == 0 ? value : EscapeAllBraces(value);
+        string escaped = depth == 0 ? value : EscapeAllBraces(value);
+        return HasOddTrailingBackslash(escaped) ? escaped + "\\" : escaped;
     }
     private static string EscapeAllBraces(string value) => value.Replace("{", "\\{").Replace("}", "\\}");
+    internal static bool HasOddTrailingBackslash(string value) {
+        int count = 0;
+        for (int index = value.Length - 1; index >= 0 && value[index] == '\\'; index--) count++;
+        return (count & 1) != 0;
+    }
+    private static bool IsSafeDelimitedValue(string value) {
+        int depth = 0;
+        for (int index = 0; index < value.Length; index++) {
+            if (value[index] == '\\') {
+                if (++index >= value.Length) return false;
+                continue;
+            }
+            if (value[index] == '{') depth++;
+            else if (value[index] == '}' && --depth < 0) return false;
+        }
+        return depth == 0;
+    }
     private static bool TryWriteNativeEntry(StringBuilder builder, BibliographyNativeEntry entry, string lineEnding) {
         if (entry.Kind == "string" && IsSafeFieldName(entry.Name ?? string.Empty) && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
             builder.Append("@string{").Append(entry.Name).Append(" = {").Append(entry.Value).Append("}}").Append(lineEnding).Append(lineEnding);
@@ -498,7 +530,7 @@ internal static class BibCodec {
         private static bool StartsWithLowercaseLetter(string value) => BibCodec.StartsWithLowercaseLetter(value);
         private static string? NullIfEmpty(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-        private static IEnumerable<string> SplitBibList(string value) => SplitTopLevel(value, ',', ';').Where(static part => !string.IsNullOrWhiteSpace(part)).Select(static part => part.Trim());
+        private static IEnumerable<string> SplitBibList(string value) => SplitTopLevel(value, ',', ';').Select(static part => part.Trim());
 
         private static string UnwrapBibListItem(string value) {
             string trimmed = value.Trim();

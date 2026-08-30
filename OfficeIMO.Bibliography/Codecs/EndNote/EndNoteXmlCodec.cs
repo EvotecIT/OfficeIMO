@@ -203,6 +203,10 @@ internal static class EndNoteXmlCodec {
             parsedPublication.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, "year", year, yearElement.ToString(SaveOptions.DisableFormatting)));
             item.Dates.Add(parsedPublication);
         }
+        else if (string.IsNullOrWhiteSpace(pubDate)) {
+            parsedYear.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, "date", pubDate, dateElement.ToString(SaveOptions.DisableFormatting)));
+            item.Dates.Add(parsedYear);
+        }
         else if (parsedYear.Year.HasValue && parsedPublication.Year == parsedYear.Year) item.Dates.Add(parsedPublication);
         else {
             BibliographyDate combined = CodecMappings.ParseDate(BibliographyDateRole.Issued, pubDate + " " + year);
@@ -240,7 +244,13 @@ internal static class EndNoteXmlCodec {
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct EndNote XML year component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.year");
         } else if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
         string formatted = CodecMappings.FormatDate(date);
-        writer.WriteStartElement(null, "pub-dates", xmlNamespace); WriteElement(writer, "date", formatted, xmlNamespace); writer.WriteEndElement();
+        BibliographyNativeField? nativePublicationDate = Cancellable(date.NativeFields, cancellationToken).FirstOrDefault(field => CanPreserveNativePublicationDateField(date, field, cancellationToken));
+        writer.WriteStartElement(null, "pub-dates", xmlNamespace);
+        if (nativePublicationDate != null) {
+            if (TryWriteNativeField(writer, nativePublicationDate, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct empty EndNote XML publication-date component.", BibliographyConversionAction.PreservedExtension, item, "dates.date");
+            else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct empty EndNote XML publication-date component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.date");
+        } else WriteElement(writer, "date", formatted, xmlNamespace);
+        writer.WriteEndElement();
         writer.WriteEndElement();
     }
 
@@ -248,6 +258,11 @@ internal static class EndNoteXmlCodec {
         if (field.Format != BibliographyFormat.EndNoteXml || !string.Equals(field.Name, "year", StringComparison.OrdinalIgnoreCase)) return false;
         BibliographyDate parsed = CodecMappings.ParseDate(BibliographyDateRole.Issued, field.Value);
         return !parsed.Year.HasValue && !Cancellable(date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)), cancellationToken).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "year", StringComparison.OrdinalIgnoreCase));
+    }
+    internal static bool CanPreserveNativePublicationDateField(BibliographyDate date, BibliographyNativeField field, CancellationToken cancellationToken = default) {
+        if (field.Format != BibliographyFormat.EndNoteXml || !string.Equals(field.Name, "date", StringComparison.OrdinalIgnoreCase) || field.UnmodifiedRawValue == null || !string.IsNullOrWhiteSpace(field.Value)) return false;
+        if (date.Month.HasValue || date.Day.HasValue || date.EndYear.HasValue || date.EndMonth.HasValue || date.EndDay.HasValue || date.Literal != null) return false;
+        return !Cancellable(date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)), cancellationToken).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "date", StringComparison.OrdinalIgnoreCase));
     }
 
     private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, CancellationToken cancellationToken) {
