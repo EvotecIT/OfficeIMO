@@ -255,14 +255,14 @@ internal static class BibliographyConversionInspector {
         } else if (format == BibliographyFormat.Ris) Check(item.CollectionTitle, "collection-title");
         else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0 && item.NativeFields.Any(static field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)))
             Loss(report, item, "URL", "BIBCONV237", "An empty primary EndNote URL with additional URL roles reopens as a missing primary URL.", BibliographyConversionAction.Approximated);
-        void Check(string? value, string field) { if (!string.IsNullOrWhiteSpace(value)) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
+        void Check(string? value, string field) { if (value != null) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
     }
 
     private static void InspectNestedNativeFields(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.CslJson) return;
         foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(contributor.Name.NativeFields, cancellationToken)) Loss(report, item, "contributors." + field.Name, "BIBCONV213", $"Native name property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) {
-            if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CanPreserveNativeDateField(date, field)) continue;
+            if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CanPreserveNativeDateField(date, field, cancellationToken)) continue;
             Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
         }
     }

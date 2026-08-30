@@ -69,44 +69,44 @@ internal static class EndNoteXmlCodec {
         using (XmlWriter writer = XmlWriter.Create(textWriter, settings)) {
             bool recordsRoot = document.EndNoteRecordsRoot;
             string rootElementName = recordsRoot ? "records" : "xml";
-            string outputNamespace = GetDocumentElementNamespace(document, rootElementName);
+            string outputNamespace = GetDocumentElementNamespace(document, rootElementName, string.Empty, cancellationToken);
             writer.WriteStartDocument();
             if (!recordsRoot) {
                 writer.WriteStartElement(null, "xml", outputNamespace);
-                WriteDocumentAttributes(writer, document, "xml", report);
-                foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
+                WriteDocumentAttributes(writer, document, "xml", report, cancellationToken);
+                foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
                     if (TryWriteRootElement(writer, entry.Value, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                     else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed or reserved and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
                 }
             }
-            string recordsNamespace = GetDocumentElementNamespace(document, "records", outputNamespace);
+            string recordsNamespace = GetDocumentElementNamespace(document, "records", outputNamespace, cancellationToken);
             writer.WriteStartElement(null, "records", recordsNamespace);
-            WriteDocumentAttributes(writer, document, "records", report);
-            foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
+            WriteDocumentAttributes(writer, document, "records", report, cancellationToken);
+            foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
                 if (TryWriteRecordsElement(writer, entry.Value, recordsNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                 else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"EndNote XML records-container element '{entry.Name}' is malformed, reserved, or otherwise unsafe and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
             }
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
                 BibliographyItem item = document.Items[itemIndex];
                 cancellationToken.ThrowIfCancellationRequested();
-                string recordNamespace = GetRecordNamespace(item, recordsNamespace);
+                string recordNamespace = GetRecordNamespace(item, recordsNamespace, cancellationToken);
                 writer.WriteStartElement(null, "record", recordNamespace);
-                WriteRecordAttributes(writer, item, report);
+                WriteRecordAttributes(writer, item, report, cancellationToken);
                 WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
                 writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
-                WriteContributors(writer, item, recordNamespace); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
+                WriteContributors(writer, item, recordNamespace, cancellationToken); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
-                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace);
-                foreach (BibliographyIdentifier identifier in item.Identifiers) WriteIdentifier(writer, identifier, recordNamespace);
-                WriteUrls(writer, item, report, recordNamespace);
-                if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in item.Keywords) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
-                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", item.Notes), recordNamespace);
-                foreach (BibliographyNativeField field in item.NativeFields) {
+                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace, cancellationToken);
+                foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteIdentifier(writer, identifier, recordNamespace);
+                WriteUrls(writer, item, report, recordNamespace, cancellationToken);
+                if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
+                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", Cancellable(item.Notes, cancellationToken)), recordNamespace);
+                foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
                     if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
                     } else if (field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace)) {
                         continue;
-                    } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace) && TryWriteNativeField(writer, field, recordNamespace)) {
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace, cancellationToken) && TryWriteNativeField(writer, field, recordNamespace)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -120,7 +120,7 @@ internal static class EndNoteXmlCodec {
             if (!recordsRoot) writer.WriteEndElement();
             writer.WriteEndDocument();
         }
-        foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => !IsConsumedEndNoteEntry(entry))) report.Add("BIBCONV116", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in EndNote XML.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
+        foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => !IsConsumedEndNoteEntry(entry))) report.Add("BIBCONV116", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in EndNote XML.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         return builder.ToString();
     }
 
@@ -160,7 +160,7 @@ internal static class EndNoteXmlCodec {
             if (IsRepeatableRecordElement(identifier.Name.LocalName) && string.IsNullOrWhiteSpace(identifier.Value))
                 item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, identifier.Name.LocalName, identifier.Value, SerializeBoundedElement(identifier, partial, limits)));
         }
-        XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
+        XElement? urls = Child(record, "urls"); XElement? relatedUrlsContainer = Child(urls, "related-urls"); XElement[] relatedUrls = relatedUrlsContainer?.Elements().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
         string? primaryUrl = relatedUrls.FirstOrDefault()?.Value;
         item.Url = primaryUrl != null && (primaryUrl.Length > 0 || relatedUrls.Length == 1) ? primaryUrl : null;
         foreach (XElement relatedUrl in relatedUrls.Skip(1)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits)));
@@ -178,7 +178,7 @@ internal static class EndNoteXmlCodec {
 
     private static void ParseContributors(BibliographyItem item, XElement? contributors) {
         if (contributors == null) return;
-        foreach (XElement group in contributors.Elements().Where(element => HasNameInNamespace(element, contributors.Name.Namespace))) {
+        foreach (XElement group in contributors.Elements().Where(element => HasNameInNamespace(element, contributors.Name.Namespace) && IsContributorRoleElement(element.Name.LocalName))) {
             BibliographyContributorRole role = RoleFromElement(group.Name.LocalName);
             foreach (XElement value in group.Elements().Where(element => HasName(element, group.Name.Namespace, "author"))) item.Contributors.Add(new BibliographyContributor(role, CodecMappings.ParseCommaName(value.Value)));
         }
@@ -187,7 +187,7 @@ internal static class EndNoteXmlCodec {
     private static void ParseDates(BibliographyItem item, XElement? dates) {
         if (dates == null) return;
         XElement? yearElement = Child(dates, "year");
-        XElement? dateElement = dates.Descendants().FirstOrDefault(element => HasName(element, dates.Name.Namespace, "date"));
+        XElement? dateElement = Child(Child(dates, "pub-dates"), "date");
         if (yearElement == null && dateElement == null) return;
         string year = yearElement?.Value ?? string.Empty; string pubDate = dateElement?.Value ?? string.Empty;
         if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) {
@@ -211,11 +211,11 @@ internal static class EndNoteXmlCodec {
         }
     }
 
-    private static void WriteContributors(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
+    private static void WriteContributors(XmlWriter writer, BibliographyItem item, string xmlNamespace, CancellationToken cancellationToken) {
         if (item.Contributors.Count == 0) return;
         writer.WriteStartElement(null, "contributors", xmlNamespace);
-        foreach (IGrouping<BibliographyContributorRole, BibliographyContributor> group in item.Contributors.GroupBy(static contributor => contributor.Role)) {
-            writer.WriteStartElement(null, ElementFromRole(group.Key), xmlNamespace); foreach (BibliographyContributor contributor in group) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name), xmlNamespace); writer.WriteEndElement();
+        foreach (IGrouping<BibliographyContributorRole, BibliographyContributor> group in Cancellable(item.Contributors, cancellationToken).GroupBy(static contributor => contributor.Role)) {
+            writer.WriteStartElement(null, ElementFromRole(group.Key), xmlNamespace); foreach (BibliographyContributor contributor in Cancellable(group, cancellationToken)) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name), xmlNamespace); writer.WriteEndElement();
         }
         writer.WriteEndElement();
     }
@@ -231,10 +231,10 @@ internal static class EndNoteXmlCodec {
         writer.WriteStartElement(null, "periodical", xmlNamespace); WriteElement(writer, "full-title", item.ContainerTitle, xmlNamespace); writer.WriteEndElement();
     }
 
-    private static void WriteDates(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
-        BibliographyDate? date = item.GetDate(BibliographyDateRole.Issued); if (date == null) return;
+    private static void WriteDates(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, CancellationToken cancellationToken) {
+        BibliographyDate? date = Cancellable(item.Dates, cancellationToken).FirstOrDefault(static candidate => candidate.Role == BibliographyDateRole.Issued); if (date == null) return;
         writer.WriteStartElement(null, "dates", xmlNamespace);
-        BibliographyNativeField? nativeYear = date.NativeFields.FirstOrDefault(field => CanPreserveNativeDateField(date, field));
+        BibliographyNativeField? nativeYear = Cancellable(date.NativeFields, cancellationToken).FirstOrDefault(field => CanPreserveNativeDateField(date, field, cancellationToken));
         if (nativeYear != null) {
             if (TryWriteNativeField(writer, nativeYear, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct EndNote XML year component.", BibliographyConversionAction.PreservedExtension, item, "dates.year");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct EndNote XML year component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.year");
@@ -244,18 +244,18 @@ internal static class EndNoteXmlCodec {
         writer.WriteEndElement();
     }
 
-    internal static bool CanPreserveNativeDateField(BibliographyDate date, BibliographyNativeField field) {
+    internal static bool CanPreserveNativeDateField(BibliographyDate date, BibliographyNativeField field, CancellationToken cancellationToken = default) {
         if (field.Format != BibliographyFormat.EndNoteXml || !string.Equals(field.Name, "year", StringComparison.OrdinalIgnoreCase)) return false;
         BibliographyDate parsed = CodecMappings.ParseDate(BibliographyDateRole.Issued, field.Value);
-        return !parsed.Year.HasValue && !date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "year", StringComparison.OrdinalIgnoreCase));
+        return !parsed.Year.HasValue && !Cancellable(date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)), cancellationToken).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "year", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace) {
-        BibliographyNativeField[] additionalUrls = item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace)).ToArray();
+    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, CancellationToken cancellationToken) {
+        BibliographyNativeField[] additionalUrls = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace)).ToArray();
         if (item.Url == null && additionalUrls.Length == 0) return;
         writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
         writer.WriteElementString(null, "url", xmlNamespace, item.Url == null ? string.Empty : SanitizeXml(item.Url));
-        foreach (BibliographyNativeField field in additionalUrls) {
+        foreach (BibliographyNativeField field in Cancellable(additionalUrls, cancellationToken)) {
             if (TryWriteNativeField(writer, field, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
         }
@@ -303,19 +303,19 @@ internal static class EndNoteXmlCodec {
     private static string SerializeAttributes(XElement element) =>
         new XElement(element.Name, element.Attributes().Select(static attribute => new XAttribute(attribute))).ToString(SaveOptions.DisableFormatting);
     private static bool HasElementMetadata(XElement element) => element.HasAttributes || element.Name.Namespace != XNamespace.None;
-    private static string GetDocumentElementNamespace(BibliographyDocument document, string elementName, string fallback = "") {
-        BibliographyNativeEntry? entry = document.NativeEntries.FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
+    private static string GetDocumentElementNamespace(BibliographyDocument document, string elementName, string fallback, CancellationToken cancellationToken) {
+        BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
         return entry == null ? fallback : GetCarrierNamespace(entry.Value, fallback);
     }
-    private static string GetRecordNamespace(BibliographyItem item, string fallback) {
-        BibliographyNativeField? field = item.NativeFields.FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
+    private static string GetRecordNamespace(BibliographyItem item, string fallback, CancellationToken cancellationToken) {
+        BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
         return field == null ? fallback : GetCarrierNamespace(field.Value, fallback);
     }
     private static string GetCarrierNamespace(string serializedCarrier, string fallback) {
         try { return XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace).Name.NamespaceName; } catch (XmlException) { return fallback; }
     }
-    private static void WriteDocumentAttributes(XmlWriter writer, BibliographyDocument document, string elementName, BibliographyConversionReport report) {
-        BibliographyNativeEntry? entry = document.NativeEntries.FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
+    private static void WriteDocumentAttributes(XmlWriter writer, BibliographyDocument document, string elementName, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
         if (entry == null) return;
         if (TryWriteAttributes(writer, entry.Value)) report.Add("BIBCONV018", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML attributes on '{elementName}'.", BibliographyConversionAction.PreservedExtension, field: elementName);
         else report.Add("BIBCONV131", BibliographyDiagnosticSeverity.Warning, $"EndNote XML attributes on '{elementName}' are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, field: elementName);
@@ -328,8 +328,8 @@ internal static class EndNoteXmlCodec {
         }
         return false;
     }
-    private static void WriteRecordAttributes(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report) {
-        foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal))) {
+    private static void WriteRecordAttributes(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal))) {
             if (TryWriteAttributes(writer, field.Value)) report.Add("BIBCONV019", BibliographyDiagnosticSeverity.Information, "Preserved EndNote XML record attributes.", BibliographyConversionAction.PreservedExtension, item, field.Name);
             else report.Add("BIBCONV132", BibliographyDiagnosticSeverity.Warning, "EndNote XML record attributes are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, item, field.Name);
         }
@@ -394,10 +394,10 @@ internal static class EndNoteXmlCodec {
             return false;
         }
     }
-    private static bool ConflictsWithTypedRecordElement(BibliographyItem item, BibliographyNativeField field, string xmlNamespace) {
+    private static bool ConflictsWithTypedRecordElement(BibliographyItem item, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
         if (string.Equals(field.Name, "periodical", StringComparison.OrdinalIgnoreCase)) return false;
         if (!KnownRecordElements.Contains(field.Name)) return false;
-        if (CanPreserveEmptyKnownRecordContainer(item, field, xmlNamespace)) return false;
+        if (CanPreserveUnownedKnownRecordContainer(item, field, xmlNamespace, cancellationToken)) return false;
         string? raw = field.UnmodifiedRawValue ?? field.RawValue;
         if (raw == null) return true;
         try {
@@ -408,17 +408,17 @@ internal static class EndNoteXmlCodec {
             return true;
         }
     }
-    private static bool CanPreserveEmptyKnownRecordContainer(BibliographyItem item, BibliographyNativeField field, string xmlNamespace) {
+    private static bool CanPreserveUnownedKnownRecordContainer(BibliographyItem item, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
         if (field.UnmodifiedRawValue == null) return false;
         try {
             XElement element = XElement.Parse(field.UnmodifiedRawValue, LoadOptions.PreserveWhitespace);
-            if (!string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal) || !IsEmptyKnownRecordContainer(element)) return false;
+            if (!string.Equals(element.Name.NamespaceName, xmlNamespace, StringComparison.Ordinal) || !KnownRecordElements.Contains(element.Name.LocalName)) return false;
             switch (element.Name.LocalName.ToLowerInvariant()) {
                 case "contributors": return item.Contributors.Count == 0;
                 case "titles": return item.Title == null && item.ContainerTitle == null && item.CollectionTitle == null;
                 case "periodical": return item.ContainerTitle == null;
                 case "dates": return item.Dates.Count == 0;
-                case "urls": return item.Url == null && !item.NativeFields.Any(candidate => !ReferenceEquals(candidate, field) && IsAdditionalUrlField(candidate, xmlNamespace));
+                case "urls": return item.Url == null && !Cancellable(item.NativeFields, cancellationToken).Any(candidate => !ReferenceEquals(candidate, field) && IsAdditionalUrlField(candidate, xmlNamespace));
                 case "keywords": return item.Keywords.Count == 0;
                 default: return false;
             }
@@ -519,13 +519,26 @@ internal static class EndNoteXmlCodec {
     private static bool IsKnownNestedElement(XElement container, XElement descendant) {
         if (!HasNameInNamespace(descendant, container.Name.Namespace)) return false;
         string name = descendant.Name.LocalName.ToLowerInvariant();
+        XElement? parent = descendant.Parent;
         switch (container.Name.LocalName.ToLowerInvariant()) {
-            case "titles": return name == "title" || name == "secondary-title" || name == "tertiary-title";
-            case "periodical": return name == "full-title";
-            case "contributors": return name == "authors" || name == "secondary-authors" || name == "tertiary-authors" || name == "subsidiary-authors" || name == "author";
-            case "dates": return name == "year" || name == "pub-dates" || name == "date";
-            case "urls": return name == "related-urls" || name == "url";
-            case "keywords": return name == "keyword";
+            case "titles": return ReferenceEquals(parent, container) && (name == "title" || name == "secondary-title" || name == "tertiary-title");
+            case "periodical": return ReferenceEquals(parent, container) && name == "full-title";
+            case "contributors":
+                if (ReferenceEquals(parent, container)) return IsContributorRoleElement(name);
+                return name == "author" && parent != null && ReferenceEquals(parent.Parent, container) && IsContributorRoleElement(parent.Name.LocalName);
+            case "dates":
+                if (ReferenceEquals(parent, container)) return name == "year" || name == "pub-dates";
+                return name == "date" && parent != null && ReferenceEquals(parent.Parent, container) && string.Equals(parent.Name.LocalName, "pub-dates", StringComparison.OrdinalIgnoreCase);
+            case "urls":
+                if (ReferenceEquals(parent, container)) return name == "related-urls";
+                return name == "url" && parent != null && ReferenceEquals(parent.Parent, container) && string.Equals(parent.Name.LocalName, "related-urls", StringComparison.OrdinalIgnoreCase);
+            case "keywords": return ReferenceEquals(parent, container) && name == "keyword";
+            default: return false;
+        }
+    }
+    private static bool IsContributorRoleElement(string name) {
+        switch (name.ToLowerInvariant()) {
+            case "authors": case "secondary-authors": case "tertiary-authors": case "subsidiary-authors": return true;
             default: return false;
         }
     }
@@ -542,6 +555,12 @@ internal static class EndNoteXmlCodec {
     private static string? FirstNonEmpty(params string?[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? values.FirstOrDefault(static value => value != null);
     private static int GetOffset(XElement element) => element.Annotation<EndNoteSourceOffset>()?.Value ?? -1;
     private static void AddIdentifier(BibliographyItem item, string scheme, string value) { if (!string.IsNullOrWhiteSpace(value)) item.Identifiers.Add(new BibliographyIdentifier(scheme, value)); }
+    private static IEnumerable<T> Cancellable<T>(IEnumerable<T> source, CancellationToken cancellationToken) {
+        foreach (T value in source) {
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return value;
+        }
+    }
     private static void ParseAccessionIdentifier(BibliographyItem item, string value) {
         AddIdentifier(item, "accession", value);
     }
