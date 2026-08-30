@@ -83,6 +83,54 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProStyleMetadataAndInlineReferencesShareTheTextBudget() {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            LegacyFixtureFactory.AmiPro(),
+            new LegacyWordImportOptions {
+                SourceName = "archive.sam",
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 13 }
+            }));
+
+        byte[] inlineReference = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n@S@X\n");
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            inlineReference,
+            new LegacyWordImportOptions {
+                SourceName = "archive.sam",
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 1 }
+            }));
+    }
+
+    [Fact]
+    public void AmiProMalformedStyleBlocksAndInlineValuesAreReportedAsLoss() {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[tag]\nBroken\n[edoc]\nText<:S+bad><:fbad>\n");
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_BLOCK_MALFORMED");
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "AMIPRO_INLINE_TAG_MALFORMED");
+        Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
+        Assert.Equal("2", imported.Metadata["AmiProMalformedInlineTagCount"]);
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void AmiProDuplicateStyleDefinitionsCannotDisappearFromNoLossClaims() {
+        string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
+        int styleStart = fixture.IndexOf("[tag]", StringComparison.Ordinal);
+        int documentStart = fixture.IndexOf("[edoc]", StringComparison.Ordinal);
+        string duplicate = fixture.Substring(styleStart, documentStart - styleStart);
+        byte[] source = Encoding.ASCII.GetBytes(fixture.Insert(documentStart, duplicate));
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+        Assert.Equal("1", imported.Metadata["AmiProDuplicateStyleCount"]);
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_DUPLICATE");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
     public void WordStarDetectionRequiresCoherentGrammarAndHintedWeakInputIsSalvage() {
         byte[] arbitraryHighBit = Enumerable.Repeat((byte)0xC1, 128).ToArray();
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(arbitraryHighBit, new LegacyWordImportOptions { SourceName = "random.ws4" }));
@@ -179,6 +227,30 @@ public sealed class LegacyWordImportTests {
                 FormatHint = LegacyWordFormat.WordStar,
                 Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 2 }
             }));
+    }
+
+    [Fact]
+    public void WordStarUnsupportedControlsAndMetadataOnlyHeadersAreReportedAsLoss() {
+        byte[] source = Encoding.ASCII.GetBytes("\u0002\u0002.HE Header\r\n.FO Footer\r\nBody").Concat(new byte[] { 0x07, 0x0D, 0x0A, 0x1A }).ToArray();
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        Assert.Equal("Header", imported.Metadata["Header"]);
+        Assert.Equal("Footer", imported.Metadata["Footer"]);
+        Assert.Equal("2", imported.Metadata["WordStarHeaderFooterMetadataOnlyCount"]);
+        Assert.Equal("1", imported.Metadata["WordStarUnsupportedControl.0x07Count"]);
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_HEADER_FOOTER_METADATA_ONLY");
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_CONTROL_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void WordStarRejectsNonPaddingDataAfterEof() {
+        byte[] source = Encoding.ASCII.GetBytes("\u0002\u0002Text\r\n\u001ATrailing");
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar }));
     }
 
     [Fact]

@@ -88,12 +88,12 @@ internal static class LegacyFixtureFactory {
         return data;
     }
 
-    internal static byte[] Wk(byte product0 = 0x06, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null, string label = "Name", bool terminateLabel = true) {
+    internal static byte[] Wk(byte product0 = 0x06, byte product1 = 0x04, bool includeFormulaAndChart = true, byte cellFormat = 0, byte[]? formulaTokens = null, ushort? declaredFormulaLength = null, bool includeBlank = false, ushort? extraRecordType = null, string label = "Name", bool terminateLabel = true, byte labelPrefix = (byte)'\'') {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
         Record(writer, 0x0000, new[] { product0, product1 });
         Record(writer, 0x000B, NamePayload("Input", 0, 0, 1, 0));
-        Record(writer, 0x000F, LabelPayload(0, 0, (byte)'\'', Encoding.ASCII.GetBytes(label + (terminateLabel ? "\0" : string.Empty)), cellFormat));
+        Record(writer, 0x000F, LabelPayload(0, 0, labelPrefix, Encoding.ASCII.GetBytes(label + (terminateLabel ? "\0" : string.Empty)), cellFormat));
         Record(writer, 0x000D, CellPayload(1, 0, BitConverter.GetBytes((short)42), cellFormat));
         if (includeBlank) Record(writer, 0x000C, CellPayload(3, 0, Array.Empty<byte>(), cellFormat));
         if (includeFormulaAndChart) {
@@ -171,10 +171,10 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
-    internal static byte[] WkMultiSheet() {
+    internal static byte[] WkMultiSheet(byte product0 = 0x06, byte product1 = 0x04) {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
-        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        Record(writer, 0x0000, new[] { product0, product1 });
         Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)1)));
         Record(writer, 0x000D, CellPayload(0, 0, BitConverter.GetBytes((short)2), sheet: 1));
         Record(writer, 0x0001, Array.Empty<byte>());

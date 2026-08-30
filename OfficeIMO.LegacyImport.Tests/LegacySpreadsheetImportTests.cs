@@ -202,11 +202,27 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
-    public void WkSheetIdentifiersProjectToSeparateWorksheets() {
-        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(LegacyFixtureFactory.WkMultiSheet(), new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+    public void SingleSheetWkProfilesRejectReservedSheetBytesAndQuattroWq1ProjectsSheets() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkMultiSheet(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkMultiSheet(0x04, 0x04),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wks" }));
+
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkMultiSheet(0x20, 0x51),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wq1", RequireStructured = true });
         Assert.Equal(2, imported.Document.Sheets.Count);
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet1" && Convert.ToInt32(cell.CachedValue) == 1);
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet2" && Convert.ToInt32(cell.CachedValue) == 2);
+    }
+
+    [Fact]
+    public void WkLabelAlignmentPrefixMustBelongToTheValidatedProfile() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, labelPrefix: (byte)'?'),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
     }
 
     [Fact]

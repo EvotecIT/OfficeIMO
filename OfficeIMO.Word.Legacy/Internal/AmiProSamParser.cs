@@ -23,6 +23,9 @@ internal sealed class AmiProSamParser {
     private int _inferredListCount;
     private int _embeddedSectionCount;
     private int _unsupportedSectionCount;
+    private int _malformedStyleBlockCount;
+    private int _duplicateStyleCount;
+    private int _malformedInlineTagCount;
 
     internal AmiProSamParser(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         _limits = limits;
@@ -66,6 +69,9 @@ internal sealed class AmiProSamParser {
         if (_inferredListCount > 0) _model.Metadata["AmiProInferredListCount"] = _inferredListCount.ToString(CultureInfo.InvariantCulture);
         if (_embeddedSectionCount > 0) _model.Metadata["AmiProEmbeddedSectionCount"] = _embeddedSectionCount.ToString(CultureInfo.InvariantCulture);
         if (_unsupportedSectionCount > 0) _model.Metadata["AmiProUnsupportedSectionCount"] = _unsupportedSectionCount.ToString(CultureInfo.InvariantCulture);
+        if (_malformedStyleBlockCount > 0) _model.Metadata["AmiProMalformedStyleBlockCount"] = _malformedStyleBlockCount.ToString(CultureInfo.InvariantCulture);
+        if (_duplicateStyleCount > 0) _model.Metadata["AmiProDuplicateStyleCount"] = _duplicateStyleCount.ToString(CultureInfo.InvariantCulture);
+        if (_malformedInlineTagCount > 0) _model.Metadata["AmiProMalformedInlineTagCount"] = _malformedInlineTagCount.ToString(CultureInfo.InvariantCulture);
         return _model;
     }
 
@@ -76,12 +82,22 @@ internal sealed class AmiProSamParser {
             int end = FindNextTopLevelSection(index + 1);
             var block = new List<string>();
             for (int line = index + 1; line < end; line++) block.Add(_lines[line].Trim());
+            ConsumeItem("style block");
             AmiStyle? style = ParseStyle(block);
-            if (style == null || string.IsNullOrWhiteSpace(style.Name)) continue;
-            if (!_styles.ContainsKey(style.Name)) ConsumeItem("style");
+            index = end - 1;
+            if (style == null || string.IsNullOrWhiteSpace(style.Name)) {
+                if (++_malformedStyleBlockCount == 1) {
+                    _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_BLOCK_MALFORMED", "Styles", "One or more Ami Pro [tag] style blocks were malformed and could not be projected; the total is available in metadata."));
+                }
+                continue;
+            }
+            ConsumeText(style.Name.Length, "style name");
+            if (style.FontFamily is { Length: > 0 } fontFamily) ConsumeText(fontFamily.Length, "style font family");
+            if (_styles.ContainsKey(style.Name) && ++_duplicateStyleCount == 1) {
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_STYLE_DUPLICATE", "Styles", "One or more duplicate Ami Pro style definitions replaced an earlier definition; the total is available in metadata."));
+            }
             _styles[style.Name] = style;
             _model.Metadata[$"Style.{_styles.Count}.Name"] = style.Name;
-            index = end - 1;
         }
         _model.Metadata["StyleCount"] = _styles.Count.ToString(CultureInfo.InvariantCulture);
     }
@@ -183,6 +199,7 @@ internal sealed class AmiProSamParser {
                 if (end > index + 1) {
                     FlushRun(runs, text, state);
                     string styleName = source.Substring(index + 1, end - index - 1);
+                    ConsumeText(styleName.Length, "style reference");
                     paragraph.StyleName = styleName;
                     if (_styles.TryGetValue(styleName, out AmiStyle? style)) ApplyStyle(style, state, paragraph);
                     else if (_missingStyles.Add(styleName)) ConsumeItem("missing style reference");
@@ -225,12 +242,16 @@ internal sealed class AmiProSamParser {
         }
         if (tag.StartsWith(":S+", StringComparison.Ordinal)) {
             string spacing = tag.Substring(3);
-            paragraph.LineSpacingPoints = spacing == "-1" ? 12 : spacing == "-2" ? 18 : spacing == "-3" ? 24 : int.TryParse(spacing, out int twips) ? twips / 20d : (double?)null;
+            if (spacing == "-1") paragraph.LineSpacingPoints = 12;
+            else if (spacing == "-2") paragraph.LineSpacingPoints = 18;
+            else if (spacing == "-3") paragraph.LineSpacingPoints = 24;
+            else if (int.TryParse(spacing, out int twips)) paragraph.LineSpacingPoints = twips / 20d;
+            else RecordMalformedInlineTag();
             return;
         }
         if (tag == ":f") { state.ResetFont(); return; }
         if (tag.StartsWith(":f", StringComparison.Ordinal)) {
-            ParseFont(tag.Substring(2), state);
+            if (!ParseFont(tag.Substring(2), state)) RecordMalformedInlineTag();
             return;
         }
         if (tag.Length == 2 && tag[0] == '/') {
@@ -245,13 +266,16 @@ internal sealed class AmiProSamParser {
         if (_unknownTags.Add(boundedTag)) ConsumeItem("inline-tag kind");
     }
 
-    private static void ParseFont(string value, AmiRunState state) {
+    private bool ParseFont(string value, AmiRunState state) {
         string[] parts = value.Split(',');
-        if (parts.Length < 5 || !int.TryParse(parts[0], out int size)) return;
+        if (parts.Length < 5 || !int.TryParse(parts[0], out int size)) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
+        ConsumeText(family.Length, "inline font family");
         state.FontSizePoints = Math.Max(1, size / 20);
         state.FontFamily = family;
         if (byte.TryParse(parts[2], out byte red) && byte.TryParse(parts[3], out byte green) && byte.TryParse(parts[4], out byte blue)) state.ColorHex = $"{red:X2}{green:X2}{blue:X2}";
+        else return false;
+        return true;
     }
 
     private static void ApplyStyle(AmiStyle style, AmiRunState state, LegacyWordParagraph paragraph) {
@@ -278,8 +302,19 @@ internal sealed class AmiProSamParser {
     }
 
     private void Append(StringBuilder text, char value) {
-        if (++_characterCount > _limits.MaxTextCharacters) throw new InvalidDataException("Ami Pro source exceeds the configured text-character limit.");
+        ConsumeText(1, "document text");
         text.Append(value);
+    }
+
+    private void ConsumeText(int count, string kind) {
+        if (count > _limits.MaxTextCharacters - _characterCount) throw new InvalidDataException($"Ami Pro source exceeds the configured text-character limit while recovering {kind}.");
+        _characterCount += count;
+    }
+
+    private void RecordMalformedInlineTag() {
+        if (++_malformedInlineTagCount == 1) {
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("AMIPRO_INLINE_TAG_MALFORMED", "Formatting", "One or more recognized Ami Pro inline formatting tags had malformed values and were not fully projected; the total is available in metadata."));
+        }
     }
 
     private int FindSection(string name) {

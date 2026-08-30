@@ -18,12 +18,14 @@ internal sealed class WordStarStructuredParser {
     private readonly RunState _state = new();
     private readonly Dictionary<byte, int> _partialSequenceCounts = new();
     private readonly Dictionary<byte, int> _unsupportedSequenceCounts = new();
+    private readonly Dictionary<byte, int> _unsupportedControlCounts = new();
     private int _characterCount;
     private int _sequenceCount;
     private int _itemCount;
     private int _unknownDotCommandCount;
     private int _graphicsReferenceCount;
     private int _inferredListCount;
+    private int _headerFooterMetadataOnlyCount;
     private string? _paragraphStyleName;
     private bool _nextPageBreak;
 
@@ -37,7 +39,10 @@ internal sealed class WordStarStructuredParser {
         for (int index = 0; index < _data.Length;) {
             _cancellationToken.ThrowIfCancellationRequested();
             byte value = _data[index];
-            if (value == 0x1A) break;
+            if (value == 0x1A) {
+                ValidateTrailingPadding(index + 1);
+                break;
+            }
             if (value == 0x1D) {
                 index = ParseSymmetricalSequence(index);
                 continue;
@@ -64,7 +69,7 @@ internal sealed class WordStarStructuredParser {
                 case 0x16: Toggle(static state => state.Subscript = !state.Subscript); break;
                 case 0x18: Toggle(static state => state.Strike = !state.Strike); break;
                 case 0x19: Toggle(static state => state.Italic = !state.Italic); break;
-                case 0x1E: break;
+                case 0x1E: RecordUnsupportedControl(value); break;
                 case 0x1F: Append('-'); break;
                 case 0x1B:
                     index = ParseExtendedCharacter(index);
@@ -72,6 +77,7 @@ internal sealed class WordStarStructuredParser {
                 default:
                     byte character = value >= 0x80 ? (byte)(value & 0x7F) : value;
                     if (character >= 0x20 && character != 0x7F) Append((char)character);
+                    else RecordUnsupportedControl(value);
                     break;
             }
             index++;
@@ -81,8 +87,10 @@ internal sealed class WordStarStructuredParser {
         if (_unknownDotCommandCount > 0) _model.Metadata["WordStarUnknownDotCommandCount"] = _unknownDotCommandCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_graphicsReferenceCount > 0) _model.Metadata["WordStarGraphicsReferenceCount"] = _graphicsReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_inferredListCount > 0) _model.Metadata["WordStarInferredListCount"] = _inferredListCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_headerFooterMetadataOnlyCount > 0) _model.Metadata["WordStarHeaderFooterMetadataOnlyCount"] = _headerFooterMetadataOnlyCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         AddSequenceCountMetadata("WordStarPartialSequence", _partialSequenceCounts);
         AddSequenceCountMetadata("WordStarUnsupportedSequence", _unsupportedSequenceCounts);
+        AddSequenceCountMetadata("WordStarUnsupportedControl", _unsupportedControlCounts);
         return _model;
     }
 
@@ -147,6 +155,7 @@ internal sealed class WordStarStructuredParser {
         if (index + 1 >= _data.Length) throw new InvalidDataException("Truncated WordStar extended-character sequence.");
         byte value = (byte)(_data[index + 1] & 0x7F);
         if (value >= 0x20 && value != 0x7F) Append((char)value);
+        else RecordUnsupportedControl(_data[index + 1]);
         return index + 2 < _data.Length && _data[index + 2] == 0x1C ? index + 3 : index + 2;
     }
 
@@ -237,14 +246,39 @@ internal sealed class WordStarStructuredParser {
         string argument = text.Length > 3 ? text.Substring(3).Trim() : string.Empty;
         switch (command) {
             case "PA": _nextPageBreak = true; return true;
-            case "HE": _model.Metadata["Header"] = argument; return true;
-            case "FO": _model.Metadata["Footer"] = argument; return true;
+            case "HE":
+                _model.Metadata["Header"] = argument;
+                RecordHeaderFooterMetadataOnly();
+                return true;
+            case "FO":
+                _model.Metadata["Footer"] = argument;
+                RecordHeaderFooterMetadataOnly();
+                return true;
             default:
                 _unknownDotCommandCount++;
                 if (_unknownDotCommandCount == 1) {
                     _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_DOT_COMMAND", "Layout", "One or more unrecognized WordStar dot commands were kept inert and omitted; the total is available in metadata."));
                 }
                 return true;
+        }
+    }
+
+    private void RecordUnsupportedControl(byte value) {
+        if (Increment(_unsupportedControlCounts, value) == 1 && _unsupportedControlCounts.Count == 1) {
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_CONTROL_UNSUPPORTED", "Structure", "One or more unsupported WordStar standalone control bytes were omitted; per-control totals are available in metadata."));
+        }
+    }
+
+    private void RecordHeaderFooterMetadataOnly() {
+        if (++_headerFooterMetadataOnlyCount == 1) {
+            _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_HEADER_FOOTER_METADATA_ONLY", "Layout", "WordStar header and footer dot commands were retained as metadata but are not projected into document header/footer parts; the total is available in metadata."));
+        }
+    }
+
+    private void ValidateTrailingPadding(int offset) {
+        for (int index = offset; index < _data.Length; index++) {
+            byte value = _data[index];
+            if (value != 0x00 && value != 0x1A) throw new InvalidDataException("WordStar source contains non-padding data after its EOF marker.");
         }
     }
 

@@ -35,7 +35,7 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)) {
-            return ParseWkRecords(data, limits, "Quattro Pro WQ1", 0x20, 0x51, cancellationToken, translateFormulas: false);
+            return ParseWkRecords(data, limits, "Quattro Pro WQ1", 0x20, 0x51, cancellationToken, WkRecordLayout.QuattroWq1, translateFormulas: false);
         }
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)) {
             return ParseWkRecords(data, limits, "Quattro Pro WQ2", 0x21, 0x51, cancellationToken, WkRecordLayout.QuattroWq2, translateFormulas: false);

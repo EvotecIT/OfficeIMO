@@ -9,7 +9,8 @@ using System.Threading;
 namespace OfficeIMO.Excel.Legacy;
 
 internal enum WkRecordLayout {
-    Dos,
+    SingleSheetDos,
+    QuattroWq1,
     QuattroWq2
 }
 
@@ -17,7 +18,7 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
     private const int MetadataSampleLimit = 16;
     protected LegacySpreadsheetModel ParseWkRecords(byte[] data, OfficeLegacyImportLimits limits, string familyName,
         byte expectedProduct0, byte expectedProduct1, CancellationToken cancellationToken,
-        WkRecordLayout layout = WkRecordLayout.Dos, bool translateFormulas = true) {
+        WkRecordLayout layout = WkRecordLayout.SingleSheetDos, bool translateFormulas = true) {
         ValidateBof(data, familyName, expectedProduct0, expectedProduct1);
         var model = new LegacySpreadsheetModel { Quality = OfficeLegacyImportQuality.Structured };
         var sheets = new Dictionary<byte, LegacySpreadsheetSheet>();
@@ -70,6 +71,9 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                     int labelOffset = DataOffset(layout);
                     if (length < labelOffset + 1) throw new InvalidDataException("Truncated WK label cell record.");
                     byte prefix = data[payload + labelOffset];
+                    if (prefix != (byte)'^' && prefix != (byte)'"' && prefix != (byte)'\'' && prefix != (byte)'\\') {
+                        throw new InvalidDataException($"WK label cell uses unsupported alignment prefix 0x{prefix:X2}.");
+                    }
                     string value = layout == WkRecordLayout.QuattroWq2
                         ? ReadPascalAscii(data, payload + labelOffset + 1, length - labelOffset - 1)
                         : ReadRequiredNullTerminatedAscii(data, payload + labelOffset + 1, length - labelOffset - 1);
@@ -169,9 +173,9 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         AddCell(model, sheets, limits, data, payload, cached, formula, null, ref reportedUnsupportedFormat, layout: layout);
     }
 
-    private static void AddCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets, OfficeLegacyImportLimits limits, byte[] data, int payload, object? value, string? formula, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment, ref bool reportedUnsupportedFormat, bool isText = false, WkRecordLayout layout = WkRecordLayout.Dos) {
+    private static void AddCell(LegacySpreadsheetModel model, Dictionary<byte, LegacySpreadsheetSheet> sheets, OfficeLegacyImportLimits limits, byte[] data, int payload, object? value, string? formula, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment, ref bool reportedUnsupportedFormat, bool isText = false, WkRecordLayout layout = WkRecordLayout.SingleSheetDos) {
         if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
-        byte format = layout == WkRecordLayout.Dos ? data[payload] : (byte)0;
+        byte format = layout == WkRecordLayout.QuattroWq2 ? (byte)0 : data[payload];
         int column = ReadColumn(data, payload, layout) + 1;
         byte sheetId = ReadSheet(data, payload, layout);
         int row = ReadRow(data, payload, layout) + 1;
@@ -239,7 +243,11 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
 
     private static int DataOffset(WkRecordLayout layout) => layout == WkRecordLayout.QuattroWq2 ? 6 : 5;
     private static int ReadColumn(byte[] data, int payload, WkRecordLayout layout) => data[payload + (layout == WkRecordLayout.QuattroWq2 ? 0 : 1)];
-    private static byte ReadSheet(byte[] data, int payload, WkRecordLayout layout) => data[payload + (layout == WkRecordLayout.QuattroWq2 ? 1 : 2)];
+    private static byte ReadSheet(byte[] data, int payload, WkRecordLayout layout) {
+        byte sheet = data[payload + (layout == WkRecordLayout.QuattroWq2 ? 1 : 2)];
+        if (layout == WkRecordLayout.SingleSheetDos && sheet != 0) throw new InvalidDataException("The selected single-sheet WK profile contains a nonzero reserved sheet byte.");
+        return sheet;
+    }
     private static int ReadRow(byte[] data, int payload, WkRecordLayout layout) => OfficeLegacyImportBuffer.ReadUInt16(data, payload + (layout == WkRecordLayout.QuattroWq2 ? 2 : 3));
 
     private static double ReadDouble(byte[] data, int offset) {
