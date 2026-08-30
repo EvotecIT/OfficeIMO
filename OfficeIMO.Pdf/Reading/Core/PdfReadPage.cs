@@ -433,7 +433,8 @@ public sealed partial class PdfReadPage {
                     placement.RenderingIntent,
                     EffectiveOutputIntentColorTransform,
                     pageContentBudget == null ? null : pageContentBudget.TryConsumeColorFunctionEvaluations,
-                    pageContentBudget?.ColorFunctionResolutionContext));
+                    pageContentBudget?.ColorFunctionResolutionContext,
+                    inheritedHasAuthoredRenderingIntent: placement.HasAuthoredRenderingIntent));
             }
         }
 

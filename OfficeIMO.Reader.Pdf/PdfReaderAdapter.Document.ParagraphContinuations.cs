@@ -9,10 +9,12 @@ internal static partial class PdfReaderAdapter {
         SourceMetadata source,
         IReadOnlyList<PdfLogicalPage>? selectedPages,
         PdfLogicalParagraphContinuationOptions? options) {
-        HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
-        PdfLogicalParagraphContinuationGroup[] groups = document
+        PdfLogicalDocument continuationDocument = selectedPages is null
+            ? document
+            : document.WithPages(selectedPages);
+        PdfLogicalParagraphContinuationGroup[] groups = continuationDocument
             .GetParagraphContinuationGroups(options)
-            .Where(group => group.SpansPages && IsContinuationSelected(group, selectedPageNumbers))
+            .Where(static group => group.SpansPages)
             .ToArray();
         if (groups.Length == 0) return;
 
@@ -58,13 +60,4 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static bool IsContinuationSelected(
-        PdfLogicalParagraphContinuationGroup group,
-        HashSet<int>? selectedPageNumbers) {
-        if (selectedPageNumbers is null) return true;
-        for (int index = 0; index < group.Segments.Count; index++) {
-            if (!selectedPageNumbers.Contains(group.Segments[index].PageNumber)) return false;
-        }
-        return true;
-    }
 }

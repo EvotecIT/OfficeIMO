@@ -2304,6 +2304,43 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ParagraphContinuationsRespectSelectedPageOrder() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            logical,
+            sourceName: "reversed-continuation.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(2, 2),
+                    PdfPageRange.From(1, 1)
+                }
+            });
+
+        Assert.Equal(new int?[] { 2, 1 }, result.Pages.Select(page => page.Number).ToArray());
+        Assert.DoesNotContain(result.Metadata, entry => entry.Category == "pdf.paragraph.continuation");
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ParagraphContinuationsPreserveRepeatedPageOccurrences() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            logical,
+            sourceName: "repeated-continuation.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 2),
+                    PdfPageRange.From(1, 2)
+                }
+            });
+
+        Assert.Equal("2", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-count").Value);
+        Assert.Equal("4", Assert.Single(result.Metadata, entry => entry.Id == "pdf-paragraph-continuation-segment-count").Value);
+        Assert.Equal(2, result.Metadata.Count(entry => entry.Category == "pdf.paragraph.continuation" && entry.ValueType == "object"));
+    }
+
+    [Fact]
     public void DocumentReaderPdf_CanDisableParagraphContinuationProjection() {
         using var stream = new MemoryStream(BuildParagraphContinuationPdf(), writable: false);
 

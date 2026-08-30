@@ -47,6 +47,21 @@ public sealed class PdfImageInspectionContractTests {
         Assert.True(placement.PaintOrder >= 0D);
     }
 
+    [Fact]
+    public void ImageInspection_PreservesAuthoredGraphicsStateIntentWhenEffectiveIntentIsDeduplicated() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q q /RelativeColorimetric ri 10 0 0 10 30 10 cm /Im1 Do Q"),
+            StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB"));
+
+        PdfExtractedImage image = Assert.Single(PdfDocument.Open(pdf).Read.Images());
+
+        Assert.Equal(OfficeIccRenderingIntent.RelativeColorimetric, image.RenderingIntent);
+        Assert.True(image.HasAuthoredRenderingIntent);
+    }
+
     private static string StreamObject(string content, string additionalDictionary = "") {
         int length = Encoding.ASCII.GetByteCount(content);
         string suffix = string.IsNullOrWhiteSpace(additionalDictionary) ? string.Empty : " " + additionalDictionary;

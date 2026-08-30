@@ -323,15 +323,49 @@ internal static partial class ResourceResolver {
                     continue;
                 }
 
+                bool hasAuthoredImageIntent = PdfRenderingIntentResolver.TryRead(
+                    stream.Dictionary,
+                    "Intent",
+                    objects,
+                    out OfficeIccRenderingIntent authoredImageIntent);
                 bool isImageMask = PdfImageMaskNormalizer.IsImageMask(stream, objects);
                 if (isImageMask && matchingPlacements is not null) {
-                    for (int placementIndex = 0; placementIndex < matchingPlacements.Count; placementIndex++) {
-                        OfficeColor imageMaskColor = matchingPlacements[placementIndex].ImageMaskColor;
-                        if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity, imageMaskColor))) {
-                            continue;
-                        }
+                    List<PdfImagePlacement> effectivePlacements = GetDistinctImageMaskPlacements(
+                        matchingPlacements,
+                        hasAuthoredImageIntent,
+                        authoredImageIntent);
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, imageMaskColor, resources, colorizeImageMasks, limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext));
+                    for (int placementIndex = 0; placementIndex < effectivePlacements.Count; placementIndex++) {
+                        PdfImagePlacement placement = effectivePlacements[placementIndex];
+                        OfficeColor imageMaskColor = placement.ImageMaskColor;
+                        OfficeIccRenderingIntent renderingIntent = hasAuthoredImageIntent
+                            ? authoredImageIntent
+                            : placement.RenderingIntent;
+                        string imageKey = BuildImageResourceKey(
+                            pageNumber,
+                            kv.Key,
+                            objectNumber,
+                            directStreamIdentity,
+                            imageMaskColor,
+                            renderingIntent);
+                        if (!addedImageKeys.Add(imageKey)) continue;
+
+                        result.Add(BuildExtractedImage(
+                            pageNumber,
+                            kv.Key,
+                            objectNumber,
+                            directStreamIdentity,
+                            stream,
+                            objects,
+                            imageMaskColor,
+                            resources,
+                            colorizeImageMasks,
+                            limits.MaxDecodedStreamBytes,
+                            inheritedRenderingIntent: renderingIntent,
+                            outputIntentColorTransform: outputIntentColorTransform,
+                            colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
+                            functionResolutionContext: functionResolutionContext,
+                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent));
                     }
                 } else {
                     if (matchingPlacements is null) {
@@ -341,19 +375,13 @@ internal static partial class ResourceResolver {
 
                         result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext));
                     } else {
-                        bool hasAuthoredImageIntent = PdfRenderingIntentResolver.TryRead(
-                            stream.Dictionary,
-                            "Intent",
-                            objects,
-                            out OfficeIccRenderingIntent authoredImageIntent);
-                        var emittedIntents = new HashSet<OfficeIccRenderingIntent>();
-                        for (int placementIndex = 0; placementIndex < matchingPlacements.Count; placementIndex++) {
-                            OfficeIccRenderingIntent renderingIntent = hasAuthoredImageIntent
-                                ? authoredImageIntent
-                                : matchingPlacements[placementIndex].RenderingIntent;
-                            if (!emittedIntents.Add(renderingIntent)) {
-                                continue;
-                            }
+                        List<EffectiveImageIntent> effectiveIntents = GetDistinctImageIntents(
+                            matchingPlacements,
+                            hasAuthoredImageIntent,
+                            authoredImageIntent);
+
+                        for (int intentIndex = 0; intentIndex < effectiveIntents.Count; intentIndex++) {
+                            OfficeIccRenderingIntent renderingIntent = effectiveIntents[intentIndex].RenderingIntent;
                             if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity, renderingIntent))) {
                                 continue;
                             }
@@ -370,7 +398,8 @@ internal static partial class ResourceResolver {
                                 inheritedRenderingIntent: renderingIntent,
                                 outputIntentColorTransform: outputIntentColorTransform,
                                 colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
-                                functionResolutionContext: functionResolutionContext));
+                                functionResolutionContext: functionResolutionContext,
+                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent));
                         }
                     }
                 }
@@ -1077,7 +1106,8 @@ internal static partial class ResourceResolver {
         OfficeIccRenderingIntent inheritedRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<int, long, bool>? colorFunctionEvaluationBudget = null,
-        PdfColorFunctionResolutionContext? functionResolutionContext = null) {
+        PdfColorFunctionResolutionContext? functionResolutionContext = null,
+        bool inheritedHasAuthoredRenderingIntent = false) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -1196,7 +1226,7 @@ internal static partial class ResourceResolver {
             hasDecodeParameters: stream.Dictionary.Items.ContainsKey("DecodeParms") || stream.Dictionary.Items.ContainsKey("DP"),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
-            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent);
+            hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent);
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
