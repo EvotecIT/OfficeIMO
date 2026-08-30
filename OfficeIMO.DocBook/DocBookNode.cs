@@ -108,6 +108,9 @@ public sealed class DocBookNode {
     public DocBookNode AddImage(string fileReference, string? caption = null) => AddImage(fileReference, caption, null);
     /// <summary>Adds an image media object with distinct caption and alternative text.</summary>
     public DocBookNode AddImage(string fileReference, string? caption, string? alternateText) {
+        if (string.IsNullOrWhiteSpace(fileReference)) {
+            throw new ArgumentException("A nonblank image reference is required.", nameof(fileReference));
+        }
         DocBookNode media = Add(DocBookNodeKind.MediaObject);
         DocBookNode imageObject = media.Add(DocBookNodeKind.ImageObject);
         DocBookNode data = imageObject.Add(DocBookNodeKind.ImageData);

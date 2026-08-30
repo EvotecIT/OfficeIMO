@@ -300,8 +300,10 @@ public sealed partial class DocBookDocument {
                   ShouldReplaceRepresentedPrimaryChild(node) &&
                   string.Equals(GetRepresentedTypedPrimaryChildText(node), table.Title ?? string.Empty, StringComparison.Ordinal)) ||
                 node.Location?.TableIndex != tableLocation.TableIndex) continue;
-            string expectedPath = OfficeDocumentHeadingPath.Append(node.Location?.HeadingPath, table.Title, " / ");
-            if (!string.Equals(expectedPath, tableLocation.HeadingPath, StringComparison.Ordinal)) continue;
+            string? nodePath = node.Location?.HeadingPath;
+            string expectedPath = OfficeDocumentHeadingPath.Append(nodePath, table.Title, " / ");
+            if (!string.Equals(nodePath, tableLocation.HeadingPath, StringComparison.Ordinal) &&
+                !string.Equals(expectedPath, tableLocation.HeadingPath, StringComparison.Ordinal)) continue;
             consumedNodes.Add(node);
             return true;
         }

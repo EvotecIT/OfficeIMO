@@ -226,6 +226,21 @@ public sealed class DocBookDocumentTests {
         Assert.Throws<InvalidOperationException>(() => info.Text = "metadata");
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, null)]
+    [InlineData(DocBookProfile.DocBook45, "")]
+    [InlineData(DocBookProfile.DocBook45, "  ")]
+    [InlineData(DocBookProfile.DocBook52, null)]
+    [InlineData(DocBookProfile.DocBook52, "")]
+    [InlineData(DocBookProfile.DocBook52, "  ")]
+    public void AddImageRejectsBlankReferencesBeforeMutation(DocBookProfile profile, string? fileReference) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+
+        Assert.Throws<ArgumentException>(() => document.Root.AddImage(fileReference!));
+
+        Assert.Empty(document.Root.Children);
+    }
+
     [Fact]
     public void ValidationRejectsDirectTextInMetadataContainers() {
         DocBookDocument document = DocBookDocument.Parse(
@@ -1418,6 +1433,24 @@ public sealed class DocBookDocumentTests {
         Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "link");
         Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "informaltable");
         Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void SharedRoundTripMatchesTitledTablesWithAlreadyQualifiedNodePaths(DocBookProfile profile) {
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><table><title>Values</title><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody></tgroup></table></section></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><section><title>Section</title><table><title>Values</title><tgroup cols=\"1\"><tbody><row><entry>A</entry></row></tbody></tgroup></table></section></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelTable table = Assert.Single(model.Tables);
+        OfficeDocumentModelNode tableNode = FindStructureNode(model.Structure, "table");
+        tableNode.Location.HeadingPath = table.Location!.HeadingPath;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model, profile: profile);
+
+        Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "table");
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122");
     }
 
     [Fact]

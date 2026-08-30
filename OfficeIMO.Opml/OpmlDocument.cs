@@ -122,6 +122,15 @@ public sealed partial class OpmlDocument {
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
+        void ValidateElementOnlyText(XElement element, string path) {
+            foreach (XNode node in element.Nodes()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (node is not XText text || string.IsNullOrWhiteSpace(text.Value)) continue;
+                diagnostics.Add(new OpmlDiagnostic("OPML014", OpmlDiagnosticSeverity.Error,
+                    $"The {element.Name.LocalName} element cannot contain direct text.", path));
+                break;
+            }
+        }
         XElement? root = _xml.Root;
         string declaredVersion = (string?)root?.Attribute("version") ?? string.Empty;
         OpmlVersion profile = declaredVersion == "2.0" ? OpmlVersion.Opml20 : OpmlVersion.Opml10;
@@ -140,6 +149,9 @@ public sealed partial class OpmlDocument {
         XElement[] rootChildren = rootChildrenList.ToArray();
         XElement[] headElements = rootChildren.Where(element => element.Name == "head").ToArray();
         XElement[] bodyElements = rootChildren.Where(element => element.Name == "body").ToArray();
+        if (root != null) ValidateElementOnlyText(root, "/opml");
+        if (headElements.Length == 1) ValidateElementOnlyText(headElements[0], "/opml/head");
+        if (bodyElements.Length == 1) ValidateElementOnlyText(bodyElements[0], "/opml/body");
         if (headElements.Length != 1 || bodyElements.Length != 1) {
             diagnostics.Add(new OpmlDiagnostic("OPML004", OpmlDiagnosticSeverity.Error,
                 "An OPML document requires exactly one head and one body element.", "/opml"));
@@ -179,6 +191,7 @@ public sealed partial class OpmlDocument {
         foreach (OpmlOutline outline in outlines) {
             cancellationToken.ThrowIfCancellationRequested();
             string path = $"/opml/body//outline[{++index}]";
+            ValidateElementOnlyText(outline.Element, path);
             if (outline.Element.Attribute("text") == null) {
                 diagnostics.Add(new OpmlDiagnostic("OPML010", OpmlDiagnosticSeverity.Error,
                     "Every outline requires a text attribute.", path));

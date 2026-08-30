@@ -65,6 +65,18 @@ public sealed class OpmlDocumentTests {
             diagnostic.Severity == OpmlDiagnosticSeverity.Error);
     }
 
+    [Theory]
+    [InlineData("<opml version=\"2.0\">root<head/><body><outline text=\"A\"/></body></opml>", "/opml")]
+    [InlineData("<opml version=\"2.0\"><head>head</head><body><outline text=\"A\"/></body></opml>", "/opml/head")]
+    [InlineData("<opml version=\"2.0\"><head/><body>body<outline text=\"A\"/></body></opml>", "/opml/body")]
+    [InlineData("<opml version=\"2.0\"><head/><body><outline text=\"A\">outline</outline></body></opml>", "/opml/body//outline[1]")]
+    public void ValidationRejectsDirectTextInElementOnlyContainers(string source, string path) {
+        OpmlValidationResult validation = OpmlDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "OPML014" &&
+            diagnostic.Severity == OpmlDiagnosticSeverity.Error && diagnostic.Path == path);
+    }
+
     [Fact]
     public void LimitsAndDtdPolicyRejectHostileInputs() {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
