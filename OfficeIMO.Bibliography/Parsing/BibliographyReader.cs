@@ -173,7 +173,7 @@ internal static class BibliographyFormatDetector {
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
         if (start < source.Length && source[start] == '<') {
             int xml = SkipLeadingXmlTrivia(source, start, cancellationToken);
-            if (LooksLikeEndNoteRoot(source, xml, cancellationToken) || LooksLikeEndNoteRecordsContainer(source, cancellationToken)) return BibliographyFormat.EndNoteXml;
+            if (LooksLikeEndNoteRoot(source, xml, cancellationToken) || LooksLikeEndNoteRecordsContainer(source, options.MaximumNestingDepth, cancellationToken)) return BibliographyFormat.EndNoteXml;
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;
@@ -247,13 +247,14 @@ internal static class BibliographyFormatDetector {
             localLength == 7 && string.Compare(source, localStart, "records", 0, 7, StringComparison.OrdinalIgnoreCase) == 0;
     }
 
-    private static bool LooksLikeEndNoteRecordsContainer(string source, CancellationToken cancellationToken) {
+    private static bool LooksLikeEndNoteRecordsContainer(string source, int maximumNestingDepth, CancellationToken cancellationToken) {
         try {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreComments = true, IgnoreProcessingInstructions = true };
             using var textReader = new StringReader(source);
             using XmlReader reader = XmlReader.Create(textReader, settings);
             while (reader.Read()) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (reader.Depth > maximumNestingDepth) throw new InvalidDataException($"Bibliography input exceeds the configured nesting depth of {maximumNestingDepth}.");
                 if (reader.NodeType != XmlNodeType.Element) continue;
                 int rootDepth = reader.Depth;
                 string rootNamespace = reader.NamespaceURI;
@@ -261,6 +262,7 @@ internal static class BibliographyFormatDetector {
                 if (reader.IsEmptyElement) return false;
                 while (reader.Read()) {
                     cancellationToken.ThrowIfCancellationRequested();
+                    if (reader.Depth > maximumNestingDepth) throw new InvalidDataException($"Bibliography input exceeds the configured nesting depth of {maximumNestingDepth}.");
                     if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == rootDepth) return false;
                     if (reader.NodeType == XmlNodeType.Element && reader.Depth == rootDepth + 1 && string.Equals(reader.LocalName, "records", StringComparison.OrdinalIgnoreCase) && string.Equals(reader.NamespaceURI, rootNamespace, StringComparison.Ordinal)) return true;
                 }

@@ -358,10 +358,13 @@ internal static class EndNoteXmlCodec {
         else report.Add("BIBCONV131", BibliographyDiagnosticSeverity.Warning, $"EndNote XML attributes on '{elementName}' are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, field: elementName);
     }
     internal static bool CoalescesRecordsContainerMetadata(BibliographyDocument document, CancellationToken cancellationToken) {
+        return HasDuplicateDocumentAttributes(document, "records", cancellationToken);
+    }
+    internal static bool HasDuplicateDocumentAttributes(BibliographyDocument document, string elementName, CancellationToken cancellationToken) {
         int count = 0;
         foreach (BibliographyNativeEntry entry in document.NativeEntries) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (IsAttributesEntry(entry, "records") && ++count > 1) return true;
+            if (IsAttributesEntry(entry, elementName) && ++count > 1) return true;
         }
         return false;
     }

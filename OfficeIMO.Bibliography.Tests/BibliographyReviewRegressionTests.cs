@@ -212,7 +212,7 @@ public sealed class BibliographyReviewRegressionTests {
     }
 
     [Fact]
-    public void Edited_structured_CSL_native_JSON_remains_structured_when_valid() {
+    public void Edited_structured_CSL_native_JSON_preserves_exact_formatting_when_valid() {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"custom\":{\"old\":true}}]", BibliographyFormat.CslJson).Document;
         Assert.Single(document.Items[0].NativeFields).Value = "{\"edited\":true}";
 
@@ -220,7 +220,8 @@ public sealed class BibliographyReviewRegressionTests {
         BibliographyNativeField reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].NativeFields);
 
         Assert.StartsWith("{", reopened.RawValue, StringComparison.Ordinal);
-        Assert.Contains("\"edited\": true", reopened.RawValue, StringComparison.Ordinal);
+        Assert.Equal("{\"edited\":true}", reopened.RawValue);
+        Assert.Equal("{\"edited\":true}", reopened.Value);
         Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126");
     }
 

@@ -115,7 +115,8 @@ internal static class BibliographyConversionInspector {
                 exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
-                exact = (item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent || item.Type == BibliographyItemType.Document) &&
+                exact = EndNoteXmlCodec.CanPreserveNativeType(sourceFormat, item) ||
+                    (item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent || item.Type == BibliographyItemType.Document) &&
                     (sourceFormat != BibliographyFormat.EndNoteXml || string.IsNullOrWhiteSpace(item.NativeType) || EndNoteXmlCodec.CanPreserveNativeType(sourceFormat, item));
                 break;
             default: exact = false; break;
@@ -203,11 +204,17 @@ internal static class BibliographyConversionInspector {
     private static bool HasLeadingWhitespace(string? value) => !string.IsNullOrEmpty(value) && char.IsWhiteSpace(value![0]);
     private static bool HasEmptyNameComponent(BibliographyName name) =>
         name.Given == null && name.Family == null && name.Literal == null && name.Suffix == null && name.DroppingParticle == null && name.NonDroppingParticle == null ||
+        name.Literal == null && name.Family == null ||
         name.Given is { Length: 0 } || name.Family is { Length: 0 } || name.Literal is { Length: 0 } || name.Suffix is { Length: 0 } ||
         name.DroppingParticle is { Length: 0 } || name.NonDroppingParticle is { Length: 0 };
 
     private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
-        if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
+        if (format != BibliographyFormat.EndNoteXml) return;
+        string rootElementName = document.EndNoteRootElementName ?? (document.EndNoteRecordsRoot ? "records" : "xml");
+        string recordsElementName = document.EndNoteRecordsElementName ?? "records";
+        if (EndNoteXmlCodec.HasDuplicateDocumentAttributes(document, rootElementName, cancellationToken))
+            report.Add("BIBCONV248", BibliographyDiagnosticSeverity.Warning, $"Additional EndNote XML attribute metadata for '{rootElementName}' is omitted by canonical output.", BibliographyConversionAction.Omitted, field: rootElementName);
+        if (!string.Equals(recordsElementName, rootElementName, StringComparison.OrdinalIgnoreCase) && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
             report.Add("BIBCONV238", BibliographyDiagnosticSeverity.Warning, "Separate EndNote XML records-container metadata is coalesced into one canonical records container.", BibliographyConversionAction.Approximated, field: "records");
     }
 
@@ -265,7 +272,7 @@ internal static class BibliographyConversionInspector {
     private static bool IsValidDate(int? year, int? month, int? day) {
         if (!year.HasValue) return !month.HasValue && !day.HasValue;
         if (month.HasValue && (month.Value < 1 || month.Value > 12)) return false;
-        if (day.HasValue && (!month.HasValue || day.Value < 1 || day.Value > DateTime.DaysInMonth(Math.Max(1, Math.Min(9999, year.Value)), month.Value))) return false;
+        if (day.HasValue && (!month.HasValue || day.Value < 1 || day.Value > 31)) return false;
         return year.Value >= 1 && year.Value <= 9999;
     }
 

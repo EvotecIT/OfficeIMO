@@ -420,7 +420,7 @@ internal static class CslJsonCodec {
     }
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw) {
-        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
+        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); writer.WriteRawValue(raw, skipInputValidation: true); return true; } catch (JsonException) { return false; }
     }
 
     private static bool WouldBindTypedItemProperty(BibliographyNativeField field) {
@@ -776,7 +776,7 @@ internal static class CslJsonCodec {
         try {
             using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
             if (parsed.RootElement.ValueKind == JsonValueKind.String || parsed.RootElement.ValueKind == JsonValueKind.Null || parsed.RootElement.ValueKind == JsonValueKind.Undefined) return false;
-            parsed.RootElement.WriteTo(writer);
+            writer.WriteRawValue(value, skipInputValidation: true);
             return true;
         } catch (JsonException) {
             return false;

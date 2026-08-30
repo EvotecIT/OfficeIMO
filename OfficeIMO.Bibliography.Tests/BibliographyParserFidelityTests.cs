@@ -474,7 +474,7 @@ public sealed class BibliographyParserFidelityTests {
     [InlineData(BibliographyFormat.Nbib, "suffix")]
     [InlineData(BibliographyFormat.EndNoteXml, "given")]
     [InlineData(BibliographyFormat.EndNoteXml, "suffix")]
-    public void Tagged_name_output_preserves_empty_structured_positions(BibliographyFormat format, string component) {
+    public void Tagged_name_output_diagnoses_missing_family_positions(BibliographyFormat format, string component) {
         var document = new BibliographyDocument(format);
         var item = new BibliographyItem { Key = format == BibliographyFormat.Nbib ? "1" : "x", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
         var name = new BibliographyName();
@@ -484,12 +484,10 @@ public sealed class BibliographyParserFidelityTests {
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyName reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors).Name;
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
 
-        Assert.Equal(name.Given ?? string.Empty, reopened.Given ?? string.Empty);
-        Assert.Equal(name.Family ?? string.Empty, reopened.Family ?? string.Empty);
-        Assert.Equal(name.Suffix ?? string.Empty, reopened.Suffix ?? string.Empty);
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
     }
 
     [Fact]
