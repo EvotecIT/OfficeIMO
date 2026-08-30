@@ -8,6 +8,7 @@ internal static class BibCodec {
     private static readonly HashSet<string> ReservedTypedFieldNames = new HashSet<string>(new[] {
         "title", "author", "editor", "translator", "journal", "journaltitle", "booktitle", "series", "publisher", "institution", "organization", "address", "location", "edition", "volume", "number", "issue", "pages", "eid", "abstract", "language", "langid", "url", "date", "year", "month", "urldate", "keywords", "note"
     }, StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> TypedIdentifierFieldNames = new HashSet<string>(new[] { "doi", "isbn", "issn", "pmid", "pmcid" }, StringComparer.OrdinalIgnoreCase);
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyFormat format, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, IList<BibliographyNativeEntry> nativeEntries, CancellationToken cancellationToken) {
         var parser = new Parser(source, format, options, diagnostics, nativeEntries, cancellationToken);
@@ -30,7 +31,7 @@ internal static class BibCodec {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
             string type = CanPreserveNativeType(document.SourceFormat, format, item) ? item.NativeType! : OutputType(item.Type, format);
-            builder.Append('@').Append(type.ToLowerInvariant()).Append('{').Append(SafeKey(outputKeys[itemIndex])).Append(',').Append(options.LineEnding);
+            builder.Append('@').Append(type).Append('{').Append(SafeKey(outputKeys[itemIndex])).Append(',').Append(options.LineEnding);
             var fields = new List<KeyValuePair<string, string>>();
             Add(fields, "title", item.Title);
             AddNames(fields, "author", item, BibliographyContributorRole.Author);
@@ -71,8 +72,9 @@ internal static class BibCodec {
 
             var emitted = new HashSet<string>(fields.Select(static pair => pair.Key), StringComparer.OrdinalIgnoreCase);
             foreach (BibliographyNativeField field in item.NativeFields) {
-                bool typedDuplicate = IsBibFamily(field.Format) && ReservedTypedFieldNames.Contains(field.Name);
-                if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && (!emitted.Contains(field.Name) || typedDuplicate)) {
+                bool typedDuplicate = IsBibFamily(field.Format) && (ReservedTypedFieldNames.Contains(field.Name) || TypedIdentifierFieldNames.Contains(field.Name));
+                bool canRemainNative = !typedDuplicate || CanRemainNativeBibField(field, emitted);
+                if (IsBibFamily(field.Format) && IsSafeFieldName(field.Name) && IsFieldAllowedInTarget(field.Name, format) && canRemainNative) {
                     fields.Add(new KeyValuePair<string, string>(field.Name.ToLowerInvariant(), field.Value));
                     emitted.Add(field.Name);
                     report.Add("BIBCONV011", BibliographyDiagnosticSeverity.Information, $"Preserved native field '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
@@ -98,6 +100,28 @@ internal static class BibCodec {
     private static void Add(ICollection<KeyValuePair<string, string>> fields, string name, string? value) {
         if (value != null) fields.Add(new KeyValuePair<string, string>(name, value));
     }
+
+    private static bool CanRemainNativeBibField(BibliographyNativeField field, ISet<string> emitted) {
+        string name = field.Name.ToLowerInvariant();
+        switch (name) {
+            case "title": case "series": case "edition": case "volume": case "abstract": case "url": return emitted.Contains(name);
+            case "journal": case "journaltitle": case "booktitle": return ContainsAny(emitted, "journal", "journaltitle", "booktitle");
+            case "publisher": case "institution": case "organization": return ContainsAny(emitted, "publisher", "institution", "organization");
+            case "address": case "location": return ContainsAny(emitted, "address", "location");
+            case "number": case "issue": return ContainsAny(emitted, "number", "issue");
+            case "pages": case "eid": return ContainsAny(emitted, "pages", "eid");
+            case "language": case "langid": return ContainsAny(emitted, "language", "langid");
+            case "date": case "year": return ContainsAny(emitted, "date", "year");
+            case "month": return ContainsAny(emitted, "date", "month") || !CodecMappings.ParseMonth(field.Value).HasValue;
+            case "urldate": return false;
+            case "author": case "editor": case "translator":
+            case "doi": case "isbn": case "issn": case "pmid": case "pmcid": return string.IsNullOrWhiteSpace(field.Value);
+            case "keywords": case "note": return false;
+            default: return false;
+        }
+    }
+
+    private static bool ContainsAny(ISet<string> values, params string[] candidates) => candidates.Any(values.Contains);
 
     private static string? FormatClassicMonth(BibliographyItem item, int? month) {
         if (!month.HasValue) return null;

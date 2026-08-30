@@ -59,7 +59,8 @@ internal static class CslJsonCodec {
                 HashSet<string> emitted = GetEmittedProperties(item, cancellationToken);
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) {
+                    bool changesOwner = field.Format == BibliographyFormat.CslJson && WouldBindTypedItemProperty(field);
+                    if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name) && !changesOwner) {
                         writer.WritePropertyName(field.Name);
                         bool exact = WriteNativeValue(writer, field, cancellationToken);
                         emitted.Add(field.Name);
@@ -336,7 +337,7 @@ internal static class CslJsonCodec {
         if (date.Literal != null) { writer.WriteString("literal", date.Literal); emitted.Add("literal"); }
         foreach (BibliographyNativeField field in date.NativeFields) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field, cancellationToken); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name) && !WouldBindTypedDateProperty(field)) { writer.WritePropertyName(field.Name); bool exact = WriteNativeValue(writer, field, cancellationToken); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
             else report.Add("BIBCONV125", BibliographyDiagnosticSeverity.Warning, $"Native date property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
         }
         writer.WriteEndObject();
@@ -414,6 +415,77 @@ internal static class CslJsonCodec {
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw) {
         try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); value.RootElement.WriteTo(writer); return true; } catch (JsonException) { return false; }
+    }
+
+    private static bool WouldBindTypedItemProperty(BibliographyNativeField field) {
+        using JsonDocument? output = GetNativeOutputJson(field);
+        JsonValueKind kind = output?.RootElement.ValueKind ?? JsonValueKind.String;
+        if (IsTypedScalarProperty(field.Name)) return kind == JsonValueKind.String;
+        if (IsTypedNameProperty(field.Name)) return kind == JsonValueKind.Array && CanParseNames(output!.RootElement);
+        if (IsTypedDateProperty(field.Name)) return kind == JsonValueKind.Object;
+        return false;
+    }
+
+    private static bool WouldBindTypedDateProperty(BibliographyNativeField field) {
+        using JsonDocument? output = GetNativeOutputJson(field);
+        JsonValueKind kind = output?.RootElement.ValueKind ?? JsonValueKind.String;
+        if (string.Equals(field.Name, "literal", StringComparison.Ordinal)) return kind == JsonValueKind.String;
+        return string.Equals(field.Name, "date-parts", StringComparison.Ordinal) && kind == JsonValueKind.Array && CanParseDateParts(output!.RootElement);
+    }
+
+    private static JsonDocument? GetNativeOutputJson(BibliographyNativeField field) {
+        string? raw = field.UnmodifiedRawValue;
+        if (raw != null) return TryParseNativeJson(raw);
+        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue);
+        if (originalKind.HasValue && originalKind != JsonValueKind.String && originalKind != JsonValueKind.Null && originalKind != JsonValueKind.Undefined) {
+            JsonDocument? edited = TryParseNativeJson(field.Value);
+            if (edited != null && edited.RootElement.ValueKind != JsonValueKind.String && edited.RootElement.ValueKind != JsonValueKind.Null && edited.RootElement.ValueKind != JsonValueKind.Undefined) return edited;
+            edited?.Dispose();
+        }
+        return null;
+    }
+
+    private static JsonDocument? TryParseNativeJson(string raw) {
+        try { return JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); }
+        catch (JsonException) { return null; }
+    }
+
+    private static bool CanParseNames(JsonElement value) {
+        foreach (JsonElement element in value.EnumerateArray()) {
+            if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
+            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
+        }
+        return true;
+    }
+
+    private static bool CanParseDateParts(JsonElement parts) {
+        JsonElement[] ranges = parts.EnumerateArray().ToArray();
+        if (ranges.Length < 1 || ranges.Length > 2 || !TryReadDatePart(ranges[0], out _, out _, out _)) return false;
+        return ranges.Length != 2 || TryReadDatePart(ranges[1], out _, out _, out _);
+    }
+
+    private static bool IsTypedScalarProperty(string name) {
+        switch (name) {
+            case "id": case "type": case "title": case "container-title": case "collection-title":
+            case "publisher": case "publisher-place": case "edition": case "volume": case "issue": case "page":
+            case "abstract": case "language": case "URL": case "DOI": case "ISBN": case "ISSN": case "PMID": case "PMCID":
+            case "keyword": case "note": return true;
+            default: return false;
+        }
+    }
+
+    private static bool IsTypedNameProperty(string name) {
+        switch (name) {
+            case "author": case "editor": case "translator": case "recipient": case "interviewer": case "composer": case "collection-editor": return true;
+            default: return false;
+        }
+    }
+
+    private static bool IsTypedDateProperty(string name) {
+        switch (name) {
+            case "issued": case "accessed": case "submitted": case "original-date": case "event-date": return true;
+            default: return false;
+        }
     }
 
     private static JsonDocument ParseDocument(string source, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {

@@ -23,7 +23,7 @@ internal static class TaggedCodec {
             }
             WriteDateTags(builder, item, options.LineEnding, "PY", "Y2");
             WriteTag(builder, "PB", item.Publisher, options.LineEnding); WriteTag(builder, "CY", item.PublisherPlace, options.LineEnding); WriteTag(builder, "ET", item.Edition, options.LineEnding);
-            WriteTag(builder, "VL", item.Volume, options.LineEnding); WriteTag(builder, "IS", item.Issue, options.LineEnding); WritePages(builder, item.Pages, options.LineEnding);
+            WriteTag(builder, "VL", item.Volume, options.LineEnding); WriteTag(builder, "IS", item.Issue, options.LineEnding); WriteRisPages(builder, item, options.LineEnding);
             WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "abstract", "AB"), item.Abstract, options.LineEnding); WriteTag(builder, "LA", item.Language, options.LineEnding); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Ris, "url", "UR"), item.Url, options.LineEnding);
             foreach (BibliographyIdentifier identifier in item.Identifiers) WriteRisIdentifier(builder, identifier, options.LineEnding);
             foreach (string keyword in item.Keywords) WriteTag(builder, "KW", keyword, options.LineEnding);
@@ -420,7 +420,29 @@ internal static class TaggedCodec {
 
     private static string NormalizeCompactName(string value) => new string(value.Where(char.IsLetterOrDigit).ToArray());
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
-    private static void WritePages(StringBuilder builder, string? pages, string lineEnding) { if (pages == null) return; string[] parts = pages.Split(new[] { '-' }, 2); WriteTag(builder, "SP", parts[0], lineEnding); if (parts.Length > 1) WriteTag(builder, "EP", parts[1], lineEnding); }
+    private static void WriteRisPages(StringBuilder builder, BibliographyItem item, string lineEnding) {
+        GetRisPageOutput(item, out bool writeStart, out string? start, out bool writeEnd, out string? end);
+        if (writeStart) WriteTag(builder, "SP", start, lineEnding);
+        if (writeEnd) WriteTag(builder, "EP", end, lineEnding);
+    }
+
+    private static void GetRisPageOutput(BibliographyItem item, out bool writeStart, out string? start, out bool writeEnd, out string? end) {
+        bool sourceHasStart = item.TaggedScalarBindings.Contains("Ris:pages-start");
+        bool sourceHasEnd = item.TaggedScalarBindings.Contains("Ris:pages-end");
+        string? sourcePages = sourceHasStart && sourceHasEnd ? item.RisPageStart + "-" + item.RisPageEnd : sourceHasStart ? item.RisPageStart : sourceHasEnd ? item.RisPageEnd : null;
+        if ((sourceHasStart || sourceHasEnd) && string.Equals(item.Pages, sourcePages, StringComparison.Ordinal)) {
+            writeStart = sourceHasStart; start = item.RisPageStart;
+            writeEnd = sourceHasEnd; end = item.RisPageEnd;
+            return;
+        }
+        if (item.Pages == null) {
+            writeStart = false; start = null; writeEnd = false; end = null;
+            return;
+        }
+        string[] parts = item.Pages.Split(new[] { '-' }, 2);
+        writeStart = true; start = parts[0];
+        writeEnd = parts.Length > 1; end = writeEnd ? parts[1] : null;
+    }
     private static void WriteDateTags(StringBuilder builder, BibliographyItem item, string lineEnding, string issuedTag, string accessedTag) {
         bool wroteIssued = false;
         bool wroteAccessed = false;
@@ -529,10 +551,58 @@ internal static class TaggedCodec {
         foreach (BibliographyNativeField field in item.NativeFields) {
             if (format == BibliographyFormat.Nbib && field.Format == format && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) continue;
             bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
-            if (field.Format == format && IsTag(field.Name) && !unsafeBoundary) { WriteTag(builder, field.Name.ToUpperInvariant(), field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
+            if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name.ToUpperInvariant(), field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
             else if (field.Format != format) report.Add("BIBCONV113", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in {format}.", BibliographyConversionAction.Omitted, item, field.Name);
             else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Native {format} field '{field.Name}' conflicts with a typed tag or has an unsafe name.", BibliographyConversionAction.Omitted, item, field.Name);
         }
+    }
+
+    private static bool CanRemainNativeTaggedField(BibliographyItem item, BibliographyNativeField field, BibliographyFormat format) {
+        string tag = field.Name.ToUpperInvariant();
+        if (format == BibliographyFormat.Ris) {
+            switch (tag) {
+                case "ID": return true;
+                case "TI": case "T1": return item.Title != null;
+                case "T2": case "JF": case "JO": case "JA": return item.ContainerTitle != null;
+                case "PB": return item.Publisher != null;
+                case "CY": return item.PublisherPlace != null;
+                case "ET": return item.Edition != null;
+                case "VL": return item.Volume != null;
+                case "IS": return item.Issue != null;
+                case "AB": case "N2": return item.Abstract != null;
+                case "LA": return item.Language != null;
+                case "UR": case "L1": return item.Url != null;
+                case "SP": case "EP":
+                    GetRisPageOutput(item, out bool writeStart, out _, out bool writeEnd, out _);
+                    return tag == "SP" ? writeStart : writeEnd;
+                case "AU": case "A1": case "ED": case "A2":
+                case "PY": case "Y1": case "DA": case "Y2":
+                case "DO": case "SN": case "AN": case "KW": case "N1":
+                case "TY": case "ER": return false;
+                default: return true;
+            }
+        }
+        switch (tag) {
+            case "TI": return item.Title != null;
+            case "JT": case "TA": return item.ContainerTitle != null;
+            case "VI": return item.Volume != null;
+            case "IP": return item.Issue != null;
+            case "PG": return item.Pages != null;
+            case "AB": return item.Abstract != null;
+            case "LA": return item.Language != null;
+            case "LID": case "AID": return !WouldBindNbibIdentifier(field.Value);
+            case "MH": return true;
+            case "PMID": case "PT": case "FAU": case "AU": case "CN": case "DP": case "IS": case "OT": case "GN": return false;
+            default: return true;
+        }
+    }
+
+    private static bool WouldBindNbibIdentifier(string value) {
+        int marker = value.LastIndexOf(" [", StringComparison.Ordinal);
+        if (marker <= 0 || !value.EndsWith("]", StringComparison.Ordinal)) return false;
+        string scheme = value.Substring(marker + 2, value.Length - marker - 3).Trim();
+        string identifierValue = value.Substring(0, marker).Trim();
+        return !string.IsNullOrWhiteSpace(scheme) && !string.IsNullOrWhiteSpace(identifierValue);
     }
     private static bool IsTag(string name) => name.Length >= 2 && name.Length <= 5 && name.All(character => char.IsLetterOrDigit(character));
     private static bool IsRisType(string? value) => !string.IsNullOrWhiteSpace(value) && value!.Length >= 2 && value.Length <= 6 && value.All(char.IsLetterOrDigit);
