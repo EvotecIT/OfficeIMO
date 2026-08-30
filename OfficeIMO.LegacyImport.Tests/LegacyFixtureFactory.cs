@@ -137,6 +137,19 @@ internal static class LegacyFixtureFactory {
         return stream.ToArray();
     }
 
+    internal static byte[] WkFixedCellWithTrailingByte(ushort recordType) {
+        using var stream = new MemoryStream();
+        using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
+        Record(writer, 0x0000, new byte[] { 0x06, 0x04 });
+        byte[] value = recordType == 0x000D ? BitConverter.GetBytes((short)1)
+            : recordType == 0x000E ? BitConverter.GetBytes(1d)
+            : Array.Empty<byte>();
+        Record(writer, recordType, CellPayload(0, 0, value.Concat(new byte[] { 0x7F }).ToArray()));
+        Record(writer, 0x0001, Array.Empty<byte>());
+        writer.Flush();
+        return stream.ToArray();
+    }
+
     internal static byte[] WkWithWideColumnName() {
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.ASCII, leaveOpen: true);
@@ -208,16 +221,20 @@ internal static class LegacyFixtureFactory {
 
     internal static byte[] CompoundSheet() => CompoundLike("Name\tValue\nA\t10");
 
+    internal static byte[] CompoundWithLargeDirectory() => CompoundLike("Lotus Word Pro recovered text", directorySectorCount: 17);
+
     internal static byte[] TruncatedCompoundHeader() =>
         new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }
             .Concat(Encoding.ASCII.GetBytes("Recoverable text")).ToArray();
 
-    private static byte[] CompoundLike(string text) {
+    private static byte[] CompoundLike(string text, int directorySectorCount = 1) {
         const int sectorSize = 4096;
         const uint freeSect = 0xffffffff;
         const uint endOfChain = 0xfffffffe;
         const uint fatSect = 0xfffffffd;
-        byte[] compound = new byte[sectorSize * 3];
+        if (directorySectorCount < 1) throw new ArgumentOutOfRangeException(nameof(directorySectorCount));
+        int fatSectorIndex = directorySectorCount;
+        byte[] compound = new byte[sectorSize * (directorySectorCount + 2)];
         new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }.CopyTo(compound, 0);
         WriteUInt16(compound, 24, 0x003e);
         WriteUInt16(compound, 26, 0x0004);
@@ -230,7 +247,7 @@ internal static class LegacyFixtureFactory {
         WriteUInt32(compound, 56, 4096);
         WriteUInt32(compound, 60, endOfChain);
         WriteUInt32(compound, 68, endOfChain);
-        for (int index = 0; index < 109; index++) WriteUInt32(compound, 76 + index * 4, index == 0 ? 1U : freeSect);
+        for (int index = 0; index < 109; index++) WriteUInt32(compound, 76 + index * 4, index == 0 ? checked((uint)fatSectorIndex) : freeSect);
 
         int directoryOffset = sectorSize;
         byte[] rootName = Encoding.Unicode.GetBytes("Root Entry\0");
@@ -244,10 +261,13 @@ internal static class LegacyFixtureFactory {
         WriteUInt32(compound, directoryOffset + 116, endOfChain);
         Encoding.ASCII.GetBytes(text).CopyTo(compound, directoryOffset + 256);
 
-        int fatOffset = sectorSize * 2;
-        WriteUInt32(compound, fatOffset, endOfChain);
-        WriteUInt32(compound, fatOffset + 4, fatSect);
-        for (int index = 2; index < sectorSize / 4; index++) WriteUInt32(compound, fatOffset + index * 4, freeSect);
+        int fatOffset = sectorSize * (fatSectorIndex + 1);
+        for (int index = 0; index < directorySectorCount; index++) {
+            WriteUInt32(compound, fatOffset + index * 4,
+                index == directorySectorCount - 1 ? endOfChain : checked((uint)(index + 1)));
+        }
+        WriteUInt32(compound, fatOffset + fatSectorIndex * 4, fatSect);
+        for (int index = fatSectorIndex + 1; index < sectorSize / 4; index++) WriteUInt32(compound, fatOffset + index * 4, freeSect);
         return compound;
     }
 

@@ -6,7 +6,7 @@ internal sealed class MicrosoftWriteAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.MicrosoftWrite;
     public override string ProfileId => "microsoft-write-wri-salvage";
 
-    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         bool sharedHeader = data.Length > 96 && (data[0] == 0x31 || data[0] == 0x32) && data[1] == 0xBE && data[5] == 0xAB;
         if (sharedHeader && data[96] != 0) {

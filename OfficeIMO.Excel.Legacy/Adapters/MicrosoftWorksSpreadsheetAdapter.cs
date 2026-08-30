@@ -3,14 +3,14 @@ namespace OfficeIMO.Excel.Legacy;
 internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.MicrosoftWorks;
     public override string ProfileId => "microsoft-works-spreadsheet-selected";
-    public override string GetProfileId(byte[] data, System.Threading.CancellationToken cancellationToken) {
+    public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)
-            ? "microsoft-works-wks-dos-records" : OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)
+            ? "microsoft-works-wks-dos-records" : OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)
                 ? "microsoft-works-xlr-compound-salvage" : "microsoft-works-spreadsheet-binary-salvage";
     }
 
-    public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x04, 0x04)) {
             reason = ExtensionIs(sourceName, ".wks")
@@ -26,7 +26,7 @@ internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdap
             reason = "Ambiguous three-byte Works-family prefix without corroborating source evidence.";
             return 45;
         }
-        if (ExtensionIs(sourceName, ".xlr") && OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)) {
+        if (ExtensionIs(sourceName, ".xlr") && OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)) {
             reason = "OLE compound workbook with Microsoft Works spreadsheet extension.";
             return 95;
         }

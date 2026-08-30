@@ -183,11 +183,14 @@ internal sealed class AmiProSamParser {
             paragraph.StyleName = bodyStyle.Name;
             ApplyStyle(bodyStyle, state, paragraph);
         }
+        int nextAngleClose = source.IndexOf('>');
+        int nextStyleClose = source.IndexOf('@');
         for (int index = 0; index < source.Length;) {
             char value = source[index];
             if (value == '<') {
                 if (index + 1 < source.Length && source[index + 1] == '<') { Append(text, '<'); index += 2; continue; }
-                int end = source.IndexOf('>', index + 1);
+                while (nextAngleClose >= 0 && nextAngleClose <= index) nextAngleClose = source.IndexOf('>', nextAngleClose + 1);
+                int end = nextAngleClose;
                 if (end < 0) { Append(text, '<'); index++; continue; }
                 FlushRun(runs, text, state);
                 HandleTag(source.Substring(index + 1, end - index - 1), state, paragraph, text);
@@ -196,7 +199,8 @@ internal sealed class AmiProSamParser {
             }
             if (value == '@') {
                 if (index + 1 < source.Length && source[index + 1] == '@') { Append(text, '@'); index += 2; continue; }
-                int end = source.IndexOf('@', index + 1);
+                while (nextStyleClose >= 0 && nextStyleClose <= index) nextStyleClose = source.IndexOf('@', nextStyleClose + 1);
+                int end = nextStyleClose;
                 if (end > index + 1) {
                     FlushRun(runs, text, state);
                     string styleName = source.Substring(index + 1, end - index - 1);

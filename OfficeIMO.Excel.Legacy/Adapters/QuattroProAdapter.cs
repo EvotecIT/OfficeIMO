@@ -3,14 +3,14 @@ namespace OfficeIMO.Excel.Legacy;
 internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.QuattroPro;
     public override string ProfileId => "quattro-pro-selected";
-    public override string GetProfileId(byte[] data, System.Threading.CancellationToken cancellationToken) {
+    public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)
             ? "quattro-pro-wq1-records" : OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)
                 ? "quattro-pro-wq2-records" : "quattro-pro-wb-qpw-salvage";
     }
 
-    public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         bool wq = OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51) ||
                   OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51);
@@ -21,7 +21,7 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
             reason = "Quattro Pro WQ/WB BOF payload signature.";
             return 100;
         }
-        if (ExtensionIs(sourceName, ".qpw") && OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)) {
+        if (ExtensionIs(sourceName, ".qpw") && OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)) {
             reason = "Validated compound workbook with Quattro Pro extension.";
             return 95;
         }

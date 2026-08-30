@@ -112,6 +112,13 @@ public sealed class ReaderHandlerRegistration {
         new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    /// Optional absolute handler ceiling. Unlike <see cref="DefaultMaxInputBytes"/>, callers cannot
+    /// raise this value through <see cref="ReaderOptions.MaxInputBytes"/>; Core combines both by
+    /// taking the minimum before it creates a stream snapshot.
+    /// </summary>
+    public long? MaxInputBytesCeiling { get; set; }
+
+    /// <summary>
     /// Optional number of leading bytes required by <see cref="ResolveMaxInputBytesFromPrefix"/>.
     /// Core reads this bounded prefix before completing a stream snapshot so a shared extension can
     /// select a stricter limit from content without lowering the normal format's advertised ceiling.

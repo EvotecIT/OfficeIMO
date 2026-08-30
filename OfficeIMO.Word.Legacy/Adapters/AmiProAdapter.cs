@@ -8,12 +8,12 @@ namespace OfficeIMO.Word.Legacy;
 internal sealed class AmiProAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.AmiPro;
     public override string ProfileId => "ami-pro-sam-v4";
-    public override string GetProfileId(byte[] data, CancellationToken cancellationToken) {
+    public override string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return TryGetVersion(data, out int version) && version == 4 ? ProfileId : "ami-pro-sam-unsupported-salvage";
     }
 
-    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         if (TryGetVersion(data, out int version) && version == 4) {
             reason = "Ami Pro SAM version 4 header.";

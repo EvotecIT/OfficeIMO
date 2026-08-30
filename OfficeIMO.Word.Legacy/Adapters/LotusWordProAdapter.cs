@@ -6,9 +6,9 @@ internal sealed class LotusWordProAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.LotusWordPro;
     public override string ProfileId => "lotus-word-pro-lwp-salvage";
 
-    public override int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (ExtensionIs(sourceName, ".lwp") && OfficeLegacyCompoundInspector.IsValidCompound(data, cancellationToken)) {
+        if (ExtensionIs(sourceName, ".lwp") && OfficeLegacyCompoundInspector.IsValidCompound(data, limits, cancellationToken)) {
             reason = "OLE compound document with Lotus Word Pro extension.";
             return 90;
         }

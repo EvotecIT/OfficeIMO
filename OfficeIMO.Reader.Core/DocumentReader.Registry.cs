@@ -47,14 +47,27 @@ internal static partial class DocumentReaderEngine {
 
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return options.MaxInputBytes ?? ResolveHandlerDefaultMaxInputBytes(sourceName);
+        long? configured = options.MaxInputBytes ?? ResolveHandlerDefaultMaxInputBytes(sourceName);
+        return CombineHandlerInputCeiling(sourceName, configured, requireStreamInput: false);
     }
 
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
-        if (options.MaxInputBytes.HasValue) return options.MaxInputBytes;
+        long? configured;
+        if (options.MaxInputBytes.HasValue) configured = options.MaxInputBytes;
+        else if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
+            handler.SupportsStreamInput) configured = handler.ResolveDefaultMaxInputBytes(sourceName);
+        else configured = streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
+        return CombineHandlerInputCeiling(sourceName, configured, requireStreamInput: true);
+    }
+
+    private static long? CombineHandlerInputCeiling(string? sourceName, long? configured, bool requireStreamInput) {
         if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
-            handler.SupportsStreamInput) return handler.ResolveDefaultMaxInputBytes(sourceName);
-        return streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
+            (!requireStreamInput || handler.SupportsStreamInput) && handler.MaxInputBytesCeiling.HasValue) {
+            return configured.HasValue
+                ? Math.Min(configured.Value, handler.MaxInputBytesCeiling.Value)
+                : handler.MaxInputBytesCeiling;
+        }
+        return configured;
     }
 
     internal static ReaderInputLimitProbe? ResolveStreamInputLimitProbe(string? sourceName) {

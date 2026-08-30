@@ -9,11 +9,11 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
     protected const int ExcelCellTextLimit = 32_767;
     public abstract LegacySpreadsheetFormat Format { get; }
     public abstract string ProfileId { get; }
-    public virtual string GetProfileId(byte[] data, CancellationToken cancellationToken) {
+    public virtual string GetProfileId(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         return ProfileId;
     }
-    public abstract int Probe(byte[] data, string? sourceName, CancellationToken cancellationToken, out string reason);
+    public abstract int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, CancellationToken cancellationToken, out string reason);
     public abstract LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 
     protected static bool ExtensionIs(string? sourceName, params string[] extensions) {

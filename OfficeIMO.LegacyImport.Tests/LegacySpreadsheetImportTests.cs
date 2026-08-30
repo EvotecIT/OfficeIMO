@@ -257,6 +257,16 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
     }
 
+    [Theory]
+    [InlineData(0x000C)]
+    [InlineData(0x000D)]
+    [InlineData(0x000E)]
+    public void StructuredWkFixedWidthCellsRejectTrailingPayload(int recordType) {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkFixedCellWithTrailingByte((ushort)recordType),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true }));
+    }
+
     [Fact]
     public void WkParserRejectsRecordsAfterEofAndBoundsMetadataText() {
         byte[] trailingCell = { 0x0D, 0x00, 0x07, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x63, 0x00 };
@@ -442,33 +452,40 @@ public sealed class LegacySpreadsheetImportTests {
             .Build();
 
         using var stream = new MemoryStream(source);
-        Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wk1",
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wk1",
             new ReaderOptions { MaxInputBytes = source.Length + 100L }));
     }
 
     [Fact]
     public void LegacySpreadsheetHandlerUsesConfiguredLimitBeforeBufferingNonSeekableStreams() {
-        byte[] source = LegacyFixtureFactory.Wk();
+        byte[] source = LegacyFixtureFactory.Wk().Concat(new byte[256 * 1024]).ToArray();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddLegacySpreadsheetHandler(new LegacySpreadsheetImportOptions {
-                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = 128 }
             })
             .Build();
         using var stream = new NonSeekableStream(source);
 
-        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wk1"));
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wk1",
+            new ReaderOptions { MaxInputBytes = source.Length + 100L }));
+        Assert.True(stream.BytesRead < source.Length);
     }
 
     private sealed class NonSeekableStream : Stream {
         private readonly MemoryStream _inner;
         internal NonSeekableStream(byte[] data) => _inner = new MemoryStream(data, writable: false);
+        internal long BytesRead { get; private set; }
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
-        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = _inner.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();

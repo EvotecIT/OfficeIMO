@@ -4,7 +4,7 @@ internal sealed class MultiplanAdapter : LegacySpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.Multiplan;
     public override string ProfileId => "microsoft-multiplan-dos-1-3-salvage";
 
-    public override int Probe(byte[] data, string? sourceName, System.Threading.CancellationToken cancellationToken, out string reason) {
+    public override int Probe(byte[] data, string? sourceName, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken, out string reason) {
         cancellationToken.ThrowIfCancellationRequested();
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x08, 0xE7) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xEC) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xED)) {
             if (ExtensionIs(sourceName, ".mp", ".mp1", ".mp2", ".mp3")) {

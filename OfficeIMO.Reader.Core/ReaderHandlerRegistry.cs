@@ -175,6 +175,7 @@ internal sealed class ReaderHandlerDescriptor {
         IReadOnlyList<string> extensions,
         long? defaultMaxInputBytes,
         IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension,
+        long? maxInputBytesCeiling,
         int inputLimitProbeBytes,
         Func<ReadOnlyMemory<byte>, long?>? resolveMaxInputBytesFromPrefix,
         ReaderSourceHashBehavior sourceHashBehavior,
@@ -197,6 +198,7 @@ internal sealed class ReaderHandlerDescriptor {
         Extensions = extensions;
         DefaultMaxInputBytes = defaultMaxInputBytes;
         DefaultMaxInputBytesByExtension = defaultMaxInputBytesByExtension;
+        MaxInputBytesCeiling = maxInputBytesCeiling;
         InputLimitProbeBytes = inputLimitProbeBytes;
         ResolveMaxInputBytesFromPrefix = resolveMaxInputBytesFromPrefix;
         SourceHashBehavior = sourceHashBehavior;
@@ -221,6 +223,7 @@ internal sealed class ReaderHandlerDescriptor {
     public IReadOnlyList<string> Extensions { get; }
     public long? DefaultMaxInputBytes { get; }
     public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; }
+    public long? MaxInputBytesCeiling { get; }
     public int InputLimitProbeBytes { get; }
     public Func<ReadOnlyMemory<byte>, long?>? ResolveMaxInputBytesFromPrefix { get; }
     public ReaderSourceHashBehavior SourceHashBehavior { get; }
@@ -263,6 +266,9 @@ internal sealed class ReaderHandlerDescriptor {
         }
         IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension = NormalizeExtensionLimits(
             registration.DefaultMaxInputBytesByExtension, extensions);
+        if (registration.MaxInputBytesCeiling.HasValue && registration.MaxInputBytesCeiling.Value < 1) {
+            throw new ArgumentException("MaxInputBytesCeiling must be greater than zero when configured.", nameof(registration));
+        }
         if ((registration.InputLimitProbeBytes == 0) != (registration.ResolveMaxInputBytesFromPrefix == null)) {
             throw new ArgumentException("InputLimitProbeBytes and ResolveMaxInputBytesFromPrefix must be configured together.", nameof(registration));
         }
@@ -280,6 +286,7 @@ internal sealed class ReaderHandlerDescriptor {
             extensions,
             registration.DefaultMaxInputBytes,
             defaultMaxInputBytesByExtension,
+            registration.MaxInputBytesCeiling,
             registration.InputLimitProbeBytes,
             registration.ResolveMaxInputBytesFromPrefix,
             registration.SourceHashBehavior,

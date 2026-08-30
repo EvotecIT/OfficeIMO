@@ -116,6 +116,18 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProUnterminatedInlineOpenersAreScannedLinearlyWithoutHidingLaterStyleReferences() {
+        string text = string.Concat(Enumerable.Repeat("<x", 100_000));
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n" + text + "@Missing@End\n");
+
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        Assert.Equal(text + "End", imported.PlainText);
+    }
+
+    [Fact]
     public void AmiProDuplicateStyleDefinitionsCannotDisappearFromNoLossClaims() {
         string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
         int styleStart = fixture.IndexOf("[tag]", StringComparison.Ordinal);
@@ -154,6 +166,23 @@ public sealed class LegacyWordImportTests {
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
             source,
             new LegacyWordImportOptions { SourceName = "archive.sam" }));
+    }
+
+    [Fact]
+    public void CompoundDetectionHonorsRaisedDirectoryEntryLimit() {
+        byte[] source = LegacyFixtureFactory.CompoundWithLargeDirectory();
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(
+            source,
+            new LegacyWordImportOptions { SourceName = "archive.lwp" }));
+
+        LegacyWordDetection detected = LegacyWordImporter.Detect(
+            source,
+            new LegacyWordImportOptions {
+                SourceName = "archive.lwp",
+                Limits = new OfficeLegacyImportLimits { MaxCompoundStreams = 17 * 32 }
+            });
+
+        Assert.Equal(LegacyWordFormat.LotusWordPro, detected.Format);
     }
 
     [Fact]

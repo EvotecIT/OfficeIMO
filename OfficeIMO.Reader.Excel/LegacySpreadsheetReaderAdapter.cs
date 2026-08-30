@@ -28,6 +28,38 @@ internal static class LegacySpreadsheetReaderAdapter {
         return ExcelReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported));
     }
 
+    internal static bool Probe(Stream stream, string? sourceName, ReaderOptions readerOptions,
+        LegacySpreadsheetImportOptions? importOptions, CancellationToken cancellationToken) {
+        if (!stream.CanSeek) return false;
+        long position = stream.Position;
+        try {
+            LegacySpreadsheetImportOptions configured = Prepare(importOptions, sourceName, readerOptions);
+            long remaining = stream.Length - position;
+            if (remaining < 0 || remaining > configured.Limits.MaxInputBytes || remaining > int.MaxValue) return false;
+            var data = new byte[(int)remaining];
+            int total = 0;
+            while (total < data.Length) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int read = stream.Read(data, total, data.Length - total);
+                if (read == 0) break;
+                total += read;
+            }
+            if (total != data.Length) return false;
+            LegacySpreadsheetImporter.Detect(data, configured, cancellationToken);
+            return true;
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (InvalidDataException) {
+            return false;
+        } catch (IOException) {
+            return false;
+        } catch (NotSupportedException) {
+            return false;
+        } finally {
+            stream.Position = position;
+        }
+    }
+
     private static LegacySpreadsheetImportOptions Prepare(LegacySpreadsheetImportOptions? source, string? sourceName, ReaderOptions readerOptions) {
         OfficeLegacyImportLimits limits = (source?.Limits ?? new OfficeLegacyImportLimits()).Clone();
         if (readerOptions.MaxInputBytes.HasValue) {

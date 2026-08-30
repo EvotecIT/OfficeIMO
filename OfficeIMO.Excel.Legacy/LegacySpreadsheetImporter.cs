@@ -142,8 +142,8 @@ public static class LegacySpreadsheetImporter {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.FormatHint.HasValue) {
             ILegacySpreadsheetAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
-            int confidence = hinted.Probe(data, options.SourceName, cancellationToken, out string evidence);
-            return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.GetProfileId(data, cancellationToken), Math.Max(1, confidence),
+            int confidence = hinted.Probe(data, options.SourceName, options.Limits, cancellationToken, out string evidence);
+            return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.GetProfileId(data, options.Limits, cancellationToken), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
         ILegacySpreadsheetAdapter? selected = null;
@@ -151,7 +151,7 @@ public static class LegacySpreadsheetImporter {
         int selectedConfidence = 0;
         foreach (ILegacySpreadsheetAdapter adapter in Adapters) {
             cancellationToken.ThrowIfCancellationRequested();
-            int confidence = adapter.Probe(data, options.SourceName, cancellationToken, out string reason);
+            int confidence = adapter.Probe(data, options.SourceName, options.Limits, cancellationToken, out string reason);
             if (confidence > selectedConfidence) {
                 selected = adapter;
                 selectedReason = reason;
@@ -161,7 +161,7 @@ public static class LegacySpreadsheetImporter {
         if (selected == null || selectedConfidence < 50) {
             throw new InvalidDataException("The source does not match a supported bounded legacy-spreadsheet profile. Supply FormatHint only when the family is known.");
         }
-        return (selected, new LegacySpreadsheetDetection(selected.Format, selected.GetProfileId(data, cancellationToken), selectedConfidence, selectedReason));
+        return (selected, new LegacySpreadsheetDetection(selected.Format, selected.GetProfileId(data, options.Limits, cancellationToken), selectedConfidence, selectedReason));
     }
 
     private static LegacySpreadsheetImportOptions Prepare(LegacySpreadsheetImportOptions? source, string? fallbackName) {

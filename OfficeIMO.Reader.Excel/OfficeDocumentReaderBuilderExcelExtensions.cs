@@ -38,6 +38,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         if (builder == null) throw new ArgumentNullException(nameof(builder));
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(options);
         global::OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions? configuredImport = LegacySpreadsheetReaderAdapter.Clone(importOptions);
+        long legacyMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
             Id = LegacyHandlerId,
@@ -48,9 +49,11 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
             Extensions = new[] { ".wk1", ".wk2", ".wk3", ".wk4", ".123", ".wq1", ".wq2", ".wb1", ".wb2", ".wb3", ".qpw", ".mp", ".mp1", ".mp2", ".mp3", ".wks", ".xlr" },
             ReadDocumentPath = (path, readerOptions, token) => LegacySpreadsheetReaderAdapter.ReadDocument(path, readerOptions, configured, configuredImport, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredImport, token),
+            ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacySpreadsheetReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
-            DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
+            DefaultMaxInputBytes = legacyMaxInputBytes,
+            MaxInputBytesCeiling = legacyMaxInputBytes
         }, replaceExisting);
     }
 }

@@ -196,8 +196,8 @@ public static class LegacyWordImporter {
         cancellationToken.ThrowIfCancellationRequested();
         if (options.FormatHint.HasValue) {
             ILegacyWordAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
-            int confidence = hinted.Probe(data, options.SourceName, cancellationToken, out string evidence);
-            return (hinted, new LegacyWordDetection(hinted.Format, hinted.GetProfileId(data, cancellationToken), Math.Max(1, confidence),
+            int confidence = hinted.Probe(data, options.SourceName, options.Limits, cancellationToken, out string evidence);
+            return (hinted, new LegacyWordDetection(hinted.Format, hinted.GetProfileId(data, options.Limits, cancellationToken), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
 
@@ -206,7 +206,7 @@ public static class LegacyWordImporter {
         int selectedConfidence = 0;
         foreach (ILegacyWordAdapter adapter in Adapters) {
             cancellationToken.ThrowIfCancellationRequested();
-            int confidence = adapter.Probe(data, options.SourceName, cancellationToken, out string reason);
+            int confidence = adapter.Probe(data, options.SourceName, options.Limits, cancellationToken, out string reason);
             if (confidence > selectedConfidence) {
                 selected = adapter;
                 selectedConfidence = confidence;
@@ -216,7 +216,7 @@ public static class LegacyWordImporter {
         if (selected == null || selectedConfidence < 50) {
             throw new InvalidDataException("The source does not match a supported bounded legacy-word profile. Supply FormatHint only when the family is known.");
         }
-        return (selected, new LegacyWordDetection(selected.Format, selected.GetProfileId(data, cancellationToken), selectedConfidence, selectedReason));
+        return (selected, new LegacyWordDetection(selected.Format, selected.GetProfileId(data, options.Limits, cancellationToken), selectedConfidence, selectedReason));
     }
 
     private static LegacyWordImportOptions Prepare(LegacyWordImportOptions? source, string? fallbackName) {

@@ -56,15 +56,15 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
                         ref reportedUnsupportedNameReference, ref unresolvedNameCount);
                     break;
                 case 0x000C:
-                    ValidateCellHeader(data, payload, length, layout);
+                    ValidateFixedCellLength(data, payload, length, DataOffset(layout), "blank");
                     AddCell(model, sheets, limits, data, payload, null, null, null, ref reportedUnsupportedFormat, layout: layout);
                     break;
                 case 0x000D:
-                    if (length < DataOffset(layout) + 2) throw new InvalidDataException("Truncated WK integer cell record.");
+                    ValidateFixedCellLength(data, payload, length, DataOffset(layout) + 2, "integer");
                     AddCell(model, sheets, limits, data, payload, OfficeLegacyImportBuffer.ReadInt16(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, layout: layout);
                     break;
                 case 0x000E:
-                    if (length < DataOffset(layout) + 8) throw new InvalidDataException("Truncated WK floating-point cell record.");
+                    ValidateFixedCellLength(data, payload, length, DataOffset(layout) + 8, "floating-point");
                     AddCell(model, sheets, limits, data, payload, ReadDouble(data, payload + DataOffset(layout)), null, null, ref reportedUnsupportedFormat, layout: layout);
                     break;
                 case 0x000F:
@@ -236,8 +236,11 @@ internal abstract class WkRecordSpreadsheetAdapterBase : LegacySpreadsheetAdapte
         }
     }
 
-    private static void ValidateCellHeader(byte[] data, int payload, int length, WkRecordLayout layout) {
-        if (length < DataOffset(layout) || payload > data.Length - length) throw new InvalidDataException("Truncated WK blank cell record.");
+    private static void ValidateFixedCellLength(byte[] data, int payload, int length, int expectedLength, string kind) {
+        if (payload > data.Length - length) throw new InvalidDataException($"Truncated WK {kind} cell record.");
+        if (length != expectedLength) {
+            throw new InvalidDataException($"WK {kind} cell record length {length.ToString(CultureInfo.InvariantCulture)} does not match the validated profile length {expectedLength.ToString(CultureInfo.InvariantCulture)}.");
+        }
     }
 
     private static int DataOffset(WkRecordLayout layout) => layout == WkRecordLayout.QuattroWq2 ? 6 : 5;

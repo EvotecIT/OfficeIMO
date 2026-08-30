@@ -5,6 +5,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Reader.PowerPoint;
+using OfficeIMO.Reader.Excel;
 using OfficeIMO.Word;
 using System.Text;
 using Xunit;
@@ -208,9 +209,32 @@ public sealed partial class ReaderRegistryTests {
             InputLimitProbeBytes = (64 * 1024) + 1,
             ResolveMaxInputBytesFromPrefix = prefix => 1024
         };
+        var invalidCeiling = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.invalid-ceiling",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            MaxInputBytesCeiling = 0
+        };
 
         Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingResolver));
         Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingLength));
         Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(oversized));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(invalidCeiling));
+    }
+
+    [Fact]
+    public void PreferContentKeepsValidatedMultiplanOnLegacySpreadsheetHandler() {
+        byte[] source = new byte[] { 0x08, 0xE7 }
+            .Concat(Encoding.ASCII.GetBytes("# Heading\tValue\nA\t1\n"))
+            .ToArray();
+        using var stream = new MemoryStream(source, writable: false);
+
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
+            stream,
+            "archive.mp",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Contains(OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId, result.CapabilitiesUsed);
     }
 }

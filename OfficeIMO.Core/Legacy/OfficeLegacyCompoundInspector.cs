@@ -10,9 +10,8 @@ namespace OfficeIMO;
 internal static class OfficeLegacyCompoundInspector {
     private static readonly byte[] CompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
 
-    internal static bool IsValidCompound(byte[] data, CancellationToken cancellationToken = default) {
+    internal static bool IsValidCompound(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
-        var limits = new OfficeLegacyImportLimits { MaxInputBytes = Math.Max(1, data.Length) };
         return TryInspectDirectory(data, limits, cancellationToken, out _);
     }
 
