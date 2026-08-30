@@ -787,11 +787,11 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "linux",
       "runMode": "full",
-      "generatedUtc": "2026-08-30T08:20:01.9610822+00:00",
+      "generatedUtc": "2026-08-30T12:24:11.4671378+02:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-linux-full.json",
-      "resultSha256": "5cc55d54062c6bb29359280c3191051360a5903e421b23e42d6762b88a0c284b",
-      "artifactDestinationSha256": "5f8176805cb41dac1888f69619e22de6373d169380fbcfcea8345b3207ce53f1",
+      "resultSha256": "706aa26c69b78d7ca521eeab102b20a2d771432d0662eb49bd70a4a24c4e2e55",
+      "artifactDestinationSha256": "98077d1b11634e2b71dc5b5903806f0361a44e29043b3b685d8e075d27da72e9",
       "artifactFileName": "pdf-html-generation-net10.0-linux-full.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-linux-full.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
@@ -823,8 +823,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "260ec67d475e2c0d5dd6e9af4c050dd0e085b041",
-        "gitSha": "260ec67d475e2c0d5dd6e9af4c050dd0e085b041",
+        "benchmark.workload.sourceCommit": "fc912830c1945a75e05c752f8f94557ebf102afc",
+        "gitSha": "fc912830c1945a75e05c752f8f94557ebf102afc",
         "runMode": "full"
       },
       "comparable": true,
@@ -884,11 +884,11 @@
       "comparisonId": "pdf-html-generation-net10.0",
       "platform": "windows",
       "runMode": "full",
-      "generatedUtc": "2026-08-30T07:52:02.2190981+00:00",
+      "generatedUtc": "2026-08-30T12:03:05.0663394+02:00",
       "publish": true,
       "resultPath": "/data/benchmarks/library-comparisons/pdf-html-generation-net10.0-windows-full.json",
-      "resultSha256": "1873a10f50ec55df9fddc2e8e7e6602f8c9a32f39bf4e398cd405fceda28215b",
-      "artifactDestinationSha256": "458dd48975fd71568139bfe12ca4e4126085c5ecebaaf613ae893faff67c4e0b",
+      "resultSha256": "df7e93fd1bfb934b8b71db15c3e5ee53f9c18986c928755be935fa0bd9390b81",
+      "artifactDestinationSha256": "19a565d7dbdae910a7805997bbd8a2645755804a31ca9fbe2db701f87e868c93",
       "artifactFileName": "pdf-html-generation-net10.0-windows-full.json",
       "artifactRelativePath": "pdf-html-generation-net10.0-windows-full.json",
       "suite": "OfficeIMO.Pdf.HtmlGeneration",
@@ -920,8 +920,8 @@
         "benchmark.workload.shape.sha256": "7bf9dd446d92cc6bd1d2a50d9486b2e8f48ee3f743ee798961a15d02e3e44189",
         "benchmark.workload.framework": "net10.0",
         "benchmark.workload.id": "pdf-html-generation-net10.0",
-        "benchmark.workload.sourceCommit": "260ec67d475e2c0d5dd6e9af4c050dd0e085b041",
-        "gitSha": "260ec67d475e2c0d5dd6e9af4c050dd0e085b041",
+        "benchmark.workload.sourceCommit": "fc912830c1945a75e05c752f8f94557ebf102afc",
+        "gitSha": "fc912830c1945a75e05c752f8f94557ebf102afc",
         "runMode": "full"
       },
       "comparable": true,
@@ -1675,7 +1675,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-30T07:52:02.2190981+00:00"
+      "latestUtc": "2026-08-30T12:03:05.0663394+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
@@ -1685,7 +1685,7 @@
       "runModes": [
         "full"
       ],
-      "latestUtc": "2026-08-30T08:20:01.9610822+00:00"
+      "latestUtc": "2026-08-30T12:24:11.4671378+02:00"
     },
     {
       "comparisonId": "pdf-html-generation-net10.0",
