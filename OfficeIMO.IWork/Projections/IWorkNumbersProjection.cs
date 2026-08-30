@@ -300,8 +300,19 @@ internal static class IWorkNumbersReader {
                 "An iWork table declares overlapping header and footer row regions; editable reconstruction is incomplete.",
                 model.EntryPath, model.Identifier));
         }
-        double? defaultRowHeight = ValidDimension(message.GetDouble(16));
-        double? defaultColumnWidth = ValidDimension(message.GetDouble(17));
+        double? declaredRowHeight = message.GetDouble(16);
+        double? declaredColumnWidth = message.GetDouble(17);
+        bool invalidDeclaredSizing = HasInvalidDeclaredDimension(message, 16, declaredRowHeight)
+            || HasInvalidDeclaredDimension(message, 17, declaredColumnWidth);
+        if (invalidDeclaredSizing) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_DIMENSIONS_UNSUPPORTED",
+                "An iWork table declares a non-positive or non-finite default size; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+        }
+        double? defaultRowHeight = ValidDimension(declaredRowHeight);
+        double? defaultColumnWidth = ValidDimension(declaredColumnWidth);
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
             source.Options.MaximumTableMergedRanges, model, diagnostics, ref supportsEditableReconstruction);
         var cells = new List<IWorkTableCell>();
@@ -652,6 +663,11 @@ internal static class IWorkNumbersReader {
     private static double? ValidDimension(double? value) => value.HasValue && IsFinite(value.Value) && value.Value > 0
         ? value
         : null;
+
+    private static bool HasInvalidDeclaredDimension(IWorkWireMessage message, int field,
+        double? value) => message.HasField(field)
+        && !message.LacksWireKind(field, IWorkWireKind.Fixed64)
+        && (!value.HasValue || !IsFinite(value.Value) || value.Value <= 0);
 
     private static int CheckedDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
         ulong resolved = value ?? 0;

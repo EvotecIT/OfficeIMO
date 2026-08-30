@@ -12,10 +12,14 @@ internal static class IWorkTextReader {
         IWorkWireMessage message = index.Message(storage);
         bool complete = true;
         string text = ReadText(message, projectionBudget, ref complete);
-        IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, projectionBudget, ref complete);
-        IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, projectionBudget, ref complete);
-        IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, projectionBudget, ref complete);
-        IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
+            projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
+            projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
+            projectionBudget, ref complete);
+        IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
+            projectionBudget, ref complete);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints),
             Cached<(int Level, string? Label)>>();
@@ -74,7 +78,7 @@ internal static class IWorkTextReader {
     }
 
     private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
-        int field, IWorkProjectionBudget projectionBudget, ref bool complete) {
+        int field, int textLength, IWorkProjectionBudget projectionBudget, ref bool complete) {
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
         if (storage.LacksWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
@@ -106,7 +110,8 @@ internal static class IWorkTextReader {
             }
             ulong? rawIndex = entry.GetUnsigned(1);
             if (entry.LacksWireKind(1, IWorkWireKind.Varint)
-                || !rawIndex.HasValue || rawIndex.Value > int.MaxValue) {
+                || !rawIndex.HasValue || rawIndex.Value > int.MaxValue
+                || rawIndex.Value > (ulong)textLength) {
                 complete = false;
                 continue;
             }

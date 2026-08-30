@@ -133,10 +133,14 @@ public sealed partial class PowerPointPresentation {
         double top = source.Geometry?.TopPoints ?? 72d;
         double width = source.Geometry is { WidthPoints: > 0 }
             ? source.Geometry.WidthPoints
-            : Math.Max(144d, source.DefaultColumnWidth.GetValueOrDefault(72d) * source.ColumnCount);
+            : source.DefaultColumnWidth is > 0
+                ? source.DefaultColumnWidth.Value * source.ColumnCount
+                : Math.Max(144d, 72d * source.ColumnCount);
         double height = source.Geometry is { HeightPoints: > 0 }
             ? source.Geometry.HeightPoints
-            : Math.Max(36d, source.DefaultRowHeight.GetValueOrDefault(24d) * source.RowCount);
+            : source.DefaultRowHeight is > 0
+                ? source.DefaultRowHeight.Value * source.RowCount
+                : Math.Max(36d, 24d * source.RowCount);
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
@@ -219,6 +223,9 @@ public sealed partial class PowerPointPresentation {
             }
             foreach (IWorkTextContent content in SlideText(slide)) {
                 foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
+                    if (paragraph.ListLevel > 8) {
+                        return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
+                    }
                     IWorkParagraphStyle style = paragraph.Style;
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
                         || !FitsTextCoordinate(style.LeftIndentPoints)
@@ -251,11 +258,15 @@ public sealed partial class PowerPointPresentation {
                     return $"Keynote table '{table.Name}' contains an uncached formula that the PPTX owner cannot evaluate.";
                 }
                 destinationTableCells += tableCells;
-                double fallbackWidth = table.DefaultColumnWidth.GetValueOrDefault(72d) * table.ColumnCount;
-                double fallbackHeight = table.DefaultRowHeight.GetValueOrDefault(24d) * table.RowCount;
+                double fallbackWidth = table.DefaultColumnWidth is > 0
+                    ? table.DefaultColumnWidth.Value * table.ColumnCount
+                    : Math.Max(144d, 72d * table.ColumnCount);
+                double fallbackHeight = table.DefaultRowHeight is > 0
+                    ? table.DefaultRowHeight.Value * table.RowCount
+                    : Math.Max(36d, 24d * table.RowCount);
                 if (table.Geometry == null
-                    && (!FitsPositiveMeasurement(Math.Max(144d, fallbackWidth), MaximumPointMeasurement)
-                        || !FitsPositiveMeasurement(Math.Max(36d, fallbackHeight), MaximumPointMeasurement))) {
+                    && (!FitsPositiveMeasurement(fallbackWidth, MaximumPointMeasurement)
+                        || !FitsPositiveMeasurement(fallbackHeight, MaximumPointMeasurement))) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
                 }
                 if (table.Geometry is { } geometry

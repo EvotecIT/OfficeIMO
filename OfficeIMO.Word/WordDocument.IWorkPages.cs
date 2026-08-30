@@ -149,6 +149,15 @@ public partial class WordDocument {
     private static void AddTable(WordDocument document, IWorkTable source) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         WordTable table = document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
+        if (source.DefaultColumnWidth is > 0) {
+            int width = ToSignedTwips(source.DefaultColumnWidth.Value);
+            table.ColumnWidthType = WordTableWidthUnit.Dxa;
+            table.ColumnWidth = Enumerable.Repeat(width, source.ColumnCount).ToList();
+        }
+        if (source.DefaultRowHeight is > 0) {
+            int height = ToSignedTwips(source.DefaultRowHeight.Value);
+            foreach (WordTableRow row in table.Rows) row.Height = height;
+        }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
             WordParagraph paragraph = target.AddParagraph(CellText(sourceCell), removeExistingParagraphs: true);
@@ -256,6 +265,10 @@ public partial class WordDocument {
             }
             if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
                 return $"Pages table '{table.Name}' contains an uncached formula that the DOCX owner cannot evaluate.";
+            }
+            if (!FitsSignedTwips(table.DefaultRowHeight)
+                || !FitsSignedTwips(table.DefaultColumnWidth)) {
+                return $"Pages table '{table.Name}' has default sizing outside the DOCX measurement range.";
             }
             if (table.Geometry is { } geometry
                 && (Math.Abs(geometry.LeftPoints) > 0.000001d
@@ -554,5 +567,11 @@ public partial class WordDocument {
         double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
         if (value < 0 || value > uint.MaxValue) throw new InvalidDataException("A Pages page measurement exceeds the DOCX range.");
         return (uint)value;
+    }
+
+    private static int ToSignedTwips(double points) {
+        double value = Math.Round(points * 20d, MidpointRounding.AwayFromZero);
+        if (value < 0 || value > int.MaxValue) throw new InvalidDataException("A Pages table measurement exceeds the DOCX range.");
+        return (int)value;
     }
 }
