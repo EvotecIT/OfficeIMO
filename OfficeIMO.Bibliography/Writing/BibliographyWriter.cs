@@ -158,12 +158,12 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
                 Loss(report, item, "contributors", "BIBCONV236", $"A structured contributor name contains a comma that is indistinguishable from {format} name-component separators.", BibliographyConversionAction.Approximated);
-            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix) || HasLeadingWhitespace(contributor.Name.Literal)))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix) || HasSurroundingWhitespace(contributor.Name.DroppingParticle) || HasSurroundingWhitespace(contributor.Name.NonDroppingParticle) || HasLeadingWhitespace(contributor.Name.Literal)))
                 Loss(report, item, "contributors", "BIBCONV243", $"A contributor name contains whitespace that is trimmed by {format} name parsing.", BibliographyConversionAction.Approximated);
         }
         if (format != BibliographyFormat.CslJson) {
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasEmptyNameComponent(contributor.Name)))
-                Loss(report, item, "contributors", "BIBCONV244", $"An explicitly empty contributor-name component reopens as null in {format}.", BibliographyConversionAction.Approximated);
+                Loss(report, item, "contributors", "BIBCONV244", $"An empty or entirely unset contributor name cannot reopen exactly in {format}.", BibliographyConversionAction.Approximated);
         }
         if (ReordersContributors(item, format, cancellationToken))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
@@ -202,6 +202,7 @@ internal static class BibliographyConversionInspector {
     private static bool HasSurroundingWhitespace(string? value) => value != null && !string.Equals(value, value.Trim(), StringComparison.Ordinal);
     private static bool HasLeadingWhitespace(string? value) => !string.IsNullOrEmpty(value) && char.IsWhiteSpace(value![0]);
     private static bool HasEmptyNameComponent(BibliographyName name) =>
+        name.Given == null && name.Family == null && name.Literal == null && name.Suffix == null && name.DroppingParticle == null && name.NonDroppingParticle == null ||
         name.Given is { Length: 0 } || name.Family is { Length: 0 } || name.Literal is { Length: 0 } || name.Suffix is { Length: 0 } ||
         name.DroppingParticle is { Length: 0 } || name.NonDroppingParticle is { Length: 0 };
 
@@ -230,7 +231,9 @@ internal static class BibliographyConversionInspector {
             bool classicBibMonthOnly = format == BibliographyFormat.BibTex && date.Role == BibliographyDateRole.Issued && !date.Year.HasValue && date.Month is >= 1 and <= 12 && !date.Day.HasValue;
             bool cslOmitsNumericParts = format == BibliographyFormat.CslJson &&
                 (!date.Year.HasValue && (date.Month.HasValue || date.Day.HasValue || date.EndYear.HasValue || date.EndMonth.HasValue || date.EndDay.HasValue) ||
-                 !date.EndYear.HasValue && (date.EndMonth.HasValue || date.EndDay.HasValue));
+                 date.Day.HasValue && !date.Month.HasValue ||
+                 !date.EndYear.HasValue && (date.EndMonth.HasValue || date.EndDay.HasValue) ||
+                 date.EndDay.HasValue && !date.EndMonth.HasValue);
             if (cslOmitsNumericParts || format != BibliographyFormat.CslJson && ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue))
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && !CanRoundTripDateRange(format, date.Role))
