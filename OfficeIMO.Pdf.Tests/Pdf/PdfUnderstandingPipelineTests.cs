@@ -148,6 +148,27 @@ public class PdfUnderstandingPipelineTests {
             page.ReadingOrder.Select(static region => region.Text));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void AdvancedPipeline_OrdersInterleavedStaggeredRegionsTopToBottom(bool mirrorColumns) {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        double outerColumn = mirrorColumns ? 320 : 50;
+        double middleColumn = mirrorColumns ? 50 : 320;
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Upper outer", "F1", 12, outerColumn, 700, 110),
+            new PdfTextSpan("Middle inner", "F1", 12, middleColumn, 600, 110),
+            new PdfTextSpan("Lower outer", "F1", 12, outerColumn, 500, 110)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(new[] { "Upper outer", "Middle inner", "Lower outer" },
+            page.ReadingOrder.Select(static region => region.Text));
+    }
+
     [Fact]
     public void AdvancedPipeline_ClassifiesTablesCaptionsHeadersAndFootnotes() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();

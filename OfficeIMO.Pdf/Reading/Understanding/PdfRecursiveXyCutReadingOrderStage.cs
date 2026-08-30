@@ -103,23 +103,37 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
     }
 
     private static bool HasVerticalOverlapAcrossCut(IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
-        double firstBottom = double.PositiveInfinity;
-        double firstTop = double.NegativeInfinity;
-        double secondBottom = double.PositiveInfinity;
-        double secondTop = double.NegativeInfinity;
+        var firstSide = new List<Interval>();
+        var secondSide = new List<Interval>();
         for (int index = 0; index < boxes.Count; index++) {
             RegionBox box = boxes[index];
-            bool first = (box.Left + box.Right) / 2D < verticalCut.Midpoint;
-            if (first) {
-                firstBottom = Math.Min(firstBottom, box.Bottom);
-                firstTop = Math.Max(firstTop, box.Top);
+            var interval = new Interval(box.Bottom, box.Top);
+            if ((box.Left + box.Right) / 2D < verticalCut.Midpoint) {
+                firstSide.Add(interval);
             } else {
-                secondBottom = Math.Min(secondBottom, box.Bottom);
-                secondTop = Math.Max(secondTop, box.Top);
+                secondSide.Add(interval);
             }
         }
-        if (double.IsPositiveInfinity(firstBottom) || double.IsPositiveInfinity(secondBottom)) return false;
-        return Math.Min(firstTop, secondTop) > Math.Max(firstBottom, secondBottom);
+
+        firstSide.Sort(static (first, second) => first.Start.CompareTo(second.Start));
+        secondSide.Sort(static (first, second) => first.Start.CompareTo(second.Start));
+        int firstIndex = 0;
+        int secondIndex = 0;
+        while (firstIndex < firstSide.Count && secondIndex < secondSide.Count) {
+            Interval first = firstSide[firstIndex];
+            Interval second = secondSide[secondIndex];
+            if (Math.Min(first.End, second.End) > Math.Max(first.Start, second.Start)) {
+                return true;
+            }
+
+            if (first.End <= second.End) {
+                firstIndex++;
+            } else {
+                secondIndex++;
+            }
+        }
+
+        return false;
     }
 
     private static WhitespaceCut? FindBestCut(
