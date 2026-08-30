@@ -254,13 +254,17 @@ public partial class WordDocument {
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
+            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
+                return $"Pages table '{table.Name}' contains an uncached formula that the DOCX owner cannot evaluate.";
+            }
             destinationTableCells += tableCells;
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) {
             if (textBox.Geometry is { } geometry
                 && (!FitsEmuOffset(geometry.LeftPoints) || !FitsEmuOffset(geometry.TopPoints)
-                    || !FitsEmuExtent(geometry.WidthPoints) || !FitsEmuExtent(geometry.HeightPoints))) {
-                return "A Pages text box has geometry outside the DOCX measurement range.";
+                    || !FitsEmuExtent(geometry.WidthPoints) || !FitsEmuExtent(geometry.HeightPoints)
+                    || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
+                return "A Pages text box has unsupported rotation or geometry outside the DOCX measurement range.";
             }
         }
         foreach (IWorkImageAsset image in projection.Images) {

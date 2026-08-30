@@ -239,7 +239,7 @@ internal static class IWorkKeynoteReader {
         var textBoxes = new List<IWorkTextBox>();
         var images = new List<IWorkImageAsset>();
         var tables = new List<IWorkTable>();
-        var seenStorages = new HashSet<ulong>();
+        var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord drawable in candidates) {
             if (drawable.MessageType == 6000) {
                 projectionBudget.AddTable();
@@ -273,8 +273,15 @@ internal static class IWorkKeynoteReader {
                         drawable.EntryPath, drawable.Identifier));
                 }
             }
-            if (storage == null || storage.MessageType != TextStorageArchive || !seenStorages.Add(storage.Identifier)) continue;
-            IWorkTextContent text = IWorkTextReader.Read(index, storage, projectionBudget);
+            if (storage == null || storage.MessageType != TextStorageArchive) continue;
+            IWorkTextContent text;
+            if (textCache.TryGetValue(storage.Identifier, out IWorkTextContent? cached)) {
+                text = cached;
+                projectionBudget.AddTextContentUse(text, includeCharacters: true);
+            } else {
+                text = IWorkTextReader.Read(index, storage, projectionBudget);
+                textCache.Add(storage.Identifier, text);
+            }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             if (text.PlainText.Length == 0) continue;
             IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,

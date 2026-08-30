@@ -247,6 +247,9 @@ public sealed partial class PowerPointPresentation {
                 if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                     return "Keynote tables exceed the bounded PPTX destination cell budget.";
                 }
+                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
+                    return $"Keynote table '{table.Name}' contains an uncached formula that the PPTX owner cannot evaluate.";
+                }
                 destinationTableCells += tableCells;
                 double fallbackWidth = table.DefaultColumnWidth.GetValueOrDefault(72d) * table.ColumnCount;
                 double fallbackHeight = table.DefaultRowHeight.GetValueOrDefault(24d) * table.RowCount;

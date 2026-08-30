@@ -256,6 +256,16 @@ internal static class IWorkNumbersReader {
                     tableRecord.EntryPath, tableRecord.Identifier));
             }
         }
+        bool metadataComplete = true;
+        string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4,
+            projectionBudget, ref metadataComplete);
+        if (!metadataComplete || hyperlink != null) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_HYPERLINK_UNSUPPORTED",
+                "An iWork table contains a drawable hyperlink that is preserved but cannot be represented by the editable table owners.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+        }
         return ReadTable(source, source.Index, model, geometry, projectionBudget, diagnostics,
             ref materializedCellCount, ref supportsEditableReconstruction);
     }

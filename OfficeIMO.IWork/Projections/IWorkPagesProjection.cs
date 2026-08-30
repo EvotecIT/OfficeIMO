@@ -162,7 +162,7 @@ internal static class IWorkPagesReader {
                 foreach (IWorkArchiveRecord storage in index.DereferenceAll(message, field)) skippedStorages.Add(storage.Identifier);
             }
         }
-        var seenTextStorages = new HashSet<ulong>();
+        var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord shape in index.PrimaryRecords
                      .Where(record => record.MessageType == ShapeInfoArchive)
                      .Where(record => reachable.Contains(record.Identifier))
@@ -195,8 +195,15 @@ internal static class IWorkPagesReader {
                 continue;
             }
             if (storage.MessageType != TextStorageArchive
-                || skippedStorages.Contains(storage.Identifier) || !seenTextStorages.Add(storage.Identifier)) continue;
-            IWorkTextContent text = IWorkTextReader.Read(index, storage, projectionBudget);
+                || skippedStorages.Contains(storage.Identifier)) continue;
+            IWorkTextContent text;
+            if (textCache.TryGetValue(storage.Identifier, out IWorkTextContent? cached)) {
+                text = cached;
+                projectionBudget.AddTextContentUse(text, includeCharacters: true);
+            } else {
+                text = IWorkTextReader.Read(index, storage, projectionBudget);
+                textCache.Add(storage.Identifier, text);
+            }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             if (text.PlainText.Length == 0) continue;
             IWorkWireMessage? drawable = IWorkDrawingReader.DrawableMessage(index, shape,
