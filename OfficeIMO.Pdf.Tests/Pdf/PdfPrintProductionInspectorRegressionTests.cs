@@ -210,6 +210,18 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
+    public void ColorInspectorRejectsPatternAsTheBaseOfAnUncoloredPatternColorSpace() {
+        byte[] pdf = BuildInspectionPdf(
+            "/CS1 cs /P1 scn",
+            resources: "/ColorSpace << /CS1 [/Pattern /Pattern] >>");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
     public void ColorInspectorRejectsUndersizedIndexedLookupPayload() {
         byte[] pdf = BuildInspectionPdf(
             "/CS1 cs 0 sc",
@@ -478,6 +490,23 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
                 "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length " +
                 formContent.Length +
                 " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type /Pattern")]
+    public void ColorInspectorRejectsReachableXObjectsWithoutTheXObjectType(string typeEntry) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< " + typeEntry + " /Subtype /Image /Width 1 /Height 1 " +
+                "/ColorSpace /DeviceCMYK /BitsPerComponent 8 /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
 
@@ -1083,6 +1112,25 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             resources: "/Pattern << /P1 5 0 R >>",
             extraObjects:
                 "5 0 obj\n<< /Type /Pattern /PatternType 1 " + entries + " /Length " +
+                patternContent.Length + " >>\nstream\n" + patternContent + "\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.False(evidence.IsComplete);
+        Assert.Equal(1, evidence.UninspectableContentStreamCount);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type /XObject")]
+    public void ColorInspectorRejectsReachablePatternsWithoutThePatternType(string typeEntry) {
+        const string patternContent = "0 0 0 k";
+        byte[] pdf = BuildInspectionPdf(
+            "/Pattern cs /P1 scn",
+            resources: "/Pattern << /P1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< " + typeEntry + " /PatternType 1 /PaintType 1 /TilingType 1 " +
+                "/BBox [0 0 5 5] /XStep 5 /YStep 5 /Resources << >> /Length " +
                 patternContent.Length + " >>\nstream\n" + patternContent + "\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();

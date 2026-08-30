@@ -28,4 +28,24 @@ public sealed class DrawingOpenTypeCmapTests {
         Assert.True(font.TryGetGlyphMetrics('A', out int glyphId, out _));
         Assert.Equal(2, glyphId);
     }
+
+    [Fact]
+    public void FontFallbackSelectsTheFaceThatSupportsTheRequestedVariationSequence() {
+        const string sequence = "\u2764\uFE0F";
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+2764", out OfficeFontUnicodeRangeSet? narrow));
+        Assert.True(OfficeFontUnicodeRangeSet.TryParseCss("U+2700-27BF", out OfficeFontUnicodeRangeSet? broad));
+        var fonts = new OfficeFontFaceCollection()
+            .Add("Scoped", ManagedTextShapingTestAssets.CreateFont(0x2764), OfficeFontStyle.Regular, narrow!)
+            .Add(
+                "Scoped",
+                ManagedTextShapingTestAssets.CreateFontWithVariationSequence(0x2764, 0xFE0F),
+                OfficeFontStyle.Regular,
+                broad!);
+
+        OfficeFontFallbackRun run = Assert.Single(fonts.PlanFallbackRuns(sequence, "Scoped"));
+
+        Assert.Equal(sequence, run.Text);
+        Assert.Equal(fonts.Faces[1].ResourceFamilyName, run.FamilyName);
+        Assert.NotEqual(fonts.Faces[0].ResourceFamilyName, run.FamilyName);
+    }
 }

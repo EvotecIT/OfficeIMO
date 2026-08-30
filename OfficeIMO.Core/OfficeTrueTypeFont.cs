@@ -423,12 +423,17 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     public int? CollectionIndex => _collectionIndex;
 
     internal bool HasGlyphs(string value) {
-        for (int index = 0; index < value.Length;) {
-            int scalar = ReadScalar(value, ref index);
-            if (!IsWhitespaceScalar(scalar) && !OfficeTextElements.IsIgnorableFontCoverageScalar(scalar) && MapGlyph(scalar) == 0) return false;
-        }
-
-        return true;
+        return OfficeOpenTypeCmap.HasGlyphs(
+            value,
+            scalar => MapGlyph(scalar),
+            (scalar, selector) => OfficeOpenTypeCmap.SupportsVariationSequence(
+                _data,
+                _cmap,
+                _cmapLength,
+                _numGlyphs,
+                scalar,
+                selector,
+                mappedScalar => MapGlyph(mappedScalar)));
     }
 
     private bool MatchesName(string? faceName) {

@@ -77,13 +77,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     public byte[] GetFontDataForShaping() => (byte[])_data.Clone();
 
     public bool HasGlyphs(string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        for (int index = 0; index < text.Length;) {
-            int scalar = ReadScalar(text, ref index);
-            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            if (_reader.MapGlyph(scalar) == 0) return false;
-        }
-        return true;
+        return _reader.HasGlyphs(text);
     }
 
     public double Measure(string text, double fontSize) {

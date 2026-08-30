@@ -179,13 +179,21 @@ internal static partial class PdfPrintProductionColorInspector {
                                     contextWasUninspectable = true;
                                     break;
                                 }
+                                string? type = ResolveName(
+                                    xObjectStream.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject)
+                                        ? typeObject
+                                        : null,
+                                    objects,
+                                    limits.MaxObjectNestingDepth);
                                 string? subtype = ResolveName(
                                     xObjectStream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
                                         ? subtypeObject
                                         : null,
                                     objects,
                                     limits.MaxObjectNestingDepth);
-                                if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
+                                if (!string.Equals(type, "XObject", StringComparison.Ordinal)) {
+                                    contextWasUninspectable = true;
+                                } else if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                                     AddImageContext(xObjectStream, context.Aliases, images);
                                 } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
                                     !IsStructurallyValidFormXObject(
@@ -648,6 +656,12 @@ internal static partial class PdfPrintProductionColorInspector {
             _ => null
         };
         if (pattern == null ||
+            !pattern.Items.TryGetValue("Type", out PdfObject? patternObjectType) ||
+            ResolveName(
+                patternObjectType,
+                objects,
+                limits.MaxObjectNestingDepth) is not string resolvedPatternType ||
+            !string.Equals(resolvedPatternType, "Pattern", StringComparison.Ordinal) ||
             !pattern.Items.TryGetValue("PatternType", out PdfObject? patternTypeObject) ||
             ResolveObject(
                 objects,

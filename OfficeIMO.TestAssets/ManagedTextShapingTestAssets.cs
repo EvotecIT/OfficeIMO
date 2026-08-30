@@ -42,6 +42,14 @@ internal static class ManagedTextShapingTestAssets {
             glyphCount: 3);
     }
 
+    internal static byte[] CreateFontWithVariationSequence(int scalar, int variationSelector) {
+        if (scalar < 0 || scalar > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(scalar));
+        if (variationSelector < 0xFE00 || variationSelector > 0xFE0F) {
+            throw new ArgumentOutOfRangeException(nameof(variationSelector));
+        }
+        return CreateFontFromCmap(CreateUnicodeCmapWithVariationSequence(scalar, variationSelector));
+    }
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
@@ -234,6 +242,41 @@ internal static class ManagedTextShapingTestAssets {
         return data;
     }
 
+    private static byte[] CreateUnicodeCmapWithVariationSequence(int scalar, int variationSelector) {
+        const int cmapHeaderLength = 20;
+        const int format12Length = 28;
+        const int format14Length = 30;
+        int format12 = cmapHeaderLength;
+        int format14 = format12 + format12Length;
+        var data = new byte[cmapHeaderLength + format12Length + format14Length];
+        WriteUInt16(data, 2, 2);
+
+        WriteUInt16(data, 4, 3);
+        WriteUInt16(data, 6, 10);
+        WriteUInt32(data, 8, (uint)format12);
+        WriteUInt16(data, 12, 0);
+        WriteUInt16(data, 14, 5);
+        WriteUInt32(data, 16, (uint)format14);
+
+        WriteUInt16(data, format12, 12);
+        WriteUInt32(data, format12 + 4, format12Length);
+        WriteUInt32(data, format12 + 12, 1);
+        WriteUInt32(data, format12 + 16, checked((uint)scalar));
+        WriteUInt32(data, format12 + 20, checked((uint)scalar));
+        WriteUInt32(data, format12 + 24, 1);
+
+        WriteUInt16(data, format14, 14);
+        WriteUInt32(data, format14 + 2, format14Length);
+        WriteUInt32(data, format14 + 6, 1);
+        WriteUInt24(data, format14 + 10, variationSelector);
+        WriteUInt32(data, format14 + 13, 0);
+        WriteUInt32(data, format14 + 17, 21);
+        WriteUInt32(data, format14 + 21, 1);
+        WriteUInt24(data, format14 + 25, scalar);
+        WriteUInt16(data, format14 + 28, 1);
+        return data;
+    }
+
     private static byte[] CreateFormat12Cmap(
         int firstScalar,
         int firstGlyph,
@@ -403,6 +446,12 @@ internal static class ManagedTextShapingTestAssets {
     private static void WriteUInt16(byte[] data, int offset, ushort value) {
         data[offset] = (byte)(value >> 8);
         data[offset + 1] = (byte)value;
+    }
+
+    private static void WriteUInt24(byte[] data, int offset, int value) {
+        data[offset] = (byte)(value >> 16);
+        data[offset + 1] = (byte)(value >> 8);
+        data[offset + 2] = (byte)value;
     }
 
     private static void WriteUInt32(byte[] data, int offset, uint value) {
