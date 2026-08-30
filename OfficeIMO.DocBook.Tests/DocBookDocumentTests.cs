@@ -1122,7 +1122,7 @@ public sealed class DocBookDocumentTests {
 
     [Fact]
     public void ProfileConversionRequalifiesUntypedDocBookVocabularyButNotExtensions() {
-        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><x:box><x:item>value</x:item></x:box></article>";
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><custom flag=\"five\">native</custom><x:box><x:item>value</x:item></x:box></article>";
         DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook45).Value;
@@ -1131,9 +1131,12 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(4, fourVocabulary.Length);
         Assert.All(fourVocabulary,
             element => Assert.Equal(XNamespace.None, element.Name.Namespace));
+        XElement fourCustom = asFour.Xml.Descendants().Single(element => element.Name.LocalName == "custom");
+        Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, fourCustom.Name.NamespaceName);
+        Assert.Equal("five", (string?)fourCustom.Attribute("flag"));
         Assert.Equal("urn:extension", asFour.Xml.Descendants().Single(element => element.Name.LocalName == "box").Name.NamespaceName);
 
-        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm></article>";
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm><custom flag=\"four\">native</custom></article>";
         DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook52).Value;
@@ -1142,6 +1145,9 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(4, fiveVocabulary.Length);
         Assert.All(fiveVocabulary,
             element => Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, element.Name.NamespaceName));
+        XElement fiveCustom = asFive.Xml.Descendants().Single(element => element.Name.LocalName == "custom");
+        Assert.Equal(XNamespace.None, fiveCustom.Name.Namespace);
+        Assert.Equal("four", (string?)fiveCustom.Attribute("flag"));
     }
 
     [Fact]

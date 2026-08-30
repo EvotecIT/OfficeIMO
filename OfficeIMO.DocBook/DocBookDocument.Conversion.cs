@@ -635,7 +635,7 @@ public sealed partial class DocBookDocument {
                 string expandedName = source.Kind.Substring("extension:".Length);
                 try {
                     XName extensionName = XName.Get(expandedName);
-                    if (requalifySourceVocabulary && extensionName.Namespace == sourceDocBookNamespace) {
+                    if (requalifySourceVocabulary && IsKnownUntypedDocBookElement(extensionName, sourceDocBookNamespace)) {
                         extensionName = targetDocBookNamespace + extensionName.LocalName;
                     }
                     target = parent.AddExtension(extensionName,

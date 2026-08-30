@@ -9,6 +9,16 @@ using System.Text;
 namespace OfficeIMO.DocBook;
 
 public sealed partial class DocBookDocument {
+    private static readonly ISet<string> KnownUntypedDocBookElementNames = new HashSet<string>(StringComparer.Ordinal) {
+        "appendix", "article", "authorgroup", "bibliography", "chapter", "colophon", "colspec", "dedication",
+        "entrytbl", "firstname", "glossary", "honorific", "lineage", "lot", "othername", "part", "personname",
+        "phrase", "preface", "primary", "reference", "setindex", "spanspec", "surname", "term", "textobject",
+        "tfoot", "titleabbrev", "toc", "varlistentry"
+    };
+
+    private static bool IsKnownUntypedDocBookElement(System.Xml.Linq.XName name, System.Xml.Linq.XNamespace sourceNamespace) =>
+        name.Namespace == sourceNamespace && KnownUntypedDocBookElementNames.Contains(name.LocalName);
+
     private static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
         !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
             string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
