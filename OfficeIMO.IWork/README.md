@@ -83,7 +83,7 @@ Advanced charts, vector effects, animations, comments/change tracking, masks/cro
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables, merged ranges, and source-wide materialized cells in addition to the package/IWA limits.
 
-`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`.
+`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 ## Preservation and authoring boundary
 

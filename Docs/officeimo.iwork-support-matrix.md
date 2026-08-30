@@ -42,7 +42,7 @@ Editable reconstruction means the supported content is represented as normal DOC
 
 `IWorkImportMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview.
 
-Every owner report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current owner adapters embed PNG or JPEG previews; embedded PDF previews remain available on the source model but are not silently rasterized.
+Every owner report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current owner adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
 
 ## Corpus evidence
 

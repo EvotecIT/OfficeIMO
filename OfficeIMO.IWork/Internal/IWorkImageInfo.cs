@@ -6,18 +6,25 @@ namespace OfficeIMO.IWork.Internal;
 internal static class IWorkImageInfo {
     private static readonly uint[] PngCrcTable = CreatePngCrcTable();
     internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
-        long maximumDecodedBytes) {
+        long maximumDecodedBytes) => Read(bytes, mediaType, maximumDecodedBytes, out _);
+
+    internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
+        long maximumDecodedBytes, out long decodedBytes) {
+        decodedBytes = 0;
         if (string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase)
-            && TryReadPng(bytes, maximumDecodedBytes, out int width, out int height)) {
+            && TryReadPng(bytes, maximumDecodedBytes, out int width, out int height,
+                out decodedBytes)) {
             return (width, height);
         }
         if (string.Equals(mediaType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) {
-            return ReadJpeg(bytes, maximumDecodedBytes);
+            return ReadJpeg(bytes, maximumDecodedBytes, out decodedBytes);
         }
         return (null, null);
     }
 
-    private static (int? Width, int? Height) ReadJpeg(byte[] bytes, long maximumDecodedBytes) {
+    private static (int? Width, int? Height) ReadJpeg(byte[] bytes, long maximumDecodedBytes,
+        out long decodedBytes) {
+        decodedBytes = 0;
         (int? width, int? height) = ReadJpegMetadata(bytes);
         if (!width.HasValue || !height.HasValue
             || (long)width.Value * height.Value * 4 > maximumDecodedBytes
@@ -26,6 +33,7 @@ internal static class IWorkImageInfo {
             || decoded == null || decoded.Width != width.Value || decoded.Height != height.Value) {
             return (null, null);
         }
+        decodedBytes = checked((long)decoded.Width * decoded.Height * 4);
         return (decoded.Width, decoded.Height);
     }
 
@@ -85,9 +93,10 @@ internal static class IWorkImageInfo {
         && bytes[4] == 0x0d && bytes[5] == 0x0a && bytes[6] == 0x1a && bytes[7] == 0x0a;
 
     private static bool TryReadPng(byte[] bytes, long maximumDecodedBytes,
-        out int width, out int height) {
+        out int width, out int height, out long decodedBytes) {
         width = 0;
         height = 0;
+        decodedBytes = 0;
         if (bytes.Length < 33 || !HasPngSignature(bytes)) return false;
 
         bool hasHeader = false;
@@ -151,9 +160,12 @@ internal static class IWorkImageInfo {
             if (isUnknownCritical) return false;
             offset = crcOffset + 4;
             if (isEnd) {
-                return dataLength == 0 && hasImageData && offset == bytes.Length
+                bool valid = dataLength == 0 && hasImageData && offset == bytes.Length
                     && ValidatePngImageData(imageData.ToArray(), width, height,
-                        bitDepth, colorType, interlace, paletteEntryCount, maximumDecodedBytes);
+                        bitDepth, colorType, interlace, paletteEntryCount,
+                        maximumDecodedBytes, out decodedBytes);
+                if (!valid) decodedBytes = 0;
+                return valid;
             }
         }
         return false;
@@ -170,7 +182,8 @@ internal static class IWorkImageInfo {
 
     private static bool ValidatePngImageData(byte[] data, int width, int height,
         byte bitDepth, byte colorType, byte interlace, int paletteEntryCount,
-        long maximumDecodedBytes) {
+        long maximumDecodedBytes, out long decodedBytes) {
+        decodedBytes = 0;
         if (data.Length < 6) return false;
         byte compressionMethod = (byte)(data[0] & 0x0f);
         int windowSize = data[0] >> 4;
@@ -220,7 +233,9 @@ internal static class IWorkImageInfo {
                 }
             }
             if (decoded != decodedLength || inflater.ReadByte() != -1) return false;
-            return ((second << 16) | first) == expectedAdler;
+            bool valid = ((second << 16) | first) == expectedAdler;
+            if (valid) decodedBytes = decodedLength;
+            return valid;
         } catch (Exception exception) when (exception is InvalidDataException or IOException) {
             return false;
         }

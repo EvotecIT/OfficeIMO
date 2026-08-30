@@ -56,8 +56,8 @@ internal static class IWorkTextReader {
                     hyperlinkCache, ref complete);
                 runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink));
             }
-            paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listLevel, listLabel,
-                paragraph.BreakKind));
+            paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
+                listLevel, listLabel, paragraph.BreakKind));
         }
         return new IWorkTextContent(paragraphs, complete);
     }

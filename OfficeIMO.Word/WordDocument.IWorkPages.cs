@@ -321,11 +321,17 @@ public partial class WordDocument {
         IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null) {
+        ulong? previousListIdentifier = null;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph.Style);
             if (sourceParagraph.ListLevel >= 0) {
-                nativeLists.Apply(paragraph, sourceParagraph.ListLevel, sourceParagraph.ListLabel);
+                bool ordered = IWorkNativeListCatalog.IsOrderedLabel(sourceParagraph.ListLabel);
+                bool startsNewList = sourceParagraph.ListIdentifier != previousListIdentifier;
+                nativeLists.Apply(paragraph, sourceParagraph.ListLevel, ordered, startsNewList);
+                previousListIdentifier = sourceParagraph.ListIdentifier;
+            } else {
+                previousListIdentifier = null;
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 AddStyledTextRun(paragraph, sourceRun);
@@ -402,17 +408,21 @@ public partial class WordDocument {
 
     private sealed class IWorkNativeListCatalog {
         private readonly WordDocument _document;
-        private WordList? _bulleted;
-        private WordList? _numbered;
+        private WordList? _currentBulleted;
+        private WordList? _currentNumbered;
 
         internal IWorkNativeListCatalog(WordDocument document) {
             _document = document;
         }
 
-        internal void Apply(WordParagraph paragraph, int level, string? label) {
-            WordList list = IsOrderedLabel(label)
-                ? _numbered ??= _document.AddList(WordListStyle.Numbered)
-                : _bulleted ??= _document.AddList(WordListStyle.Bulleted);
+        internal void Apply(WordParagraph paragraph, int level, bool ordered, bool startsNewList) {
+            if (startsNewList) {
+                if (ordered) _currentNumbered = _document.AddList(WordListStyle.Numbered);
+                else _currentBulleted = _document.AddList(WordListStyle.Bulleted);
+            }
+            WordList list = ordered
+                ? _currentNumbered ??= _document.AddList(WordListStyle.Numbered)
+                : _currentBulleted ??= _document.AddList(WordListStyle.Bulleted);
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
                 ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
             properties.NumberingProperties = new OpenXmlNumberingProperties(
@@ -420,7 +430,7 @@ public partial class WordDocument {
                 new OpenXmlNumberingId { Val = list.NumberId });
         }
 
-        private static bool IsOrderedLabel(string? label) =>
+        internal static bool IsOrderedLabel(string? label) =>
             !string.IsNullOrEmpty(label) && label.Any(char.IsDigit);
     }
 

@@ -168,6 +168,10 @@ internal static class IWorkFormulaReader {
                     Operand operand = Pop(stack, 1, ref complete)[0];
                     string whitespace = node.GetString(25, out bool whitespaceComplete) ?? string.Empty;
                     if (!whitespaceComplete) complete = false;
+                    if (!whitespace.All(IsFormulaWhitespace)) {
+                        whitespace = string.Empty;
+                        complete = false;
+                    }
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
                         maximumCharacters, ref complete), operand.Precedence));
                     break;
@@ -399,6 +403,9 @@ internal static class IWorkFormulaReader {
         }
         return (int)value;
     }
+
+    private static bool IsFormulaWhitespace(char value) =>
+        value is ' ' or '\t' or '\r' or '\n';
 
     private static string Bound(string value, int maximum, ref bool complete) {
         if (value.Length <= maximum) return value;

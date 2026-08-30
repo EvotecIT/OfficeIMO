@@ -171,6 +171,8 @@ public sealed partial class IWorkSourceDocument {
     private static IReadOnlyList<IWorkPreviewAsset> ReadPreviews(
         IReadOnlyList<IWorkPackageEntry> entries, long maximumDecodedBytes) {
         var previews = new List<IWorkPreviewAsset>();
+        var recognizedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        long remainingDecodedBytes = maximumDecodedBytes;
         foreach (IWorkPackageEntry entry in entries) {
             string lower = entry.Path.ToLowerInvariant();
             string? mediaType = lower.EndsWith(".jpg", StringComparison.Ordinal) || lower.EndsWith(".jpeg", StringComparison.Ordinal)
@@ -180,13 +182,17 @@ public sealed partial class IWorkSourceDocument {
                     : lower.EndsWith(".pdf", StringComparison.Ordinal)
                         ? "application/pdf"
                         : null;
-            if (mediaType == null || !IsKnownPreviewPath(lower) || !HasExpectedSignature(entry.Bytes, mediaType)) continue;
+            if (mediaType == null || !IsKnownPreviewPath(lower)
+                || !recognizedPaths.Add(entry.Path)
+                || !HasExpectedSignature(entry.Bytes, mediaType)) continue;
             IWorkVisualCoverage coverage = mediaType == "application/pdf"
                 ? IWorkVisualCoverage.FullDocument
                 : IWorkVisualCoverage.FirstPageOrCompositePreview;
             (int? width, int? height) = IWorkImageInfo.Read(
-                entry.Bytes, mediaType, maximumDecodedBytes);
+                entry.Bytes, mediaType, remainingDecodedBytes, out long decodedBytes);
             if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
+            if (decodedBytes < 0 || decodedBytes > remainingDecodedBytes) continue;
+            remainingDecodedBytes -= decodedBytes;
             previews.Add(new IWorkPreviewAsset(entry.Path, mediaType, coverage, width, height, entry.Bytes));
         }
         return previews

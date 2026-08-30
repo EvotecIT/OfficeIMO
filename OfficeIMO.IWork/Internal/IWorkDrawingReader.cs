@@ -135,11 +135,13 @@ internal static class IWorkDrawingReader {
             return null;
         }
         (int? pixelWidth, int? pixelHeight) = IWorkImageInfo.Read(
-            entry.Bytes, mediaType, source.Options.MaximumPackageBytes);
+            entry.Bytes, mediaType, projectionBudget.RemainingDecodedImageBytes,
+            out long decodedBytes);
         if (!pixelWidth.HasValue || !pixelHeight.HasValue) {
             complete = false;
             return null;
         }
+        projectionBudget.AddDecodedImageBytes(decodedBytes);
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
         string? hyperlink = drawable.GetString(4, out bool hyperlinkComplete);
@@ -170,10 +172,11 @@ internal static class IWorkDrawingReader {
 
     private static IReadOnlyDictionary<ulong, DataEntry> ReadDataEntries(IWorkSourceDocument source,
         out ISet<ulong> duplicateIdentifiers, out bool metadataComplete) {
-        IWorkArchiveRecord? metadata = source.Index.FirstOfType(PackageMetadataArchive);
+        IWorkArchiveRecord? metadata = source.Index.UniqueOfType(PackageMetadataArchive,
+            out bool duplicateMetadata);
         var duplicates = new HashSet<ulong>();
         duplicateIdentifiers = duplicates;
-        metadataComplete = metadata != null;
+        metadataComplete = metadata != null && !duplicateMetadata;
         if (metadata == null) return new Dictionary<ulong, DataEntry>();
         var result = new Dictionary<ulong, DataEntry>();
         IReadOnlyList<IWorkWireMessage> messages = IWorkObjectIndex.TryGetMessages(

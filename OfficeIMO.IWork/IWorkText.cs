@@ -137,9 +137,11 @@ public sealed class IWorkTextRun {
 /// <summary>One paragraph in an iWork rich-text storage.</summary>
 public sealed class IWorkTextParagraph {
     internal IWorkTextParagraph(IReadOnlyList<IWorkTextRun> runs, IWorkParagraphStyle style,
-        int listLevel, string? listLabel, IWorkParagraphBreakKind breakKind) {
+        ulong? listIdentifier, int listLevel, string? listLabel,
+        IWorkParagraphBreakKind breakKind) {
         Runs = Array.AsReadOnly(runs.ToArray());
         Style = style;
+        ListIdentifier = listIdentifier;
         ListLevel = listLevel;
         ListLabel = listLabel;
         BreakKind = breakKind;
@@ -149,6 +151,8 @@ public sealed class IWorkTextParagraph {
     public IReadOnlyList<IWorkTextRun> Runs { get; }
     /// <summary>Gets resolved paragraph formatting.</summary>
     public IWorkParagraphStyle Style { get; }
+    /// <summary>Gets the stable source list-style identifier, or null for a non-list paragraph.</summary>
+    public ulong? ListIdentifier { get; }
     /// <summary>Gets the zero-based list level, or -1 for a non-list paragraph.</summary>
     public int ListLevel { get; }
     /// <summary>Gets the source list label, when directly recoverable.</summary>

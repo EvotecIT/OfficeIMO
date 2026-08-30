@@ -21,9 +21,6 @@ internal sealed class IWorkObjectIndex {
 
     internal IWorkWireMessage Message(IWorkArchiveRecord record) => IWorkProtobuf.Parse(record.Payload, _options);
 
-    internal IWorkArchiveRecord? FirstOfType(uint type) =>
-        _objects.Values.FirstOrDefault(record => record.MessageType == type);
-
     internal IWorkArchiveRecord? UniqueOfType(uint type, out bool duplicate) {
         IWorkArchiveRecord[] matches = _objects.Values
             .Where(record => record.MessageType == type)

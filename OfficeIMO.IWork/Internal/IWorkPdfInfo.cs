@@ -17,7 +17,10 @@ internal static class IWorkPdfInfo {
         int xref = (int)xrefOffset;
         SkipWhitespace(bytes, ref xref, startXref);
         if (StartsWith(bytes, xref, "xref")) return IsClassicXref(bytes, xref, startXref);
-        return IsXrefStreamObject(bytes, xref, startXref);
+        // XRef streams may be filtered, use predictors, and reference compressed object
+        // streams. Accepting them without decoding their entries would make separately
+        // searchable object text look authoritative, so the bounded validator fails closed.
+        return false;
     }
 
     private static bool IsClassicXref(byte[] bytes, int offset, int limit) {
@@ -62,35 +65,6 @@ internal static class IWorkPdfInfo {
                 out long pagesObject, out long pagesGeneration)
             || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
         return IsPagesObjectAt(bytes, pagesOffset, offset, pagesObject, pagesGeneration);
-    }
-
-    private static bool IsXrefStreamObject(byte[] bytes, int offset, int limit) {
-        if (!TryReadDecimal(bytes, ref offset, limit, out _)) return false;
-        SkipWhitespace(bytes, ref offset, limit);
-        if (!TryReadDecimal(bytes, ref offset, limit, out _)) return false;
-        SkipWhitespace(bytes, ref offset, limit);
-        if (!StartsWith(bytes, offset, "obj")) return false;
-        int dictionaryStart = IndexOf(bytes, "<<", offset + 3, Math.Min(limit, offset + 4096));
-        int dictionaryEnd = dictionaryStart < 0
-            ? -1
-            : IndexOf(bytes, ">>", dictionaryStart + 2, Math.Min(limit, dictionaryStart + 65536));
-        int streamStart = dictionaryEnd < 0 ? -1 : dictionaryEnd + 2;
-        if (streamStart >= 0) SkipWhitespace(bytes, ref streamStart, limit);
-        if (dictionaryEnd < 0
-            || streamStart < 0 || !StartsWith(bytes, streamStart, "stream")
-            || IndexOf(bytes, "endstream", streamStart + 6, limit) < 0
-            || !HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/XRef")
-            || !HasXrefWidths(bytes, dictionaryStart, dictionaryEnd)
-            || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Size", out long size)
-            || size <= 0
-            || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Root",
-                out long rootObject, out long rootGeneration)
-            || rootObject <= 0 || rootObject >= size) return false;
-        int rootOffset = FindObjectHeader(bytes, rootObject, rootGeneration, offset);
-        if (rootOffset < 0 || !IsCatalogObjectAt(bytes, rootOffset, offset, rootObject, rootGeneration,
-                out long pagesObject, out long pagesGeneration)) return false;
-        int pagesOffset = FindObjectHeader(bytes, pagesObject, pagesGeneration, offset);
-        return pagesOffset >= 0 && IsPagesObjectAt(bytes, pagesOffset, offset, pagesObject, pagesGeneration);
     }
 
     private static bool TryReadFixedDecimal(byte[] bytes, ref int offset, int limit, int digits, out long value) {
@@ -180,22 +154,6 @@ internal static class IWorkPdfInfo {
         SkipWhitespace(bytes, ref offset, end);
         return StartsWith(bytes, offset, value)
             && (offset + value.Length >= end || IsDelimiter(bytes[offset + value.Length]));
-    }
-
-    private static bool HasXrefWidths(byte[] bytes, int start, int end) {
-        int offset = IndexOfDictionaryName(bytes, "/W", start, end);
-        if (offset < 0) return false;
-        offset += 2;
-        SkipWhitespace(bytes, ref offset, end);
-        if (offset >= end || bytes[offset++] != (byte)'[') return false;
-        bool hasNonZeroWidth = false;
-        for (int index = 0; index < 3; index++) {
-            SkipWhitespace(bytes, ref offset, end);
-            if (!TryReadDecimal(bytes, ref offset, end, out long width) || width > 8) return false;
-            hasNonZeroWidth |= width > 0;
-        }
-        SkipWhitespace(bytes, ref offset, end);
-        return hasNonZeroWidth && offset < end && bytes[offset] == (byte)']';
     }
 
     private static int IndexOfDictionaryName(byte[] bytes, string name, int start, int end) {
