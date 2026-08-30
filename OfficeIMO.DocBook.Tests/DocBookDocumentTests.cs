@@ -653,6 +653,51 @@ public sealed class DocBookDocumentTests {
             diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
+    [Theory]
+    [InlineData("emphasis")]
+    [InlineData("phrase")]
+    public void ValidationAllowsLinksInUntypedInlineVocabulary(string inlineName) {
+        DocBookDocument document = DocBookDocument.Parse(
+            $"<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><{inlineName}><link xl:href=\"https://example.test/\">Site</link></{inlineName}></para></article>");
+
+        DocBookValidationResult validation = document.Validate();
+
+        Assert.True(validation.IsValid);
+        Assert.DoesNotContain(validation.Diagnostics, diagnostic => diagnostic.Code == "DB015");
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedMetadataCreationReusesOneContainerAndValidationRejectsDuplicates(DocBookProfile profile) {
+        DocBookDocument article = DocBookDocument.CreateArticle(profile);
+        article.Root.Add(DocBookNodeKind.Info);
+        article.Root.Add(DocBookNodeKind.Info);
+        DocBookNode section = article.AddSection("Section");
+        section.Add(DocBookNodeKind.Info);
+        section.Add(DocBookNodeKind.Info);
+
+        DocBookDocument book = DocBookDocument.CreateBook(profile);
+        book.Root.Add(DocBookNodeKind.Info);
+        book.Root.Add(DocBookNodeKind.Info);
+        book.AddParagraph("Body");
+        DocBookNode chapter = book.Root.Children.Single(node => node.Name == "chapter");
+        chapter.Add(DocBookNodeKind.Info);
+        chapter.Add(DocBookNodeKind.Info);
+
+        Assert.Single(article.Xml.Root!.Elements(), element => element.Name.LocalName.EndsWith("info", StringComparison.Ordinal));
+        Assert.Single(section.Children, child => child.Name.EndsWith("info", StringComparison.Ordinal));
+        Assert.Single(book.Xml.Root!.Elements(), element => element.Name.LocalName.EndsWith("info", StringComparison.Ordinal));
+        Assert.Single(chapter.Children, child => child.Name.EndsWith("info", StringComparison.Ordinal));
+
+        XElement chapterElement = book.Xml.Descendants().Single(element => element.Name.LocalName == "chapter");
+        XElement chapterInfo = chapterElement.Elements().Single(element => element.Name.LocalName.EndsWith("info", StringComparison.Ordinal));
+        chapterElement.Add(new XElement(chapterInfo.Name));
+
+        Assert.Contains(book.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB019" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void PrimaryTitleLookupIgnoresNamespacedExtensionTitles() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:test\" version=\"5.2\"><section><x:title>Extension</x:title><para>Body</para></section></article>";
@@ -1562,6 +1607,58 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("could not be represented", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.Contains(converted.Value.Xml.Descendants(), element =>
             (string?)element.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")) == "https://example.test/");
+    }
+
+    [Fact]
+    public void SharedBookConversionDoesNotCreateAChapterForAnOmittedFlatLink() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Metadata = new[] {
+                new OfficeDocumentModelMetadataEntry { Category = "docbook", Name = "kind", Value = "book" }
+            },
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "missing-target", Kind = "link", Text = "Unavailable" }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.DoesNotContain(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "chapter");
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB120" &&
+            diagnostic.Message.IndexOf("no DocBook-representable", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
+    public void SharedReverseConversionPreservesLeafCaptionTextAsParagraphContent() {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = new[] {
+                new OfficeDocumentModelNode {
+                    Kind = "media",
+                    Children = new OfficeDocumentModelNode[] {
+                        new OfficeDocumentModelNode {
+                            Kind = "image-object",
+                            Children = new[] {
+                                new OfficeDocumentModelNode {
+                                    Kind = "image",
+                                    Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+                                        ["fileref"] = "assets/chart.png"
+                                    }
+                                }
+                            }
+                        },
+                        new OfficeDocumentModelNode { Kind = "caption", Text = "Visible caption" }
+                    }
+                }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+        XElement caption = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "caption");
+
+        Assert.Equal("Visible caption", Assert.Single(caption.Elements(), element => element.Name.LocalName == "para").Value);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB116");
+        Assert.True(converted.Value.Validate().IsValid);
     }
 
     [Fact]

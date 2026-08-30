@@ -789,9 +789,9 @@ public sealed partial class DocBookDocument {
 
         bool AddFlatLink(OfficeDocumentModelLink source) {
             string text = source.Text ?? source.Uri ?? source.DestinationName ?? source.Id;
-            DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
             bool represented = false;
             if (!string.IsNullOrWhiteSpace(source.Uri)) {
+                DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
                 DocBookNode link = selectedProfile == DocBookProfile.DocBook45
                     ? paragraph.AddRaw("ulink", text)
                     : paragraph.Add(DocBookNodeKind.Link, text);
@@ -799,6 +799,7 @@ public sealed partial class DocBookDocument {
                     ? XName.Get("url") : XName.Get("href", "http://www.w3.org/1999/xlink"), source.Uri);
                 represented = true;
             } else if (!string.IsNullOrWhiteSpace(source.DestinationName)) {
+                DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
                 DocBookNode link = paragraph.Add(DocBookNodeKind.Link, text);
                 link.SetAttribute("linkend", source.DestinationName);
                 represented = true;
@@ -809,7 +810,6 @@ public sealed partial class DocBookDocument {
                 source.Region != null ||
                 (!string.IsNullOrWhiteSpace(source.Uri) && !string.IsNullOrWhiteSpace(source.DestinationName));
             if (!represented || hasUnsupportedTarget) {
-                if (!represented) paragraph.Remove();
                 diagnostics.Add(new DocBookDiagnostic("DB120", DocBookDiagnosticSeverity.Warning,
                     represented
                         ? $"Shared link '{source.Id}' was emitted, but one or more additional target or geometry fields could not be represented in DocBook."
@@ -1104,7 +1104,8 @@ public sealed partial class DocBookDocument {
 
     private static bool NodeUsesParagraphText(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.ListItem || kind == DocBookNodeKind.Note || kind == DocBookNodeKind.Tip ||
-        kind == DocBookNodeKind.Important || kind == DocBookNodeKind.Caution || kind == DocBookNodeKind.Warning;
+        kind == DocBookNodeKind.Important || kind == DocBookNodeKind.Caution || kind == DocBookNodeKind.Warning ||
+        kind == DocBookNodeKind.Caption;
 
     private static bool SourceChildrenRepresentText(OfficeDocumentModelNode source, DocBookNodeKind kind) {
         string representedKind = NodeUsesTitleText(kind) ? "title" : NodeUsesParagraphText(kind) ? "paragraph" : string.Empty;

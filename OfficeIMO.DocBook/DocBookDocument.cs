@@ -176,7 +176,15 @@ public sealed partial class DocBookDocument {
                     ? !string.Equals(localName, expectedInfoName, StringComparison.Ordinal)
                     : parentKind != DocBookNodeKind.Unknown);
             bool invalidInlineParent = (kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference) &&
-                (parent == null || !CanContainInlineContent(parent));
+                (parent == null || !CanContainInlineContent(parent) &&
+                    (parentKind != DocBookNodeKind.Unknown || CanContainParagraphContent(parent)));
+            bool duplicateInfo = kind == DocBookNodeKind.Info && expectedInfoName != null &&
+                string.Equals(localName, expectedInfoName, StringComparison.Ordinal) &&
+                element.ElementsBeforeSelf(Namespace + expectedInfoName).Any();
+            if (duplicateInfo) {
+                diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
+                    $"{localName} appears more than once under the same component.", path));
+            }
             bool invalidParent = invalidInlineParent ||
                 kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||

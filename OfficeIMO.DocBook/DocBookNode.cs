@@ -127,6 +127,8 @@ public sealed class DocBookNode {
             throw new ArgumentException("DocBook metadata containers cannot contain direct text.", nameof(text));
         }
         if (kind == DocBookNodeKind.Info && _document.GetComponentInfoElementName(Element) is string infoName) {
+            XElement? existing = Element.Element(_document.Namespace + infoName);
+            if (existing != null) return new DocBookNode(_document, existing);
             var element = new XElement(_document.Namespace + infoName);
             Element.AddFirst(element); _document.MarkModified();
             return new DocBookNode(_document, element);
