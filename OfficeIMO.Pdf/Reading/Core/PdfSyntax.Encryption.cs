@@ -7,7 +7,7 @@ internal static partial class PdfSyntax {
         PdfReadOptions? options,
         out PdfStandardSecurityHandler? decryptor) {
         decryptor = null;
-        PdfReference? encryptReference = TryReadFirstReference(trailerRaw, "Encrypt");
+        PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", options?.Limits);
         if (encryptReference is null) {
             return false;
         }

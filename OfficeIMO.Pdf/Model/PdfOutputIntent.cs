@@ -1,15 +1,18 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Describes a generated PDF output intent backed by an ICC profile.
 /// </summary>
 public sealed class PdfOutputIntent {
-    private readonly byte[] _iccProfile;
-    private string _outputConditionIdentifier;
+    private byte[] _iccProfile = Array.Empty<byte>();
+    private string _outputConditionIdentifier = string.Empty;
     private string? _outputCondition;
     private string? _registryName;
     private string? _info;
     private PdfOutputIntentPolicy _policy;
+    private PdfOutputIntentSubtype _subtype;
 
     /// <summary>Creates an output intent backed by an ICC profile.</summary>
     public PdfOutputIntent(byte[] iccProfile)
@@ -28,14 +31,33 @@ public sealed class PdfOutputIntent {
 
     /// <summary>Creates an output intent backed by an ICC profile.</summary>
     public PdfOutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
+        Initialize(iccProfile, outputConditionIdentifier, policy, PdfOutputIntentSubtype.GtsPdfA1);
+    }
+
+    /// <summary>Creates an output intent backed by an ICC profile with an explicit PDF dictionary subtype.</summary>
+    public PdfOutputIntent(
+        byte[] iccProfile,
+        string outputConditionIdentifier,
+        PdfOutputIntentPolicy policy,
+        PdfOutputIntentSubtype subtype) {
+        Initialize(iccProfile, outputConditionIdentifier, policy, subtype);
+    }
+
+    private void Initialize(
+        byte[] iccProfile,
+        string outputConditionIdentifier,
+        PdfOutputIntentPolicy policy,
+        PdfOutputIntentSubtype subtype) {
         Guard.NotNullOrEmpty(iccProfile, nameof(iccProfile));
         Guard.NotNullOrWhiteSpace(outputConditionIdentifier, nameof(outputConditionIdentifier));
         Guard.OutputIntentPolicy(policy, nameof(policy));
+        Guard.OutputIntentSubtype(subtype, nameof(subtype));
 
         ColorComponents = GetIccColorComponentCount(iccProfile);
         _iccProfile = (byte[])iccProfile.Clone();
         _outputConditionIdentifier = outputConditionIdentifier;
         _policy = policy;
+        _subtype = subtype;
     }
 
     /// <summary>
@@ -104,11 +126,43 @@ public sealed class PdfOutputIntent {
         }
     }
 
+    /// <summary>Creates a PDF/X output intent backed by a caller-supplied CMYK print-condition ICC profile.</summary>
+    /// <remarks>The ICC profile must be licensed and selected by the producer for the intended printing condition.</remarks>
+    public static PdfOutputIntent CreatePdfX(byte[] iccProfile, string outputConditionIdentifier) {
+        var outputIntent = new PdfOutputIntent(
+            iccProfile,
+            outputConditionIdentifier,
+            PdfOutputIntentPolicy.PdfXPrintCondition,
+            PdfOutputIntentSubtype.GtsPdfX);
+        if (outputIntent.ColorComponents != 4) {
+            throw new ArgumentException("PDF/X print-condition output intents must use a CMYK ICC profile.", nameof(iccProfile));
+        }
+
+        if (!OfficeIccColorProfile.TryCreate(iccProfile, out OfficeIccColorProfile? profile) ||
+            profile == null ||
+            profile.ProfileClass != OfficeIccProfileClass.OutputDevice ||
+            profile.ComponentCount != 4 ||
+            !profile.HasOutputTransform) {
+            throw new ArgumentException("PDF/X CMYK ICC profiles must declare the output-device class and expose a supported PCS-to-device output transform.", nameof(iccProfile));
+        }
+
+        return outputIntent;
+    }
+
+    /// <summary>Standard subtype written to the PDF output-intent dictionary.</summary>
+    public PdfOutputIntentSubtype Subtype {
+        get => _subtype;
+        set {
+            Guard.OutputIntentSubtype(value, nameof(Subtype));
+            _subtype = value;
+        }
+    }
+
     /// <summary>Number of color components in the ICC profile color space.</summary>
-    public int ColorComponents { get; }
+    public int ColorComponents { get; private set; }
 
     internal PdfOutputIntent Clone() {
-        return new PdfOutputIntent(_iccProfile, OutputConditionIdentifier, Policy) {
+        return new PdfOutputIntent(_iccProfile, OutputConditionIdentifier, Policy, Subtype) {
             OutputCondition = OutputCondition,
             RegistryName = RegistryName,
             Info = Info

@@ -37,4 +37,5 @@ internal static class OfficeImoPdfGenerator {
         HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions {
             FontFamily = fontFamily
         });
+
 }

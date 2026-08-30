@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 195,
-    "productionComponentCount": 103,
-    "testProjectCount": 35,
+    "projectCount": 199,
+    "productionComponentCount": 104,
+    "testProjectCount": 36,
     "benchmarkProjectCount": 33,
-    "validationProjectCount": 25,
+    "validationProjectCount": 27,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41521
+    "conceptualWordCount": 41552
   },
   "categories": [
     {
@@ -34,7 +34,7 @@
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 17
+      "componentCount": 18
     },
     {
       "name": "Rendering surfaces",
@@ -131,7 +131,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 463,
+      "sourceFileCount": 488,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -391,7 +391,7 @@
       "description": "HTML parsing, resource policy, CSS layout, diagnostics, and direct rendering for OfficeIMO converters.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html/OfficeIMO.Html.csproj",
-      "sourceFileCount": 278,
+      "sourceFileCount": 279,
       "referencingTestProjectCount": 6,
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html/",
@@ -404,7 +404,7 @@
       "description": "Direct dependency-free HTML/PDF rendering and PDF-to-HTML conversion for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj",
-      "sourceFileCount": 22,
+      "sourceFileCount": 23,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/html/",
       "apiUrl": null,
@@ -422,6 +422,19 @@
       "docsUrl": "/docs/html/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Pdf.Browser"
+    },
+    {
+      "name": "OfficeIMO.Html.Pdf.Workbench",
+      "packageId": "OfficeIMO.Html.Pdf.Workbench",
+      "category": "Publishing and conversion",
+      "description": "Local browser workbench for inspecting managed and Chromium HTML-to-PDF output and conversion evidence.",
+      "kind": "tool",
+      "projectPath": "Tools/OfficeIMO.Html.Pdf.Workbench/OfficeIMO.Html.Pdf.Workbench.csproj",
+      "sourceFileCount": 9,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/html/",
+      "apiUrl": null,
+      "packageUrl": null
     },
     {
       "name": "OfficeIMO.Html.Rtf",
@@ -742,7 +755,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1028,
+      "sourceFileCount": 1054,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",

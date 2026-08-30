@@ -47,7 +47,7 @@ internal static class OfficeImageMetadataInspector {
                 InspectBmp(data, snapshot);
                 break;
             case OfficeImageFormat.Gif:
-                if (HasGifCommentExtension(data)) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
+                InspectGif(data, snapshot);
                 break;
         }
         return snapshot;
@@ -412,30 +412,36 @@ internal static class OfficeImageMetadataInspector {
         System.Text.Encoding.ASCII.GetString(data, offset, count);
     private static bool Matches(byte[] data, int offset, int count, string value) =>
         count >= value.Length && ReadAscii(data, offset, value.Length) == value;
-    private static bool HasGifCommentExtension(byte[] data) {
-        if (data.Length < 14) return false;
+    private static void InspectGif(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+        if (data.Length < 14) return;
         int offset = 13;
         int packed = data[10];
         if ((packed & 0x80) != 0) offset += 3 << ((packed & 7) + 1);
         while (offset < data.Length) {
             int introducer = data[offset++];
-            if (introducer == 0x3B) return false;
+            if (introducer == 0x3B) return;
             if (introducer == 0x21) {
-                if (offset >= data.Length) return false;
+                if (offset >= data.Length) return;
                 int label = data[offset++];
-                if (label == 0xFE) return true;
-                if (!SkipGifSubBlocks(data, ref offset)) return false;
+                if (label == 0xFE) snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
+                if (label == 0xFF &&
+                    offset < data.Length &&
+                    data[offset] == 11 &&
+                    offset <= data.Length - 12 &&
+                    Matches(data, offset + 1, 11, "ICCRGBG1012")) {
+                    snapshot.Kinds |= OfficeImageMetadataKinds.Icc;
+                }
+                if (!SkipGifSubBlocks(data, ref offset)) return;
                 continue;
             }
-            if (introducer != 0x2C || offset > data.Length - 9) return false;
+            if (introducer != 0x2C || offset > data.Length - 9) return;
             int descriptor = data[offset + 8];
             offset += 9;
             if ((descriptor & 0x80) != 0) offset += 3 << ((descriptor & 7) + 1);
-            if (offset >= data.Length) return false;
+            if (offset >= data.Length) return;
             offset++;
-            if (!SkipGifSubBlocks(data, ref offset)) return false;
+            if (!SkipGifSubBlocks(data, ref offset)) return;
         }
-        return false;
     }
     private static bool SkipGifSubBlocks(byte[] data, ref int offset) {
         while (offset < data.Length) {

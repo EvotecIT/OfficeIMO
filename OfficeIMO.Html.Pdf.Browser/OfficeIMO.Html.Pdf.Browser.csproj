@@ -21,7 +21,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <HtmlTinkerXVersion>3.0.0</HtmlTinkerXVersion>
+    <HtmlTinkerXVersion>3.0.1</HtmlTinkerXVersion>
   </PropertyGroup>
 
   <ItemGroup>

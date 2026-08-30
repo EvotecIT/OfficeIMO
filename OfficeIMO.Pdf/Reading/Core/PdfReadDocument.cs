@@ -16,6 +16,7 @@ public sealed partial class PdfReadDocument {
     private readonly PdfMetadata _metadata;
     private readonly PdfXmpMetadataInfo? _xmpMetadata;
     private readonly IReadOnlyList<PdfOutputIntentInfo> _outputIntents;
+    private readonly bool _outputIntentsAreComplete;
     private readonly PdfIccProfileRetentionBudget _outputIntentMetadataRetentionBudget;
     private readonly IReadOnlyList<PdfOutlineItem> _outlines;
     private readonly IReadOnlyList<PdfPageLabel> _pageLabels;
@@ -68,7 +69,8 @@ public sealed partial class PdfReadDocument {
         _namedDestinations = ExtractNamedDestinations();
         _catalogActions = ExtractCatalogActions(out _javaScripts);
         _attachments = ExtractAttachmentInfos();
-        _outputIntents = ExtractOutputIntents();
+        _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete);
+        _outputIntentsAreComplete = outputIntentsAreComplete;
         _xmpMetadata = ExtractXmpMetadata();
         _taggedContent = ExtractTaggedContent();
         _optionalContent = ExtractOptionalContent();
@@ -159,6 +161,7 @@ public sealed partial class PdfReadDocument {
     internal PdfMetadata UncheckedMetadata => _metadata;
     internal PdfXmpMetadataInfo? UncheckedXmpMetadata => _xmpMetadata;
     internal IReadOnlyList<PdfOutputIntentInfo> UncheckedOutputIntents => _outputIntents;
+    internal bool UncheckedOutputIntentsAreComplete => _outputIntentsAreComplete;
     internal IReadOnlyList<PdfPageLabel> UncheckedPageLabels => _pageLabels;
     internal IReadOnlyList<PdfNamedDestination> UncheckedNamedDestinations => _namedDestinations;
     internal IReadOnlyList<PdfCatalogAction> UncheckedCatalogActions => _catalogActions;

@@ -343,5 +343,31 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Equal(2, VisualBaselineTestSupport.DecodePng(comparison.DiffPng, "PDF diff PNG is not a supported PNG file.").Width);
     }
 
+    [Fact]
+    public void RasterComparisonNormalizesSinglePixelPageRoundingDifferences() {
+        byte[] expected = VisualBaselineTestSupport.CreateRgbPng(
+            2,
+            1,
+            new byte[] { 255, 255, 255, 255, 255, 255 });
+        byte[] actual = VisualBaselineTestSupport.CreateRgbPng(
+            1,
+            1,
+            new byte[] { 255, 255, 255 });
+
+        VisualRasterComparison comparison = CompareRasterImages(expected, actual);
+
+        Assert.True(comparison.Passed);
+        Assert.Equal(0, comparison.DifferentPixels);
+
+        byte[] visiblyDifferent = VisualBaselineTestSupport.CreateRgbPng(
+            1,
+            1,
+            new byte[] { 0, 0, 0 });
+        VisualRasterComparison perceptualFailure = CompareRasterImages(expected, visiblyDifferent);
+
+        Assert.False(perceptualFailure.Passed);
+        Assert.True(perceptualFailure.MeanAbsoluteError > perceptualFailure.MaximumMeanAbsoluteError);
+    }
+
 
 }

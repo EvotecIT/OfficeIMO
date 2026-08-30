@@ -38,6 +38,21 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void FacturXReadinessRequiresEmbeddedFileModificationDate() {
+        var options = new PdfOptions()
+            .ConfigureFacturXGroundwork(CreateCiiXml());
+
+        PdfComplianceReadinessReport missing = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
+        options.SetEmbeddedFileModificationDate("factur-x.xml", new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero));
+        PdfComplianceReadinessReport satisfied = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
+
+        AssertRequirement(missing, "pdfa-embedded-file-modification-dates", PdfComplianceRequirementStatus.Missing);
+        AssertRequirement(missing, "einvoice-xml-attachment-params", PdfComplianceRequirementStatus.Missing);
+        AssertRequirement(satisfied, "pdfa-embedded-file-modification-dates", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(satisfied, "einvoice-xml-attachment-params", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void FacturXReadinessRejectsMalformedOrWrongRootXmlAttachment() {
         var malformedOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
@@ -58,7 +73,8 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void FacturXReadbackAcceptsCanonicalInvoiceXmlAttachment() {
         var options = new PdfOptions()
-            .ConfigureFacturXGroundwork(CreateCiiXml());
+            .ConfigureFacturXGroundwork(CreateCiiXml())
+            .SetEmbeddedFileModificationDate("factur-x.xml", new DateTimeOffset(2026, 8, 24, 8, 30, 0, TimeSpan.Zero));
         byte[] pdf = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text("Factur-X invoice"))
             .ToBytes();
@@ -66,6 +82,7 @@ public partial class PdfComplianceAnalyzerTests {
         PdfComplianceReadinessReport report = PdfComplianceAnalyzer.AssessReadback(PdfComplianceProfile.FacturX, pdf);
 
         PdfComplianceRequirement requirement = AssertRequirement(report, "readback-associated-invoice-file", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "readback-pdfa-embedded-file-modification-dates", PdfComplianceRequirementStatus.Satisfied);
         Assert.Contains("CrossIndustryInvoice", requirement.Diagnostic);
     }
 

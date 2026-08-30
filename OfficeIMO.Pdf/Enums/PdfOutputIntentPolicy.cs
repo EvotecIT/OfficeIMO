@@ -7,5 +7,7 @@ public enum PdfOutputIntentPolicy {
     /// <summary>No profile-specific output-intent policy has been declared.</summary>
     Unspecified,
     /// <summary>The output intent is intended to represent sRGB IEC61966-2.1 output.</summary>
-    SrgbIec6196621
+    SrgbIec6196621,
+    /// <summary>The output intent is intended to represent a CMYK PDF/X print condition.</summary>
+    PdfXPrintCondition
 }

@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeManagedTextShaper {
     internal static OfficeManagedTextFallback Resolve(
         string text,
-        OfficeTrueTypeFont font,
+        IOfficeFontProgram font,
         System.Threading.CancellationToken cancellationToken = default) {
         if (string.IsNullOrEmpty(text) || !RequiresComplexLayout(text)) {
             return new OfficeManagedTextFallback(text ?? string.Empty, used: false, incomplete: false);
@@ -17,6 +17,8 @@ internal static class OfficeManagedTextShaper {
         cancellationToken.ThrowIfCancellationRequested();
         bool incomplete =
             OfficeTextElements.ContainsShapingRequiredScript(text) ||
+            OfficeTextElements.ContainsVariationSelector(text) ||
+            OfficeTextElements.ContainsZeroWidthJoinerSequence(text) ||
             (OfficeTextElements.ContainsJoiningScript(text) &&
              !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(text));
         string contextual = OfficeArabicTextShaper.Shape(text);
@@ -41,7 +43,9 @@ internal static class OfficeManagedTextShaper {
         OfficeTextElements.ContainsRightToLeft(text) ||
         OfficeTextElements.ContainsJoiningScript(text) ||
         OfficeTextElements.ContainsShapingRequiredScript(text) ||
-        OfficeTextElements.ContainsBidiControl(text);
+        OfficeTextElements.ContainsBidiControl(text) ||
+        OfficeTextElements.ContainsVariationSelector(text) ||
+        OfficeTextElements.ContainsZeroWidthJoinerSequence(text);
 
     internal static string ToVisualOrder(
         string? value,

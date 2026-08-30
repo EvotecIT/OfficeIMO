@@ -312,6 +312,57 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(absolute.R < relative.R || absolute.G < relative.G || absolute.B < relative.B);
     }
 
+    [Theory]
+    [InlineData(1, 33)]
+    [InlineData(2, 37)]
+    public void IccLegacyOutputLut_ConvertsPcsToFourDeviceComponents(int precision, int gridPoints) {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLabLutWithOutputTransform(precision, gridPoints);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.True(profile!.HasOutputTransform);
+        Assert.True(profile.TryConvertToDevice(
+            OfficeColor.FromRgb(208, 64, 32),
+            OfficeIccRenderingIntent.Perceptual,
+            out double[] components));
+
+        Assert.Equal(4, components.Length);
+        Assert.All(components, component => Assert.InRange(component, 0D, 1D));
+        Assert.Contains(components, component => component > 0.01D && component < 0.99D);
+    }
+
+    [Fact]
+    public void IccLegacyOutputLut_RejectsNonIdentityMatrixFailClosed() {
+        byte[] profileBytes = IccLutTestProfiles.CreateCmykLabLutWithOutputTransform(precision: 2, outputGridPoints: 37);
+        int transformOffset = FindTagOffset(profileBytes, "B2A0");
+        WriteS15Fixed16(profileBytes, transformOffset + 16, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile));
+        Assert.False(profile!.HasOutputTransform);
+        Assert.False(profile.TryConvertToDevice(OfficeColor.Red, out _));
+    }
+
+    [Theory]
+    [InlineData(1, 33)]
+    [InlineData(2, 37)]
+    public void IccLegacyXyzOutputLut_AppliesMatrixBeforeInputTables(int precision, int gridPoints) {
+        byte[] identityBytes = IccLutTestProfiles.CreateCmykXyzLutWithOutputTransform(precision, gridPoints);
+        byte[] transformedBytes = (byte[])identityBytes.Clone();
+        int transformOffset = FindTagOffset(transformedBytes, "B2A0");
+        WriteS15Fixed16(transformedBytes, transformOffset + 12, 0.5D);
+
+        Assert.True(OfficeIccColorProfile.TryCreate(identityBytes, out OfficeIccColorProfile? identityProfile));
+        Assert.True(OfficeIccColorProfile.TryCreate(transformedBytes, out OfficeIccColorProfile? transformedProfile));
+        Assert.True(identityProfile!.HasOutputTransform);
+        Assert.True(transformedProfile!.HasOutputTransform);
+        Assert.True(identityProfile.TryConvertToDevice(OfficeColor.Red, out double[] identity));
+        Assert.True(transformedProfile.TryConvertToDevice(OfficeColor.Red, out double[] transformed));
+
+        Assert.Equal(4, transformed.Length);
+        Assert.True(transformed[0] < identity[0]);
+        Assert.Equal(identity[1], transformed[1], precision == 1 ? 2 : 4);
+        Assert.Equal(identity[2], transformed[2], precision == 1 ? 2 : 4);
+    }
+
     [Fact]
     public void IccMatrixProfile_AppliesMediaWhitePointForAbsoluteColorimetricIntent() {
         byte[] profileBytes = PdfIccProfiles.SrgbIec6196621;
@@ -465,6 +516,26 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(profile.TrySoftProof(source, out OfficeColor proofed));
         Assert.Equal(source.A, proofed.A);
         Assert.NotEqual(source, proofed);
+    }
+
+    [Fact]
+    public void IccOutputProfile_DerivesKOnlyNeutralToneFromItsRoundTripResponse() {
+        Assert.True(OfficeIccColorProfile.TryCreate(
+            IccMabTestProfiles.CreateCmykLab8Bidirectional(),
+            out OfficeIccColorProfile? profile));
+        OfficeColor neutral = OfficeColor.FromRgb(128, 128, 128);
+        const OfficeIccRenderingIntent intent = OfficeIccRenderingIntent.RelativeColorimetric;
+
+        Assert.True(profile!.TryConvertToDevice(neutral, intent, out double[] profiledComponents));
+        Assert.True(profile.TryConvert(profiledComponents, intent, out OfficeColor profiledColor));
+        Assert.True(profile.TryDeriveNeutralBlack(neutral, intent, out double black));
+        Assert.True(profile.TryConvert(new[] { 0D, 0D, 0D, black }, intent, out OfficeColor blackOnlyColor));
+
+        Assert.InRange(black, 0D, 1D);
+        Assert.InRange(Math.Abs(Luminance(profiledColor) - Luminance(blackOnlyColor)), 0D, 2D);
+
+        static double Luminance(OfficeColor color) =>
+            0.2126D * color.R + 0.7152D * color.G + 0.0722D * color.B;
     }
 
     [Fact]

@@ -19,6 +19,8 @@ public class PdfComplianceProfileCompatibilityTests {
     [InlineData(PdfComplianceProfile.PdfA4E, 11)]
     [InlineData(PdfComplianceProfile.PdfA4F, 12)]
     [InlineData(PdfComplianceProfile.PdfUa2, 13)]
+    [InlineData(PdfComplianceProfile.PdfX1A2003, 14)]
+    [InlineData(PdfComplianceProfile.PdfX4, 15)]
     public void NumericValuesRemainStableForPackageConsumers(PdfComplianceProfile profile, int expectedValue) {
         Assert.Equal(expectedValue, (int)profile);
     }

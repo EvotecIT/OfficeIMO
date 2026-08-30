@@ -284,7 +284,8 @@ public sealed class PdfComplianceProofReport {
     internal static bool IsExternalValidationRequirement(string id) =>
         string.Equals(id, "verapdf-validation", StringComparison.Ordinal) ||
         string.Equals(id, "pdfua-validation", StringComparison.Ordinal) ||
-        string.Equals(id, "mustang-validation", StringComparison.Ordinal);
+        string.Equals(id, "mustang-validation", StringComparison.Ordinal) ||
+        string.Equals(id, "pdfx-validation", StringComparison.Ordinal);
 
     private static bool TryGetExternalValidator(string id, out PdfExternalValidatorKind validatorKind) {
         if (string.Equals(id, "verapdf-validation", StringComparison.Ordinal)) {
@@ -299,6 +300,11 @@ public sealed class PdfComplianceProofReport {
 
         if (string.Equals(id, "mustang-validation", StringComparison.Ordinal)) {
             validatorKind = PdfExternalValidatorKind.Mustang;
+            return true;
+        }
+
+        if (string.Equals(id, "pdfx-validation", StringComparison.Ordinal)) {
+            validatorKind = PdfExternalValidatorKind.PdfXValidator;
             return true;
         }
 

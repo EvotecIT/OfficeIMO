@@ -8,6 +8,7 @@ internal static partial class PdfWriter {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 RenderTableFlowBlock(
                     batch.Table,
                     batch.IsLast ? nextBlock : null,
@@ -706,6 +707,7 @@ internal static partial class PdfWriter {
 
             int firstRowIndex = skipInitialHeaderRows ? headerRowCount : 0;
             for (int rowIndex = firstRowIndex; rowIndex < tb.Rows.Count; rowIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (rowHeights[rowIndex] > maxContentHeight + 0.001) {
                     if (!GetTableRowAllowBreakAcrossPages(style, rowIndex)) {
                         throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");

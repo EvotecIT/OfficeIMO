@@ -299,6 +299,28 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasActualText_PositionedOverloadPreservesReadingOrderAndCoordinates() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .ActualText("First", 20D, 30D, logical => logical.Shape(
+                    OfficeShape.Rectangle(20D, 10D), 20D, 20D,
+                    new PdfDrawingStyle { Decorative = true }))
+                .ActualText("Second", 20D, 60D, logical => logical.Shape(
+                    OfficeShape.Rectangle(20D, 10D), 20D, 50D,
+                    new PdfDrawingStyle { Decorative = true })))
+            .ToBytes();
+
+        PdfReadDocument read = PdfReadDocument.Open(bytes);
+        Assert.Contains("First", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Second", read.ExtractText(), StringComparison.Ordinal);
+        PdfTextSpan[] spans = read.Pages[0].GetTextSpans().Where(span => span.Text is "First" or "Second").ToArray();
+        Assert.Equal(2, spans.Length);
+        Assert.All(spans, span => Assert.Equal(20D, span.X, 3));
+        Assert.True(spans[0].Y > spans[1].Y);
+    }
+
+    [Fact]
     public void CanvasActualText_RejectsInvalidArgumentsAndEmptyBuilders() {
         var canvas = new PdfPageCanvas();
 
@@ -306,6 +328,7 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentException>(() => canvas.ActualText(string.Empty, _ => { }));
         Assert.Throws<ArgumentNullException>(() => canvas.ActualText("Text", null!));
         Assert.Throws<ArgumentException>(() => canvas.ActualText("Text", _ => { }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => canvas.ActualText("Text", -1D, 0D, nested => nested.Text("x", 0D, 0D, 10D, 10D)));
     }
 
     [Fact]
