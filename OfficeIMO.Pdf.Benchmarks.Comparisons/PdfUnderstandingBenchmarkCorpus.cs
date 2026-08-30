@@ -6,6 +6,7 @@ internal sealed record PdfUnderstandingBenchmarkExpectation(
     int PageNumber,
     IReadOnlyList<string> ReadingOrder,
     string TableMarker,
+    IReadOnlyList<string> ExpectedTableCells,
     IReadOnlyDictionary<string, string> ExpectedRegionText,
     IReadOnlyDictionary<string, PdfUnderstandingSemanticKind> SemanticKinds);
 
@@ -80,6 +81,12 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         list, caption, table, footer
                     },
                     table,
+                    new[] {
+                        table, ownerHeader, amountHeader, statusHeader,
+                        accountOne, ownerOne, amountOne, statusOne,
+                        accountTwo, ownerTwo, amountTwo, statusTwo,
+                        accountThree, ownerThree, amountThree, statusThree
+                    },
                     new Dictionary<string, string>(StringComparer.Ordinal) {
                         [header] = header + " semantic benchmark running header",
                         [title] = title + " Structured understanding spanning heading",

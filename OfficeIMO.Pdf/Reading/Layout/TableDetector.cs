@@ -354,9 +354,11 @@ internal static class TableDetector {
             int start = k;
             var baseSplits = bandSplits[k].splits;
             int end = k;
-            // Extend group while splits remain similar and bands are consecutive
+            // Extend while splits remain similar. One intervening band without
+            // detectable splits is allowed for a merged or spanning row; the
+            // complete band range is validated below before it becomes a table.
             while (end + 1 < bandSplits.Count
-                   && bandSplits[end + 1].idx == bandSplits[end].idx + 1
+                   && bandSplits[end + 1].idx <= bandSplits[end].idx + 2
                    && AreSplitsSimilar(baseSplits, bandSplits[end + 1].splits)) {
                 end++;
             }
@@ -370,7 +372,9 @@ internal static class TableDetector {
                 groupLines.AddRange(headerLines);
             }
 
-            for (int i = start; i <= end; i++) groupLines.AddRange(bandSplits[i].lines);
+            for (int bandIndex = bandSplits[start].idx; bandIndex <= bandSplits[end].idx; bandIndex++) {
+                groupLines.AddRange(bands[bandIndex]);
+            }
             var table = BuildTableFromLinesAndSplits(groupLines, baseSplits, "band-group");
             if (table != null && table.Rows.Count >= 3 && HasValidatedRows(table, groupLines)) result.Add(table);
             k = end + 1;
@@ -466,7 +470,7 @@ internal static class TableDetector {
             if (populatedCells >= 2 && populatedCells * 2 >= columnCount) denseRows++;
         }
 
-        bool dense = denseRows >= 2 && denseRows * 4 >= table.Rows.Count * 3;
+        bool dense = denseRows >= 2 && denseRows * 2 >= table.Rows.Count;
         return dense && (
             hasTabularValueEvidence ||
             HasEmphasizedHeader(sourceLines) ||

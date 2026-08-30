@@ -45,4 +45,20 @@ public sealed class PdfTableDetectionValidationTests {
         Assert.Contains("North region coordinator", data.Rows.SelectMany(static row => row));
         Assert.Contains("Approve completed requests", data.Rows.SelectMany(static row => row));
     }
+
+    [Fact]
+    public void LogicalTables_RetainSparseSpanningRowsWhenTheTableHasStrongEvidence() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Account", "Owner", "Amount", "Status" },
+                new[] { "SECTION-A", "", "", "" },
+                new[] { "ACC-01", "Owner 01", "1037.25", "Approved" }
+            }, style: new PdfTableStyle { HeaderRowCount = 1 })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("SECTION-A", data.Rows.SelectMany(static row => row));
+        Assert.Contains("1037.25", data.Rows.SelectMany(static row => row));
+    }
 }

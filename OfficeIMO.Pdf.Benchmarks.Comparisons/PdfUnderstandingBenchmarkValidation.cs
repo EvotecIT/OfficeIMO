@@ -44,8 +44,8 @@ internal static class PdfUnderstandingBenchmarkValidation {
         int matchedMarkerCount = 0;
         long correctPairs = 0;
         long totalPairs = 0;
-        var expectedSequence = new List<string>();
-        var actualSequence = new List<string>();
+        long labelledRegionCharacterErrors = 0;
+        long labelledRegionCharacterCount = 0;
         var expectedKinds = new Dictionary<PdfUnderstandingSemanticKind, int>();
         var truePositiveKinds = new Dictionary<PdfUnderstandingSemanticKind, int>();
         var predictedKinds = new Dictionary<PdfUnderstandingSemanticKind, int>();
@@ -62,13 +62,17 @@ internal static class PdfUnderstandingBenchmarkValidation {
             var actualTextByMarker = new Dictionary<string, string>(StringComparer.Ordinal);
             for (int markerIndex = 0; markerIndex < expected.ReadingOrder.Count; markerIndex++) {
                 string marker = expected.ReadingOrder[markerIndex];
-                expectedSequence.Add(expected.ExpectedRegionText[marker]);
+                string expectedRegionText = expected.ExpectedRegionText[marker];
+                labelledRegionCharacterCount += expectedRegionText.Length;
                 expectedMarkerCount++;
                 int position = FindContainingIndex(page.ReadingOrder.Select(static region => region.Text), marker);
                 if (position >= 0) {
                     actualPositions.Add(marker, position);
                     actualTextByMarker.Add(marker, page.ReadingOrder[position].Text);
+                    labelledRegionCharacterErrors += LevenshteinDistance(expectedRegionText, page.ReadingOrder[position].Text);
                     matchedMarkerCount++;
+                } else {
+                    labelledRegionCharacterErrors += expectedRegionText.Length;
                 }
             }
 
@@ -76,7 +80,6 @@ internal static class PdfUnderstandingBenchmarkValidation {
                 .Where(actualPositions.ContainsKey)
                 .OrderBy(marker => actualPositions[marker])
                 .ToArray();
-            actualSequence.AddRange(actualPageSequence.Select(marker => actualTextByMarker[marker]));
             if (!actualPageSequence.SequenceEqual(expected.ReadingOrder)) {
                 readingOrderMismatches.Add(
                     $"Page {page.PageNumber}: expected [{string.Join(", ", expected.ReadingOrder)}], actual [{string.Join(", ", actualPageSequence)}].");
@@ -110,11 +113,9 @@ internal static class PdfUnderstandingBenchmarkValidation {
             }
         }
 
-        string expectedText = string.Join("\n", expectedSequence);
-        string actualText = string.Join("\n", actualSequence);
-        double characterErrorRate = expectedText.Length == 0
+        double characterErrorRate = labelledRegionCharacterCount == 0
             ? 0D
-            : (double)LevenshteinDistance(expectedText, actualText) / expectedText.Length;
+            : (double)labelledRegionCharacterErrors / labelledRegionCharacterCount;
         double pairwiseAccuracy = totalPairs == 0 ? 1D : (double)correctPairs / totalPairs;
         double kendallTau = (2D * pairwiseAccuracy) - 1D;
         var classifications = new Dictionary<string, PdfBinaryClassificationScore>(StringComparer.Ordinal);
@@ -172,12 +173,12 @@ internal static class PdfUnderstandingBenchmarkValidation {
     internal static PdfBinaryClassificationScore EvaluateTableDetection(
         PdfLogicalDocument logical,
         IReadOnlyList<PdfUnderstandingBenchmarkExpectation> expectedPages) {
-        var predictedTables = new List<(int PageNumber, string Text)>(logical.Tables.Count);
+        var predictedTables = new List<(int PageNumber, IReadOnlyList<string> Cells)>(logical.Tables.Count);
         for (int tableIndex = 0; tableIndex < logical.Tables.Count; tableIndex++) {
             PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(logical.Tables[tableIndex]);
             predictedTables.Add((
                 logical.Tables[tableIndex].PageNumber,
-                string.Join(" ", data.Columns.Concat(data.Rows.SelectMany(static row => row)))));
+                data.Columns.Concat(data.Rows.SelectMany(static row => row)).ToArray()));
         }
 
         int truePositive = 0;
@@ -187,7 +188,8 @@ internal static class PdfUnderstandingBenchmarkValidation {
             for (int tableIndex = 0; tableIndex < predictedTables.Count; tableIndex++) {
                 if (!matchedTables.Contains(tableIndex) &&
                     predictedTables[tableIndex].PageNumber == expectedPages[pageIndex].PageNumber &&
-                    predictedTables[tableIndex].Text.Contains(marker, StringComparison.Ordinal)) {
+                    predictedTables[tableIndex].Cells.Contains(marker, StringComparer.Ordinal) &&
+                    predictedTables[tableIndex].Cells.SequenceEqual(expectedPages[pageIndex].ExpectedTableCells, StringComparer.Ordinal)) {
                     matchedTables.Add(tableIndex);
                     truePositive++;
                     break;
@@ -210,6 +212,10 @@ internal static class PdfUnderstandingBenchmarkValidation {
         if (observation.PairwiseReadingOrderAccuracy < 1D) {
             throw new InvalidDataException(
                 $"Reading-order accuracy was {observation.PairwiseReadingOrderAccuracy:P2}; expected 100% for the deterministic benchmark corpus. {observation.ReadingOrderMismatches.FirstOrDefault()}");
+        }
+        if (observation.LabelledRegionCharacterErrorRate != 0D) {
+            throw new InvalidDataException(
+                $"Labelled-region character error rate was {observation.LabelledRegionCharacterErrorRate:P4}; expected 0% for the deterministic benchmark corpus.");
         }
     }
 
