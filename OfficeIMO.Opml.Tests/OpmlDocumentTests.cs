@@ -645,6 +645,18 @@ public sealed class OpmlDocumentTests {
 
         Assert.Equal("Edited primary", primaryResult.Value.Outlines.First().Text);
         Assert.Contains(primaryResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110");
+
+        OfficeDocumentModel synchronizedPrimary = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        synchronizedPrimary.Structure.Single().Text = "Edited together";
+        synchronizedPrimary.Blocks.Single().Text = "Edited together";
+
+        OpmlConversionResult<OpmlDocument> synchronizedResult = OpmlDocument.FromOfficeDocumentModel(synchronizedPrimary);
+
+        Assert.Equal("Edited together", synchronizedResult.Value.Outlines.Single().Text);
+        Assert.Contains(synchronizedResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110" &&
+            diagnostic.Message.IndexOf("synchronized", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     [Fact]

@@ -171,9 +171,11 @@ public sealed partial class DocBookDocument {
         string? originalExtension = GetReferenceExtensionFromFileName(originalFileName);
         string originalMediaTypeValue = OfficeIMO.Drawing.OfficeImageInfo.GetMimeTypeFromExtension(originalExtension);
         string? originalMediaType = originalMediaTypeValue == "application/octet-stream" ? null : originalMediaTypeValue;
-        bool extensionMatches = string.Equals(asset.Extension, expectedExtension, StringComparison.OrdinalIgnoreCase) ||
+        bool extensionMatches = string.IsNullOrWhiteSpace(asset.Extension) ||
+            string.Equals(asset.Extension, expectedExtension, StringComparison.OrdinalIgnoreCase) ||
             originalReference != null && string.Equals(asset.Extension, originalExtension, StringComparison.OrdinalIgnoreCase);
-        bool mediaTypeMatches = string.Equals(asset.MediaType, normalizedMediaType, StringComparison.OrdinalIgnoreCase) ||
+        bool mediaTypeMatches = string.IsNullOrWhiteSpace(asset.MediaType) ||
+            string.Equals(asset.MediaType, normalizedMediaType, StringComparison.OrdinalIgnoreCase) ||
             originalReference != null && string.Equals(asset.MediaType, originalMediaType, StringComparison.OrdinalIgnoreCase);
         return !extensionMatches || !mediaTypeMatches ||
             asset.Width.HasValue || asset.Height.HasValue || asset.LengthBytes.HasValue ||

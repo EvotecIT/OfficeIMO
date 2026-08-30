@@ -221,6 +221,10 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
                     "author text must be contained by a personname element in the bounded common-structure profile.", path));
             }
+            if (kind == DocBookNodeKind.Info && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value))) {
+                diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
+                    $"{localName} cannot contain direct text in the bounded common-structure profile.", path));
+            }
             if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
                  kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
                 !element.Elements(Namespace + "title").Any()) {

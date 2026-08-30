@@ -248,15 +248,30 @@ public sealed partial class OpmlDocument {
             OfficeDocumentModelBlock? projectedBlock = blocksById[node.Id].FirstOrDefault(block =>
                 string.Equals(block.Kind, node.Kind, StringComparison.OrdinalIgnoreCase) &&
                 block.Level == node.Level);
-            bool attributeWins = projectedBlock != null &&
-                string.Equals(projectedBlock.Text, node.Text, StringComparison.Ordinal) &&
-                !string.Equals(projectedBlock.Text, attributeText, StringComparison.Ordinal);
+            bool synchronizedPrimaryProjection = projectedBlock != null &&
+                string.Equals(projectedBlock.Text, node.Text, StringComparison.Ordinal);
+            bool sourceMatchesAttribute = HeadingPathIdentifiesOriginalText(node.Location.HeadingPath, attributeText);
+            bool sourceMatchesPrimary = HeadingPathIdentifiesOriginalText(node.Location.HeadingPath, node.Text);
+            bool primaryProjectionWasEdited = synchronizedPrimaryProjection && sourceMatchesAttribute && !sourceMatchesPrimary;
+            bool attributeWins = synchronizedPrimaryProjection &&
+                (sourceMatchesPrimary && !sourceMatchesAttribute ||
+                 !sourceMatchesPrimary && !sourceMatchesAttribute && string.IsNullOrEmpty(node.Location.HeadingPath)) &&
+                !string.Equals(projectedBlock!.Text, attributeText, StringComparison.Ordinal);
             diagnostics.Add(new OpmlDiagnostic("OPML110", OpmlDiagnosticSeverity.Warning,
                 attributeWins
-                    ? "The outline text attribute differed from its unchanged primary text projection; the edited attribute took precedence."
-                    : "The outline text attribute and primary text contain conflicting values; the primary text took precedence.",
+                    ? "The outline text attribute differed from synchronized Structure and Blocks projections; the attribute took precedence."
+                    : primaryProjectionWasEdited
+                        ? "The outline text attribute differed from synchronized edited Structure and Blocks projections; the primary text took precedence."
+                        : "The outline text attribute and primary text contain conflicting values; the primary text took precedence.",
                 node.Location.HeadingPath));
             return attributeWins ? attributeText : node.Text;
+        }
+
+        static bool HeadingPathIdentifiesOriginalText(string? headingPath, string text) {
+            if (string.IsNullOrEmpty(headingPath)) return false;
+            string projectedPath = OfficeDocumentHeadingPath.Append(null, text, " / ");
+            return string.Equals(headingPath, projectedPath, StringComparison.Ordinal) ||
+                headingPath!.EndsWith(" / " + projectedPath, StringComparison.Ordinal);
         }
 
         bool AddFlatLink(OfficeDocumentModelLink link) {

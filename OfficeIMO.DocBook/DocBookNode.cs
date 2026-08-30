@@ -18,11 +18,13 @@ public sealed class DocBookNode {
     public DocBookNodeKind Kind => DocBookNames.GetKind(Element.Name, _document.Namespace);
     /// <summary>Element local name.</summary>
     public string Name => Element.Name.LocalName;
-    /// <summary>Combined descendant text. Setting it intentionally replaces child content.</summary>
+    /// <summary>Combined descendant text. Setting it intentionally replaces child content; metadata containers reject direct text.</summary>
     public string Text {
         get => Element.Value;
         set {
-            if (Kind == DocBookNodeKind.Author) {
+            if (Kind == DocBookNodeKind.Info) {
+                throw new InvalidOperationException("DocBook metadata containers cannot contain direct text.");
+            } else if (Kind == DocBookNodeKind.Author) {
                 Element.ReplaceNodes(new XElement(_document.Namespace + "personname", value ?? string.Empty));
             } else {
                 Element.Value = value ?? string.Empty;
@@ -112,16 +114,18 @@ public sealed class DocBookNode {
         if (kind == DocBookNodeKind.CrossReference && text != null) {
             throw new ArgumentException("DocBook cross-references cannot contain direct text.", nameof(text));
         }
+        if (kind == DocBookNodeKind.Info && text != null) {
+            throw new ArgumentException("DocBook metadata containers cannot contain direct text.", nameof(text));
+        }
         if (kind == DocBookNodeKind.Info && _document.GetComponentInfoElementName(Element) is string infoName) {
             var element = new XElement(_document.Namespace + infoName);
-            if (text != null) element.Value = text;
             Element.AddFirst(element); _document.MarkModified();
             return new DocBookNode(_document, element);
         }
         if (kind == DocBookNodeKind.Info && _document.Profile == DocBookProfile.DocBook45) {
             return AddRaw(Kind == DocBookNodeKind.Section
                 ? "sectioninfo"
-                : _document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo", text);
+                : _document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo");
         }
         if (kind == DocBookNodeKind.Author && text != null) {
             DocBookNode author = AddRaw(DocBookNames.GetElementName(kind));

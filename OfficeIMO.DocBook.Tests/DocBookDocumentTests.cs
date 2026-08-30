@@ -192,6 +192,28 @@ public sealed class DocBookDocumentTests {
             diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedMetadataContainersRejectDirectText(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+
+        Assert.Throws<ArgumentException>(() => document.Root.Add(DocBookNodeKind.Info, "metadata"));
+        Assert.Throws<ArgumentException>(() => document.AddSection("Section").Add(DocBookNodeKind.Info, "metadata"));
+        DocBookNode info = document.Root.Add(DocBookNodeKind.Info);
+        Assert.Throws<InvalidOperationException>(() => info.Text = "metadata");
+    }
+
+    [Fact]
+    public void ValidationRejectsDirectTextInMetadataContainers() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info>metadata</info></article>");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB018" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf("direct text", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
     [Fact]
     public void ValidationAllowsInfoUnderAcceptedBookComponents() {
         const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><info><title>Chapter</title></info><para>Body</para></chapter></book>";
@@ -1634,6 +1656,21 @@ public sealed class DocBookDocumentTests {
         Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124");
         Assert.Contains(converted.Value.Xml.Descendants(), element =>
             element.Name.LocalName == "imagedata" && (string?)element.Attribute("fileref") == "assets/edited.jpg");
+    }
+
+    [Fact]
+    public void SharedReverseConversionTreatsMissingDerivedImageMetadataAsUnspecified() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelAsset asset = Assert.Single(model.Assets);
+        asset.Extension = null;
+        asset.MediaType = null;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" || diagnostic.Code == "DB124");
+        Assert.Single(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "imagedata" && (string?)element.Attribute("fileref") == "assets/original.png");
     }
 
     [Fact]
