@@ -172,6 +172,29 @@ try {
             throw "The $kind normalized-reader contract was not reached successfully: $observed"
         }
     }
+    $pdfRecord = @($formatReport.files | Where-Object { $_.contentKind -eq 'pdf' })
+    if ($pdfRecord.Count -ne 1 -or $null -eq $pdfRecord[0].pdfEvidence -or
+        -not $pdfRecord[0].pdfEvidence.allStagesSucceeded -or
+        $pdfRecord[0].pdfEvidence.stages.Count -ne 7 -or
+        $pdfRecord[0].pdfEvidence.renderSucceededPages -ne 1 -or
+        $pdfRecord[0].pdfEvidence.mutationPlanCount -ne 21 -or
+        $pdfRecord[0].pdfEvidence.claimableComplianceClaimCount -ne 0) {
+        $observed = $pdfRecord | Select-Object contentKind, outcome, pdfEvidence | ConvertTo-Json -Depth 10 -Compress
+        throw "The PDF deep quality probe did not reach every canonical stage: $observed"
+    }
+    if ($formatReport.totals.pdfSelected -ne 1 -or
+        $formatReport.totals.pdfDeepStages -ne 7 -or
+        $formatReport.totals.pdfDeepStagesPassed -ne 7 -or
+        $formatReport.totals.pdfRenderedPages -ne 1 -or
+        $formatReport.totals.pdfMutationPlans -ne 21 -or
+        $formatReport.totals.pdfClaimableComplianceClaims -ne 0) {
+        throw 'The aggregate PDF quality scorecard did not match the measured deep probe.'
+    }
+    $formatMarkdownText = Get-Content -LiteralPath $formatMarkdown -Raw
+    if ($formatMarkdownText -notmatch 'PDF quality depth' -or
+        $formatMarkdownText -notmatch '\| 1 \| 7 \| 7 \| 1 \| 21 \|') {
+        throw 'The real-world Markdown scorecard omitted PDF quality depth evidence.'
+    }
 
     $policyJson = Join-Path $scratch 'policy/report.json'
     $policyMarkdown = Join-Path $scratch 'policy/report.md'

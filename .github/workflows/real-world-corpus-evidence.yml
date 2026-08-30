@@ -215,6 +215,10 @@ jobs:
           if ($report.totals.rejectedByPolicy -gt 0) {
             Write-Host "::notice::$($report.totals.rejectedByPolicy) files were rejected by an explicit OfficeIMO permission or resource policy."
           }
+          $pdfStageFailures = $report.totals.pdfDeepStages - $report.totals.pdfDeepStagesPassed
+          if ($pdfStageFailures -gt 0) {
+            Write-Host "::warning::$pdfStageFailures deep PDF stages failed. Inspect the per-file PDF evidence in the uploaded scorecard."
+          }
 
       - name: Upload reports only
         if: always()

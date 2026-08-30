@@ -73,6 +73,7 @@ internal sealed class CorpusWorkerResult {
     public int WarningDiagnostics { get; set; }
     public int ErrorDiagnostics { get; set; }
     public IReadOnlyList<string> DiagnosticCodes { get; set; } = Array.Empty<string>();
+    public CorpusPdfEvidence? PdfEvidence { get; set; }
     public string? ExceptionType { get; set; }
 
     public static CorpusWorkerResult Failure(string stage, Exception exception) => new() {
@@ -155,6 +156,13 @@ internal sealed class CorpusTotals {
     public int RejectedByPolicy { get; set; }
     public int Failed { get; set; }
     public int TimedOut { get; set; }
+    public int PdfSelected { get; set; }
+    public int PdfDeepStages { get; set; }
+    public int PdfDeepStagesPassed { get; set; }
+    public int PdfRenderedPages { get; set; }
+    public int PdfMutationPlans { get; set; }
+    public int PdfDeclaredComplianceClaims { get; set; }
+    public int PdfClaimableComplianceClaims { get; set; }
 }
 
 internal sealed class CorpusStratum {
@@ -199,5 +207,39 @@ internal sealed class CorpusFileRecord {
     public int WarningDiagnostics { get; set; }
     public int ErrorDiagnostics { get; set; }
     public IReadOnlyList<string> DiagnosticCodes { get; set; } = Array.Empty<string>();
+    public CorpusPdfEvidence? PdfEvidence { get; set; }
     public string? ExceptionType { get; set; }
+}
+
+internal sealed class CorpusPdfStageResult {
+    public string Name { get; set; } = string.Empty;
+    public bool Succeeded { get; set; }
+    public long DurationMilliseconds { get; set; }
+    public string? ExceptionType { get; set; }
+}
+
+internal sealed class CorpusPdfEvidence {
+    public int PageCount { get; set; }
+    public int ParagraphCount { get; set; }
+    public int TableCount { get; set; }
+    public int CrossPageParagraphCount { get; set; }
+    public int CrossPageTableCount { get; set; }
+    public int FontCount { get; set; }
+    public int EmbeddedFontCount { get; set; }
+    public int ParsedEmbeddedOpenTypeFontCount { get; set; }
+    public int MissingToUnicodeFontCount { get; set; }
+    public int ImageCount { get; set; }
+    public int ImagePlacementCount { get; set; }
+    public int RenderAttemptedPages { get; set; }
+    public int RenderSucceededPages { get; set; }
+    public IReadOnlyList<string> RenderDiagnosticCodes { get; set; } = Array.Empty<string>();
+    public int MutationPlanCount { get; set; }
+    public int FullRewriteMutationPlanCount { get; set; }
+    public int AppendOnlyMutationPlanCount { get; set; }
+    public int BlockedMutationPlanCount { get; set; }
+    public int DeclaredComplianceClaimCount { get; set; }
+    public int RecognizedComplianceClaimCount { get; set; }
+    public int ClaimableComplianceClaimCount { get; set; }
+    public IReadOnlyList<CorpusPdfStageResult> Stages { get; set; } = Array.Empty<CorpusPdfStageResult>();
+    public bool AllStagesSucceeded => Stages.Count > 0 && Stages.All(static stage => stage.Succeeded);
 }
