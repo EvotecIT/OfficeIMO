@@ -1,6 +1,7 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal static class IWorkImageInfo {
+    private static readonly uint[] PngCrcTable = CreatePngCrcTable();
     internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType) {
         if (string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase)
             && TryReadPng(bytes, out int width, out int height)) {
@@ -112,12 +113,21 @@ internal static class IWorkImageInfo {
     private static uint CalculatePngCrc(byte[] bytes, int offset, int length) {
         uint crc = uint.MaxValue;
         for (int index = offset; index < offset + length; index++) {
-            crc ^= bytes[index];
+            crc = PngCrcTable[(int)((crc ^ bytes[index]) & 0xff)] ^ crc >> 8;
+        }
+        return crc ^ uint.MaxValue;
+    }
+
+    private static uint[] CreatePngCrcTable() {
+        var table = new uint[256];
+        for (uint value = 0; value < table.Length; value++) {
+            uint crc = value;
             for (int bit = 0; bit < 8; bit++) {
                 crc = (crc & 1) != 0 ? 0xedb88320U ^ crc >> 1 : crc >> 1;
             }
+            table[(int)value] = crc;
         }
-        return crc ^ uint.MaxValue;
+        return table;
     }
 
     private static int ReadBigEndian32(byte[] bytes, int offset) =>

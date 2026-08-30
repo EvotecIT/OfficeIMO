@@ -18,6 +18,8 @@ internal static class IWorkTextReader {
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, projectionBudget, ref complete);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
         var listStyleCache = new Dictionary<ulong, Cached<(int Level, string? Label)>>();
+        var textStyleCache = new Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>>();
+        var hyperlinkCache = new Dictionary<ulong, Cached<string?>>();
         var paragraphs = new List<IWorkTextParagraph>();
         foreach (TextSpan paragraph in ParagraphSpans(text)) {
             projectionBudget.AddTextItem();
@@ -32,7 +34,6 @@ internal static class IWorkTextReader {
             AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
             int[] ordered = boundaries.ToArray();
             var runs = new List<IWorkTextRun>();
-            var textStyleCache = new Dictionary<ulong, Cached<IWorkTextStyle>>();
             for (int runIndex = 0; runIndex + 1 < ordered.Length; runIndex++) {
                 int start = ordered[runIndex];
                 int end = ordered[runIndex + 1];
@@ -45,7 +46,8 @@ internal static class IWorkTextReader {
                     paragraphStyle.TextStyle, projectionBudget,
                     textStyleCache, ref complete);
                 string? hyperlink = ResolveHyperlink(index,
-                    ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget, ref complete);
+                    ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget,
+                    hyperlinkCache, ref complete);
                 runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink));
             }
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listLevel, listLabel,
@@ -188,10 +190,11 @@ internal static class IWorkTextReader {
 
     private static IWorkTextStyle ResolveTextStyle(IWorkObjectIndex index, ulong? identifier,
         IWorkTextStyle inherited, IWorkProjectionBudget projectionBudget,
-        Dictionary<ulong, Cached<IWorkTextStyle>> cache,
+        Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>> cache,
         ref bool complete) {
         if (!identifier.HasValue) return inherited;
-        if (cache.TryGetValue(identifier.Value, out Cached<IWorkTextStyle> cached)) {
+        var key = new TextStyleCacheKey(identifier.Value, inherited);
+        if (cache.TryGetValue(key, out Cached<IWorkTextStyle> cached)) {
             if (!cached.IsComplete) complete = false;
             return cached.Value;
         }
@@ -210,7 +213,7 @@ internal static class IWorkTextReader {
             if (character != null) OverlayText(character, data, projectionBudget, ref resolvedCompletely);
         }
         IWorkTextStyle result = data.ToPublic();
-        cache.Add(identifier.Value, new Cached<IWorkTextStyle>(result, resolvedCompletely));
+        cache.Add(key, new Cached<IWorkTextStyle>(result, resolvedCompletely));
         if (!resolvedCompletely) complete = false;
         return result;
     }
@@ -362,20 +365,30 @@ internal static class IWorkTextReader {
     }
 
     private static string? ResolveHyperlink(IWorkObjectIndex index, ulong? identifier,
-        IWorkProjectionBudget projectionBudget, ref bool complete) {
+        IWorkProjectionBudget projectionBudget, Dictionary<ulong, Cached<string?>> cache,
+        ref bool complete) {
         if (!identifier.HasValue) return null;
+        if (cache.TryGetValue(identifier.Value, out Cached<string?> cached)) {
+            if (!cached.IsComplete) complete = false;
+            return cached.Value;
+        }
+        bool resolvedCompletely = true;
+        string? result = null;
         IWorkArchiveRecord? record = index.Find(identifier.Value);
         if (record == null || record.MessageType != HyperlinkArchive) {
-            complete = false;
-            return null;
+            resolvedCompletely = false;
+        } else {
+            IWorkWireMessage message = index.Message(record);
+            if (!message.HasField(2) || message.LacksWireKind(2, IWorkWireKind.Bytes)
+                || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
+                resolvedCompletely = false;
+            } else {
+                result = value;
+            }
         }
-        IWorkWireMessage message = index.Message(record);
-        if (!message.HasField(2) || message.LacksWireKind(2, IWorkWireKind.Bytes)
-            || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
-            complete = false;
-            return null;
-        }
-        return value;
+        cache.Add(identifier.Value, new Cached<string?>(result, resolvedCompletely));
+        if (!resolvedCompletely) complete = false;
+        return result;
     }
 
     private static bool TryColor(IWorkWireMessage owner, int field, out IWorkColor? color,
@@ -456,7 +469,7 @@ internal static class IWorkTextReader {
             int characterCount = StrictUtf8.GetCharCount(bytes);
             projectionBudget.AddTextCharacters(characterCount);
             value = StrictUtf8.GetString(bytes);
-            return true;
+            return IWorkXmlText.IsRepresentable(value, allowIWorkBreaks: true);
         } catch (System.Text.DecoderFallbackException) {
             value = string.Empty;
             return false;
@@ -490,6 +503,61 @@ internal static class IWorkTextReader {
         }
         internal T Value { get; }
         internal bool IsComplete { get; }
+    }
+
+    private readonly struct TextStyleCacheKey : IEquatable<TextStyleCacheKey> {
+        private readonly ulong _identifier;
+        private readonly string? _name;
+        private readonly bool? _bold;
+        private readonly bool? _italic;
+        private readonly bool? _underline;
+        private readonly bool? _strikethrough;
+        private readonly double? _fontSizePoints;
+        private readonly string? _fontName;
+        private readonly uint? _color;
+        private readonly uint? _backgroundColor;
+
+        internal TextStyleCacheKey(ulong identifier, IWorkTextStyle inherited) {
+            _identifier = identifier;
+            _name = inherited.Name;
+            _bold = inherited.Bold;
+            _italic = inherited.Italic;
+            _underline = inherited.Underline;
+            _strikethrough = inherited.Strikethrough;
+            _fontSizePoints = inherited.FontSizePoints;
+            _fontName = inherited.FontName;
+            _color = Pack(inherited.Color);
+            _backgroundColor = Pack(inherited.BackgroundColor);
+        }
+
+        public bool Equals(TextStyleCacheKey other) => _identifier == other._identifier
+            && string.Equals(_name, other._name, StringComparison.Ordinal)
+            && _bold == other._bold && _italic == other._italic
+            && _underline == other._underline && _strikethrough == other._strikethrough
+            && _fontSizePoints == other._fontSizePoints
+            && string.Equals(_fontName, other._fontName, StringComparison.Ordinal)
+            && _color == other._color && _backgroundColor == other._backgroundColor;
+
+        public override bool Equals(object? obj) => obj is TextStyleCacheKey other && Equals(other);
+
+        public override int GetHashCode() {
+            unchecked {
+                int hash = _identifier.GetHashCode();
+                hash = hash * 31 + (_name?.GetHashCode() ?? 0);
+                hash = hash * 31 + _bold.GetHashCode();
+                hash = hash * 31 + _italic.GetHashCode();
+                hash = hash * 31 + _underline.GetHashCode();
+                hash = hash * 31 + _strikethrough.GetHashCode();
+                hash = hash * 31 + _fontSizePoints.GetHashCode();
+                hash = hash * 31 + (_fontName?.GetHashCode() ?? 0);
+                hash = hash * 31 + _color.GetHashCode();
+                return hash * 31 + _backgroundColor.GetHashCode();
+            }
+        }
+
+        private static uint? Pack(IWorkColor? color) => color == null
+            ? null
+            : (uint)(color.Red << 24 | color.Green << 16 | color.Blue << 8 | color.Alpha);
     }
 
     private sealed class TextStyleData {

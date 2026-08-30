@@ -78,12 +78,11 @@ public partial class WordDocument {
                         ?? sourceImage.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
                     (width, height) = FitInside(width, height, contentWidth, contentHeight);
                     document.AddParagraph().AddImage(image, sourceImage.FileName,
-                        Math.Max(1, width), Math.Max(1, height), WordImageTextWrapping.Square,
+                        width, height, WordImageTextWrapping.Square,
                         sourceImage.AccessibilityDescription ?? "Image imported from Pages");
                 }
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
-                    if (sourceSection.HeaderContents.Count == 0 && sourceSection.FooterContents.Count == 0) continue;
                     WordSection targetSection = semanticSections[sectionIndex];
                     targetSection.AddHeadersAndFooters();
                     foreach (IWorkTextContent header in sourceSection.HeaderContents) {
@@ -169,8 +168,8 @@ public partial class WordDocument {
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
             textBox.HorizontalPositionOffset = ToEmusInt32(geometry.LeftPoints);
             textBox.VerticalPositionOffset = ToEmusInt32(geometry.TopPoints);
-            if (geometry.WidthPoints > 0) textBox.Width = ToEmusInt64(geometry.WidthPoints);
-            if (geometry.HeightPoints > 0) textBox.Height = ToEmusInt64(geometry.HeightPoints);
+            textBox.Width = ToEmusInt64(geometry.WidthPoints);
+            textBox.Height = ToEmusInt64(geometry.HeightPoints);
         }
 
         DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
@@ -219,6 +218,12 @@ public partial class WordDocument {
                 && (!FitsEmuOffset(geometry.LeftPoints) || !FitsEmuOffset(geometry.TopPoints)
                     || !FitsEmuExtent(geometry.WidthPoints) || !FitsEmuExtent(geometry.HeightPoints))) {
                 return "A Pages text box has geometry outside the DOCX measurement range.";
+            }
+        }
+        foreach (IWorkImageAsset image in projection.Images) {
+            if (image.Geometry is { } geometry
+                && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0)) {
+                return "A Pages image has a zero-sized extent that cannot be represented by the DOCX image owner.";
             }
         }
         foreach (IWorkTextContent content in AllPagesText(projection)) {

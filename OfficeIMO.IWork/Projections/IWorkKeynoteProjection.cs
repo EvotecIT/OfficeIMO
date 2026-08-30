@@ -104,6 +104,9 @@ public sealed partial class IWorkSourceDocument {
 
 internal static class IWorkKeynoteReader {
     private const uint DocumentArchive = 1;
+    private const uint ShowArchive = 2;
+    private const uint SlideNodeArchive = 4;
+    private const uint SlideArchive = 5;
     private const uint TextStorageArchive = 2001;
 
     internal static IWorkKeynoteProjection Read(IWorkSourceDocument source) {
@@ -117,7 +120,7 @@ internal static class IWorkKeynoteReader {
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkArchiveRecord? show = index.Dereference(index.Message(document), 2);
-        if (show == null) {
+        if (show == null || show.MessageType != ShowArchive) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
                 "The Keynote document root does not reference a supported show object.", document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
@@ -157,6 +160,14 @@ internal static class IWorkKeynoteReader {
         var projectedSlideIdentifiers = new HashSet<ulong>();
         foreach (IWorkArchiveRecord node in nodes) {
             position++;
+            if (node.MessageType != SlideNodeArchive) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_KEYNOTE_SLIDE_NODE_UNSUPPORTED",
+                    "The Keynote slide tree references an unsupported node record; editable reconstruction is incomplete.",
+                    node.EntryPath, node.Identifier));
+                continue;
+            }
             if (!projectedNodeIdentifiers.Add(node.Identifier)) {
                 MarkDuplicateSlide(show, diagnostics, ref supportsEditableReconstruction);
                 continue;
@@ -164,11 +175,11 @@ internal static class IWorkKeynoteReader {
             IWorkWireMessage nodeMessage = index.Message(node);
             bool skipped = nodeMessage.GetUnsigned(4) == 1;
             IWorkArchiveRecord? slide = index.Dereference(nodeMessage, 2);
-            if (slide == null) {
+            if (slide == null || slide.MessageType != SlideArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_KEYNOTE_SLIDE_MISSING",
-                    "A Keynote slide-tree node references a missing slide; editable reconstruction is incomplete.",
+                    "A Keynote slide-tree node references a missing or unsupported slide; editable reconstruction is incomplete.",
                     node.EntryPath, node.Identifier));
                 continue;
             }
@@ -283,7 +294,15 @@ internal static class IWorkKeynoteReader {
                 } else if (malformedTitleGeometry) {
                     MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
-                title = new IWorkTextBox(text, geometry, drawableMessage?.GetString(4), drawableMessage?.GetString(8));
+                bool metadataComplete = true;
+                string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,
+                    ref metadataComplete);
+                string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawableMessage, 8,
+                    ref metadataComplete);
+                if (!metadataComplete) {
+                    MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                }
+                title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
             } else {
                 if (index.Dereference(message, 6)?.Identifier == drawable.Identifier) {
                     IWorkWireMessage? bodyGeometry = IWorkObjectIndex.TryGetMessage(
@@ -297,7 +316,15 @@ internal static class IWorkKeynoteReader {
                         MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                     }
                 }
-                textBoxes.Add(new IWorkTextBox(text, geometry, drawableMessage?.GetString(4), drawableMessage?.GetString(8)));
+                bool metadataComplete = true;
+                string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,
+                    ref metadataComplete);
+                string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawableMessage, 8,
+                    ref metadataComplete);
+                if (!metadataComplete) {
+                    MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                }
+                textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
             }
         }
 
@@ -316,7 +343,11 @@ internal static class IWorkKeynoteReader {
                 MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
             }
         }
-        return new IWorkKeynoteSlide(position, message.GetString(10) ?? string.Empty,
+        string? slideName = message.GetString(10, out bool slideNameComplete);
+        if (!slideNameComplete) {
+            MarkTextMetadataIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
+        }
+        return new IWorkKeynoteSlide(position, slideName ?? string.Empty,
             title, textBoxes, notes, images, tables, skipped);
     }
 
@@ -328,6 +359,16 @@ internal static class IWorkKeynoteReader {
             "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
             "A Keynote drawable contains malformed geometry; editable reconstruction is incomplete.",
             drawable.EntryPath, drawable.Identifier));
+    }
+
+    private static void MarkTextMetadataIncomplete(IWorkArchiveRecord record,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TEXT_UNSUPPORTED")) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_KEYNOTE_TEXT_UNSUPPORTED",
+            "Keynote text metadata contains invalid Unicode content; editable reconstruction is incomplete.",
+            record.EntryPath, record.Identifier));
     }
 
     private static IWorkCanvasSize? ReadSlideSize(IWorkWireMessage show, out bool complete) {

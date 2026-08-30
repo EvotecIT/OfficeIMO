@@ -247,8 +247,59 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_KEYNOTE_SLIDE_SIZE_UNSUPPORTED");
     }
 
+    [Fact]
+    public void Wrong_keynote_required_record_types_disable_editable_reconstruction() {
+        foreach (MemoryStream package in new[] {
+                     CreateKeynotePackageWithRepeatedSlides(1, showType: 9999),
+                     CreateKeynotePackageWithRepeatedSlides(1, nodeType: 9999),
+                     CreateKeynotePackageWithRepeatedSlides(1, slideType: 9999)
+                 }) {
+            using (package)
+            using (var result = PowerPointPresentation.LoadKeynoteWithReport(package)) {
+                Assert.True(result.IsVisualFallback);
+                Assert.False(result.Projection.HasEditableContent);
+            }
+        }
+    }
+
+    [Fact]
+    public void Xml_invalid_text_runs_disable_all_editable_owner_projections() {
+        using MemoryStream pagesPackage = CreatePagesPackage(includeBody: true, textBox: null,
+            includePreview: true, bodyBytes: new byte[] { 0x01 });
+        using MemoryStream numbersPackage = CreateNumbersPackage(Array.Empty<TableSpec>(),
+            includePreview: true, textBoxBytes: new byte[] { 0x01 });
+        using MemoryStream keynotePackage = CreateKeynotePackageWithInvalidText(new byte[] { 0x01 });
+
+        using var pages = WordDocument.LoadPagesWithReport(pagesPackage);
+        using var numbers = ExcelDocument.LoadNumbersWithReport(numbersPackage);
+        using var keynote = PowerPointPresentation.LoadKeynoteWithReport(keynotePackage);
+
+        Assert.True(pages.IsVisualFallback);
+        Assert.True(numbers.IsVisualFallback);
+        Assert.True(keynote.IsVisualFallback);
+    }
+
+    [Fact]
+    public void Keynote_owner_preserves_explicit_zero_sized_text_boxes() {
+        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: 0f);
+
+        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+
+        PowerPointTextBox textBox = Assert.Single(Assert.Single(result.Document.Slides).TextBoxes);
+        Assert.Equal(0d, textBox.WidthPoints);
+        Assert.Equal(0d, textBox.HeightPoints);
+        using var bytes = new MemoryStream();
+        result.Document.Save(bytes);
+        bytes.Position = 0;
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        PowerPointTextBox persisted = Assert.Single(Assert.Single(reopened.Slides).TextBoxes);
+        Assert.Equal(0d, persisted.WidthPoints);
+        Assert.Equal(0d, persisted.HeightPoints);
+    }
+
     private static MemoryStream CreateKeynotePackageWithRepeatedSlides(int referenceCount,
-        float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false) {
+        float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false,
+        uint showType = 2, uint nodeType = 4, uint slideType = 5) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -279,9 +330,9 @@ public sealed partial class IWorkBoundaryTests {
             : Message(BytesField(3, slideTree));
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 7000, showPayload),
-            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, slideId))),
-            ArchiveRecord(slideId, 7002, Message(ReferenceField(5, shapeId))),
+            ArchiveRecord(showId, showType, showPayload),
+            ArchiveRecord(nodeId, nodeType, Message(ReferenceField(2, slideId))),
+            ArchiveRecord(slideId, slideType, Message(ReferenceField(5, shapeId))),
             ArchiveRecord(shapeId, 2011, Message(shapeFields.ToArray())),
             ArchiveRecord(storageId, 2001, Message(storageFields.ToArray()))
         };
@@ -291,7 +342,7 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
     }
 
-    private static MemoryStream CreateKeynotePackageWithInvalidText() {
+    private static MemoryStream CreateKeynotePackageWithInvalidText(byte[]? textBytes = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -301,11 +352,11 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
-            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, slideId))),
-            ArchiveRecord(slideId, 7002, Message(ReferenceField(5, shapeId))),
+            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
+            ArchiveRecord(slideId, 5, Message(ReferenceField(5, shapeId))),
             ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))),
-            ArchiveRecord(storageId, 2001, Message(BytesField(3, new byte[] { 0xc3, 0x28 }))));
+            ArchiveRecord(storageId, 2001, Message(BytesField(3, textBytes ?? new byte[] { 0xc3, 0x28 }))));
         return CreatePackage(
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));

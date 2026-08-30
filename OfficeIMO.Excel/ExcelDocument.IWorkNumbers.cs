@@ -149,6 +149,12 @@ public partial class ExcelDocument {
                         && (seconds < TimeSpan.MinValue.TotalSeconds || seconds > TimeSpan.MaxValue.TotalSeconds)) {
                         return $"Numbers table '{table.Name}' contains a duration outside the XLSX-supported range.";
                     }
+                    if ((cell.Kind == IWorkCellKind.DateTime
+                            || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.DateTime)
+                        && cell.Value is DateTime date
+                        && date < DateTime.FromOADate(2d)) {
+                        return $"Numbers table '{table.Name}' contains a date outside the XLSX-supported range.";
+                    }
                 }
             }
         }

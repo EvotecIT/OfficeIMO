@@ -276,6 +276,10 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("red.png", image.FileName);
         Assert.Equal("image/png", image.MediaType);
         Assert.Equal((400, 300), (image.PixelWidth, image.PixelHeight));
+        byte[] firstRead = image.GetBytes();
+        byte original = firstRead[0];
+        firstRead[0] ^= 0xff;
+        Assert.Equal(original, image.GetBytes()[0]);
     }
 
     [Fact]

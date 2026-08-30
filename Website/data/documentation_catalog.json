@@ -430,7 +430,7 @@
       "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
       "kind": "package",
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "sourceFileCount": 18,
+      "sourceFileCount": 29,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

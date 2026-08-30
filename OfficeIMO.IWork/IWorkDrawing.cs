@@ -81,7 +81,7 @@ public sealed class IWorkImageAsset {
         FileName = fileName;
         PackagePath = packagePath;
         MediaType = mediaType;
-        _bytes = bytes.ToArray();
+        _bytes = bytes;
         PixelWidth = pixelWidth;
         PixelHeight = pixelHeight;
         Geometry = geometry;

@@ -11,6 +11,14 @@ internal static class IWorkDrawingReader {
         return ReadGeometry(drawable, out _);
     }
 
+    internal static string? ReadOptionalString(IWorkWireMessage? message, int field,
+        ref bool complete) {
+        if (message == null) return null;
+        string? value = message.GetString(field, out bool fieldComplete);
+        if (!fieldComplete) complete = false;
+        return value;
+    }
+
     internal static IWorkGeometry? ReadGeometry(IWorkWireMessage drawable, out bool complete) {
         IWorkWireMessage? geometry = IWorkObjectIndex.TryGetMessage(drawable, 1, out bool malformedGeometry);
         complete = !malformedGeometry
@@ -133,9 +141,12 @@ internal static class IWorkDrawingReader {
         }
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
+        string? hyperlink = drawable.GetString(4, out bool hyperlinkComplete);
+        string? accessibilityDescription = drawable.GetString(8, out bool accessibilityComplete);
+        if (!hyperlinkComplete || !accessibilityComplete) complete = false;
         return new IWorkImageAsset(data.PreferredFileName, entry.Path, mediaType, entry.Bytes,
             pixelWidth, pixelHeight, geometry, message.HasBytes(5),
-            drawable.GetString(4), drawable.GetString(8));
+            hyperlink, accessibilityDescription);
     }
 
     private static ImageLookup CreateImageLookup(IWorkSourceDocument source) {
@@ -161,8 +172,9 @@ internal static class IWorkDrawingReader {
         metadataComplete = !malformedEntries;
         foreach (IWorkWireMessage message in messages) {
             ulong? identifier = message.GetUnsigned(1);
-            string? preferred = message.GetString(3);
-            string? stored = message.GetString(4) ?? preferred;
+            string? preferred = message.GetString(3, out bool preferredComplete);
+            string? stored = message.GetString(4, out bool storedComplete) ?? preferred;
+            if (!preferredComplete || !storedComplete) metadataComplete = false;
             if (identifier.HasValue && preferred != null && stored != null
                 && IsSafeFileName(stored)) {
                 if (!result.ContainsKey(identifier.Value)) {

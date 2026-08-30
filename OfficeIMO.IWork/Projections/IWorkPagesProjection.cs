@@ -165,11 +165,13 @@ internal static class IWorkPagesReader {
                      .Where(record => reachable.Contains(record.Identifier))
                      .OrderBy(record => record.Identifier)) {
             IWorkWireMessage shapeMessage = index.Message(shape);
-            IWorkArchiveRecord? storage = index.Dereference(shapeMessage, 4)
-                ?? index.Dereference(shapeMessage, 2);
+            IWorkArchiveRecord? field4Storage = index.Dereference(shapeMessage, 4);
+            IWorkArchiveRecord? field2Storage = index.Dereference(shapeMessage, 2);
+            IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
             if (shapeMessage.LacksWireKind(4, IWorkWireKind.Bytes)
                 || shapeMessage.LacksWireKind(2, IWorkWireKind.Bytes)
-                || (shapeMessage.HasField(4) || shapeMessage.HasField(2)) && storage == null) {
+                || shapeMessage.HasField(4) && (field4Storage == null || field4Storage.MessageType != TextStorageArchive)
+                || shapeMessage.HasField(2) && (field2Storage == null || field2Storage.MessageType != TextStorageArchive)) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -208,8 +210,20 @@ internal static class IWorkPagesReader {
                         shape.EntryPath, shape.Identifier));
                 }
             }
-            textBoxes.Add(new IWorkTextBox(text, geometry,
-                drawable?.GetString(4), drawable?.GetString(8)));
+            bool metadataComplete = true;
+            string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4, ref metadataComplete);
+            string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawable, 8,
+                ref metadataComplete);
+            if (!metadataComplete) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                        "A Pages drawable contains invalid text metadata; editable reconstruction is incomplete.",
+                        shape.EntryPath, shape.Identifier));
+                }
+            }
+            textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
         }
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
             documentMessage, out bool drawableGraphComplete);

@@ -82,7 +82,7 @@ public sealed partial class PowerPointPresentation {
                         using var stream = new MemoryStream(sourceImage.GetBytes(), writable: false);
                         PowerPointPicture picture = slide.AddPicturePoints(stream,
                             sourceImage.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
-                            left, top, Math.Max(1, width), Math.Max(1, height));
+                            left, top, width, height);
                         picture.Rotation = sourceImage.Geometry?.RotationDegrees;
                         picture.AltText = sourceImage.AccessibilityDescription;
                     }
@@ -190,6 +190,10 @@ public sealed partial class PowerPointPresentation {
             if (rotatedShapes.Any(geometry => !FitsRotation(geometry.RotationDegrees))) {
                 return $"Keynote slide {slide.Index} contains rotation outside the PPTX range.";
             }
+            if (slide.Images.Any(image => image.Geometry is { } geometry
+                    && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0))) {
+                return $"Keynote slide {slide.Index} contains a zero-sized image that cannot be represented by the PPTX image owner.";
+            }
             foreach (IWorkTextContent content in SlideText(slide)) {
                 foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
                     IWorkParagraphStyle style = paragraph.Style;
@@ -216,6 +220,10 @@ public sealed partial class PowerPointPresentation {
                     && (!FitsPositiveMeasurement(Math.Max(144d, fallbackWidth), MaximumPointMeasurement)
                         || !FitsPositiveMeasurement(Math.Max(36d, fallbackHeight), MaximumPointMeasurement))) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
+                }
+                if (table.Geometry is { } geometry
+                    && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0)) {
+                    return $"Keynote table '{table.Name}' has a zero-sized extent that cannot be represented by the PPTX table owner.";
                 }
             }
         }
@@ -247,8 +255,8 @@ public sealed partial class PowerPointPresentation {
         double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight) {
         double left = source.Geometry?.LeftPoints ?? fallbackLeft;
         double top = source.Geometry?.TopPoints ?? fallbackTop;
-        double width = source.Geometry is { WidthPoints: > 0 } ? source.Geometry.WidthPoints : fallbackWidth;
-        double height = source.Geometry is { HeightPoints: > 0 } ? source.Geometry.HeightPoints : fallbackHeight;
+        double width = source.Geometry?.WidthPoints ?? fallbackWidth;
+        double height = source.Geometry?.HeightPoints ?? fallbackHeight;
         PowerPointTextBox textBox = slide.AddTextBoxPoints(string.Empty, left, top, width, height);
         textBox.Rotation = source.Geometry?.RotationDegrees;
         textBox.AltText = source.AccessibilityDescription;

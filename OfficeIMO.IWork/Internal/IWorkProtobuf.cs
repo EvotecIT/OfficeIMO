@@ -38,7 +38,7 @@ internal sealed class IWorkWireMessage {
     }
 
     internal ulong? GetUnsigned(int field) {
-        IWorkWireValue? value = Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Varint);
+        IWorkWireValue? value = Values(field).LastOrDefault(candidate => candidate.Kind == IWorkWireKind.Varint);
         return value?.Unsigned;
     }
 
@@ -64,7 +64,7 @@ internal sealed class IWorkWireMessage {
     }
 
     internal uint? GetFixed32(int field) {
-        IWorkWireValue? value = Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Fixed32);
+        IWorkWireValue? value = Values(field).LastOrDefault(candidate => candidate.Kind == IWorkWireKind.Fixed32);
         return value == null ? null : (uint)value.Unsigned;
     }
 
@@ -79,7 +79,7 @@ internal sealed class IWorkWireMessage {
         .ToArray();
 
     internal ulong? GetFixed64(int field) {
-        IWorkWireValue? value = Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Fixed64);
+        IWorkWireValue? value = Values(field).LastOrDefault(candidate => candidate.Kind == IWorkWireKind.Fixed64);
         return value?.Unsigned;
     }
 
@@ -89,7 +89,7 @@ internal sealed class IWorkWireMessage {
     }
 
     internal byte[]? GetBytes(int field) =>
-        Values(field).FirstOrDefault(candidate => candidate.Kind == IWorkWireKind.Bytes)?.Bytes;
+        Values(field).LastOrDefault(candidate => candidate.Kind == IWorkWireKind.Bytes)?.Bytes;
 
     internal bool HasBytes(int field) =>
         Values(field).Any(candidate => candidate.Kind == IWorkWireKind.Bytes);
@@ -118,12 +118,26 @@ internal sealed class IWorkWireMessage {
     internal int CountNestedFields(byte[] bytes, int field) =>
         IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount);
 
-    internal string? GetString(int field) {
+    internal string? GetString(int field) => GetString(field, out _);
+
+    internal string? GetString(int field, out bool complete) {
+        complete = true;
+        if (!HasField(field)) return null;
+        if (LacksWireKind(field, IWorkWireKind.Bytes)) {
+            complete = false;
+            return null;
+        }
         byte[]? bytes = GetBytes(field);
-        if (bytes == null) return null;
+        if (bytes == null) {
+            complete = false;
+            return null;
+        }
         try {
-            return StrictUtf8.GetString(bytes);
+            string value = StrictUtf8.GetString(bytes);
+            complete = IWorkXmlText.IsRepresentable(value);
+            return complete ? value : null;
         } catch (DecoderFallbackException) {
+            complete = false;
             return null;
         }
     }

@@ -185,7 +185,11 @@ internal static class IWorkNumbersReader {
                     }
                 }
             }
-            sheets.Add(new IWorkNumbersSheet(sheetMessage.GetString(1) ?? string.Empty, tables, textBoxes));
+            string? sheetName = sheetMessage.GetString(1, out bool sheetNameComplete);
+            if (!sheetNameComplete) {
+                MarkTextMetadataUnsupported(sheetRecord, diagnostics, ref supportsEditableReconstruction);
+            }
+            sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes));
         }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction);
     }
@@ -248,7 +252,11 @@ internal static class IWorkNumbersReader {
         IWorkWireMessage message = index.Message(model);
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
-        string name = message.GetString(8) ?? string.Empty;
+        string? tableName = message.GetString(8, out bool tableNameComplete);
+        if (!tableNameComplete) {
+            MarkTextMetadataUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+        }
+        string name = tableName ?? string.Empty;
         int headerRows = CheckedSubDimension(message.GetUnsigned(9), rows, "header row", model);
         int headerColumns = CheckedSubDimension(message.GetUnsigned(10), columns, "header column", model);
         int footerRows = CheckedSubDimension(message.GetUnsigned(11), rows, "footer row", model);
@@ -334,6 +342,16 @@ internal static class IWorkNumbersReader {
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
+                if ((currentBuffer == null) != (currentOffsets == null)) {
+                    supportsEditableReconstruction = false;
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED")) {
+                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                            "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED",
+                            "An iWork table row declares incomplete modern cell storage; editable reconstruction is incomplete.",
+                            tile.EntryPath, tile.Identifier));
+                    }
+                    continue;
+                }
                 bool hasPreBncStorage = (rowInfo.GetBytes(3)?.Length ?? 0) > 0
                     || (rowInfo.GetBytes(4)?.Length ?? 0) > 0;
                 if ((currentBuffer == null || currentOffsets == null) && hasPreBncStorage) {
@@ -437,6 +455,16 @@ internal static class IWorkNumbersReader {
             "IWORK_TABLE_STORAGE_UNSUPPORTED",
             "An iWork table has no supported tile storage; editable reconstruction is incomplete.",
             model.EntryPath, model.Identifier));
+    }
+
+    private static void MarkTextMetadataUnsupported(IWorkArchiveRecord record,
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_UNSUPPORTED")) return;
+        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            "IWORK_NUMBERS_TEXT_UNSUPPORTED",
+            "Numbers text metadata contains invalid Unicode content; editable reconstruction is incomplete.",
+            record.EntryPath, record.Identifier));
     }
 
     private static IReadOnlyDictionary<uint, string> ReadStrings(IWorkObjectIndex index, IWorkWireMessage store,

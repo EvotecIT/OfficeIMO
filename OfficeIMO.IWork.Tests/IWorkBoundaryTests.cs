@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(result.Projection.Slides);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_SLIDE_MISSING");
-        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.MessageType == 7001);
+        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.MessageType == 4);
     }
 
     [Fact]
@@ -806,8 +806,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
-            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, missingSlideId))));
+            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(nodeId, 4, Message(ReferenceField(2, missingSlideId))));
         return CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
@@ -822,9 +822,9 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 7000, Message(BytesField(3, slideTree))),
-            ArchiveRecord(nodeId, 7001, Message(ReferenceField(2, slideId))),
-            ArchiveRecord(slideId, 7002, Message(ReferenceField(27, missingNoteId))));
+            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
+            ArchiveRecord(slideId, 5, Message(ReferenceField(27, missingNoteId))));
         return CreatePackage(
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
@@ -865,7 +865,8 @@ public sealed partial class IWorkBoundaryTests {
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
-    private static MemoryStream CreatePagesPackageWithTwoSections(bool includeLayoutBreak = false) {
+    private static MemoryStream CreatePagesPackageWithTwoSections(bool includeLayoutBreak = false,
+        bool emptySecondSection = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong firstSectionId = 3;
@@ -889,12 +890,38 @@ public sealed partial class IWorkBoundaryTests {
                 new[] { secondHeaderFooterId }),
             ArchiveRecord(firstHeaderFooterId, 10143, Message(ReferenceField(1, firstHeaderId)),
                 new[] { firstHeaderId }),
-            ArchiveRecord(secondHeaderFooterId, 10143,
-                Message(ReferenceField(1, secondHeaderId), ReferenceField(2, secondFooterId)),
-                new[] { secondHeaderId, secondFooterId }),
+            ArchiveRecord(secondHeaderFooterId, 10143, emptySecondSection
+                    ? Message()
+                    : Message(ReferenceField(1, secondHeaderId), ReferenceField(2, secondFooterId)),
+                emptySecondSection ? Array.Empty<ulong>() : new[] { secondHeaderId, secondFooterId }),
             ArchiveRecord(firstHeaderId, 2001, Message(StringField(3, "First header"))),
             ArchiveRecord(secondHeaderId, 2001, Message(StringField(3, "Second header"))),
             ArchiveRecord(secondFooterId, 2001, Message(StringField(3, "Second footer"))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+    }
+
+    private static MemoryStream CreatePagesPackageWithSharedCharacterStyle() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong firstParagraphStyleId = 10;
+        const ulong secondParagraphStyleId = 11;
+        const ulong characterStyleId = 12;
+        byte[] firstParagraph = Message(VarintField(1, 0), ReferenceField(2, firstParagraphStyleId));
+        byte[] secondParagraph = Message(VarintField(1, 2), ReferenceField(2, secondParagraphStyleId));
+        byte[] character = Message(VarintField(1, 0), ReferenceField(2, characterStyleId));
+        byte[] body = Message(StringField(3, "A\nB"),
+            BytesField(5, Message(BytesField(1, firstParagraph), BytesField(1, secondParagraph))),
+            BytesField(8, Message(BytesField(1, character))));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, body,
+                new[] { firstParagraphStyleId, secondParagraphStyleId, characterStyleId }),
+            ArchiveRecord(firstParagraphStyleId, 2022,
+                Message(BytesField(11, Message(FloatField(3, 10f))))),
+            ArchiveRecord(secondParagraphStyleId, 2022,
+                Message(BytesField(11, Message(FloatField(3, 20f))))),
+            ArchiveRecord(characterStyleId, 2021,
+                Message(BytesField(11, Message(VarintField(1, 1))))));
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
@@ -959,11 +986,14 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
-        byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false) {
+        byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
+        byte[]? sheetNameBytes = null) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
-        var sheetFields = new List<byte[]> { StringField(1, "Sheet") };
+        var sheetFields = new List<byte[]> {
+            sheetNameBytes == null ? StringField(1, "Sheet") : BytesField(1, sheetNameBytes)
+        };
         byte[][] documentFields = Enumerable.Range(0, sheetReferenceCount)
             .Select(_ => ReferenceField(1, sheetId))
             .ToArray();
@@ -1046,8 +1076,14 @@ public sealed partial class IWorkBoundaryTests {
         int valueBytes = table.Decimal128HighBit ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
-        buffer[cellOffset + 1] = table.TextValue != null ? (byte)3 : table.Duration ? (byte)7 : (byte)2;
-        uint valueFlag = table.TextValue != null ? 1u << 3 : table.Decimal128HighBit ? 1u : 1u << 1;
+        buffer[cellOffset + 1] = table.TextValue != null ? (byte)3
+            : table.Date ? (byte)5
+            : table.Duration ? (byte)7
+            : (byte)2;
+        uint valueFlag = table.TextValue != null ? 1u << 3
+            : table.Decimal128HighBit ? 1u
+            : table.Date ? 1u << 2
+            : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
         if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
         else if (table.Decimal128HighBit) {
@@ -1057,18 +1093,16 @@ public sealed partial class IWorkBoundaryTests {
         else Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
-        var fields = new List<byte[]> {
-            VarintField(1, 0),
-            BytesField(6, buffer),
-            BytesField(7, offsets)
-        };
+        var fields = new List<byte[]> { VarintField(1, 0), BytesField(6, buffer) };
+        if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
         return Message(fields.ToArray());
     }
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
         string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
-        byte[]? bodyBytes = null, byte[]? textBoxDrawable = null, byte[]? documentLayoutFields = null) {
+        byte[]? bodyBytes = null, byte[]? textBoxDrawable = null, byte[]? documentLayoutFields = null,
+        uint textBoxStorageType = 2001) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong shapeId = 3;
@@ -1090,7 +1124,7 @@ public sealed partial class IWorkBoundaryTests {
                     ReferenceField(2, shapeStorageId));
             records.Add(ArchiveRecord(shapeId, 2011, shape,
                 new[] { shapeStorageId }));
-            records.Add(ArchiveRecord(shapeStorageId, 2001, Message(StringField(3, textBox))));
+            records.Add(ArchiveRecord(shapeStorageId, textBoxStorageType, Message(StringField(3, textBox))));
         }
         byte[] iwaStream = Message(records.ToArray());
         var entries = new List<(string Path, byte[] Bytes)> { (archivePath, FrameIwa(iwaStream)) };
@@ -1109,6 +1143,16 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(3, checked((ulong)payload.Length))
         }.Concat(referenceFields).ToArray());
         byte[] archiveInfo = Message(VarintField(1, identifier), BytesField(2, messageInfo));
+        return Message(Varint(checked((ulong)archiveInfo.Length)), archiveInfo, payload);
+    }
+
+    private static byte[] ArchiveRecordWithRepeatedSingularFields(ulong identifier, uint type,
+        byte[] payload) {
+        byte[] messageInfo = Message(
+            VarintField(1, 9999), VarintField(1, type),
+            VarintField(3, 0), VarintField(3, checked((ulong)payload.Length)));
+        byte[] archiveInfo = Message(
+            VarintField(1, 999), VarintField(1, identifier), BytesField(2, messageInfo));
         return Message(Varint(checked((ulong)archiveInfo.Length)), archiveInfo, payload);
     }
 
@@ -1285,7 +1329,7 @@ public sealed partial class IWorkBoundaryTests {
             bool missingModel = false, bool missingTile = false, string? textValue = null,
             bool duration = false, bool duplicateCell = false, bool duplicateString = false,
             bool decimal128HighBit = false, bool duplicateTileIdentity = false,
-            bool duplicateTileRow = false) {
+            bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1302,6 +1346,8 @@ public sealed partial class IWorkBoundaryTests {
             Decimal128HighBit = decimal128HighBit;
             DuplicateTileIdentity = duplicateTileIdentity;
             DuplicateTileRow = duplicateTileRow;
+            OmitCurrentOffsets = omitCurrentOffsets;
+            Date = date;
         }
 
         internal string Name { get; }
@@ -1320,5 +1366,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool Decimal128HighBit { get; }
         internal bool DuplicateTileIdentity { get; }
         internal bool DuplicateTileRow { get; }
+        internal bool OmitCurrentOffsets { get; }
+        internal bool Date { get; }
     }
 }

@@ -109,8 +109,8 @@ internal static class IWorkFormulaReader {
                     break;
                 }
                 case 19: {
-                    string? value = node.GetString(6);
-                    if (value == null) complete = false;
+                    string? value = node.GetString(6, out bool valueComplete);
+                    if (!valueComplete || value == null) complete = false;
                     stack.Add(new Operand(Quote(value ?? string.Empty,
                         maximumCharacters, ref complete), PrimaryPrecedence));
                     break;
@@ -154,7 +154,8 @@ internal static class IWorkFormulaReader {
                 case 31: {
                     int argumentCount = BoundedCount(node.GetUnsigned(18), maximumNodes);
                     Operand[] arguments = Pop(stack, argumentCount, ref complete);
-                    string name = node.GetString(17) ?? "UNKNOWN";
+                    string name = node.GetString(17, out bool nameComplete) ?? "UNKNOWN";
+                    if (!nameComplete) complete = false;
                     if (name.Length > maximumCharacters) name = "UNKNOWN";
                     stack.Add(new Operand(Call(name, arguments, maximumCharacters, ref complete), PrimaryPrecedence));
                     complete = false;
@@ -163,7 +164,8 @@ internal static class IWorkFormulaReader {
                 case 32:
                 case 33: {
                     Operand operand = Pop(stack, 1, ref complete)[0];
-                    string whitespace = node.GetString(25) ?? string.Empty;
+                    string whitespace = node.GetString(25, out bool whitespaceComplete) ?? string.Empty;
+                    if (!whitespaceComplete) complete = false;
                     stack.Add(new Operand(Bound(type == 32 ? operand.Text + whitespace : whitespace + operand.Text,
                         maximumCharacters, ref complete), operand.Precedence));
                     break;
