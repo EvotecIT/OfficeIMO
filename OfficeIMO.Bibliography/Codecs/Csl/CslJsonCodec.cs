@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace OfficeIMO.Bibliography;
 
 internal static class CslJsonCodec {
-    private const int NativeJsonMaximumDepth = 1024;
+    internal const int NativeJsonMaximumDepth = 1024;
     private const int JsonWriterMaximumDepth = NativeJsonMaximumDepth + 8;
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {

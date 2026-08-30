@@ -186,7 +186,7 @@ internal static class BibCodec {
     }
 
     private static string FormatBibListItem(string value) =>
-        string.IsNullOrWhiteSpace(value) || value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
+        string.IsNullOrWhiteSpace(value) || !string.Equals(value, value.Trim(), StringComparison.Ordinal) || value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
 
     private static string Escape(string value) {
         int depth = 0;

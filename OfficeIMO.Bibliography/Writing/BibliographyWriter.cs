@@ -323,7 +323,7 @@ internal static class BibliographyConversionInspector {
         foreach (KeyValuePair<string, string> text in EnumerateText(item, cancellationToken)) {
             if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && (text.Value.IndexOf('\r') >= 0 || text.Value.IndexOf('\n') >= 0))
                 Loss(report, item, text.Key, "BIBCONV209", $"Line breaks in '{text.Key}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
-            if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && text.Value.Length > 0 && char.IsWhiteSpace(text.Value[0]))
+            if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && text.Value.Length > 0 && char.IsWhiteSpace(text.Value[0]) && !IsProtectedRisIdentifierWhitespace(item, text, format, cancellationToken))
                 Loss(report, item, text.Key, "BIBCONV239", $"Leading whitespace in '{text.Key}' is normalized by {format} tagged-value parsing.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.EndNoteXml && HasInvalidXmlCharacters(text.Value))
                 Loss(report, item, text.Key, "BIBCONV210", $"Invalid XML characters in '{text.Key}' are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
@@ -349,9 +349,28 @@ internal static class BibliographyConversionInspector {
     }
 
     private static void InspectNativeStructure(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
-        if (format != BibliographyFormat.EndNoteXml) return;
-        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
-            Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
+        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) InspectRaw(field, "native." + field.Name);
+        foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken))
+            foreach (BibliographyNativeField field in Cancellable(contributor.Name.NativeFields, cancellationToken)) InspectRaw(field, "contributors." + field.Name);
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken))
+            foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) InspectRaw(field, "dates." + field.Name);
+        if (format == BibliographyFormat.EndNoteXml) {
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
+                Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
+        }
+
+        void InspectRaw(BibliographyNativeField field, string path) {
+            if (field.Format == format && field.HasInconsistentRawValue)
+                Loss(report, item, path, "BIBCONV247", $"Native {format} field '{field.Name}' has a raw representation that does not match its decoded value or field name.", BibliographyConversionAction.Approximated);
+        }
+    }
+
+    private static bool IsProtectedRisIdentifierWhitespace(BibliographyItem item, KeyValuePair<string, string> text, BibliographyFormat format, CancellationToken cancellationToken) {
+        if (format != BibliographyFormat.Ris || !text.Key.StartsWith("identifiers.", StringComparison.Ordinal)) return false;
+        return Cancellable(item.Identifiers, cancellationToken).Any(identifier =>
+            string.Equals(text.Key, "identifiers." + identifier.Scheme, StringComparison.Ordinal) &&
+            string.Equals(text.Value, identifier.Value, StringComparison.Ordinal) &&
+            TaggedCodec.ProtectsLeadingWhitespaceInRisIdentifier(identifier));
     }
 
     private static IEnumerable<KeyValuePair<string, string>> EnumerateText(BibliographyItem item, CancellationToken cancellationToken) {

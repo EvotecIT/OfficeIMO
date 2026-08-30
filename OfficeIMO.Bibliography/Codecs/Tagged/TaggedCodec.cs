@@ -166,64 +166,64 @@ internal static class TaggedCodec {
 
     private static void Bind(BibliographyItem item, BibliographyFormat format, string tag, string value) {
         string field = tag.ToUpperInvariant();
-        if (format == BibliographyFormat.Ris) BindRis(item, field, value); else BindNbib(item, field, value);
+        if (format == BibliographyFormat.Ris) BindRis(item, field, tag, value); else BindNbib(item, field, tag, value);
     }
 
-    private static void BindRis(BibliographyItem item, string field, string value) {
+    private static void BindRis(BibliographyItem item, string field, string sourceTag, string value) {
         switch (field) {
-            case "ID": SetScalar(item, BibliographyFormat.Ris, "key", field, value, assigned => item.Key = assigned); break;
-            case "TI": case "T1": SetScalar(item, BibliographyFormat.Ris, "title", field, value, assigned => item.Title = assigned); break;
-            case "T2": case "JF": case "JO": case "JA": SetScalar(item, BibliographyFormat.Ris, "container-title", field, value, assigned => item.ContainerTitle = assigned); break;
-            case "AU": case "A1": AddTaggedContributor(item, BibliographyContributorRole.Author, field, value); break;
-            case "ED": case "A2": AddTaggedContributor(item, BibliographyContributorRole.Editor, field, value); break;
-            case "PY": case "Y1": case "DA": AddTaggedDate(item, BibliographyDateRole.Issued, field, value); break;
-            case "Y2": AddTaggedDate(item, BibliographyDateRole.Accessed, field, value); break;
-            case "PB": SetScalar(item, BibliographyFormat.Ris, "publisher", field, value, assigned => item.Publisher = assigned); break;
-            case "CY": SetScalar(item, BibliographyFormat.Ris, "publisher-place", field, value, assigned => item.PublisherPlace = assigned); break;
-            case "ET": SetScalar(item, BibliographyFormat.Ris, "edition", field, value, assigned => item.Edition = assigned); break;
-            case "VL": SetScalar(item, BibliographyFormat.Ris, "volume", field, value, assigned => item.Volume = assigned); break;
-            case "IS": SetScalar(item, BibliographyFormat.Ris, "issue", field, value, assigned => item.Issue = assigned); break;
+            case "ID": SetScalar(item, BibliographyFormat.Ris, "key", sourceTag, value, assigned => item.Key = assigned); break;
+            case "TI": case "T1": SetScalar(item, BibliographyFormat.Ris, "title", sourceTag, value, assigned => item.Title = assigned); break;
+            case "T2": case "JF": case "JO": case "JA": SetScalar(item, BibliographyFormat.Ris, "container-title", sourceTag, value, assigned => item.ContainerTitle = assigned); break;
+            case "AU": case "A1": AddTaggedContributor(item, BibliographyContributorRole.Author, sourceTag, value); break;
+            case "ED": case "A2": AddTaggedContributor(item, BibliographyContributorRole.Editor, sourceTag, value); break;
+            case "PY": case "Y1": case "DA": AddTaggedDate(item, BibliographyDateRole.Issued, sourceTag, value); break;
+            case "Y2": AddTaggedDate(item, BibliographyDateRole.Accessed, sourceTag, value); break;
+            case "PB": SetScalar(item, BibliographyFormat.Ris, "publisher", sourceTag, value, assigned => item.Publisher = assigned); break;
+            case "CY": SetScalar(item, BibliographyFormat.Ris, "publisher-place", sourceTag, value, assigned => item.PublisherPlace = assigned); break;
+            case "ET": SetScalar(item, BibliographyFormat.Ris, "edition", sourceTag, value, assigned => item.Edition = assigned); break;
+            case "VL": SetScalar(item, BibliographyFormat.Ris, "volume", sourceTag, value, assigned => item.Volume = assigned); break;
+            case "IS": SetScalar(item, BibliographyFormat.Ris, "issue", sourceTag, value, assigned => item.Issue = assigned); break;
             case "SP": SetPageStart(item, value); break;
             case "EP": SetPageEnd(item, value); break;
-            case "AB": case "N2": SetScalar(item, BibliographyFormat.Ris, "abstract", field, value, assigned => item.Abstract = assigned); break;
-            case "LA": SetScalar(item, BibliographyFormat.Ris, "language", field, value, assigned => item.Language = assigned); break;
-            case "UR": case "L1": SetScalar(item, BibliographyFormat.Ris, "url", field, value, assigned => item.Url = assigned); break;
-            case "DO": AddRisIdentifier(item, field, "DOI", value); break;
-            case "SN": AddRisIdentifier(item, field, CodecMappings.InferSerialScheme(value), value); break;
+            case "AB": case "N2": SetScalar(item, BibliographyFormat.Ris, "abstract", sourceTag, value, assigned => item.Abstract = assigned); break;
+            case "LA": SetScalar(item, BibliographyFormat.Ris, "language", sourceTag, value, assigned => item.Language = assigned); break;
+            case "UR": case "L1": SetScalar(item, BibliographyFormat.Ris, "url", sourceTag, value, assigned => item.Url = assigned); break;
+            case "DO": AddRisIdentifier(item, sourceTag, "DOI", value); break;
+            case "SN": AddRisIdentifier(item, sourceTag, CodecMappings.InferSerialScheme(value), value); break;
             case "AN":
                 if (string.IsNullOrWhiteSpace(item.Key)) { item.Key = value; item.TaggedScalarBindings.Add("Ris:key-from-accession"); }
-                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value));
+                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, sourceTag, value));
                 else ParseRisAccession(item, value);
                 break;
             case "KW": item.Keywords.Add(value); break; case "N1": item.Notes.Add(value); break;
-            default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value)); break;
+            default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, sourceTag, value)); break;
         }
     }
 
-    private static void BindNbib(BibliographyItem item, string field, string value) {
+    private static void BindNbib(BibliographyItem item, string field, string sourceTag, string value) {
         switch (field) {
-            case "PMID": item.Key = value; AddTaggedIdentifier(item, "PMID", value, field); break;
-            case "PT": BindNbibPublicationType(item, value); item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
-            case "TI": SetScalar(item, BibliographyFormat.Nbib, "title", field, value, assigned => item.Title = assigned); break;
-            case "JT": case "TA": SetScalar(item, BibliographyFormat.Nbib, "container-title", field, value, assigned => item.ContainerTitle = assigned); break;
-            case "FAU": AddNbibContributor(item, field, CodecMappings.ParseCommaName(value)); break;
-            case "AU": AddNbibContributor(item, field, ParseCompactNbibName(value)); break;
-            case "CN": AddNbibContributor(item, field, new BibliographyName { Literal = value }); break;
-            case "DP": AddTaggedDate(item, BibliographyDateRole.Issued, field, value); break;
-            case "VI": SetScalar(item, BibliographyFormat.Nbib, "volume", field, value, assigned => item.Volume = assigned); break;
-            case "IP": SetScalar(item, BibliographyFormat.Nbib, "issue", field, value, assigned => item.Issue = assigned); break;
-            case "PG": SetScalar(item, BibliographyFormat.Nbib, "pages", field, value, assigned => item.Pages = assigned); break;
-            case "AB": SetScalar(item, BibliographyFormat.Nbib, "abstract", field, value, assigned => item.Abstract = assigned); break;
-            case "LA": SetScalar(item, BibliographyFormat.Nbib, "language", field, value, assigned => item.Language = assigned); break;
-            case "LID": case "AID": ParseNbibIdentifier(item, value, field); break;
+            case "PMID": item.Key = value; AddTaggedIdentifier(item, "PMID", value, sourceTag); break;
+            case "PT": BindNbibPublicationType(item, value); item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value)); break;
+            case "TI": SetScalar(item, BibliographyFormat.Nbib, "title", sourceTag, value, assigned => item.Title = assigned); break;
+            case "JT": case "TA": SetScalar(item, BibliographyFormat.Nbib, "container-title", sourceTag, value, assigned => item.ContainerTitle = assigned); break;
+            case "FAU": AddNbibContributor(item, sourceTag, CodecMappings.ParseCommaName(value)); break;
+            case "AU": AddNbibContributor(item, sourceTag, ParseCompactNbibName(value)); break;
+            case "CN": AddNbibContributor(item, sourceTag, new BibliographyName { Literal = value }); break;
+            case "DP": AddTaggedDate(item, BibliographyDateRole.Issued, sourceTag, value); break;
+            case "VI": SetScalar(item, BibliographyFormat.Nbib, "volume", sourceTag, value, assigned => item.Volume = assigned); break;
+            case "IP": SetScalar(item, BibliographyFormat.Nbib, "issue", sourceTag, value, assigned => item.Issue = assigned); break;
+            case "PG": SetScalar(item, BibliographyFormat.Nbib, "pages", sourceTag, value, assigned => item.Pages = assigned); break;
+            case "AB": SetScalar(item, BibliographyFormat.Nbib, "abstract", sourceTag, value, assigned => item.Abstract = assigned); break;
+            case "LA": SetScalar(item, BibliographyFormat.Nbib, "language", sourceTag, value, assigned => item.Language = assigned); break;
+            case "LID": case "AID": ParseNbibIdentifier(item, value, sourceTag); break;
             case "IS":
-                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
-                else AddTaggedIdentifier(item, "ISSN", value, field);
+                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value));
+                else AddTaggedIdentifier(item, "ISSN", value, sourceTag);
                 break;
             case "OT": item.Keywords.Add(value); break;
-            case "MH": item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
+            case "MH": item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value)); break;
             case "GN": item.Notes.Add(value); break;
-            default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value)); break;
+            default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value)); break;
         }
     }
 
@@ -514,6 +514,13 @@ internal static class TaggedCodec {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase)) return string.Equals(identifier.Scheme, CodecMappings.InferSerialScheme(identifier.Value), StringComparison.Ordinal);
         return !string.IsNullOrWhiteSpace(identifier.Scheme) && identifier.Scheme.IndexOf(':') < 0 && identifier.Scheme.IndexOf('\r') < 0 && identifier.Scheme.IndexOf('\n') < 0;
     }
+    internal static bool ProtectsLeadingWhitespaceInRisIdentifier(BibliographyIdentifier identifier) =>
+        CanRoundTripRisIdentifier(identifier) &&
+        !string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) &&
+        !string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase);
     internal static bool CanRoundTripRisType(BibliographyItemType type) =>
         type != BibliographyItemType.Unknown && CodecMappings.ParseRisType(CodecMappings.ToRisType(type)) == type;
 
@@ -617,7 +624,7 @@ internal static class TaggedCodec {
         foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
             if (format == BibliographyFormat.Nbib && field.Format == format && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)) continue;
             bool unsafeBoundary = format == BibliographyFormat.Ris && (string.Equals(field.Name, "TY", StringComparison.OrdinalIgnoreCase) || string.Equals(field.Name, "ER", StringComparison.OrdinalIgnoreCase)) || format == BibliographyFormat.Nbib && string.Equals(field.Name, "PMID", StringComparison.OrdinalIgnoreCase);
-            if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name.ToUpperInvariant(), field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
+            if (field.Format == format && IsTag(field.Name) && !unsafeBoundary && CanRemainNativeTaggedField(item, field, format)) { WriteTag(builder, field.Name, field.Value, lineEnding); report.Add("BIBCONV013", BibliographyDiagnosticSeverity.Information, $"Preserved native {format} tag '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name); }
             else if (field.Format != format) report.Add("BIBCONV113", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in {format}.", BibliographyConversionAction.Omitted, item, field.Name);
             else report.Add("BIBCONV122", BibliographyDiagnosticSeverity.Warning, $"Native {format} field '{field.Name}' conflicts with a typed tag or has an unsafe name.", BibliographyConversionAction.Omitted, item, field.Name);
         }

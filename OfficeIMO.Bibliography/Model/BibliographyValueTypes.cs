@@ -94,6 +94,7 @@ public sealed class BibliographyIdentifier {
 /// <summary>An ordered native field retained outside the typed model.</summary>
 public sealed class BibliographyNativeField {
     private readonly string _originalValue;
+    private readonly bool _rawValueRepresentsOriginalValue;
 
     /// <summary>Initializes a native field.</summary>
     public BibliographyNativeField(BibliographyFormat format, string name, string value, string? rawValue = null)
@@ -105,6 +106,7 @@ public sealed class BibliographyNativeField {
         Value = value ?? throw new ArgumentNullException(nameof(value));
         _originalValue = value;
         RawValue = rawValue;
+        _rawValueRepresentsOriginalValue = RawValueRepresentsValue(format, Name, value, rawValue);
     }
 
     internal static BibliographyNativeField FromParsedSource(BibliographyFormat format, string name, string value, string? rawValue = null) =>
@@ -119,7 +121,34 @@ public sealed class BibliographyNativeField {
     /// <summary>Optional raw source representation.</summary>
     public string? RawValue { get; }
 
-    internal string? UnmodifiedRawValue => RawValue != null && string.Equals(Value, _originalValue, StringComparison.Ordinal) ? RawValue : null;
+    internal string? UnmodifiedRawValue => RawValue != null && _rawValueRepresentsOriginalValue && string.Equals(Value, _originalValue, StringComparison.Ordinal) ? RawValue : null;
+    internal bool HasInconsistentRawValue => RawValue != null && !_rawValueRepresentsOriginalValue && string.Equals(Value, _originalValue, StringComparison.Ordinal);
+
+    private static bool RawValueRepresentsValue(BibliographyFormat format, string name, string value, string? rawValue) {
+        if (rawValue == null) return true;
+        try {
+            if (format == BibliographyFormat.CslJson) {
+                using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(rawValue, new System.Text.Json.JsonDocumentOptions { MaxDepth = CslJsonCodec.NativeJsonMaximumDepth });
+                System.Text.Json.JsonElement root = document.RootElement;
+                switch (root.ValueKind) {
+                    case System.Text.Json.JsonValueKind.String: return string.Equals(root.GetString() ?? string.Empty, value, StringComparison.Ordinal);
+                    case System.Text.Json.JsonValueKind.Number:
+                    case System.Text.Json.JsonValueKind.True:
+                    case System.Text.Json.JsonValueKind.False: return string.Equals(root.GetRawText(), value, StringComparison.Ordinal);
+                    case System.Text.Json.JsonValueKind.Null:
+                    case System.Text.Json.JsonValueKind.Undefined: return value.Length == 0;
+                    default: return string.Equals(root.GetRawText(), value, StringComparison.Ordinal);
+                }
+            }
+            if (format == BibliographyFormat.EndNoteXml) {
+                System.Xml.Linq.XElement element = System.Xml.Linq.XElement.Parse(rawValue, System.Xml.Linq.LoadOptions.PreserveWhitespace);
+                return string.Equals(element.Name.LocalName, name, StringComparison.Ordinal) && string.Equals(element.Value, value, StringComparison.Ordinal);
+            }
+            return true;
+        } catch (Exception exception) when (exception is System.Text.Json.JsonException || exception is System.Xml.XmlException || exception is InvalidOperationException || exception is ArgumentException) {
+            return false;
+        }
+    }
 }
 
 /// <summary>An ordered document-level directive or value outside citation records.</summary>
