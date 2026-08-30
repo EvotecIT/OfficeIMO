@@ -178,6 +178,8 @@ public sealed partial class DocBookDocument {
             bool invalidInlineParent = (kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference) &&
                 (parent == null || !CanContainInlineContent(parent) &&
                     (parentKind != DocBookNodeKind.Unknown || CanContainParagraphContent(parent)));
+            bool invalidBlockParent = parent != null && IsInlineOnlyContainer(parent) &&
+                kind != DocBookNodeKind.Unknown && !IsInlineChildKind(kind);
             bool duplicateInfo = kind == DocBookNodeKind.Info && expectedInfoName != null &&
                 string.Equals(localName, expectedInfoName, StringComparison.Ordinal) &&
                 element.ElementsBeforeSelf(Namespace + expectedInfoName).Any();
@@ -214,7 +216,7 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB021", DocBookDiagnosticSeverity.Error,
                     "tgroup requires a positive cols attribute in the bounded CALS profile.", path));
             }
-            bool invalidParent = invalidInlineParent ||
+            bool invalidParent = invalidInlineParent || invalidBlockParent ||
                 kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
@@ -236,6 +238,16 @@ public sealed partial class DocBookDocument {
                     $"{localName} is not under a supported common-structure parent.", path));
             }
             XName xlinkHref = XName.Get("href", "http://www.w3.org/1999/xlink");
+            if (kind == DocBookNodeKind.Link) {
+                string? internalTarget = (string?)element.Attribute("linkend");
+                string? externalTarget = Profile == DocBookProfile.DocBook45 && localName == "ulink"
+                    ? (string?)element.Attribute("url")
+                    : Profile == DocBookProfile.DocBook52 ? (string?)element.Attribute(xlinkHref) : null;
+                if (string.IsNullOrWhiteSpace(internalTarget) && string.IsNullOrWhiteSpace(externalTarget)) {
+                    diagnostics.Add(new DocBookDiagnostic("DB017", DocBookDiagnosticSeverity.Error,
+                        $"{localName} requires a nonblank linkend or external target in the bounded common-structure profile.", path));
+                }
+            }
             if (kind == DocBookNodeKind.Link &&
                 (element.Attribute("href") != null ||
                  Profile == DocBookProfile.DocBook52 && element.Attribute("url") != null ||
@@ -359,6 +371,16 @@ public sealed partial class DocBookDocument {
             kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.ProgramListing ||
             kind == DocBookNodeKind.Screen || kind == DocBookNodeKind.Entry;
     }
+
+    internal bool IsInlineOnlyContainer(XElement element) {
+        DocBookNodeKind kind = DocBookNames.GetKind(element.Name, Namespace);
+        return kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
+            kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.ProgramListing ||
+            kind == DocBookNodeKind.Screen;
+    }
+
+    internal static bool IsInlineChildKind(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference || kind == DocBookNodeKind.IndexTerm;
 
     internal bool CanContainParagraphContent(XElement element) {
         if (GetComponentInfoElementName(element) != null) return true;

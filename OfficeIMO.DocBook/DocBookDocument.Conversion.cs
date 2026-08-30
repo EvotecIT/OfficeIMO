@@ -821,6 +821,7 @@ public sealed partial class DocBookDocument {
 
         bool AddFlatLink(OfficeDocumentModelLink source) {
             string text = source.Text ?? source.Uri ?? source.DestinationName ?? source.Id;
+            bool crossReference = string.Equals(source.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase);
             bool represented = false;
             if (!string.IsNullOrWhiteSpace(source.Uri)) {
                 DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
@@ -832,7 +833,9 @@ public sealed partial class DocBookDocument {
                 represented = true;
             } else if (!string.IsNullOrWhiteSpace(source.DestinationName)) {
                 DocBookNode paragraph = document.Root.Add(DocBookNodeKind.Paragraph);
-                DocBookNode link = paragraph.Add(DocBookNodeKind.Link, text);
+                DocBookNode link = crossReference
+                    ? paragraph.Add(DocBookNodeKind.CrossReference)
+                    : paragraph.Add(DocBookNodeKind.Link, text);
                 link.SetAttribute("linkend", source.DestinationName);
                 represented = true;
             }
@@ -840,7 +843,10 @@ public sealed partial class DocBookDocument {
                 !string.IsNullOrWhiteSpace(source.NamedAction) || !string.IsNullOrWhiteSpace(source.RemoteFile) ||
                 !string.IsNullOrWhiteSpace(source.RemoteDestinationName) || source.RemoteDestinationPageNumber.HasValue ||
                 source.Region != null ||
-                (!string.IsNullOrWhiteSpace(source.Uri) && !string.IsNullOrWhiteSpace(source.DestinationName));
+                (!string.IsNullOrWhiteSpace(source.Uri) && !string.IsNullOrWhiteSpace(source.DestinationName)) ||
+                crossReference && (!string.IsNullOrWhiteSpace(source.Uri) || !string.IsNullOrEmpty(source.Text)) ||
+                !string.IsNullOrWhiteSpace(source.Kind) &&
+                    !string.Equals(source.Kind, "link", StringComparison.OrdinalIgnoreCase) && !crossReference;
             if (!represented || hasUnsupportedTarget) {
                 diagnostics.Add(new DocBookDiagnostic("DB120", DocBookDiagnosticSeverity.Warning,
                     represented

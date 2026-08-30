@@ -24,6 +24,8 @@ public sealed class DocBookNode {
         set {
             if (Kind == DocBookNodeKind.Info) {
                 throw new InvalidOperationException("DocBook metadata containers cannot contain direct text.");
+            } else if (Kind == DocBookNodeKind.CrossReference) {
+                throw new InvalidOperationException("DocBook cross-references cannot contain direct text.");
             } else if (Kind == DocBookNodeKind.Author) {
                 Element.ReplaceNodes(new XElement(_document.Namespace + "personname", value ?? string.Empty));
             } else {
@@ -75,6 +77,7 @@ public sealed class DocBookNode {
     }
     /// <summary>Adds an external link.</summary>
     public DocBookNode AddLink(string text, string href) {
+        if (string.IsNullOrWhiteSpace(href)) throw new ArgumentException("A nonblank link target is required.", nameof(href));
         DocBookNode inlineParent = this;
         if (!_document.CanContainInlineContent(Element)) {
             if (!_document.CanContainParagraphContent(Element)) {
@@ -120,6 +123,9 @@ public sealed class DocBookNode {
     /// <summary>Adds a supported common node.</summary>
     public DocBookNode Add(DocBookNodeKind kind, string? text = null) {
         if (kind == DocBookNodeKind.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
+        if (_document.IsInlineOnlyContainer(Element) && !DocBookDocument.IsInlineChildKind(kind)) {
+            throw new InvalidOperationException($"DocBook {Name} elements cannot contain {DocBookNames.GetElementName(kind)} in the bounded common-structure profile.");
+        }
         if (kind == DocBookNodeKind.CrossReference && text != null) {
             throw new ArgumentException("DocBook cross-references cannot contain direct text.", nameof(text));
         }

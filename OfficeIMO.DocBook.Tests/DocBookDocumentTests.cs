@@ -196,6 +196,8 @@ public sealed class DocBookDocumentTests {
     public void CrossReferenceRejectsDirectTextAndValidationRejectsTextContent() {
         DocBookDocument document = DocBookDocument.CreateArticle();
         Assert.Throws<ArgumentException>(() => document.Root.Add(DocBookNodeKind.CrossReference, "Label"));
+        DocBookNode crossReference = document.AddParagraph(string.Empty).Add(DocBookNodeKind.CrossReference);
+        Assert.Throws<InvalidOperationException>(() => crossReference.Text = "Label");
 
         DocBookDocument parsed = DocBookDocument.Parse(
             "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><xref linkend=\"target\">Label</xref><section xml:id=\"target\"><title>Target</title></section></article>");
@@ -707,6 +709,35 @@ public sealed class DocBookDocumentTests {
         Assert.True(book.Validate().IsValid);
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedLinksRequireTargetsAndLinkHelpersRejectBlankTargets(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode paragraph = document.AddParagraph("Body");
+        paragraph.Add(DocBookNodeKind.Link, "Site");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB017" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+        Assert.Throws<ArgumentException>(() => paragraph.AddLink("Site", "  "));
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void InlineContainersRejectTypedBlockChildrenAndValidationCatchesParsedPlacement(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        Assert.Throws<InvalidOperationException>(() => document.AddParagraph("Body").AddSection("Nested"));
+        Assert.Throws<InvalidOperationException>(() => document.AddSection("Section").Children
+            .Single(child => child.Kind == DocBookNodeKind.Title).AddParagraph("Nested"));
+
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><section><title>Nested</title></section></para></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><section><title>Nested</title></section></para></article>";
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void ValidationRejectsInlineLinksOutsideInlineContentParents() {
         DocBookDocument document = DocBookDocument.Parse(
@@ -1190,17 +1221,21 @@ public sealed class DocBookDocumentTests {
         XElement table = Assert.Single(converted.Value.Xml.Root!.Elements(), element => element.Name.LocalName == "table");
         XElement image = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "imagedata");
         XElement[] links = converted.Value.Xml.Descendants().Where(element => element.Name.LocalName == "link").ToArray();
+        XElement crossReference = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "xref");
 
         Assert.Equal("Jane Doe", info.Descendants().Single(element => element.Name.LocalName == "author").Value);
         Assert.Equal(new[] { "Name", "Value", "A", "1" },
             table.Descendants().Where(element => element.Name.LocalName == "entry").Select(element => element.Value));
         Assert.Equal("assets/figure.png", image.Attribute("fileref")!.Value);
         Assert.Contains(links, link => (string?)link.Attribute(XName.Get("href", "http://www.w3.org/1999/xlink")) == "https://example.test/");
-        Assert.Contains(links, link => (string?)link.Attribute("linkend") == "target-id");
+        Assert.Equal("target-id", (string?)crossReference.Attribute("linkend"));
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB103");
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB120" &&
+            diagnostic.Message.IndexOf("target", StringComparison.OrdinalIgnoreCase) >= 0);
         OfficeDocumentModel projected = converted.Value.ToOfficeDocumentModel().Value;
         Assert.Contains(projected.Links, link => link.Uri == "https://example.test/" && link.Text == "Site");
-        Assert.Contains(projected.Links, link => link.DestinationName == "target-id" && link.Text == "Target");
+        Assert.Contains(projected.Links, link => link.DestinationName == "target-id" &&
+            link.Kind == "cross-reference" && string.IsNullOrEmpty(link.Text));
     }
 
     [Fact]
@@ -1732,6 +1767,28 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("link", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.Contains(converted.Value.Xml.Descendants(), element =>
             element.Name.LocalName == "link" && (string?)element.Attribute("linkend") == "target");
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void SharedReverseConversionEmitsFlatCrossReferencesAsXref(DocBookProfile profile) {
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Links = new[] {
+                new OfficeDocumentModelLink { Id = "xref", Kind = "cross-reference", DestinationName = "target" }
+            }
+        };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(
+            model, DocBookDocumentKind.Article, profile);
+        XElement crossReference = Assert.Single(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "xref");
+
+        Assert.Equal("target", (string?)crossReference.Attribute("linkend"));
+        Assert.Empty(crossReference.Nodes());
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB120");
+        Assert.True(converted.Value.Validate().IsValid);
     }
 
     [Theory]
