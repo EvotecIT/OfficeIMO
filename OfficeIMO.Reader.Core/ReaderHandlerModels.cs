@@ -90,6 +90,14 @@ public sealed class ReaderHandlerRegistration {
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; set; }
 
     /// <summary>
+    /// Optional bounded validator used only when this handler owns the exact source extension but
+    /// <see cref="ReaderDetectionMode.PreferContent"/> reports a content mismatch. Return true to
+    /// retain extension routing for a source that the handler recognizes. The delegate must not
+    /// close the caller-owned stream; Core restores caller-visible stream position after validation.
+    /// </summary>
+    public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; set; }
+
+    /// <summary>
     /// Optional advertised default max input bytes for this handler.
     /// Null means "no handler-specific default advertised".
     /// </summary>

@@ -79,7 +79,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             Extensions = new[] { ".wp", ".wp5", ".wp6", ".wpd", ".ws", ".ws3", ".ws4", ".ws5", ".ws6", ".ws7", ".sam", ".lwp", ".wps", ".wri" },
             ReadDocumentPath = (path, readerOptions, token) => LegacyWordReaderAdapter.ReadDocument(path, readerOptions, configured, configuredImport, token),
             ReadDocumentStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.ReadDocument(stream, sourceName, readerOptions, configured, configuredImport, token),
-            ProbeStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
+            ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
             DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes

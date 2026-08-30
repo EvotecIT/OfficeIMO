@@ -159,7 +159,7 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            if (hasExtensionHandler && ProbeExtensionHandler(path, extensionHandler, options, cancellationToken)) {
+            if (hasExtensionHandler && ValidateExtensionHandler(path, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
                 return true;
             }
@@ -196,7 +196,7 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            if (hasExtensionHandler && ProbeExtensionHandler(stream, sourceName, extensionHandler, options, cancellationToken)) {
+            if (hasExtensionHandler && ValidateExtensionHandler(stream, sourceName, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
                 return true;
             }
@@ -258,21 +258,21 @@ internal static partial class DocumentReaderEngine {
         return new HandlerDetectionResolution(hasHandler ? handler : null, detection);
     }
 
-    private static bool ProbeExtensionHandler(string path, ReaderHandlerDescriptor handler, ReaderOptions options,
+    private static bool ValidateExtensionHandler(string path, ReaderHandlerDescriptor handler, ReaderOptions options,
         CancellationToken cancellationToken) {
-        if (handler.ProbeStream == null || !handler.SupportsPathInput) return false;
+        if (handler.ExtensionValidationProbeStream == null || !handler.SupportsPathInput) return false;
         cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return ProbeExtensionHandler(stream, path, handler, options, cancellationToken);
+        return handler.ExtensionValidationProbeStream(stream, path, options, cancellationToken);
     }
 
-    private static bool ProbeExtensionHandler(Stream stream, string? sourceName, ReaderHandlerDescriptor handler,
+    private static bool ValidateExtensionHandler(Stream stream, string? sourceName, ReaderHandlerDescriptor handler,
         ReaderOptions options, CancellationToken cancellationToken) {
-        if (handler.ProbeStream == null || !handler.SupportsStreamInput || !stream.CanSeek) return false;
+        if (handler.ExtensionValidationProbeStream == null || !handler.SupportsStreamInput || !stream.CanSeek) return false;
         long position = stream.Position;
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            return handler.ProbeStream(stream, sourceName, options, cancellationToken);
+            return handler.ExtensionValidationProbeStream(stream, sourceName, options, cancellationToken);
         } finally {
             stream.Position = position;
         }

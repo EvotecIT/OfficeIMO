@@ -182,7 +182,8 @@ internal sealed class ReaderHandlerDescriptor {
         Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream,
         Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync,
-        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream) {
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream,
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream) {
         Id = id;
         DisplayName = displayName;
         Description = description;
@@ -202,6 +203,7 @@ internal sealed class ReaderHandlerDescriptor {
         ReadDocumentPathAsync = readDocumentPathAsync;
         ReadDocumentStreamAsync = readDocumentStreamAsync;
         ProbeStream = probeStream;
+        ExtensionValidationProbeStream = extensionValidationProbeStream;
     }
 
     public string Id { get; }
@@ -223,6 +225,7 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; }
+    public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; }
     public bool SupportsPathInput => ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null;
     public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
@@ -272,7 +275,8 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadDocumentStream,
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
-            registration.ProbeStream);
+            registration.ProbeStream,
+            registration.ExtensionValidationProbeStream);
     }
 
     public ReaderHandlerCapability ToCapability() {
