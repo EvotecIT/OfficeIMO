@@ -545,9 +545,10 @@ public sealed class OpmlDocumentTests {
             "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
             .ToOfficeDocumentModel().Value;
         OfficeDocumentModelNode attributeNode = attributeEdited.Structure.Single();
-        attributeNode.Attributes = new Dictionary<string, string>(attributeNode.Attributes) {
-            ["text"] = "Edited attribute"
-        };
+        Dictionary<string, string> editedAttributes = attributeNode.Attributes.ToDictionary(
+            pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        editedAttributes["text"] = "Edited attribute";
+        attributeNode.Attributes = editedAttributes;
 
         OpmlConversionResult<OpmlDocument> attributeResult = OpmlDocument.FromOfficeDocumentModel(attributeEdited);
 

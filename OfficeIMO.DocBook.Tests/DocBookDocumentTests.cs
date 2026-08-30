@@ -107,6 +107,20 @@ public sealed class DocBookDocumentTests {
         Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB010");
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedBookAdditionsUseATitledChapterContainer(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateBook(profile);
+
+        document.AddParagraph("Body");
+
+        XElement chapter = Assert.Single(document.Xml.Root!.Elements(), element => element.Name.LocalName == "chapter");
+        Assert.Equal("Content", chapter.Elements().First().Value);
+        Assert.Equal("title", chapter.Elements().First().Name.LocalName);
+        Assert.Equal("Body", chapter.Elements().Last().Value);
+    }
+
     [Fact]
     public void RepeatedDiagnosticsAreCappedPerCodeAndSummarized() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><x:a/><x:b/><x:c/><x:d/><x:e/></article>";
@@ -260,6 +274,30 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(2, table.TotalRowCount);
         Assert.Equal(new[] { "Body", "Total" }, table.Rows.Select(row => row.Single()).ToArray());
         Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB119");
+    }
+
+    [Fact]
+    public void SharedTableProjectionMovesDtdOrderedFooterRowsAfterBodyRows() {
+        const string source = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><informaltable><tgroup cols=\"1\"><tfoot><row><entry>Total</entry></row></tfoot><tbody><row><entry>Body</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel();
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal(new[] { "Body", "Total" }, table.Rows.Select(row => row.Single()).ToArray());
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB119");
+    }
+
+    [Fact]
+    public void SharedTableProjectionPrioritizesBodyRowsBeforeFooterRowsAtTheRowLimit() {
+        const string source = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><informaltable><tgroup cols=\"1\"><tfoot><row><entry>Total</entry></row></tfoot><tbody><row><entry>Body</entry></row></tbody></tgroup></informaltable></article>";
+
+        DocBookConversionResult<OfficeDocumentModel> converted = DocBookDocument.Parse(source).ToOfficeDocumentModel(
+            options: new DocBookConversionOptions { MaxTableRows = 1 });
+        OfficeDocumentModelTable table = Assert.Single(converted.Value.Tables);
+
+        Assert.Equal("Body", Assert.Single(Assert.Single(table.Rows)));
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.True(table.Truncated);
     }
 
     [Fact]
@@ -1120,6 +1158,16 @@ public sealed class DocBookDocumentTests {
             parent = child;
         }
         Assert.Throws<InvalidDataException>(() => deep.ToOfficeDocumentModel(options:
+            new DocBookConversionOptions { MaxStructureDepth = 4 }));
+
+        DocBookDocument metadataDeep = DocBookDocument.CreateArticle();
+        XElement metadataParent = metadataDeep.Xml.Root!;
+        for (int depth = 0; depth < 8; depth++) {
+            var child = new XElement(metadataDeep.Xml.Root!.Name.Namespace + "info");
+            metadataParent.Add(child);
+            metadataParent = child;
+        }
+        Assert.Throws<InvalidDataException>(() => metadataDeep.ToOfficeDocumentModel(options:
             new DocBookConversionOptions { MaxStructureDepth = 4 }));
 
         DocBookDocument wide = DocBookDocument.CreateArticle();

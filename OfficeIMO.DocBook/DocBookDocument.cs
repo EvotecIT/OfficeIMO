@@ -264,7 +264,8 @@ public sealed partial class DocBookDocument {
         }
         XElement? chapter = RootElement.Elements(Namespace + "chapter").FirstOrDefault();
         if (chapter != null) return chapter;
-        chapter = new XElement(Namespace + "chapter");
+        chapter = new XElement(Namespace + "chapter",
+            new XElement(Namespace + "title", "Content"));
         RootElement.Add(chapter);
         MarkModified();
         return chapter;
