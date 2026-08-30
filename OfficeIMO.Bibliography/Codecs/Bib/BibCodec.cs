@@ -235,7 +235,7 @@ internal static class BibCodec {
         }
         return false;
     }
-    private static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => IsSafeKeyCharacter(character) ? character : '_').ToArray());
+    internal static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => IsSafeKeyCharacter(character) ? character : '_').ToArray());
     internal static bool IsSafeKeyCharacter(char character) => !char.IsWhiteSpace(character) && !char.IsControl(character) && "\\\"#%'(),={}".IndexOf(character) < 0;
     private static bool IsSafeFieldName(string name) => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':');
     private static bool IsSafeTypeName(string? name) => !string.IsNullOrWhiteSpace(name) && name!.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':' || character == '.');
@@ -257,7 +257,7 @@ internal static class BibCodec {
 
     internal static bool CanRoundTripStructuredName(BibliographyName name) {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return string.IsNullOrWhiteSpace(name.Given) && string.IsNullOrWhiteSpace(name.Family) && string.IsNullOrWhiteSpace(name.Suffix) && string.IsNullOrWhiteSpace(name.NonDroppingParticle) && string.IsNullOrWhiteSpace(name.DroppingParticle);
-        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(ContainsBibNameSyntaxSeparator)) return false;
+        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(value => ContainsBibNameSyntaxSeparator(value) || HasNormalizedBibNameWhitespace(value))) return false;
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
@@ -265,6 +265,7 @@ internal static class BibCodec {
     }
 
     private static bool ContainsBibNameSyntaxSeparator(string? value) => value?.IndexOf(',') >= 0 || value?.IndexOf(" and ", StringComparison.OrdinalIgnoreCase) >= 0;
+    private static bool HasNormalizedBibNameWhitespace(string? value) => value != null && (!string.Equals(value, value.Trim(), StringComparison.Ordinal) || value.IndexOf("  ", StringComparison.Ordinal) >= 0);
 
     private static bool IsLowercaseParticle(string? value) => string.IsNullOrWhiteSpace(value) || value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).All(static word => StartsWithLowercaseLetter(word));
     private static int CountWords(string? value) => string.IsNullOrWhiteSpace(value) ? 0 : value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;

@@ -466,7 +466,7 @@ internal static class EndNoteXmlCodec {
         }
     }
     private static bool IsEmptyKnownRecordContainer(XElement element, CancellationToken cancellationToken = default) {
-        if (element.HasAttributes || Cancellable(element.Nodes(), cancellationToken).Any()) return false;
+        if (element.HasAttributes || Cancellable(element.Nodes(), cancellationToken).Any(static node => !(node is XText text) || !string.IsNullOrWhiteSpace(text.Value))) return false;
         switch (element.Name.LocalName.ToLowerInvariant()) {
             case "contributors": case "titles": case "periodical": case "dates": case "urls": case "keywords": return true;
             default: return false;

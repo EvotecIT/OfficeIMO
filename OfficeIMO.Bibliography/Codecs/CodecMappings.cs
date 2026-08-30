@@ -178,12 +178,13 @@ internal static class CodecMappings {
 
     internal static string[] OutputKeys(IList<BibliographyItem> items, BibliographyFormat format, CancellationToken cancellationToken) {
         StringComparer comparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        var used = new HashSet<string>(items.Where(static item => !string.IsNullOrWhiteSpace(item.Key)).Select(static item => item.Key), comparer);
+        var used = new HashSet<string>(comparer);
         var keys = new string[items.Count];
         for (int index = 0; index < items.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!string.IsNullOrWhiteSpace(items[index].Key)) { keys[index] = items[index].Key; continue; }
-            string stem = "item-" + (index + 1).ToString(CultureInfo.InvariantCulture);
+            string stem = string.IsNullOrWhiteSpace(items[index].Key)
+                ? "item-" + (index + 1).ToString(CultureInfo.InvariantCulture)
+                : NormalizeOutputKey(items[index].Key, format);
             string candidate = stem;
             for (int suffix = 2; !used.Add(candidate); suffix++) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -193,6 +194,9 @@ internal static class CodecMappings {
         }
         return keys;
     }
+
+    internal static string NormalizeOutputKey(string key, BibliographyFormat format) =>
+        format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex ? BibCodec.SafeKey(key) : key;
 
     internal static int? ParseMonth(string value) {
         if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric) && numeric >= 1 && numeric <= 12) return numeric;

@@ -1,3 +1,5 @@
+using System.Xml;
+
 namespace OfficeIMO.Bibliography;
 
 internal static class BibliographyReader {
@@ -171,7 +173,7 @@ internal static class BibliographyFormatDetector {
         if (LooksLikeCsl(source, start)) return BibliographyFormat.CslJson;
         if (start < source.Length && source[start] == '<') {
             int xml = SkipLeadingXmlTrivia(source, start, cancellationToken);
-            if (LooksLikeEndNoteRoot(source, xml, cancellationToken)) return BibliographyFormat.EndNoteXml;
+            if (LooksLikeEndNoteRoot(source, xml, cancellationToken) || LooksLikeEndNoteRecordsContainer(source, cancellationToken)) return BibliographyFormat.EndNoteXml;
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;
@@ -243,6 +245,31 @@ internal static class BibliographyFormatDetector {
         int localLength = nameEnd - localStart;
         return localLength == 3 && string.Compare(source, localStart, "xml", 0, 3, StringComparison.OrdinalIgnoreCase) == 0 ||
             localLength == 7 && string.Compare(source, localStart, "records", 0, 7, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool LooksLikeEndNoteRecordsContainer(string source, CancellationToken cancellationToken) {
+        try {
+            var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreComments = true, IgnoreProcessingInstructions = true };
+            using var textReader = new StringReader(source);
+            using XmlReader reader = XmlReader.Create(textReader, settings);
+            while (reader.Read()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                int rootDepth = reader.Depth;
+                string rootNamespace = reader.NamespaceURI;
+                if (string.Equals(reader.LocalName, "xml", StringComparison.OrdinalIgnoreCase) || string.Equals(reader.LocalName, "records", StringComparison.OrdinalIgnoreCase)) return true;
+                if (reader.IsEmptyElement) return false;
+                while (reader.Read()) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == rootDepth) return false;
+                    if (reader.NodeType == XmlNodeType.Element && reader.Depth == rootDepth + 1 && string.Equals(reader.LocalName, "records", StringComparison.OrdinalIgnoreCase) && string.Equals(reader.NamespaceURI, rootNamespace, StringComparison.Ordinal)) return true;
+                }
+                return false;
+            }
+        } catch (XmlException) {
+            return false;
+        }
+        return false;
     }
 
     private static bool StartsWith(string source, int position, string value, StringComparison comparison) =>

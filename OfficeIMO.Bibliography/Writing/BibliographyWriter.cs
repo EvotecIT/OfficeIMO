@@ -75,7 +75,7 @@ internal static class BibliographyConversionInspector {
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
         StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
+        foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(item => CodecMappings.NormalizeOutputKey(item.Key, format), keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
             foreach (BibliographyItem item in Cancellable(duplicate, cancellationToken)) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
@@ -98,7 +98,7 @@ internal static class BibliographyConversionInspector {
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = CslJsonCodec.CanPreserveNativeType(sourceFormat, item) || sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
+                exact = CslJsonCodec.CanRoundTripType(sourceFormat, item) || sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);

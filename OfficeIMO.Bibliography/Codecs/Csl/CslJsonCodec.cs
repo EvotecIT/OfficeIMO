@@ -495,6 +495,9 @@ internal static class CslJsonCodec {
     internal static bool CanPreserveNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
         sourceFormat == BibliographyFormat.CslJson && !string.IsNullOrWhiteSpace(item.NativeType) && CodecMappings.ParseCslType(item.NativeType) == item.Type;
 
+    internal static bool CanRoundTripType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        CodecMappings.ParseCslType(OutputType(sourceFormat, item)) == item.Type;
+
     private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) =>
         CanPreserveNativeType(sourceFormat, item) ? item.NativeType! : item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) ? item.NativeType! : CodecMappings.ToCslType(item.Type);
 
