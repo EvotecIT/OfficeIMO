@@ -209,7 +209,9 @@ internal static partial class DocumentReaderEngine {
         }
         ReaderInputLimits.EnforceSeekableStreamSize(
             stream,
-            ResolveSelectedHandlerMaxInputBytes(handler, sourceName, options));
+            ResolveSelectedHandlerMaxInputBytes(handler, sourceName, options),
+            ResolveSelectedHandlerInputLimitProbe(handler),
+            cancellationToken);
         return true;
     }
 

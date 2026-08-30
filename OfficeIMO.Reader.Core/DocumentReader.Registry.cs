@@ -77,9 +77,14 @@ internal static partial class DocumentReaderEngine {
     internal static ReaderInputLimitProbe? ResolveStreamInputLimitProbe(string? sourceName, ReaderOptions options) {
         if (options.DetectionMode == ReaderDetectionMode.PreferContent) return null;
         if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
-            !handler.SupportsStreamInput || handler.ResolveMaxInputBytesFromPrefix == null) return null;
-        return new ReaderInputLimitProbe(handler.InputLimitProbeBytes, handler.ResolveMaxInputBytesFromPrefix);
+            !handler.SupportsStreamInput) return null;
+        return ResolveSelectedHandlerInputLimitProbe(handler);
     }
+
+    internal static ReaderInputLimitProbe? ResolveSelectedHandlerInputLimitProbe(ReaderHandlerDescriptor handler) =>
+        handler.ResolveMaxInputBytesFromPrefix == null
+            ? null
+            : new ReaderInputLimitProbe(handler.InputLimitProbeBytes, handler.ResolveMaxInputBytesFromPrefix);
 
     internal static long? ResolveSelectedHandlerMaxInputBytes(
         ReaderHandlerDescriptor handler,

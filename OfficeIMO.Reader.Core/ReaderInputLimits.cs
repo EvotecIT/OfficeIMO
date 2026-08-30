@@ -78,6 +78,26 @@ public static class ReaderInputLimits {
         }
     }
 
+    internal static void EnforceSeekableStreamSize(
+        Stream stream,
+        long? maxBytes,
+        ReaderInputLimitProbe? inputLimitProbe,
+        CancellationToken cancellationToken) {
+        if (inputLimitProbe == null || !stream.CanSeek) {
+            EnforceSeekableStreamSize(stream, maxBytes);
+            return;
+        }
+
+        long originalPosition = stream.Position;
+        try {
+            stream.Position = 0;
+            maxBytes = ResolveProbedMaxInputBytes(stream, maxBytes, inputLimitProbe, cancellationToken);
+            EnforceSeekableStreamSize(stream, maxBytes);
+        } finally {
+            stream.Position = originalPosition;
+        }
+    }
+
     /// <summary>
     /// Creates a seekable snapshot for parsers that require rewind/index operations.
     /// Seekable inputs are read from the beginning and restored to their original position.

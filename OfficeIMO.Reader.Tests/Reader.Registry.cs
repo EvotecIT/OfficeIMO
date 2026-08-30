@@ -372,4 +372,50 @@ public sealed partial class ReaderRegistryTests {
 
         Assert.Equal(12, permissiveDispatchCount);
     }
+
+    [Fact]
+    public async Task PreferContentAppliesSelectedHandlerPrefixLimitBeforeEveryStreamDispatch() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.prefix-bounded",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".probedpdf" },
+                DefaultMaxInputBytes = 1_024,
+                InputLimitProbeBytes = 8,
+                ResolveMaxInputBytesFromPrefix = prefix => 8,
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.Read(stream, "sample.probedpdf", options).ToArray());
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.ReadDocument(stream, "sample.probedpdf", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.probedpdf", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.probedpdf", options));
+            }
+        }
+
+        Assert.Equal(0, dispatchCount);
+    }
 }
