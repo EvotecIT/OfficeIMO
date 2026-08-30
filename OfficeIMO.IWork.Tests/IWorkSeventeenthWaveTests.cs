@@ -143,7 +143,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.Projection.HasEditableContent);
     }
 
-    private static MemoryStream CreatePagesPackageWithImage(bool masked, float left, float rotation) {
+    private static MemoryStream CreatePagesPackageWithImage(bool masked, float left, float rotation,
+        float width = 40f, float height = 30f) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong imageId = 3;
@@ -152,7 +153,7 @@ public sealed partial class IWorkBoundaryTests {
         const string name = "image.png";
         byte[] geometry = Message(
             BytesField(1, Message(FloatField(1, left), FloatField(2, 0f))),
-            BytesField(2, Message(FloatField(1, 40f), FloatField(2, 30f))),
+            BytesField(2, Message(FloatField(1, width), FloatField(2, height))),
             FloatField(4, rotation));
         byte[] image = Message(
             BytesField(1, Message(BytesField(1, geometry))),

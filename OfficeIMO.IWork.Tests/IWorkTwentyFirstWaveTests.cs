@@ -62,7 +62,7 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreatePagesPackageWithTableGeometry(
         float left, float top, float width, float height, float rotation,
         bool includePreview, double? defaultRowHeight = null,
-        double? defaultColumnWidth = null) {
+        double? defaultColumnWidth = null, int rows = 1, int columns = 1) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong tableId = 10;
@@ -74,7 +74,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] drawable = Message(BytesField(1, geometry));
         var modelFields = new List<byte[]> {
             BytesField(4, Message(BytesField(3, Message()))),
-            VarintField(6, 1), VarintField(7, 1), StringField(8, "Table")
+            VarintField(6, checked((ulong)rows)), VarintField(7, checked((ulong)columns)),
+            StringField(8, "Table")
         };
         if (defaultRowHeight.HasValue) modelFields.Add(DoubleField(16, defaultRowHeight.Value));
         if (defaultColumnWidth.HasValue) modelFields.Add(DoubleField(17, defaultColumnWidth.Value));

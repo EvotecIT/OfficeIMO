@@ -264,6 +264,9 @@ public sealed partial class PowerPointPresentation {
             }
             foreach (IWorkTable table in slide.Tables) {
                 long tableCells = (long)table.RowCount * table.ColumnCount;
+                if (table.RowCount == 0 || table.ColumnCount == 0) {
+                    return $"Keynote table '{table.Name}' has no rows or columns and cannot be represented by the PPTX table owner.";
+                }
                 if (table.RowCount > 4096 || table.ColumnCount > 4096
                     || tableCells > 100_000) {
                     return $"Keynote table '{table.Name}' is too large for bounded PPTX table reconstruction.";

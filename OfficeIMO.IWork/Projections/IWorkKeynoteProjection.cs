@@ -141,7 +141,9 @@ internal static class IWorkKeynoteReader {
     private const uint ShowArchive = 2;
     private const uint SlideNodeArchive = 4;
     private const uint SlideArchive = 5;
+    private const uint PlaceholderArchive = 7;
     private const uint TextStorageArchive = 2001;
+    private const uint TextShapeArchive = 2011;
 
     internal static IWorkKeynoteProjection Read(IWorkSourceDocument source) {
         var diagnostics = new List<IWorkDiagnostic>();
@@ -299,6 +301,16 @@ internal static class IWorkKeynoteReader {
                 } else {
                     images.Add(image);
                     drawables.Add(new IWorkKeynoteDrawable(image));
+                }
+                continue;
+            }
+            if (drawable.MessageType is not PlaceholderArchive and not TextShapeArchive) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                        "A Keynote slide contains an unsupported drawable type; editable reconstruction is incomplete.",
+                        drawable.EntryPath, drawable.Identifier));
                 }
                 continue;
             }

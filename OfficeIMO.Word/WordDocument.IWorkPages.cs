@@ -81,7 +81,9 @@ public partial class WordDocument {
                         ?? sourceImage.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
                     double height = sourceImage.Geometry?.HeightPoints
                         ?? sourceImage.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
-                    (width, height) = FitInside(width, height, contentWidth, contentHeight);
+                    if (sourceImage.Geometry == null) {
+                        (width, height) = FitInside(width, height, contentWidth, contentHeight);
+                    }
                     document.AddParagraph().AddImage(image, sourceImage.FileName,
                         width, height, WordImageTextWrapping.Square,
                         sourceImage.AccessibilityDescription ?? "Image imported from Pages");
@@ -282,6 +284,9 @@ public partial class WordDocument {
         }
         foreach (IWorkTable table in projection.Tables) {
             long tableCells = (long)table.RowCount * table.ColumnCount;
+            if (table.RowCount == 0 || table.ColumnCount == 0) {
+                return $"Pages table '{table.Name}' has no rows or columns and cannot be represented by the DOCX table owner.";
+            }
             if (table.ColumnCount > 63) {
                 return $"Pages table '{table.Name}' exceeds Word's supported 63-column table layout.";
             }
@@ -319,6 +324,8 @@ public partial class WordDocument {
         foreach (IWorkImageAsset image in projection.Images) {
             if (image.Geometry is { } geometry
                 && (geometry.WidthPoints <= 0 || geometry.HeightPoints <= 0
+                    || !FitsEmuExtent(geometry.WidthPoints)
+                    || !FitsEmuExtent(geometry.HeightPoints)
                     || Math.Abs(geometry.LeftPoints) > 0.000001d
                     || Math.Abs(geometry.TopPoints) > 0.000001d
                     || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
@@ -389,16 +396,20 @@ public partial class WordDocument {
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null) {
         ulong? previousListIdentifier = null;
+        bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph.Style);
             if (sourceParagraph.ListLevel >= 0) {
-                bool startsNewList = sourceParagraph.ListIdentifier != previousListIdentifier;
+                bool startsNewList = !hasPreviousListParagraph
+                    || sourceParagraph.ListIdentifier != previousListIdentifier;
                 nativeLists.Apply(paragraph, sourceParagraph.ListLevel,
                     sourceParagraph.ListLabel, startsNewList);
                 previousListIdentifier = sourceParagraph.ListIdentifier;
+                hasPreviousListParagraph = true;
             } else {
                 previousListIdentifier = null;
+                hasPreviousListParagraph = false;
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 AddStyledTextRun(paragraph, sourceRun);
@@ -475,6 +486,7 @@ public partial class WordDocument {
 
     private sealed class IWorkNativeListCatalog {
         private readonly WordDocument _document;
+        private readonly HashSet<int> _observedLevels = new();
         private WordList? _current;
 
         internal IWorkNativeListCatalog(WordDocument document) {
@@ -482,14 +494,21 @@ public partial class WordDocument {
         }
 
         internal void Apply(WordParagraph paragraph, int level, string? label, bool startsNewList) {
-            if (startsNewList || _current == null) _current = WordList.AddCustomList(_document);
+            if (startsNewList || _current == null) {
+                _current = WordList.AddCustomList(_document);
+                _observedLevels.Clear();
+            }
             WordList list = _current;
             WordListLevelKind levelKind = Classify(label);
-            bool createsTargetLevel = list.Numbering.Levels.Count <= level;
+            bool targetLevelExists = list.Numbering.Levels.Count > level;
             while (list.Numbering.Levels.Count <= level) {
                 list.Numbering.AddLevel(new WordListLevel(levelKind));
             }
-            if (createsTargetLevel && TryParseStart(label, levelKind, out int start) && start != 1) {
+            bool firstObservation = _observedLevels.Add(level);
+            if (firstObservation && targetLevelExists) {
+                ReplacePlaceholderLevel(list, level, levelKind);
+            }
+            if (firstObservation && TryParseStart(label, levelKind, out int start) && start != 1) {
                 list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
@@ -497,6 +516,18 @@ public partial class WordDocument {
             properties.NumberingProperties = new OpenXmlNumberingProperties(
                 new OpenXmlNumberingLevelReference { Val = level },
                 new OpenXmlNumberingId { Val = list.NumberId });
+        }
+
+        private static void ReplacePlaceholderLevel(WordList list, int level,
+            WordListLevelKind levelKind) {
+            WordListLevel current = list.Numbering.Levels[level];
+            var replacement = new WordListLevel(levelKind);
+            replacement.OpenXmlElement.LevelIndex = level;
+            replacement.LevelText = replacement.LevelText.Replace(
+                "%CurrentLevel", "%" + (level + 1).ToString(
+                    System.Globalization.CultureInfo.InvariantCulture));
+            current.OpenXmlElement.InsertAfterSelf(replacement.OpenXmlElement);
+            current.Remove();
         }
 
         private static WordListLevelKind Classify(string? label) {

@@ -107,7 +107,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreateKeynotePackageWithTableDefaults(
-        int rows, int columns, double defaultRowHeight, double defaultColumnWidth) {
+        int rows, int columns, double defaultRowHeight, double defaultColumnWidth,
+        bool includePreview = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -128,7 +129,10 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(tableId, 6000,
                 Message(ReferenceField(2, modelId)), new[] { modelId }),
             ArchiveRecord(modelId, 6001, model));
-        return CreatePackage(("Index/Slide.iwa", FrameIwa(records)));
+        return includePreview
+            ? CreatePackage(("Index/Slide.iwa", FrameIwa(records)),
+                ("preview.png", ValidPreviewPng()))
+            : CreatePackage(("Index/Slide.iwa", FrameIwa(records)));
     }
 
     private static MemoryStream CreateKeynotePackageWithListLevel(int level) {
