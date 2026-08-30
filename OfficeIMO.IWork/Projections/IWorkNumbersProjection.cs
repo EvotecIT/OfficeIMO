@@ -6,10 +6,11 @@ namespace OfficeIMO.IWork;
 /// <summary>One materialized, non-empty Numbers cell.</summary>
 public sealed class IWorkNumbersCell {
     internal IWorkNumbersCell(int row, int column, IWorkCellKind kind, object? value,
-        string? formula = null, string? error = null) {
+        string? formula = null, string? error = null, IWorkCellKind? valueKind = null) {
         Row = row;
         Column = column;
         Kind = kind;
+        ValueKind = valueKind ?? kind;
         Value = value;
         Formula = formula;
         Error = error;
@@ -21,6 +22,8 @@ public sealed class IWorkNumbersCell {
     public int Column { get; }
     /// <summary>Gets the recovered value kind.</summary>
     public IWorkCellKind Kind { get; }
+    /// <summary>Gets the type of <see cref="Value"/>, including the cached-value type of a formula cell.</summary>
+    public IWorkCellKind ValueKind { get; }
     /// <summary>Gets the typed cached value, when one was recovered.</summary>
     public object? Value { get; }
     /// <summary>Gets a formula marker when the source formula cannot yet be reconstructed.</summary>
@@ -161,9 +164,14 @@ internal static class IWorkNumbersReader {
             return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction: false);
         }
         int materializedCellCount = 0;
+        var projectionBudget = new IWorkProjectionBudget(source.Options);
+        var projectedDrawableIdentifiers = new HashSet<ulong>();
         bool supportsEditableReconstruction = true;
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = index.DereferenceAll(
             index.Message(document), 1, out int unresolvedSheetCount);
+        if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
+            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
+        }
         if (unresolvedSheetCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -172,7 +180,18 @@ internal static class IWorkNumbersReader {
                 document.EntryPath, document.Identifier));
         }
 
+        var projectedSheetIdentifiers = new HashSet<ulong>();
         foreach (IWorkArchiveRecord sheetRecord in sheetRecords) {
+            if (!projectedSheetIdentifiers.Add(sheetRecord.Identifier)) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_DUPLICATE_SHEET")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_NUMBERS_DUPLICATE_SHEET",
+                        "The Numbers document references the same sheet more than once; editable reconstruction is incomplete.",
+                        document.EntryPath, document.Identifier));
+                }
+                continue;
+            }
             if (sheetRecord.MessageType != SheetArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -194,9 +213,20 @@ internal static class IWorkNumbersReader {
                     sheetRecord.EntryPath, sheetRecord.Identifier));
             }
             foreach (IWorkArchiveRecord drawable in drawables) {
+                if (!projectedDrawableIdentifiers.Add(drawable.Identifier)) {
+                    supportsEditableReconstruction = false;
+                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_DUPLICATE_DRAWABLE")) {
+                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                            "IWORK_NUMBERS_DUPLICATE_DRAWABLE",
+                            "The Numbers document references the same drawable more than once; editable reconstruction is incomplete.",
+                            sheetRecord.EntryPath, sheetRecord.Identifier));
+                    }
+                    continue;
+                }
                 if (drawable.MessageType == TableInfoArchive) {
                     IWorkArchiveRecord? model = index.Dereference(index.Message(drawable), 2);
                     if (model != null && model.MessageType == TableModelArchive) {
+                        projectionBudget.AddTable();
                         tables.Add(ReadTable(source, index, model, diagnostics,
                             ref materializedCellCount, ref supportsEditableReconstruction));
                     } else {
@@ -209,8 +239,20 @@ internal static class IWorkNumbersReader {
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
                     if (storage != null && storage.MessageType == TextStorageArchive) {
-                        string text = IWorkPagesReader.StorageText(index.Message(storage)).Trim();
-                        if (text.Length > 0) textBoxes.Add(text);
+                        string text = IWorkPagesReader.StorageText(index.Message(storage), out bool textComplete).Trim();
+                        if (!textComplete) {
+                            supportsEditableReconstruction = false;
+                            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED")) {
+                                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                                    "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED",
+                                    "A Numbers text storage contains an invalid UTF-8 run; editable reconstruction is incomplete.",
+                                    storage.EntryPath, storage.Identifier));
+                            }
+                        }
+                        if (text.Length > 0) {
+                            projectionBudget.AddTextItem();
+                            textBoxes.Add(text);
+                        }
                     } else {
                         supportsEditableReconstruction = false;
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -449,7 +491,7 @@ internal static class IWorkNumbersReader {
             case 3:
                 if (hasString && strings.TryGetValue(stringIdentifier, out string? text)) {
                     return hasFormula
-                        ? Formula(row, column, text)
+                        ? Formula(row, column, text, IWorkCellKind.Text)
                         : new IWorkNumbersCell(row, column, IWorkCellKind.Text, text);
                 }
                 return hasFormula ? Formula(row, column) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
@@ -459,7 +501,7 @@ internal static class IWorkNumbersReader {
                 try {
                     DateTime value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue);
                     return hasFormula
-                        ? Formula(row, column, value)
+                        ? Formula(row, column, value, IWorkCellKind.DateTime)
                         : new IWorkNumbersCell(row, column, IWorkCellKind.DateTime, value);
                 } catch (ArgumentOutOfRangeException) {
                     return Error(row, column, "Date cell is outside the supported DateTime range.");
@@ -469,13 +511,13 @@ internal static class IWorkNumbersReader {
                 if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
                 bool booleanValue = doubleValue != 0;
                 return hasFormula
-                    ? Formula(row, column, booleanValue)
+                    ? Formula(row, column, booleanValue, IWorkCellKind.Boolean)
                     : new IWorkNumbersCell(row, column, IWorkCellKind.Boolean, booleanValue);
             case 7:
                 if (!hasDouble) return Error(row, column, "Duration cell has no value field.");
                 if (!IsFinite(doubleValue)) return Error(row, column, "Duration cell has a non-finite value.");
                 return hasFormula
-                    ? Formula(row, column, doubleValue)
+                    ? Formula(row, column, doubleValue, IWorkCellKind.Duration)
                     : new IWorkNumbersCell(row, column, IWorkCellKind.Duration, doubleValue);
             case 8:
                 return Error(row, column, "#ERROR");
@@ -486,13 +528,14 @@ internal static class IWorkNumbersReader {
         }
     }
 
-    private static IWorkNumbersCell Formula(int row, int column, object? cachedValue = null) =>
-        new(row, column, IWorkCellKind.Formula, cachedValue, formula: "=?");
+    private static IWorkNumbersCell Formula(int row, int column, object? cachedValue = null,
+        IWorkCellKind? cachedValueKind = null) =>
+        new(row, column, IWorkCellKind.Formula, cachedValue, formula: "=?", valueKind: cachedValueKind);
 
     private static IWorkNumbersCell FiniteNumber(int row, int column, double value, bool hasFormula) =>
         IsFinite(value)
             ? hasFormula
-                ? Formula(row, column, value)
+                ? Formula(row, column, value, IWorkCellKind.Number)
                 : new IWorkNumbersCell(row, column, IWorkCellKind.Number, value)
             : Error(row, column, "Number cell has a non-finite value.");
 
@@ -508,7 +551,7 @@ internal static class IWorkNumbersReader {
         int exponent = (((buffer[offset + 15] & 0x7f) << 7) | (buffer[offset + 14] >> 1)) - 0x1820;
         double coefficient = 0;
         for (int index = 13; index >= 0; index--) coefficient = coefficient * 256 + buffer[offset + index];
-        if ((buffer[offset + 14] & 1) != 0) coefficient += 1.208925819614629e24;
+        if ((buffer[offset + 14] & 1) != 0) coefficient += 5.192296858534828e33;
         double value = coefficient * Math.Pow(10, exponent);
         return (buffer[offset + 15] & 0x80) != 0 ? -value : value;
     }

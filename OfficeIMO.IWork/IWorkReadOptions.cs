@@ -56,6 +56,18 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of materialized non-empty cells across one Numbers source.</summary>
     public int MaximumMaterializedCells { get; set; } = 10_000_000;
 
+    /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
+    public int MaximumProjectedSheets { get; set; } = 4096;
+
+    /// <summary>Gets or sets the maximum number of projected slides across one Keynote source.</summary>
+    public int MaximumProjectedSlides { get; set; } = 10_000;
+
+    /// <summary>Gets or sets the maximum number of projected tables across one Numbers source.</summary>
+    public int MaximumProjectedTables { get; set; } = 4096;
+
+    /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>
+    public int MaximumProjectedTextItems { get; set; } = 100_000;
+
     internal IWorkReadOptions Snapshot() {
         ValidatePositive(MaximumPackageBytes, nameof(MaximumPackageBytes));
         ValidatePositive(MaximumEntryCount, nameof(MaximumEntryCount));
@@ -73,6 +85,10 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));
         ValidatePositive(MaximumTableColumns, nameof(MaximumTableColumns));
         ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
+        ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
+        ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
+        ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));
+        ValidatePositive(MaximumProjectedTextItems, nameof(MaximumProjectedTextItems));
 
         if (MaximumEntryBytes > MaximumTotalEntryBytes) {
             throw new ArgumentException($"{nameof(MaximumEntryBytes)} cannot exceed {nameof(MaximumTotalEntryBytes)}.");

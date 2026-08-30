@@ -24,7 +24,7 @@ OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
 | Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
 
-`IWorkReadOptions` supplies all configurable limits. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, and the source-wide record count at 1,000,000. Numbers adds row, column, and source-wide sparse materialized-cell limits.
+`IWorkReadOptions` supplies all configurable limits. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, and the source-wide record count at 1,000,000. Semantic projection also has source-wide text-item limits; Numbers adds row, column, sparse materialized-cell, projected-sheet, and projected-table limits, while Keynote adds a projected-slide limit.
 
 ## Editable semantic coverage
 

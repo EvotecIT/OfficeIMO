@@ -66,10 +66,15 @@ internal sealed class IWorkObjectIndex {
         return result;
     }
 
-    internal static IWorkWireMessage? TryGetMessage(IWorkWireMessage message, int field) {
+    internal static IWorkWireMessage? TryGetMessage(IWorkWireMessage message, int field) =>
+        TryGetMessage(message, field, out _);
+
+    internal static IWorkWireMessage? TryGetMessage(IWorkWireMessage message, int field, out bool malformed) {
         try {
+            malformed = false;
             return message.GetMessage(field);
         } catch (InvalidDataException) {
+            malformed = true;
             return null;
         }
     }

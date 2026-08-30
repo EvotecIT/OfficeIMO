@@ -58,7 +58,15 @@ public partial class WordDocument {
             } else {
                 byte[] bytes = preview!.GetBytes();
                 using var image = new MemoryStream(bytes, writable: false);
-                (double width, double height) = PreviewSize(preview, 600, 780);
+                WordSection section = document.Sections[0];
+                uint pageWidth = section.PageSettings.Width ?? WordPageSizes.Letter.WidthTwips;
+                uint pageHeight = section.PageSettings.Height ?? WordPageSizes.Letter.HeightTwips;
+                long horizontalMargins = (long)section.Margins.Left + section.Margins.Right;
+                long verticalMargins = (long)section.Margins.Top.GetValueOrDefault()
+                    + section.Margins.Bottom.GetValueOrDefault();
+                double contentWidth = Math.Max(1L, (long)pageWidth - Math.Max(0L, horizontalMargins)) / 20d;
+                double contentHeight = Math.Max(1L, (long)pageHeight - Math.Max(0L, verticalMargins)) / 20d;
+                (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
                 document.AddParagraph().AddImage(image, PreviewFileName(preview), width, height,
                     description: "Visual fallback from the source Pages package");
             }

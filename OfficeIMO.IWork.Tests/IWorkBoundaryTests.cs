@@ -6,7 +6,7 @@ using OfficeIMO.Word;
 
 namespace OfficeIMO.IWork.Tests;
 
-public sealed class IWorkBoundaryTests {
+public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Enforces_the_combined_decompressed_iwa_budget_across_entries() {
         byte[] first = ArchiveRecord(1, 1, new byte[48]);
@@ -615,12 +615,15 @@ public sealed class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
-        bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null) {
+        bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
+        byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
         var sheetFields = new List<byte[]> { StringField(1, "Sheet") };
-        var documentFields = new[] { ReferenceField(1, sheetId) };
+        byte[][] documentFields = Enumerable.Range(0, sheetReferenceCount)
+            .Select(_ => ReferenceField(1, sheetId))
+            .ToArray();
         records.Add(ArchiveRecord(documentId, 1, Message(documentFields)));
 
         for (int index = 0; index < tables.Count; index++) {
@@ -668,16 +671,18 @@ public sealed class IWorkBoundaryTests {
             }
         }
 
-        if (textBox != null) {
+        if (textBox != null || textBoxBytes != null) {
             const ulong shapeId = 1000;
             const ulong storageId = 1001;
             sheetFields.Add(ReferenceField(2, shapeId));
             records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))));
-            records.Add(ArchiveRecord(storageId, 2001, Message(StringField(3, textBox))));
+            records.Add(ArchiveRecord(storageId, 2001, Message(
+                textBoxBytes != null ? BytesField(3, textBoxBytes) : StringField(3, textBox!))));
         }
         if (includeMalformedDrawableReference) {
             sheetFields.Add(BytesField(2, new byte[] { 0x08, 0x80 }));
         }
+        if (duplicateFirstDrawable && tables.Count > 0) sheetFields.Add(ReferenceField(2, 10));
 
         records.Insert(1, ArchiveRecord(sheetId, 2, Message(sheetFields.ToArray())));
         byte[] iwaStream = Message(records.ToArray());
@@ -690,12 +695,17 @@ public sealed class IWorkBoundaryTests {
 
     private static byte[] CreateBncRow(TableSpec table) {
         int cellOffset = table.WideOffsets ? 4 : 0;
-        var buffer = new byte[cellOffset + (table.HasFormula ? 24 : 20)];
+        int valueBytes = table.Decimal128HighBit ? 16 : 8;
+        var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
         buffer[cellOffset + 1] = table.TextValue != null ? (byte)3 : table.Duration ? (byte)7 : (byte)2;
-        uint valueFlag = table.TextValue != null ? 1u << 3 : 1u << 1;
+        uint valueFlag = table.TextValue != null ? 1u << 3 : table.Decimal128HighBit ? 1u : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
         if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
+        else if (table.Decimal128HighBit) {
+            buffer[cellOffset + 26] = 0x41;
+            buffer[cellOffset + 27] = 0x30;
+        }
         else Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
@@ -709,7 +719,8 @@ public sealed class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
-        string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body") {
+        string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
+        byte[]? bodyBytes = null) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong shapeId = 3;
@@ -721,7 +732,8 @@ public sealed class IWorkBoundaryTests {
             ArchiveRecord(documentId, 10000,
                 includeBody ? Message(ReferenceField(4, bodyId)) : Message(), documentReferences)
         };
-        if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(StringField(3, bodyText))));
+        if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(
+            bodyBytes != null ? BytesField(3, bodyBytes) : StringField(3, bodyText))));
         if (textBox != null) {
             records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId)),
                 new[] { shapeStorageId }));
@@ -877,10 +889,17 @@ public sealed class IWorkBoundaryTests {
     }
 
     private static byte[] CreateValidPdf() {
-        const string prefix = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n";
+        const string header = "%PDF-1.4\n";
+        const string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        const string pages = "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n";
+        int catalogOffset = System.Text.Encoding.ASCII.GetByteCount(header);
+        int pagesOffset = System.Text.Encoding.ASCII.GetByteCount(header + catalog);
+        string prefix = header + catalog + pages;
         int xrefOffset = System.Text.Encoding.ASCII.GetByteCount(prefix);
-        string suffix = "xref\n0 2\n0000000000 65535 f \n0000000009 00000 n \n"
-            + "trailer\n<< /Size 2 /Root 1 0 R >>\nstartxref\n"
+        string suffix = "xref\n0 3\n0000000000 65535 f \n"
+            + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
+            + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
+            + "trailer\n<< /Size 3 /Root 1 0 R >>\nstartxref\n"
             + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n%%EOF\n";
         return System.Text.Encoding.ASCII.GetBytes(prefix + suffix);
@@ -898,7 +917,8 @@ public sealed class IWorkBoundaryTests {
         internal TableSpec(string name, int rows, int columns, double value,
             bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
             bool missingModel = false, bool missingTile = false, string? textValue = null,
-            bool duration = false, bool duplicateCell = false, bool duplicateString = false) {
+            bool duration = false, bool duplicateCell = false, bool duplicateString = false,
+            bool decimal128HighBit = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -912,6 +932,7 @@ public sealed class IWorkBoundaryTests {
             Duration = duration;
             DuplicateCell = duplicateCell;
             DuplicateString = duplicateString;
+            Decimal128HighBit = decimal128HighBit;
         }
 
         internal string Name { get; }
@@ -927,5 +948,6 @@ public sealed class IWorkBoundaryTests {
         internal bool Duration { get; }
         internal bool DuplicateCell { get; }
         internal bool DuplicateString { get; }
+        internal bool Decimal128HighBit { get; }
     }
 }

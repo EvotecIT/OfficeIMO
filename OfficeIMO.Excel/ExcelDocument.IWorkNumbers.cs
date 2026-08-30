@@ -70,6 +70,8 @@ public partial class ExcelDocument {
                         int tableStartRow = targetRow;
                         foreach (IWorkNumbersCell cell in table.Cells) {
                             object? value = cell.Kind switch {
+                                IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
+                                    && cell.Value is double formulaSeconds => TimeSpan.FromSeconds(formulaSeconds),
                                 IWorkCellKind.Formula when cell.Value != null => cell.Value,
                                 IWorkCellKind.Formula or IWorkCellKind.Error => cell.DisplayText,
                                 IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
@@ -114,7 +116,9 @@ public partial class ExcelDocument {
                     if (text?.Length > 32_767) {
                         return $"Numbers table '{table.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
                     }
-                    if (cell.Kind == IWorkCellKind.Duration && cell.Value is double seconds
+                    if ((cell.Kind == IWorkCellKind.Duration
+                            || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.Duration)
+                        && cell.Value is double seconds
                         && (seconds < TimeSpan.MinValue.TotalSeconds || seconds > TimeSpan.MaxValue.TotalSeconds)) {
                         return $"Numbers table '{table.Name}' contains a duration outside the XLSX-supported range.";
                     }
