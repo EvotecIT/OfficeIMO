@@ -71,14 +71,59 @@ internal static class TableDetector {
             .Where(line => !IsCoveredByDetectedTable(line, tables))
             .Take(MaximumPositionedRecoveryLines)
             .ToList();
-        tables.AddRange(DetectPositionedCellTables(unmatchedLines, pageHeight));
+        List<StructuredTable> positionedTables = DetectPositionedCellTables(unmatchedLines, pageHeight);
+        if (positionedTables.Count > 0) {
+            tables.RemoveAll(table =>
+                table.Rows.Count < 3 &&
+                !string.Equals(table.Kind, "leaders", StringComparison.Ordinal) &&
+                positionedTables.Any(positioned => IsSubsumedByPositionedTable(table, positioned)));
+            tables.AddRange(positionedTables);
+        }
         return tables;
+    }
+
+    private static bool IsSubsumedByPositionedTable(StructuredTable candidate, StructuredTable positioned) {
+        if (candidate.Columns.Count == 0 || positioned.Columns.Count == 0 || positioned.Rows.Count <= candidate.Rows.Count) {
+            return false;
+        }
+
+        double candidateLeft = candidate.Columns.Min(static column => Math.Min(column.From, column.To));
+        double candidateRight = candidate.Columns.Max(static column => Math.Max(column.From, column.To));
+        double positionedLeft = positioned.Columns.Min(static column => Math.Min(column.From, column.To));
+        double positionedRight = positioned.Columns.Max(static column => Math.Max(column.From, column.To));
+        double horizontalOverlap = Math.Max(0D, Math.Min(candidateRight, positionedRight) - Math.Max(candidateLeft, positionedLeft));
+        double candidateWidth = candidateRight - candidateLeft;
+        if (candidateWidth <= 0.001D || horizontalOverlap + 0.001D < candidateWidth * 0.5D) return false;
+
+        double candidateTop = Math.Max(candidate.YTop, candidate.YBottom);
+        double candidateBottom = Math.Min(candidate.YTop, candidate.YBottom);
+        double positionedTop = Math.Max(positioned.YTop, positioned.YBottom);
+        double positionedBottom = Math.Min(positioned.YTop, positioned.YBottom);
+        double verticalOverlap = Math.Max(0D, Math.Min(candidateTop, positionedTop) - Math.Max(candidateBottom, positionedBottom));
+        double candidateHeight = candidateTop - candidateBottom;
+        if (candidateHeight > 0.001D && verticalOverlap + 0.001D < candidateHeight * 0.5D) return false;
+
+        var positionedCells = new HashSet<string>(
+            positioned.Rows.SelectMany(static row => row).Where(static cell => !string.IsNullOrWhiteSpace(cell)),
+            StringComparer.Ordinal);
+        return candidate.Rows
+            .SelectMany(static row => row)
+            .Where(static cell => !string.IsNullOrWhiteSpace(cell))
+            .All(positionedCells.Contains);
     }
 
     private static bool IsCoveredByDetectedTable(
         TextLayoutEngine.TextLine line,
         List<StructuredTable> tables) {
         for (int index = 0; index < tables.Count; index++) {
+            // Two-row band candidates are deliberately admitted only with strong
+            // evidence, but they are still too weak to own the source geometry.
+            // Let the independent positioned-cell pass inspect those lines so it
+            // can recover a complete header/body region or a side-by-side table.
+            if (tables[index].Rows.Count < 3 &&
+                !string.Equals(tables[index].Kind, "leaders", StringComparison.Ordinal)) {
+                continue;
+            }
             double top = Math.Max(tables[index].YTop, tables[index].YBottom);
             double bottom = Math.Min(tables[index].YTop, tables[index].YBottom);
             if (line.Y > top + 0.001D || line.Y < bottom - 0.001D || tables[index].Columns.Count == 0) {
@@ -362,17 +407,19 @@ internal static class TableDetector {
             var baseSplits = bandSplits[k].splits;
             int end = k;
             var includedBridgeBandIndexes = new HashSet<int>();
+            bool requiresAlignedCellSplits = false;
             // Extend while splits remain similar. An intervening band without
             // detectable splits is either retained as a strongly evidenced
             // spanning row or skipped when it belongs to an adjacent region.
             while (end + 1 < bandSplits.Count) {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
+                bool hasNonLeftAlignedCells = BandsHaveNonLeftAlignedCells(current.lines, next.lines);
                 if (next.idx > current.idx + 2 ||
-                    (!AreSplitsSimilar(baseSplits, next.splits) &&
-                     !BandsHaveNonLeftAlignedCells(current.lines, next.lines))) {
+                    (!AreSplitsSimilar(baseSplits, next.splits) && !hasNonLeftAlignedCells)) {
                     break;
                 }
+                requiresAlignedCellSplits |= hasNonLeftAlignedCells;
 
                 InterveningBandDecision bridgeDecision = ClassifyInterveningBand(
                     bands,
@@ -406,7 +453,9 @@ internal static class TableDetector {
                     groupLines.AddRange(bands[bandIndex]);
                 }
             }
-            List<double> effectiveSplits = InferAlignedCellSplits(groupLines, baseSplits.Count + 1) ?? baseSplits;
+            List<double> effectiveSplits = requiresAlignedCellSplits
+                ? InferAlignedCellSplits(groupLines, baseSplits.Count + 1) ?? baseSplits
+                : baseSplits;
             var table = BuildTableFromLinesAndSplits(groupLines, effectiveSplits, "band-group");
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
@@ -439,7 +488,7 @@ internal static class TableDetector {
             return InterveningBandDecision.Reject;
         }
         if (!HasMeaningfulHorizontalOverlap(line, bands[currentBandIndex], bands[nextBandIndex])) {
-            return InterveningBandDecision.Skip;
+            return InterveningBandDecision.Reject;
         }
 
         string[] cells = SplitBySplits(line, splits);
