@@ -164,6 +164,17 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void TableDetector_DoesNotTreatParallelPageColumnsAsCompactTable() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Left one", 50D, 110D, "Helvetica"), ("Right one", 320D, 110D, "Helvetica")) },
+            new() { CreateLine(500D, ("Left two", 80D, 110D, "Helvetica"), ("Right two", 320D, 110D, "Helvetica")) },
+            new() { CreateLine(480D, ("Left three", 50D, 110D, "Helvetica"), ("Right three", 320D, 110D, "Helvetica")) }
+        };
+
+        Assert.Empty(TableDetector.DetectTablesFromBands(bands));
+    }
+
+    [Fact]
     public void TableDetector_RetainsPunctuatedSpanningRowsWithGeometricEvidence() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {
             new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },

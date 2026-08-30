@@ -216,6 +216,60 @@ public class PdfUnderstandingPipelineTests {
                               element.Region.Text.Contains("Premium", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void AdvancedPipeline_UsesCanonicalRegularFontProseTableRegions() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Assigned owner", "Current workflow" },
+                new[] { "North region coordinator", "Review pending requests" },
+                new[] { "South region coordinator", "Approve completed requests" }
+            }, style: new PdfTableStyle {
+                HeaderBold = false,
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 220D, 220D }
+            })
+            .ToBytes();
+
+        PdfUnderstandingPageResult page = Assert.Single(
+            new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced())
+                .Run(PdfReadDocument.Open(pdf))
+                .Pages);
+
+        PdfUnderstandingSemanticElement table = Assert.Single(
+            page.Elements,
+            static element => element.Kind == PdfUnderstandingSemanticKind.Table);
+        Assert.Contains("North region coordinator", table.Region.Text, StringComparison.Ordinal);
+        Assert.Contains("Approve completed requests", table.Region.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AdvancedPipeline_PrioritizesCanonicalTablesAtPageEdges() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Item", "Helvetica-Bold", 11D, 50D, 820D, 40D),
+            new PdfTextSpan("Amount", "Helvetica-Bold", 11D, 220D, 820D, 55D),
+            new PdfTextSpan("Licenses", "Helvetica", 11D, 50D, 802D, 55D),
+            new PdfTextSpan("42", "Helvetica", 11D, 220D, 802D, 16D)
+        });
+
+        PdfUnderstandingPageResult page = Assert.Single(
+            new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(
+            PdfUnderstandingSemanticKind.Table,
+            Assert.Single(page.Elements, static element => element.Region.Text.Contains("Licenses", StringComparison.Ordinal)).Kind);
+    }
+
+    [Fact]
+    public void AdvancedPipeline_TableOwnershipRequiresMeaningfulHorizontalOverlap() {
+        PdfUnderstandingLine clipped = CreateUnderstandingLine("Adjacent prose", 249.5D, 339.5D, 475D);
+        PdfUnderstandingLine owned = CreateUnderstandingLine("Table prose", 100D, 190D, 475D);
+
+        Assert.False(PdfAdvancedUnderstandingStages.HasMeaningfulTableOverlap(clipped, 500D, 450D, 50D, 250D));
+        Assert.True(PdfAdvancedUnderstandingStages.HasMeaningfulTableOverlap(owned, 500D, 450D, 50D, 250D));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -273,6 +327,16 @@ public class PdfUnderstandingPipelineTests {
 
     private sealed class ReverseReadingOrderStage : IPdfReadingOrderStage {
         public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) => regions.Reverse().ToArray();
+    }
+
+    private static PdfUnderstandingLine CreateUnderstandingLine(
+        string text,
+        double xStart,
+        double xEnd,
+        double baselineY) {
+        var run = new PdfTextSpan(text, "Helvetica", 11D, xStart, baselineY, xEnd - xStart);
+        var word = new PdfUnderstandingWord(text, xStart, xEnd, baselineY, 11D, 0D, new[] { run });
+        return new PdfUnderstandingLine(new[] { word });
     }
 
     private sealed class FixedGlyphStage : IPdfGlyphDecodingStage {

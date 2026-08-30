@@ -679,11 +679,42 @@ internal static class TableDetector {
         }
 
         bool dense = denseRows >= 2 && denseRows * 2 >= table.Rows.Count;
+        bool compactGrid = HasCompactCellGrid(table) && !HasPageColumnLikeGutters(sourceLines);
         return dense && (
             hasTabularValueEvidence ||
             HasEmphasizedHeader(sourceLines) ||
-            HasCompactCellGrid(table) ||
+            compactGrid ||
             HasStableColumnAnchors(table, sourceLines));
+    }
+
+    private static bool HasPageColumnLikeGutters(IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+        if (sourceLines.Count < 3) return false;
+
+        int separatedLines = 0;
+        int inspectedLines = 0;
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            PdfTextSpan[] spans = sourceLines[lineIndex].Spans
+                .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
+                .OrderBy(static span => span.X)
+                .ToArray();
+            if (spans.Length < 2) continue;
+
+            inspectedLines++;
+            double largestGap = 0D;
+            var occupiedWidths = new List<double>(spans.Length);
+            for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
+                occupiedWidths.Add(Math.Max(1D, spans[spanIndex].Advance));
+                if (spanIndex > 0) {
+                    double previousRight = spans[spanIndex - 1].X + Math.Max(0D, spans[spanIndex - 1].Advance);
+                    largestGap = Math.Max(largestGap, spans[spanIndex].X - previousRight);
+                }
+            }
+            occupiedWidths.Sort();
+            double medianOccupiedWidth = occupiedWidths[occupiedWidths.Count / 2];
+            if (largestGap > Math.Max(72D, medianOccupiedWidth)) separatedLines++;
+        }
+
+        return inspectedLines >= 3 && separatedLines * 4 >= inspectedLines * 3;
     }
 
     private static bool HasStrongTwoRowEvidence(
@@ -760,13 +791,13 @@ internal static class TableDetector {
         return headerSpans.Length >= 2 && headerSpans.All(static span => IsEmphasizedFont(span.BaseFont));
     }
 
-    internal static bool IsEmphasizedFont(string? baseFont) =>
+    private static bool IsEmphasizedFont(string? baseFont) =>
         baseFont?.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("Demi", StringComparison.OrdinalIgnoreCase) >= 0 ||
         baseFont?.IndexOf("SemiBold", StringComparison.OrdinalIgnoreCase) >= 0;
 
-    internal static bool IsTabularValue(string value) =>
+    private static bool IsTabularValue(string value) =>
         HasManyDigits(value) ||
         string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
