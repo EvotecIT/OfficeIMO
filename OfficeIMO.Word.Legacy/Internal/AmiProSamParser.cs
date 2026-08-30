@@ -149,6 +149,7 @@ internal sealed class AmiProSamParser {
         if (!uint.TryParse(lines[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint formatting)) return null;
         uint unsupportedFormatting = formatting & ~SupportedStyleFormattingMask;
         RecordUnsupportedStyleFlags(unsupportedFormatting, ref _unsupportedStyleFormattingFlags);
+        if (HasMultipleFlags(formatting & 0x004C)) return null;
         var style = new AmiStyle {
             Name = UnescapePlain(lines[0]), FontFamily = lines[3], FontSizePoints = fontTwips / 20d,
             ColorHex = $"{color & 0xFF:X2}{(color >> 8) & 0xFF:X2}{(color >> 16) & 0xFF:X2}",
@@ -162,6 +163,7 @@ internal sealed class AmiProSamParser {
             !int.TryParse(lines[12], NumberStyles.Integer, CultureInfo.InvariantCulture, out int reservedAlignment) ||
             leftIndent != 0 || rightIndent != 0 || firstLineIndent != 0 || reservedAlignment != 0) return null;
         RecordUnsupportedStyleFlags(alignment & ~SupportedStyleAlignmentMask, ref _unsupportedStyleAlignmentFlags);
+        if (HasMultipleFlags(alignment & SupportedStyleAlignmentMask)) return null;
         style.Alignment = DecodeAlignment(alignment);
 
         if (!uint.TryParse(lines[14], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint spacing) ||
@@ -172,6 +174,7 @@ internal sealed class AmiProSamParser {
             reservedSpacing != 0 || before < 0 || after < 0 ||
             ((spacing & 8) != 0 && customSpacing <= 0)) return null;
         RecordUnsupportedStyleFlags(spacing & ~SupportedStyleSpacingMask, ref _unsupportedStyleSpacingFlags);
+        if (HasMultipleFlags(spacing & SupportedStyleSpacingMask)) return null;
         if ((spacing & 1) != 0) style.LineSpacingPoints = 12;
         else if ((spacing & 2) != 0) style.LineSpacingPoints = 18;
         else if ((spacing & 4) != 0) style.LineSpacingPoints = 24;
@@ -186,6 +189,8 @@ internal sealed class AmiProSamParser {
         style.KeepLinesTogether = (breaks & 4) == 0;
         return style;
     }
+
+    private static bool HasMultipleFlags(uint value) => value != 0 && (value & (value - 1)) != 0;
 
     private void RecordUnsupportedStyleFlags(uint unsupported, ref uint aggregate) {
         if (unsupported == 0) return;

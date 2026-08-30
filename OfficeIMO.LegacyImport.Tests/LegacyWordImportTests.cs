@@ -225,6 +225,29 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProConflictingStyleFlagsRemainExplicitLoss() {
+        string fixture = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro());
+        var conflicts = new[] {
+            (Source: "\n16385\n", Replacement: "\n16397\n"),
+            (Source: "[algn]\n1\n", Replacement: "[algn]\n3\n"),
+            (Source: "[spc]\n1\n", Replacement: "[spc]\n3\n")
+        };
+
+        foreach ((string source, string replacement) in conflicts) {
+            string malformed = fixture.Replace(source, replacement, StringComparison.Ordinal);
+            Assert.NotEqual(fixture, malformed);
+            using LegacyWordImportResult imported = LegacyWordImporter.Import(
+                Encoding.ASCII.GetBytes(malformed),
+                new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+            Assert.Empty(imported.Content.Styles);
+            Assert.Equal("1", imported.Metadata["AmiProMalformedStyleBlockCount"]);
+            Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_STYLE_BLOCK_MALFORMED");
+            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        }
+    }
+
+    [Fact]
     public void WordStarPreservesRepeatedAndTrailingPageBreaks() {
         byte[] source = new byte[] { 0x02, 0x02 }
             .Concat(Encoding.ASCII.GetBytes("First\r\n"))
