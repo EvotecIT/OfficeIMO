@@ -667,7 +667,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 patternDepth + 1,
                 limits.MaxObjectNestingDepth) is not PdfNumber patternType) return false;
         if (patternType.Value == 1D && resolved is PdfStream tilingPattern) {
-            if (!IsStructurallyValidTilingPattern(
+            if (!IsStructurallyValidTilingPatternResource(
                     tilingPattern.Dictionary,
                     patternDepth,
                     objects,
@@ -746,6 +746,22 @@ internal static partial class PdfPrintProductionColorInspector {
         }
 
         return true;
+    }
+
+    internal static bool IsStructurallyValidTilingPatternResource(
+        PdfDictionary pattern,
+        int patternDepth,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        return string.Equals(
+                ResolveName(
+                    pattern.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
+                    objects,
+                    maximumObjectDepth),
+                "Pattern",
+                StringComparison.Ordinal) &&
+            TryResolveInteger(pattern, "PatternType", objects, maximumObjectDepth, 1, 1, out _) &&
+            IsStructurallyValidTilingPattern(pattern, patternDepth, objects, maximumObjectDepth);
     }
 
     internal static bool IsStructurallyValidFormXObject(

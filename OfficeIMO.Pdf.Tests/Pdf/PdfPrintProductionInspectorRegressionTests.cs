@@ -1280,6 +1280,23 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(0, evidence.UninspectableFontResourceCount);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData("/Type /XObject")]
+    public void StructureInspectorRejectsReachableTilingPatternsWithoutThePatternType(string typeEntry) {
+        byte[] pdf = BuildInspectionPdf(
+            "/Pattern cs /P1 scn",
+            resources: "/Pattern << /P1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< " + typeEntry + " /PatternType 1 /PaintType 1 /TilingType 1 " +
+                "/BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >> /Length 0 >>\n" +
+                "stream\n\nendstream\nendobj\n");
+
+        PdfPrintProductionStructureEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionStructure();
+
+        Assert.True(evidence.UninspectableFontResourceCount > 0);
+    }
+
     [Fact]
     public void StructureInspectorBoundsIndirectFontResourceGraphTraversal() {
         const int firstObject = 5;

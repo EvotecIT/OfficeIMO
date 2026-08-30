@@ -79,6 +79,21 @@ internal static class ManagedTextShapingTestAssets {
             variationPlatform: 3,
             variationEncoding: 10));
 
+    internal static byte[] CreateFontWithLargeNonDefaultVariationSequence(int scalar, int variationSelector) {
+        const int mappingCount = 4097;
+        if (scalar < mappingCount - 1) throw new ArgumentOutOfRangeException(nameof(scalar));
+        return CreateFontFromCmap(
+            CreateUnicodeCmapWithVariationSequence(
+                scalar,
+                variationSelector,
+                nonDefaultGlyph: 2,
+                variationPlatform: 0,
+                variationEncoding: 5,
+                nonDefaultMappingCount: mappingCount),
+            glyphCount: 3,
+            distinctSecondGlyph: true);
+    }
+
     private static byte[] CreateFontFromCmap(
         byte[] cmap,
         bool includeTrailingMetric = false,
@@ -278,10 +293,12 @@ internal static class ManagedTextShapingTestAssets {
         int variationSelector,
         int? nonDefaultGlyph,
         int variationPlatform,
-        int variationEncoding) {
+        int variationEncoding,
+        int nonDefaultMappingCount = 1) {
         const int cmapHeaderLength = 20;
         const int format12Length = 28;
-        int format14Length = nonDefaultGlyph.HasValue ? 30 : 29;
+        if (nonDefaultMappingCount <= 0) throw new ArgumentOutOfRangeException(nameof(nonDefaultMappingCount));
+        int format14Length = nonDefaultGlyph.HasValue ? checked(25 + nonDefaultMappingCount * 5) : 29;
         int format12 = cmapHeaderLength;
         int format14 = format12 + format12Length;
         var data = new byte[cmapHeaderLength + format12Length + format14Length];
@@ -307,11 +324,16 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt24(data, format14 + 10, variationSelector);
         WriteUInt32(data, format14 + 13, nonDefaultGlyph.HasValue ? 0U : 21U);
         WriteUInt32(data, format14 + 17, nonDefaultGlyph.HasValue ? 21U : 0U);
-        WriteUInt32(data, format14 + 21, 1);
-        WriteUInt24(data, format14 + 25, scalar);
+        WriteUInt32(data, format14 + 21, nonDefaultGlyph.HasValue ? checked((uint)nonDefaultMappingCount) : 1U);
         if (nonDefaultGlyph.HasValue) {
-            WriteUInt16(data, format14 + 28, checked((ushort)nonDefaultGlyph.Value));
+            int firstScalar = checked(scalar - nonDefaultMappingCount + 1);
+            for (int index = 0; index < nonDefaultMappingCount; index++) {
+                int mapping = format14 + 25 + index * 5;
+                WriteUInt24(data, mapping, firstScalar + index);
+                WriteUInt16(data, mapping + 3, checked((ushort)nonDefaultGlyph.Value));
+            }
         } else {
+            WriteUInt24(data, format14 + 25, scalar);
             data[format14 + 28] = 0;
         }
         return data;

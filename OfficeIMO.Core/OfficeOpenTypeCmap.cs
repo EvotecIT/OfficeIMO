@@ -8,7 +8,6 @@ internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
     internal const uint MaximumFormat12Groups = 4096;
     private const uint MaximumVariationSelectorRecords = 256;
-    private const uint MaximumVariationMappings = 4096;
 
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>
         platform == 0 ||
@@ -43,7 +42,7 @@ internal static class OfficeOpenTypeCmap {
         Func<int, int, int> mapVariationSequence,
         out int scalar) {
         scalar = ReadScalar(text, ref index);
-        if (IsVariationSelector(scalar)) return 0;
+        if (IsVariationSelector(scalar) || OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) return -1;
 
         int followingIndex = index;
         int followingScalar = followingIndex < text.Length
@@ -54,7 +53,7 @@ internal static class OfficeOpenTypeCmap {
             return mapVariationSequence(scalar, followingScalar);
         }
 
-        return OfficeTextElements.IsIgnorableFontCoverageScalar(scalar) ? -1 : mapGlyph(scalar);
+        return mapGlyph(scalar);
     }
 
     internal static int MapVariationSequence(
@@ -143,16 +142,23 @@ internal static class OfficeOpenTypeCmap {
         int offset = table + (int)relativeOffset;
         if (offset < table || offset > tableEnd - 4) return false;
         uint countValue = ReadUInt32(data, offset);
-        if (countValue > MaximumVariationMappings || countValue > (uint)((tableEnd - offset - 4) / 5)) return false;
-        int previousScalar = -1;
-        for (int index = 0; index < (int)countValue; index++) {
+        if (countValue > int.MaxValue || countValue > (uint)((tableEnd - offset - 4) / 5)) return false;
+        int low = 0;
+        int high = (int)countValue - 1;
+        while (low <= high) {
+            int index = low + ((high - low) / 2);
             int mapping = offset + 4 + index * 5;
             int unicodeValue = ReadUInt24(data, mapping);
-            int mappedGlyph = ReadUInt16(data, mapping + 3);
-            if (unicodeValue > 0x10FFFF || unicodeValue <= previousScalar ||
-                mappedGlyph <= 0 || mappedGlyph >= glyphCount) return false;
-            if (unicodeValue == scalar) glyph = mappedGlyph;
-            previousScalar = unicodeValue;
+            if (unicodeValue < scalar) {
+                low = index + 1;
+            } else if (unicodeValue > scalar) {
+                high = index - 1;
+            } else {
+                int mappedGlyph = ReadUInt16(data, mapping + 3);
+                if (mappedGlyph <= 0 || mappedGlyph >= glyphCount) return false;
+                glyph = mappedGlyph;
+                return true;
+            }
         }
         return true;
     }
@@ -169,15 +175,23 @@ internal static class OfficeOpenTypeCmap {
         int offset = table + (int)relativeOffset;
         if (offset < table || offset > tableEnd - 4) return false;
         uint countValue = ReadUInt32(data, offset);
-        if (countValue > MaximumVariationMappings || countValue > (uint)((tableEnd - offset - 4) / 4)) return false;
-        int previousEnd = -1;
-        for (int index = 0; index < (int)countValue; index++) {
+        if (countValue > int.MaxValue || countValue > (uint)((tableEnd - offset - 4) / 4)) return false;
+        int low = 0;
+        int high = (int)countValue - 1;
+        while (low <= high) {
+            int index = low + ((high - low) / 2);
             int range = offset + 4 + index * 4;
             int start = ReadUInt24(data, range);
             int end = start + data[range + 3];
-            if (start <= previousEnd || end > 0x10FFFF) return false;
-            if (scalar >= start && scalar <= end) isDefault = true;
-            previousEnd = end;
+            if (end > 0x10FFFF) return false;
+            if (scalar < start) {
+                high = index - 1;
+            } else if (scalar > end) {
+                low = index + 1;
+            } else {
+                isDefault = true;
+                return true;
+            }
         }
         return true;
     }
