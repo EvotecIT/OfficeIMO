@@ -159,7 +159,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Pages_owner_uses_a_default_marker_for_unlabeled_lists() {
+    public void Pages_owner_maps_unlabeled_lists_to_native_word_numbering() {
         using MemoryStream package = CreatePagesPackageWithUnlabeledList();
 
         IWorkPagesProjection projection = IWorkSourceDocument.Open(
@@ -171,9 +171,10 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = WordDocument.LoadPagesWithReport(package);
 
-        string[] texts = result.Document.Paragraphs.Select(paragraph => paragraph.Text).ToArray();
-        Assert.Contains("\u2022 ", texts);
-        Assert.Contains("Item", texts);
+        WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
+            candidate => candidate.Text == "Item");
+        Assert.True(paragraph.IsListItem);
+        Assert.Equal(0, paragraph.ListItemLevel);
     }
 
     [Fact]

@@ -24,6 +24,15 @@ internal sealed class IWorkObjectIndex {
     internal IWorkArchiveRecord? FirstOfType(uint type) =>
         _objects.Values.FirstOrDefault(record => record.MessageType == type);
 
+    internal IWorkArchiveRecord? UniqueOfType(uint type, out bool duplicate) {
+        IWorkArchiveRecord[] matches = _objects.Values
+            .Where(record => record.MessageType == type)
+            .Take(2)
+            .ToArray();
+        duplicate = matches.Length > 1;
+        return matches.Length == 1 ? matches[0] : null;
+    }
+
     internal IWorkArchiveRecord? Find(ulong identifier) =>
         _objects.TryGetValue(identifier, out IWorkArchiveRecord? record) ? record : null;
 

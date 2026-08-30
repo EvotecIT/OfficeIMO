@@ -88,10 +88,13 @@ internal static class IWorkNumbersReader {
         var diagnostics = new List<IWorkDiagnostic>();
         var sheets = new List<IWorkNumbersSheet>();
         IWorkObjectIndex index = source.Index;
-        IWorkArchiveRecord? document = index.FirstOfType(DocumentArchive);
+        IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_DOCUMENT_MISSING",
-                "No supported Numbers document root was found; editable reconstruction is unavailable."));
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                duplicateDocument ? "IWORK_NUMBERS_DOCUMENT_DUPLICATE" : "IWORK_NUMBERS_DOCUMENT_MISSING",
+                duplicateDocument
+                    ? "More than one Numbers document root was found; editable reconstruction is unavailable."
+                    : "No supported Numbers document root was found; editable reconstruction is unavailable."));
             return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction: false);
         }
         int materializedCellCount = 0;
@@ -163,7 +166,7 @@ internal static class IWorkNumbersReader {
                     IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
                     if (storage != null && storage.MessageType == TextStorageArchive) {
                         string text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
-                            out bool textComplete).Trim();
+                            out bool textComplete);
                         if (!textComplete) {
                             supportsEditableReconstruction = false;
                             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED")) {
@@ -272,6 +275,13 @@ internal static class IWorkNumbersReader {
         int headerRows = CheckedSubDimension(message.GetUnsigned(9), rows, "header row", model);
         int headerColumns = CheckedSubDimension(message.GetUnsigned(10), columns, "header column", model);
         int footerRows = CheckedSubDimension(message.GetUnsigned(11), rows, "footer row", model);
+        if ((long)headerRows + footerRows > rows) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_REGIONS_UNSUPPORTED",
+                "An iWork table declares overlapping header and footer row regions; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+        }
         double? defaultRowHeight = ValidDimension(message.GetDouble(16));
         double? defaultColumnWidth = ValidDimension(message.GetDouble(17));
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
@@ -408,7 +418,7 @@ internal static class IWorkNumbersReader {
                     if (encodedOffset == ushort.MaxValue) continue;
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, checked((int)zeroBasedRow + 1), column + 1,
-                        strings, formulas, source.Options);
+                        strings, formulas, source.Options, projectionBudget);
                     if (cell.Kind == IWorkCellKind.Empty) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
@@ -635,7 +645,7 @@ internal static class IWorkNumbersReader {
 
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int row, int column,
         IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options) {
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget) {
         if (offset < 0 || offset > buffer.Length - 12) return Error(row, column, "Truncated cell record.");
         int version = buffer[offset];
         int type = buffer[offset + 1];
@@ -689,26 +699,26 @@ internal static class IWorkNumbersReader {
                 if (hasDecimal) {
                     return decimalValue.HasValue
                         ? FiniteNumber(row, column, decimalValue.Value, hasFormula,
-                            formulaIdentifier, formulas, options)
+                            formulaIdentifier, formulas, options, projectionBudget)
                         : Error(row, column,
                             "Decimal128 value exceeds XLSX numeric precision.");
                 }
-                if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options);
-                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : Error(row, column, "Number cell has no value field.");
+                if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options, projectionBudget);
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : Error(row, column, "Number cell has no value field.");
             case 3:
                 if (hasString && strings.TryGetValue(stringIdentifier, out string? text)) {
                     return hasFormula
-                        ? Formula(row, column, formulaIdentifier, formulas, options, text, IWorkCellKind.Text)
+                        ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, text, IWorkCellKind.Text)
                         : new IWorkTableCell(row, column, IWorkCellKind.Text, text);
                 }
-                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
             case 5:
                 if (!hasDate) return Error(row, column, "Date cell has no date value field.");
                 if (!IsFinite(dateValue)) return Error(row, column, "Date cell has a non-finite value.");
                 try {
                     DateTime value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue);
                     return hasFormula
-                        ? Formula(row, column, formulaIdentifier, formulas, options, value, IWorkCellKind.DateTime)
+                        ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, value, IWorkCellKind.DateTime)
                         : new IWorkTableCell(row, column, IWorkCellKind.DateTime, value);
                 } catch (ArgumentOutOfRangeException) {
                     return Error(row, column, "Date cell is outside the supported DateTime range.");
@@ -718,20 +728,20 @@ internal static class IWorkNumbersReader {
                 if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
                 bool booleanValue = doubleValue != 0;
                 return hasFormula
-                    ? Formula(row, column, formulaIdentifier, formulas, options, booleanValue, IWorkCellKind.Boolean)
+                    ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, booleanValue, IWorkCellKind.Boolean)
                     : new IWorkTableCell(row, column, IWorkCellKind.Boolean, booleanValue);
             case 7:
                 if (!hasDouble) return Error(row, column, "Duration cell has no value field.");
                 if (!IsFinite(doubleValue)) return Error(row, column, "Duration cell has a non-finite value.");
                 return hasFormula
-                    ? Formula(row, column, formulaIdentifier, formulas, options, doubleValue, IWorkCellKind.Duration)
+                    ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, doubleValue, IWorkCellKind.Duration)
                     : new IWorkTableCell(row, column, IWorkCellKind.Duration, doubleValue);
             case 8:
                 return hasFormula
-                    ? Formula(row, column, formulaIdentifier, formulas, options, "#ERROR", IWorkCellKind.Error)
+                    ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, "#ERROR", IWorkCellKind.Error)
                     : Error(row, column, "#ERROR");
             case 9:
-                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options) : new IWorkTableCell(row, column, IWorkCellKind.Text, string.Empty);
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : new IWorkTableCell(row, column, IWorkCellKind.Text, string.Empty);
             default:
                 return Error(row, column, $"Unknown cell type {type}.");
         }
@@ -739,23 +749,27 @@ internal static class IWorkNumbersReader {
 
     private static IWorkTableCell Formula(int row, int column, uint formulaIdentifier,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkReadOptions options,
+        IWorkProjectionBudget projectionBudget,
         object? cachedValue = null,
         IWorkCellKind? cachedValueKind = null) {
         IWorkFormulaResult result = formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)
             ? IWorkFormulaReader.Render(formula, row - 1, column - 1,
                 options.MaximumFormulaNodes, options.MaximumFormulaCharacters)
             : new IWorkFormulaResult("=?", false);
+        string formulaText = result.Text.Length == 0 ? "=?" : result.Text;
+        projectionBudget.AddTextCharacters(formulaText.Length);
+        projectionBudget.AddTextItem();
         return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
-            formula: result.Text.Length == 0 ? "=?" : result.Text, valueKind: cachedValueKind,
+            formula: formulaText, valueKind: cachedValueKind,
             formulaIsComplete: result.IsComplete);
     }
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,
         uint formulaIdentifier, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options) =>
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget) =>
         IsFinite(value)
             ? hasFormula
-                ? Formula(row, column, formulaIdentifier, formulas, options, value, IWorkCellKind.Number)
+                ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, value, IWorkCellKind.Number)
                 : new IWorkTableCell(row, column, IWorkCellKind.Number, value)
             : Error(row, column, "Number cell has a non-finite value.");
 

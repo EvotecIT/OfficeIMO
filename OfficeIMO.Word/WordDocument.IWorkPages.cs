@@ -2,6 +2,10 @@ using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
 using OpenXmlParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using OpenXmlRun = DocumentFormat.OpenXml.Wordprocessing.Run;
+using OpenXmlNumberingId = DocumentFormat.OpenXml.Wordprocessing.NumberingId;
+using OpenXmlNumberingLevelReference = DocumentFormat.OpenXml.Wordprocessing.NumberingLevelReference;
+using OpenXmlNumberingProperties = DocumentFormat.OpenXml.Wordprocessing.NumberingProperties;
+using OpenXmlParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 
 namespace OfficeIMO.Word;
 
@@ -54,10 +58,11 @@ public partial class WordDocument {
         WordDocument document = Create();
         try {
             if (editable) {
+                var nativeLists = new IWorkNativeListCatalog(document);
                 if (projection.PageLayout != null) ApplyPageLayout(document.Sections[0], projection.PageLayout);
                 (double contentWidth, double contentHeight) = ContentBox(document.Sections[0]);
                 var semanticSections = new List<WordSection> { document.Sections[0] };
-                AddRichText(projection.Body, document.AddParagraph, document.AddPageBreak,
+                AddRichText(projection.Body, document.AddParagraph, nativeLists, document.AddPageBreak,
                     breakKind => {
                         WordSection section = document.AddSection(breakKind == IWorkParagraphBreakKind.Layout
                             ? WordSectionBreakType.Continuous
@@ -67,7 +72,7 @@ public partial class WordDocument {
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
-                foreach (IWorkTextBox textBox in projection.TextBoxObjects) AddRichTextBox(document, textBox);
+                foreach (IWorkTextBox textBox in projection.TextBoxObjects) AddRichTextBox(document, textBox, nativeLists);
                 foreach (IWorkTable sourceTable in projection.Tables) AddTable(document, sourceTable);
                 foreach (IWorkImageAsset sourceImage in projection.Images.Where(image =>
                              image.MediaType is "image/png" or "image/jpeg")) {
@@ -86,10 +91,10 @@ public partial class WordDocument {
                     WordSection targetSection = semanticSections[sectionIndex];
                     targetSection.AddHeadersAndFooters();
                     foreach (IWorkTextContent header in sourceSection.HeaderContents) {
-                        AddRichText(header, targetSection.Header.Default!.AddParagraph);
+                        AddRichText(header, targetSection.Header.Default!.AddParagraph, nativeLists);
                     }
                     foreach (IWorkTextContent footer in sourceSection.FooterContents) {
-                        AddRichText(footer, targetSection.Footer.Default!.AddParagraph);
+                        AddRichText(footer, targetSection.Footer.Default!.AddParagraph, nativeLists);
                     }
                 }
             } else {
@@ -161,7 +166,8 @@ public partial class WordDocument {
         }
     }
 
-    private static void AddRichTextBox(WordDocument document, IWorkTextBox source) {
+    private static void AddRichTextBox(WordDocument document, IWorkTextBox source,
+        IWorkNativeListCatalog nativeLists) {
         WordTextBox textBox = document.AddTextBox(string.Empty);
         if (source.Geometry is { } geometry) {
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
@@ -182,7 +188,7 @@ public partial class WordDocument {
             var result = new WordParagraph(document, paragraph, newRun: false);
             if (value.Length > 0) result.AddText(value);
             return result;
-        });
+        }, nativeLists);
         if (!content.Elements<OpenXmlParagraph>().Any()) {
             content.Append(new OpenXmlParagraph(new OpenXmlRun()));
         }
@@ -210,6 +216,14 @@ public partial class WordDocument {
                 .Any(run => run.Hyperlink != null
                     && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
             return "Pages contains a text hyperlink that cannot be represented by the DOCX owner.";
+        }
+        if (projection.Body.Paragraphs
+                .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
+                .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
+                    .Concat(projection.Sections.SelectMany(section => section.FooterContents))
+                    .SelectMany(content => content.Paragraphs))
+                .Any(paragraph => paragraph.ListLevel > 8)) {
+            return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
         if (projection.PageLayout is { } layout
             && (layout.WidthPoints <= 0 || layout.HeightPoints <= 0
@@ -304,16 +318,14 @@ public partial class WordDocument {
         MidpointRounding.AwayFromZero));
 
     private static void AddRichText(IWorkTextContent content, Func<string, WordParagraph> addParagraph,
+        IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null) {
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph.Style);
             if (sourceParagraph.ListLevel >= 0) {
-                string marker = string.IsNullOrEmpty(sourceParagraph.ListLabel)
-                    ? "\u2022"
-                    : sourceParagraph.ListLabel!;
-                paragraph.AddText(marker + " ");
+                nativeLists.Apply(paragraph, sourceParagraph.ListLevel, sourceParagraph.ListLabel);
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
                 AddStyledTextRun(paragraph, sourceRun);
@@ -386,6 +398,30 @@ public partial class WordDocument {
         section.Margins.Bottom = checked((int)ToTwips(layout.BottomMarginPoints));
         section.Margins.HeaderDistance = ToTwips(layout.HeaderMarginPoints);
         section.Margins.FooterDistance = ToTwips(layout.FooterMarginPoints);
+    }
+
+    private sealed class IWorkNativeListCatalog {
+        private readonly WordDocument _document;
+        private WordList? _bulleted;
+        private WordList? _numbered;
+
+        internal IWorkNativeListCatalog(WordDocument document) {
+            _document = document;
+        }
+
+        internal void Apply(WordParagraph paragraph, int level, string? label) {
+            WordList list = IsOrderedLabel(label)
+                ? _numbered ??= _document.AddList(WordListStyle.Numbered)
+                : _bulleted ??= _document.AddList(WordListStyle.Bulleted);
+            OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
+                ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
+            properties.NumberingProperties = new OpenXmlNumberingProperties(
+                new OpenXmlNumberingLevelReference { Val = level },
+                new OpenXmlNumberingId { Val = list.NumberId });
+        }
+
+        private static bool IsOrderedLabel(string? label) =>
+            !string.IsNullOrEmpty(label) && label.Any(char.IsDigit);
     }
 
     private static uint ToTwips(double points) {

@@ -139,6 +139,7 @@ public sealed partial class PowerPointPresentation {
             : Math.Max(36d, source.DefaultRowHeight.GetValueOrDefault(24d) * source.RowCount);
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
+        table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
         table.FirstRow = source.HeaderRowCount > 0;
         table.FirstColumn = source.HeaderColumnCount > 0;
         table.LastRow = source.FooterRowCount > 0;
@@ -206,6 +207,7 @@ public sealed partial class PowerPointPresentation {
                 .Select(textBox => textBox.Geometry)
                 .Concat(slide.TitleBox == null ? Array.Empty<IWorkGeometry?>() : new[] { slide.TitleBox.Geometry })
                 .Concat(slide.Images.Select(image => image.Geometry))
+                .Concat(slide.Tables.Select(table => table.Geometry))
                 .Where(geometry => geometry != null)
                 .Cast<IWorkGeometry>();
             if (rotatedShapes.Any(geometry => !FitsRotation(geometry.RotationDegrees))) {

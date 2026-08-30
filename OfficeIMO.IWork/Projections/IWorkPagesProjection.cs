@@ -117,10 +117,13 @@ internal static class IWorkPagesReader {
         var tables = new List<IWorkTable>();
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         IWorkObjectIndex index = source.Index;
-        IWorkArchiveRecord? document = index.FirstOfType(DocumentArchive);
+        IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_DOCUMENT_MISSING",
-                "No supported Pages document root was found; editable reconstruction is unavailable."));
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                duplicateDocument ? "IWORK_PAGES_DOCUMENT_DUPLICATE" : "IWORK_PAGES_DOCUMENT_MISSING",
+                duplicateDocument
+                    ? "More than one Pages document root was found; editable reconstruction is unavailable."
+                    : "No supported Pages document root was found; editable reconstruction is unavailable."));
             return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables, null, diagnostics,
                 supportsEditableReconstruction: false);
         }

@@ -1051,6 +1051,8 @@ public sealed partial class IWorkBoundaryTests {
             if (table.DefaultRowHeight.HasValue) {
                 modelFields.Add(DoubleField(16, table.DefaultRowHeight.Value));
             }
+            if (table.HeaderRows > 0) modelFields.Add(VarintField(9, checked((ulong)table.HeaderRows)));
+            if (table.FooterRows > 0) modelFields.Add(VarintField(11, checked((ulong)table.FooterRows)));
             byte[] model = Message(modelFields.ToArray());
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
@@ -1401,7 +1403,8 @@ public sealed partial class IWorkBoundaryTests {
             bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false,
             bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
             bool duplicateFormula = false, bool wrongWireDimensions = false,
-            bool oddCurrentOffsets = false, double? defaultRowHeight = null) {
+            bool oddCurrentOffsets = false, double? defaultRowHeight = null,
+            int headerRows = 0, int footerRows = 0) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1426,6 +1429,8 @@ public sealed partial class IWorkBoundaryTests {
             WrongWireDimensions = wrongWireDimensions;
             OddCurrentOffsets = oddCurrentOffsets;
             DefaultRowHeight = defaultRowHeight;
+            HeaderRows = headerRows;
+            FooterRows = footerRows;
         }
 
         internal string Name { get; }
@@ -1452,5 +1457,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool WrongWireDimensions { get; }
         internal bool OddCurrentOffsets { get; }
         internal double? DefaultRowHeight { get; }
+        internal int HeaderRows { get; }
+        internal int FooterRows { get; }
     }
 }

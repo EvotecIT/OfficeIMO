@@ -34,7 +34,10 @@ internal static class IWorkTextReader {
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
             AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
-            int[] ordered = boundaries.ToArray();
+            int[] ordered = boundaries
+                .Where(boundary => !SplitsSurrogatePair(text, boundary))
+                .ToArray();
+            if (ordered.Length != boundaries.Count) complete = false;
             var runs = new List<IWorkTextRun>();
             for (int runIndex = 0; runIndex + 1 < ordered.Length; runIndex++) {
                 int start = ordered[runIndex];
@@ -158,6 +161,11 @@ internal static class IWorkTextReader {
         }
         return low;
     }
+
+    private static bool SplitsSurrogatePair(string text, int offset) =>
+        offset > 0 && offset < text.Length
+        && char.IsHighSurrogate(text[offset - 1])
+        && char.IsLowSurrogate(text[offset]);
 
     private static IWorkParagraphStyle ResolveParagraphStyle(IWorkObjectIndex index,
         ulong? identifier, IWorkProjectionBudget projectionBudget,
@@ -450,7 +458,7 @@ internal static class IWorkTextReader {
         if (new[] { 3, 4, 5, 6, 11 }.Any(component =>
                 message.LacksWireKind(component, IWorkWireKind.Fixed32)
                 || message.HasField(component) && !message.GetFloat(component).HasValue)
-            || !new[] { red, green, blue, alpha }.All(IsFinite)) {
+            || !new[] { red, green, blue, alpha }.All(IsNormalizedColorComponent)) {
             complete = false;
             return false;
         }
@@ -484,6 +492,7 @@ internal static class IWorkTextReader {
             IWorkParagraphBreakKind kind = BreakKind(text[index]);
             if (kind == IWorkParagraphBreakKind.None) continue;
             yield return new TextSpan(start, index, kind);
+            if (text[index] == '\r' && index + 1 < text.Length && text[index + 1] == '\n') index++;
             start = index + 1;
         }
         if (start <= text.Length) yield return new TextSpan(start, text.Length, IWorkParagraphBreakKind.None);
@@ -498,6 +507,9 @@ internal static class IWorkTextReader {
         '\u000c' => IWorkParagraphBreakKind.Page,
         _ => IWorkParagraphBreakKind.None
     };
+
+    private static bool IsNormalizedColorComponent(float value) =>
+        IsFinite(value) && value >= 0f && value <= 1f;
 
     private static string NormalizeInlineText(string value, IWorkProjectionBudget projectionBudget,
         ref bool complete) {

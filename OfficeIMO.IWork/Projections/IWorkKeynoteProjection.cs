@@ -113,10 +113,13 @@ internal static class IWorkKeynoteReader {
         var diagnostics = new List<IWorkDiagnostic>();
         var slides = new List<IWorkKeynoteSlide>();
         IWorkObjectIndex index = source.Index;
-        IWorkArchiveRecord? document = index.FirstOfType(DocumentArchive);
+        IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_DOCUMENT_MISSING",
-                "No supported Keynote document root was found; editable reconstruction is unavailable."));
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                duplicateDocument ? "IWORK_KEYNOTE_DOCUMENT_DUPLICATE" : "IWORK_KEYNOTE_DOCUMENT_MISSING",
+                duplicateDocument
+                    ? "More than one Keynote document root was found; editable reconstruction is unavailable."
+                    : "No supported Keynote document root was found; editable reconstruction is unavailable."));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkArchiveRecord? show = index.Dereference(index.Message(document), 2);

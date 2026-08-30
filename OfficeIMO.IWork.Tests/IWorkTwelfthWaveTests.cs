@@ -138,7 +138,8 @@ public sealed partial class IWorkBoundaryTests {
             CreatePngChunk("IEND", Array.Empty<byte>()));
     }
 
-    private static MemoryStream CreateKeynotePackageWithLargeTables(int tableCount) {
+    private static MemoryStream CreateKeynotePackageWithLargeTables(int tableCount,
+        float? rotation = null, int rows = 1000, int columns = 100) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -156,10 +157,17 @@ public sealed partial class IWorkBoundaryTests {
             ulong modelId = tableId + 1;
             slideFields.Add(ReferenceField(6, tableId));
             slideReferences.Add(tableId);
-            records.Add(ArchiveRecord(tableId, 6000,
-                Message(ReferenceField(2, modelId)), new[] { modelId }));
+            byte[] tableInfo = rotation.HasValue
+                ? Message(BytesField(1, Message(BytesField(1, Message(
+                        BytesField(1, Message(FloatField(1, 72f), FloatField(2, 72f))),
+                        BytesField(2, Message(FloatField(1, 240f), FloatField(2, 120f))),
+                        FloatField(4, rotation.Value))))),
+                    ReferenceField(2, modelId))
+                : Message(ReferenceField(2, modelId));
+            records.Add(ArchiveRecord(tableId, 6000, tableInfo, new[] { modelId }));
             records.Add(ArchiveRecord(modelId, 6001,
-                Message(VarintField(6, 1000), VarintField(7, 100),
+                Message(BytesField(4, Message(BytesField(3, Message()))),
+                    VarintField(6, checked((ulong)rows)), VarintField(7, checked((ulong)columns)),
                     StringField(8, $"Table {index + 1}"))));
         }
         records.Add(ArchiveRecord(slideId, 5, Message(slideFields.ToArray()), slideReferences));
