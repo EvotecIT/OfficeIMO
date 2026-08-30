@@ -182,8 +182,11 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same component.", path));
             }
-            bool duplicateSingleton = kind != DocBookNodeKind.Info && IsSingletonTypedChild(kind) &&
-                element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) == kind);
+            bool duplicateSingleton =
+                (kind != DocBookNodeKind.Info && IsSingletonTypedChild(kind) &&
+                 element.ElementsBeforeSelf().Any(sibling => DocBookNames.GetKind(sibling.Name, Namespace) == kind)) ||
+                (parentKind == DocBookNodeKind.TableGroup && element.Name == Namespace + "tfoot" &&
+                 element.ElementsBeforeSelf(element.Name).Any());
             if (duplicateSingleton) {
                 diagnostics.Add(new DocBookDiagnostic("DB019", DocBookDiagnosticSeverity.Error,
                     $"{localName} appears more than once under the same parent.", path));
@@ -203,6 +206,13 @@ public sealed partial class DocBookDocument {
             if (misplacedSubtitle) {
                 diagnostics.Add(new DocBookDiagnostic("DB022", DocBookDiagnosticSeverity.Error,
                     "subtitle must appear in the container header before body content.", path));
+            }
+            int calsOrder = GetCalsChildOrder(element);
+            bool misplacedTableSection = parentKind == DocBookNodeKind.TableGroup && calsOrder >= 0 &&
+                element.ElementsBeforeSelf().Any(sibling => GetCalsChildOrder(sibling) > calsOrder);
+            if (misplacedTableSection) {
+                diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
+                    $"{localName} appears after a later CALS table section; expected colspec, spanspec, thead, tfoot, then tbody.", path));
             }
             if (element != root && element.Name.Namespace != Namespace &&
                 IsKnownUntypedDocBookLocalName(localName) &&
@@ -392,6 +402,18 @@ public sealed partial class DocBookDocument {
 
     internal static bool IsInlineChildKind(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference || kind == DocBookNodeKind.IndexTerm;
+
+    private int GetCalsChildOrder(XElement element) {
+        if (element.Name.Namespace != Namespace) return -1;
+        switch (element.Name.LocalName) {
+            case "colspec": return 0;
+            case "spanspec": return 1;
+            case "thead": return 2;
+            case "tfoot": return 3;
+            case "tbody": return 4;
+            default: return -1;
+        }
+    }
 
     internal bool CanAddTypedChild(XElement requestedParent, DocBookNodeKind childKind) {
         if (childKind == DocBookNodeKind.Author &&

@@ -192,6 +192,12 @@ public sealed class DocBookNode {
                     childKind == DocBookNodeKind.Subtitle;
             }).LastOrDefault();
             if (header == null) parent.AddFirst(element); else header.AddAfterSelf(element);
+        } else if (localName == "thead" &&
+                   DocBookNames.GetKind(parent.Name, _document.Namespace) == DocBookNodeKind.TableGroup) {
+            XElement? followingSection = parent.Elements().FirstOrDefault(child =>
+                child.Name == _document.Namespace + "tfoot" ||
+                DocBookNames.GetKind(child.Name, _document.Namespace) == DocBookNodeKind.TableBody);
+            if (followingSection == null) parent.Add(element); else followingSection.AddBeforeSelf(element);
         } else {
             parent.Add(element);
         }

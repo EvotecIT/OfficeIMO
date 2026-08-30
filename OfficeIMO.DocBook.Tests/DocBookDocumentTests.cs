@@ -860,6 +860,58 @@ public sealed class DocBookDocumentTests {
     [Theory]
     [InlineData(DocBookProfile.DocBook45)]
     [InlineData(DocBookProfile.DocBook52)]
+    public void TypedTableHeadersAreInsertedBeforeBodies(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode group = document.Root.AddTable().Add(DocBookNodeKind.TableGroup);
+        group.SetAttribute("cols", "1");
+        group.Add(DocBookNodeKind.TableBody).Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Body");
+        group.Add(DocBookNodeKind.TableHead).Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Heading");
+
+        Assert.Equal(new[] { "thead", "tbody" }, group.Children.Select(child => child.Name));
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, "thead")]
+    [InlineData(DocBookProfile.DocBook45, "tfoot")]
+    [InlineData(DocBookProfile.DocBook45, "colspec")]
+    [InlineData(DocBookProfile.DocBook45, "spanspec")]
+    [InlineData(DocBookProfile.DocBook52, "thead")]
+    [InlineData(DocBookProfile.DocBook52, "tfoot")]
+    [InlineData(DocBookProfile.DocBook52, "colspec")]
+    [InlineData(DocBookProfile.DocBook52, "spanspec")]
+    public void ValidationRejectsOutOfOrderCalsSections(DocBookProfile profile, string lateSection) {
+        string lateContent = lateSection == "thead" || lateSection == "tfoot"
+            ? "<row><entry>Late</entry></row>"
+            : string.Empty;
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Body</entry></row></tbody><{lateSection}>{lateContent}</{lateSection}></tgroup></informaltable></article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><informaltable><tgroup cols=\"1\"><tbody><row><entry>Body</entry></row></tbody><{lateSection}>{lateContent}</{lateSection}></tgroup></informaltable></article>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB020" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf(lateSection, StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void ValidationRejectsDuplicateCalsFooters(DocBookProfile profile) {
+        const string footers = "<tfoot><row><entry>One</entry></row></tfoot><tfoot><row><entry>Two</entry></row></tfoot>";
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\">{footers}<tbody><row><entry>Body</entry></row></tbody></tgroup></informaltable></article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><informaltable><tgroup cols=\"1\">{footers}<tbody><row><entry>Body</entry></row></tbody></tgroup></informaltable></article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB019" && diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf("tfoot", StringComparison.Ordinal) >= 0);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
     public void TypedSingletonChildrenRejectDuplicatesAndValidationCatchesParsedDuplicates(DocBookProfile profile) {
         DocBookDocument document = DocBookDocument.CreateArticle(profile);
         DocBookNode section = document.AddSection("Section");
