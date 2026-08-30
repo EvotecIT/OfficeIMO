@@ -56,7 +56,7 @@ public sealed partial class BibliographyDocument {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         BibliographyWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PrepareOutputStream(stream);
+        PrepareOutputStream(stream, cancellationToken);
         WriteAllBytes(stream, result.Bytes, cancellationToken);
         RewindOutputStream(stream);
         return result;
@@ -66,8 +66,9 @@ public sealed partial class BibliographyDocument {
     public async Task<BibliographyWriteResult> SaveAsync(string path, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         BibliographyWriteResult result = Write(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-        await stream.WriteAsync(result.Bytes, 0, result.Bytes.Length, cancellationToken).ConfigureAwait(false);
+        await WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
@@ -75,15 +76,19 @@ public sealed partial class BibliographyDocument {
     public async Task<BibliographyWriteResult> SaveAsync(Stream stream, BibliographyWriteOptions? options = null, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         BibliographyWriteResult result = Write(options, cancellationToken);
-        PrepareOutputStream(stream);
-        await stream.WriteAsync(result.Bytes, 0, result.Bytes.Length, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        PrepareOutputStream(stream, cancellationToken);
+        await WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
         RewindOutputStream(stream);
         return result;
     }
 
-    private static void PrepareOutputStream(Stream stream) {
+    private static void PrepareOutputStream(Stream stream, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!stream.CanSeek) return;
+        cancellationToken.ThrowIfCancellationRequested();
         stream.Position = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         stream.SetLength(0);
     }
 
@@ -96,6 +101,16 @@ public sealed partial class BibliographyDocument {
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(SynchronousWriteChunkSize, bytes.Length - offset);
             stream.Write(bytes, offset, count);
+            offset += count;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static async Task WriteAllBytesAsync(Stream stream, byte[] bytes, CancellationToken cancellationToken) {
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(SynchronousWriteChunkSize, bytes.Length - offset);
+            await stream.WriteAsync(bytes, offset, count, cancellationToken).ConfigureAwait(false);
             offset += count;
         }
         cancellationToken.ThrowIfCancellationRequested();

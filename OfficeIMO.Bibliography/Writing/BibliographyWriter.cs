@@ -9,7 +9,7 @@ internal static class BibliographyWriter {
         BibliographyFormat format = options.Format ?? document.SourceFormat;
         var report = new BibliographyConversionReport();
 
-        if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModified && document.OriginalText != null) {
+        if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModifiedWithCancellation(cancellationToken) && document.OriginalText != null) {
             Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding) : options.Encoding;
             if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report, cancellationToken);
             if (options.RequireNoLoss) report.RequireNoLoss();

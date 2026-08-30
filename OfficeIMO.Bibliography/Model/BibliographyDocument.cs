@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+
 namespace OfficeIMO.Bibliography;
 
 /// <summary>An editable, format-neutral, source-backed bibliography.</summary>
@@ -13,7 +15,7 @@ public sealed partial class BibliographyDocument {
         _baselineFingerprint = BibliographyFingerprint.Create(this);
     }
 
-    internal BibliographyDocument(BibliographyFormat format, IList<BibliographyItem> items, IList<BibliographyNativeEntry> nativeEntries, string originalText, byte[]? originalBytes, IReadOnlyList<BibliographyDiagnostic> diagnostics, bool cslJsonSingleObjectRoot = false, bool endNoteRecordsRoot = false, string? endNoteRootElementName = null, string? endNoteRecordsElementName = null) {
+    internal BibliographyDocument(BibliographyFormat format, IList<BibliographyItem> items, IList<BibliographyNativeEntry> nativeEntries, string originalText, byte[]? originalBytes, IReadOnlyList<BibliographyDiagnostic> diagnostics, bool cslJsonSingleObjectRoot = false, bool endNoteRecordsRoot = false, string? endNoteRootElementName = null, string? endNoteRecordsElementName = null, CancellationToken cancellationToken = default) {
         ValidateFormat(format);
         SourceFormat = format;
         Items = items ?? throw new ArgumentNullException(nameof(items));
@@ -25,7 +27,7 @@ public sealed partial class BibliographyDocument {
         EndNoteRecordsRoot = endNoteRecordsRoot;
         EndNoteRootElementName = endNoteRootElementName;
         EndNoteRecordsElementName = endNoteRecordsElementName;
-        _baselineFingerprint = BibliographyFingerprint.Create(this);
+        _baselineFingerprint = BibliographyFingerprint.Create(this, cancellationToken);
     }
 
     /// <summary>Source format, or intended format for a new document.</summary>
@@ -53,6 +55,7 @@ public sealed partial class BibliographyDocument {
     internal bool EndNoteRecordsRoot { get; }
     internal string? EndNoteRootElementName { get; }
     internal string? EndNoteRecordsElementName { get; }
+    internal bool IsModifiedWithCancellation(CancellationToken cancellationToken) => !string.Equals(_baselineFingerprint, BibliographyFingerprint.Create(this, cancellationToken), StringComparison.Ordinal);
 
     /// <summary>Parses bibliography text using an explicit format.</summary>
     public static BibliographyReadResult Parse(string source, BibliographyFormat format, BibliographyReadOptions? options = null, CancellationToken cancellationToken = default) =>
@@ -83,8 +86,8 @@ public sealed partial class BibliographyDocument {
 }
 
 internal static class BibliographyFingerprint {
-    internal static string Create(BibliographyDocument document) {
-        var builder = new StringBuilder();
+    internal static string Create(BibliographyDocument document, CancellationToken cancellationToken = default) {
+        using var builder = new FingerprintBuilder(cancellationToken);
         Add(builder, document.Items.Count.ToString(CultureInfo.InvariantCulture));
         foreach (BibliographyItem item in document.Items) {
             Add(builder, item.Key); Add(builder, ((int)item.Type).ToString(CultureInfo.InvariantCulture)); Add(builder, item.NativeType);
@@ -122,11 +125,53 @@ internal static class BibliographyFingerprint {
         foreach (BibliographyNativeEntry entry in document.NativeEntries) {
             Add(builder, ((int)entry.Format).ToString(CultureInfo.InvariantCulture)); Add(builder, entry.Kind); Add(builder, entry.Name); Add(builder, entry.Value);
         }
-        return builder.ToString();
+        return builder.Complete();
     }
 
-    private static void Add(StringBuilder builder, string? value) {
-        if (value == null) { builder.Append("-1:;"); return; }
-        builder.Append(value.Length.ToString(CultureInfo.InvariantCulture)).Append(':').Append(value).Append(';');
+    private static void Add(FingerprintBuilder builder, string? value) => builder.Add(value);
+
+    private sealed class FingerprintBuilder : IDisposable {
+        private const int CharacterChunkSize = 4096;
+        private readonly CancellationToken _cancellationToken;
+        private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        private readonly byte[] _buffer = new byte[CharacterChunkSize * 2];
+
+        internal FingerprintBuilder(CancellationToken cancellationToken) {
+            _cancellationToken = cancellationToken;
+            cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        internal void Add(string? value) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            _buffer[0] = value == null ? (byte)0 : (byte)1;
+            int length = value?.Length ?? 0;
+            _buffer[1] = (byte)length;
+            _buffer[2] = (byte)(length >> 8);
+            _buffer[3] = (byte)(length >> 16);
+            _buffer[4] = (byte)(length >> 24);
+            _hash.AppendData(_buffer, 0, 5);
+            if (value == null) return;
+            for (int offset = 0; offset < value.Length;) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                int count = Math.Min(CharacterChunkSize, value.Length - offset);
+                for (int index = 0; index < count; index++) {
+                    char character = value[offset + index];
+                    _buffer[index * 2] = (byte)character;
+                    _buffer[index * 2 + 1] = (byte)(character >> 8);
+                }
+                _hash.AppendData(_buffer, 0, count * 2);
+                offset += count;
+            }
+            _cancellationToken.ThrowIfCancellationRequested();
+        }
+
+        internal string Complete() {
+            _cancellationToken.ThrowIfCancellationRequested();
+            string result = Convert.ToBase64String(_hash.GetHashAndReset());
+            _cancellationToken.ThrowIfCancellationRequested();
+            return result;
+        }
+
+        public void Dispose() => _hash.Dispose();
     }
 }

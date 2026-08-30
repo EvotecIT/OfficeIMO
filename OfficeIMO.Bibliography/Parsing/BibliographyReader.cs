@@ -44,7 +44,7 @@ internal static class BibliographyReader {
             items = exception.PartialItems;
         }
 
-        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly(), cslJsonSingleObjectRoot, endNoteRecordsRoot, endNoteRootElementName, endNoteRecordsElementName);
+        var document = new BibliographyDocument(format, items, nativeEntries, source, originalBytes, diagnostics.AsReadOnly(), cslJsonSingleObjectRoot, endNoteRecordsRoot, endNoteRootElementName, endNoteRecordsElementName, cancellationToken);
         return new BibliographyReadResult(document, document.Diagnostics);
     }
 }

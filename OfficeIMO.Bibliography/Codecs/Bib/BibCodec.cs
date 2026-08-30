@@ -637,7 +637,15 @@ internal static class BibCodec {
             int target = Math.Min(offset, _source.Length);
             while (_locationOffset < target) {
                 if ((_locationOffset & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
-                if (_source[_locationOffset++] == '\n') { _locationLine++; _locationColumn = 1; } else _locationColumn++;
+                char current = _source[_locationOffset++];
+                if (current == '\r') {
+                    if (_locationOffset < _source.Length && _source[_locationOffset] == '\n') _locationOffset++;
+                    _locationLine++;
+                    _locationColumn = 1;
+                } else if (current == '\n') {
+                    _locationLine++;
+                    _locationColumn = 1;
+                } else _locationColumn++;
             }
             line = _locationLine; column = _locationColumn;
         }
