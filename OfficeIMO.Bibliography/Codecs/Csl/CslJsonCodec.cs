@@ -294,7 +294,7 @@ internal static class CslJsonCodec {
 
     private static bool ShouldWriteTypedId(BibliographyItem item, CancellationToken cancellationToken) => !string.IsNullOrWhiteSpace(item.Key) || !HasNativeProperty(item, "id", cancellationToken);
     private static bool ShouldWriteTypedType(BibliographyItem item, CancellationToken cancellationToken) => item.Type != BibliographyItemType.Unknown || !string.IsNullOrWhiteSpace(item.NativeType) || !HasNativeProperty(item, "type", cancellationToken);
-    private static bool HasNativeProperty(BibliographyItem item, string property, CancellationToken cancellationToken) {
+    internal static bool HasNativeProperty(BibliographyItem item, string property, CancellationToken cancellationToken) {
         foreach (BibliographyNativeField field in item.NativeFields) {
             cancellationToken.ThrowIfCancellationRequested();
             if (field.Format == BibliographyFormat.CslJson && string.Equals(field.Name, property, StringComparison.Ordinal)) return true;
@@ -574,8 +574,9 @@ internal static class CslJsonCodec {
     }
 
     private static string GetBoundedRawValue(JsonElement value, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+        if (value.ValueKind == JsonValueKind.String) limits.CheckValueLength(items, value.GetString() ?? string.Empty, 0);
         string raw = value.GetRawText();
-        limits.CheckValueLength(items, raw, 0);
+        if (value.ValueKind != JsonValueKind.String) limits.CheckValueLength(items, raw, 0);
         return raw;
     }
 

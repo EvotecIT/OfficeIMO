@@ -99,7 +99,10 @@ internal static class TaggedCodec {
                 GetTrimmedRange(source, contentStart, lineEnd, out int continuationStart, out int continuationLength);
                 limits.AddValue(items, continuationLength, lineOffset);
                 string continuation = source.Substring(continuationStart, continuationLength);
-                if (previousNativeField != null) previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
+                if (previousNativeField != null) {
+                    previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
+                    if (format == BibliographyFormat.Nbib && string.Equals(previousTag, "PT", StringComparison.OrdinalIgnoreCase)) RebindNbibPublicationType(current);
+                }
                 else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
         }
@@ -232,6 +235,14 @@ internal static class TaggedCodec {
         item.NativeType = value;
     }
 
+    private static void RebindNbibPublicationType(BibliographyItem item) {
+        item.Type = BibliographyItemType.ArticleJournal;
+        item.NativeType = "Journal Article";
+        item.TaggedScalarBindings.Remove("Nbib:type");
+        foreach (BibliographyNativeField field in item.NativeFields.Where(static field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)))
+            BindNbibPublicationType(item, field.Value);
+    }
+
     private static void AddTaggedIdentifier(BibliographyItem item, string scheme, string value, string tag) {
         if (string.IsNullOrWhiteSpace(value)) return;
         var identifier = new BibliographyIdentifier(scheme, value);
@@ -334,7 +345,12 @@ internal static class TaggedCodec {
     }
 
     private static string Append(string? current, string value) => string.IsNullOrEmpty(current) ? value : current + " " + value;
-    private static string AppendChecked(string? current, string value, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) { string combined = Append(current, value); limits.CheckValueLength(items, combined, offset); return combined; }
+    private static string AppendChecked(string? current, string value, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
+        int currentLength = current?.Length ?? 0;
+        int separatorLength = string.IsNullOrEmpty(current) ? 0 : 1;
+        limits.CheckAdditionalValueLength(items, currentLength, checked(separatorLength + value.Length), offset);
+        return Append(current, value);
+    }
     private static void AppendLast(IList<string> values, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) { if (values.Count == 0) values.Add(continuation); else values[values.Count - 1] = AppendChecked(values[values.Count - 1], continuation, items, limits, offset); }
     private static void AppendContributor(BibliographyItem item, BibliographyContributorRole role, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
         BibliographyContributor? contributor = item.Contributors.LastOrDefault(value => value.Role == role);

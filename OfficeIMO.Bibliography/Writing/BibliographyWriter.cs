@@ -17,7 +17,7 @@ internal static class BibliographyWriter {
             return new BibliographyWriteResult(document.OriginalText, bytes, format, true, report);
         }
 
-        BibliographyConversionInspector.Inspect(document, format, report);
+        BibliographyConversionInspector.Inspect(document, format, report, cancellationToken);
         string content;
         switch (format) {
             case BibliographyFormat.BibTex:
@@ -69,34 +69,35 @@ internal static class BibliographyWriter {
 }
 
 internal static class BibliographyConversionInspector {
-    internal static void Inspect(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (BibliographyDiagnostic diagnostic in document.Diagnostics.Where(IsRecoveryLossDiagnostic)) {
+    internal static void Inspect(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        foreach (BibliographyDiagnostic diagnostic in Cancellable(document.Diagnostics, cancellationToken).Where(IsRecoveryLossDiagnostic)) {
             report.Add("BIBCONV222", BibliographyDiagnosticSeverity.Warning, $"Canonical output is based on partially recovered source after parser diagnostic {diagnostic.Code}; unrecovered source content may be omitted.", BibliographyConversionAction.Omitted, field: diagnostic.Field);
         }
-        InspectKeys(document, format, report);
-        InspectDocumentStructure(document, format, report);
-        foreach (BibliographyItem item in document.Items) {
-            InspectType(item, document.SourceFormat, format, report); InspectContributors(item, format, report); InspectDates(item, format, report); InspectNestedNativeFields(item, format, report); InspectProperties(item, format, report); InspectIdentifiers(item, format, report); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report); InspectNativeStructure(item, format, report);
+        InspectKeys(document, format, report, cancellationToken);
+        InspectDocumentStructure(document, format, report, cancellationToken);
+        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken)) {
+            InspectType(item, document.SourceFormat, format, report, cancellationToken); InspectContributors(item, format, report, cancellationToken); InspectDates(item, format, report, cancellationToken); InspectNestedNativeFields(item, format, report, cancellationToken); InspectProperties(item, format, report); InspectIdentifiers(item, format, report, cancellationToken); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report, cancellationToken); InspectNativeStructure(item, format, report, cancellationToken);
         }
     }
 
     private static bool IsRecoveryLossDiagnostic(BibliographyDiagnostic diagnostic) =>
         diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBCSL003";
 
-    private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (BibliographyItem item in document.Items.Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id"))))
+    private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
         StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        foreach (IGrouping<string, BibliographyItem> duplicate in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, keyComparer).Where(static group => group.Count() > 1)) {
-            foreach (BibliographyItem item in duplicate) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
+        foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(static item => item.Key, keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
+            foreach (BibliographyItem item in Cancellable(duplicate, cancellationToken)) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyItem item in document.Items.Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => !BibCodec.IsSafeKeyCharacter(character))))
+            foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => !BibCodec.IsSafeKeyCharacter(character))))
                 Loss(report, item, "key", "BIBCONV217", "The citation key contains characters that must be normalized for BibTeX output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Nbib) {
-            foreach (BibliographyItem item in document.Items) {
-                BibliographyIdentifier[] pmids = item.Identifiers.Where(static identifier => string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)).ToArray();
+            foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken)) {
+                BibliographyIdentifier[] pmids = Cancellable(item.Identifiers, cancellationToken).Where(static identifier => string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)).ToArray();
                 string? pmid = pmids.FirstOrDefault()?.Value;
                 if (string.IsNullOrWhiteSpace(pmid)) Loss(report, item, "identifiers.PMID", "BIBCONV223", "NBIB output uses the citation key as a PMID because the item has no PMID identifier.", BibliographyConversionAction.Approximated);
                 else if (!string.Equals(item.Key, pmid, StringComparison.Ordinal)) Loss(report, item, "key", "BIBCONV224", "NBIB represents PMID as its record identifier, so the distinct citation key is omitted.", BibliographyConversionAction.Omitted);
@@ -105,12 +106,12 @@ internal static class BibliographyConversionInspector {
         }
     }
 
-    private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report) {
+    private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         bool exact;
         bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
-                exact = sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type");
+                exact = sameFormatNativeType || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
                 break;
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 bool hasNativeBibType = (sourceFormat == BibliographyFormat.BibTex || sourceFormat == BibliographyFormat.BibLatex) && !string.IsNullOrWhiteSpace(item.NativeType);
@@ -124,7 +125,7 @@ internal static class BibliographyConversionInspector {
                     : TaggedCodec.CanRoundTripRisType(item.Type);
                 break;
             case BibliographyFormat.Nbib:
-                exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && item.NativeFields.Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
+                exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
                 exact = (item.Type == BibliographyItemType.ArticleJournal || item.Type == BibliographyItemType.Book || item.Type == BibliographyItemType.Chapter || item.Type == BibliographyItemType.PaperConference || item.Type == BibliographyItemType.Report || item.Type == BibliographyItemType.Thesis || item.Type == BibliographyItemType.WebPage || item.Type == BibliographyItemType.Patent || item.Type == BibliographyItemType.Document) &&
@@ -146,8 +147,8 @@ internal static class BibliographyConversionInspector {
         }
     }
 
-    private static void InspectContributors(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (BibliographyContributorRole role in item.Contributors.Select(static value => value.Role).Distinct()) {
+    private static void InspectContributors(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyContributorRole role in Cancellable(item.Contributors, cancellationToken).Select(static value => value.Role).Distinct()) {
             bool exact;
             switch (format) {
                 case BibliographyFormat.BibTex: exact = role == BibliographyContributorRole.Author || role == BibliographyContributorRole.Editor; break;
@@ -161,42 +162,42 @@ internal static class BibliographyConversionInspector {
             if (!exact) Loss(report, item, "contributors." + role, "BIBCONV201", $"Contributor role '{role}' is not represented exactly in {format}.", format == BibliographyFormat.EndNoteXml ? BibliographyConversionAction.Approximated : BibliographyConversionAction.Omitted);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
                 Loss(report, item, "contributors", "BIBCONV226", "A structured contributor name cannot be reopened exactly through BibTeX name syntax.", BibliographyConversionAction.Approximated);
         } else if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) {
-            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
                 Loss(report, item, "contributors", "BIBCONV229", $"Structured contributor particles are flattened in {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
-            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal) && (!string.IsNullOrWhiteSpace(contributor.Name.Given) || !string.IsNullOrWhiteSpace(contributor.Name.Family) || !string.IsNullOrWhiteSpace(contributor.Name.Suffix))))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal) && (!string.IsNullOrWhiteSpace(contributor.Name.Given) || !string.IsNullOrWhiteSpace(contributor.Name.Family) || !string.IsNullOrWhiteSpace(contributor.Name.Suffix))))
                 Loss(report, item, "contributors", "BIBCONV231", $"A literal contributor also has personal-name components that are omitted in {format} output.", BibliographyConversionAction.Omitted);
-            foreach (BibliographyContributor contributor in item.Contributors.Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => ContainsComma(contributor.Name.Given) || ContainsComma(contributor.Name.Family) || ContainsComma(contributor.Name.Suffix)))
                 Loss(report, item, "contributors", "BIBCONV236", $"A structured contributor name contains a comma that is indistinguishable from {format} name-component separators.", BibliographyConversionAction.Approximated);
         }
-        if (ReordersContributors(item, format))
+        if (ReordersContributors(item, format, cancellationToken))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
     }
 
-    private static bool ReordersContributors(BibliographyItem item, BibliographyFormat format) {
+    private static bool ReordersContributors(BibliographyItem item, BibliographyFormat format, CancellationToken cancellationToken) {
         BibliographyContributor[] source;
         BibliographyContributor[] output;
         switch (format) {
             case BibliographyFormat.BibTex: case BibliographyFormat.BibLatex:
                 BibliographyContributorRole[] bibRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator };
-                source = item.Contributors.Where(contributor => bibRoles.Contains(contributor.Role)).ToArray();
-                output = bibRoles.SelectMany(role => source.Where(contributor => contributor.Role == role)).ToArray();
+                source = Cancellable(item.Contributors, cancellationToken).Where(contributor => bibRoles.Contains(contributor.Role)).ToArray();
+                output = bibRoles.SelectMany(role => Cancellable(source, cancellationToken).Where(contributor => contributor.Role == role)).ToArray();
                 break;
             case BibliographyFormat.CslJson:
                 BibliographyContributorRole[] cslRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.Translator, BibliographyContributorRole.Recipient, BibliographyContributorRole.Interviewer, BibliographyContributorRole.Composer, BibliographyContributorRole.CollectionEditor };
-                source = item.Contributors.Where(contributor => cslRoles.Contains(contributor.Role)).ToArray();
-                output = cslRoles.SelectMany(role => source.Where(contributor => contributor.Role == role)).ToArray();
+                source = Cancellable(item.Contributors, cancellationToken).Where(contributor => cslRoles.Contains(contributor.Role)).ToArray();
+                output = cslRoles.SelectMany(role => Cancellable(source, cancellationToken).Where(contributor => contributor.Role == role)).ToArray();
                 break;
             case BibliographyFormat.EndNoteXml:
                 BibliographyContributorRole[] endNoteRoles = { BibliographyContributorRole.Author, BibliographyContributorRole.Editor, BibliographyContributorRole.CollectionEditor, BibliographyContributorRole.Translator };
-                source = item.Contributors.Where(contributor => endNoteRoles.Contains(contributor.Role)).ToArray();
-                output = source.GroupBy(static contributor => contributor.Role).SelectMany(static group => group).ToArray();
+                source = Cancellable(item.Contributors, cancellationToken).Where(contributor => endNoteRoles.Contains(contributor.Role)).ToArray();
+                output = Cancellable(source, cancellationToken).GroupBy(static contributor => contributor.Role).SelectMany(group => Cancellable(group, cancellationToken)).ToArray();
                 break;
             case BibliographyFormat.Nbib:
-                source = item.Contributors.Where(static contributor => contributor.Role == BibliographyContributorRole.Author).ToArray();
-                output = source.Where(static contributor => string.IsNullOrWhiteSpace(contributor.Name.Literal)).Concat(source.Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal))).ToArray();
+                source = Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author).ToArray();
+                output = Cancellable(source, cancellationToken).Where(static contributor => string.IsNullOrWhiteSpace(contributor.Name.Literal)).Concat(Cancellable(source, cancellationToken).Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.Literal))).ToArray();
                 break;
             default:
                 return false;
@@ -206,23 +207,23 @@ internal static class BibliographyConversionInspector {
 
     private static bool ContainsComma(string? value) => value?.IndexOf(',') >= 0;
 
-    private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report) {
-        if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document))
+    private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
             report.Add("BIBCONV238", BibliographyDiagnosticSeverity.Warning, "Separate EndNote XML records-container metadata is coalesced into one canonical records container.", BibliographyConversionAction.Approximated, field: "records");
     }
 
-    private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (BibliographyDateRole role in item.Dates.Select(static value => value.Role).Distinct()) {
+    private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (BibliographyDateRole role in Cancellable(item.Dates, cancellationToken).Select(static value => value.Role).Distinct()) {
             bool exact = format == BibliographyFormat.CslJson ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed || role == BibliographyDateRole.Submitted || role == BibliographyDateRole.Original || role == BibliographyDateRole.Event
                 : (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris) ? role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed
                 : format == BibliographyFormat.BibTex ? role == BibliographyDateRole.Issued
                 : role == BibliographyDateRole.Issued;
             if (!exact) Loss(report, item, "dates." + role, "BIBCONV202", $"Date role '{role}' is not represented in {format}.", BibliographyConversionAction.Omitted);
-            if (item.Dates.Count(date => date.Role == role) > 1) Loss(report, item, "dates." + role, "BIBCONV205", $"Multiple '{role}' dates collapse to the first value in {format}.", BibliographyConversionAction.Approximated);
+            if (Cancellable(item.Dates, cancellationToken).Count(date => date.Role == role) > 1) Loss(report, item, "dates." + role, "BIBCONV205", $"Multiple '{role}' dates collapse to the first value in {format}.", BibliographyConversionAction.Approximated);
         }
         BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued);
         if (format == BibliographyFormat.BibTex && issued?.Day != null) Loss(report, item, "dates.Issued.day", "BIBCONV212", "Classic BibTeX output omits issued-day precision.", BibliographyConversionAction.Omitted);
-        foreach (BibliographyDate date in item.Dates) {
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) {
             if (!IsValidDate(date.Year, date.Month, date.Day) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue)
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && format != BibliographyFormat.CslJson && format != BibliographyFormat.BibLatex && format != BibliographyFormat.EndNoteXml)
@@ -251,29 +252,29 @@ internal static class BibliographyConversionInspector {
         void Check(string? value, string field) { if (!string.IsNullOrWhiteSpace(value)) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
     }
 
-    private static void InspectNestedNativeFields(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
+    private static void InspectNestedNativeFields(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.CslJson) return;
-        foreach (BibliographyContributor contributor in item.Contributors) foreach (BibliographyNativeField field in contributor.Name.NativeFields) Loss(report, item, "contributors." + field.Name, "BIBCONV213", $"Native name property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
-        foreach (BibliographyDate date in item.Dates) foreach (BibliographyNativeField field in date.NativeFields) Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
+        foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(contributor.Name.NativeFields, cancellationToken)) Loss(report, item, "contributors." + field.Name, "BIBCONV213", $"Native name property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) Loss(report, item, "dates." + field.Name, "BIBCONV214", $"Native date property '{field.Name}' cannot be represented in {format}.", BibliographyConversionAction.Omitted);
     }
 
-    private static void InspectIdentifiers(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
+    private static void InspectIdentifiers(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.CslJson) {
-            foreach (IGrouping<string, BibliographyIdentifier> group in item.Identifiers.GroupBy(static identifier => identifier.Scheme, StringComparer.OrdinalIgnoreCase)) {
+            foreach (IGrouping<string, BibliographyIdentifier> group in Cancellable(item.Identifiers, cancellationToken).GroupBy(static identifier => identifier.Scheme, StringComparer.OrdinalIgnoreCase)) {
                 if (!CodecMappings.IsCslIdentifierScheme(group.Key)) Loss(report, item, "identifiers." + group.Key, "BIBCONV225", $"Identifier scheme '{group.Key}' is not represented by the typed CSL JSON model.", BibliographyConversionAction.Omitted);
                 else if (group.Count() > 1) Loss(report, item, "identifiers." + group.Key, "BIBCONV206", $"Multiple '{group.Key}' identifiers collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
             }
         }
         if (format == BibliographyFormat.Ris) {
-            foreach (BibliographyIdentifier identifier in item.Identifiers.Where(static identifier => !TaggedCodec.CanRoundTripRisIdentifier(identifier)))
+            foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken).Where(static identifier => !TaggedCodec.CanRoundTripRisIdentifier(identifier)))
                 Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV228", $"Identifier scheme '{identifier.Scheme}' cannot be represented unambiguously in RIS AN output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Nbib) {
-            foreach (BibliographyIdentifier identifier in item.Identifiers.Where(static identifier => !TaggedCodec.CanRoundTripNbibIdentifier(identifier)))
+            foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken).Where(static identifier => !TaggedCodec.CanRoundTripNbibIdentifier(identifier)))
                 Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV232", $"Identifier scheme '{identifier.Scheme}' cannot be represented unambiguously in NBIB output.", BibliographyConversionAction.Omitted);
         }
         if (format != BibliographyFormat.EndNoteXml) return;
-        foreach (BibliographyIdentifier identifier in item.Identifiers) {
+        foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) {
             if (!string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase))
                 Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV204", $"Identifier scheme '{identifier.Scheme}' is not represented in EndNote XML.", BibliographyConversionAction.Omitted);
         }
@@ -284,8 +285,8 @@ internal static class BibliographyConversionInspector {
         if (item.Keywords.Count > 1 && format == BibliographyFormat.CslJson) Loss(report, item, "keywords", "BIBCONV208", $"Multiple keywords collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
     }
 
-    private static void InspectTextEncoding(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
-        foreach (KeyValuePair<string, string> text in EnumerateText(item)) {
+    private static void InspectTextEncoding(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        foreach (KeyValuePair<string, string> text in EnumerateText(item, cancellationToken)) {
             if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && (text.Value.IndexOf('\r') >= 0 || text.Value.IndexOf('\n') >= 0))
                 Loss(report, item, text.Key, "BIBCONV209", $"Line breaks in '{text.Key}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
             if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && text.Value.Length > 0 && char.IsWhiteSpace(text.Value[0]))
@@ -298,36 +299,36 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, text.Key, "BIBCONV211", $"Unbalanced braces in '{text.Key}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) {
-            foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && (field.Value.IndexOf('\r') >= 0 || field.Value.IndexOf('\n') >= 0)))
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == format && (field.Value.IndexOf('\r') >= 0 || field.Value.IndexOf('\n') >= 0)))
                 Loss(report, item, "native." + field.Name, "BIBCONV209", $"Line breaks in native field '{field.Name}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
-            foreach (BibliographyNativeField field in item.NativeFields.Where(field => field.Format == format && field.Value.Length > 0 && char.IsWhiteSpace(field.Value[0])))
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == format && field.Value.Length > 0 && char.IsWhiteSpace(field.Value[0])))
                 Loss(report, item, "native." + field.Name, "BIBCONV239", $"Leading whitespace in native field '{field.Name}' is normalized by {format} tagged-value parsing.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.EndNoteXml) {
-            foreach (BibliographyNativeField field in item.NativeFields.Where(static field => field.Format == BibliographyFormat.EndNoteXml && field.Value.IndexOf('\r') >= 0))
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(static field => field.Format == BibliographyFormat.EndNoteXml && field.Value.IndexOf('\r') >= 0))
                 Loss(report, item, "native." + field.Name, "BIBCONV235", $"Carriage returns in native field '{field.Name}' normalize to line feeds in EndNote XML.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyNativeField field in item.NativeFields.Where(static field => (field.Format == BibliographyFormat.BibTex || field.Format == BibliographyFormat.BibLatex) && !HasBalancedBraces(field.Value)))
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(static field => (field.Format == BibliographyFormat.BibTex || field.Format == BibliographyFormat.BibLatex) && !HasBalancedBraces(field.Value)))
                 Loss(report, item, "native." + field.Name, "BIBCONV233", $"Unbalanced braces in native field '{field.Name}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
         }
     }
 
-    private static void InspectNativeStructure(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
+    private static void InspectNativeStructure(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format != BibliographyFormat.EndNoteXml) return;
-        foreach (BibliographyNativeField field in item.NativeFields.Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
+        foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
             Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
     }
 
-    private static IEnumerable<KeyValuePair<string, string>> EnumerateText(BibliographyItem item) {
+    private static IEnumerable<KeyValuePair<string, string>> EnumerateText(BibliographyItem item, CancellationToken cancellationToken) {
         string?[] values = { item.Key, item.Title, item.ContainerTitle, item.CollectionTitle, item.Publisher, item.PublisherPlace, item.Edition, item.Volume, item.Issue, item.Pages, item.Abstract, item.Language, item.Url };
         string[] names = { "key", "title", "container-title", "collection-title", "publisher", "publisher-place", "edition", "volume", "issue", "pages", "abstract", "language", "URL" };
         for (int index = 0; index < values.Length; index++) if (!string.IsNullOrEmpty(values[index])) yield return new KeyValuePair<string, string>(names[index], values[index]!);
-        foreach (BibliographyContributor contributor in item.Contributors) foreach (string? value in new[] { contributor.Name.Given, contributor.Name.Family, contributor.Name.Literal, contributor.Name.Suffix, contributor.Name.DroppingParticle, contributor.Name.NonDroppingParticle }) if (!string.IsNullOrEmpty(value)) yield return new KeyValuePair<string, string>("contributors", value!);
-        foreach (BibliographyIdentifier identifier in item.Identifiers) yield return new KeyValuePair<string, string>("identifiers." + identifier.Scheme, identifier.Value);
-        foreach (BibliographyDate date in item.Dates) if (!string.IsNullOrEmpty(date.Literal)) yield return new KeyValuePair<string, string>("dates." + date.Role + ".literal", date.Literal!);
-        foreach (string value in item.Keywords) yield return new KeyValuePair<string, string>("keywords", value);
-        foreach (string value in item.Notes) yield return new KeyValuePair<string, string>("notes", value);
+        foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken)) foreach (string? value in new[] { contributor.Name.Given, contributor.Name.Family, contributor.Name.Literal, contributor.Name.Suffix, contributor.Name.DroppingParticle, contributor.Name.NonDroppingParticle }) if (!string.IsNullOrEmpty(value)) yield return new KeyValuePair<string, string>("contributors", value!);
+        foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) yield return new KeyValuePair<string, string>("identifiers." + identifier.Scheme, identifier.Value);
+        foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) if (!string.IsNullOrEmpty(date.Literal)) yield return new KeyValuePair<string, string>("dates." + date.Role + ".literal", date.Literal!);
+        foreach (string value in Cancellable(item.Keywords, cancellationToken)) yield return new KeyValuePair<string, string>("keywords", value);
+        foreach (string value in Cancellable(item.Notes, cancellationToken)) yield return new KeyValuePair<string, string>("notes", value);
     }
 
     private static bool HasBalancedBraces(string value) {
@@ -346,6 +347,15 @@ internal static class BibliographyConversionInspector {
             if (!System.Xml.XmlConvert.IsXmlChar(value[index])) return true;
         }
         return false;
+    }
+
+    private static IEnumerable<T> Cancellable<T>(IEnumerable<T> source, CancellationToken cancellationToken) {
+        int index = 0;
+        foreach (T value in source) {
+            if ((index++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            yield return value;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static void Loss(BibliographyConversionReport report, BibliographyItem item, string field, string code, string message, BibliographyConversionAction action) =>

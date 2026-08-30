@@ -46,13 +46,19 @@ public sealed class BibliographyReviewWave20RegressionTests {
         string prefix = continuation ? "TY  - JOUR\nTI  - x\n      " : "TY  - ";
         string source = prefix + new string('x', 8 * 1024 * 1024);
         var options = new BibliographyReadOptions { MaximumValueLength = 4 };
+#if NET472
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
+#else
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+#if !NET472
         Assert.True(allocated < 1024 * 1024, $"Oversized tagged input allocated {allocated:N0} bytes before rejection.");
+#endif
     }
 
     [Theory]

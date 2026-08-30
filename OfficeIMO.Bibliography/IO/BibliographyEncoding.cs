@@ -41,12 +41,29 @@ internal static class BibliographyEncoding {
         }
     }
 
-    internal static byte[] RemovePreamble(byte[] bytes, Encoding encoding) {
+    internal static string DecodeBounded(byte[] bytes, Encoding encoding, int maximumCharacters, CancellationToken cancellationToken) {
         byte[] preamble = encoding.GetPreamble();
-        if (preamble.Length == 0 || bytes.Length < preamble.Length) return bytes;
-        for (int index = 0; index < preamble.Length; index++) if (bytes[index] != preamble[index]) return bytes;
-        var result = new byte[bytes.Length - preamble.Length];
-        Buffer.BlockCopy(bytes, preamble.Length, result, 0, result.Length);
-        return result;
+        int offset = HasPreamble(bytes, preamble) ? preamble.Length : 0;
+        int end = bytes.Length;
+        var decoder = encoding.GetDecoder();
+        var characters = new char[4096];
+        var builder = new StringBuilder(Math.Min(maximumCharacters, Math.Min(end - offset, characters.Length)));
+        bool completed = false;
+        while (!completed) {
+            cancellationToken.ThrowIfCancellationRequested();
+            decoder.Convert(bytes, offset, end - offset, characters, 0, characters.Length, true, out int bytesUsed, out int charactersUsed, out completed);
+            if (charactersUsed > maximumCharacters - builder.Length)
+                throw new InvalidDataException($"Bibliography input exceeds the configured {maximumCharacters} character limit.");
+            builder.Append(characters, 0, charactersUsed);
+            offset += bytesUsed;
+            if (!completed && bytesUsed == 0 && charactersUsed == 0) throw new InvalidDataException("Bibliography input could not be decoded within the configured character limit.");
+        }
+        return builder.ToString();
+    }
+
+    private static bool HasPreamble(byte[] bytes, byte[] preamble) {
+        if (preamble.Length == 0 || bytes.Length < preamble.Length) return false;
+        for (int index = 0; index < preamble.Length; index++) if (bytes[index] != preamble[index]) return false;
+        return true;
     }
 }

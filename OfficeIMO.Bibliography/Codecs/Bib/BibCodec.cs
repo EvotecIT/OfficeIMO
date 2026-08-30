@@ -47,16 +47,20 @@ internal static class BibCodec {
             Add(fields, "abstract", item.Abstract);
             Add(fields, GetBibFieldName(item, "language", "language", format), item.Language);
             Add(fields, "url", item.Url);
-            BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued);
-            if (issued != null) {
-                if (format == BibliographyFormat.BibLatex) Add(fields, "date", CodecMappings.FormatDate(issued));
-                else {
+            if (format == BibliographyFormat.BibLatex) {
+                var emittedDateRoles = new HashSet<BibliographyDateRole>();
+                foreach (BibliographyDate date in item.Dates) {
+                    if (!emittedDateRoles.Add(date.Role)) continue;
+                    if (date.Role == BibliographyDateRole.Issued) Add(fields, "date", CodecMappings.FormatDate(date));
+                    else if (date.Role == BibliographyDateRole.Accessed) Add(fields, "urldate", CodecMappings.FormatDate(date));
+                }
+            } else {
+                BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued);
+                if (issued != null) {
                     Add(fields, "year", issued.Year?.ToString(CultureInfo.InvariantCulture) ?? issued.Literal);
                     Add(fields, "month", FormatClassicMonth(item, issued.Month));
                 }
             }
-            BibliographyDate? accessed = item.GetDate(BibliographyDateRole.Accessed);
-            if (format == BibliographyFormat.BibLatex && accessed != null) Add(fields, "urldate", CodecMappings.FormatDate(accessed));
             foreach (BibliographyIdentifier identifier in item.Identifiers) {
                 string fieldName = identifier.Scheme.ToLowerInvariant();
                 if (CodecMappings.IsBibIdentifierScheme(identifier.Scheme) && IsSafeFieldName(fieldName) && !ReservedTypedFieldNames.Contains(fieldName)) Add(fields, fieldName, identifier.Value);

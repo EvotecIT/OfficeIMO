@@ -17,7 +17,7 @@ public sealed partial class BibliographyDocument {
         options.Validate();
         byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken);
         Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
-        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
+        string text = BibliographyEncoding.DecodeBounded(bytes, actualEncoding, options.MaximumInputCharacters, cancellationToken);
         return BibliographyReader.Parse(text, format, options, bytes, cancellationToken);
     }
 
@@ -37,7 +37,7 @@ public sealed partial class BibliographyDocument {
         options.Validate();
         byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false);
         Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
-        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
+        string text = BibliographyEncoding.DecodeBounded(bytes, actualEncoding, options.MaximumInputCharacters, cancellationToken);
         return BibliographyReader.Parse(text, format, options, bytes, cancellationToken);
     }
 
@@ -104,14 +104,14 @@ public sealed partial class BibliographyDocument {
     private static BibliographyReadResult LoadDetected(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new BibliographyReadOptions(); options.Validate();
         byte[] bytes = ReadAllBytes(stream, options.MaximumInputBytes, cancellationToken); Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
-        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
+        string text = BibliographyEncoding.DecodeBounded(bytes, actualEncoding, options.MaximumInputCharacters, cancellationToken);
         return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options, cancellationToken), options, bytes, cancellationToken);
     }
 
     private static async Task<BibliographyReadResult> LoadDetectedAsync(Stream stream, BibliographyReadOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new BibliographyReadOptions(); options.Validate();
         byte[] bytes = await ReadAllBytesAsync(stream, options.MaximumInputBytes, cancellationToken).ConfigureAwait(false); Encoding actualEncoding = encoding ?? BibliographyEncoding.Detect(bytes);
-        string text = actualEncoding.GetString(BibliographyEncoding.RemovePreamble(bytes, actualEncoding));
+        string text = BibliographyEncoding.DecodeBounded(bytes, actualEncoding, options.MaximumInputCharacters, cancellationToken);
         return BibliographyReader.Parse(text, BibliographyFormatDetector.Detect(text, options, cancellationToken), options, bytes, cancellationToken);
     }
 
