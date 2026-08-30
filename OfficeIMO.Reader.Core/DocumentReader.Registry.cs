@@ -48,8 +48,10 @@ internal static partial class DocumentReaderEngine {
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (options.DetectionMode == ReaderDetectionMode.PreferContent) return options.MaxInputBytes;
-        long? configured = options.MaxInputBytes ?? ResolveHandlerDefaultMaxInputBytes(sourceName);
-        return CombineHandlerInputCeiling(sourceName, configured, requireStreamInput: false);
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            !handler.SupportsPathInput) return options.MaxInputBytes;
+        long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
+        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
     }
 
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
@@ -67,9 +69,7 @@ internal static partial class DocumentReaderEngine {
     private static long? CombineHandlerInputCeiling(string? sourceName, long? configured, bool requireStreamInput) {
         if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
             (!requireStreamInput || handler.SupportsStreamInput) && handler.MaxInputBytesCeiling.HasValue) {
-            return configured.HasValue
-                ? Math.Min(configured.Value, handler.MaxInputBytesCeiling.Value)
-                : handler.MaxInputBytesCeiling;
+            return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
         }
         return configured;
     }
@@ -91,11 +91,13 @@ internal static partial class DocumentReaderEngine {
         string? sourceName,
         ReaderOptions options) {
         long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
-        if (!handler.MaxInputBytesCeiling.HasValue) return configured;
-        return configured.HasValue
-            ? Math.Min(configured.Value, handler.MaxInputBytesCeiling.Value)
-            : handler.MaxInputBytesCeiling;
+        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
     }
+
+    private static long? CombineMaxInputBytes(long? configured, long? ceiling) =>
+        configured.HasValue && ceiling.HasValue
+            ? Math.Min(configured.Value, ceiling.Value)
+            : configured ?? ceiling;
 
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         return TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)

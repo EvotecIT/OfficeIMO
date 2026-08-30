@@ -26,14 +26,26 @@ internal abstract class LegacyWordAdapterBase : ILegacyWordAdapter {
 
     protected static void AddParagraphs(LegacyWordModel model, string text, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
         int inspectedRecords = 0;
-        foreach (string raw in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
+        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        for (int lineStart = 0; lineStart <= normalized.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             if (++inspectedRecords > limits.MaxRecords) throw new InvalidDataException("Legacy word content exceeds the configured record limit.");
             if (model.Paragraphs.Count >= limits.MaxItems) throw new InvalidDataException("Legacy word content exceeds the configured item limit.");
-            string line = raw.TrimEnd();
-            if (line.Length == 0 && (model.Paragraphs.Count == 0 || model.Paragraphs[model.Paragraphs.Count - 1].Text.Length == 0)) continue;
-            bool list = line.StartsWith("- ", StringComparison.Ordinal) || line.StartsWith("* ", StringComparison.Ordinal);
-            model.Paragraphs.Add(new LegacyWordParagraph(list ? line.Substring(2) : line, list));
+            int lineEnd = normalized.IndexOf('\n', lineStart);
+            if (lineEnd < 0) lineEnd = normalized.Length;
+            int trimmedEnd = lineEnd;
+            while (trimmedEnd > lineStart && char.IsWhiteSpace(normalized[trimmedEnd - 1])) trimmedEnd--;
+            int lineLength = trimmedEnd - lineStart;
+            if (lineLength > 0 || (model.Paragraphs.Count > 0 && model.Paragraphs[model.Paragraphs.Count - 1].Text.Length > 0)) {
+                bool list = lineLength >= 2 &&
+                    (normalized[lineStart] == '-' || normalized[lineStart] == '*') &&
+                    normalized[lineStart + 1] == ' ';
+                int contentStart = list ? lineStart + 2 : lineStart;
+                string line = normalized.Substring(contentStart, trimmedEnd - contentStart);
+                model.Paragraphs.Add(new LegacyWordParagraph(line, list));
+            }
+            if (lineEnd == normalized.Length) break;
+            lineStart = lineEnd + 1;
         }
         while (model.Paragraphs.Count > 0 && model.Paragraphs[model.Paragraphs.Count - 1].Text.Length == 0) {
             model.Paragraphs.RemoveAt(model.Paragraphs.Count - 1);

@@ -25,6 +25,12 @@ new OfficeDocumentReaderBuilder()
 
 Either flag can be disabled independently. Both default to `true`.
 
+## OfficeIMO 3.2: Reader capability schema 5
+
+Reader capability descriptors and manifests now advertise `officeimo.reader.capability` schema version `5`. The new optional `defaultMaxInputBytesByExtension` map lets one handler publish different default input limits for the extensions it owns; the existing handler-wide `defaultMaxInputBytes` remains the fallback.
+
+Hosts that require an exact capability schema version must accept version `5` before upgrading OfficeIMO. Update generated clients or manifest validators to read `defaultMaxInputBytesByExtension` as a string-to-integer map, continue using `defaultMaxInputBytes` when the map is absent or has no entry for the selected extension, and tolerate the new field when it is not needed. A host pinned to schema version `4` will reject manifests produced by the upgraded Reader until that gate is updated.
+
 ## OfficeIMO 3.2: bounded email body resource projections
 
 `EmailBodyProjection.Create(...)` now indexes at most 128 resources, accepts at most 128 MiB from one resource, and reads or declares at most 256 MiB across one projection by default. Older versions had no resource-count or projection-wide byte ceiling. Exceeding a ceiling throws `EmailLimitExceededException`; repeated and parallel reads share the same projection-wide budget.

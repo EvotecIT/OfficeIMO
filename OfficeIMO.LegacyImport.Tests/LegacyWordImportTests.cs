@@ -462,6 +462,22 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProInlineFontFieldsAreParsedWithBoundedCardinality() {
+        string source = "[ver]\n4\n[edoc]\n<:f" + new string(',', 100_000) + ">Visible\n";
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes(source),
+            new LegacyWordImportOptions {
+                SourceName = "archive.sam",
+                RequireStructured = true,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 200_000 }
+            });
+
+        Assert.Equal("Visible", imported.PlainText);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "AMIPRO_INLINE_TAG_MALFORMED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
     public void AmiProPreservesHalfPointStyleAndInlineFontSizes() {
         string styledSource = Encoding.ASCII.GetString(LegacyFixtureFactory.AmiPro())
             .Replace("[fnt]\nArial\n240\n", "[fnt]\nArial\n210\n", StringComparison.Ordinal);

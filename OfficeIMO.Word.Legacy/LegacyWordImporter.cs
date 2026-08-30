@@ -185,20 +185,25 @@ public static class LegacyWordImporter {
         WordDocument document,
         CancellationToken cancellationToken) {
         string normalized = sourceRun.Text.Replace("\r\n", "\n").Replace('\r', '\n');
-        string[] segments = normalized.Split('\n');
-        for (int index = 0; index < segments.Length; index++) {
+        for (int segmentStart = 0; segmentStart <= normalized.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (index > 0) paragraph.AddBreak();
-            if (segments[index].Length == 0 && normalized.Length > 0) continue;
-
-            WordParagraph run = paragraph.AddFormattedText(
-                segments[index], sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
-            if (sourceRun.Strike) run.SetStrike();
-            if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
-            if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
-            if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
-            if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
-            ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);
+            int segmentEnd = normalized.IndexOf('\n', segmentStart);
+            if (segmentEnd < 0) segmentEnd = normalized.Length;
+            if (segmentStart > 0) paragraph.AddBreak();
+            int segmentLength = segmentEnd - segmentStart;
+            if (segmentLength > 0 || normalized.Length == 0) {
+                WordParagraph run = paragraph.AddFormattedText(
+                    normalized.Substring(segmentStart, segmentLength),
+                    sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
+                if (sourceRun.Strike) run.SetStrike();
+                if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
+                if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
+                if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
+                if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
+                ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);
+            }
+            if (segmentEnd == normalized.Length) break;
+            segmentStart = segmentEnd + 1;
         }
     }
 

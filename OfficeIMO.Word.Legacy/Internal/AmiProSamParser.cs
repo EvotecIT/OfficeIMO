@@ -351,14 +351,27 @@ internal sealed class AmiProSamParser {
     }
 
     private bool ParseFont(string value, AmiRunState state) {
-        string[] parts = value.Split(',');
-        if (parts.Length != 5 || !int.TryParse(parts[0], out int size) || size <= 0) return false;
+        if (!TrySplitFontFields(value, out string[] parts) || !int.TryParse(parts[0], out int size) || size <= 0) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
         if (!byte.TryParse(parts[2], out byte red) || !byte.TryParse(parts[3], out byte green) || !byte.TryParse(parts[4], out byte blue)) return false;
         ConsumeText(family.Length, "inline font family");
         state.FontSizePoints = size / 20d;
         state.FontFamily = family;
         state.ColorHex = $"{red:X2}{green:X2}{blue:X2}";
+        return true;
+    }
+
+    private static bool TrySplitFontFields(string value, out string[] parts) {
+        parts = new string[5];
+        int fieldStart = 0;
+        for (int index = 0; index < parts.Length - 1; index++) {
+            int separator = value.IndexOf(',', fieldStart);
+            if (separator < 0) return false;
+            parts[index] = value.Substring(fieldStart, separator - fieldStart);
+            fieldStart = separator + 1;
+        }
+        if (value.IndexOf(',', fieldStart) >= 0) return false;
+        parts[parts.Length - 1] = value.Substring(fieldStart);
         return true;
     }
 

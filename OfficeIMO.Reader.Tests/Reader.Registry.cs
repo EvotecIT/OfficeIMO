@@ -433,4 +433,44 @@ public sealed partial class ReaderRegistryTests {
 
         Assert.Equal(0, dispatchCount);
     }
+
+    [Fact]
+    public async Task PathDispatchIgnoresLimitsFromStreamOnlyExtensionOwners() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.stream-only-extension-owner",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".wrong" },
+                DefaultMaxInputBytes = 8,
+                MaxInputBytesCeiling = 8,
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>()
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.path-kind-fallback",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".pathpdf" },
+                DefaultMaxInputBytes = 1_024,
+                MaxInputBytesCeiling = 1_024,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.ContentWhenUnknown };
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Empty(reader.Read(path, options));
+            _ = reader.ReadDocument(path, options);
+            Assert.Empty(await reader.ReadAsync(path, options));
+            _ = await reader.ReadDocumentAsync(path, options);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        Assert.Equal(4, dispatchCount);
+    }
 }

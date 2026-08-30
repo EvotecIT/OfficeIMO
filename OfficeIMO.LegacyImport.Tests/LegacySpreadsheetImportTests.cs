@@ -521,6 +521,29 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void SalvageRowsEnforceCellAndColumnLimitsWhileScanningFields() {
+        byte[] tooManyColumns = new byte[] { 0x08, 0xE7 }
+            .Concat(Encoding.ASCII.GetBytes(new string('\t', 16_384)))
+            .ToArray();
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            tooManyColumns,
+            new LegacySpreadsheetImportOptions {
+                FormatHint = LegacySpreadsheetFormat.Multiplan,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 20_000 }
+            }));
+
+        byte[] tooManyCells = new byte[] { 0x08, 0xE7 }
+            .Concat(Encoding.ASCII.GetBytes(new string('\t', 10_000)))
+            .ToArray();
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            tooManyCells,
+            new LegacySpreadsheetImportOptions {
+                FormatHint = LegacySpreadsheetFormat.Multiplan,
+                Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 20_000, MaxItems = 2 }
+            }));
+    }
+
+    [Fact]
     public void WeakExtensionsAndUninspectableCompoundSecurityDoNotPassSilently() {
         Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
             Encoding.ASCII.GetBytes("renamed,plain,text"),

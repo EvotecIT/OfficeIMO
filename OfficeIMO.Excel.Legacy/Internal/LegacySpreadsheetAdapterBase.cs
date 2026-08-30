@@ -40,25 +40,20 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
         int row = 1;
         int inspectedRecords = 0;
         int truncatedCellCount = 0;
-        foreach (string line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
+        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        for (int lineStart = 0; lineStart <= normalized.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
             if (++inspectedRecords > limits.MaxRecords) throw new InvalidDataException("Legacy spreadsheet exceeds the configured record limit.");
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            if (row > 1048576) throw new InvalidDataException("Legacy spreadsheet row is outside the supported workbook model.");
-            char separator = line.IndexOf('\t') >= 0 ? '\t' : line.IndexOf(',') >= 0 ? ',' : '\0';
-            string[] fields = separator == '\0' ? new[] { line } : line.Split(separator);
-            for (int column = 0; column < fields.Length; column++) {
-                if (column >= 16384) throw new InvalidDataException("Legacy spreadsheet column is outside the supported workbook model.");
-                if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
-                string value = fields[column];
-                if (value.Length > ExcelCellTextLimit) {
-                    value = value.Substring(0, ExcelCellTextLimit);
-                    truncatedCellCount++;
-                }
-                sheet.Cells.Add(new LegacySpreadsheetCell(row, column + 1, value));
-                model.RecoveredCellCount++;
+            int lineEnd = normalized.IndexOf('\n', lineStart);
+            if (lineEnd < 0) lineEnd = normalized.Length;
+            int lineLength = lineEnd - lineStart;
+            if (!IsWhiteSpace(normalized, lineStart, lineLength)) {
+                if (row > 1048576) throw new InvalidDataException("Legacy spreadsheet row is outside the supported workbook model.");
+                AddSalvageRow(normalized, lineStart, lineLength, row, sheet, model, limits, ref truncatedCellCount);
+                row++;
             }
-            row++;
+            if (lineEnd == normalized.Length) break;
+            lineStart = lineEnd + 1;
         }
         if (truncatedCellCount > 0) {
             model.Metadata["TruncatedSalvageCellCount"] = truncatedCellCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -66,6 +61,46 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
         }
         model.Findings.Add(Loss("LEGACY_SHEET_SALVAGE", "Structure", limitation));
         return model;
+    }
+
+    private static void AddSalvageRow(
+        string text,
+        int lineStart,
+        int lineLength,
+        int row,
+        LegacySpreadsheetSheet sheet,
+        LegacySpreadsheetModel model,
+        OfficeLegacyImportLimits limits,
+        ref int truncatedCellCount) {
+        int lineEnd = lineStart + lineLength;
+        int tab = text.IndexOf('\t', lineStart, lineLength);
+        int comma = tab < 0 ? text.IndexOf(',', lineStart, lineLength) : -1;
+        char separator = tab >= 0 ? '\t' : comma >= 0 ? ',' : '\0';
+        int fieldStart = lineStart;
+        for (int column = 1; ; column++) {
+            if (column > 16384) throw new InvalidDataException("Legacy spreadsheet column is outside the supported workbook model.");
+            if (model.RecoveredCellCount >= limits.MaxItems) throw new InvalidDataException("Legacy spreadsheet exceeds the configured cell limit.");
+
+            int separatorIndex = separator == '\0' ? -1 : text.IndexOf(separator, fieldStart, lineEnd - fieldStart);
+            int fieldEnd = separatorIndex < 0 ? lineEnd : separatorIndex;
+            int fieldLength = fieldEnd - fieldStart;
+            int retainedLength = Math.Min(fieldLength, ExcelCellTextLimit);
+            string value = text.Substring(fieldStart, retainedLength);
+            if (fieldLength > retainedLength) truncatedCellCount++;
+            sheet.Cells.Add(new LegacySpreadsheetCell(row, column, value));
+            model.RecoveredCellCount++;
+
+            if (separatorIndex < 0) break;
+            fieldStart = separatorIndex + 1;
+        }
+    }
+
+    private static bool IsWhiteSpace(string text, int start, int length) {
+        int end = start + length;
+        for (int index = start; index < end; index++) {
+            if (!char.IsWhiteSpace(text[index])) return false;
+        }
+        return true;
     }
 
     protected static void AddCellTextTruncationFinding(LegacySpreadsheetModel model) =>
