@@ -249,8 +249,8 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.Nbib) {
             Check(item.Publisher, "publisher"); Check(item.PublisherPlace, "publisher-place"); Check(item.Edition, "edition"); Check(item.Url, "URL"); Check(item.CollectionTitle, "collection-title");
         } else if (format == BibliographyFormat.Ris) Check(item.CollectionTitle, "collection-title");
-        else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0)
-            Loss(report, item, "URL", "BIBCONV237", "An empty EndNote URL is reopened as a missing URL.", BibliographyConversionAction.Approximated);
+        else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0 && item.NativeFields.Any(static field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)))
+            Loss(report, item, "URL", "BIBCONV237", "An empty primary EndNote URL with additional URL roles reopens as a missing primary URL.", BibliographyConversionAction.Approximated);
         void Check(string? value, string field) { if (!string.IsNullOrWhiteSpace(value)) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
     }
 

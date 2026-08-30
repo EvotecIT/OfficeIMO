@@ -93,6 +93,7 @@ internal static class CodecMappings {
     internal static BibliographyName ParseCommaName(string value) {
         string trimmed = value.Trim();
         if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
+        if (trimmed.EndsWith(",,", StringComparison.Ordinal)) return new BibliographyName { Family = trimmed.Substring(0, trimmed.Length - 2).Trim() };
         if (trimmed.EndsWith(",", StringComparison.Ordinal)) return new BibliographyName { Literal = trimmed.Substring(0, trimmed.Length - 1) };
         string[] parts = value.Split(new[] { ',' }, 3);
         if (parts.Length == 1) {
@@ -108,6 +109,7 @@ internal static class CodecMappings {
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         if (!string.IsNullOrWhiteSpace(name.Suffix)) return family + ", " + given + ", " + name.Suffix;
+        if (string.IsNullOrWhiteSpace(given) && family.Any(char.IsWhiteSpace)) return family + ",,";
         return !string.IsNullOrWhiteSpace(given) ? family + ", " + given : family;
     }
 

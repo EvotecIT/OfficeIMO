@@ -188,8 +188,13 @@ internal static class TaggedCodec {
             case "AB": case "N2": SetScalar(item, BibliographyFormat.Ris, "abstract", field, value, assigned => item.Abstract = assigned); break;
             case "LA": SetScalar(item, BibliographyFormat.Ris, "language", field, value, assigned => item.Language = assigned); break;
             case "UR": case "L1": SetScalar(item, BibliographyFormat.Ris, "url", field, value, assigned => item.Url = assigned); break;
-            case "DO": CodecMappings.AddIdentifier(item, "DOI", value); break; case "SN": CodecMappings.AddIdentifier(item, CodecMappings.InferSerialScheme(value), value); break;
-            case "AN": if (string.IsNullOrWhiteSpace(item.Key)) { item.Key = value; item.TaggedScalarBindings.Add("Ris:key-from-accession"); } ParseRisAccession(item, value); break;
+            case "DO": AddRisIdentifier(item, field, "DOI", value); break;
+            case "SN": AddRisIdentifier(item, field, CodecMappings.InferSerialScheme(value), value); break;
+            case "AN":
+                if (string.IsNullOrWhiteSpace(item.Key)) { item.Key = value; item.TaggedScalarBindings.Add("Ris:key-from-accession"); }
+                if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value));
+                else ParseRisAccession(item, value);
+                break;
             case "KW": item.Keywords.Add(value); break; case "N1": item.Notes.Add(value); break;
             default: item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, field, value)); break;
         }
@@ -256,6 +261,11 @@ internal static class TaggedCodec {
         int separator = value.IndexOf(':');
         if (separator > 0 && separator + 1 < value.Length) CodecMappings.AddIdentifier(item, value.Substring(0, separator), value.Substring(separator + 1));
         else CodecMappings.AddIdentifier(item, "accession", value);
+    }
+
+    private static void AddRisIdentifier(BibliographyItem item, string tag, string scheme, string value) {
+        if (string.IsNullOrWhiteSpace(value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Ris, tag, value));
+        else CodecMappings.AddIdentifier(item, scheme, value);
     }
 
     private static void SetScalar(BibliographyItem item, BibliographyFormat format, string semanticName, string sourceTag, string value, Action<string> write) {
@@ -423,7 +433,7 @@ internal static class TaggedCodec {
             var replacements = new Dictionary<BibliographyContributor, BibliographyContributor>();
             foreach (BibliographyContributor compact in compactAuthors) {
                 cancellationToken.ThrowIfCancellationRequested();
-                string key = NormalizeCompactName(CompactName(compact.Name), cancellationToken);
+                string key = NormalizeCompactName(ParsedNbibCompactName(compact.Name), cancellationToken);
                 if (!fullAuthorsByCompactName.TryGetValue(key, out Queue<BibliographyContributor>? matches) || matches.Count == 0) continue;
                 BibliographyContributor full = matches.Dequeue();
                 if (contributorIndexes[compact] < contributorIndexes[full]) {
@@ -449,10 +459,14 @@ internal static class TaggedCodec {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (char.IsLetterOrDigit(value[index])) builder.Append(value[index]);
+            if (!char.IsLetterOrDigit(value, index)) continue;
+            builder.Append(value[index]);
+            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) builder.Append(value[++index]);
         }
         return builder.ToString();
     }
+    private static string ParsedNbibCompactName(BibliographyName name) =>
+        string.IsNullOrWhiteSpace(name.Literal) ? ((name.Family ?? string.Empty) + " " + (name.Given ?? string.Empty)).Trim() : name.Literal!;
     private static void WriteTag(StringBuilder builder, string tag, string? value, string lineEnding) { if (value == null) return; string prefix = tag.PadRight(4) + "- "; string[] lines = value.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'); builder.Append(prefix).Append(lines[0]).Append(lineEnding); for (int index = 1; index < lines.Length; index++) builder.Append("      ").Append(lines[index]).Append(lineEnding); }
     private static void WriteRisPages(StringBuilder builder, BibliographyItem item, string lineEnding) {
         GetRisPageOutput(item, out bool writeStart, out string? start, out bool writeEnd, out string? end);
@@ -537,7 +551,7 @@ internal static class TaggedCodec {
     private static void WriteNbibIdentifier(StringBuilder builder, BibliographyItem item, BibliographyIdentifier identifier, string lineEnding) {
         if (string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) return;
         if (string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) WriteTag(builder, "IS", identifier.Value, lineEnding);
-        else if (CanRoundTripNbibIdentifier(identifier)) WriteTag(builder, NbibIdentifierTag(item, identifier), identifier.Value + " [" + identifier.Scheme.ToLowerInvariant() + "]", lineEnding);
+        else if (CanRoundTripNbibIdentifier(identifier)) WriteTag(builder, NbibIdentifierTag(item, identifier), identifier.Value + " [" + identifier.Scheme + "]", lineEnding);
     }
     internal static bool CanRoundTripNbibIdentifier(BibliographyIdentifier identifier) =>
         string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
@@ -581,8 +595,18 @@ internal static class TaggedCodec {
         item.TaggedContributorTags.TryGetValue(contributor, out string? sourceTag) && (string.Equals(sourceTag, fallback, StringComparison.OrdinalIgnoreCase) || alternatives.Any(alternative => string.Equals(sourceTag, alternative, StringComparison.OrdinalIgnoreCase))) ? sourceTag.ToUpperInvariant() : fallback;
     private static string DateTag(BibliographyItem item, BibliographyDate date, string fallback, params string[] alternatives) =>
         item.TaggedDateTags.TryGetValue(date, out string? sourceTag) && (string.Equals(sourceTag, fallback, StringComparison.OrdinalIgnoreCase) || alternatives.Any(alternative => string.Equals(sourceTag, alternative, StringComparison.OrdinalIgnoreCase))) ? sourceTag.ToUpperInvariant() : fallback;
-    private static string CompactName(BibliographyName name) => string.IsNullOrWhiteSpace(name.Literal) ? ((name.Family ?? string.Empty) + " " + Initials(name.Given)).Trim() : name.Literal!;
-    private static string Initials(string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : string.Concat(value!.Split(new[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries).Select(static part => part.Substring(0, 1)));
+    private static string CompactName(BibliographyName name) {
+        if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal!;
+        string initials = Initials(name.Given);
+        if (initials.Length == 0 && name.Family?.Any(char.IsWhiteSpace) == true) return CodecMappings.FormatName(name);
+        return ((name.Family ?? string.Empty) + " " + initials).Trim();
+    }
+    private static string Initials(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+        var builder = new StringBuilder();
+        foreach (string part in value!.Split(new[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries)) builder.Append(StringInfo.GetNextTextElement(part, 0));
+        return builder.ToString();
+    }
 
     private static void WriteNativeFields(StringBuilder builder, BibliographyItem item, BibliographyFormat format, string lineEnding, BibliographyConversionReport report) {
         foreach (BibliographyNativeField field in item.NativeFields) {
@@ -614,7 +638,8 @@ internal static class TaggedCodec {
                     return tag == "SP" ? writeStart : writeEnd;
                 case "AU": case "A1": case "ED": case "A2":
                 case "PY": case "Y1": case "DA": case "Y2":
-                case "DO": case "SN": case "AN": case "KW": case "N1":
+                case "DO": case "SN": case "AN": return string.IsNullOrWhiteSpace(field.Value);
+                case "KW": case "N1":
                 case "TY": case "ER": return false;
                 default: return true;
             }

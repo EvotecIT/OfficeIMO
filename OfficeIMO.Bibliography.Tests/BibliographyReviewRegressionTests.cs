@@ -360,14 +360,14 @@ public sealed class BibliographyReviewRegressionTests {
     }
 
     [Fact]
-    public void Empty_EndNote_URLs_block_strict_null_normalization() {
+    public void Empty_EndNote_URLs_reopen_as_empty_values() {
         var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
         document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Book, Url = string.Empty });
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV237" && diagnostic.Field == "URL");
+        Assert.Equal(string.Empty, reopened.Url);
     }
 
     [Fact]

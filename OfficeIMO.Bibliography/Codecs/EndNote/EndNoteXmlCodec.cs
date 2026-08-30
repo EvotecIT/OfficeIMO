@@ -157,7 +157,7 @@ internal static class EndNoteXmlCodec {
         }
         XElement? urls = Child(record, "urls"); XElement[] relatedUrls = urls?.Descendants().Where(element => HasName(element, record.Name.Namespace, "url")).ToArray() ?? Array.Empty<XElement>();
         string? primaryUrl = relatedUrls.FirstOrDefault()?.Value;
-        item.Url = string.IsNullOrEmpty(primaryUrl) ? null : primaryUrl;
+        item.Url = primaryUrl != null && (primaryUrl.Length > 0 || relatedUrls.Length == 1) ? primaryUrl : null;
         foreach (XElement relatedUrl in relatedUrls.Skip(1)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits)));
         XElement? keywords = Child(record, "keywords"); if (keywords != null) foreach (XElement keyword in keywords.Elements().Where(element => HasName(element, keywords.Name.Namespace, "keyword"))) item.Keywords.Add(keyword.Value);
         XElement? note = Child(record, "notes"); if (note != null) item.Notes.Add(note.Value);
