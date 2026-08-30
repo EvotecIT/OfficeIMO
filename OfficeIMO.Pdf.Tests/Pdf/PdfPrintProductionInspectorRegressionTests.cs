@@ -497,15 +497,29 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
         Assert.Equal(1, evidence.UninspectableContentStreamCount);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData("/Type /Pattern")]
-    public void ColorInspectorRejectsReachableXObjectsWithoutTheXObjectType(string typeEntry) {
+    [Fact]
+    public void ColorInspectorAcceptsReachableXObjectsWithoutTheOptionalType() {
         byte[] pdf = BuildInspectionPdf(
             "/Im1 Do",
             resources: "/XObject << /Im1 5 0 R >>",
             extraObjects:
-                "5 0 obj\n<< " + typeEntry + " /Subtype /Image /Width 1 /Height 1 " +
+                "5 0 obj\n<< /Subtype /Image /Width 1 /Height 1 " +
+                "/ColorSpace /DeviceCMYK /BitsPerComponent 8 /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n");
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(1, evidence.DeviceCmykImageCount);
+        Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorRejectsReachableXObjectsWithTheWrongType() {
+        byte[] pdf = BuildInspectionPdf(
+            "/Im1 Do",
+            resources: "/XObject << /Im1 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /Pattern /Subtype /Image /Width 1 /Height 1 " +
                 "/ColorSpace /DeviceCMYK /BitsPerComponent 8 /Length 4 >>\nstream\ncmyk\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -543,7 +557,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
                 "/ColorSpace << /PrintRgb /DeviceRGB >> " +
                 "/ExtGState << /GS1 << /SMask << /S /Luminosity /G 5 0 R >> >> >>",
             extraObjects:
-                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency /CS /DeviceRGB >> /Length " +
+                "5 0 obj\n<< /Subtype /Form /BBox [0 0 10 10] /Group << /S /Transparency /CS /DeviceRGB >> /Length " +
                 formContent.Length + " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
 
         PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf).InspectPrintProductionColors();
@@ -553,7 +567,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     }
 
     [Fact]
-    public void ColorInspectorRejectsSoftMaskFormsWithoutTheXObjectType() {
+    public void ColorInspectorRejectsSoftMaskFormsWithTheWrongXObjectType() {
         byte[] pdf = BuildInspectionPdf(
             "/GS1 gs",
             resources: "/ExtGState << /GS1 << /SMask << /S /Alpha /G 5 0 R >> >> >>",

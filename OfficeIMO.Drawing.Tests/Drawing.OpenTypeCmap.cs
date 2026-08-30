@@ -50,12 +50,15 @@ public sealed class DrawingOpenTypeCmapTests {
     }
 
     [Fact]
-    public void ManagedFontDoesNotClaimANonDefaultVariationGlyphItCannotRender() {
+    public void ManagedFontMapsANonDefaultVariationGlyphForRendering() {
         const string sequence = "\u2764\uFE0F";
         OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(
             ManagedTextShapingTestAssets.CreateFontWithNonDefaultVariationSequence(0x2764, 0xFE0F)));
 
-        Assert.False(font.HasGlyphs(sequence));
+        Assert.True(font.HasGlyphs(sequence));
+        double baseMaximumX = font.GetTextContours("\u2764", 0, 0, 1000).SelectMany(contour => contour).Max(point => point.X);
+        double variationMaximumX = font.GetTextContours(sequence, 0, 0, 1000).SelectMany(contour => contour).Max(point => point.X);
+        Assert.True(variationMaximumX > baseMaximumX);
     }
 
     [Fact]

@@ -179,19 +179,17 @@ internal static partial class PdfPrintProductionColorInspector {
                                     contextWasUninspectable = true;
                                     break;
                                 }
-                                string? type = ResolveName(
-                                    xObjectStream.Dictionary.Items.TryGetValue("Type", out PdfObject? typeObject)
-                                        ? typeObject
-                                        : null,
-                                    objects,
-                                    limits.MaxObjectNestingDepth);
                                 string? subtype = ResolveName(
                                     xObjectStream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
                                         ? subtypeObject
                                         : null,
                                     objects,
                                     limits.MaxObjectNestingDepth);
-                                if (!string.Equals(type, "XObject", StringComparison.Ordinal)) {
+                                if (!HasValidOptionalDictionaryType(
+                                        xObjectStream.Dictionary,
+                                        "XObject",
+                                        objects,
+                                        limits.MaxObjectNestingDepth)) {
                                     contextWasUninspectable = true;
                                 } else if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                                     AddImageContext(xObjectStream, context.Aliases, images);
@@ -755,13 +753,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int formDepth,
         Dictionary<int, PdfIndirectObject> objects,
         int maximumObjectDepth) {
-        if (!string.Equals(
-                ResolveName(
-                    form.Items.TryGetValue("Type", out PdfObject? typeObject) ? typeObject : null,
-                    objects,
-                    maximumObjectDepth),
-                "XObject",
-                StringComparison.Ordinal) ||
+        if (!HasValidOptionalDictionaryType(form, "XObject", objects, maximumObjectDepth) ||
             !string.Equals(
                 ResolveName(
                     form.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) ? subtypeObject : null,
@@ -782,6 +774,19 @@ internal static partial class PdfPrintProductionColorInspector {
 
         return !form.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ||
             ResolveObject(objects, resourcesObject, formDepth + 1, maximumObjectDepth, out _) is PdfNull or PdfDictionary;
+    }
+
+    private static bool HasValidOptionalDictionaryType(
+        PdfDictionary dictionary,
+        string expectedType,
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth) {
+        if (!dictionary.Items.TryGetValue("Type", out PdfObject? typeObject)) return true;
+        if (ResolveObject(objects, typeObject, 0, maximumObjectDepth) is PdfNull) return true;
+        return string.Equals(
+            ResolveName(typeObject, objects, maximumObjectDepth),
+            expectedType,
+            StringComparison.Ordinal);
     }
 
     private static bool TryAddShownType3CharProcs(

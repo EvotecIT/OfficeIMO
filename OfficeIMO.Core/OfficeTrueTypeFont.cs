@@ -302,9 +302,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var glyphs = new List<int>();
         var scalars = new List<int>();
         for (int index = 0; index < text.Length;) {
-            int scalar = ReadScalar(text, ref index);
-            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            glyphs.Add(MapGlyph(scalar));
+            int glyph = ReadMappedGlyph(text, ref index, out int scalar);
+            if (glyph < 0) continue;
+            glyphs.Add(glyph);
             scalars.Add(scalar);
         }
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
@@ -325,9 +325,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
             for (int textIndex = 0; textIndex < text.Length;) {
-                int scalar = ReadScalar(text, ref textIndex);
-                if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-                glyphs.Add(MapGlyph(scalar));
+                int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
+                if (glyph < 0) continue;
+                glyphs.Add(glyph);
                 scalars.Add(scalar);
                 elementIndexes.Add(elementIndex);
             }
@@ -380,9 +380,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         var glyphs = new List<(ushort Glyph, int Scalar)>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            int scalar = ReadScalar(text, ref index);
-            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            glyphs.Add((MapGlyph(scalar), scalar));
+            int glyph = ReadMappedGlyph(text, ref index, out int scalar);
+            if (glyph < 0) continue;
+            glyphs.Add((checked((ushort)glyph), scalar));
         }
 
         var glyphIds = new List<int>(glyphs.Count);
@@ -426,15 +426,20 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         return OfficeOpenTypeCmap.HasGlyphs(
             value,
             scalar => MapGlyph(scalar),
-            (scalar, selector) => OfficeOpenTypeCmap.SupportsVariationSequence(
-                _data,
-                _cmap,
-                _cmapLength,
-                _numGlyphs,
-                scalar,
-                selector,
-                mappedScalar => MapGlyph(mappedScalar)));
+            MapVariationGlyph);
     }
+
+    private int ReadMappedGlyph(string text, ref int index, out int scalar) =>
+        OfficeOpenTypeCmap.ReadMappedGlyph(text, ref index, scalarValue => MapGlyph(scalarValue), MapVariationGlyph, out scalar);
+
+    private int MapVariationGlyph(int scalar, int selector) => OfficeOpenTypeCmap.MapVariationSequence(
+        _data,
+        _cmap,
+        _cmapLength,
+        _numGlyphs,
+        scalar,
+        selector,
+        mappedScalar => MapGlyph(mappedScalar));
 
     private bool MatchesName(string? faceName) {
         if (string.IsNullOrWhiteSpace(faceName)) return true;

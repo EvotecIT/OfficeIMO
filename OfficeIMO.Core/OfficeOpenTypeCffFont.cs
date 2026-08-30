@@ -87,9 +87,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         var glyphs = new List<int>();
         var scalars = new List<int>();
         for (int index = 0; index < text.Length;) {
-            int scalar = ReadScalar(text, ref index);
-            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            glyphs.Add(_reader.MapGlyph(scalar));
+            int glyph = _reader.ReadMappedGlyph(text, ref index, out int scalar);
+            if (glyph < 0) continue;
+            glyphs.Add(glyph);
             scalars.Add(scalar);
         }
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
@@ -110,9 +110,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
             for (int textIndex = 0; textIndex < text.Length;) {
-                int scalar = ReadScalar(text, ref textIndex);
-                if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-                glyphs.Add(_reader.MapGlyph(scalar));
+                int glyph = _reader.ReadMappedGlyph(text, ref textIndex, out int scalar);
+                if (glyph < 0) continue;
+                glyphs.Add(glyph);
                 scalars.Add(scalar);
                 elementIndexes.Add(elementIndex);
             }
@@ -173,9 +173,9 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         var glyphs = new List<(int Glyph, int Scalar)>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            int scalar = ReadScalar(text, ref index);
-            if (OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            glyphs.Add((_reader.MapGlyph(scalar), scalar));
+            int glyph = _reader.ReadMappedGlyph(text, ref index, out int scalar);
+            if (glyph < 0) continue;
+            glyphs.Add((glyph, scalar));
         }
 
         var glyphIds = new List<int>(glyphs.Count);

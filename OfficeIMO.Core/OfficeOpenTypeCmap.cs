@@ -26,30 +26,38 @@ internal static class OfficeOpenTypeCmap {
     internal static bool HasGlyphs(
         string text,
         Func<int, int> mapGlyph,
-        Func<int, int, bool> supportsVariationSequence) {
+        Func<int, int, int> mapVariationSequence) {
         if (text == null) throw new ArgumentNullException(nameof(text));
         for (int index = 0; index < text.Length;) {
-            int scalar = ReadScalar(text, ref index);
-            if (IsVariationSelector(scalar)) return false;
-
-            int followingIndex = index;
-            int followingScalar = followingIndex < text.Length
-                ? ReadScalar(text, ref followingIndex)
-                : -1;
-            if (IsVariationSelector(followingScalar)) {
-                if (!supportsVariationSequence(scalar, followingScalar)) return false;
-                index = followingIndex;
-                continue;
-            }
-
-            if (scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar) ||
-                OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) continue;
-            if (mapGlyph(scalar) == 0) return false;
+            int glyph = ReadMappedGlyph(text, ref index, mapGlyph, mapVariationSequence, out int scalar);
+            if (glyph < 0) continue;
+            if (glyph == 0 && !(scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar))) return false;
         }
         return true;
     }
 
-    internal static bool SupportsVariationSequence(
+    internal static int ReadMappedGlyph(
+        string text,
+        ref int index,
+        Func<int, int> mapGlyph,
+        Func<int, int, int> mapVariationSequence,
+        out int scalar) {
+        scalar = ReadScalar(text, ref index);
+        if (IsVariationSelector(scalar)) return 0;
+
+        int followingIndex = index;
+        int followingScalar = followingIndex < text.Length
+            ? ReadScalar(text, ref followingIndex)
+            : -1;
+        if (IsVariationSelector(followingScalar)) {
+            index = followingIndex;
+            return mapVariationSequence(scalar, followingScalar);
+        }
+
+        return OfficeTextElements.IsIgnorableFontCoverageScalar(scalar) ? -1 : mapGlyph(scalar);
+    }
+
+    internal static int MapVariationSequence(
         byte[] data,
         int cmapOffset,
         int cmapLength,
@@ -58,10 +66,10 @@ internal static class OfficeOpenTypeCmap {
         int variationSelector,
         Func<int, int> mapGlyph) {
         if (data == null || cmapOffset < 0 || cmapLength < 4 || cmapOffset > data.Length - cmapLength ||
-            glyphCount <= 0 || scalar < 0 || scalar > 0x10FFFF || !IsVariationSelector(variationSelector)) return false;
+            glyphCount <= 0 || scalar < 0 || scalar > 0x10FFFF || !IsVariationSelector(variationSelector)) return 0;
         int cmapEnd = cmapOffset + cmapLength;
         int count = ReadUInt16(data, cmapOffset + 2);
-        if (count <= 0 || count > MaximumSubtables || cmapLength < 4 + count * 8) return false;
+        if (count <= 0 || count > MaximumSubtables || cmapLength < 4 + count * 8) return 0;
         for (int index = 0; index < count; index++) {
             int record = cmapOffset + 4 + index * 8;
             int platform = ReadUInt16(data, record);
@@ -71,12 +79,13 @@ internal static class OfficeOpenTypeCmap {
             if (relativeValue > (uint)(cmapLength - 10)) continue;
             int table = cmapOffset + (int)relativeValue;
             if (table < cmapOffset || table > cmapEnd - 10 || ReadUInt16(data, table) != 14) continue;
-            if (SupportsVariationSequenceSubtable(data, table, cmapEnd, glyphCount, scalar, variationSelector, mapGlyph)) return true;
+            int glyph = MapVariationSequenceSubtable(data, table, cmapEnd, glyphCount, scalar, variationSelector, mapGlyph);
+            if (glyph != 0) return glyph;
         }
-        return false;
+        return 0;
     }
 
-    private static bool SupportsVariationSequenceSubtable(
+    private static int MapVariationSequenceSubtable(
         byte[] data,
         int table,
         int cmapEnd,
@@ -86,10 +95,10 @@ internal static class OfficeOpenTypeCmap {
         Func<int, int> mapGlyph) {
         uint lengthValue = ReadUInt32(data, table + 2);
         uint recordCountValue = ReadUInt32(data, table + 6);
-        if (lengthValue > int.MaxValue || recordCountValue > MaximumVariationSelectorRecords) return false;
+        if (lengthValue > int.MaxValue || recordCountValue > MaximumVariationSelectorRecords) return 0;
         int length = (int)lengthValue;
         int recordCount = (int)recordCountValue;
-        if (length < 10 || table > cmapEnd - length || 10L + recordCount * 11L > length) return false;
+        if (length < 10 || table > cmapEnd - length || 10L + recordCount * 11L > length) return 0;
         int tableEnd = table + length;
 
         int matchingRecord = -1;
@@ -97,11 +106,11 @@ internal static class OfficeOpenTypeCmap {
         for (int index = 0; index < recordCount; index++) {
             int record = table + 10 + index * 11;
             int selector = ReadUInt24(data, record);
-            if (!IsVariationSelector(selector) || selector <= previousSelector) return false;
+            if (!IsVariationSelector(selector) || selector <= previousSelector) return 0;
             if (selector == variationSelector) matchingRecord = record;
             previousSelector = selector;
         }
-        if (matchingRecord < 0) return false;
+        if (matchingRecord < 0) return 0;
 
         uint defaultOffset = ReadUInt32(data, matchingRecord + 3);
         uint nonDefaultOffset = ReadUInt32(data, matchingRecord + 7);
@@ -113,12 +122,12 @@ internal static class OfficeOpenTypeCmap {
                     nonDefaultOffset,
                     glyphCount,
                     scalar,
-                    out int glyph)) return false;
-            if (glyph != 0) return glyph == mapGlyph(scalar);
+                    out int glyph)) return 0;
+            if (glyph != 0) return glyph;
         }
         if (defaultOffset == 0 ||
-            !TryResolveDefaultVariation(data, table, tableEnd, defaultOffset, scalar, out bool isDefault)) return false;
-        return isDefault && mapGlyph(scalar) != 0;
+            !TryResolveDefaultVariation(data, table, tableEnd, defaultOffset, scalar, out bool isDefault)) return 0;
+        return isDefault ? mapGlyph(scalar) : 0;
     }
 
     private static bool TryResolveNonDefaultVariation(
