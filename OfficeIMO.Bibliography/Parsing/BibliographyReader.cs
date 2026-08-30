@@ -177,9 +177,51 @@ internal static class BibliographyFormatDetector {
         }
         if (StartsWith(source, start, "@", StringComparison.Ordinal)) return BibliographyFormat.BibLatex;
         if (StartsWith(source, start, "TY  -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Ris;
-        if (StartsWith(source, start, "PMID-", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "PMID -", StringComparison.OrdinalIgnoreCase) || StartsWith(source, start, "OWN -", StringComparison.OrdinalIgnoreCase)) return BibliographyFormat.Nbib;
+        if (LooksLikeNbib(source, start, cancellationToken)) return BibliographyFormat.Nbib;
         throw new FormatException("Bibliography format could not be detected. Pass an explicit BibliographyFormat.");
     }
+
+    private static bool LooksLikeNbib(string source, int position, CancellationToken cancellationToken) {
+        while (position < source.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int lineEnd = FindLineBreak(source, position, cancellationToken);
+            if (lineEnd < 0) lineEnd = source.Length;
+            int contentStart = position;
+            if (contentStart < lineEnd && source[contentStart] == '\uFEFF') contentStart++;
+            int probe = contentStart;
+            while (probe < lineEnd && char.IsWhiteSpace(source[probe])) probe++;
+            if (probe == lineEnd) return false;
+            if (probe != contentStart || !TryGetTaggedName(source, contentStart, lineEnd, out int nameStart, out int nameLength)) return false;
+            if (IsTaggedName(source, nameStart, nameLength, "TY") || IsTaggedName(source, nameStart, nameLength, "ER")) return false;
+            if (IsKnownNbibTag(source, nameStart, nameLength)) return true;
+            if (lineEnd >= source.Length) return false;
+            position = lineEnd + (source[lineEnd] == '\r' && lineEnd + 1 < source.Length && source[lineEnd + 1] == '\n' ? 2 : 1);
+        }
+        return false;
+    }
+
+    private static bool TryGetTaggedName(string source, int start, int end, out int nameStart, out int nameLength) {
+        int dash = start;
+        int maximumDash = Math.Min(end, start + 7);
+        while (dash < maximumDash && source[dash] != '-') dash++;
+        if (dash == start || dash >= maximumDash) { nameStart = 0; nameLength = 0; return false; }
+        int nameEnd = dash;
+        while (nameEnd > start && char.IsWhiteSpace(source[nameEnd - 1])) nameEnd--;
+        nameStart = start;
+        nameLength = nameEnd - start;
+        if (nameLength < 2 || nameLength > 4) return false;
+        for (int index = nameStart; index < nameEnd; index++) if (!char.IsLetterOrDigit(source[index])) return false;
+        return true;
+    }
+
+    private static bool IsKnownNbibTag(string source, int start, int length) {
+        string[] names = { "PMID", "OWN", "PT", "TI", "JT", "TA", "FAU", "AU", "CN", "DP", "VI", "IP", "PG", "AB", "LA", "LID", "AID", "IS", "OT", "MH", "GN" };
+        for (int index = 0; index < names.Length; index++) if (IsTaggedName(source, start, length, names[index])) return true;
+        return false;
+    }
+
+    private static bool IsTaggedName(string source, int start, int length, string expected) =>
+        length == expected.Length && string.Compare(source, start, expected, 0, length, StringComparison.OrdinalIgnoreCase) == 0;
 
     private static int SkipLeadingComments(string source, int position, bool bibComments, CancellationToken cancellationToken) {
         while (position < source.Length) {

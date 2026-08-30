@@ -145,7 +145,8 @@ internal static class EndNoteXmlCodec {
         foreach (XElement leaf in Cancellable(record.Descendants(), cancellationToken)) if (!leaf.HasElements) limits.AddValue(partial, leaf.Value, GetOffset(leaf));
         XElement? refType = Child(record, "ref-type", cancellationToken);
         string type = refType?.Attribute("name")?.Value ?? refType?.Value ?? string.Empty;
-        var item = new BibliographyItem { Key = Value(record, "rec-number", cancellationToken), NativeType = type, Type = CodecMappings.ParseType(type) };
+        BibliographyItemType itemType = ParseEndNoteType(refType, type, out string nativeType);
+        var item = new BibliographyItem { Key = Value(record, "rec-number", cancellationToken), NativeType = nativeType, Type = itemType };
         AddStructuralTextDiagnostic(record, diagnostics, cancellationToken, item.Key);
         if (refType?.Attribute("name") != null && item.Type != BibliographyItemType.Unknown &&
             int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber) &&
@@ -162,8 +163,6 @@ internal static class EndNoteXmlCodec {
         if (!string.IsNullOrWhiteSpace(secondaryTitle)) item.EndNoteFieldNames["container-title"] = "secondary-title";
         else if (!string.IsNullOrWhiteSpace(periodicalTitle)) item.EndNoteFieldNames["container-title"] = "periodical";
         bool retainedAdditionalPeriodical = periodical != null && !string.IsNullOrWhiteSpace(secondaryTitle) && !string.IsNullOrWhiteSpace(periodicalTitle);
-        if (retainedAdditionalPeriodical)
-            item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "periodical", periodical!.Value, SerializeBoundedElement(periodical, partial, limits, cancellationToken)));
         item.Pages = OptionalValue(record, "pages", cancellationToken); item.Volume = OptionalValue(record, "volume", cancellationToken); item.Issue = OptionalValue(record, "number", cancellationToken); item.Edition = OptionalValue(record, "edition", cancellationToken);
         item.Publisher = OptionalValue(record, "publisher", cancellationToken); item.PublisherPlace = OptionalValue(record, "pub-location", cancellationToken); item.Abstract = OptionalValue(record, "abstract", cancellationToken); item.Language = OptionalValue(record, "language", cancellationToken);
         ParseContributors(item, Child(record, "contributors", cancellationToken), cancellationToken); ParseDates(item, Child(record, "dates", cancellationToken), cancellationToken);
@@ -175,8 +174,6 @@ internal static class EndNoteXmlCodec {
                 AddIdentifier(item, scheme, identifier.Value);
             } else if (string.Equals(identifier.Name.LocalName, "electronic-resource-num", StringComparison.OrdinalIgnoreCase)) AddIdentifier(item, "DOI", identifier.Value);
             else if (string.Equals(identifier.Name.LocalName, "accession-num", StringComparison.OrdinalIgnoreCase)) ParseAccessionIdentifier(item, identifier.Value);
-            if (IsRepeatableRecordElement(identifier.Name.LocalName) && string.IsNullOrWhiteSpace(identifier.Value))
-                item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, identifier.Name.LocalName, identifier.Value, SerializeBoundedElement(identifier, partial, limits, cancellationToken)));
         }
         XElement? urls = Child(record, "urls", cancellationToken); XElement? relatedUrlsContainer = Child(urls, "related-urls", cancellationToken);
         var relatedUrlList = new List<XElement>();
@@ -184,14 +181,16 @@ internal static class EndNoteXmlCodec {
         XElement[] relatedUrls = relatedUrlList.ToArray();
         string? primaryUrl = relatedUrls.FirstOrDefault()?.Value;
         item.Url = primaryUrl != null && (primaryUrl.Length > 0 || relatedUrls.Length == 1) ? primaryUrl : null;
-        foreach (XElement relatedUrl in Cancellable(relatedUrls.Skip(1), cancellationToken)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits, cancellationToken)));
         XElement? keywords = Child(record, "keywords", cancellationToken); if (keywords != null) foreach (XElement keyword in Cancellable(keywords.Elements(), cancellationToken)) if (HasName(keyword, keywords.Name.Namespace, "keyword")) item.Keywords.Add(keyword.Value);
         XElement? note = Child(record, "notes", cancellationToken); if (note != null) item.Notes.Add(note.Value);
         foreach (XElement element in Cancellable(record.Elements(), cancellationToken)) {
             bool knownRecordElement = HasNameInNamespace(element, record.Name.Namespace) && KnownRecordElements.Contains(element.Name.LocalName);
             bool repeatedSingleValue = knownRecordElement && !IsRepeatableRecordElement(element.Name.LocalName) && Cancellable(element.ElementsBeforeSelf(), cancellationToken).Any(previous => HasName(previous, record.Name.Namespace, element.Name.LocalName));
             if (!knownRecordElement) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
-            else if ((IsEmptyKnownRecordContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken)) && (!ReferenceEquals(element, periodical) || !retainedAdditionalPeriodical)) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            else if (ReferenceEquals(element, periodical) && retainedAdditionalPeriodical) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "periodical", element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            else if (IsRepeatableRecordElement(element.Name.LocalName) && string.IsNullOrWhiteSpace(element.Value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            else if (IsEmptyKnownRecordContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken)) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            if (ReferenceEquals(element, urls)) foreach (XElement relatedUrl in Cancellable(relatedUrls.Skip(1), cancellationToken)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits, cancellationToken)));
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBEND003", BibliographyDiagnosticSeverity.Warning, "EndNote XML record has no rec-number."));
         return item;
@@ -650,9 +649,32 @@ internal static class EndNoteXmlCodec {
     private static string ElementFromRole(BibliographyContributorRole role) { switch (role) { case BibliographyContributorRole.Author: return "authors"; case BibliographyContributorRole.Editor: return "secondary-authors"; case BibliographyContributorRole.CollectionEditor: return "tertiary-authors"; case BibliographyContributorRole.Translator: return "subsidiary-authors"; default: return "subsidiary-authors"; } }
     private static string ToEndNoteType(BibliographyItemType type) { switch (type) { case BibliographyItemType.ArticleJournal: return "Journal Article"; case BibliographyItemType.Book: return "Book"; case BibliographyItemType.Chapter: return "Book Section"; case BibliographyItemType.PaperConference: return "Conference Paper"; case BibliographyItemType.Report: return "Report"; case BibliographyItemType.Thesis: return "Thesis"; case BibliographyItemType.WebPage: return "Web Page"; case BibliographyItemType.Patent: return "Patent"; default: return "Generic"; } }
     internal static bool CanPreserveNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
-        sourceFormat == BibliographyFormat.EndNoteXml && !string.IsNullOrWhiteSpace(item.NativeType) && CodecMappings.ParseType(item.NativeType) == item.Type;
+        sourceFormat == BibliographyFormat.EndNoteXml && !string.IsNullOrWhiteSpace(item.NativeType) && !int.TryParse(item.NativeType!.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out _) && CodecMappings.ParseType(item.NativeType) == item.Type;
     private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) => CanPreserveNativeType(sourceFormat, item) ? item.NativeType! : ToEndNoteType(item.Type);
     private static int ToEndNoteNumber(BibliographyItemType type) { switch (type) { case BibliographyItemType.ArticleJournal: return 17; case BibliographyItemType.Book: return 6; case BibliographyItemType.Chapter: return 5; case BibliographyItemType.PaperConference: return 47; case BibliographyItemType.Report: return 27; case BibliographyItemType.Thesis: return 32; case BibliographyItemType.WebPage: return 12; case BibliographyItemType.Patent: return 21; default: return 13; } }
+    private static BibliographyItemType ParseEndNoteType(XElement? refType, string sourceType, out string nativeType) {
+        if (refType?.Attribute("name") != null) { nativeType = sourceType; return CodecMappings.ParseType(sourceType); }
+        if (int.TryParse(sourceType.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number) && TryParseEndNoteNumber(number, out BibliographyItemType parsed)) {
+            nativeType = ToEndNoteType(parsed);
+            return parsed;
+        }
+        nativeType = sourceType;
+        return CodecMappings.ParseType(sourceType);
+    }
+    private static bool TryParseEndNoteNumber(int number, out BibliographyItemType type) {
+        switch (number) {
+            case 17: type = BibliographyItemType.ArticleJournal; return true;
+            case 6: type = BibliographyItemType.Book; return true;
+            case 5: type = BibliographyItemType.Chapter; return true;
+            case 47: type = BibliographyItemType.PaperConference; return true;
+            case 27: type = BibliographyItemType.Report; return true;
+            case 32: type = BibliographyItemType.Thesis; return true;
+            case 12: type = BibliographyItemType.WebPage; return true;
+            case 21: type = BibliographyItemType.Patent; return true;
+            case 13: type = BibliographyItemType.Document; return true;
+            default: type = BibliographyItemType.Unknown; return false;
+        }
+    }
 
     private sealed class EncodingStringWriter : StringWriter {
         private readonly Encoding _encoding;

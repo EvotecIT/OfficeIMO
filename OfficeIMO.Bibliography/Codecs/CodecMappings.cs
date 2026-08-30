@@ -155,12 +155,12 @@ internal static class CodecMappings {
             if (validStart && validEnd) {
                 date.Year = year; date.Month = month; date.Day = day;
                 date.EndYear = endYear; date.EndMonth = endMonth; date.EndDay = endDay;
-            } else date.Literal = literal;
+            } else date.Literal = value;
             return date;
         }
         if (TryParseDatePart(literal, out int? singleYear, out int? singleMonth, out int? singleDay)) {
             date.Year = singleYear; date.Month = singleMonth; date.Day = singleDay;
-        } else date.Literal = literal;
+        } else date.Literal = value;
         return date;
     }
 
@@ -218,8 +218,7 @@ internal static class CodecMappings {
     private static bool TryParseDatePart(string value, out int? year, out int? month, out int? day) {
         year = null; month = null; day = null;
         string trimmed = value.Trim();
-        string[] pieces = trimmed.Split(new[] { '-', '/', ' ', ',' }, StringSplitOptions.RemoveEmptyEntries).Select(static piece => piece.Trim()).ToArray();
-        if (pieces.Length == 0 || pieces.Length > 3) return false;
+        if (!TrySplitDatePieces(trimmed, out string[] pieces)) return false;
         if (int.TryParse(pieces[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out int leadingYear) && leadingYear >= 1 && pieces[0].Length >= 4) {
             year = leadingYear;
             if (pieces.Length > 1) month = ParseMonth(pieces[1]);
@@ -238,6 +237,26 @@ internal static class CodecMappings {
         }
         return false;
     }
+
+    private static bool TrySplitDatePieces(string value, out string[] pieces) {
+        var bounded = new string[3];
+        int count = 0;
+        int position = 0;
+        while (position < value.Length) {
+            while (position < value.Length && IsDateSeparator(value[position])) position++;
+            if (position >= value.Length) break;
+            int start = position;
+            while (position < value.Length && !IsDateSeparator(value[position])) position++;
+            if (count == bounded.Length) { pieces = Array.Empty<string>(); return false; }
+            bounded[count++] = value.Substring(start, position - start).Trim();
+        }
+        if (count == 0) { pieces = Array.Empty<string>(); return false; }
+        pieces = new string[count];
+        Array.Copy(bounded, pieces, count);
+        return true;
+    }
+
+    private static bool IsDateSeparator(char value) => value == '-' || value == '/' || value == ' ' || value == ',';
 
     private static string FormatDatePart(int? year, int? month, int? day) {
         if (!year.HasValue) return string.Empty;

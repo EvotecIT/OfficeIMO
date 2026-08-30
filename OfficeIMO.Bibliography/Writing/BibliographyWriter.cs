@@ -72,7 +72,7 @@ internal static class BibliographyConversionInspector {
         diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003" || diagnostic.Code == "BIBEND004" || diagnostic.Code == "BIBEND005";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
-        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
+        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && string.IsNullOrEmpty(item.Key) && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
         StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
         foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(item => CodecMappings.NormalizeOutputKey(item.Key, format), keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
