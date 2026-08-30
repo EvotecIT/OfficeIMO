@@ -83,7 +83,8 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
             ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) => LegacyWordReaderAdapter.Probe(stream, sourceName, readerOptions, configuredImport, token),
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
-            DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
+            DefaultMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes,
+            MaxInputBytesCeiling = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes
         }, replaceExisting);
     }
 }

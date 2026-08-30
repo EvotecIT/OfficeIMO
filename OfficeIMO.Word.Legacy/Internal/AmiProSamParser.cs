@@ -143,7 +143,7 @@ internal sealed class AmiProSamParser {
         for (int index = start + 1; index < _lines.Length; index++) {
             _cancellationToken.ThrowIfCancellationRequested();
             string line = _lines[index];
-            if (line.StartsWith("[", StringComparison.Ordinal)) {
+            if (TryGetSectionBounds(line, out _, out _)) {
                 FlushParagraph(paragraphLines);
                 break;
             }
@@ -354,11 +354,7 @@ internal sealed class AmiProSamParser {
         for (int index = 0; index < _lines.Length; index++) {
             _cancellationToken.ThrowIfCancellationRequested();
             string value = _lines[index];
-            int first = 0;
-            int last = value.Length - 1;
-            while (first <= last && char.IsWhiteSpace(value[first])) first++;
-            while (last >= first && char.IsWhiteSpace(value[last])) last--;
-            if (last - first < 2 || value[first] != '[' || value[last] != ']') continue;
+            if (!TryGetSectionBounds(value, out int first, out int last)) continue;
             int sectionStart = first + 1;
             int sectionLength = last - sectionStart;
             while (sectionLength > 0 && char.IsWhiteSpace(value[sectionStart])) { sectionStart++; sectionLength--; }
@@ -383,12 +379,17 @@ internal sealed class AmiProSamParser {
     }
 
     private static bool IsSection(string value, string name) {
-        int first = 0;
-        int last = value.Length - 1;
-        while (first <= last && char.IsWhiteSpace(value[first])) first++;
-        while (last >= first && char.IsWhiteSpace(value[last])) last--;
+        if (!TryGetSectionBounds(value, out int first, out int last)) return false;
         if (last - first != name.Length + 1 || value[first] != '[' || value[last] != ']') return false;
         return string.Compare(value, first + 1, name, 0, name.Length, StringComparison.OrdinalIgnoreCase) == 0;
+    }
+
+    private static bool TryGetSectionBounds(string value, out int first, out int last) {
+        first = 0;
+        last = value.Length - 1;
+        while (first <= last && char.IsWhiteSpace(value[first])) first++;
+        while (last >= first && char.IsWhiteSpace(value[last])) last--;
+        return last - first >= 2 && value[first] == '[' && value[last] == ']';
     }
     private static string UnescapePlain(string value) => value.Replace("@@", "@").Replace("<<", "<").Replace("<[>", "[").Replace("<;>", ">");
     private static WordParagraphAlignment? DecodeAlignment(uint value) => (value & 8) != 0 ? WordParagraphAlignment.Both : (value & 4) != 0 ? WordParagraphAlignment.Center : (value & 2) != 0 ? WordParagraphAlignment.Right : (value & 1) != 0 ? WordParagraphAlignment.Left : (WordParagraphAlignment?)null;

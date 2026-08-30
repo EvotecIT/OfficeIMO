@@ -83,7 +83,8 @@ public static class LegacySpreadsheetImporter {
                     if (!string.IsNullOrWhiteSpace(cell.Formula)) {
                         target.CellValue(cell.Row, cell.Column, cell.Value);
                         target.CellFormula(cell.Row, cell.Column, cell.Formula!);
-                    } else target.CellValue(cell.Row, cell.Column, cell.Value);
+                    } else if (cell.Value != null) target.CellValue(cell.Row, cell.Column, cell.Value);
+                    else target.CellAt(cell.Row, cell.Column);
                     if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
                     if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.CellAt(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                     if (!string.IsNullOrWhiteSpace(cell.Comment)) target.SetComment(cell.Row, cell.Column, cell.Comment!, "Legacy source");

@@ -51,6 +51,17 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkBlankRecordsProjectAsValueLessCells() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeFormulaAndChart: false, includeBlank: true),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        LegacySpreadsheetCellContent blank = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 4);
+        Assert.Null(blank.CachedValue);
+        Assert.Null(imported.Document.Sheets[0].CellAt(1, 4).GetValue().Value);
+    }
+
+    [Fact]
     public void WkLabelsPreserveWhitespaceAndDoNotInventActiveContentFromVisibleText() {
         const string label = "  https://example.invalid macro  ";
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(

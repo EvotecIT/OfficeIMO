@@ -25,8 +25,10 @@ internal abstract class LegacyWordAdapterBase : ILegacyWordAdapter {
     }
 
     protected static void AddParagraphs(LegacyWordModel model, string text, OfficeLegacyImportLimits limits, CancellationToken cancellationToken) {
+        int inspectedRecords = 0;
         foreach (string raw in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (++inspectedRecords > limits.MaxRecords) throw new InvalidDataException("Legacy word content exceeds the configured record limit.");
             if (model.Paragraphs.Count >= limits.MaxItems) throw new InvalidDataException("Legacy word content exceeds the configured item limit.");
             string line = raw.TrimEnd();
             if (line.Length == 0 && (model.Paragraphs.Count == 0 || model.Paragraphs[model.Paragraphs.Count - 1].Text.Length == 0)) continue;

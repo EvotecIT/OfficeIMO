@@ -368,6 +368,30 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProIndentedSectionBoundariesRemainInert() {
+        byte[] source = Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\nVisible text\n  [objdata]  \nobject payload\n");
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(source, new LegacyWordImportOptions {
+            SourceName = "archive.sam",
+            RequireStructured = true
+        });
+
+        Assert.Equal("Visible text", imported.PlainText);
+        Assert.DoesNotContain("objdata", imported.PlainText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("object payload", imported.PlainText, StringComparison.OrdinalIgnoreCase);
+        Assert.True(imported.Report.InertContent.HasFlag(OfficeLegacyInertContentKind.EmbeddedObjects));
+    }
+
+    [Fact]
+    public void SalvageWordParsingEnforcesTheRecordLimit() {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordPerfect(),
+            new LegacyWordImportOptions {
+                FormatHint = LegacyWordFormat.WordPerfect,
+                Limits = new OfficeLegacyImportLimits { MaxRecords = 1, MaxItems = 100 }
+            }));
+    }
+
+    [Fact]
     public void AmiProVersionMarkerMustStartTheHeader() {
         byte[] prefixed = Encoding.ASCII.GetBytes("unrelated data\n[ver]\n4\n[edoc]\nText\n");
         Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Detect(
@@ -552,21 +576,23 @@ public sealed class LegacyWordImportTests {
             .Build();
 
         using var stream = new MemoryStream(source);
-        Assert.Throws<InvalidDataException>(() => reader.ReadDocument(stream, "archive.wpd",
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wpd",
             new ReaderOptions { MaxInputBytes = source.Length + 100L }));
     }
 
     [Fact]
     public void LegacyWordHandlerUsesConfiguredLimitBeforeBufferingNonSeekableStreams() {
-        byte[] source = LegacyFixtureFactory.WordPerfect();
+        byte[] source = LegacyFixtureFactory.WordPerfect().Concat(new byte[256 * 1024]).ToArray();
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddLegacyWordHandler(new LegacyWordImportOptions {
-                Limits = new OfficeLegacyImportLimits { MaxInputBytes = source.Length - 1 }
+                Limits = new OfficeLegacyImportLimits { MaxInputBytes = 128 }
             })
             .Build();
         using var stream = new NonSeekableStream(source);
 
-        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wpd"));
+        Assert.Throws<IOException>(() => reader.ReadDocument(stream, "archive.wpd",
+            new ReaderOptions { MaxInputBytes = source.Length + 100L }));
+        Assert.True(stream.BytesRead < source.Length);
     }
 
     [Fact]
@@ -596,13 +622,18 @@ public sealed class LegacyWordImportTests {
         private readonly MemoryStream _inner;
 
         internal NonSeekableStream(byte[] data) => _inner = new MemoryStream(data, writable: false);
+        internal long BytesRead { get; private set; }
         public override bool CanRead => true;
         public override bool CanSeek => false;
         public override bool CanWrite => false;
         public override long Length => throw new NotSupportedException();
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override void Flush() { }
-        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override int Read(byte[] buffer, int offset, int count) {
+            int read = _inner.Read(buffer, offset, count);
+            BytesRead += read;
+            return read;
+        }
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
