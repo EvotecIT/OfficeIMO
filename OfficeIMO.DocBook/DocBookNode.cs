@@ -60,8 +60,9 @@ public sealed class DocBookNode {
     }
     /// <summary>Adds a table.</summary>
     public DocBookNode AddTable(string? title = null) {
-        DocBookNode table = Add(DocBookNodeKind.Table);
-        if (!string.IsNullOrEmpty(title)) table.Add(DocBookNodeKind.Title, title);
+        bool formal = !string.IsNullOrWhiteSpace(title);
+        DocBookNode table = formal ? Add(DocBookNodeKind.Table) : AddRaw("informaltable");
+        if (formal) table.Add(DocBookNodeKind.Title, title);
         return table;
     }
     /// <summary>Adds a program listing.</summary>
@@ -108,8 +109,10 @@ public sealed class DocBookNode {
     /// <summary>Adds a supported common node.</summary>
     public DocBookNode Add(DocBookNodeKind kind, string? text = null) {
         if (kind == DocBookNodeKind.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
-        if (kind == DocBookNodeKind.Info && Kind == DocBookNodeKind.Section) {
-            string infoName = _document.Profile == DocBookProfile.DocBook45 ? "sectioninfo" : "info";
+        if (kind == DocBookNodeKind.CrossReference && text != null) {
+            throw new ArgumentException("DocBook cross-references cannot contain direct text.", nameof(text));
+        }
+        if (kind == DocBookNodeKind.Info && _document.GetComponentInfoElementName(Element) is string infoName) {
             var element = new XElement(_document.Namespace + infoName);
             if (text != null) element.Value = text;
             Element.AddFirst(element); _document.MarkModified();
@@ -169,6 +172,20 @@ internal static class DocBookNames {
         ["articleinfo"] = DocBookNodeKind.Info,
         ["bookinfo"] = DocBookNodeKind.Info,
         ["sectioninfo"] = DocBookNodeKind.Info,
+        ["chapterinfo"] = DocBookNodeKind.Info,
+        ["appendixinfo"] = DocBookNodeKind.Info,
+        ["bibliographyinfo"] = DocBookNodeKind.Info,
+        ["glossaryinfo"] = DocBookNodeKind.Info,
+        ["indexinfo"] = DocBookNodeKind.Info,
+        ["partinfo"] = DocBookNodeKind.Info,
+        ["prefaceinfo"] = DocBookNodeKind.Info,
+        ["referenceinfo"] = DocBookNodeKind.Info,
+        ["setindexinfo"] = DocBookNodeKind.Info,
+        ["sect1info"] = DocBookNodeKind.Info,
+        ["sect2info"] = DocBookNodeKind.Info,
+        ["sect3info"] = DocBookNodeKind.Info,
+        ["sect4info"] = DocBookNodeKind.Info,
+        ["sect5info"] = DocBookNodeKind.Info,
         ["title"] = DocBookNodeKind.Title,
         ["subtitle"] = DocBookNodeKind.Subtitle,
         ["author"] = DocBookNodeKind.Author,

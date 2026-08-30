@@ -734,6 +734,11 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB117", DocBookDiagnosticSeverity.Warning,
                     "The shared flat table was already truncated; only its available rows were emitted.", source.Title));
             }
+            if (source.Summary != null) {
+                diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
+                    "Shared table summary metadata cannot be represented by the bounded DocBook table profile and was omitted.",
+                    source.Location?.HeadingPath));
+            }
         }
 
         bool AddFlatAsset(OfficeDocumentModelAsset source) {
@@ -747,6 +752,11 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
                 return false;
+            }
+            if (HasUnsupportedAssetFields(source, reference!)) {
+                diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
+                    $"Shared asset '{source.Id}' contains payload, geometry, or media metadata that cannot be represented by a DocBook image reference and was omitted.",
+                    source.Location?.HeadingPath));
             }
             document.Root.AddImage(reference!, source.Title, source.AltText);
             return true;
@@ -1053,41 +1063,7 @@ public sealed partial class DocBookDocument {
     }
 
     private static bool TryMapKind(string kind, out DocBookNodeKind nodeKind) {
-        var mappings = new Dictionary<string, DocBookNodeKind>(StringComparer.OrdinalIgnoreCase) {
-            ["metadata"] = DocBookNodeKind.Info,
-            ["title"] = DocBookNodeKind.Title,
-            ["subtitle"] = DocBookNodeKind.Subtitle,
-            ["author"] = DocBookNodeKind.Author,
-            ["section"] = DocBookNodeKind.Section,
-            ["paragraph"] = DocBookNodeKind.Paragraph,
-            ["itemized-list"] = DocBookNodeKind.ItemizedList,
-            ["ordered-list"] = DocBookNodeKind.OrderedList,
-            ["variable-list"] = DocBookNodeKind.VariableList,
-            ["list-item"] = DocBookNodeKind.ListItem,
-            ["table"] = DocBookNodeKind.Table,
-            ["table-group"] = DocBookNodeKind.TableGroup,
-            ["table-head"] = DocBookNodeKind.TableHead,
-            ["table-body"] = DocBookNodeKind.TableBody,
-            ["table-row"] = DocBookNodeKind.Row,
-            ["table-cell"] = DocBookNodeKind.Entry,
-            ["code"] = DocBookNodeKind.ProgramListing,
-            ["screen"] = DocBookNodeKind.Screen,
-            ["link"] = DocBookNodeKind.Link,
-            ["cross-reference"] = DocBookNodeKind.CrossReference,
-            ["note"] = DocBookNodeKind.Note,
-            ["tip"] = DocBookNodeKind.Tip,
-            ["important"] = DocBookNodeKind.Important,
-            ["caution"] = DocBookNodeKind.Caution,
-            ["warning"] = DocBookNodeKind.Warning,
-            ["figure"] = DocBookNodeKind.Figure,
-            ["media"] = DocBookNodeKind.MediaObject,
-            ["image-object"] = DocBookNodeKind.ImageObject,
-            ["image"] = DocBookNodeKind.ImageData,
-            ["caption"] = DocBookNodeKind.Caption,
-            ["index"] = DocBookNodeKind.Index,
-            ["index-term"] = DocBookNodeKind.IndexTerm
-        };
-        return mappings.TryGetValue(kind ?? string.Empty, out nodeKind);
+        return SharedNodeKinds.TryGetValue(kind ?? string.Empty, out nodeKind);
     }
 
     private static bool NodeAcceptsDirectText(DocBookNodeKind kind) =>

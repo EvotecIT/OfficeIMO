@@ -217,12 +217,16 @@ public sealed class ReaderOpmlDocBookModularTests {
 
     [Fact]
     public void DocBookAdapterExcludesIndexTermsFromMarkdown() {
-        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para>Body<indexterm><primary>topic</primary></indexterm></para></article>";
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><indexterm><primary>root-topic</primary></indexterm><para>Body<indexterm><primary>inline-topic</primary></indexterm></para><section><title>Section</title><indexterm><primary>section-topic</primary></indexterm><para>Visible</para></section></article>";
 
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
         OfficeDocumentReadResult result = DocBookReaderAdapter.ReadDocument(stream);
 
-        Assert.Equal("Body", result.Markdown);
+        Assert.Contains("Body", result.Markdown);
+        Assert.Contains("Visible", result.Markdown);
+        Assert.DoesNotContain("root-topic", result.Markdown);
+        Assert.DoesNotContain("inline-topic", result.Markdown);
+        Assert.DoesNotContain("section-topic", result.Markdown);
     }
 
     [Fact]

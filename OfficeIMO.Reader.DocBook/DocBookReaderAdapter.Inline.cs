@@ -30,6 +30,7 @@ internal static partial class DocBookReaderAdapter {
         return hasTarget && result.Count > 0;
 
         void Append(OfficeDocumentModelNode child) {
+            if (IsIndexTerm(child.Kind)) return;
             if (string.Equals(child.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(child.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) {
                 string? destination = GetInlineDestination(child);
@@ -80,6 +81,7 @@ internal static partial class DocBookReaderAdapter {
         return string.Concat(parts);
 
         void Add(OfficeDocumentModelNode current) {
+            if (IsIndexTerm(current.Kind)) return;
             if (string.Equals(current.Kind, "text", StringComparison.OrdinalIgnoreCase) && current.Text.Length > 0) {
                 parts.Add(current.Text);
                 return;

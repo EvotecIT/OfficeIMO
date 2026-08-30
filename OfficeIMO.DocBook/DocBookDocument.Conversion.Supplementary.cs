@@ -9,6 +9,42 @@ using System.Text;
 namespace OfficeIMO.DocBook;
 
 public sealed partial class DocBookDocument {
+    private static readonly IReadOnlyDictionary<string, DocBookNodeKind> SharedNodeKinds =
+        new Dictionary<string, DocBookNodeKind>(StringComparer.OrdinalIgnoreCase) {
+            ["metadata"] = DocBookNodeKind.Info,
+            ["title"] = DocBookNodeKind.Title,
+            ["subtitle"] = DocBookNodeKind.Subtitle,
+            ["author"] = DocBookNodeKind.Author,
+            ["section"] = DocBookNodeKind.Section,
+            ["paragraph"] = DocBookNodeKind.Paragraph,
+            ["itemized-list"] = DocBookNodeKind.ItemizedList,
+            ["ordered-list"] = DocBookNodeKind.OrderedList,
+            ["variable-list"] = DocBookNodeKind.VariableList,
+            ["list-item"] = DocBookNodeKind.ListItem,
+            ["table"] = DocBookNodeKind.Table,
+            ["table-group"] = DocBookNodeKind.TableGroup,
+            ["table-head"] = DocBookNodeKind.TableHead,
+            ["table-body"] = DocBookNodeKind.TableBody,
+            ["table-row"] = DocBookNodeKind.Row,
+            ["table-cell"] = DocBookNodeKind.Entry,
+            ["code"] = DocBookNodeKind.ProgramListing,
+            ["screen"] = DocBookNodeKind.Screen,
+            ["link"] = DocBookNodeKind.Link,
+            ["cross-reference"] = DocBookNodeKind.CrossReference,
+            ["note"] = DocBookNodeKind.Note,
+            ["tip"] = DocBookNodeKind.Tip,
+            ["important"] = DocBookNodeKind.Important,
+            ["caution"] = DocBookNodeKind.Caution,
+            ["warning"] = DocBookNodeKind.Warning,
+            ["figure"] = DocBookNodeKind.Figure,
+            ["media"] = DocBookNodeKind.MediaObject,
+            ["image-object"] = DocBookNodeKind.ImageObject,
+            ["image"] = DocBookNodeKind.ImageData,
+            ["caption"] = DocBookNodeKind.Caption,
+            ["index"] = DocBookNodeKind.Index,
+            ["index-term"] = DocBookNodeKind.IndexTerm
+        };
+
     private static readonly ISet<string> KnownUntypedDocBookElementNames = new HashSet<string>(StringComparer.Ordinal) {
         "appendix", "article", "authorgroup", "bibliography", "chapter", "colophon", "colspec", "dedication",
         "entrytbl", "firstname", "glossary", "honorific", "lineage", "lot", "othername", "part", "personname",
@@ -103,7 +139,19 @@ public sealed partial class DocBookDocument {
         string? alternateText = textObject == null ? null : FindExtensionDescendant(textObject, "phrase")?.Text;
         if (string.IsNullOrWhiteSpace(alternateText)) alternateText = caption;
         return string.Equals(asset.Title, caption, StringComparison.Ordinal) &&
-            string.Equals(asset.AltText, alternateText, StringComparison.Ordinal);
+            string.Equals(asset.AltText, alternateText, StringComparison.Ordinal) &&
+            !HasUnsupportedAssetFields(asset, reference!);
+    }
+
+    private static bool HasUnsupportedAssetFields(OfficeDocumentModelAsset asset, string reference) {
+        string? fileName = GetReferenceFileNameFromReference(reference);
+        string? expectedExtension = GetReferenceExtensionFromFileName(fileName);
+        string expectedMediaType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeTypeFromExtension(expectedExtension);
+        string? normalizedMediaType = expectedMediaType == "application/octet-stream" ? null : expectedMediaType;
+        return !string.Equals(asset.Extension, expectedExtension, StringComparison.OrdinalIgnoreCase) ||
+            !string.Equals(asset.MediaType, normalizedMediaType, StringComparison.OrdinalIgnoreCase) ||
+            asset.Width.HasValue || asset.Height.HasValue || asset.LengthBytes.HasValue ||
+            !string.IsNullOrEmpty(asset.PayloadHash) || asset.PayloadBytes != null || asset.Region != null;
     }
 
     private static IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> BuildStructureParentMap(
@@ -123,6 +171,12 @@ public sealed partial class DocBookDocument {
         int separator = Math.Max(clean.LastIndexOf('/'), clean.LastIndexOf('\\'));
         string fileName = separator < 0 ? clean : clean.Substring(separator + 1);
         return string.IsNullOrWhiteSpace(fileName) ? null : fileName;
+    }
+
+    private static string? GetReferenceExtensionFromFileName(string? fileName) {
+        if (string.IsNullOrWhiteSpace(fileName)) return null;
+        int dot = fileName!.LastIndexOf('.');
+        return dot < 0 || dot == fileName.Length - 1 ? null : fileName.Substring(dot);
     }
 
     private static bool IsExtensionKind(string kind, string localName) {
@@ -192,6 +246,7 @@ public sealed partial class DocBookDocument {
 
     private static string ComputeTablePayloadHash(OfficeDocumentModelTable table) {
         var value = new StringBuilder();
+        AppendValue(table.Summary);
         AppendList(table.Columns);
         foreach (IReadOnlyList<string> row in table.Rows) AppendList(row);
         AppendValue(table.TotalRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));

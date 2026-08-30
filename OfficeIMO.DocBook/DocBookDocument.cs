@@ -162,7 +162,7 @@ public sealed partial class DocBookDocument {
             }
             if (element != root && element.Name.Namespace == Namespace &&
                  (Profile == DocBookProfile.DocBook52 &&
-                 (localName == "ulink" || localName == "articleinfo" || localName == "bookinfo" || localName == "sectioninfo" ||
+                 (localName == "ulink" || kind == DocBookNodeKind.Info && localName != "info" ||
                   localName == "sect1" || localName == "sect2" || localName == "sect3" || localName == "sect4" || localName == "sect5") ||
                  Profile == DocBookProfile.DocBook45 && localName == "info")) {
                 diagnostics.Add(new DocBookDiagnostic("DB014", DocBookDiagnosticSeverity.Error,
@@ -170,6 +170,11 @@ public sealed partial class DocBookDocument {
             }
             XElement? parent = element.Parent;
             DocBookNodeKind parentKind = parent == null ? DocBookNodeKind.Unknown : DocBookNames.GetKind(parent.Name, Namespace);
+            string? expectedInfoName = parent == null ? null : GetComponentInfoElementName(parent);
+            bool invalidInfoParent = kind == DocBookNodeKind.Info && element != root &&
+                (expectedInfoName != null
+                    ? !string.Equals(localName, expectedInfoName, StringComparison.Ordinal)
+                    : parentKind != DocBookNodeKind.Unknown);
             bool invalidParent = kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
@@ -181,8 +186,7 @@ public sealed partial class DocBookDocument {
                     !(parent?.Name == Namespace + "varlistentry" &&
                       parent?.Parent is XElement variableList &&
                       DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
-                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) &&
-                    parentKind != DocBookNodeKind.Section && parentKind != DocBookNodeKind.Unknown ||
+                invalidInfoParent ||
                 Kind == DocBookDocumentKind.Book && ReferenceEquals(parent, root) && element.Name.Namespace == Namespace &&
                     !IsAllowedBookRootChild(localName);
             if (invalidParent) {
@@ -203,6 +207,10 @@ public sealed partial class DocBookDocument {
                 if (string.IsNullOrWhiteSpace((string?)element.Attribute("linkend"))) {
                     diagnostics.Add(new DocBookDiagnostic("DB017", DocBookDiagnosticSeverity.Error,
                         "xref requires a nonblank linkend target in the bounded common-structure profile.", path));
+                }
+                if (element.Nodes().Any()) {
+                    diagnostics.Add(new DocBookDiagnostic("DB017", DocBookDiagnosticSeverity.Error,
+                        "xref must be empty in the bounded common-structure profile.", path));
                 }
                 if (element.Attribute("href") != null || element.Attribute("url") != null || element.Attribute(xlinkHref) != null) {
                     diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
@@ -267,8 +275,8 @@ public sealed partial class DocBookDocument {
     internal XElement ResolveTypedContentParent(XElement requestedParent, string localName) {
         if (localName == "author") {
             if (ReferenceEquals(requestedParent, RootElement)) return EnsureInfo();
-            if (DocBookNames.GetKind(requestedParent.Name, Namespace) == DocBookNodeKind.Section) {
-                string infoName = Profile == DocBookProfile.DocBook52 ? "info" : "sectioninfo";
+            string? infoName = GetComponentInfoElementName(requestedParent);
+            if (infoName != null) {
                 XElement? info = requestedParent.Element(Namespace + infoName);
                 if (info == null) {
                     info = new XElement(Namespace + infoName);
@@ -288,6 +296,28 @@ public sealed partial class DocBookDocument {
         RootElement.Add(chapter);
         MarkModified();
         return chapter;
+    }
+
+    internal string? GetComponentInfoElementName(XElement component) {
+        string localName = component.Name.LocalName;
+        bool isRoot = ReferenceEquals(component, RootElement);
+        bool isSection = DocBookNames.GetKind(component.Name, Namespace) == DocBookNodeKind.Section;
+        bool isSupportedComponent = localName == "chapter" || localName == "appendix" || localName == "article" ||
+            localName == "bibliography" || localName == "glossary" || localName == "index" || localName == "part" ||
+            localName == "preface" || localName == "reference" || localName == "setindex";
+        if (!isRoot && !isSection && !isSupportedComponent) return null;
+        if (Profile == DocBookProfile.DocBook52) return "info";
+        switch (localName) {
+            case "article": return "articleinfo";
+            case "book": return "bookinfo";
+            case "section": return "sectioninfo";
+            case "sect1": return "sect1info";
+            case "sect2": return "sect2info";
+            case "sect3": return "sect3info";
+            case "sect4": return "sect4info";
+            case "sect5": return "sect5info";
+            default: return localName + "info";
+        }
     }
 
     private static bool IsAllowedBookRootChild(string localName) {

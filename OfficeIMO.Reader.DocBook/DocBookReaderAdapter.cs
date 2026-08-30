@@ -93,6 +93,7 @@ internal static partial class DocBookReaderAdapter {
         IEnumerable<ReaderChunk> BuildNode(OfficeDocumentModelNode node, ListMarker? listMarker = null,
             string? admonitionContext = null) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsIndexTerm(node.Kind)) yield break;
             string? nestedAdmonitionContext = IsAdmonition(node.Kind) ? node.Kind : admonitionContext;
             if (node.Kind == "itemized-list" || node.Kind == "ordered-list") {
                 bool ordered = node.Kind == "ordered-list";
@@ -210,10 +211,13 @@ internal static partial class DocBookReaderAdapter {
 
     private static bool IsPreformatted(string kind) => kind == "code" || kind == "screen";
 
+    private static bool IsIndexTerm(string kind) =>
+        string.Equals(kind, "index-term", StringComparison.OrdinalIgnoreCase);
+
     private static bool BeginsWithNestedList(OfficeDocumentModelNode node) {
         OfficeDocumentModelNode? firstContent = node.Children.FirstOrDefault(child =>
-            !string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase) ||
-            !string.IsNullOrWhiteSpace(child.Text));
+            !IsIndexTerm(child.Kind) && (!string.Equals(child.Kind, "text", StringComparison.OrdinalIgnoreCase) ||
+            !string.IsNullOrWhiteSpace(child.Text)));
         return firstContent != null &&
             (firstContent.Kind == "itemized-list" || firstContent.Kind == "ordered-list");
     }

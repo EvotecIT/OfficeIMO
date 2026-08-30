@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 
 namespace OfficeIMO.DocBook.Tests;
@@ -112,6 +113,58 @@ public sealed class DocBookDocumentTests {
                 element.Value == "Section Author").Parent!.Parent!.Name.LocalName);
         Assert.Equal("personname", Assert.Single(sectionAuthor.Children).Name);
         Assert.True(document.Validate().IsValid);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, "chapterinfo")]
+    [InlineData(DocBookProfile.DocBook52, "info")]
+    public void TypedBookComponentMetadataUsesProfileSpecificContainer(DocBookProfile profile, string expectedName) {
+        DocBookDocument document = DocBookDocument.CreateBook(profile);
+        document.AddParagraph("Body");
+        DocBookNode chapter = document.Root.Children.Single(node => node.Name == "chapter");
+
+        DocBookNode info = chapter.Add(DocBookNodeKind.Info);
+        chapter.Add(DocBookNodeKind.Author, "Jane Doe");
+
+        Assert.Equal(expectedName, info.Name);
+        Assert.Equal(expectedName, chapter.Children.First().Name);
+        Assert.Equal(expectedName, document.Xml.Descendants().Single(element =>
+            element.Name.LocalName == "personname" && element.Value == "Jane Doe").Parent!.Parent!.Name.LocalName);
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Fact]
+    public void ValidationRejectsWrongMetadataAliasUnderBookComponent() {
+        const string source = "<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><book><chapter><bookinfo/><title>Chapter</title></chapter></book>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB015" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TitlelessTableUsesInformalTable(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode table = document.Root.AddTable();
+        table.Add(DocBookNodeKind.TableGroup).Add(DocBookNodeKind.TableBody)
+            .Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
+
+        Assert.Equal("informaltable", table.Name);
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Fact]
+    public void CrossReferenceRejectsDirectTextAndValidationRejectsTextContent() {
+        DocBookDocument document = DocBookDocument.CreateArticle();
+        Assert.Throws<ArgumentException>(() => document.Root.Add(DocBookNodeKind.CrossReference, "Label"));
+
+        DocBookDocument parsed = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><xref linkend=\"target\">Label</xref><section xml:id=\"target\"><title>Target</title></section></article>");
+        Assert.Contains(parsed.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB017" &&
+            diagnostic.Message.IndexOf("empty", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     [Fact]
@@ -1480,6 +1533,20 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionReportsEditedFlatTableSummary() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><informaltable><tgroup cols=\"1\"><tbody><row><entry>Value</entry></row></tbody></tgroup></informaltable></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        Assert.Single(model.Tables).Summary = "Edited summary";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("table", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" &&
+            diagnostic.Message.IndexOf("summary", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
     public void SharedReverseConversionPreservesEditedFlatAssetProjection() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject><textobject><phrase>Original alt</phrase></textobject><caption>Original caption</caption></mediaobject></article>";
         OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
@@ -1497,6 +1564,41 @@ public sealed class DocBookDocumentTests {
         XElement media = image.Ancestors().Single(element => element.Name.LocalName == "mediaobject");
         Assert.Equal("Edited caption", media.Elements().Single(element => element.Name.LocalName == "caption").Value);
         Assert.Equal("Edited alt", media.Elements().Single(element => element.Name.LocalName == "textobject").Value);
+    }
+
+    [Fact]
+    public void SharedReverseConversionReportsEditedUnsupportedAssetFields() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"figure.png\"/></imageobject></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelAsset asset = Assert.Single(model.Assets);
+        asset.PayloadBytes = new byte[] { 1, 2, 3 };
+        asset.Width = 640;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("asset", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" &&
+            diagnostic.Message.IndexOf("payload", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
+    public void SharedReverseConversionReusesKindLookupForLargeStructures() {
+        const int count = 25_000;
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.DocBook,
+            Structure = Enumerable.Range(0, count).Select(index => new OfficeDocumentModelNode {
+                Id = "paragraph-" + index, Kind = "paragraph", Text = "Paragraph " + index
+            }).ToArray()
+        };
+
+        var stopwatch = Stopwatch.StartNew();
+        DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(model).Value;
+        stopwatch.Stop();
+
+        Assert.Equal(count, converted.Xml.Descendants().Count(element => element.Name.LocalName == "para"));
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+            $"Indexed reverse conversion took {stopwatch.Elapsed}.");
     }
 
     private static OfficeDocumentModelNode FindStructureNode(IEnumerable<OfficeDocumentModelNode> nodes, string kind) {
