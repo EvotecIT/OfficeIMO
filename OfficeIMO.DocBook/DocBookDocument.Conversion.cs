@@ -654,12 +654,26 @@ public sealed partial class DocBookDocument {
                 string expandedName = source.Kind.Substring("extension:".Length);
                 try {
                     XName extensionName = XName.Get(expandedName);
-                    if (requalifySourceVocabulary && IsKnownUntypedDocBookElement(extensionName, sourceDocBookNamespace)) {
-                        extensionName = targetDocBookNamespace + extensionName.LocalName;
+                    bool normalizeBookComponent = selectedKind == DocBookDocumentKind.Article &&
+                        inferredKind == DocBookDocumentKind.Book && extensionName.Namespace == sourceDocBookNamespace &&
+                        IsBookOnlyComponentName(extensionName.LocalName);
+                    if (normalizeBookComponent) {
+                        target = parent.Add(DocBookNodeKind.Section);
                         profileOwnedNode = true;
+                        if (source.Children.Count == 0 && !string.IsNullOrEmpty(source.Text)) {
+                            target.AddParagraph(source.Text);
+                        }
+                        diagnostics.Add(new DocBookDiagnostic("DB126", DocBookDiagnosticSeverity.Warning,
+                            $"Book component '{extensionName.LocalName}' was represented as a section in the article target.",
+                            source.Location?.HeadingPath));
+                    } else {
+                        if (requalifySourceVocabulary && IsKnownUntypedDocBookElement(extensionName, sourceDocBookNamespace)) {
+                            extensionName = targetDocBookNamespace + extensionName.LocalName;
+                            profileOwnedNode = true;
+                        }
+                        target = parent.AddExtension(extensionName,
+                            source.Children.Count == 0 || replaceChildrenWithPrimaryText ? source.Text : null);
                     }
-                    target = parent.AddExtension(extensionName,
-                        source.Children.Count == 0 || replaceChildrenWithPrimaryText ? source.Text : null);
                 } catch (Exception) {
                     target = parent.Add(DocBookNodeKind.Paragraph, source.Text);
                     diagnostics.Add(new DocBookDiagnostic("DB104", DocBookDiagnosticSeverity.Warning,
@@ -875,7 +889,15 @@ public sealed partial class DocBookDocument {
             foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodesById, structureParents))) {
                 if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodesById))) {
+            foreach (OfficeDocumentModelLink link in model.Links) {
+                if (TryGetDerivedLinkNode(link, structureNodesById, out OfficeDocumentModelNode? derivedLinkNode)) {
+                    if (!LinkTargetMatches(derivedLinkNode!, link)) {
+                        diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                            $"Recursive Structure and flat link '{link.Id}' contain conflicting targets; recursive Structure took precedence.",
+                            link.Location?.HeadingPath));
+                    }
+                    continue;
+                }
                 if (AddFlatLink(link)) AddSupplementaryDiagnostic("link", link.Id, link.Location?.HeadingPath);
             }
         } else {

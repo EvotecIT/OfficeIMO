@@ -226,7 +226,11 @@ public sealed partial class DocBookDocument {
         return null;
     }
 
-    private static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
+    private static bool TryGetDerivedLinkNode(
+        OfficeDocumentModelLink link,
+        ILookup<string, OfficeDocumentModelNode> nodesById,
+        out OfficeDocumentModelNode? derivedNode) {
+        derivedNode = null;
         const string prefix = "docbook-link-";
         if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) ||
             link.Region != null ||
@@ -234,14 +238,14 @@ public sealed partial class DocBookDocument {
             !string.IsNullOrWhiteSpace(link.NamedAction) || !string.IsNullOrWhiteSpace(link.RemoteFile) ||
             !string.IsNullOrWhiteSpace(link.RemoteDestinationName) || link.RemoteDestinationPageNumber.HasValue) return false;
         string nodeId = "docbook-" + link.Id.Substring(prefix.Length);
-        return nodesById[nodeId].Any(node =>
+        derivedNode = nodesById[nodeId].FirstOrDefault(node =>
             (string.Equals(node.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(node.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(node.Kind, link.Kind, StringComparison.OrdinalIgnoreCase) &&
             (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal) ||
              ShouldReplaceChildrenWithPrimaryText(node) &&
-             string.Equals(GetRepresentedPrimaryChildText(node), link.Text, StringComparison.Ordinal)) &&
-            LinkTargetMatches(node, link));
+             string.Equals(GetRepresentedPrimaryChildText(node), link.Text, StringComparison.Ordinal)));
+        return derivedNode != null;
     }
 
     private static bool LinkTargetMatches(OfficeDocumentModelNode node, OfficeDocumentModelLink link) {

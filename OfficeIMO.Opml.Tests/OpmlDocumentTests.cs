@@ -662,7 +662,7 @@ public sealed class OpmlDocumentTests {
 
         OpmlConversionResult<OpmlDocument> primaryResult = OpmlDocument.FromOfficeDocumentModel(primaryEdited);
 
-        Assert.Equal("Edited primary", primaryResult.Value.Outlines.First().Text);
+        Assert.Equal("Edited primary", Assert.Single(primaryResult.Value.Outlines).Text);
         Assert.Contains(primaryResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110");
 
         OfficeDocumentModel synchronizedPrimary = OpmlDocument.Parse(
@@ -676,6 +676,19 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("Edited together", synchronizedResult.Value.Outlines.Single().Text);
         Assert.Contains(synchronizedResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110" &&
             diagnostic.Message.IndexOf("synchronized", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
+    public void SharedReverseConversionRetainsIndependentlyEditedFlatBlockText() {
+        OfficeDocumentModel model = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        model.Blocks.Single().Text = "Edited flat block";
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal(new[] { "Original", "Edited flat block" }, converted.Value.Outlines.Select(outline => outline.Text));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
     }
 
     [Fact]

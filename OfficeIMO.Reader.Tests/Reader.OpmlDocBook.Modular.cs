@@ -57,6 +57,20 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void OpmlAdapterIncludesHeadingSyntaxInTinyChunkBudgets() {
+        OpmlDocument document = OpmlDocument.Create();
+        OpmlOutline current = document.AddOutline("One");
+        for (int level = 2; level <= 6; level++) current = current.AddChild("Level " + level);
+
+        ReaderChunk[] chunks = OpmlReaderAdapter.Read(
+            document, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
+
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 2));
+        Assert.Contains(chunks, chunk => chunk.Text.Length == 0 && chunk.Markdown == "##");
+        Assert.Contains(chunks, chunk => chunk.Text.Length == 0 && chunk.Markdown == "# ");
+    }
+
+    [Fact]
     public void DocBookAdapterEmitsCommonStructureChunksAndRegistersDedicatedExtensions() {
         DocBookDocument document = DocBookDocument.CreateArticle();
         document.AddSection("Start").AddParagraph("Body");
@@ -349,11 +363,11 @@ public sealed class ReaderOpmlDocBookModularTests {
         OpmlDocument opml = OpmlDocument.Create();
         opml.AddOutline("A😀B");
         ReaderChunk[] opmlChunks = OpmlReaderAdapter.Read(opml, readerOptions: new ReaderOptions { MaxChars = 2 }).ToArray();
-        Assert.Equal(new[] { "A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Text));
+        Assert.Equal(new[] { "", "A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Text));
         Assert.Equal("A😀B", string.Concat(opmlChunks.Select(chunk => chunk.Text)));
         Assert.False(opmlChunks[0].ContinuesPreviousChunk);
         Assert.All(opmlChunks.Skip(1), chunk => Assert.True(chunk.ContinuesPreviousChunk));
-        Assert.Equal(new[] { "# A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Markdown));
+        Assert.Equal(new[] { "# ", "A", "😀", "B" }, opmlChunks.Select(chunk => chunk.Markdown));
 
         using var opmlStream = new MemoryStream(Encoding.UTF8.GetBytes(opml.ToOpml()));
         OfficeDocumentReadResult opmlResult = OpmlReaderAdapter.ReadDocument(opmlStream, readerOptions: new ReaderOptions { MaxChars = 2 });

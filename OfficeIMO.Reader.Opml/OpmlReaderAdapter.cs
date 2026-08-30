@@ -78,11 +78,9 @@ internal static partial class OpmlReaderAdapter {
             int currentSource = sourceIndex++;
             int maxChars = Math.Max(1, reader.MaxChars);
             string headingPrefix = new string('#', Math.Min(level, 6)) + " ";
-            IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(
-                outline.Text, Math.Max(1, maxChars - headingPrefix.Length), maxChars);
-            if (parts.Count == 0) parts = new[] { string.Empty };
+            IReadOnlyList<HeadingProjectionPart> parts = SplitHeadingProjection(outline.Text, headingPrefix, maxChars);
             string targetMarkdown = BuildTargetMarkdown(outline);
-            string finalTextMarkdown = (parts.Count == 1 ? headingPrefix : string.Empty) + parts[parts.Count - 1];
+            string finalTextMarkdown = parts[parts.Count - 1].Markdown;
             bool appendTargets = targetMarkdown.Length > 0 &&
                 finalTextMarkdown.Length + 2 + targetMarkdown.Length <= maxChars;
             IReadOnlyList<string> targetParts = targetMarkdown.Length == 0 || appendTargets
@@ -91,11 +89,11 @@ internal static partial class OpmlReaderAdapter {
             int totalParts = parts.Count + targetParts.Count;
             int emittedPart = 0;
             for (int part = 0; part < parts.Count; part++) {
-                string markdown = part == 0 ? headingPrefix + parts[part] : parts[part];
+                string markdown = parts[part].Markdown;
                 if (part == parts.Count - 1 && appendTargets) markdown += "\n\n" + targetMarkdown;
                 yield return new ReaderChunk {
                     Id = totalParts == 1 ? "opml-" + currentSource : "opml-" + currentSource + "-part-" + (emittedPart + 1),
-                    Kind = ReaderInputKind.Opml, Text = parts[part],
+                    Kind = ReaderInputKind.Opml, Text = parts[part].Text,
                     Markdown = markdown,
                     ContinuesPreviousChunk = emittedPart > 0,
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
@@ -118,6 +116,33 @@ internal static partial class OpmlReaderAdapter {
             }
             foreach (OpmlOutline child in outline.Children) foreach (ReaderChunk chunk in BuildOutline(child, level + 1, headingPath)) yield return chunk;
         }
+    }
+
+    private static IReadOnlyList<HeadingProjectionPart> SplitHeadingProjection(string text, string prefix, int maxChars) {
+        int effectiveMaxChars = Math.Max(1, maxChars);
+        IReadOnlyList<string> prefixParts = DocumentReaderEngine.SplitAdapterProjection(prefix, effectiveMaxChars);
+        var parts = new List<HeadingProjectionPart>();
+        for (int index = 0; index + 1 < prefixParts.Count; index++) {
+            parts.Add(new HeadingProjectionPart(string.Empty, prefixParts[index]));
+        }
+        string finalPrefix = prefixParts.Count == 0 ? string.Empty : prefixParts[prefixParts.Count - 1];
+        int firstTextBudget = finalPrefix.Length >= effectiveMaxChars
+            ? effectiveMaxChars : effectiveMaxChars - finalPrefix.Length;
+        IReadOnlyList<string> textParts = text.Length == 0
+            ? Array.Empty<string>()
+            : DocumentReaderEngine.SplitAdapterProjection(text, firstTextBudget, effectiveMaxChars);
+        if (finalPrefix.Length >= effectiveMaxChars) {
+            parts.Add(new HeadingProjectionPart(string.Empty, finalPrefix));
+            foreach (string textPart in textParts) parts.Add(new HeadingProjectionPart(textPart, textPart));
+        } else if (textParts.Count == 0) {
+            parts.Add(new HeadingProjectionPart(string.Empty, finalPrefix));
+        } else {
+            parts.Add(new HeadingProjectionPart(textParts[0], finalPrefix + textParts[0]));
+            for (int index = 1; index < textParts.Count; index++) {
+                parts.Add(new HeadingProjectionPart(textParts[index], textParts[index]));
+            }
+        }
+        return parts;
     }
 
     private static string BuildTargetMarkdown(OpmlOutline outline) {
@@ -162,6 +187,12 @@ internal static partial class OpmlReaderAdapter {
         internal OfficeDocumentModel Model { get; }
         internal IReadOnlyList<OpmlDiagnostic> Diagnostics { get; }
         internal ReaderChunk[] Chunks { get; }
+    }
+
+    private sealed class HeadingProjectionPart {
+        internal HeadingProjectionPart(string text, string markdown) { Text = text; Markdown = markdown; }
+        internal string Text { get; }
+        internal string Markdown { get; }
     }
 
     private static void ApplyReaderLimit(OpmlReadOptions options, long? maxBytes) {

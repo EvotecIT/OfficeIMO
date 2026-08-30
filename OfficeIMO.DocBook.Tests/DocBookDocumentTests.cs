@@ -15,7 +15,9 @@ public sealed class DocBookDocumentTests {
         section.AddProgramListing("dotnet test", "shell");
         section.AddAdmonition(DocBookNodeKind.Note, "Remember");
         section.AddImage("image.png", "Example");
-        section.AddTable("Data").Add(DocBookNodeKind.TableGroup).Add(DocBookNodeKind.TableBody)
+        DocBookNode group = section.AddTable("Data").Add(DocBookNodeKind.TableGroup);
+        group.SetAttribute("cols", "1");
+        group.Add(DocBookNodeKind.TableBody)
             .Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
         section.AddIndexTerm("install");
 
@@ -149,11 +151,29 @@ public sealed class DocBookDocumentTests {
     public void TitlelessTableUsesInformalTable(DocBookProfile profile) {
         DocBookDocument document = DocBookDocument.CreateArticle(profile);
         DocBookNode table = document.Root.AddTable();
-        table.Add(DocBookNodeKind.TableGroup).Add(DocBookNodeKind.TableBody)
+        DocBookNode group = table.Add(DocBookNodeKind.TableGroup);
+        group.SetAttribute("cols", "1");
+        group.Add(DocBookNodeKind.TableBody)
             .Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
 
         Assert.Equal("informaltable", table.Name);
         Assert.True(document.Validate().IsValid);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, null)]
+    [InlineData(DocBookProfile.DocBook52, null)]
+    [InlineData(DocBookProfile.DocBook52, "0")]
+    [InlineData(DocBookProfile.DocBook52, "-1")]
+    [InlineData(DocBookProfile.DocBook52, "many")]
+    public void ValidationRequiresPositiveCalsColumnCount(DocBookProfile profile, string? columns) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNode group = document.Root.AddTable().Add(DocBookNodeKind.TableGroup);
+        if (columns != null) group.SetAttribute("cols", columns);
+        group.Add(DocBookNodeKind.TableBody).Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB021" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
     [Theory]
@@ -596,6 +616,32 @@ public sealed class DocBookDocumentTests {
         Assert.Contains("url=\"https://example.test\"", roundTripped.ToDocBook());
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void BookToArticleConversionNormalizesBookOnlyComponentsToSections(DocBookProfile targetProfile) {
+        const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><part><title>Part</title><chapter><title>Chapter</title><para>Body</para></chapter></part><appendix><title>Appendix</title><para>Tail</para></appendix></book>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(
+            model, DocBookDocumentKind.Article, targetProfile);
+
+        string[] bookOnlyNames = { "chapter", "part", "appendix", "preface", "reference", "article" };
+        Assert.DoesNotContain(converted.Value.Xml.Root!.Descendants(), element =>
+            bookOnlyNames.Contains(element.Name.LocalName, StringComparer.Ordinal));
+        Assert.Equal(new[] { "Part", "Chapter", "Appendix" }, converted.Value.Xml.Descendants()
+            .Where(element => element.Name.LocalName == "section")
+            .Select(element => element.Elements().First(child => child.Name.LocalName == "title").Value));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB126");
+        Assert.True(converted.Value.Validate().IsValid);
+
+        string invalidArticle = targetProfile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><title>Invalid</title></chapter></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><chapter><title>Invalid</title></chapter></article>";
+        Assert.Contains(DocBookDocument.Parse(invalidArticle).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB015" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void ProfileConversionTranslatesExternalLinkElementAndAttribute() {
         const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"https://example.test/five\">Five</link></para></article>";
@@ -726,7 +772,9 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(new[] { "title", "para" }, section.Children.Select(child => child.Name));
 
         DocBookNode table = article.Root.Add(DocBookNodeKind.Table);
-        table.Add(DocBookNodeKind.TableGroup).Add(DocBookNodeKind.TableBody)
+        DocBookNode tableGroup = table.Add(DocBookNodeKind.TableGroup);
+        tableGroup.SetAttribute("cols", "1");
+        tableGroup.Add(DocBookNodeKind.TableBody)
             .Add(DocBookNodeKind.Row).Add(DocBookNodeKind.Entry, "Value");
         table.Add(DocBookNodeKind.Title, "Late table");
         Assert.Equal("title", table.Children.First().Name);
@@ -1642,6 +1690,29 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("link", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.Contains(converted.Value.Xml.Descendants(), element =>
             element.Name.LocalName == "link" && (string?)element.Attribute("linkend") == "target");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedReverseConversionSuppressesStaleFlatTargetsAfterRecursiveLinkEdits(bool internalTarget) {
+        string source = internalTarget
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><para><link linkend=\"original\">Target</link></para></article>"
+            : "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para><link xl:href=\"https://example.test/original\">Target</link></para></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode recursiveLink = model.Structure.Single().Children.Single(node => node.Kind == "link");
+        var attributes = recursiveLink.Attributes.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        string attributeName = internalTarget ? "linkend" : "{http://www.w3.org/1999/xlink}href";
+        string editedTarget = internalTarget ? "edited" : "https://example.test/edited";
+        attributes[attributeName] = editedTarget;
+        recursiveLink.Attributes = attributes;
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+        XElement link = Assert.Single(converted.Value.Xml.Descendants(), element => element.Name.LocalName == "link");
+
+        Assert.Equal(editedTarget, (string?)link.Attribute(XName.Get(attributeName)));
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("conflicting targets", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
     [Fact]

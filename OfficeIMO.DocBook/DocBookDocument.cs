@@ -191,6 +191,12 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB020", DocBookDiagnosticSeverity.Error,
                     "title must appear in the container header before subtitle and body content.", path));
             }
+            if (kind == DocBookNodeKind.TableGroup &&
+                (!int.TryParse((string?)element.Attribute("cols"), System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out int columnCount) || columnCount <= 0)) {
+                diagnostics.Add(new DocBookDiagnostic("DB021", DocBookDiagnosticSeverity.Error,
+                    "tgroup requires a positive cols attribute in the bounded CALS profile.", path));
+            }
             bool invalidParent = invalidInlineParent ||
                 kind == DocBookNodeKind.TableGroup && parentKind != DocBookNodeKind.Table ||
                 (kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody) && parentKind != DocBookNodeKind.TableGroup ||
@@ -204,6 +210,8 @@ public sealed partial class DocBookDocument {
                       parent?.Parent is XElement variableList &&
                       DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
                 invalidInfoParent ||
+                Kind == DocBookDocumentKind.Article && element != root && element.Name.Namespace == Namespace &&
+                    IsBookOnlyComponentName(localName) ||
                 Kind == DocBookDocumentKind.Book && ReferenceEquals(parent, root) && element.Name.Namespace == Namespace &&
                     !IsAllowedBookRootChild(localName);
             if (invalidParent) {
@@ -358,6 +366,10 @@ public sealed partial class DocBookDocument {
             localName == "bibliography" || localName == "glossary" || localName == "index" || localName == "part" ||
             localName == "preface" || localName == "reference" || localName == "setindex";
     }
+
+    internal static bool IsBookOnlyComponentName(string localName) =>
+        localName == "chapter" || localName == "part" || localName == "appendix" ||
+        localName == "preface" || localName == "reference" || localName == "article";
 
     internal string? GetComponentInfoElementName(XElement component) {
         string localName = component.Name.LocalName;

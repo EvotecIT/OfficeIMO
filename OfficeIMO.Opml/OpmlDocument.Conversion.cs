@@ -378,11 +378,18 @@ public sealed partial class OpmlDocument {
         }
         return new OpmlConversionResult<OpmlDocument>(document, diagnostics.ToArray());
 
-        static bool IsDerivedBlock(OfficeDocumentModelBlock block, ILookup<string, OfficeDocumentModelNode> nodesById) =>
-            !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodesById[block.Id].Any(node =>
-                string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(block.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
+        static bool IsDerivedBlock(OfficeDocumentModelBlock block, ILookup<string, OfficeDocumentModelNode> nodesById) {
+            if (string.IsNullOrEmpty(block.Id) || block.Marker != null || block.Region != null ||
+                !string.Equals(block.Kind, "outline", StringComparison.OrdinalIgnoreCase)) return false;
+            return nodesById[block.Id].Any(node => {
+                if (!string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase) || node.Level != block.Level) return false;
+                if (string.Equals(node.Text, block.Text, StringComparison.Ordinal)) return true;
+                bool recursiveTextWasEdited = !HeadingPathIdentifiesOriginalText(node.Location?.HeadingPath, node.Text);
+                bool flatTextIsOriginal = HeadingPathIdentifiesOriginalText(block.Location?.HeadingPath, block.Text);
+                return recursiveTextWasEdited && flatTextIsOriginal &&
+                    string.Equals(node.Location?.HeadingPath, block.Location?.HeadingPath, StringComparison.Ordinal);
+            });
+        }
 
         static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
             const string prefix = "opml-link-";
