@@ -300,6 +300,26 @@ public sealed class PdfTableDetectionValidationTests {
             cell => cell.Contains("Margin note", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("Section summary", "Helvetica-Bold")]
+    [InlineData("SECTION SUMMARY", "Helvetica")]
+    public void TableDetector_DoesNotMergeAcrossSingleColumnEmphasizedLabels(string label, string font) {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(500D, ("A-1", 50D, 55D, "Helvetica"), ("100", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(480D, (label, 50D, 100D, font)) },
+            new() { CreateLine(460D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(440D, ("B-1", 50D, 55D, "Helvetica"), ("200", 220D, 48D, "Helvetica")) }
+        };
+
+        List<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+
+        Assert.Equal(2, tables.Count);
+        Assert.DoesNotContain(
+            tables.SelectMany(static table => table.Rows).SelectMany(static row => row),
+            cell => cell.Contains("SECTION SUMMARY", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public void TableDetector_DoesNotTreatParallelPageColumnsAsCompactTable() {
         List<List<TextLayoutEngine.TextLine>> bands = new() {

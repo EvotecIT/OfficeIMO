@@ -496,9 +496,13 @@ internal static class TableDetector {
             return InterveningBandDecision.Reject;
         }
         string text = line.Text.Trim();
-        return HasEmphasizedText(line) ||
-               IsUppercaseSectionLabel(text) ||
-               (CrossesColumnBoundary(line, splits) && HasSpanningRowQualifier(text))
+        bool crossesColumnBoundary = CrossesColumnBoundary(line, splits);
+        bool hasSectionLabelEvidence = HasEmphasizedText(line) || IsUppercaseSectionLabel(text);
+        bool followsEmphasizedHeader = bands[currentBandIndex].Count == 1 &&
+                                       HasEmphasizedText(bands[currentBandIndex][0]);
+        return (crossesColumnBoundary &&
+                (hasSectionLabelEvidence || HasSpanningRowQualifier(text))) ||
+               (!crossesColumnBoundary && followsEmphasizedHeader && hasSectionLabelEvidence)
             ? InterveningBandDecision.Include
             : InterveningBandDecision.Reject;
     }
