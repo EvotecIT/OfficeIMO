@@ -303,6 +303,14 @@ public sealed partial class OpmlDocument {
                 $"Shared visual '{visual.SourceName ?? visual.Kind}' cannot be represented in OPML and was omitted.",
                 visual.Location?.HeadingPath));
         }
+        if (!string.IsNullOrEmpty(model.Markdown)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                "Shared Markdown content cannot be represented in OPML and was omitted."));
+        }
+        if (!string.IsNullOrEmpty(model.Html)) {
+            diagnostics.Add(new OpmlDiagnostic("OPML108", OpmlDiagnosticSeverity.Warning,
+                "Shared HTML content cannot be represented in OPML and was omitted."));
+        }
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);

@@ -860,6 +860,14 @@ public sealed partial class DocBookDocument {
         foreach (OfficeDocumentModelVisual visual in model.Visuals) {
             AddUnsupportedChannelDiagnostic("visual", visual.SourceName ?? visual.Kind, visual.Location?.HeadingPath);
         }
+        if (!string.IsNullOrEmpty(model.Markdown)) {
+            diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
+                "Shared Markdown content could not be represented by the bounded DocBook common-structure profile."));
+        }
+        if (!string.IsNullOrEmpty(model.Html)) {
+            diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
+                "Shared HTML content could not be represented by the bounded DocBook common-structure profile."));
+        }
         var representedAuthors = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeDocumentModelNode authorNode in structureNodes.Where(node =>
                      string.Equals(node.Kind, "author", StringComparison.OrdinalIgnoreCase))) {

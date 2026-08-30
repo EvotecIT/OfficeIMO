@@ -175,6 +175,7 @@ public sealed partial class DocBookDocument {
                 kind == DocBookNodeKind.Row && parentKind != DocBookNodeKind.TableHead && parentKind != DocBookNodeKind.TableBody &&
                     parent?.Name != Namespace + "tfoot" ||
                 kind == DocBookNodeKind.Entry && parentKind != DocBookNodeKind.Row ||
+                kind == DocBookNodeKind.Author && parentKind != DocBookNodeKind.Info && parent?.Name != Namespace + "authorgroup" ||
                 kind == DocBookNodeKind.ListItem && parentKind != DocBookNodeKind.ItemizedList &&
                     parentKind != DocBookNodeKind.OrderedList &&
                     !(parent?.Name == Namespace + "varlistentry" &&
@@ -206,6 +207,10 @@ public sealed partial class DocBookDocument {
                     diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
                         $"{localName} uses a link target attribute outside the selected {Profile} common-structure profile.", path));
                 }
+            }
+            if (kind == DocBookNodeKind.Author && element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value))) {
+                diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
+                    "author text must be contained by a personname element in the bounded common-structure profile.", path));
             }
             if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
                  kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
@@ -259,6 +264,19 @@ public sealed partial class DocBookDocument {
     }
 
     internal XElement ResolveTypedContentParent(XElement requestedParent, string localName) {
+        if (localName == "author") {
+            if (ReferenceEquals(requestedParent, RootElement)) return EnsureInfo();
+            if (DocBookNames.GetKind(requestedParent.Name, Namespace) == DocBookNodeKind.Section) {
+                string infoName = Profile == DocBookProfile.DocBook52 ? "info" : "sectioninfo";
+                XElement? info = requestedParent.Element(Namespace + infoName);
+                if (info == null) {
+                    info = new XElement(Namespace + infoName);
+                    requestedParent.AddFirst(info);
+                    MarkModified();
+                }
+                return info;
+            }
+        }
         if (Kind != DocBookDocumentKind.Book || !ReferenceEquals(requestedParent, RootElement) || IsAllowedBookRootChild(localName)) {
             return requestedParent;
         }
@@ -365,6 +383,11 @@ public sealed partial class DocBookDocument {
     private static void RejectUnsupportedEntityDeclarations(string? internalSubset) {
         if (string.IsNullOrEmpty(internalSubset)) return;
         for (int index = 0; index < internalSubset!.Length;) {
+            if (Matches(index, "<?")) {
+                int processingInstructionEnd = internalSubset.IndexOf("?>", index + 2, StringComparison.Ordinal);
+                index = processingInstructionEnd < 0 ? internalSubset.Length : processingInstructionEnd + 2;
+                continue;
+            }
             if (Matches(index, "<!--")) {
                 int commentEnd = internalSubset.IndexOf("-->", index + 4, StringComparison.Ordinal);
                 index = commentEnd < 0 ? internalSubset.Length : commentEnd + 3;

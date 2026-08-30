@@ -75,6 +75,55 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void InternalSubsetProcessingInstructionsDoNotImpersonateEntityDeclarations() {
+        const string source = "<!DOCTYPE article [<?audit <!ENTITY % sample SYSTEM \"uri\">?><!ENTITY safe \"ok\">]><article><para>&safe;</para></article>";
+
+        DocBookDocument document = DocBookDocument.Parse(source);
+
+        Assert.Equal("ok", document.Xml.Root!.Value);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void TypedAuthorTextUsesPersonNameContent(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+
+        DocBookNode author = document.Root.Add(DocBookNodeKind.Author, "Jane Doe");
+        DocBookNode personName = Assert.Single(author.Children);
+
+        Assert.Equal("personname", personName.Name);
+        Assert.Equal("Jane Doe", personName.Text);
+        XElement authorElement = document.Xml.Descendants().Single(element => element.Name.LocalName == "author");
+        Assert.Equal(profile == DocBookProfile.DocBook45 ? "articleinfo" : "info", authorElement.Parent!.Name.LocalName);
+        Assert.DoesNotContain(authorElement.Nodes().OfType<XText>(), text => !string.IsNullOrWhiteSpace(text.Value));
+        Assert.DoesNotContain(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB018");
+
+        author.Text = "Janet Doe";
+
+        Assert.Equal("Janet Doe", Assert.Single(author.Children).Text);
+        Assert.Equal("personname", Assert.Single(author.Children).Name);
+        Assert.DoesNotContain(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB018");
+
+        DocBookNode sectionAuthor = document.AddSection("Section").Add(DocBookNodeKind.Author, "Section Author");
+
+        Assert.Equal(profile == DocBookProfile.DocBook45 ? "sectioninfo" : "info",
+            document.Xml.Descendants().Single(element => element.Name.LocalName == "personname" &&
+                element.Value == "Section Author").Parent!.Parent!.Name.LocalName);
+        Assert.Equal("personname", Assert.Single(sectionAuthor.Children).Name);
+        Assert.True(document.Validate().IsValid);
+    }
+
+    [Fact]
+    public void ValidationRejectsDirectTextOnAuthorElements() {
+        DocBookDocument document = DocBookDocument.Parse(
+            "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><info><author>Jane Doe</author></info></article>");
+
+        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB018" &&
+            diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void ValidationRejectsListItemsOutsideSupportedListParents() {
         DocBookDocument invalid = DocBookDocument.CreateArticle();
         invalid.Root.AddListItem("Root item");
@@ -913,6 +962,20 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDiagnosesPortableOnlyBodyChannels() {
+        var model = new OfficeDocumentModel { Markdown = "# Heading", Html = "<h1>Heading</h1>" };
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Empty(converted.Value.Xml.Root!.Descendants());
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" &&
+            diagnostic.Message.IndexOf("Markdown", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124" &&
+            diagnostic.Message.IndexOf("HTML", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
     public void SharedConversionAppendsSupplementaryChannelsAlongsideStructure() {
         var model = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.DocBook,
@@ -997,7 +1060,9 @@ public sealed class DocBookDocumentTests {
         DocBookDocument restored = DocBookDocument.FromOfficeDocumentModel(model).Value;
 
         Assert.Equal("Jane Doe", model.Source.Author);
-        Assert.Single(restored.Xml.Descendants(), element => element.Name.LocalName == "author");
+        XElement author = Assert.Single(restored.Xml.Descendants(), element => element.Name.LocalName == "author");
+        Assert.Equal("Jane Doe", Assert.Single(author.Elements(), element => element.Name.LocalName == "personname").Value);
+        Assert.DoesNotContain(author.Nodes().OfType<XText>(), text => !string.IsNullOrWhiteSpace(text.Value));
     }
 
     [Fact]

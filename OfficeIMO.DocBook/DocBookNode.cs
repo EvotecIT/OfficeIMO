@@ -19,7 +19,17 @@ public sealed class DocBookNode {
     /// <summary>Element local name.</summary>
     public string Name => Element.Name.LocalName;
     /// <summary>Combined descendant text. Setting it intentionally replaces child content.</summary>
-    public string Text { get => Element.Value; set { Element.Value = value ?? string.Empty; _document.MarkModified(); } }
+    public string Text {
+        get => Element.Value;
+        set {
+            if (Kind == DocBookNodeKind.Author) {
+                Element.ReplaceNodes(new XElement(_document.Namespace + "personname", value ?? string.Empty));
+            } else {
+                Element.Value = value ?? string.Empty;
+            }
+            _document.MarkModified();
+        }
+    }
     /// <summary>All attributes, including namespaced extension attributes.</summary>
     public IReadOnlyDictionary<XName, string> Attributes => Element.Attributes().ToDictionary(a => a.Name, a => a.Value);
     /// <summary>Child elements in source order.</summary>
@@ -103,6 +113,11 @@ public sealed class DocBookNode {
                 ? "sectioninfo"
                 : _document.Kind == DocBookDocumentKind.Article ? "articleinfo" : "bookinfo", text);
         }
+        if (kind == DocBookNodeKind.Author && text != null) {
+            DocBookNode author = AddRaw(DocBookNames.GetElementName(kind));
+            author.AddRaw("personname", text);
+            return author;
+        }
         return AddRaw(DocBookNames.GetElementName(kind), text);
     }
 
@@ -127,7 +142,16 @@ public sealed class DocBookNode {
     }
 
     internal void AddText(string text) {
-        Element.Add(new XText(text ?? string.Empty));
+        if (Kind == DocBookNodeKind.Author) {
+            XElement? personName = Element.Element(_document.Namespace + "personname");
+            if (personName == null) {
+                personName = new XElement(_document.Namespace + "personname");
+                Element.AddFirst(personName);
+            }
+            personName.Add(new XText(text ?? string.Empty));
+        } else {
+            Element.Add(new XText(text ?? string.Empty));
+        }
         _document.MarkModified();
     }
 }

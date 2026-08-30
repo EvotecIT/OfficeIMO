@@ -423,6 +423,20 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
+    public void SharedConversionDiagnosesPortableOnlyBodyChannels() {
+        var model = new OfficeDocumentModel { Markdown = "# Heading", Html = "<h1>Heading</h1>" };
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.True(converted.HasLoss);
+        Assert.Empty(converted.Value.Outlines);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML108" &&
+            diagnostic.Message.IndexOf("Markdown", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML108" &&
+            diagnostic.Message.IndexOf("HTML", StringComparison.Ordinal) >= 0);
+    }
+
+    [Fact]
     public void SharedConversionDoesNotReportFlatFallbackForMetadataOnlyModels() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml };
         var metadataOnly = new OfficeDocumentModel {
