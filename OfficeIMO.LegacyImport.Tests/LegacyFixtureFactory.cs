@@ -60,6 +60,13 @@ internal static class LegacyFixtureFactory {
         return bytes.ToArray();
     }
 
+    internal static byte[] WordStarWithEmptyNotes() {
+        var bytes = new List<byte>(Encoding.ASCII.GetBytes("Text\r\n"));
+        for (byte type = 0x03; type <= 0x06; type++) bytes.AddRange(WordStarSequence(type, string.Empty));
+        bytes.Add(0x1A);
+        return bytes.ToArray();
+    }
+
     internal static byte[] WordStarSequenceWithControl(byte type, byte control) {
         var bytes = new List<byte>(Encoding.ASCII.GetBytes("Text\r\n"));
         bytes.AddRange(WordStarSequence(type, new[] { (byte)'A', control, (byte)'B' }));

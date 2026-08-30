@@ -374,7 +374,7 @@ public sealed partial class ReaderRegistryTests {
     }
 
     [Fact]
-    public async Task PreferContentAppliesSelectedHandlerPrefixLimitBeforeEveryStreamDispatch() {
+    public async Task PreferContentAppliesSelectedHandlerPrefixLimitBeforeEveryDispatch() {
         byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
         int dispatchCount = 0;
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
@@ -385,6 +385,10 @@ public sealed partial class ReaderRegistryTests {
                 DefaultMaxInputBytes = 1_024,
                 InputLimitProbeBytes = 8,
                 ResolveMaxInputBytesFromPrefix = prefix => 8,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
                 ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
                     dispatchCount++;
                     return Array.Empty<ReaderChunk>();
@@ -414,6 +418,17 @@ public sealed partial class ReaderRegistryTests {
                        : new MemoryStream(source, writable: false)) {
                 await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.probedpdf", options));
             }
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".probedpdf");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
         }
 
         Assert.Equal(0, dispatchCount);

@@ -78,6 +78,27 @@ public static class ReaderInputLimits {
         }
     }
 
+    internal static void EnforceFileSize(
+        string path,
+        long? maxBytes,
+        ReaderInputLimitProbe? inputLimitProbe,
+        CancellationToken cancellationToken) {
+        if (inputLimitProbe == null) {
+            EnforceFileSize(path, maxBytes);
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete,
+            4096,
+            FileOptions.SequentialScan);
+        EnforceSeekableStreamSize(stream, maxBytes, inputLimitProbe, cancellationToken);
+    }
+
     internal static void EnforceSeekableStreamSize(
         Stream stream,
         long? maxBytes,

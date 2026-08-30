@@ -153,6 +153,46 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void AmiProProjectsFormattingAcrossEveryMultilineRunSegment() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<+!>First\nSecond<-!>\n"),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+
+        DocumentFormat.OpenXml.Wordprocessing.Body? body = imported.Document.OpenXmlDocument.MainDocumentPart?
+            .Document?.Body;
+        Assert.NotNull(body);
+        DocumentFormat.OpenXml.Wordprocessing.Run[] textRuns = body!
+            .Descendants<DocumentFormat.OpenXml.Wordprocessing.Run>()
+            .Where(run => run.InnerText == "First" || run.InnerText == "Second")
+            .ToArray();
+        Assert.Equal(2, textRuns.Length);
+        Assert.All(textRuns, run => Assert.NotNull(run.RunProperties?.Bold));
+        Assert.Single(body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>());
+        imported.Report.RequireStructuredNoLoss();
+
+        using LegacyWordImportResult formattingOnly = LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("[ver]\n4\n[edoc]\n<+!>\n<-!>\n"),
+            new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
+        DocumentFormat.OpenXml.Wordprocessing.Body? formattingOnlyBody = formattingOnly.Document.OpenXmlDocument
+            .MainDocumentPart?.Document?.Body;
+        Assert.NotNull(formattingOnlyBody);
+        Assert.Single(formattingOnlyBody!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Break>());
+        formattingOnly.Report.RequireStructuredNoLoss();
+    }
+
+    [Fact]
+    public void WordStarEmptyNotesRemainExplicitLoss() {
+        using LegacyWordImportResult imported = LegacyWordImporter.Import(
+            LegacyFixtureFactory.WordStarWithEmptyNotes(),
+            new LegacyWordImportOptions { FormatHint = LegacyWordFormat.WordStar, RequireStructured = true });
+
+        Assert.Empty(imported.Content.Notes);
+        Assert.Equal("4", imported.Metadata["WordStarEmptyNoteCount"]);
+        Assert.Single(imported.Report.Findings, finding => finding.Code == "WORDSTAR_NOTE_EMPTY_OMITTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
     public void AmiProRejectsUnsafeDecodedEscapeCharacters() {
         foreach (string escaped in new[] { "<\\\t>", "</@>" }) {
             using LegacyWordImportResult imported = LegacyWordImporter.Import(

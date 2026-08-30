@@ -27,6 +27,7 @@ internal sealed class WordStarStructuredParser {
     private int _graphicsReferenceCount;
     private int _inferredListCount;
     private int _headerFooterMetadataOnlyCount;
+    private int _emptyNoteCount;
     private string? _paragraphStyleName;
     private int _pendingPageBreakCount;
 
@@ -90,6 +91,7 @@ internal sealed class WordStarStructuredParser {
         if (_graphicsReferenceCount > 0) _model.Metadata["WordStarGraphicsReferenceCount"] = _graphicsReferenceCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_inferredListCount > 0) _model.Metadata["WordStarInferredListCount"] = _inferredListCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (_headerFooterMetadataOnlyCount > 0) _model.Metadata["WordStarHeaderFooterMetadataOnlyCount"] = _headerFooterMetadataOnlyCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (_emptyNoteCount > 0) _model.Metadata["WordStarEmptyNoteCount"] = _emptyNoteCount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         AddSequenceCountMetadata("WordStarPartialSequence", _partialSequenceCounts);
         AddSequenceCountMetadata("WordStarUnsupportedSequence", _unsupportedSequenceCounts);
         AddSequenceCountMetadata("WordStarUnsupportedControl", _unsupportedControlCounts);
@@ -182,7 +184,12 @@ internal sealed class WordStarStructuredParser {
     }
 
     private void AddNote(LegacyWordNoteKind kind, string text) {
-        if (string.IsNullOrWhiteSpace(text)) return;
+        if (string.IsNullOrWhiteSpace(text)) {
+            if (++_emptyNoteCount == 1) {
+                _model.Findings.Add(LegacyWordAdapterBase.LossFinding("WORDSTAR_NOTE_EMPTY_OMITTED", "Notes", "One or more structurally valid WordStar note records had no recoverable text and were omitted; the total is available in metadata."));
+            }
+            return;
+        }
         ConsumeItem("note");
         ConsumeText(text.Length);
         _model.Notes.Add(new LegacyWordNote(kind, text));

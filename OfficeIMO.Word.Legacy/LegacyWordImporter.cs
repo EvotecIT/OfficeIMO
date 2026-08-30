@@ -161,13 +161,7 @@ public static class LegacyWordImporter {
         int runIndex = 0;
         foreach (LegacyWordRun sourceRun in source.Runs) {
             if ((runIndex++ & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
-            WordParagraph run = paragraph.AddFormattedText(sourceRun.Text, sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
-            if (sourceRun.Strike) run.SetStrike();
-            if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
-            if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
-            if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
-            if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
-            ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);
+            ProjectRun(sourceRun, paragraph, recoveredStyle, document, cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
         if (source.Alignment.HasValue) paragraph.SetAlignment(source.Alignment.Value);
@@ -181,6 +175,30 @@ public static class LegacyWordImporter {
             string styleId = GetOrCreateLegacyStyleId(source.StyleName!, styleIds, usedStyleIds);
             paragraph.SetStyleId(styleId);
             EnsureLegacyParagraphStyle(document, styleId, source.StyleName!, recoveredStyle);
+        }
+    }
+
+    private static void ProjectRun(
+        LegacyWordRun sourceRun,
+        WordParagraph paragraph,
+        LegacyWordStyle? recoveredStyle,
+        WordDocument document,
+        CancellationToken cancellationToken) {
+        string normalized = sourceRun.Text.Replace("\r\n", "\n").Replace('\r', '\n');
+        string[] segments = normalized.Split('\n');
+        for (int index = 0; index < segments.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (index > 0) paragraph.AddBreak();
+            if (segments[index].Length == 0 && normalized.Length > 0) continue;
+
+            WordParagraph run = paragraph.AddFormattedText(
+                segments[index], sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
+            if (sourceRun.Strike) run.SetStrike();
+            if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
+            if (sourceRun.FontSizePoints.HasValue) run.FontSizePoints = sourceRun.FontSizePoints.Value;
+            if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
+            if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
+            ApplyRecoveredStyleRunOverrides(run, sourceRun, recoveredStyle, document);
         }
     }
 
