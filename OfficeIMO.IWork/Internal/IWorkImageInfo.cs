@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.IWork.Internal;
 
@@ -10,11 +11,25 @@ internal static class IWorkImageInfo {
             && TryReadPng(bytes, maximumDecodedBytes, out int width, out int height)) {
             return (width, height);
         }
-        if (string.Equals(mediaType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) return ReadJpeg(bytes);
+        if (string.Equals(mediaType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) {
+            return ReadJpeg(bytes, maximumDecodedBytes);
+        }
         return (null, null);
     }
 
-    private static (int? Width, int? Height) ReadJpeg(byte[] bytes) {
+    private static (int? Width, int? Height) ReadJpeg(byte[] bytes, long maximumDecodedBytes) {
+        (int? width, int? height) = ReadJpegMetadata(bytes);
+        if (!width.HasValue || !height.HasValue
+            || (long)width.Value * height.Value * 4 > maximumDecodedBytes
+            || bytes.Length < 2 || bytes[bytes.Length - 2] != 0xff || bytes[bytes.Length - 1] != 0xd9
+            || !OfficeJpegCodec.TryDecode(bytes, out OfficeRasterImage? decoded)
+            || decoded == null || decoded.Width != width.Value || decoded.Height != height.Value) {
+            return (null, null);
+        }
+        return (decoded.Width, decoded.Height);
+    }
+
+    private static (int? Width, int? Height) ReadJpegMetadata(byte[] bytes) {
         if (bytes.Length < 4 || bytes[0] != 0xff || bytes[1] != 0xd8) return (null, null);
         int offset = 2;
         int width = 0;

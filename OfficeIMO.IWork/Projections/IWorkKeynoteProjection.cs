@@ -234,6 +234,7 @@ internal static class IWorkKeynoteReader {
                 continue;
             }
             if (drawable.MessageType == 3005) {
+                projectionBudget.AddImage();
                 IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable, out bool imageComplete);
                 if (!imageComplete || image == null) {
                     supportsEditableReconstruction = false;

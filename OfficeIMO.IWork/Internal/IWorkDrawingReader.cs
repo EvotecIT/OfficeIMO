@@ -129,14 +129,13 @@ internal static class IWorkDrawingReader {
             return null;
         }
         string mediaType = MediaType(entry.Path, entry.Bytes);
-        if (mediaType.Length == 0) {
+        if (!IsEditableOwnerImageMediaType(mediaType)) {
             complete = false;
             return null;
         }
         (int? pixelWidth, int? pixelHeight) = IWorkImageInfo.Read(
             entry.Bytes, mediaType, source.Options.MaximumPackageBytes);
-        if (mediaType is "image/png" or "image/jpeg"
-            && (!pixelWidth.HasValue || !pixelHeight.HasValue)) {
+        if (!pixelWidth.HasValue || !pixelHeight.HasValue) {
             complete = false;
             return null;
         }
@@ -149,6 +148,9 @@ internal static class IWorkDrawingReader {
             pixelWidth, pixelHeight, geometry, message.HasBytes(5),
             hyperlink, accessibilityDescription);
     }
+
+    internal static bool IsEditableOwnerImageMediaType(string mediaType) =>
+        mediaType is "image/png" or "image/jpeg";
 
     private static ImageLookup CreateImageLookup(IWorkSourceDocument source) {
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);

@@ -38,7 +38,7 @@ internal static class IWorkTextReader {
                 int start = ordered[runIndex];
                 int end = ordered[runIndex + 1];
                 if (end <= start) continue;
-                string runText = NormalizeInlineText(text.Substring(start, end - start));
+                string runText = NormalizeInlineText(text.Substring(start, end - start), ref complete);
                 if (runText.Length == 0) continue;
                 projectionBudget.AddTextItem();
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
@@ -459,9 +459,10 @@ internal static class IWorkTextReader {
         _ => IWorkParagraphBreakKind.None
     };
 
-    private static string NormalizeInlineText(string value) => value
-        .Replace('\u2028', '\n')
-        .Replace("\ufffc", string.Empty);
+    private static string NormalizeInlineText(string value, ref bool complete) {
+        if (value.IndexOf('\ufffc') >= 0) complete = false;
+        return value.Replace('\u2028', '\n').Replace("\ufffc", string.Empty);
+    }
 
     internal static bool TryDecodeUtf8(byte[] bytes, IWorkProjectionBudget projectionBudget,
         out string value) {

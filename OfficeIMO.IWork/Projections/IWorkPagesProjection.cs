@@ -239,6 +239,7 @@ internal static class IWorkPagesReader {
         var seenImages = new HashSet<ulong>();
         foreach (IWorkArchiveRecord drawable in documentDrawables) {
             if (drawable.MessageType == 3005 && seenImages.Add(drawable.Identifier)) {
+                projectionBudget.AddImage();
                 IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable, out bool imageComplete);
                 if (!imageComplete || image == null) {
                     supportsEditableReconstruction = false;

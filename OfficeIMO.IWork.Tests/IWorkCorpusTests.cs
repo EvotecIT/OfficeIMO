@@ -171,10 +171,10 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
-    public void Pages_rich_text_preserves_inherited_typography_and_empty_paragraphs() {
+    public void Pages_rich_text_extracts_typography_but_marks_inline_objects_incomplete() {
         IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("iwork-converter/a.pages")).ReadPages();
 
-        Assert.True(pages.Body.IsComplete);
+        Assert.False(pages.Body.IsComplete);
         Assert.Equal(45, pages.Body.Paragraphs.Count);
         IWorkTextParagraph title = pages.Body.Paragraphs[0];
         IWorkTextRun titleRun = Assert.Single(title.Runs);
@@ -189,21 +189,21 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
-    public void Pages_owner_projects_rich_typography_into_word_runs() {
+    public void Pages_owner_uses_visual_fallback_for_unresolved_inline_objects() {
         using var result = WordDocument.LoadPagesWithReport(Fixture("iwork-converter/a.pages"));
 
-        WordParagraph title = result.Document.Paragraphs.First(paragraph => paragraph.Text == "购 销 合 同");
-        Assert.Equal(WordParagraphAlignment.Center, title.ParagraphAlignment);
-        Assert.True(title.Bold);
-        Assert.Equal(26d, title.FontSizePoints);
-        Assert.Equal("SimSun", title.FontFamily);
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
     }
 
     [Fact]
     public void Pages_recovers_embedded_image_and_shared_editable_tables() {
         IWorkPagesProjection pages = IWorkSourceDocument.Open(Fixture("picodocs/sample-v14.4.pages")).ReadPages();
 
-        Assert.True(pages.HasEditableContent);
+        Assert.False(pages.HasEditableContent);
+        Assert.Contains(pages.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
         Assert.Equal(3, pages.Tables.Count);
         Assert.Equal((5, 4), (pages.Tables[0].RowCount, pages.Tables[0].ColumnCount));
         Assert.Equal(18, pages.Tables[0].Cells.Count);
@@ -218,11 +218,9 @@ public sealed class IWorkCorpusTests {
     public void Pages_owner_projects_tables_and_embedded_image_into_word() {
         using var result = WordDocument.LoadPagesWithReport(Fixture("picodocs/sample-v14.4.pages"));
 
-        Assert.False(result.IsVisualFallback);
-        Assert.Equal(3, result.Document.Tables.Count);
-        Assert.Equal(5, result.Document.Tables[0].RowsCount);
-        Assert.Equal(4, result.Document.Tables[0].Rows[0].CellsCount);
-        Assert.NotEmpty(result.Document.Images);
+        Assert.True(result.IsVisualFallback);
+        Assert.Empty(result.Document.Tables);
+        Assert.Single(result.Document.Images);
     }
 
     [Fact]

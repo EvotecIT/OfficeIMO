@@ -126,10 +126,14 @@ namespace OfficeIMO.Internal {
                 throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
             }
             try {
-                string openedPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                string? openedPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                     ? GetWindowsFinalPath(stream.SafeFileHandle)
                     : GetUnixOpenedPath(stream.SafeFileHandle);
-                if (!IsPhysicalPathWithinRoot(openedPath, physicalRoot)) {
+                bool isWithinRoot = openedPath != null
+                    ? IsPhysicalPathWithinRoot(openedPath, physicalRoot)
+                    : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                        && IsOpenedFileWithinRootByIdentity(fullPath, physicalRoot, stream.SafeFileHandle);
+                if (!isWithinRoot) {
                     throw new InvalidDataException("The opened filesystem entry resolves outside the source directory.");
                 }
                 return stream;
@@ -137,6 +141,15 @@ namespace OfficeIMO.Internal {
                 stream.Dispose();
                 throw;
             }
+        }
+
+        internal static bool IsOpenedFileWithinRootByIdentity(string path, string physicalRoot,
+            SafeFileHandle handle) {
+            string resolvedPath = ResolvePhysicalPath(path);
+            if (!IsPhysicalPathWithinRoot(resolvedPath, physicalRoot)) return false;
+            OfficeFileMetadata pathMetadata = GetMetadata(resolvedPath);
+            OfficeFileMetadata handleMetadata = GetMetadata(resolvedPath, handle);
+            return AreIdentitiesEquivalent(pathMetadata.Identity, handleMetadata.Identity);
         }
 
         private static bool IsPhysicalPathWithinRoot(string candidatePath, string physicalRoot) {

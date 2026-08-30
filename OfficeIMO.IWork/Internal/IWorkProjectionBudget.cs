@@ -3,6 +3,7 @@ namespace OfficeIMO.IWork.Internal;
 internal sealed class IWorkProjectionBudget {
     private readonly IWorkReadOptions _options;
     private int _tableCount;
+    private int _imageCount;
     private int _textItemCount;
     private int _textBoundaryCount;
     private long _textCharacterCount;
@@ -17,6 +18,14 @@ internal sealed class IWorkProjectionBudget {
                 $"iWork table count exceeds the configured projection limit of {_options.MaximumProjectedTables}.");
         }
         _tableCount++;
+    }
+
+    internal void AddImage() {
+        if (_imageCount >= _options.MaximumProjectedImages) {
+            throw new InvalidDataException(
+                $"iWork image count exceeds the configured projection limit of {_options.MaximumProjectedImages}.");
+        }
+        _imageCount++;
     }
 
     internal void AddTextItem() {

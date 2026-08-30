@@ -55,17 +55,17 @@ namespace OfficeIMO.Internal {
             }
         }
 
-        private static string GetUnixOpenedPath(SafeFileHandle handle) {
+        private static string? GetUnixOpenedPath(SafeFileHandle handle) {
             int descriptor = checked((int)handle.DangerousGetHandle().ToInt64());
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
                 if (!TryReadUnixLinkTarget("/proc/self/fd/" + descriptor, out string? target)
                     || string.IsNullOrEmpty(target)) {
-                    throw new IOException("The opened file's physical Linux path could not be resolved.");
+                    return null;
                 }
                 string resolved = target!;
                 if (!Path.IsPathRooted(resolved)
                     || resolved.EndsWith(" (deleted)", StringComparison.Ordinal)) {
-                    throw new IOException("The opened file's physical Linux path could not be resolved.");
+                    return null;
                 }
                 return resolved;
             }

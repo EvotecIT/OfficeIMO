@@ -59,6 +59,7 @@ public sealed partial class PowerPointPresentation {
                 }
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
+                    if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
                     if (sourceSlide.TitleBox != null) {
                         AddRichTextBox(slide, sourceSlide.TitleBox,
@@ -297,22 +298,7 @@ public sealed partial class PowerPointPresentation {
                 paragraph = textBox.AddParagraph();
             }
             ApplyParagraphStyle(paragraph, sourceParagraph);
-            bool firstRun = true;
-            foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
-                PowerPointTextRun run;
-                if (firstRun) {
-                    paragraph.Text = sourceRun.Text;
-                    run = paragraph.Runs[0];
-                    firstRun = false;
-                } else {
-                    run = paragraph.AddRun(sourceRun.Text);
-                }
-                ApplyTextStyle(run, sourceRun.Style);
-                if (sourceRun.Hyperlink != null
-                    && Uri.TryCreate(sourceRun.Hyperlink, UriKind.Absolute, out Uri? runLink)) {
-                    run.Hyperlink = runLink;
-                }
-            }
+            WriteParagraphContent(paragraph, sourceParagraph);
         }
     }
 
@@ -323,21 +309,7 @@ public sealed partial class PowerPointPresentation {
             IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             ApplyParagraphStyle(paragraph, sourceParagraph);
-            for (int runIndex = 0; runIndex < sourceParagraph.Runs.Count; runIndex++) {
-                IWorkTextRun sourceRun = sourceParagraph.Runs[runIndex];
-                PowerPointTextRun run;
-                if (runIndex == 0) {
-                    run = paragraph.Runs[0];
-                    run.Text = sourceRun.Text;
-                } else {
-                    run = paragraph.AddRun(sourceRun.Text);
-                }
-                ApplyTextStyle(run, sourceRun.Style);
-                if (sourceRun.Hyperlink != null
-                    && Uri.TryCreate(sourceRun.Hyperlink, UriKind.Absolute, out Uri? runLink)) {
-                    run.Hyperlink = runLink;
-                }
-            }
+            WriteParagraphContent(paragraph, sourceParagraph);
         }
         notes.Save();
     }
@@ -359,7 +331,47 @@ public sealed partial class PowerPointPresentation {
         paragraph.SpaceAfterPoints = style.SpaceAfterPoints;
         if (source.ListLevel >= 0) {
             paragraph.Level = Math.Min(8, source.ListLevel);
-            paragraph.SetBullet(string.IsNullOrEmpty(source.ListLabel) ? '\u2022' : source.ListLabel![0]);
+            if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
+            else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
+        }
+    }
+
+    private static void WriteParagraphContent(PowerPointParagraph paragraph,
+        IWorkTextParagraph source) {
+        paragraph.Text = string.Empty;
+        bool canReuseInitialRun = true;
+        if (source.ListLevel >= 0 && source.ListLabel is { Length: > 1 } label) {
+            AppendStyledText(paragraph, label + " ", source.Style.TextStyle, null,
+                ref canReuseInitialRun);
+        }
+        foreach (IWorkTextRun sourceRun in source.Runs) {
+            string[] lines = sourceRun.Text.Split(new[] { '\n' });
+            for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
+                if (lineIndex > 0) {
+                    paragraph.AddLineBreak();
+                    canReuseInitialRun = false;
+                }
+                if (lines[lineIndex].Length > 0) {
+                    AppendStyledText(paragraph, lines[lineIndex], sourceRun.Style,
+                        sourceRun.Hyperlink, ref canReuseInitialRun);
+                }
+            }
+        }
+    }
+
+    private static void AppendStyledText(PowerPointParagraph paragraph, string text,
+        IWorkTextStyle style, string? hyperlink, ref bool canReuseInitialRun) {
+        PowerPointTextRun run;
+        if (canReuseInitialRun) {
+            run = paragraph.Runs[0];
+            run.Text = text;
+            canReuseInitialRun = false;
+        } else {
+            run = paragraph.AddRun(text);
+        }
+        ApplyTextStyle(run, style);
+        if (hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out Uri? runLink)) {
+            run.Hyperlink = runLink;
         }
     }
 

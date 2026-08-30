@@ -171,6 +171,7 @@ public partial class WordDocument {
             textBox.Width = ToEmusInt64(geometry.WidthPoints);
             textBox.Height = ToEmusInt64(geometry.HeightPoints);
         }
+        textBox.Description = source.AccessibilityDescription;
 
         DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
         if (content == null) return;

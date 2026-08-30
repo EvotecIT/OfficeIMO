@@ -1117,7 +1117,9 @@ public sealed partial class IWorkBoundaryTests {
             }
         }
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
-        byte[] offsets = { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
+        byte[] offsets = table.OddCurrentOffsets
+            ? new[] { (byte)encodedOffset }
+            : new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
         var fields = new List<byte[]> { VarintField(1, 0), BytesField(6, buffer) };
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
@@ -1396,7 +1398,8 @@ public sealed partial class IWorkBoundaryTests {
             bool decimal128HighBit = false, bool duplicateTileIdentity = false,
             bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false,
             bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
-            bool duplicateFormula = false, bool wrongWireDimensions = false) {
+            bool duplicateFormula = false, bool wrongWireDimensions = false,
+            bool oddCurrentOffsets = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1419,6 +1422,7 @@ public sealed partial class IWorkBoundaryTests {
             DefaultColumnWidth = defaultColumnWidth;
             DuplicateFormula = duplicateFormula;
             WrongWireDimensions = wrongWireDimensions;
+            OddCurrentOffsets = oddCurrentOffsets;
         }
 
         internal string Name { get; }
@@ -1443,5 +1447,6 @@ public sealed partial class IWorkBoundaryTests {
         internal double? DefaultColumnWidth { get; }
         internal bool DuplicateFormula { get; }
         internal bool WrongWireDimensions { get; }
+        internal bool OddCurrentOffsets { get; }
     }
 }

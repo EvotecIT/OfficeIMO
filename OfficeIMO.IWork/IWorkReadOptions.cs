@@ -65,6 +65,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of projected tables across one iWork source.</summary>
     public int MaximumProjectedTables { get; set; } = 4096;
 
+    /// <summary>Gets or sets the maximum number of projected images across one iWork source.</summary>
+    public int MaximumProjectedImages { get; set; } = 4096;
+
     /// <summary>Gets or sets the maximum number of merged ranges projected from one iWork table.</summary>
     public int MaximumTableMergedRanges { get; set; } = 100_000;
 
@@ -103,6 +106,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));
+        ValidatePositive(MaximumProjectedImages, nameof(MaximumProjectedImages));
         ValidatePositive(MaximumTableMergedRanges, nameof(MaximumTableMergedRanges));
         ValidatePositive(MaximumFormulaNodes, nameof(MaximumFormulaNodes));
         ValidatePositive(MaximumFormulaCharacters, nameof(MaximumFormulaCharacters));

@@ -349,14 +349,12 @@ internal static class IWorkNumbersReader {
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
-                if ((currentBuffer == null) != (currentOffsets == null)) {
-                    supportsEditableReconstruction = false;
-                    if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED")) {
-                        diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                            "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED",
-                            "An iWork table row declares incomplete modern cell storage; editable reconstruction is incomplete.",
-                            tile.EntryPath, tile.Identifier));
-                    }
+                if (rowInfo.LacksWireKind(6, IWorkWireKind.Bytes)
+                    || rowInfo.LacksWireKind(7, IWorkWireKind.Bytes)
+                    || rowInfo.LacksWireKind(8, IWorkWireKind.Varint)
+                    || (currentBuffer == null) != (currentOffsets == null)
+                    || currentOffsets != null && currentOffsets.Length % 2 != 0) {
+                    MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                     continue;
                 }
                 bool hasPreBncStorage = (rowInfo.GetBytes(3)?.Length ?? 0) > 0
@@ -749,6 +747,17 @@ internal static class IWorkNumbersReader {
 
     private static IWorkTableCell Error(int row, int column, string message) =>
         new(row, column, IWorkCellKind.Error, null, error: message);
+
+    private static void MarkCellStorageUnsupported(IWorkArchiveRecord tile,
+        ICollection<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        supportsEditableReconstruction = false;
+        if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED")) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_CELL_STORAGE_UNSUPPORTED",
+                "An iWork table row declares malformed or incomplete modern cell storage; editable reconstruction is incomplete.",
+                tile.EntryPath, tile.Identifier));
+        }
+    }
 
     private static double ReadDouble(byte[] buffer, int offset) =>
         BitConverter.Int64BitsToDouble(unchecked((long)IWorkProtobuf.ReadUInt64(buffer, offset)));
