@@ -66,7 +66,7 @@ Console.WriteLine(result.Projection.Sheets[0].Tables[0].Cells.Count);
 result.Document.Save("converted.xlsx");
 ```
 
-Sheets, tables, declared dimensions, sparse typed cells, cached formula markers, and text-box text become normal Excel content. Multiple Numbers tables on one canvas are placed deterministically in the destination worksheet. `Auto`, `EditableOnly`, and `VisualOnly` make editable reconstruction versus raster-preview fallback explicit. Unsupported IWA payloads remain available on `result.Source` and in the loss report; OfficeIMO does not write Numbers files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
+Sheets, tables, declared dimensions, sparse typed cells, cached formula markers, and text-box text become normal Excel content. Each Numbers table maps to its own destination worksheet so table-local formulas and sizing remain stable; sheet-level text maps to a separate worksheet when present. `Auto`, `EditableOnly`, and `VisualOnly` make editable reconstruction versus raster-preview fallback explicit. Unsupported IWA payloads remain available on `result.Source` and in the loss report; OfficeIMO does not write Numbers files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
 
 ## What it does
 

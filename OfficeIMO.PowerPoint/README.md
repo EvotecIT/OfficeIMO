@@ -71,7 +71,7 @@ Console.WriteLine(result.Projection.Slides.Count);
 result.Document.Save("converted.pptx");
 ```
 
-Slide order, skipped-slide state, title/body text, and presenter notes become normal PowerPoint objects. `Auto` prefers editable reconstruction; `EditableOnly` rejects unsupported sources, and `VisualOnly` embeds the raster preview with an explicit `VisualFallback` report. Unsupported IWA payloads remain inspectable, but OfficeIMO does not write Keynote files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
+Slide order, skipped-slide state, positioned rich title/body text, shape and run hyperlinks, and rich presenter notes become normal PowerPoint objects. `Auto` prefers editable reconstruction; `EditableOnly` rejects unsupported sources, and `VisualOnly` embeds the raster preview with an explicit `VisualFallback` report. Unsupported IWA payloads remain inspectable, but OfficeIMO does not write Keynote files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
 
 ### PowerPoint 97-2003 binary files
 

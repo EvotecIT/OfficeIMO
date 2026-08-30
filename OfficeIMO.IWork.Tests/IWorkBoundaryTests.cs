@@ -927,7 +927,8 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreatePagesPackageWithStyleChain(int depth,
         bool invalidFontName = false, bool malformedColor = false, bool wrongWireBold = false,
-        bool invalidAlignment = false, bool includePreview = false) {
+        bool invalidAlignment = false, bool includePreview = false,
+        bool naturalAlignment = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong firstStyleId = 10;
@@ -954,6 +955,8 @@ public sealed partial class IWorkBoundaryTests {
             }
             if (index == 0 && invalidAlignment) {
                 fields.Add(BytesField(12, Message(VarintField(1, 99))));
+            } else if (index == 0 && naturalAlignment) {
+                fields.Add(BytesField(12, Message(VarintField(1, 4))));
             }
             records.Add(ArchiveRecord(identifier, 2022, Message(fields.ToArray()),
                 parent.HasValue ? new[] { parent.Value } : Array.Empty<ulong>()));
@@ -1031,12 +1034,16 @@ public sealed partial class IWorkBoundaryTests {
             } else {
                 tileStorage = Message(BytesField(1, tileEntry));
             }
-            byte[] store = table.TextValue == null
-                ? Message(BytesField(3, tileStorage))
-                : Message(BytesField(3, tileStorage), ReferenceField(4, stringListId));
+            ulong formulaListId = tableInfoId + 200_000;
+            var storeFields = new List<byte[]> { BytesField(3, tileStorage) };
+            if (table.TextValue != null) storeFields.Add(ReferenceField(4, stringListId));
+            if (table.DuplicateFormula) storeFields.Add(ReferenceField(6, formulaListId));
+            byte[] store = Message(storeFields.ToArray());
             var modelFields = new List<byte[]> {
                 BytesField(4, store),
-                VarintField(6, checked((ulong)table.Rows)),
+                table.WrongWireDimensions
+                    ? BytesField(6, new byte[] { checked((byte)table.Rows) })
+                    : VarintField(6, checked((ulong)table.Rows)),
                 VarintField(7, checked((ulong)table.Columns)),
                 StringField(8, table.Name)
             };
@@ -1051,6 +1058,14 @@ public sealed partial class IWorkBoundaryTests {
                     ? Message(BytesField(3, stringEntry), BytesField(3, stringEntry))
                     : Message(BytesField(3, stringEntry));
                 records.Add(ArchiveRecord(stringListId, 6200, stringPayload));
+            }
+            if (table.DuplicateFormula) {
+                byte[] firstFormula = FormulaConstant(1d);
+                byte[] secondFormula = FormulaConstant(2d);
+                byte[] firstEntry = Message(VarintField(1, 0), BytesField(5, firstFormula));
+                byte[] secondEntry = Message(VarintField(1, 0), BytesField(5, secondFormula));
+                records.Add(ArchiveRecord(formulaListId, 6201,
+                    Message(BytesField(3, firstEntry), BytesField(3, secondEntry))));
             }
         }
 
@@ -1108,6 +1123,9 @@ public sealed partial class IWorkBoundaryTests {
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
         return Message(fields.ToArray());
     }
+
+    private static byte[] FormulaConstant(double value) => Message(BytesField(1,
+        Message(BytesField(1, Message(VarintField(1, 17), DoubleField(4, value))))));
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
         string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
@@ -1293,11 +1311,45 @@ public sealed partial class IWorkBoundaryTests {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
     private static byte[] CreateSizedPreviewPng(int width, int height) {
-        byte[] bytes = ValidPreviewPng();
-        WriteBigEndian32(bytes, 16, width);
-        WriteBigEndian32(bytes, 20, height);
-        WriteBigEndian32(bytes, 29, unchecked((int)CalculatePngCrc(bytes, 12, 17)));
-        return bytes;
+        var header = new byte[13];
+        WriteBigEndian32(header, 0, width);
+        WriteBigEndian32(header, 4, height);
+        header[8] = 8;
+        header[9] = 0;
+        using var imageData = new MemoryStream();
+        imageData.WriteByte(0x78);
+        imageData.WriteByte(0x9c);
+        using (var deflate = new DeflateStream(imageData, CompressionMode.Compress, leaveOpen: true)) {
+            var row = new byte[checked(width + 1)];
+            for (int index = 0; index < height; index++) deflate.Write(row, 0, row.Length);
+        }
+        long decodedLength = checked((long)(width + 1) * height);
+        uint adler = (uint)(decodedLength % 65521) << 16 | 1u;
+        var checksum = new byte[4];
+        WriteBigEndian32(checksum, 0, unchecked((int)adler));
+        imageData.Write(checksum, 0, checksum.Length);
+        byte[] signature = { 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a };
+        return Message(signature, CreatePngChunk("IHDR", header),
+            CreatePngChunk("IDAT", imageData.ToArray()),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+    }
+
+    private static byte[] CreateCrcValidPngWithInvalidImageData() {
+        byte[] valid = ValidPreviewPng();
+        byte[] signatureAndHeader = valid.Take(33).ToArray();
+        return Message(signatureAndHeader, CreatePngChunk("IDAT", new byte[] { 0 }),
+            CreatePngChunk("IEND", Array.Empty<byte>()));
+    }
+
+    private static byte[] CreatePngChunk(string type, byte[] data) {
+        var chunk = new byte[12 + data.Length];
+        WriteBigEndian32(chunk, 0, data.Length);
+        byte[] typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        Buffer.BlockCopy(typeBytes, 0, chunk, 4, 4);
+        Buffer.BlockCopy(data, 0, chunk, 8, data.Length);
+        WriteBigEndian32(chunk, 8 + data.Length,
+            unchecked((int)CalculatePngCrc(chunk, 4, 4 + data.Length)));
+        return chunk;
     }
 
     private static uint CalculatePngCrc(byte[] bytes, int offset, int length) {
@@ -1343,7 +1395,8 @@ public sealed partial class IWorkBoundaryTests {
             bool duration = false, bool duplicateCell = false, bool duplicateString = false,
             bool decimal128HighBit = false, bool duplicateTileIdentity = false,
             bool duplicateTileRow = false, bool omitCurrentOffsets = false, bool date = false,
-            bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null) {
+            bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
+            bool duplicateFormula = false, bool wrongWireDimensions = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1364,6 +1417,8 @@ public sealed partial class IWorkBoundaryTests {
             Date = date;
             FormulaWithoutCachedValue = formulaWithoutCachedValue;
             DefaultColumnWidth = defaultColumnWidth;
+            DuplicateFormula = duplicateFormula;
+            WrongWireDimensions = wrongWireDimensions;
         }
 
         internal string Name { get; }
@@ -1386,5 +1441,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool Date { get; }
         internal bool FormulaWithoutCachedValue { get; }
         internal double? DefaultColumnWidth { get; }
+        internal bool DuplicateFormula { get; }
+        internal bool WrongWireDimensions { get; }
     }
 }

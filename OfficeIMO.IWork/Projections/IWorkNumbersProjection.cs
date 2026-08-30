@@ -250,6 +250,13 @@ internal static class IWorkNumbersReader {
         IWorkArchiveRecord model, IWorkGeometry? geometry, List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(model);
+        if (HasUnsupportedTableScalarEncoding(message)) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_DIMENSIONS_UNSUPPORTED",
+                "An iWork table declares dimensions or default sizing with an unsupported wire encoding; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+        }
         int rows = CheckedDimension(message.GetUnsigned(6), source.Options.MaximumTableRows, "row", model);
         int columns = CheckedDimension(message.GetUnsigned(7), source.Options.MaximumTableColumns, "column", model);
         string? tableName = message.GetString(8, out bool tableNameComplete);
@@ -503,6 +510,7 @@ internal static class IWorkNumbersReader {
     private static IReadOnlyDictionary<uint, IWorkWireMessage> ReadFormulas(IWorkObjectIndex index,
         IWorkWireMessage store, out bool fullyReconstructed) {
         var formulas = new Dictionary<uint, IWorkWireMessage>();
+        var ambiguousIdentifiers = new HashSet<uint>();
         fullyReconstructed = true;
         IWorkArchiveRecord? list = index.Dereference(store, 6);
         if (list == null) return formulas;
@@ -517,11 +525,27 @@ internal static class IWorkNumbersReader {
                 continue;
             }
             uint normalizedKey = (uint)key.Value;
-            if (formulas.ContainsKey(normalizedKey)) fullyReconstructed = false;
-            else formulas.Add(normalizedKey, formula);
+            if (ambiguousIdentifiers.Contains(normalizedKey)) {
+                fullyReconstructed = false;
+            } else if (formulas.ContainsKey(normalizedKey)) {
+                formulas.Remove(normalizedKey);
+                ambiguousIdentifiers.Add(normalizedKey);
+                fullyReconstructed = false;
+            } else {
+                formulas.Add(normalizedKey, formula);
+            }
         }
         return formulas;
     }
+
+    private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>
+        message.LacksWireKind(6, IWorkWireKind.Varint)
+        || message.LacksWireKind(7, IWorkWireKind.Varint)
+        || message.LacksWireKind(9, IWorkWireKind.Varint)
+        || message.LacksWireKind(10, IWorkWireKind.Varint)
+        || message.LacksWireKind(11, IWorkWireKind.Varint)
+        || message.LacksWireKind(16, IWorkWireKind.Fixed64)
+        || message.LacksWireKind(17, IWorkWireKind.Fixed64);
 
     private static IReadOnlyList<IWorkTableMergeRange> ReadMergedRanges(IWorkWireMessage table,
         int rowCount, int columnCount, int maximumRanges, IWorkArchiveRecord model,

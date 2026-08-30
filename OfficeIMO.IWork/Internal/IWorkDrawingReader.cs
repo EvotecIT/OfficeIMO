@@ -133,7 +133,8 @@ internal static class IWorkDrawingReader {
             complete = false;
             return null;
         }
-        (int? pixelWidth, int? pixelHeight) = IWorkImageInfo.Read(entry.Bytes, mediaType);
+        (int? pixelWidth, int? pixelHeight) = IWorkImageInfo.Read(
+            entry.Bytes, mediaType, source.Options.MaximumPackageBytes);
         if (mediaType is "image/png" or "image/jpeg"
             && (!pixelWidth.HasValue || !pixelHeight.HasValue)) {
             complete = false;

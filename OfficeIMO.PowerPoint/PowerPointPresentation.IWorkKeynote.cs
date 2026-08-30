@@ -91,7 +91,9 @@ public sealed partial class PowerPointPresentation {
                             picture.SetHyperlink(imageLink);
                         }
                     }
-                    if (sourceSlide.PresenterNotes.Length > 0) slide.Notes.Text = sourceSlide.PresenterNotes;
+                    if (sourceSlide.PresenterNoteContent.Paragraphs.Count > 0) {
+                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent);
+                    }
                 }
             } else {
                 PowerPointSlide slide = presentation.AddSlide();
@@ -312,6 +314,32 @@ public sealed partial class PowerPointPresentation {
                 }
             }
         }
+    }
+
+    private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source) {
+        IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
+            source.Paragraphs.Select(_ => string.Empty));
+        for (int paragraphIndex = 0; paragraphIndex < source.Paragraphs.Count; paragraphIndex++) {
+            IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
+            PowerPointParagraph paragraph = paragraphs[paragraphIndex];
+            ApplyParagraphStyle(paragraph, sourceParagraph);
+            for (int runIndex = 0; runIndex < sourceParagraph.Runs.Count; runIndex++) {
+                IWorkTextRun sourceRun = sourceParagraph.Runs[runIndex];
+                PowerPointTextRun run;
+                if (runIndex == 0) {
+                    run = paragraph.Runs[0];
+                    run.Text = sourceRun.Text;
+                } else {
+                    run = paragraph.AddRun(sourceRun.Text);
+                }
+                ApplyTextStyle(run, sourceRun.Style);
+                if (sourceRun.Hyperlink != null
+                    && Uri.TryCreate(sourceRun.Hyperlink, UriKind.Absolute, out Uri? runLink)) {
+                    run.Hyperlink = runLink;
+                }
+            }
+        }
+        notes.Save();
     }
 
     private static void ApplyParagraphStyle(PowerPointParagraph paragraph,

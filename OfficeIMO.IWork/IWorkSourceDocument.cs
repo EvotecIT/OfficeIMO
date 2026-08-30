@@ -18,7 +18,7 @@ public sealed partial class IWorkSourceDocument {
         _options = options;
         _index = new IWorkObjectIndex(Records, options);
         BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries).ToArray());
-        Previews = Array.AsReadOnly(ReadPreviews(Entries).ToArray());
+        Previews = Array.AsReadOnly(ReadPreviews(Entries, options.MaximumPackageBytes).ToArray());
         Diagnostics = Array.AsReadOnly(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Information, "IWORK_SOURCE_READ",
                 $"Read {records.Count} IWA payload records from {package.Entries.Count} package entries.")
@@ -168,7 +168,8 @@ public sealed partial class IWorkSourceDocument {
         }
     }
 
-    private static IReadOnlyList<IWorkPreviewAsset> ReadPreviews(IReadOnlyList<IWorkPackageEntry> entries) {
+    private static IReadOnlyList<IWorkPreviewAsset> ReadPreviews(
+        IReadOnlyList<IWorkPackageEntry> entries, long maximumDecodedBytes) {
         var previews = new List<IWorkPreviewAsset>();
         foreach (IWorkPackageEntry entry in entries) {
             string lower = entry.Path.ToLowerInvariant();
@@ -183,7 +184,8 @@ public sealed partial class IWorkSourceDocument {
             IWorkVisualCoverage coverage = mediaType == "application/pdf"
                 ? IWorkVisualCoverage.FullDocument
                 : IWorkVisualCoverage.FirstPageOrCompositePreview;
-            (int? width, int? height) = IWorkImageInfo.Read(entry.Bytes, mediaType);
+            (int? width, int? height) = IWorkImageInfo.Read(
+                entry.Bytes, mediaType, maximumDecodedBytes);
             if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
             previews.Add(new IWorkPreviewAsset(entry.Path, mediaType, coverage, width, height, entry.Bytes));
         }

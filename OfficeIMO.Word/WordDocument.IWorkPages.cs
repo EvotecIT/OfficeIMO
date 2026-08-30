@@ -327,10 +327,12 @@ public partial class WordDocument {
     private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style) {
         if (style.Alignment.HasValue) {
             paragraph.ParagraphAlignment = style.Alignment.Value switch {
+                IWorkTextAlignment.Natural => WordParagraphAlignment.Start,
+                IWorkTextAlignment.Left => WordParagraphAlignment.Left,
                 IWorkTextAlignment.Center => WordParagraphAlignment.Center,
                 IWorkTextAlignment.Right => WordParagraphAlignment.Right,
                 IWorkTextAlignment.Justified => WordParagraphAlignment.Both,
-                _ => WordParagraphAlignment.Left
+                _ => throw new InvalidOperationException("Unsupported iWork paragraph alignment.")
             };
         }
         paragraph.IndentationFirstLinePoints = style.FirstLineIndentPoints;

@@ -77,7 +77,7 @@ This is extended semantic reconstruction rather than plain-text extraction:
 
 - Pages recovers rich paragraphs, page layout, section-specific headers/footers, positioned and sized rich-text boxes, images, tables, and merges for editable Word projection.
 - Numbers recovers sparse typed cells, supported formulas with cached values, merges, table metadata, and default sizing for editable Excel projection. Each source table receives its own worksheet so table-local formulas and column sizing remain stable; sheet-level text receives a separate worksheet when present.
-- Keynote recovers slide size and order, positioned rich text, notes, images, tables, and merges for editable PowerPoint projection.
+- Keynote recovers slide size and order, positioned rich text, shape/run and presenter-note hyperlinks, notes, images, tables, and merges for editable PowerPoint projection.
 
 Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable.
 
