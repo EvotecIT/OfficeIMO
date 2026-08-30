@@ -161,6 +161,19 @@ public sealed class DocBookDocumentTests {
     }
 
     [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void ValidationRejectsFormalTablesWithoutTitles(DocBookProfile profile) {
+        string table = "<table><tgroup cols=\"1\"><tbody><row><entry>Value</entry></row></tbody></tgroup></table>";
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\">{table}</article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article>{table}</article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB011" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
     [InlineData(DocBookProfile.DocBook45, null)]
     [InlineData(DocBookProfile.DocBook52, null)]
     [InlineData(DocBookProfile.DocBook52, "0")]
@@ -174,6 +187,22 @@ public sealed class DocBookDocumentTests {
 
         Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB021" &&
             diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, "")]
+    [InlineData(DocBookProfile.DocBook45, "<thead><row><entry>Heading</entry></row></thead>")]
+    [InlineData(DocBookProfile.DocBook52, "")]
+    [InlineData(DocBookProfile.DocBook52, "<thead><row><entry>Heading</entry></row></thead>")]
+    public void ValidationRequiresCalsTableBody(DocBookProfile profile, string tableContent) {
+        string table = $"<informaltable><tgroup cols=\"1\">{tableContent}</tgroup></informaltable>";
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\">{table}</article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article>{table}</article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB012" && diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf("tbody", StringComparison.Ordinal) >= 0);
     }
 
     [Theory]
@@ -297,6 +326,30 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("list", StringComparison.OrdinalIgnoreCase) >= 0));
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, "")]
+    [InlineData(DocBookProfile.DocBook45, "<term>Name</term>")]
+    [InlineData(DocBookProfile.DocBook45, "<listitem><para>Value</para></listitem>")]
+    [InlineData(DocBookProfile.DocBook45, "<listitem><para>Value</para></listitem><term>Name</term>")]
+    [InlineData(DocBookProfile.DocBook45, "<term>Name</term><para>Orphan</para><listitem><para>Value</para></listitem>")]
+    [InlineData(DocBookProfile.DocBook52, "")]
+    [InlineData(DocBookProfile.DocBook52, "<term>Name</term>")]
+    [InlineData(DocBookProfile.DocBook52, "<listitem><para>Value</para></listitem>")]
+    [InlineData(DocBookProfile.DocBook52, "<listitem><para>Value</para></listitem><term>Name</term>")]
+    [InlineData(DocBookProfile.DocBook52, "<term>Name</term><para>Orphan</para><listitem><para>Value</para></listitem>")]
+    public void ValidationRejectsIncompleteOrMisorderedVariableListEntries(
+        DocBookProfile profile,
+        string entryContent) {
+        string list = $"<variablelist><varlistentry>{entryContent}</varlistentry></variablelist>";
+        string source = profile == DocBookProfile.DocBook52
+            ? $"<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\">{list}</article>"
+            : $"<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article>{list}</article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB012" && diagnostic.Severity == DocBookDiagnosticSeverity.Error &&
+            diagnostic.Message.IndexOf("varlistentry", StringComparison.Ordinal) >= 0);
+    }
+
     [Fact]
     public void ValidationAllowsInfoUnderAcceptedBookComponents() {
         const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><info><title>Chapter</title></info><para>Body</para></chapter></book>";
@@ -316,6 +369,7 @@ public sealed class DocBookDocumentTests {
 
         DocBookDocument variableList = DocBookDocument.Parse(
             "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><variablelist><varlistentry><term>Name</term><listitem><para>Value</para></listitem></varlistentry></variablelist></article>");
+        Assert.True(variableList.Validate().IsValid);
         Assert.DoesNotContain(variableList.Validate().Diagnostics, diagnostic => diagnostic.Code == "DB015");
     }
 
@@ -1237,6 +1291,25 @@ public sealed class DocBookDocumentTests {
 
         Assert.Contains(document.Validate().Diagnostics, diagnostic =>
             diagnostic.Code == "DB017" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("<ulink linkend=\"target\">Text</ulink>")]
+    [InlineData("<ulink url=\"  \">Text</ulink>")]
+    public void BoundedValidationRequiresExternalTargetForDocBook45Ulinks(string link) {
+        string source = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para>" +
+            link + "</para></article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB017" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void BoundedValidationRejectsInternalTargetAttributeOnDocBook45Ulinks() {
+        const string source = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><para><ulink url=\"https://example.test\" linkend=\"target\">Text</ulink></para></article>";
+
+        Assert.Contains(DocBookDocument.Parse(source).Validate().Diagnostics, diagnostic =>
+            diagnostic.Code == "DB016" && diagnostic.Severity == DocBookDiagnosticSeverity.Error);
     }
 
     [Fact]

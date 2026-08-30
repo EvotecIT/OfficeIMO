@@ -229,7 +229,7 @@ public sealed partial class OpmlDocument {
                 foreach (KeyValuePair<string, string> attribute in metadata.Attributes) {
                     element.SetAttributeValue(XName.Get(attribute.Key), attribute.Value);
                 }
-                document.HeadElement.Add(element);
+                document.Head.InsertElement(element);
             } catch (Exception exception) when (exception is ArgumentException || exception is System.Xml.XmlException) {
                 diagnostics.Add(new OpmlDiagnostic("OPML102", OpmlDiagnosticSeverity.Warning,
                     $"Head metadata '{metadata.Name}' could not be represented in OPML."));

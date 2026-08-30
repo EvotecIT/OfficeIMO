@@ -227,6 +227,10 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB021", DocBookDiagnosticSeverity.Error,
                     "tgroup requires a positive cols attribute in the bounded CALS profile.", path));
             }
+            if (kind == DocBookNodeKind.TableGroup && !element.Elements(Namespace + "tbody").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    "tgroup must contain exactly one tbody in the bounded CALS profile.", path));
+            }
             bool invalidParent = element != root && kind != DocBookNodeKind.Unknown &&
                     (parent == null || !CanContainTypedChild(parent, kind)) ||
                 invalidInfoParent ||
@@ -244,7 +248,10 @@ public sealed partial class DocBookDocument {
                 string? externalTarget = Profile == DocBookProfile.DocBook45 && localName == "ulink"
                     ? (string?)element.Attribute("url")
                     : Profile == DocBookProfile.DocBook52 ? (string?)element.Attribute(xlinkHref) : null;
-                if (string.IsNullOrWhiteSpace(internalTarget) && string.IsNullOrWhiteSpace(externalTarget)) {
+                bool targetIsMissing = Profile == DocBookProfile.DocBook45 && localName == "ulink"
+                    ? string.IsNullOrWhiteSpace(externalTarget)
+                    : string.IsNullOrWhiteSpace(internalTarget) && string.IsNullOrWhiteSpace(externalTarget);
+                if (targetIsMissing) {
                     diagnostics.Add(new DocBookDiagnostic("DB017", DocBookDiagnosticSeverity.Error,
                         $"{localName} requires a nonblank linkend or external target in the bounded common-structure profile.", path));
                 }
@@ -252,7 +259,7 @@ public sealed partial class DocBookDocument {
             if (kind == DocBookNodeKind.Link &&
                 (element.Attribute("href") != null ||
                  Profile == DocBookProfile.DocBook52 && element.Attribute("url") != null ||
-                 Profile == DocBookProfile.DocBook45 && localName == "ulink" && string.IsNullOrWhiteSpace((string?)element.Attribute("url")) ||
+                 Profile == DocBookProfile.DocBook45 && localName == "ulink" && element.Attribute("linkend") != null ||
                  Profile == DocBookProfile.DocBook45 && localName != "ulink" && element.Attribute("url") != null ||
                  Profile == DocBookProfile.DocBook45 && element.Attribute(xlinkHref) != null)) {
                 diagnostics.Add(new DocBookDiagnostic("DB016", DocBookDiagnosticSeverity.Error,
@@ -287,11 +294,15 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
                     $"{localName} cannot contain direct text in the bounded common-structure profile.", path));
             }
-            if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
-                 kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
+            if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure) &&
                 !element.Elements(Namespace + "title").Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB011", DocBookDiagnosticSeverity.Warning,
                     $"{element.Name.LocalName} has no title in the bounded common-structure profile.", path));
+            }
+            if (kind == DocBookNodeKind.Table && element.Name.LocalName == "table" &&
+                !element.Elements(Namespace + "title").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB011", DocBookDiagnosticSeverity.Error,
+                    "table requires a title in the bounded common-structure profile; use informaltable for titleless content.", path));
             }
             if (kind == DocBookNodeKind.Table && !element.Elements(Namespace + "tgroup").Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
@@ -308,6 +319,19 @@ public sealed partial class DocBookDocument {
             if (kind == DocBookNodeKind.VariableList && !element.Elements(Namespace + "varlistentry").Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
                     "variablelist must contain at least one varlistentry.", path));
+            }
+            if (element.Name == Namespace + "varlistentry") {
+                XElement[] terms = element.Elements(Namespace + "term").ToArray();
+                XElement[] listItems = element.Elements(Namespace + "listitem").ToArray();
+                bool hasUnsupportedTypedChild = element.Elements().Any(child => child.Name.Namespace == Namespace &&
+                    child.Name.LocalName != "term" && child.Name.LocalName != "listitem");
+                bool hasMisorderedTerm = listItems.Length == 1 &&
+                    listItems[0].ElementsAfterSelf(Namespace + "term").Any();
+                if (terms.Length == 0 || listItems.Length != 1 || hasMisorderedTerm ||
+                    hasUnsupportedTypedChild) {
+                    diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                        "varlistentry must contain one or more terms followed by exactly one listitem.", path));
+                }
             }
             if ((kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody || localName == "tfoot") &&
                 !element.Elements(Namespace + "row").Any()) {

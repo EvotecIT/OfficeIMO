@@ -201,10 +201,14 @@ public sealed class OpmlDocumentTests {
         } finally { if (File.Exists(path)) File.Delete(path); }
     }
 
-    [Fact]
-    public void SharedModelRoundTripRetainsNestingAndAttributes() {
-        OpmlDocument source = OpmlDocument.Create(OpmlVersion.Opml10);
+    [Theory]
+    [InlineData(OpmlVersion.Opml10)]
+    [InlineData(OpmlVersion.Opml20)]
+    public void SharedModelRoundTripRetainsNestingAttributesAndHeadOrder(OpmlVersion version) {
+        OpmlDocument source = OpmlDocument.Create(version);
         source.Head.Title = "Title";
+        source.Head.DateCreated = "created";
+        source.Head.DateModified = "modified";
         source.Head.OwnerName = "Jane Doe";
         source.Xml.Root!.Element("head")!.Element("title")!.SetAttributeValue(XName.Get("flag", "urn:test"), "metadata");
         source.Xml.Root!.Element("head")!.Element("ownerName")!.SetAttributeValue(XName.Get("flag", "urn:test"), "owner");
@@ -219,7 +223,7 @@ public sealed class OpmlDocumentTests {
 
         OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
         Assert.False(converted.HasLoss);
-        Assert.Equal(OpmlVersion.Opml10, converted.Value.Version);
+        Assert.Equal(version, converted.Value.Version);
         Assert.Equal("yes", converted.Value.Outlines.Single().GetAttribute(XName.Get("flag", "urn:test")));
         Assert.Equal("https://example.test/root", converted.Value.Outlines.Single().Url);
         Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
@@ -227,6 +231,9 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("Jane Doe", converted.Value.Head.OwnerName);
         Assert.Equal("owner", converted.Value.Xml.Root!.Element("head")!.Element("ownerName")!.Attribute(XName.Get("flag", "urn:test"))!.Value);
         Assert.Single(converted.Value.Xml.Root!.Element("head")!.Elements("ownerName"));
+        Assert.Equal(new[] { "title", "dateCreated", "dateModified", "ownerName" },
+            converted.Value.Xml.Root!.Element("head")!.Elements().Select(element => element.Name.LocalName));
+        Assert.True(converted.Value.Validate().IsValid);
     }
 
     [Fact]
