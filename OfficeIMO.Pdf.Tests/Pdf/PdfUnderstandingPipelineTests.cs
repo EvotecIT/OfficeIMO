@@ -270,6 +270,25 @@ public class PdfUnderstandingPipelineTests {
         Assert.True(PdfAdvancedUnderstandingStages.HasMeaningfulTableOverlap(owned, 500D, 450D, 50D, 250D));
     }
 
+    [Fact]
+    public void AdvancedReadingOrder_UsesRotatedSourceRunExtents() {
+        var sourceRun = new PdfTextSpan("Vertical section label", "Helvetica", 11D, 280D, 200D, 400D, rotationDegrees: 90D);
+        var word = new PdfUnderstandingWord(
+            sourceRun.Text,
+            280D,
+            280D,
+            200D,
+            11D,
+            90D,
+            new[] { sourceRun });
+        var region = new PdfUnderstandingRegion(new[] { new PdfUnderstandingLine(new[] { word }) });
+
+        (double left, double right, double bottom, double top, _) = PdfRecursiveXyCutReadingOrderStage.GetSourceBounds(region);
+
+        Assert.True(top - bottom >= 399D, $"Expected the rotated extent to span about 400 points, but it spanned {top - bottom:0.###}.");
+        Assert.True(right - left >= 10D, $"Expected the rotated glyph thickness to span about one font size, but it spanned {right - left:0.###}.");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -323,6 +342,14 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
             Assert.Single(page.Elements, element => element.Region.Text == text).Kind);
+    }
+
+    [Theory]
+    [InlineData("-$42 total")]
+    [InlineData("-€42 total")]
+    [InlineData("-£ 42 total")]
+    public void SharedListParser_DoesNotClassifySignedCurrencyAsCompactBullets(string text) {
+        Assert.False(ContentStructureExtractor.IsListItemText(text));
     }
 
     private sealed class ReverseReadingOrderStage : IPdfReadingOrderStage {

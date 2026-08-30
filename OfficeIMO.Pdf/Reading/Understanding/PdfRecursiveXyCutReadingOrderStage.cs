@@ -209,15 +209,71 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         internal double FontSize { get; }
 
         internal static RegionBox From(PdfUnderstandingRegion region) {
-            double fontSize = Math.Max(1D, region.Lines.Max(static line => line.FontSize));
+            (double left, double right, double bottom, double top, double fontSize) = GetSourceBounds(region);
             return new RegionBox(
                 region,
-                region.XStart,
-                Math.Max(region.XStart, region.XEnd),
-                region.YBottom - (fontSize * 0.25D),
-                region.YTop + (fontSize * 0.8D),
+                left,
+                right,
+                bottom,
+                top,
                 fontSize);
         }
+    }
+
+    internal static (double Left, double Right, double Bottom, double Top, double FontSize) GetSourceBounds(
+        PdfUnderstandingRegion region) {
+        double fontSize = Math.Max(1D, region.Lines.Max(static line => line.FontSize));
+        double left = region.XStart;
+        double right = Math.Max(region.XStart, region.XEnd);
+        double bottom = region.YBottom - (fontSize * 0.25D);
+        double top = region.YTop + (fontSize * 0.8D);
+
+        foreach (PdfTextSpan sourceRun in region.Lines
+                     .SelectMany(static line => line.Words)
+                     .SelectMany(static word => word.SourceRuns)) {
+            double runFontSize = Math.Max(1D, sourceRun.FontSize);
+            double advance = sourceRun.Advance > 0D
+                ? sourceRun.Advance
+                : (sourceRun.Text?.Length ?? 0) * runFontSize * 0.55D;
+            double radians = sourceRun.RotationDegrees * Math.PI / 180D;
+            double alongX = Math.Cos(radians);
+            double alongY = Math.Sin(radians);
+            double normalX = -alongY;
+            double normalY = alongX;
+            double endX = sourceRun.X + (alongX * advance);
+            double endY = sourceRun.Y + (alongY * advance);
+            ExpandBounds(sourceRun.X, sourceRun.Y, normalX, normalY, runFontSize, ref left, ref right, ref bottom, ref top);
+            ExpandBounds(endX, endY, normalX, normalY, runFontSize, ref left, ref right, ref bottom, ref top);
+        }
+
+        return (left, right, bottom, top, fontSize);
+    }
+
+    private static void ExpandBounds(
+        double x,
+        double y,
+        double normalX,
+        double normalY,
+        double fontSize,
+        ref double left,
+        ref double right,
+        ref double bottom,
+        ref double top) {
+        ExpandPoint(x - (normalX * fontSize * 0.25D), y - (normalY * fontSize * 0.25D), ref left, ref right, ref bottom, ref top);
+        ExpandPoint(x + (normalX * fontSize * 0.8D), y + (normalY * fontSize * 0.8D), ref left, ref right, ref bottom, ref top);
+    }
+
+    private static void ExpandPoint(
+        double x,
+        double y,
+        ref double left,
+        ref double right,
+        ref double bottom,
+        ref double top) {
+        left = Math.Min(left, x);
+        right = Math.Max(right, x);
+        bottom = Math.Min(bottom, y);
+        top = Math.Max(top, y);
     }
 
     private readonly struct Interval {

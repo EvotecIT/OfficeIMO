@@ -218,7 +218,7 @@ public sealed class StructuredLine {
 
 internal static class ContentStructureExtractor {
     private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)](?=\s|[^\d\s])\s*(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])(?:\s+|(?=[^\d\s])))(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])(?:\s+|(?!(?:\p{Sc}\s*\d))(?=[^\d\s])))(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s*(?<text>.+)$", RegexOptions.Compiled);
     private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
         "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",
