@@ -257,6 +257,14 @@ public partial class WordDocument {
             if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
                 return $"Pages table '{table.Name}' contains an uncached formula that the DOCX owner cannot evaluate.";
             }
+            if (table.Geometry is { } geometry
+                && (Math.Abs(geometry.LeftPoints) > 0.000001d
+                    || Math.Abs(geometry.TopPoints) > 0.000001d
+                    || Math.Abs(geometry.WidthPoints) > 0.000001d
+                    || Math.Abs(geometry.HeightPoints) > 0.000001d
+                    || Math.Abs(geometry.RotationDegrees) > 0.000001d)) {
+                return $"Pages table '{table.Name}' has positioned, sized, or rotated drawable geometry that the DOCX table owner cannot preserve.";
+            }
             destinationTableCells += tableCells;
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) {

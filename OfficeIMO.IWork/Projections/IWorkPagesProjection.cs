@@ -257,6 +257,16 @@ internal static class IWorkPagesReader {
                     document.EntryPath, document.Identifier));
             }
         }
+        IWorkArchiveRecord? unsupportedDrawable = documentDrawables.FirstOrDefault(record =>
+            record.MessageType is not TextStorageArchive and not ShapeInfoArchive
+                and not 3005 and not 6000 and not 6007);
+        if (unsupportedDrawable != null) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                $"Pages drawable type {unsupportedDrawable.MessageType} is preserved but cannot be reconstructed; editable reconstruction is incomplete.",
+                unsupportedDrawable.EntryPath, unsupportedDrawable.Identifier));
+        }
         var seenImages = new HashSet<ulong>();
         foreach (IWorkArchiveRecord drawable in documentDrawables) {
             if (drawable.MessageType == 3005 && seenImages.Add(drawable.Identifier)) {
