@@ -811,11 +811,19 @@ internal static partial class PdfComplianceAnalyzer {
         for (int i = 0; i < embeddedFiles.Count; i++) {
             var diagnostics = new List<string>();
             if (IsFacturXCiiAttachment(embeddedFiles[i], diagnostics)) {
+                if (!embeddedFiles[i].ModificationDate.HasValue) {
+                    return new PdfComplianceRequirement(
+                        "einvoice-xml-attachment-params",
+                        "EN 16931 embedded-file parameters",
+                        PdfComplianceRequirementStatus.Missing,
+                        "Set a caller-controlled modification date for factur-x.xml so its /Params dictionary includes /ModDate alongside /Size and /CheckSum.");
+                }
+
                 return new PdfComplianceRequirement(
                     "einvoice-xml-attachment-params",
                     "EN 16931 embedded-file parameters",
                     PdfComplianceRequirementStatus.Satisfied,
-                    "Generated factur-x.xml embedded-file streams will include deterministic /Params /Size and /CheckSum metadata.");
+                    "Generated factur-x.xml embedded-file streams will include /Params /Size, /CheckSum, and caller-controlled /ModDate metadata.");
             }
         }
 

@@ -87,6 +87,35 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRenderer_ReportsWhenConfiguredProviderDeclinesShapingRequiredScript() {
+        const string text = "\u0915";
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<p style=\"font-family:'OfficeIMO Shaping Test'\">" + text + "</p>");
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 180D,
+            TextShapingProvider = OfficeManagedTextShapingProvider.Instance,
+            TextShapingLanguage = "hi"
+        };
+        options.Fonts.Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(text.Select(character => (int)character).ToArray()));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(document, options);
+
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+            item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Equal("provider-declined", diagnostic.Detail);
+        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        HtmlConversionException strict = Assert.Throws<HtmlConversionException>(() =>
+            HtmlRenderTestDriver.Render(document, options));
+        Assert.Contains(strict.Diagnostics, item =>
+            item.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
+    }
+
+    [Fact]
     public void HtmlRasterExport_ReachesTheSharedTextShapingProvider() {
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<p style=\"font-family:'OfficeIMO Shaping Test'\">A</p>");

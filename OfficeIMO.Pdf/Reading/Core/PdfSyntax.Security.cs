@@ -84,19 +84,19 @@ internal static partial class PdfSyntax {
         if (includeParsedDetails) {
             try {
                 var (objects, trailerRaw) = ParseObjects(pdf, options);
-                rootReference = TryReadFirstReference(trailerRaw, "Root");
+                rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
                 if (rootReference is not null) {
                     rootObjectNumber = rootReference.ObjectNumber;
                     rootObjectGeneration = rootReference.Generation;
                 }
 
-                infoReference = TryReadFirstReference(trailerRaw, "Info");
+                infoReference = ReadTrailerReference(trailerRaw, "Info", limits);
                 if (infoReference is not null) {
                     infoObjectNumber = infoReference.ObjectNumber;
                     infoObjectGeneration = infoReference.Generation;
                 }
 
-                PdfReference? encryptReference = TryReadFirstReference(trailerRaw, "Encrypt");
+                PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
                 encryptObjectNumber = encryptReference?.ObjectNumber;
                 hasEncryption = encryptReference is not null;
                 encryptionFilter = null;

@@ -75,6 +75,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng) {
         int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_PDF_RASTER_PIXEL_TOLERANCE", 0);
         OfficeRasterImage expected = VisualBaselineTestSupport.DecodePng(expectedPng, "Expected PDF raster baseline is not a supported PNG file.");
+        OfficeRasterImage actual = VisualBaselineTestSupport.DecodePng(actualPng, "Actual PDF raster output is not a supported PNG file.");
         // Poppler's font rasterization and antialiasing vary by platform and installed font stack.
         // Bound both the affected area and perceptual error so this remains a useful layout/fidelity
         // gate without treating platform-specific glyph edge pixels as a product regression.
@@ -83,9 +84,23 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         double maximumMeanAbsoluteError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_MAE", 6D);
         double maximumRootMeanSquareError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_RMSE", 28D);
         double maximumMeanLuminanceError = VisualBaselineTestSupport.ReadNonNegativeDouble("OFFICEIMO_PDF_RASTER_MAX_LUMINANCE_MAE", 8D);
+        bool hasSinglePixelPageRoundingDifference =
+            (expected.Width != actual.Width || expected.Height != actual.Height) &&
+            Math.Abs(expected.Width - actual.Width) <= 1 &&
+            Math.Abs(expected.Height - actual.Height) <= 1;
+        if (hasSinglePixelPageRoundingDifference) {
+            int comparisonWidth = Math.Max(expected.Width, actual.Width);
+            int comparisonHeight = Math.Max(expected.Height, actual.Height);
+            expected = PadRaster(expected, comparisonWidth, comparisonHeight);
+            actual = PadRaster(actual, comparisonWidth, comparisonHeight);
+            // Poppler can round an A-series page by one output pixel across platforms even at the
+            // same version. That resampling changes many edge pixels, so use the bounded perceptual
+            // metrics as the fidelity gate while still rejecting larger geometry changes above.
+            allowedDifferentPixels = checked(comparisonWidth * comparisonHeight);
+        }
         return VisualBaselineTestSupport.CompareRasterImages(
-            expectedPng,
-            actualPng,
+            expected,
+            actual,
             channelTolerance,
             allowedDifferentPixels,
             maximumMeanAbsoluteError,

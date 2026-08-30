@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Pdf;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
 
@@ -20,9 +21,58 @@ internal static class PdfBenchmarkValidation {
             throw new InvalidDataException($"{engine} did not produce a PDF header for {scenario.Scale}.");
         }
 
-        PdfReadObservation observation = ReadWithPdfPig(bytes);
+        PdfReadObservation observation = ReadWithPdfPig(bytes, out IReadOnlyList<string> normalizedPages);
         ValidateRead(observation, scenario, engine);
+        ValidateScenarioPages(normalizedPages, scenario, engine);
         return observation;
+    }
+
+    internal static void ValidateTaggedStructure(byte[] bytes, string engine, PdfBenchmarkScenario scenario) {
+        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
+        PdfTaggedContentInfo? tagged = info.TaggedContent;
+        if (!info.HasTaggedContent ||
+            tagged == null ||
+            !string.Equals(info.CatalogLanguage, "en-US", StringComparison.OrdinalIgnoreCase) ||
+            tagged.Marked != true ||
+            tagged.StructureElements.Count == 0 ||
+            tagged.MarkedContentReferenceCount == 0 ||
+            !tagged.HasDocumentStructureElement ||
+            tagged.ParentTreeEntryCount != scenario.PageCount) {
+            throw new InvalidDataException($"{engine} did not preserve a complete tagged-document structure tree.");
+        }
+
+        int columnCount = scenario.TableRows(1)[0].Length;
+        var exactRoleCounts = new Dictionary<string, int>(StringComparer.Ordinal) {
+            ["Document"] = 1,
+            ["H1"] = scenario.PageCount,
+            ["Table"] = scenario.PageCount,
+            ["TR"] = scenario.PageCount * (scenario.RowsPerPage + 1),
+            ["TH"] = scenario.PageCount * columnCount,
+            ["TD"] = scenario.PageCount * scenario.RowsPerPage * columnCount
+        };
+        foreach ((string requiredType, int expectedCount) in exactRoleCounts) {
+            tagged.StructureTypeCounts.TryGetValue(requiredType, out int actualCount);
+            if (actualCount != expectedCount) {
+                throw new InvalidDataException(
+                    $"{engine} preserved {actualCount} {requiredType} accessibility elements; expected {expectedCount}.");
+            }
+        }
+
+        tagged.StructureTypeCounts.TryGetValue("Figure", out int figureCount);
+        if (figureCount < scenario.PageCount) {
+            throw new InvalidDataException(
+                $"{engine} preserved {figureCount} Figure accessibility elements; expected at least {scenario.PageCount}.");
+        }
+        if (!tagged.FiguresHaveAlternateText) {
+            throw new InvalidDataException($"{engine} did not preserve alternate text for every tagged Figure element.");
+        }
+
+        tagged.StructureTypeCounts.TryGetValue("P", out int paragraphCount);
+        int minimumParagraphCount = scenario.PageCount * scenario.ParagraphsPerPage;
+        if (paragraphCount < minimumParagraphCount) {
+            throw new InvalidDataException(
+                $"{engine} preserved {paragraphCount} paragraph accessibility elements; expected at least {minimumParagraphCount}.");
+        }
     }
 
     internal static void ValidateRead(PdfReadObservation observation, PdfBenchmarkScenario scenario, string engine) {
@@ -48,15 +98,21 @@ internal static class PdfBenchmarkValidation {
         ValidateScenarioContent(observation.NormalizedText, scenario, engine);
     }
 
-    internal static PdfReadObservation ReadWithPdfPig(byte[] bytes) {
+    internal static PdfReadObservation ReadWithPdfPig(byte[] bytes) => ReadWithPdfPig(bytes, out _);
+
+    private static PdfReadObservation ReadWithPdfPig(byte[] bytes, out IReadOnlyList<string> normalizedPages) {
         using var stream = new MemoryStream(bytes, writable: false);
         using UglyToad.PdfPig.PdfDocument document = UglyToad.PdfPig.PdfDocument.Open(stream);
         var text = new StringBuilder();
+        var pages = new List<string>(document.NumberOfPages);
         foreach (var page in document.GetPages()) {
-            text.Append(ContentOrderTextExtractor.GetText(page));
+            string pageText = ContentOrderTextExtractor.GetText(page);
+            pages.Add(Normalize(pageText));
+            text.Append(pageText);
             text.Append('\n');
         }
 
+        normalizedPages = pages;
         return Observe(document.NumberOfPages, text.ToString());
     }
 
@@ -90,6 +146,23 @@ internal static class PdfBenchmarkValidation {
             if (!actual.Contains(fragment, StringComparison.Ordinal)) {
                 throw new InvalidDataException($"{context} did not preserve required content '{fragment}'.");
             }
+        }
+    }
+
+    internal static void ValidateScenarioPages(
+        IReadOnlyList<string> actualPages,
+        PdfBenchmarkScenario scenario,
+        string engine) {
+        if (actualPages.Count != scenario.PageCount) {
+            throw new InvalidDataException(
+                $"{engine} exposed {actualPages.Count} page payloads for {scenario.Scale}; expected {scenario.PageCount}.");
+        }
+
+        for (int page = 1; page <= scenario.PageCount; page++) {
+            ValidatePageContent(
+                actualPages[page - 1],
+                ExpectedPage(scenario, page),
+                $"{engine} page {page}");
         }
     }
 

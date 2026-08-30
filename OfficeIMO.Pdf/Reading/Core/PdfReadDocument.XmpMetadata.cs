@@ -6,7 +6,11 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
+    private const string RdfNamespaceUri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
+    private const string PdfNamespaceUri = "http://ns.adobe.com/pdf/1.3/";
+    private const string XmpNamespaceUri = "http://ns.adobe.com/xap/1.0/";
+    private const string XmpMediaManagementNamespaceUri = "http://ns.adobe.com/xap/1.0/mm/";
     /// <summary>Maximum decoded XMP metadata size parsed as XML.</summary>
     public const int MaxXmpMetadataBytes = 4_000_000;
 
@@ -46,6 +50,7 @@ public sealed partial class PdfReadDocument {
         XDocument? document = rawXml is null ? null : TryParseXml(rawXml);
         return new PdfXmpMetadataInfo(
             objectNumber,
+            TryReadName(stream.Dictionary, "Type"),
             TryReadName(stream.Dictionary, "Subtype"),
             TryReadStreamFilter(stream),
             stream.Data.Length,
@@ -57,15 +62,25 @@ public sealed partial class PdfReadDocument {
             document is null ? null : ReadFirstCollectionText(document, "creator"),
             document is null ? null : ReadAltText(document, "description"),
             document is null ? Array.Empty<string>() : ReadCollectionText(document, "subject"),
-            document is null ? null : ReadElementText(document, "Producer"),
-            document is null ? null : ReadElementText(document, "Keywords"),
-            document is null ? null : ReadIntegerPropertyByNamespace(document, "part", PdfAIdentificationNamespaceUri),
-            document is null ? null : ReadPropertyTextByNamespace(document, "conformance", PdfAIdentificationNamespaceUri),
-            document is null ? null : ReadIntegerPropertyByNamespace(document, "part", PdfUaIdentification.NamespaceUri),
-            document is null ? null : ReadPropertyTextByNamespace(document, "DocumentType", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
-            document is null ? null : ReadPropertyTextByNamespace(document, "DocumentFileName", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
-            document is null ? null : ReadPropertyTextByNamespace(document, "Version", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
-            document is null ? null : ReadPropertyTextByNamespace(document, "ConformanceLevel", PdfElectronicInvoiceMetadata.FacturXNamespaceUri));
+            document is null ? null : ReadElementTextByNamespace(document, "Producer", PdfNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "Keywords", PdfNamespaceUri),
+            document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfAIdentificationNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "conformance", PdfAIdentificationNamespaceUri),
+            document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfUaIdentification.NamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXVersion", PdfXIdentification.NamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "GTS_PDFXConformance", PdfXIdentification.NamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "CreateDate", XmpNamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "ModifyDate", XmpNamespaceUri),
+            document is null ? null : ReadDateElementByNamespace(document, "MetadataDate", XmpNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "InstanceID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "VersionID", XmpMediaManagementNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "RenditionClass", XmpMediaManagementNamespaceUri),
+            document is null ? null : ParseTrappingStatus(ReadElementTextByNamespace(document, "Trapped", PdfNamespaceUri)),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentType", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentFileName", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "Version", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "ConformanceLevel", PdfElectronicInvoiceMetadata.FacturXNamespaceUri));
     }
 
     private static string? DecodeMetadataText(byte[] data) {
@@ -73,27 +88,43 @@ public sealed partial class PdfReadDocument {
             return string.Empty;
         }
 
-        if (data.Length >= 3 &&
-            data[0] == 0xEF &&
-            data[1] == 0xBB &&
-            data[2] == 0xBF) {
-            return Encoding.UTF8.GetString(data, 3, data.Length - 3);
-        }
+        try {
+            if (data.Length >= 3 &&
+                data[0] == 0xEF &&
+                data[1] == 0xBB &&
+                data[2] == 0xBF) {
+                return StrictUtf8.GetString(data, 3, data.Length - 3);
+            }
 
-        if (data.Length >= 2 &&
-            data[0] == 0xFE &&
-            data[1] == 0xFF) {
-            return Encoding.BigEndianUnicode.GetString(data, 2, data.Length - 2);
-        }
+            if (data.Length >= 2 &&
+                data[0] == 0xFE &&
+                data[1] == 0xFF) {
+                return StrictBigEndianUnicode.GetString(data, 2, data.Length - 2);
+            }
 
-        if (data.Length >= 2 &&
-            data[0] == 0xFF &&
-            data[1] == 0xFE) {
-            return Encoding.Unicode.GetString(data, 2, data.Length - 2);
-        }
+            if (data.Length >= 2 &&
+                data[0] == 0xFF &&
+                data[1] == 0xFE) {
+                return StrictLittleEndianUnicode.GetString(data, 2, data.Length - 2);
+            }
 
-        return Encoding.UTF8.GetString(data);
+            return StrictUtf8.GetString(data);
+        } catch (DecoderFallbackException) {
+            return null;
+        }
     }
+
+    private static readonly Encoding StrictUtf8 = new UTF8Encoding(
+        encoderShouldEmitUTF8Identifier: false,
+        throwOnInvalidBytes: true);
+    private static readonly Encoding StrictBigEndianUnicode = new UnicodeEncoding(
+        bigEndian: true,
+        byteOrderMark: false,
+        throwOnInvalidBytes: true);
+    private static readonly Encoding StrictLittleEndianUnicode = new UnicodeEncoding(
+        bigEndian: false,
+        byteOrderMark: false,
+        throwOnInvalidBytes: true);
 
     private static XDocument? TryParseXml(string? rawXml) {
         if (string.IsNullOrWhiteSpace(rawXml)) {
@@ -150,26 +181,63 @@ public sealed partial class PdfReadDocument {
         return values.Count == 0 ? Array.Empty<string>() : values.AsReadOnly();
     }
 
-    private static string? ReadElementText(XDocument document, string localName) {
-        return NormalizeXmlText(document.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)?.Value);
+    private static string? ReadElementTextByNamespace(XDocument document, string localName, string namespaceUri) {
+        var values = new HashSet<string>(StringComparer.Ordinal);
+        foreach (XElement description in FindDocumentSubjectDescriptions(document)) {
+            foreach (XElement element in description.Elements().Where(e =>
+                         e.Name.LocalName == localName &&
+                         string.Equals(e.Name.NamespaceName, namespaceUri, StringComparison.Ordinal))) {
+                string? value = NormalizeXmlText(element.Value);
+                if (value is not null) values.Add(value);
+            }
+            foreach (XAttribute attribute in description.Attributes().Where(a =>
+                         a.Name.LocalName == localName &&
+                         string.Equals(a.Name.NamespaceName, namespaceUri, StringComparison.Ordinal))) {
+                string? value = NormalizeXmlText(attribute.Value);
+                if (value is not null) values.Add(value);
+            }
+        }
+        return values.Count == 1 ? values.Single() : null;
     }
 
-    private static string? ReadPropertyTextByNamespace(XDocument document, string localName, string namespaceUri) {
-        XElement? element = FindElementByNamespace(document, localName, namespaceUri);
-        string? elementValue = NormalizeXmlText(element?.Value);
-        if (elementValue is not null) return elementValue;
-        XAttribute? attribute = document.Root?
-            .DescendantsAndSelf()
-            .Attributes()
-            .FirstOrDefault(candidate =>
-                candidate.Name.LocalName == localName &&
-                string.Equals(candidate.Name.NamespaceName, namespaceUri, StringComparison.Ordinal));
-        return NormalizeXmlText(attribute?.Value);
-    }
+    private static IEnumerable<XElement> FindDocumentSubjectDescriptions(XDocument document) =>
+        document.Descendants().Where(e =>
+            e.Name.LocalName == "Description" &&
+            string.Equals(e.Name.NamespaceName, RdfNamespaceUri, StringComparison.Ordinal) &&
+            string.IsNullOrEmpty((string?)e.Attribute(XName.Get("about", RdfNamespaceUri))));
 
-    private static int? ReadIntegerPropertyByNamespace(XDocument document, string localName, string namespaceUri) {
-        string? value = ReadPropertyTextByNamespace(document, localName, namespaceUri);
+    private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri) {
+        string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
         return int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)
+            ? result
+            : null;
+    }
+
+    private static DateTimeOffset? ReadDateElementByNamespace(XDocument document, string localName, string namespaceUri) {
+        string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
+        if (value is null) return null;
+        string[] formats;
+        System.Globalization.DateTimeStyles styles;
+        if (value.Length > 0 && value[value.Length - 1] == 'Z') {
+            formats = new[] {
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFF'Z'"
+            };
+            styles = System.Globalization.DateTimeStyles.AssumeUniversal |
+                System.Globalization.DateTimeStyles.AdjustToUniversal;
+        } else {
+            formats = new[] {
+                "yyyy-MM-dd'T'HH:mm:sszzz",
+                "yyyy-MM-dd'T'HH:mm:ss.FFFFFFFzzz"
+            };
+            styles = System.Globalization.DateTimeStyles.None;
+        }
+        return DateTimeOffset.TryParseExact(
+            value,
+            formats,
+            System.Globalization.CultureInfo.InvariantCulture,
+            styles,
+            out DateTimeOffset result)
             ? result
             : null;
     }

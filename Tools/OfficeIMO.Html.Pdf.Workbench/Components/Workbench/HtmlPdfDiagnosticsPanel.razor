@@ -1,0 +1,23 @@
+<div class="panel diagnostics-panel" aria-live="polite" data-diagnostics-ready="@(Evidence is not null)">
+    <div class="panel-heading"><div><p>EVIDENCE</p><h2>Diagnostics</h2></div>@if (Evidence is not null) { <span>@Evidence.ElapsedMilliseconds ms · @Evidence.Engine</span> }</div>
+    @if (!string.IsNullOrWhiteSpace(Error)) {
+        <div class="diagnostic error"><span></span><div><strong>Conversion did not complete</strong><small>@Error</small></div></div>
+    } else if (Evidence is null) {
+        <div class="diagnostic"><span></span><div><strong>Waiting for a render</strong><small>Evidence includes source/output SHA-256, page count, timing, diagnostics, options, and browser-stage telemetry when applicable.</small></div></div>
+    } else {
+        <div class="evidence-strip"><div><small>INPUT SHA-256</small><code>@ShortHash(Evidence.InputSha256)</code></div><div><small>OUTPUT SHA-256</small><code>@ShortHash(Evidence.OutputSha256)</code></div><div><small>FIDELITY</small><strong>@(Evidence.HasLoss ? "Review" : "No diagnosed loss")</strong></div></div>
+        @if (Evidence.Diagnostics.Count == 0) {
+            <div class="diagnostic good"><span></span><div><strong>No conversion diagnostics</strong><small>The selected lane reported no warnings or blocked requests.</small></div></div>
+        } else {
+            @foreach (HtmlPdfWorkbenchDiagnostic diagnostic in Evidence.Diagnostics) {
+                <div class="diagnostic @(diagnostic.Severity == "Information" ? "good" : "warning")"><span></span><div><strong>@diagnostic.Code</strong><small>@diagnostic.Message</small></div></div>
+            }
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public HtmlPdfWorkbenchEvidence? Evidence { get; set; }
+    [Parameter] public string? Error { get; set; }
+    private static string ShortHash(string value) => value.Length <= 18 ? value : value[..12] + "…" + value[^6..];
+}

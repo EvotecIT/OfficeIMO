@@ -1,0 +1,26 @@
+<div class="panel settings-panel">
+    <div class="panel-heading"><div><p>CONTROLS</p><h2>Conversion settings</h2></div><span>Grouped by output contract</span></div>
+    <details open><summary>Page</summary><div class="settings-grid">
+        <label class="field"><span>Paper</span><select @bind="Settings.PageSize" @bind:after="Notify"><option>A4</option><option>A3</option><option>A5</option><option>Letter</option><option>Legal</option></select></label>
+        <label class="field"><span>Margin (mm)</span><input type="number" min="0" max="80" step="1" @bind="Settings.MarginMillimeters" @bind:after="Notify" /></label>
+        <label class="check"><input type="checkbox" @bind="Settings.Landscape" @bind:after="Notify" /><span>Landscape</span></label>
+        <label class="check"><input type="checkbox" @bind="Settings.HonorCssPageSize" @bind:after="Notify" /><span>Honor CSS @@page size</span></label>
+    </div></details>
+    <details open><summary>Accessibility</summary><div class="settings-grid">
+        <label class="check"><input type="checkbox" @bind="Settings.TaggedPdf" @bind:after="Notify" /><span>Generate tagged structure</span></label>
+        <label class="field"><span>Document language</span><input maxlength="32" @bind="Settings.Language" @bind:after="Notify" /></label>
+        <label class="check managed-only"><input type="checkbox" disabled="@(Engine != HtmlPdfWorkbenchEngine.Managed)" @bind="Settings.InteractiveForms" @bind:after="Notify" /><span>Interactive forms <small>Managed</small></span></label>
+    </div></details>
+    <details><summary>Print + proof</summary><div class="settings-grid">
+        <label class="check"><input type="checkbox" disabled="@(Engine != HtmlPdfWorkbenchEngine.Chromium)" @bind="Settings.PrintBackground" @bind:after="Notify" /><span>Print backgrounds <small>Chromium</small></span></label>
+        <label class="check"><input type="checkbox" disabled="@(Engine != HtmlPdfWorkbenchEngine.Chromium)" @bind="Settings.Outline" @bind:after="Notify" /><span>Generate outline <small>Chromium</small></span></label>
+        <label class="check"><input type="checkbox" @bind="Settings.StrictFidelity" @bind:after="Notify" /><span>Fail on diagnosed loss</span></label>
+    </div></details>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public HtmlPdfWorkbenchSettings Settings { get; set; } = new();
+    [Parameter, EditorRequired] public HtmlPdfWorkbenchEngine Engine { get; set; }
+    [Parameter] public EventCallback Changed { get; set; }
+    private Task Notify() => Changed.InvokeAsync();
+}

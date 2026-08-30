@@ -39,6 +39,31 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void RasterCanvas_ProvidesAStableFontProgramCacheKeyAcrossCanvases() {
+        byte[] fontData = CreateMinimalTrueTypeFont(CreateFormat12Cmap('A'));
+        var fonts = new OfficeFontFaceCollection().Add("Shaping Cache", fontData);
+        OfficeFontFace face = Assert.Single(fonts.Faces);
+        var provider = new RasterMappingTextShapingProvider(
+            new OfficeShapedGlyph(1, "A", 0, advanceWidth: 800));
+        var first = new OfficeRasterCanvas(
+            new OfficeRasterImage(40, 20),
+            font: null,
+            fonts: fonts,
+            textShapingProvider: provider);
+        var second = new OfficeRasterCanvas(
+            new OfficeRasterImage(40, 20),
+            font: null,
+            fonts: fonts,
+            textShapingProvider: provider);
+
+        first.MeasureText("A", 12D, "Shaping Cache");
+        second.MeasureText("A", 12D, "Shaping Cache");
+
+        Assert.Equal(2, provider.Requests.Count);
+        Assert.All(provider.Requests, request => Assert.Same(face.Program, request.FontProgramCacheKeyForShaping));
+    }
+
+    [Fact]
     public void RasterCanvas_NormalizesNegativeProviderAdvanceForLeftBasedLayout() {
         var fonts = new OfficeFontFaceCollection()
             .Add("RTL Demo", CreateMinimalTrueTypeFont(CreateFormat12Cmap(0x05D0)));
@@ -241,6 +266,45 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, diagnostic.Code);
         Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
         Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+    }
+
+    [Fact]
+    public void RasterCanvasReportsIncompleteFallbackForUnresolvedVariationSelector() {
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        var fonts = new OfficeFontFaceCollection().Add(
+            ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFont(0x2764));
+        var canvas = new OfficeRasterCanvas(
+            new OfficeRasterImage(120, 40, OfficeColor.White),
+            font: null,
+            fonts: fonts,
+            diagnosticSink: diagnostics,
+            diagnosticSource: "variation-selector test");
+
+        canvas.MeasureText("\u2764\uFE0F", 18D, ManagedTextShapingTestAssets.FamilyName);
+
+        OfficeImageExportDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(OfficeImageExportDiagnosticCodes.TextShapingFallback, diagnostic.Code);
+        Assert.Contains("cannot provide complete", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+    }
+
+    [Fact]
+    public void ManagedFallbackReportsIncompleteFallbackForZeroWidthJoinerSequence() {
+        const string sequence = "\U0001F469\u200D\U0001F4BB";
+        byte[] fontData = ManagedTextShapingTestAssets.CreateFont(0x1F469, 0x1F4BB);
+        OfficeManagedTextFallback fallback = OfficeManagedTextShaper.Resolve(sequence, OfficeTrueTypeFont.TryLoad(fontData)!);
+        OfficeTextShapingResult? managedResult = OfficeManagedTextShapingProvider.Instance.ShapeText(
+            new OfficeTextShapingRequest(
+                sequence,
+                ManagedTextShapingTestAssets.FamilyName,
+                fontData,
+                isOpenTypeCff: false,
+                unitsPerEm: 1000));
+
+        Assert.True(OfficeManagedTextShaper.RequiresComplexLayout(sequence));
+        Assert.True(fallback.Incomplete);
+        Assert.Null(managedResult);
     }
 
     [Fact]

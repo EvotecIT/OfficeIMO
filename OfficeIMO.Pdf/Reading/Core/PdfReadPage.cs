@@ -19,6 +19,8 @@ public sealed partial class PdfReadPage {
     private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
     private readonly Lazy<bool>? _hasOutputIntentCompositionInteraction;
 
+    internal PdfDictionary PageDictionary => _pageDict;
+
     internal PdfReadPage(int objectNumber, PdfDictionary pageDict, Dictionary<int, PdfIndirectObject> objects)
         : this(objectNumber, pageDict, objects, new PdfReadLimits(), new PdfFontResourceCache()) { }
 

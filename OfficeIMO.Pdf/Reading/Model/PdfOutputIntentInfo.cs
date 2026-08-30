@@ -9,6 +9,7 @@ public sealed class PdfOutputIntentInfo {
 
     internal PdfOutputIntentInfo(
         int? objectNumber,
+        string? type,
         string? subtype,
         string? outputConditionIdentifier,
         string? outputCondition,
@@ -21,6 +22,7 @@ public sealed class PdfOutputIntentInfo {
         bool hasDestinationOutputProfile,
         Func<PdfOutputIntentProfileMetadata?>? profileMetadataFactory) {
         ObjectNumber = objectNumber;
+        Type = type;
         Subtype = subtype;
         OutputConditionIdentifier = outputConditionIdentifier;
         OutputCondition = outputCondition;
@@ -38,6 +40,9 @@ public sealed class PdfOutputIntentInfo {
 
     /// <summary>Output intent object number when the output intent is indirect.</summary>
     public int? ObjectNumber { get; }
+
+    /// <summary>Resolved output-intent dictionary /Type value.</summary>
+    public string? Type { get; }
 
     /// <summary>Output intent /S subtype, for example GTS_PDFA1.</summary>
     public string? Subtype { get; }
@@ -78,20 +83,36 @@ public sealed class PdfOutputIntentInfo {
     /// <summary>ICC profile color-space marker from the ICC header, for example RGB, GRAY, or CMYK.</summary>
     public string? DestinationOutputProfileColorSpace => _profileMetadata.Value?.ColorSpace;
 
+    /// <summary>ICC profile device-class marker from the ICC header, for example scnr, mntr, or prtr.</summary>
+    public string? DestinationOutputProfileDeviceClass => _profileMetadata.Value?.DeviceClass;
+
     /// <summary>True when the ICC header contains the acsp signature; false when a readable header is present without it.</summary>
     public bool? DestinationOutputProfileHasIccSignature => _profileMetadata.Value?.HasIccSignature;
+
+    /// <summary>True when the ICC profile is parseable and exposes a supported PCS-to-device output transform.</summary>
+    public bool? DestinationOutputProfileHasSupportedOutputTransform => _profileMetadata.Value?.HasSupportedOutputTransform;
 }
 
 internal sealed class PdfOutputIntentProfileMetadata {
-    internal PdfOutputIntentProfileMetadata(int sizeBytes, int? declaredSizeBytes, string? colorSpace, bool? hasIccSignature) {
+    internal PdfOutputIntentProfileMetadata(
+        int sizeBytes,
+        int? declaredSizeBytes,
+        string? colorSpace,
+        string? deviceClass,
+        bool? hasIccSignature,
+        bool hasSupportedOutputTransform) {
         SizeBytes = sizeBytes;
         DeclaredSizeBytes = declaredSizeBytes;
         ColorSpace = colorSpace;
+        DeviceClass = deviceClass;
         HasIccSignature = hasIccSignature;
+        HasSupportedOutputTransform = hasSupportedOutputTransform;
     }
 
     internal int SizeBytes { get; }
     internal int? DeclaredSizeBytes { get; }
     internal string? ColorSpace { get; }
+    internal string? DeviceClass { get; }
     internal bool? HasIccSignature { get; }
+    internal bool HasSupportedOutputTransform { get; }
 }

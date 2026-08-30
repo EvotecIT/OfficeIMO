@@ -19,14 +19,15 @@ internal static partial class PdfComplianceAnalyzer {
     /// Analyzes the supplied options against a requested formal compliance profile, including generated standard-font usage evidence when available.
     /// </summary>
     public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
-        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null);
+        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null, generatedEvidence: null);
     }
 
-    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
-        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: generatedImages, generatedDrawings: generatedDrawings, generatedForms: generatedForms);
+    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, PdfGeneratedDocumentComplianceEvidence evidence, string? documentTitle) {
+        Guard.NotNull(evidence, nameof(evidence));
+        return AssessCore(profile, options, evidence.StandardFonts, evidence.FontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: evidence.Images, generatedDrawings: evidence.Drawings, generatedForms: evidence.Forms, generatedEvidence: evidence);
     }
 
-    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
+    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms, PdfGeneratedDocumentComplianceEvidence? generatedEvidence) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(options, nameof(options));
 
@@ -48,6 +49,18 @@ internal static partial class PdfComplianceAnalyzer {
             AddPdf20FileVersionRequirement(requirements, options);
         }
 
+        if (profile == PdfComplianceProfile.PdfX1A2003) {
+            Add(requirements, "pdf-file-version", "PDF 1.4 file header",
+                options.FileVersion == PdfFileVersion.Pdf14,
+                "Generated output is configured for a PDF 1.4 file header.",
+                "Set PdfOptions.FileVersion to Pdf14 for PDF/X-1a:2003.");
+        } else if (profile == PdfComplianceProfile.PdfX4) {
+            Add(requirements, "pdf-file-version", "PDF 1.6 file header",
+                options.FileVersion == PdfFileVersion.Pdf16,
+                "Generated output is configured for a PDF 1.6 file header.",
+                "Set PdfOptions.FileVersion to Pdf16 for PDF/X-4.");
+        }
+
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
             AddPdfARequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot);
         }
@@ -62,6 +75,10 @@ internal static partial class PdfComplianceAnalyzer {
 
         if (IsElectronicInvoice(profile)) {
             AddElectronicInvoiceRequirements(requirements, options);
+        }
+
+        if (IsPdfX(profile)) {
+            AddPdfXRequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot, generatedEvidence);
         }
 
         return new PdfComplianceReadinessReport(profile, GetDisplayName(profile), requirements.AsReadOnly());
@@ -261,6 +278,10 @@ internal static partial class PdfComplianceAnalyzer {
         profile == PdfComplianceProfile.FacturX ||
         profile == PdfComplianceProfile.Zugferd;
 
+    private static bool IsPdfX(PdfComplianceProfile profile) =>
+        profile == PdfComplianceProfile.PdfX1A2003 ||
+        profile == PdfComplianceProfile.PdfX4;
+
     private static string GetDisplayName(PdfComplianceProfile profile) {
         switch (profile) {
             case PdfComplianceProfile.PdfA2B:
@@ -289,6 +310,10 @@ internal static partial class PdfComplianceAnalyzer {
                 return "Factur-X";
             case PdfComplianceProfile.Zugferd:
                 return "ZUGFeRD";
+            case PdfComplianceProfile.PdfX1A2003:
+                return "PDF/X-1a:2003";
+            case PdfComplianceProfile.PdfX4:
+                return "PDF/X-4";
             default:
                 return "None";
         }

@@ -58,14 +58,17 @@ internal static class IccMabTestProfiles {
             includeMatrix: false,
             includeACurves: false);
 
-    internal static byte[] CreateCmykLab8Bidirectional() =>
-        AppendMba(
+    internal static byte[] CreateCmykLab8Bidirectional() {
+        byte[] profile = AppendMba(
             CreateCmykLab8(),
             outputChannels: 4,
             precision: 1,
             pcsIsLab: true,
             transformedStages: false,
             includeMatrix: false);
+        WriteSignature(profile, 12, "prtr");
+        return profile;
+    }
 
     internal static byte[] AddRgbXyzOutputTransform(byte[] inputProfile) =>
         AppendMba(

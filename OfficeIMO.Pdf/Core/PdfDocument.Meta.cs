@@ -23,6 +23,7 @@ public sealed partial class PdfDocument {
 
     private PdfDocument(PdfOptions? options = null) {
         _options = options?.Clone() ?? new PdfOptions();
+        _options.MaterializeAutomaticPdfXProductionMetadata();
         _pipeline = PdfPipelineReport.Created();
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
         _blockScopes.Push(_blocks.Add);

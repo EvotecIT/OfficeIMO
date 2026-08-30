@@ -679,13 +679,17 @@ internal static partial class ResourceResolver {
     private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {
         embeddedProgramSubtype = null;
         PdfDictionary fontWithDescriptor = font;
+        string? programFontSubtype = font.Get<PdfName>("Subtype")?.Name;
         if (string.Equals(font.Get<PdfName>("Subtype")?.Name, "Type0", System.StringComparison.Ordinal) &&
             font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject)) {
             PdfArray? descendants = ResolveArray(descendantsObject, objects);
             PdfDictionary? descendant = descendants is { Items.Count: > 0 }
                 ? ResolveDict(descendants.Items[0], objects)
                 : null;
-            if (descendant != null) fontWithDescriptor = descendant;
+            if (descendant != null) {
+                fontWithDescriptor = descendant;
+                programFontSubtype = descendant.Get<PdfName>("Subtype")?.Name;
+            }
         }
 
         PdfDictionary? descriptor = fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject)
@@ -696,13 +700,16 @@ internal static partial class ResourceResolver {
         PdfStream? program = ResolveObject(
             descriptor.Items.TryGetValue("FontFile2", out PdfObject? fontFile2) ? fontFile2 : null,
             objects) as PdfStream;
+        if (program != null && !PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile2")) {
+            program = null;
+        }
         if (program != null) embeddedProgramSubtype = "TrueType";
         if (program == null && descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3)) {
             PdfStream? candidate = ResolveObject(fontFile3, objects) as PdfStream;
             string? subtype = candidate?.Dictionary.Get<PdfName>("Subtype")?.Name;
-            embeddedProgramSubtype = subtype;
-            if (candidate != null && (string.Equals(subtype, "OpenType", System.StringComparison.Ordinal) || string.Equals(subtype, "TrueType", System.StringComparison.Ordinal))) {
+            if (candidate != null && PdfFontProgramCompatibility.IsCompatible(programFontSubtype, "FontFile3", subtype)) {
                 program = candidate;
+                embeddedProgramSubtype = subtype;
             }
         }
         if (program == null || Filters.StreamDecoder.GetUnsupportedFilters(program.Dictionary, objects).Count != 0) return null;
@@ -715,6 +722,9 @@ internal static partial class ResourceResolver {
         } catch (NotSupportedException) {
             return null;
         }
+        if ((string.Equals(embeddedProgramSubtype, "TrueType", StringComparison.Ordinal) ||
+                string.Equals(embeddedProgramSubtype, "OpenType", StringComparison.Ordinal)) &&
+            !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
         return OfficeTrueTypeFont.TryLoad(bytes) == null ? null : bytes;
     }
 

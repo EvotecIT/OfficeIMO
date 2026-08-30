@@ -27,7 +27,7 @@ public static class OfficeImageExportFontDiagnostics {
         OfficeFontStyle requestedStyle = OfficeFontFace.NormalizeStyle(style);
         for (int index = 0; index < families.Count; index++) {
             string family = families[index];
-            OfficeTrueTypeFont? scoped = fonts.ResolveForText(text!, family, requestedStyle, out OfficeFontStyle resolvedStyle);
+            IOfficeFontProgram? scoped = fonts.ResolveForText(text!, family, requestedStyle, out OfficeFontStyle resolvedStyle);
             if (scoped != null) {
                 if (index == 0 && resolvedStyle == requestedStyle) return null;
                 return CreateDiagnostic(
