@@ -189,6 +189,7 @@ internal static class IWorkNumbersReader {
             if (!sheetNameComplete) {
                 MarkTextMetadataUnsupported(sheetRecord, diagnostics, ref supportsEditableReconstruction);
             }
+            if (sheetName != null) projectionBudget.AddTextCharacters(sheetName.Length);
             sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes));
         }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction);
@@ -265,6 +266,7 @@ internal static class IWorkNumbersReader {
         if (!tableNameComplete) {
             MarkTextMetadataUnsupported(model, diagnostics, ref supportsEditableReconstruction);
         }
+        if (tableName != null) projectionBudget.AddTextCharacters(tableName.Length);
         string name = tableName ?? string.Empty;
         int headerRows = CheckedSubDimension(message.GetUnsigned(9), rows, "header row", model);
         int headerColumns = CheckedSubDimension(message.GetUnsigned(10), columns, "header column", model);

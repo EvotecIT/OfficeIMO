@@ -40,7 +40,8 @@ internal static class IWorkTextReader {
                 int start = ordered[runIndex];
                 int end = ordered[runIndex + 1];
                 if (end <= start) continue;
-                string runText = NormalizeInlineText(text.Substring(start, end - start), ref complete);
+                string runText = NormalizeInlineText(text.Substring(start, end - start),
+                    projectionBudget, ref complete);
                 if (runText.Length == 0) continue;
                 projectionBudget.AddTextItem();
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
@@ -498,8 +499,14 @@ internal static class IWorkTextReader {
         _ => IWorkParagraphBreakKind.None
     };
 
-    private static string NormalizeInlineText(string value, ref bool complete) {
+    private static string NormalizeInlineText(string value, IWorkProjectionBudget projectionBudget,
+        ref bool complete) {
         if (value.IndexOf('\ufffc') >= 0) complete = false;
+        int inlineBreakCount = 0;
+        foreach (char character in value) {
+            if (character == '\u2028') inlineBreakCount++;
+        }
+        projectionBudget.AddTextItems(inlineBreakCount);
         return value.Replace('\u2028', '\n').Replace("\ufffc", string.Empty);
     }
 

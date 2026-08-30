@@ -173,7 +173,19 @@ internal static class IWorkKeynoteReader {
                 continue;
             }
             IWorkWireMessage nodeMessage = index.Message(node);
-            bool skipped = nodeMessage.GetUnsigned(4) == 1;
+            ulong? skippedValue = nodeMessage.GetUnsigned(4);
+            bool skipped = skippedValue == 1;
+            if (nodeMessage.HasUnexpectedWireKind(4, IWorkWireKind.Varint)
+                || skippedValue > 1) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic =>
+                        diagnostic.Code == "IWORK_KEYNOTE_SKIPPED_SLIDE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_KEYNOTE_SKIPPED_SLIDE_UNSUPPORTED",
+                        "A Keynote slide-tree node declares an invalid skipped-slide flag; editable reconstruction is incomplete.",
+                        node.EntryPath, node.Identifier));
+                }
+            }
             IWorkArchiveRecord? slide = index.Dereference(nodeMessage, 2);
             if (slide == null || slide.MessageType != SlideArchive) {
                 supportsEditableReconstruction = false;
@@ -235,7 +247,8 @@ internal static class IWorkKeynoteReader {
             }
             if (drawable.MessageType == 3005) {
                 projectionBudget.AddImage();
-                IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable, out bool imageComplete);
+                IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable,
+                    projectionBudget, out bool imageComplete);
                 if (!imageComplete || image == null) {
                     supportsEditableReconstruction = false;
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -297,9 +310,9 @@ internal static class IWorkKeynoteReader {
                 }
                 bool metadataComplete = true;
                 string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,
-                    ref metadataComplete);
+                    projectionBudget, ref metadataComplete);
                 string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawableMessage, 8,
-                    ref metadataComplete);
+                    projectionBudget, ref metadataComplete);
                 if (!metadataComplete) {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
@@ -319,9 +332,9 @@ internal static class IWorkKeynoteReader {
                 }
                 bool metadataComplete = true;
                 string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,
-                    ref metadataComplete);
+                    projectionBudget, ref metadataComplete);
                 string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawableMessage, 8,
-                    ref metadataComplete);
+                    projectionBudget, ref metadataComplete);
                 if (!metadataComplete) {
                     MarkTextMetadataIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 }
@@ -348,6 +361,7 @@ internal static class IWorkKeynoteReader {
         if (!slideNameComplete) {
             MarkTextMetadataIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         }
+        if (slideName != null) projectionBudget.AddTextCharacters(slideName.Length);
         return new IWorkKeynoteSlide(position, slideName ?? string.Empty,
             title, textBoxes, notes, images, tables, skipped);
     }

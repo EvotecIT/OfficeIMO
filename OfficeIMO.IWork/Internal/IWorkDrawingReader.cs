@@ -12,10 +12,11 @@ internal static class IWorkDrawingReader {
     }
 
     internal static string? ReadOptionalString(IWorkWireMessage? message, int field,
-        ref bool complete) {
+        IWorkProjectionBudget projectionBudget, ref bool complete) {
         if (message == null) return null;
         string? value = message.GetString(field, out bool fieldComplete);
         if (!fieldComplete) complete = false;
+        if (value != null) projectionBudget.AddTextCharacters(value.Length);
         return value;
     }
 
@@ -97,7 +98,7 @@ internal static class IWorkDrawingReader {
     }
 
     internal static IWorkImageAsset? ReadImage(IWorkSourceDocument source,
-        IWorkArchiveRecord record, out bool complete) {
+        IWorkArchiveRecord record, IWorkProjectionBudget projectionBudget, out bool complete) {
         complete = true;
         if (record.MessageType != ImageArchive) return null;
         IWorkWireMessage message = source.Index.Message(record);
@@ -144,6 +145,11 @@ internal static class IWorkDrawingReader {
         string? hyperlink = drawable.GetString(4, out bool hyperlinkComplete);
         string? accessibilityDescription = drawable.GetString(8, out bool accessibilityComplete);
         if (!hyperlinkComplete || !accessibilityComplete) complete = false;
+        projectionBudget.AddTextCharacters(data.PreferredFileName.Length);
+        if (hyperlink != null) projectionBudget.AddTextCharacters(hyperlink.Length);
+        if (accessibilityDescription != null) {
+            projectionBudget.AddTextCharacters(accessibilityDescription.Length);
+        }
         return new IWorkImageAsset(data.PreferredFileName, entry.Path, mediaType, entry.Bytes,
             pixelWidth, pixelHeight, geometry, message.HasBytes(5),
             hyperlink, accessibilityDescription);

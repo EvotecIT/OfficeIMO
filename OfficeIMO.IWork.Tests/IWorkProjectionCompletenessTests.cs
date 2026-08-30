@@ -300,7 +300,8 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreateKeynotePackageWithRepeatedSlides(int referenceCount,
         float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false,
         uint showType = 2, uint nodeType = 4, uint slideType = 5,
-        string text = "Title", string? slideName = null, string? listLabel = null) {
+        string text = "Title", string? slideName = null, string? listLabel = null,
+        bool wrongWireSkippedFlag = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -339,7 +340,8 @@ public sealed partial class IWorkBoundaryTests {
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
             ArchiveRecord(showId, showType, showPayload),
-            ArchiveRecord(nodeId, nodeType, Message(ReferenceField(2, slideId))),
+            ArchiveRecord(nodeId, nodeType, Message(ReferenceField(2, slideId),
+                wrongWireSkippedFlag ? BytesField(4, new byte[] { 1 }) : Array.Empty<byte>())),
             ArchiveRecord(slideId, slideType, Message(
                 ReferenceField(5, shapeId),
                 slideName == null ? Array.Empty<byte>() : StringField(10, slideName))),

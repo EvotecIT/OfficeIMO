@@ -211,9 +211,10 @@ internal static class IWorkPagesReader {
                 }
             }
             bool metadataComplete = true;
-            string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4, ref metadataComplete);
+            string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4,
+                projectionBudget, ref metadataComplete);
             string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawable, 8,
-                ref metadataComplete);
+                projectionBudget, ref metadataComplete);
             if (!metadataComplete) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
@@ -240,7 +241,8 @@ internal static class IWorkPagesReader {
         foreach (IWorkArchiveRecord drawable in documentDrawables) {
             if (drawable.MessageType == 3005 && seenImages.Add(drawable.Identifier)) {
                 projectionBudget.AddImage();
-                IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable, out bool imageComplete);
+                IWorkImageAsset? image = IWorkDrawingReader.ReadImage(source, drawable,
+                    projectionBudget, out bool imageComplete);
                 if (!imageComplete || image == null) {
                     supportsEditableReconstruction = false;
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

@@ -29,11 +29,15 @@ internal sealed class IWorkProjectionBudget {
     }
 
     internal void AddTextItem() {
-        if (_textItemCount >= _options.MaximumProjectedTextItems) {
+        AddTextItems(1);
+    }
+
+    internal void AddTextItems(int count) {
+        if (count < 0 || _textItemCount > _options.MaximumProjectedTextItems - count) {
             throw new InvalidDataException(
                 $"Text item count exceeds the configured projection limit of {_options.MaximumProjectedTextItems}.");
         }
-        _textItemCount++;
+        _textItemCount += count;
     }
 
     internal void AddTextBoundaries(int count) {

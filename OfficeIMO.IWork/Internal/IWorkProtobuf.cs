@@ -101,6 +101,11 @@ internal sealed class IWorkWireMessage {
         return values.Count > 0 && !values.Any(value => expectedKinds.Contains(value.Kind));
     }
 
+    internal bool HasUnexpectedWireKind(int field, params IWorkWireKind[] expectedKinds) {
+        IReadOnlyList<IWorkWireValue> values = Values(field);
+        return values.Any(value => !expectedKinds.Contains(value.Kind));
+    }
+
     internal IReadOnlyList<byte[]> GetRepeatedBytes(int field) => Values(field)
         .Where(candidate => candidate.Kind == IWorkWireKind.Bytes && candidate.Bytes != null)
         .Select(candidate => candidate.Bytes!)
@@ -123,7 +128,7 @@ internal sealed class IWorkWireMessage {
     internal string? GetString(int field, out bool complete) {
         complete = true;
         if (!HasField(field)) return null;
-        if (LacksWireKind(field, IWorkWireKind.Bytes)) {
+        if (HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
             return null;
         }

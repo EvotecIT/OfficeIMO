@@ -234,6 +234,8 @@ internal static class IWorkFormulaReader {
         IWorkWireMessage? columnMessage = IWorkObjectIndex.TryGetMessage(node, 26, out bool malformedColumn);
         IWorkWireMessage? rowMessage = IWorkObjectIndex.TryGetMessage(node, 27, out bool malformedRow);
         if (malformedColumn || malformedRow
+            || node.HasUnexpectedWireKind(26, IWorkWireKind.Bytes)
+            || node.HasUnexpectedWireKind(27, IWorkWireKind.Bytes)
             || node.HasBytes(26) && columnMessage == null
             || node.HasBytes(27) && rowMessage == null) {
             complete = false;
@@ -243,41 +245,61 @@ internal static class IWorkFormulaReader {
             complete = false;
             return "#REF!";
         }
-        int? resolvedColumn = ResolveCoordinate(columnMessage, column, out bool absoluteColumn);
-        int? resolvedRow = ResolveCoordinate(rowMessage, row, out bool absoluteRow);
-        if (resolvedColumn < 0 || resolvedRow < 0
+        int? resolvedColumn = ResolveCoordinate(columnMessage, column,
+            out bool absoluteColumn, out bool columnComplete);
+        int? resolvedRow = ResolveCoordinate(rowMessage, row,
+            out bool absoluteRow, out bool rowComplete);
+        if (!columnComplete || !rowComplete
+            || resolvedColumn < 0 || resolvedRow < 0
             || resolvedColumn > 16_383 || resolvedRow > 1_048_575) {
             complete = false;
             return "#REF!";
         }
         string address = CellAddress(resolvedColumn, resolvedRow, absoluteColumn, absoluteRow);
-        if (node.HasBytes(28)) {
+        if (resolvedColumn == null || resolvedRow == null) address += ":" + address;
+        if (node.HasField(28)) {
             complete = false;
-            return "OTHER_TABLE::" + address;
+            return node.HasBytes(28) ? "OTHER_TABLE::" + address : "#REF!";
         }
         return address;
     }
 
-    private static int? ResolveCoordinate(IWorkWireMessage? message, int origin, out bool absolute) {
+    private static int? ResolveCoordinate(IWorkWireMessage? message, int origin, out bool absolute,
+        out bool complete) {
         absolute = false;
+        complete = true;
         if (message == null) return null;
+        if (message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            || message.HasUnexpectedWireKind(2, IWorkWireKind.Varint)) {
+            complete = false;
+            return null;
+        }
         ulong? raw = message.GetUnsigned(1);
-        if (!raw.HasValue) return null;
+        if (!raw.HasValue) {
+            complete = false;
+            return null;
+        }
         long decoded = (long)(raw.Value >> 1) ^ -((long)raw.Value & 1L);
-        if (decoded < int.MinValue || decoded > int.MaxValue) return null;
+        if (decoded < int.MinValue || decoded > int.MaxValue) {
+            complete = false;
+            return null;
+        }
         int value = (int)decoded;
         absolute = (message.GetUnsigned(2) ?? 0) != 0;
         long resolved = absolute ? value : (long)origin + value;
-        return resolved is >= int.MinValue and <= int.MaxValue ? (int)resolved : null;
+        if (resolved is >= int.MinValue and <= int.MaxValue) return (int)resolved;
+        complete = false;
+        return null;
     }
 
     private static bool TryAbsoluteCell(IWorkWireMessage node, out int row, out int column) {
         row = column = 0;
         int? resolvedColumn = ResolveCoordinate(IWorkObjectIndex.TryGetMessage(node, 26), 0,
-            out bool absoluteColumn);
+            out bool absoluteColumn, out bool columnComplete);
         int? resolvedRow = ResolveCoordinate(IWorkObjectIndex.TryGetMessage(node, 27), 0,
-            out bool absoluteRow);
-        if (!absoluteColumn || !absoluteRow || !resolvedColumn.HasValue || !resolvedRow.HasValue
+            out bool absoluteRow, out bool rowComplete);
+        if (!columnComplete || !rowComplete || !absoluteColumn || !absoluteRow
+            || !resolvedColumn.HasValue || !resolvedRow.HasValue
             || resolvedColumn.Value < 0 || resolvedRow.Value < 0) return false;
         column = resolvedColumn.Value;
         row = resolvedRow.Value;

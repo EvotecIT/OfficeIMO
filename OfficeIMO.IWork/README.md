@@ -6,7 +6,7 @@ Keep `OfficeIMO.IWork`, `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.Powe
 
 ## Reference from a source checkout
 
-NuGet does not currently contain an `OfficeIMO.IWork` package version. In a source checkout, reference the bounded reader and the semantic owner you need:
+For source-based development, reference the bounded reader and the semantic owner you need:
 
 ```xml
 <ItemGroup>
@@ -15,7 +15,7 @@ NuGet does not currently contain an `OfficeIMO.IWork` package version. In a sour
 </ItemGroup>
 ```
 
-Use `OfficeIMO.Word` for Pages or `OfficeIMO.PowerPoint` for Keynote in place of the Excel owner. This is the executable installation path for the current source contract; the README does not advertise a NuGet command that currently returns 404.
+Use `OfficeIMO.Word` for Pages or `OfficeIMO.PowerPoint` for Keynote in place of the Excel owner. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
 
 ## Read and inspect a source
 
