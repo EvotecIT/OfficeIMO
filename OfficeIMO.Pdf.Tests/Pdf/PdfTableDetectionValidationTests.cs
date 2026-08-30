@@ -67,6 +67,26 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void LogicalTables_RetainRegularFontQualitativeTablesWithNumericHeaders() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "2025", "2026" },
+                new[] { "Planned", "Ready" },
+                new[] { "Review", "Complete" }
+            }, style: new PdfTableStyle {
+                HeaderBold = false,
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 220D, 220D }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("2025", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
+        Assert.Contains("Complete", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
     public void LogicalTables_RetainRegularFontQualitativeTablesWithRepeatedHeaders() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {
@@ -100,6 +120,50 @@ public sealed class PdfTableDetectionValidationTests {
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("SECTION-A", data.Rows.SelectMany(static row => row));
         Assert.Contains("1037.25", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
+    public void TableDetector_RetainsSparseResponseFormsWithShatteredCompactHeaders() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D,
+                ("D", 50D, 8D, "Helvetica"), ("eli", 58D, 16D, "Helvetica"),
+                ("v", 74D, 8D, "Helvetica"), ("ery", 82D, 20D, "Helvetica"),
+                ("W", 106D, 10D, "Helvetica"), ("o", 116D, 8D, "Helvetica"),
+                ("rksh", 124D, 24D, "Helvetica"), ("ee", 148D, 12D, "Helvetica"),
+                ("t", 160D, 6D, "Helvetica"), ("Response", 300D, 50D, "Helvetica")) },
+            new() { CreateLine(500D, ("Auditor notes", 50D, 116D, "Helvetica"), (" ", 300D, 0D, "Helvetica")) },
+            new() { CreateLine(480D, ("Client response", 50D, 116D, "Helvetica"), (" ", 300D, 0D, "Helvetica")) }
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        Assert.Equal(2, table.Columns.Count);
+        Assert.Contains(table.Rows.SelectMany(static row => row),
+            cell => ContentStructureExtractor.NormalizeShattered(cell) == "DeliveryWorksheet");
+        Assert.Contains(table.Rows.SelectMany(static row => row),
+            cell => ContentStructureExtractor.NormalizeShattered(cell) == "Client response");
+    }
+
+    [Fact]
+    public void TableDetector_RetainsSparseSignOffFormsWithSeveralBlankColumns() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D,
+                ("Role", 50D, 40D, "Helvetica"), ("Name", 150D, 40D, "Helvetica"),
+                ("Decision", 250D, 50D, "Helvetica"), ("Date", 350D, 40D, "Helvetica"),
+                ("Notes", 450D, 40D, "Helvetica")) },
+            new() { CreateLine(500D,
+                ("Lead auditor", 50D, 40D, "Helvetica"), (" ", 150D, 40D, "Helvetica"),
+                (" ", 250D, 40D, "Helvetica"), (" ", 350D, 40D, "Helvetica"),
+                (" ", 450D, 40D, "Helvetica")) },
+            new() { CreateLine(480D,
+                ("Client owner", 50D, 40D, "Helvetica"), (" ", 150D, 40D, "Helvetica"),
+                (" ", 250D, 40D, "Helvetica"), (" ", 350D, 40D, "Helvetica"),
+                (" ", 450D, 40D, "Helvetica")) }
+        };
+
+        StructuredTable table = Assert.Single(TableDetector.DetectTablesFromBands(bands));
+        Assert.Equal(5, table.Columns.Count);
+        Assert.Contains("Lead auditor", table.Rows.SelectMany(static row => row));
+        Assert.Contains("Client owner", table.Rows.SelectMany(static row => row));
     }
 
     [Theory]

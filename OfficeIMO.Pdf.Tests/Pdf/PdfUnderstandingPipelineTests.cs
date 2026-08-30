@@ -329,6 +329,26 @@ public class PdfUnderstandingPipelineTests {
             ordered.Select(static region => region.Text));
     }
 
+    [Fact]
+    public void AdvancedReadingOrder_IsolatesCloseTrailingSpanningRegionAfterColumns() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10000, 10000);
+        PdfUnderstandingRegion leftTop = new(new[] { CreateUnderstandingLine("Left top", 50D, 160D, 700D) });
+        PdfUnderstandingRegion leftBottom = new(new[] { CreateUnderstandingLine("Left bottom", 50D, 160D, 650D) });
+        PdfUnderstandingRegion rightTop = new(new[] { CreateUnderstandingLine("Right top", 320D, 430D, 700D) });
+        PdfUnderstandingRegion rightBottom = new(new[] { CreateUnderstandingLine("Right bottom", 320D, 430D, 650D) });
+        PdfUnderstandingRegion trailing = new(new[] { CreateUnderstandingLine("Trailing table", 50D, 500D, 640D) });
+
+        IReadOnlyList<PdfUnderstandingRegion> ordered = new PdfRecursiveXyCutReadingOrderStage().Order(
+            context,
+            new[] { leftTop, rightTop, leftBottom, rightBottom, trailing });
+
+        Assert.Equal(
+            new[] { "Left top", "Left bottom", "Right top", "Right bottom", "Trailing table" },
+            ordered.Select(static region => region.Text));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

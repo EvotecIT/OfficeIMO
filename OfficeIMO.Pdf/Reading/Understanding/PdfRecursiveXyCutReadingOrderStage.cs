@@ -60,7 +60,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             : FindBestCut(boxes, horizontal: false, minimumVerticalGap);
         if (!forceSingleColumn &&
             !vertical.HasValue &&
-            TryAppendSpanningTopRegion(
+            TryAppendSpanningEdgeRegion(
                 boxes,
                 ordered,
                 minimumHorizontalGap,
@@ -175,7 +175,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         return best;
     }
 
-    private static bool TryAppendSpanningTopRegion(
+    private static bool TryAppendSpanningEdgeRegion(
         IReadOnlyList<RegionBox> boxes,
         List<PdfUnderstandingRegion> ordered,
         double minimumHorizontalGap,
@@ -186,7 +186,9 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             if (remaining.Length < 2) continue;
 
             double candidateCenter = (candidate.Bottom + candidate.Top) / 2D;
-            if (remaining.Any(box => (box.Bottom + box.Top) / 2D >= candidateCenter)) continue;
+            bool beforeRemaining = remaining.All(box => (box.Bottom + box.Top) / 2D < candidateCenter);
+            bool afterRemaining = remaining.All(box => (box.Bottom + box.Top) / 2D > candidateCenter);
+            if (!beforeRemaining && !afterRemaining) continue;
 
             WhitespaceCut? columnCut = FindBestCut(remaining, horizontal: false, minimumVerticalGap);
             if (!columnCut.HasValue ||
@@ -195,14 +197,9 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
                 continue;
             }
 
-            ordered.Add(candidate.Region);
-            AppendPartition(
-                remaining,
-                ordered,
-                minimumHorizontalGap,
-                minimumVerticalGap,
-                forceSingleColumn: false,
-                depth + 1);
+            if (beforeRemaining) ordered.Add(candidate.Region);
+            AppendPartition(remaining, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn: false, depth + 1);
+            if (afterRemaining) ordered.Add(candidate.Region);
             return true;
         }
 

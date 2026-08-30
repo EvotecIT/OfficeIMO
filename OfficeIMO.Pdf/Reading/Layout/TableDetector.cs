@@ -667,9 +667,9 @@ internal static class TableDetector {
         }
 
         for (int i = 0; i < cells.Length; i++) {
-            string cell = cells[i].Trim();
+            string cell = ContentStructureExtractor.NormalizeShattered(cells[i]).Trim();
             if (cell.Length == 0 ||
-                (HasManyDigits(cell) && !cell.Any(char.IsLetter))) {
+                (!cell.Any(char.IsLetter) && !cell.All(char.IsDigit))) {
                 return false;
             }
         }
@@ -710,6 +710,18 @@ internal static class TableDetector {
         return table.Rows.Count > 0 ? table : null;
     }
 
+    private static bool LooksLikeCompactHeaderRow(string[] cells) {
+        if (!LooksLikeHeaderRow(cells)) return false;
+        int words = 0;
+        for (int index = 0; index < cells.Length; index++) {
+            string value = ContentStructureExtractor.NormalizeShattered(cells[index]).Trim();
+            int cellWords = value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (cellWords > 4 || value[value.Length - 1] is '.' or '!' or '?') return false;
+            words += cellWords;
+        }
+        return words <= cells.Length * 3;
+    }
+
     private static bool HasValidatedRows(StructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
         int columnCount = table.Columns.Count;
         if (columnCount < 2 || table.Rows.Count < 2) return false;
@@ -729,11 +741,36 @@ internal static class TableDetector {
 
         bool dense = denseRows >= 2 && denseRows * 2 >= table.Rows.Count;
         bool compactGrid = HasCompactCellGrid(table) && !HasPageColumnLikeGutters(sourceLines);
-        return dense && (
-            hasTabularValueEvidence ||
-            HasEmphasizedHeader(sourceLines) ||
-            compactGrid ||
-            HasStableColumnAnchors(table, sourceLines));
+        return LooksLikeSparseFormGrid(table) ||
+               (dense && (
+                   hasTabularValueEvidence ||
+                   HasEmphasizedHeader(sourceLines) ||
+                   compactGrid ||
+                   HasStableColumnAnchors(table, sourceLines)));
+    }
+
+    private static bool LooksLikeSparseFormGrid(StructuredTable table) {
+        if (table.Rows.Count < 3 || !LooksLikeCompactHeaderRow(table.Rows[0])) return false;
+
+        int sparseLabelRows = 0;
+        for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++) {
+            string[] row = table.Rows[rowIndex];
+            int populatedCells = 0;
+            int populatedColumn = -1;
+            for (int columnIndex = 0; columnIndex < Math.Min(row.Length, table.Columns.Count); columnIndex++) {
+                if (string.IsNullOrWhiteSpace(row[columnIndex])) continue;
+                populatedCells++;
+                populatedColumn = columnIndex;
+            }
+            if (populatedCells != 1 || populatedColumn != 0) continue;
+
+            string label = ContentStructureExtractor.NormalizeShattered(row[0]).Trim();
+            int words = label.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            if (words is >= 1 and <= 5 && label[label.Length - 1] is not ('.' or '!' or '?')) {
+                sparseLabelRows++;
+            }
+        }
+        return sparseLabelRows >= 2;
     }
 
     private static bool HasPageColumnLikeGutters(IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {

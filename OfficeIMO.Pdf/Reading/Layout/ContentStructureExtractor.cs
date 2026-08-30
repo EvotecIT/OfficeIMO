@@ -719,7 +719,7 @@ internal static class ContentStructureExtractor {
         if (s.Length == 0 || s.Length > 3) return false;
         for (int i = 0; i < s.Length; i++) if (!char.IsUpper(s[i])) return false; return true;
     }
-    private static string NormalizeShattered(string s) {
+    internal static string NormalizeShattered(string s) {
         if (string.IsNullOrEmpty(s)) return s;
         // Collapse runs of spaces
         s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();
