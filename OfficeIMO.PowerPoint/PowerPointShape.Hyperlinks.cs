@@ -65,9 +65,7 @@ namespace OfficeIMO.PowerPoint {
 
             SlidePart slidePart = OwnerSlide.SlidePart;
             foreach (string relationshipId in previousRelationshipIds) {
-                if (slidePart.Slide?.Descendants<A.HyperlinkOnClick>()
-                        .Any(link => string.Equals(link.Id?.Value, relationshipId,
-                            StringComparison.Ordinal)) == true) {
+                if (ReferencesRelationship(slidePart.Slide, relationshipId)) {
                     continue;
                 }
                 HyperlinkRelationship? relationship = slidePart.HyperlinkRelationships
@@ -79,5 +77,20 @@ namespace OfficeIMO.PowerPoint {
                 PowerPointEmbeddedSound.RemoveIfUnused(slidePart, relationshipId);
             }
         }
+
+        private static bool ReferencesRelationship(
+            OpenXmlPartRootElement? root, string relationshipId) => root != null
+            && (root.GetAttributes().Any(attribute => string.Equals(
+                    attribute.NamespaceUri,
+                    PowerPointUtils.RelationshipIdNamespace,
+                    StringComparison.Ordinal)
+                && string.Equals(attribute.Value, relationshipId,
+                    StringComparison.Ordinal))
+                || root.Descendants().Any(element => element.GetAttributes()
+                    .Any(attribute => string.Equals(attribute.NamespaceUri,
+                            PowerPointUtils.RelationshipIdNamespace,
+                            StringComparison.Ordinal)
+                        && string.Equals(attribute.Value, relationshipId,
+                            StringComparison.Ordinal))));
     }
 }

@@ -91,11 +91,11 @@ public partial class ExcelDocument {
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
                                 + ":" + CellReference(merge.LastRow, merge.LastColumn));
                         }
-                        if (table.DefaultRowHeight is > 0 and <= 409) {
+                        if (table.DefaultRowHeight is > 0) {
                             sheet.SetDefaultRowHeight(table.DefaultRowHeight.Value);
                         }
                         if (table.DefaultColumnWidth is > 0) {
-                            double width = Math.Min(255d, Math.Max(0.1d, table.DefaultColumnWidth.Value / 7d));
+                            double width = table.DefaultColumnWidth.Value / 7d;
                             sheet.SetDefaultColumnWidth(width);
                         }
                     }
@@ -126,6 +126,14 @@ public partial class ExcelDocument {
             foreach (IWorkTable table in sheet.Tables) {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
+                }
+                if (table.DefaultRowHeight is double rowHeight
+                    && (rowHeight > 409d || Math.Round(rowHeight, 2) <= 0d)) {
+                    return $"Numbers table '{table.Name}' has a default row height outside the XLSX-supported range.";
+                }
+                if (table.DefaultColumnWidth is double columnWidth
+                    && (columnWidth / 7d > 255d || Math.Round(columnWidth / 7d, 2) <= 0d)) {
+                    return $"Numbers table '{table.Name}' has a default column width outside the XLSX-supported range.";
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
                     string? text = cell.Kind == IWorkCellKind.Error

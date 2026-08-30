@@ -149,7 +149,7 @@ internal static class IWorkImageInfo {
                 paletteEntryCount = dataLength / 3;
             } else if (isImageData) {
                 if (colorType == 3 && !hasPalette) return false;
-                if (imageDataEnded || dataLength == 0) return false;
+                if (imageDataEnded) return false;
                 imageData.Write(bytes, dataOffset, dataLength);
                 hasImageData = true;
             } else if (hasImageData && !isEnd) {

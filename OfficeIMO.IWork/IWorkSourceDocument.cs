@@ -1,6 +1,6 @@
 using OfficeIMO.IWork.Internal;
+using System.Text;
 using System.Xml;
-using System.Xml.Linq;
 
 namespace OfficeIMO.IWork;
 
@@ -158,14 +158,76 @@ public sealed partial class IWorkSourceDocument {
                 MaxCharactersFromEntities = 0
             };
             using XmlReader reader = XmlReader.Create(stream, settings);
-            XDocument document = XDocument.Load(reader, LoadOptions.None);
-            return document.Descendants("string")
-                .Select(element => element.Value)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToArray();
-        } catch (Exception exception) when (exception is System.Xml.XmlException or InvalidOperationException) {
+            int nodeCount = 0;
+            int maximumNodes = checked((int)Math.Min(100_000L, Math.Max(16L, entry.Length)));
+            long maximumCharacters = Math.Min(16L * 1024 * 1024, entry.Length);
+            long extractedCharacters = 0;
+            bool sawPlist = false;
+            bool sawArray = false;
+            var values = new List<string>();
+            while (ReadBuildHistoryNode(reader, ref nodeCount, maximumNodes)) {
+                if (reader.Depth > 8) return Array.Empty<string>();
+                if (reader.NodeType != XmlNodeType.Element) continue;
+                if (reader.Depth == 0 && reader.LocalName == "plist" && reader.NamespaceURI.Length == 0
+                    && !sawPlist) {
+                    sawPlist = true;
+                    continue;
+                }
+                if (reader.Depth == 1 && reader.LocalName == "array" && reader.NamespaceURI.Length == 0
+                    && sawPlist && !sawArray) {
+                    sawArray = true;
+                    continue;
+                }
+                if (reader.Depth != 2 || reader.LocalName != "string" || reader.NamespaceURI.Length != 0
+                    || !sawArray
+                    || !TryReadBuildHistoryString(reader, ref nodeCount, maximumNodes,
+                        ref extractedCharacters, maximumCharacters, out string value)) {
+                    return Array.Empty<string>();
+                }
+                if (!string.IsNullOrWhiteSpace(value)) values.Add(value);
+            }
+            return sawPlist && sawArray ? values : Array.Empty<string>();
+        } catch (Exception exception) when (exception is XmlException or InvalidOperationException
+                or InvalidDataException or IOException) {
             return Array.Empty<string>();
         }
+    }
+
+    private static bool ReadBuildHistoryNode(XmlReader reader, ref int nodeCount, int maximumNodes) {
+        if (!reader.Read()) return false;
+        if (nodeCount >= maximumNodes) throw new InvalidDataException("Build history XML exceeds the node limit.");
+        nodeCount++;
+        return true;
+    }
+
+    private static bool TryReadBuildHistoryString(XmlReader reader, ref int nodeCount,
+        int maximumNodes, ref long extractedCharacters, long maximumCharacters,
+        out string value) {
+        value = string.Empty;
+        if (reader.IsEmptyElement) return true;
+        var builder = new StringBuilder();
+        var buffer = new char[1024];
+        while (ReadBuildHistoryNode(reader, ref nodeCount, maximumNodes)) {
+            if (reader.Depth > 8) return false;
+            if (reader.NodeType == XmlNodeType.EndElement) {
+                if (reader.Depth != 2 || reader.LocalName != "string" || reader.NamespaceURI.Length != 0) {
+                    return false;
+                }
+                value = builder.ToString();
+                return true;
+            }
+            if (reader.NodeType is not (XmlNodeType.Text or XmlNodeType.CDATA
+                    or XmlNodeType.Whitespace or XmlNodeType.SignificantWhitespace)) {
+                return false;
+            }
+            int read;
+            while ((read = reader.ReadValueChunk(buffer, 0, buffer.Length)) > 0) {
+                if (extractedCharacters > maximumCharacters - read) return false;
+                extractedCharacters += read;
+                builder.Append(buffer, 0, read);
+            }
+        }
+        return false;
     }
 
     private static IReadOnlyList<IWorkPreviewAsset> ReadPreviews(

@@ -184,7 +184,17 @@ internal static class IWorkPagesReader {
                 }
                 continue;
             }
-            if (storage == null || storage.MessageType != TextStorageArchive
+            if (storage == null) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                        "A Pages shape has no supported text storage; editable reconstruction is incomplete.",
+                        shape.EntryPath, shape.Identifier));
+                }
+                continue;
+            }
+            if (storage.MessageType != TextStorageArchive
                 || skippedStorages.Contains(storage.Identifier) || !seenTextStorages.Add(storage.Identifier)) continue;
             IWorkTextContent text = IWorkTextReader.Read(index, storage, projectionBudget);
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
