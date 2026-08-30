@@ -35,6 +35,7 @@ internal static class EndNoteXmlCodec {
             rootElementName = root?.Name.LocalName;
             if (root != null) {
                 CaptureAttributes(root, nativeEntries, items, limits, cancellationToken);
+                if (!rootIsRecords) AddStructuralTextDiagnostic(root, diagnosticGuard, cancellationToken);
             }
             if (root != null && !rootIsRecords) foreach (XElement element in Cancellable(root.Elements(), cancellationToken)) {
                 if (!HasName(element, root.Name.Namespace, "records")) {
@@ -51,6 +52,7 @@ internal static class EndNoteXmlCodec {
             XElement[] containers = containerList.ToArray();
             recordsElementName = containers.FirstOrDefault()?.Name.LocalName;
             foreach (XElement container in Cancellable(containers, cancellationToken)) {
+                AddStructuralTextDiagnostic(container, diagnosticGuard, cancellationToken);
                 if (!ReferenceEquals(container, root)) CaptureAttributes(container, nativeEntries, items, limits, cancellationToken);
                 foreach (XElement element in Cancellable(container.Elements(), cancellationToken)) {
                     if (!HasName(element, container.Name.Namespace, "record")) {
@@ -144,6 +146,7 @@ internal static class EndNoteXmlCodec {
         XElement? refType = Child(record, "ref-type", cancellationToken);
         string type = refType?.Attribute("name")?.Value ?? refType?.Value ?? string.Empty;
         var item = new BibliographyItem { Key = Value(record, "rec-number", cancellationToken), NativeType = type, Type = CodecMappings.ParseType(type) };
+        AddStructuralTextDiagnostic(record, diagnostics, cancellationToken, item.Key);
         if (refType?.Attribute("name") != null && item.Type != BibliographyItemType.Unknown &&
             int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber) &&
             nativeTypeNumber != ToEndNoteNumber(item.Type))
@@ -529,6 +532,12 @@ internal static class EndNoteXmlCodec {
             if (Cancellable(container.Nodes(), cancellationToken).Any(static node => node is XText text && !string.IsNullOrWhiteSpace(text.Value) || !(node is XElement) && !(node is XText))) return true;
         }
         return false;
+    }
+    private static void AddStructuralTextDiagnostic(XElement element, BibliographyDiagnosticGuard diagnostics, CancellationToken cancellationToken, string? itemKey = null) {
+        if (!Cancellable(element.Nodes(), cancellationToken).Any(static node => node is XText text && !string.IsNullOrWhiteSpace(text.Value))) return;
+        diagnostics.Add(new BibliographyDiagnostic("BIBEND005", BibliographyDiagnosticSeverity.Warning,
+            $"EndNote XML structural element '{element.Name.LocalName}' contains direct text that canonical output cannot retain.",
+            GetOffset(element), itemKey: itemKey, field: element.Name.LocalName));
     }
     private static bool IsKnownContainer(string name) {
         switch (name.ToLowerInvariant()) {

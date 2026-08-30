@@ -124,6 +124,11 @@ internal static class CodecMappings {
         string.Equals(scheme, "PMID", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(scheme, "PMCID", StringComparison.OrdinalIgnoreCase);
 
+    internal static bool IsCanonicalCslIdentifierScheme(string scheme) =>
+        string.Equals(scheme, "DOI", StringComparison.Ordinal) || string.Equals(scheme, "ISBN", StringComparison.Ordinal) ||
+        string.Equals(scheme, "ISSN", StringComparison.Ordinal) || string.Equals(scheme, "PMID", StringComparison.Ordinal) ||
+        string.Equals(scheme, "PMCID", StringComparison.Ordinal);
+
     internal static bool IsBibIdentifierScheme(string scheme) => IsCslIdentifierScheme(scheme);
 
     internal static string InferSerialScheme(string value) {

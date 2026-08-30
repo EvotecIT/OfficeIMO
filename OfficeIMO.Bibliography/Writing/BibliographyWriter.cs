@@ -69,7 +69,7 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool IsRecoveryLossDiagnostic(BibliographyDiagnostic diagnostic) =>
-        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003" || diagnostic.Code == "BIBEND004";
+        diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003" || diagnostic.Code == "BIBEND004" || diagnostic.Code == "BIBEND005";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
@@ -161,6 +161,10 @@ internal static class BibliographyConversionInspector {
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasSurroundingWhitespace(contributor.Name.Given) || HasSurroundingWhitespace(contributor.Name.Family) || HasSurroundingWhitespace(contributor.Name.Suffix) || HasLeadingWhitespace(contributor.Name.Literal)))
                 Loss(report, item, "contributors", "BIBCONV243", $"A contributor name contains whitespace that is trimmed by {format} name parsing.", BibliographyConversionAction.Approximated);
         }
+        if (format != BibliographyFormat.CslJson) {
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => HasEmptyNameComponent(contributor.Name)))
+                Loss(report, item, "contributors", "BIBCONV244", $"An explicitly empty contributor-name component reopens as null in {format}.", BibliographyConversionAction.Approximated);
+        }
         if (ReordersContributors(item, format, cancellationToken))
             Loss(report, item, "contributors", "BIBCONV230", $"Contributor source order is regrouped by {format} output and cannot be reopened exactly.", BibliographyConversionAction.Approximated);
     }
@@ -197,6 +201,9 @@ internal static class BibliographyConversionInspector {
     private static bool ContainsComma(string? value) => value?.IndexOf(',') >= 0;
     private static bool HasSurroundingWhitespace(string? value) => value != null && !string.Equals(value, value.Trim(), StringComparison.Ordinal);
     private static bool HasLeadingWhitespace(string? value) => !string.IsNullOrEmpty(value) && char.IsWhiteSpace(value![0]);
+    private static bool HasEmptyNameComponent(BibliographyName name) =>
+        name.Given is { Length: 0 } || name.Family is { Length: 0 } || name.Literal is { Length: 0 } || name.Suffix is { Length: 0 } ||
+        name.DroppingParticle is { Length: 0 } || name.NonDroppingParticle is { Length: 0 };
 
     private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
@@ -233,6 +240,9 @@ internal static class BibliographyConversionInspector {
             if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
                 !date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal) && CodecMappings.IsStructuredDateText(date.Literal!))
                 Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV240", $"A parseable literal date is reopened as structured numeric parts in {format}.", BibliographyConversionAction.Approximated);
+            if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
+                LiteralDateWhitespaceIsNormalized(date.Literal, format))
+                Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV246", $"Literal-date surrounding whitespace is trimmed by {format} date parsing.", BibliographyConversionAction.Approximated);
         }
     }
 
@@ -242,6 +252,11 @@ internal static class BibliographyConversionInspector {
         if (format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris)
             return role == BibliographyDateRole.Issued || role == BibliographyDateRole.Accessed;
         return (format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) && role == BibliographyDateRole.Issued;
+    }
+
+    private static bool LiteralDateWhitespaceIsNormalized(string? value, BibliographyFormat format) {
+        if (value == null || string.Equals(value, value.Trim(), StringComparison.Ordinal)) return false;
+        return format != BibliographyFormat.EndNoteXml || value.Trim().Length > 0;
     }
 
     private static bool IsValidDate(int? year, int? month, int? day) {
@@ -275,6 +290,8 @@ internal static class BibliographyConversionInspector {
                 if (!CodecMappings.IsCslIdentifierScheme(group.Key)) Loss(report, item, "identifiers." + group.Key, "BIBCONV225", $"Identifier scheme '{group.Key}' is not represented by the typed CSL JSON model.", BibliographyConversionAction.Omitted);
                 else if (group.Count() > 1) Loss(report, item, "identifiers." + group.Key, "BIBCONV206", $"Multiple '{group.Key}' identifiers collapse into one destination value in {format}.", BibliographyConversionAction.Approximated);
             }
+            foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken).Where(static identifier => CodecMappings.IsCslIdentifierScheme(identifier.Scheme) && !CodecMappings.IsCanonicalCslIdentifierScheme(identifier.Scheme)))
+                Loss(report, item, "identifiers." + identifier.Scheme, "BIBCONV245", $"Identifier scheme '{identifier.Scheme}' is normalized to uppercase CSL JSON property spelling.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Ris) {
             foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken).Where(static identifier => !TaggedCodec.CanRoundTripRisIdentifier(identifier)))

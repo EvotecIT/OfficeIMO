@@ -12,6 +12,7 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
     private readonly List<string> _elementNames = new List<string>();
     private readonly List<string> _elementNamespaces = new List<string>();
     private readonly List<bool> _elementHasChildren = new List<bool>();
+    private readonly List<bool> _elementHasNonWhitespaceText = new List<bool>();
     private readonly List<int> _elementTextLengths = new List<int>();
     private readonly List<int> _elementOffsets = new List<int>();
 
@@ -38,6 +39,7 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
                 _elementNames.Add(_reader.LocalName);
                 _elementNamespaces.Add(_reader.NamespaceURI);
                 _elementHasChildren.Add(false);
+                _elementHasNonWhitespaceText.Add(false);
                 _elementTextLengths.Add(0);
                 _elementOffsets.Add(offset);
             } else {
@@ -45,19 +47,21 @@ internal sealed class EndNoteBoundedXmlReader : XmlReader, IXmlLineInfo {
             }
         } else if (read && _reader.NodeType == XmlNodeType.EndElement && _elementNames.Count > 0) {
             int last = _elementNames.Count - 1;
-            if (!_elementHasChildren[last]) {
+            if (!_elementHasChildren[last] || _elementHasNonWhitespaceText[last]) {
                 _materializationLimits.CheckValueLength(_partialItems, _elementTextLengths[last], _elementOffsets[last]);
                 _materializationLimits.AddValue(_partialItems, null, _elementOffsets[last]);
             }
             _elementNames.RemoveAt(_elementNames.Count - 1);
             _elementNamespaces.RemoveAt(_elementNamespaces.Count - 1);
             _elementHasChildren.RemoveAt(last);
+            _elementHasNonWhitespaceText.RemoveAt(last);
             _elementTextLengths.RemoveAt(last);
             _elementOffsets.RemoveAt(last);
         } else if (read && _elementTextLengths.Count > 0 && (_reader.NodeType == XmlNodeType.Text || _reader.NodeType == XmlNodeType.CDATA)) {
             int last = _elementTextLengths.Count - 1;
             _materializationLimits.CheckAdditionalValueLength(_partialItems, _elementTextLengths[last], _reader.Value.Length, _elementOffsets[last]);
             _elementTextLengths[last] += _reader.Value.Length;
+            if (!_elementHasNonWhitespaceText[last] && _reader.Value.Any(static character => !char.IsWhiteSpace(character))) _elementHasNonWhitespaceText[last] = true;
         } else if (read && (_reader.NodeType == XmlNodeType.Comment || _reader.NodeType == XmlNodeType.ProcessingInstruction)) {
             int offset = _offsets.GetOffset(this);
             _materializationLimits.AddValue(_partialItems, _reader.Value, offset);
