@@ -1,12 +1,17 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Xml;
 
 namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
-    private static bool TryResolveXmlRootNamespace(string qualifiedName, string rootTag, out string namespaceUri) {
+    private static bool TryResolveXmlRootNamespace(
+        string qualifiedName,
+        string rootTag,
+        string documentType,
+        out string namespaceUri) {
         namespaceUri = string.Empty;
         try {
             XmlConvert.VerifyName(qualifiedName);
@@ -52,11 +57,47 @@ internal static partial class DocumentReaderEngine {
             string attributeValue = rootTag.Substring(valueStart, position - valueStart);
             position++;
             if (!string.Equals(attributeName, namespaceAttribute, StringComparison.Ordinal)) continue;
-            if (foundNamespace || !TryDecodeXmlAttributeValue(attributeValue, out namespaceUri)) return false;
+            if (foundNamespace) return false;
+            if (!TryDecodeXmlAttributeValue(attributeValue, out namespaceUri)) {
+                return TryResolveXmlRootNamespaceWithInternalEntities(
+                    qualifiedName, rootTag, documentType, out namespaceUri);
+            }
             foundNamespace = true;
         }
 
         return separator < 0 || foundNamespace && namespaceUri.Length > 0;
+    }
+
+    private static bool TryResolveXmlRootNamespaceWithInternalEntities(
+        string qualifiedName,
+        string rootTag,
+        string documentType,
+        out string namespaceUri) {
+        namespaceUri = string.Empty;
+        if (documentType.Length == 0) return false;
+        string closingTag = rootTag.EndsWith("/>", StringComparison.Ordinal)
+            ? string.Empty
+            : "</" + qualifiedName + ">";
+        string probe = documentType + rootTag + closingTag;
+        var settings = new XmlReaderSettings {
+            DtdProcessing = DtdProcessing.Parse,
+            XmlResolver = null,
+            MaxCharactersFromEntities = 4096,
+            MaxCharactersInDocument = Math.Max(4096, probe.Length + 4096)
+        };
+        try {
+            using var input = new StringReader(probe);
+            using XmlReader reader = XmlReader.Create(input, settings);
+            while (reader.Read()) {
+                if (reader.NodeType != XmlNodeType.Element || reader.Depth != 0) continue;
+                if (!string.Equals(reader.Name, qualifiedName, StringComparison.Ordinal)) return false;
+                namespaceUri = reader.NamespaceURI;
+                return qualifiedName.IndexOf(':') < 0 || namespaceUri.Length > 0;
+            }
+        } catch (XmlException) {
+            return false;
+        }
+        return false;
     }
 
     private static bool TryDecodeXmlAttributeValue(string value, out string decoded) {

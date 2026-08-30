@@ -143,13 +143,39 @@ public sealed partial class DocBookDocument {
             !HasUnsupportedAssetFields(asset, reference!);
     }
 
-    private static bool HasUnsupportedAssetFields(OfficeDocumentModelAsset asset, string reference) {
+    private static string? FindProjectedAssetReference(
+        OfficeDocumentModelAsset asset,
+        ILookup<string, OfficeDocumentModelNode> nodesById) {
+        const string prefix = "docbook-image-";
+        if (string.IsNullOrEmpty(asset.Id) || !asset.Id.StartsWith(prefix, StringComparison.Ordinal)) return null;
+        string nodeId = "docbook-" + asset.Id.Substring(prefix.Length);
+        string? reference = null;
+        foreach (OfficeDocumentModelNode node in nodesById[nodeId]) {
+            if (!string.Equals(node.Kind, "image", StringComparison.OrdinalIgnoreCase) ||
+                !node.Attributes.TryGetValue("fileref", out string? candidate)) continue;
+            if (reference != null) return null;
+            reference = candidate;
+        }
+        return reference;
+    }
+
+    private static bool HasUnsupportedAssetFields(
+        OfficeDocumentModelAsset asset,
+        string reference,
+        string? originalReference = null) {
         string? fileName = GetReferenceFileNameFromReference(reference);
         string? expectedExtension = GetReferenceExtensionFromFileName(fileName);
         string expectedMediaType = OfficeIMO.Drawing.OfficeImageInfo.GetMimeTypeFromExtension(expectedExtension);
         string? normalizedMediaType = expectedMediaType == "application/octet-stream" ? null : expectedMediaType;
-        return !string.Equals(asset.Extension, expectedExtension, StringComparison.OrdinalIgnoreCase) ||
-            !string.Equals(asset.MediaType, normalizedMediaType, StringComparison.OrdinalIgnoreCase) ||
+        string? originalFileName = originalReference == null ? null : GetReferenceFileNameFromReference(originalReference);
+        string? originalExtension = GetReferenceExtensionFromFileName(originalFileName);
+        string originalMediaTypeValue = OfficeIMO.Drawing.OfficeImageInfo.GetMimeTypeFromExtension(originalExtension);
+        string? originalMediaType = originalMediaTypeValue == "application/octet-stream" ? null : originalMediaTypeValue;
+        bool extensionMatches = string.Equals(asset.Extension, expectedExtension, StringComparison.OrdinalIgnoreCase) ||
+            originalReference != null && string.Equals(asset.Extension, originalExtension, StringComparison.OrdinalIgnoreCase);
+        bool mediaTypeMatches = string.Equals(asset.MediaType, normalizedMediaType, StringComparison.OrdinalIgnoreCase) ||
+            originalReference != null && string.Equals(asset.MediaType, originalMediaType, StringComparison.OrdinalIgnoreCase);
+        return !extensionMatches || !mediaTypeMatches ||
             asset.Width.HasValue || asset.Height.HasValue || asset.LengthBytes.HasValue ||
             !string.IsNullOrEmpty(asset.PayloadHash) || asset.PayloadBytes != null || asset.Region != null;
     }

@@ -749,18 +749,32 @@ public sealed partial class DocBookDocument {
         }
 
         bool AddFlatAsset(OfficeDocumentModelAsset source) {
+            string? originalReference = FindProjectedAssetReference(source, structureNodesById);
             string? reference = source.FileName;
             if (model.Format == OfficeDocumentFormat.DocBook && !string.IsNullOrWhiteSpace(source.SourceObjectId)) {
-                bool fileNameWasEdited = !string.IsNullOrWhiteSpace(source.FileName) &&
-                    !string.Equals(source.FileName, GetReferenceFileNameFromReference(source.SourceObjectId!), StringComparison.Ordinal);
-                reference = fileNameWasEdited ? source.FileName : source.SourceObjectId;
+                if (originalReference != null) {
+                    bool sourceReferenceWasEdited = !string.Equals(source.SourceObjectId, originalReference, StringComparison.Ordinal);
+                    bool fileNameWasEdited = !string.IsNullOrWhiteSpace(source.FileName) &&
+                        !string.Equals(source.FileName, GetReferenceFileNameFromReference(originalReference), StringComparison.Ordinal);
+                    reference = sourceReferenceWasEdited ? source.SourceObjectId : fileNameWasEdited ? source.FileName : originalReference;
+                    if (sourceReferenceWasEdited && fileNameWasEdited &&
+                        !string.Equals(source.FileName, GetReferenceFileNameFromReference(source.SourceObjectId!), StringComparison.Ordinal)) {
+                        diagnostics.Add(new DocBookDiagnostic("DB125", DocBookDiagnosticSeverity.Warning,
+                            $"Shared asset '{source.Id}' contains conflicting SourceObjectId and FileName edits; SourceObjectId took precedence.",
+                            source.Location?.HeadingPath));
+                    }
+                } else {
+                    bool fileNameWasEdited = !string.IsNullOrWhiteSpace(source.FileName) &&
+                        !string.Equals(source.FileName, GetReferenceFileNameFromReference(source.SourceObjectId!), StringComparison.Ordinal);
+                    reference = fileNameWasEdited ? source.FileName : source.SourceObjectId;
+                }
             }
             if (!string.Equals(source.Kind, "image", StringComparison.OrdinalIgnoreCase) || string.IsNullOrWhiteSpace(reference)) {
                 diagnostics.Add(new DocBookDiagnostic("DB118", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' could not be represented as a DocBook image reference.", source.Location?.HeadingPath));
                 return false;
             }
-            if (HasUnsupportedAssetFields(source, reference!)) {
+            if (HasUnsupportedAssetFields(source, reference!, originalReference)) {
                 diagnostics.Add(new DocBookDiagnostic("DB124", DocBookDiagnosticSeverity.Warning,
                     $"Shared asset '{source.Id}' contains payload, geometry, or media metadata that cannot be represented by a DocBook image reference and was omitted.",
                     source.Location?.HeadingPath));

@@ -76,21 +76,45 @@ internal static partial class OpmlReaderAdapter {
             cancellationToken.ThrowIfCancellationRequested();
             string headingPath = OfficeDocumentHeadingPath.Append(parentPath, outline.Text, " > ");
             int currentSource = sourceIndex++;
-            IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(outline.Text, reader.MaxChars);
+            int maxChars = Math.Max(1, reader.MaxChars);
+            string headingPrefix = new string('#', Math.Min(level, 6)) + " ";
+            IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(
+                outline.Text, Math.Max(1, maxChars - headingPrefix.Length), maxChars);
             if (parts.Count == 0) parts = new[] { string.Empty };
             string targetMarkdown = BuildTargetMarkdown(outline);
+            string finalTextMarkdown = (parts.Count == 1 ? headingPrefix : string.Empty) + parts[parts.Count - 1];
+            bool appendTargets = targetMarkdown.Length > 0 &&
+                finalTextMarkdown.Length + 2 + targetMarkdown.Length <= maxChars;
+            IReadOnlyList<string> targetParts = targetMarkdown.Length == 0 || appendTargets
+                ? Array.Empty<string>()
+                : DocumentReaderEngine.SplitAdapterProjection(targetMarkdown, maxChars);
+            int totalParts = parts.Count + targetParts.Count;
+            int emittedPart = 0;
             for (int part = 0; part < parts.Count; part++) {
-                string markdown = part == 0 ? new string('#', Math.Min(level, 6)) + " " + parts[part] : parts[part];
-                if (part == parts.Count - 1 && targetMarkdown.Length > 0) markdown += "\n\n" + targetMarkdown;
+                string markdown = part == 0 ? headingPrefix + parts[part] : parts[part];
+                if (part == parts.Count - 1 && appendTargets) markdown += "\n\n" + targetMarkdown;
                 yield return new ReaderChunk {
-                    Id = parts.Count == 1 ? "opml-" + currentSource : "opml-" + currentSource + "-part-" + (part + 1),
+                    Id = totalParts == 1 ? "opml-" + currentSource : "opml-" + currentSource + "-part-" + (emittedPart + 1),
                     Kind = ReaderInputKind.Opml, Text = parts[part],
                     Markdown = markdown,
-                    ContinuesPreviousChunk = part > 0,
+                    ContinuesPreviousChunk = emittedPart > 0,
                     Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
                         HeadingPath = headingPath, SourceBlockKind = "outline", BlockAnchor = "opml-outline-" + currentSource },
                     Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" }, Warnings = TakeWarnings()
                 };
+                emittedPart++;
+            }
+            foreach (string targetPart in targetParts) {
+                yield return new ReaderChunk {
+                    Id = "opml-" + currentSource + "-part-" + (emittedPart + 1),
+                    Kind = ReaderInputKind.Opml, Text = string.Empty,
+                    Markdown = targetPart,
+                    ContinuesPreviousChunk = true,
+                    Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
+                        HeadingPath = headingPath, SourceBlockKind = "outline-target", BlockAnchor = "opml-outline-" + currentSource },
+                    Diagnostics = new ReaderChunkDiagnostics { SourceKind = "opml" }, Warnings = TakeWarnings()
+                };
+                emittedPart++;
             }
             foreach (OpmlOutline child in outline.Children) foreach (ReaderChunk chunk in BuildOutline(child, level + 1, headingPath)) yield return chunk;
         }

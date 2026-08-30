@@ -1607,6 +1607,37 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void SharedReverseConversionPreservesSourceReferenceOnlyAssetEdits() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        Assert.Single(model.Assets).SourceObjectId = "assets/edited.jpg";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB122" &&
+            diagnostic.Message.IndexOf("asset", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "DB124");
+        Assert.Contains(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "imagedata" && (string?)element.Attribute("fileref") == "assets/edited.jpg");
+    }
+
+    [Fact]
+    public void SharedReverseConversionDiagnosesConflictingAssetReferenceEdits() {
+        const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"assets/original.png\"/></imageobject></mediaobject></article>";
+        OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;
+        OfficeDocumentModelAsset asset = Assert.Single(model.Assets);
+        asset.SourceObjectId = "assets/source-edit.png";
+        asset.FileName = "filename-edit.png";
+
+        DocBookConversionResult<DocBookDocument> converted = DocBookDocument.FromOfficeDocumentModel(model);
+
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "DB125" &&
+            diagnostic.Message.IndexOf("SourceObjectId", StringComparison.Ordinal) >= 0);
+        Assert.Contains(converted.Value.Xml.Descendants(), element =>
+            element.Name.LocalName == "imagedata" && (string?)element.Attribute("fileref") == "assets/source-edit.png");
+    }
+
+    [Fact]
     public void SharedReverseConversionReportsEditedUnsupportedAssetFields() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><mediaobject><imageobject><imagedata fileref=\"figure.png\"/></imageobject></mediaobject></article>";
         OfficeDocumentModel model = DocBookDocument.Parse(source).ToOfficeDocumentModel().Value;

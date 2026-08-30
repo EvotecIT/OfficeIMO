@@ -40,6 +40,21 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void OpmlAdapterBoundsLongTargetMarkdownWithoutDiscardingIt() {
+        OpmlDocument document = OpmlDocument.Create();
+        OpmlOutline outline = document.AddOutline("Feed");
+        outline.XmlUrl = "https://example.test/" + new string('a', 1_000);
+
+        ReaderChunk[] chunks = OpmlReaderAdapter.Read(
+            document, readerOptions: new ReaderOptions { MaxChars = 256 }).ToArray();
+
+        Assert.True(chunks.Length > 1);
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 256));
+        Assert.Contains(outline.XmlUrl, string.Concat(chunks.Select(chunk => chunk.Markdown)), StringComparison.Ordinal);
+        Assert.All(chunks.Skip(1), chunk => Assert.True(chunk.ContinuesPreviousChunk));
+    }
+
+    [Fact]
     public void DocBookAdapterEmitsCommonStructureChunksAndRegistersDedicatedExtensions() {
         DocBookDocument document = DocBookDocument.CreateArticle();
         document.AddSection("Start").AddParagraph("Body");
@@ -394,6 +409,16 @@ public sealed class ReaderOpmlDocBookModularTests {
         });
         Assert.Equal(ReaderInputKind.DocBook, entityBackedResult.Kind);
         Assert.Equal("P", Assert.Single(entityBackedResult.Chunks).Text);
+        byte[] entityBackedNamespace = Encoding.UTF8.GetBytes(
+            "<!DOCTYPE article [<!ENTITY ns \"http://docbook.org/ns/docbook\">]><article xmlns=\"&ns;\"><para>P</para></article>");
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(entityBackedNamespace, "renamed.bin", new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent
+        }).Kind);
+        byte[] prefixedEntityBackedNamespace = Encoding.UTF8.GetBytes(
+            "<!DOCTYPE db:article [<!ENTITY ns \"http://docbook.org/ns/docbook\">]><db:article xmlns:db=\"&ns;\"/>");
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(prefixedEntityBackedNamespace, "renamed.bin", new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent
+        }).Kind);
 
         byte[] ordinaryXml = Encoding.UTF8.GetBytes("<root><value>&lt;opml version=\"2.0\"&gt;</value></root>");
         Assert.NotEqual(ReaderInputKind.Opml, reader.Detect(ordinaryXml, "renamed.bin", new ReaderDetectionOptions {
@@ -410,7 +435,9 @@ public sealed class ReaderOpmlDocBookModularTests {
             "<!DOCTYPE article [<!-- -//OASIS//DTD DocBook XML V4.5//EN http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd -->]><article/>",
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN EXTRA\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>",
             "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd?other\"><article/>",
-            "<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>"
+            "<!DOCTYPE book PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article/>",
+            "<!DOCTYPE article [<!ENTITY ns SYSTEM \"file:///not-resolved\">]><article xmlns=\"&ns;\"/>",
+            "<!DOCTYPE article [<!ENTITY ns \"&ns;\">]><article xmlns=\"&ns;\"/>"
         };
         foreach (string lookalike in lookalikes) {
             ReaderDetectionResult detection = reader.Detect(Encoding.UTF8.GetBytes(lookalike), "renamed.bin", new ReaderDetectionOptions {

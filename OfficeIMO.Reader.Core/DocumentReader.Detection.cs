@@ -541,7 +541,8 @@ internal static partial class DocumentReaderEngine {
         if (TryGetXmlRoot(xmlProbe, out string qualifiedRootName, out string rootTag, out string xmlDocumentType)) {
             int prefixSeparator = qualifiedRootName.IndexOf(':');
             string localRootName = prefixSeparator >= 0 ? qualifiedRootName.Substring(prefixSeparator + 1) : qualifiedRootName;
-            bool hasResolvedNamespace = TryResolveXmlRootNamespace(qualifiedRootName, rootTag, out string rootNamespace);
+            bool hasResolvedNamespace = TryResolveXmlRootNamespace(
+                qualifiedRootName, rootTag, xmlDocumentType, out string rootNamespace);
             if (qualifiedRootName == "opml" && hasResolvedNamespace && rootNamespace.Length == 0) {
                 return DetectionCandidate.High(ReaderInputKind.Opml, "text/x-opml", "text:opml-root");
             }
