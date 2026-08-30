@@ -852,7 +852,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] records = Message(
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001, body, new[] { sectionId }),
-            ArchiveRecord(sectionId, 10011, Message(ReferenceField(23, headerFooterId)), new[] { headerFooterId }),
+            ArchiveRecord(sectionId, 10011, Message(ReferenceField(25, headerFooterId)), new[] { headerFooterId }),
             ArchiveRecord(headerFooterId, 10143,
                 Message(ReferenceField(1, firstHeaderId), ReferenceField(1, secondHeaderId)),
                 new[] { firstHeaderId, secondHeaderId }),
@@ -880,9 +880,9 @@ public sealed partial class IWorkBoundaryTests {
         byte[] records = Message(
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001, body, new[] { firstSectionId, secondSectionId }),
-            ArchiveRecord(firstSectionId, 10011, Message(ReferenceField(23, firstHeaderFooterId)),
+            ArchiveRecord(firstSectionId, 10011, Message(ReferenceField(25, firstHeaderFooterId)),
                 new[] { firstHeaderFooterId }),
-            ArchiveRecord(secondSectionId, 10011, Message(ReferenceField(23, secondHeaderFooterId)),
+            ArchiveRecord(secondSectionId, 10011, Message(ReferenceField(25, secondHeaderFooterId)),
                 new[] { secondHeaderFooterId }),
             ArchiveRecord(firstHeaderFooterId, 10143, Message(ReferenceField(1, firstHeaderId)),
                 new[] { firstHeaderId }),

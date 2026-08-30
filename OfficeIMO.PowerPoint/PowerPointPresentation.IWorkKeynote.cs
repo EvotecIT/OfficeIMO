@@ -226,6 +226,10 @@ public sealed partial class PowerPointPresentation {
                     if (paragraph.ListLevel > 8) {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
+                    if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 1 } label
+                        && !TryParseNumbering(label, out _, out _)) {
+                        return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
+                    }
                     IWorkParagraphStyle style = paragraph.Style;
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
                         || !FitsTextCoordinate(style.LeftIndentPoints)
@@ -317,6 +321,7 @@ public sealed partial class PowerPointPresentation {
         }
         textBox.Clear();
         bool first = true;
+        ulong? previousListIdentifier = null;
         foreach (IWorkTextParagraph sourceParagraph in source.Content.Paragraphs) {
             PowerPointParagraph paragraph;
             if (first) {
@@ -326,25 +331,36 @@ public sealed partial class PowerPointPresentation {
             } else {
                 paragraph = textBox.AddParagraph();
             }
-            ApplyParagraphStyle(paragraph, sourceParagraph);
+            bool startsNewList = sourceParagraph.ListLevel >= 0
+                && sourceParagraph.ListIdentifier != previousListIdentifier;
+            ApplyParagraphStyle(paragraph, sourceParagraph, startsNewList);
             WriteParagraphContent(paragraph, sourceParagraph);
+            previousListIdentifier = sourceParagraph.ListLevel >= 0
+                ? sourceParagraph.ListIdentifier
+                : null;
         }
     }
 
     private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source) {
         IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
             source.Paragraphs.Select(_ => string.Empty));
+        ulong? previousListIdentifier = null;
         for (int paragraphIndex = 0; paragraphIndex < source.Paragraphs.Count; paragraphIndex++) {
             IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-            ApplyParagraphStyle(paragraph, sourceParagraph);
+            bool startsNewList = sourceParagraph.ListLevel >= 0
+                && sourceParagraph.ListIdentifier != previousListIdentifier;
+            ApplyParagraphStyle(paragraph, sourceParagraph, startsNewList);
             WriteParagraphContent(paragraph, sourceParagraph);
+            previousListIdentifier = sourceParagraph.ListLevel >= 0
+                ? sourceParagraph.ListIdentifier
+                : null;
         }
         notes.Save();
     }
 
     private static void ApplyParagraphStyle(PowerPointParagraph paragraph,
-        IWorkTextParagraph source) {
+        IWorkTextParagraph source, bool startsNewList) {
         IWorkParagraphStyle style = source.Style;
         if (style.Alignment.HasValue) {
             paragraph.Alignment = style.Alignment.Value switch {
@@ -362,6 +378,11 @@ public sealed partial class PowerPointPresentation {
             paragraph.Level = Math.Min(8, source.ListLevel);
             if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
             else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
+            else if (TryParseNumbering(source.ListLabel, out PowerPointNumberingScheme scheme,
+                         out int start)) {
+                if (startsNewList) paragraph.SetNumbered(scheme, start);
+                else paragraph.SetNumbered(scheme);
+            }
         }
     }
 
@@ -369,10 +390,6 @@ public sealed partial class PowerPointPresentation {
         IWorkTextParagraph source) {
         paragraph.Text = string.Empty;
         bool canReuseInitialRun = true;
-        if (source.ListLevel >= 0 && source.ListLabel is { Length: > 1 } label) {
-            AppendStyledText(paragraph, label + " ", source.Style.TextStyle, null,
-                ref canReuseInitialRun);
-        }
         foreach (IWorkTextRun sourceRun in source.Runs) {
             string[] lines = sourceRun.Text.Split(new[] { '\n' });
             for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
@@ -386,6 +403,88 @@ public sealed partial class PowerPointPresentation {
                 }
             }
         }
+    }
+
+    private static bool TryParseNumbering(string label,
+        out PowerPointNumberingScheme scheme, out int start) {
+        const int MaximumStart = 32_767;
+        scheme = PowerPointNumberingScheme.ArabicPeriod;
+        start = 1;
+        string marker = label.Trim();
+        bool parenthesized = marker.Length > 2
+            && marker[0] == '(' && marker[marker.Length - 1] == ')';
+        bool rightParenthesis = !parenthesized && marker.EndsWith(")", StringComparison.Ordinal);
+        bool period = !parenthesized && marker.EndsWith(".", StringComparison.Ordinal);
+        string token = parenthesized
+            ? marker.Substring(1, marker.Length - 2)
+            : rightParenthesis || period ? marker.Substring(0, marker.Length - 1) : marker;
+        if (token.Length == 0) return false;
+
+        if (token.All(character => character is >= '0' and <= '9')) {
+            if (!int.TryParse(token, System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture, out start)
+                || start is < 1 or > MaximumStart) return false;
+            scheme = parenthesized ? PowerPointNumberingScheme.ArabicParenBoth
+                : rightParenthesis ? PowerPointNumberingScheme.ArabicParenR
+                : period ? PowerPointNumberingScheme.ArabicPeriod
+                : PowerPointNumberingScheme.ArabicPlain;
+            return true;
+        }
+
+        bool roman = token.All(character => "ivxlcdmIVXLCDM".IndexOf(character) >= 0)
+            && (token.Length > 1 || "ivxIVX".IndexOf(token[0]) >= 0);
+        if (roman && TryParseRoman(token, out start) && start <= MaximumStart) {
+            bool upper = token.All(character => character is >= 'A' and <= 'Z');
+            if (!parenthesized && !rightParenthesis && !period) return false;
+            scheme = upper
+                ? parenthesized ? PowerPointNumberingScheme.RomanUpperCharacterParenBoth
+                    : rightParenthesis ? PowerPointNumberingScheme.RomanUpperCharacterParenR
+                    : PowerPointNumberingScheme.RomanUpperCharacterPeriod
+                : parenthesized ? PowerPointNumberingScheme.RomanLowerCharacterParenBoth
+                    : rightParenthesis ? PowerPointNumberingScheme.RomanLowerCharacterParenR
+                    : PowerPointNumberingScheme.RomanLowerCharacterPeriod;
+            return true;
+        }
+
+        if (!token.All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
+            || !TryParseAlphabetic(token, out start) || start > MaximumStart
+            || !parenthesized && !rightParenthesis && !period) return false;
+        bool uppercase = token.All(character => character is >= 'A' and <= 'Z');
+        scheme = uppercase
+            ? parenthesized ? PowerPointNumberingScheme.AlphaUpperCharacterParenBoth
+                : rightParenthesis ? PowerPointNumberingScheme.AlphaUpperCharacterParenR
+                : PowerPointNumberingScheme.AlphaUpperCharacterPeriod
+            : parenthesized ? PowerPointNumberingScheme.AlphaLowerCharacterParenBoth
+                : rightParenthesis ? PowerPointNumberingScheme.AlphaLowerCharacterParenR
+                : PowerPointNumberingScheme.AlphaLowerCharacterPeriod;
+        return true;
+    }
+
+    private static bool TryParseAlphabetic(string token, out int value) {
+        value = 0;
+        foreach (char character in token) {
+            int digit = char.ToUpperInvariant(character) - 'A' + 1;
+            if (digit < 1 || digit > 26 || value > (int.MaxValue - digit) / 26) return false;
+            value = value * 26 + digit;
+        }
+        return value > 0;
+    }
+
+    private static bool TryParseRoman(string token, out int value) {
+        value = 0;
+        int previous = 0;
+        for (int index = token.Length - 1; index >= 0; index--) {
+            int current = char.ToUpperInvariant(token[index]) switch {
+                'I' => 1, 'V' => 5, 'X' => 10, 'L' => 50,
+                'C' => 100, 'D' => 500, 'M' => 1000, _ => 0
+            };
+            if (current == 0) return false;
+            int delta = current < previous ? -current : current;
+            if (delta > 0 && value > int.MaxValue - delta) return false;
+            value += delta;
+            if (current > previous) previous = current;
+        }
+        return value > 0;
     }
 
     private static void AppendStyledText(PowerPointParagraph paragraph, string text,

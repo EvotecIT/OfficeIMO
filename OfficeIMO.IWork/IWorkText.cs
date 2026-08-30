@@ -180,17 +180,55 @@ public sealed class IWorkTextContent {
 
 /// <summary>Headers and footers associated with one Pages section in source order.</summary>
 public sealed class IWorkPagesSection {
-    internal IWorkPagesSection(int index, IReadOnlyList<IWorkTextContent> headers,
-        IReadOnlyList<IWorkTextContent> footers) {
+    internal IWorkPagesSection(int index,
+        IReadOnlyList<IWorkTextContent>? firstPageHeaders,
+        IReadOnlyList<IWorkTextContent>? firstPageFooters,
+        IReadOnlyList<IWorkTextContent>? evenPageHeaders,
+        IReadOnlyList<IWorkTextContent>? evenPageFooters,
+        IReadOnlyList<IWorkTextContent>? defaultPageHeaders,
+        IReadOnlyList<IWorkTextContent>? defaultPageFooters) {
         Index = index;
-        HeaderContents = Array.AsReadOnly(headers.ToArray());
-        FooterContents = Array.AsReadOnly(footers.ToArray());
+        HasFirstPageTemplate = firstPageHeaders != null || firstPageFooters != null;
+        HasEvenPageTemplate = evenPageHeaders != null || evenPageFooters != null;
+        HasDefaultPageTemplate = defaultPageHeaders != null || defaultPageFooters != null;
+        FirstPageHeaderContents = Freeze(firstPageHeaders);
+        FirstPageFooterContents = Freeze(firstPageFooters);
+        EvenPageHeaderContents = Freeze(evenPageHeaders);
+        EvenPageFooterContents = Freeze(evenPageFooters);
+        DefaultPageHeaderContents = Freeze(defaultPageHeaders);
+        DefaultPageFooterContents = Freeze(defaultPageFooters);
+        HeaderContents = Array.AsReadOnly(FirstPageHeaderContents
+            .Concat(EvenPageHeaderContents).Concat(DefaultPageHeaderContents).ToArray());
+        FooterContents = Array.AsReadOnly(FirstPageFooterContents
+            .Concat(EvenPageFooterContents).Concat(DefaultPageFooterContents).ToArray());
     }
 
     /// <summary>Gets the zero-based source section index.</summary>
     public int Index { get; }
-    /// <summary>Gets rich header storages associated with this section.</summary>
+    /// <summary>Gets whether the source declares a distinct first-page template.</summary>
+    public bool HasFirstPageTemplate { get; }
+    /// <summary>Gets whether the source declares a distinct even-page template.</summary>
+    public bool HasEvenPageTemplate { get; }
+    /// <summary>Gets whether the source declares a default odd-page template.</summary>
+    public bool HasDefaultPageTemplate { get; }
+    /// <summary>Gets rich first-page header storages.</summary>
+    public IReadOnlyList<IWorkTextContent> FirstPageHeaderContents { get; }
+    /// <summary>Gets rich first-page footer storages.</summary>
+    public IReadOnlyList<IWorkTextContent> FirstPageFooterContents { get; }
+    /// <summary>Gets rich even-page header storages.</summary>
+    public IReadOnlyList<IWorkTextContent> EvenPageHeaderContents { get; }
+    /// <summary>Gets rich even-page footer storages.</summary>
+    public IReadOnlyList<IWorkTextContent> EvenPageFooterContents { get; }
+    /// <summary>Gets rich default odd-page header storages.</summary>
+    public IReadOnlyList<IWorkTextContent> DefaultPageHeaderContents { get; }
+    /// <summary>Gets rich default odd-page footer storages.</summary>
+    public IReadOnlyList<IWorkTextContent> DefaultPageFooterContents { get; }
+    /// <summary>Gets all rich header storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> HeaderContents { get; }
-    /// <summary>Gets rich footer storages associated with this section.</summary>
+    /// <summary>Gets all rich footer storages in first/even/default source-template order.</summary>
     public IReadOnlyList<IWorkTextContent> FooterContents { get; }
+
+    private static IReadOnlyList<IWorkTextContent> Freeze(
+        IReadOnlyList<IWorkTextContent>? contents) =>
+        Array.AsReadOnly(contents?.ToArray() ?? Array.Empty<IWorkTextContent>());
 }

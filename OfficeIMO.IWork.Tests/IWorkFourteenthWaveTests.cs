@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(headerStorageId, 2001, Message(StringField(3, "Header")))
         };
         records.AddRange(sectionIds.Select(sectionId => ArchiveRecord(sectionId, 10011,
-            Message(ReferenceField(23, headerFooterId)), new[] { headerFooterId })));
+            Message(ReferenceField(25, headerFooterId)), new[] { headerFooterId })));
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
     }
 }

@@ -398,7 +398,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] records = Message(
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001, body, new[] { sectionId }),
-            ArchiveRecord(sectionId, 10011, Message(ReferenceField(23, headerFooterId)), new[] { headerFooterId }),
+            ArchiveRecord(sectionId, 10011, Message(ReferenceField(25, headerFooterId)), new[] { headerFooterId }),
             ArchiveRecord(headerFooterId, 10143, Message(ReferenceField(1, wrongStorageId)),
                 new[] { wrongStorageId }),
             ArchiveRecord(wrongStorageId, 9999, Message(StringField(3, "Not a text storage"))));

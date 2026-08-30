@@ -89,13 +89,7 @@ public partial class WordDocument {
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
                     WordSection targetSection = semanticSections[sectionIndex];
-                    targetSection.AddHeadersAndFooters();
-                    foreach (IWorkTextContent header in sourceSection.HeaderContents) {
-                        AddRichText(header, targetSection.Header.Default!.AddParagraph, nativeLists);
-                    }
-                    foreach (IWorkTextContent footer in sourceSection.FooterContents) {
-                        AddRichText(footer, targetSection.Footer.Default!.AddParagraph, nativeLists);
-                    }
+                    AddSectionHeadersAndFooters(targetSection, sourceSection, nativeLists);
                 }
             } else {
                 byte[] bytes = preview!.GetBytes();
@@ -145,6 +139,40 @@ public partial class WordDocument {
 
     private static string PreviewFileName(IWorkPreviewAsset preview) =>
         preview.MediaType == "image/png" ? "pages-preview.png" : "pages-preview.jpg";
+
+    private static void AddSectionHeadersAndFooters(WordSection target,
+        IWorkPagesSection source, IWorkNativeListCatalog nativeLists) {
+        if (source.HasDefaultPageTemplate) {
+            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Default);
+            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Default);
+            foreach (IWorkTextContent content in source.DefaultPageHeaderContents) {
+                AddRichText(content, header.AddParagraph, nativeLists);
+            }
+            foreach (IWorkTextContent content in source.DefaultPageFooterContents) {
+                AddRichText(content, footer.AddParagraph, nativeLists);
+            }
+        }
+        if (source.HasFirstPageTemplate) {
+            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.First);
+            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.First);
+            foreach (IWorkTextContent content in source.FirstPageHeaderContents) {
+                AddRichText(content, header.AddParagraph, nativeLists);
+            }
+            foreach (IWorkTextContent content in source.FirstPageFooterContents) {
+                AddRichText(content, footer.AddParagraph, nativeLists);
+            }
+        }
+        if (source.HasEvenPageTemplate) {
+            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Even);
+            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Even);
+            foreach (IWorkTextContent content in source.EvenPageHeaderContents) {
+                AddRichText(content, header.AddParagraph, nativeLists);
+            }
+            foreach (IWorkTextContent content in source.EvenPageFooterContents) {
+                AddRichText(content, footer.AddParagraph, nativeLists);
+            }
+        }
+    }
 
     private static void AddTable(WordDocument document, IWorkTable source) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;

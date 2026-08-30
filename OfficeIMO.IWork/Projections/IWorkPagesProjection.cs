@@ -105,6 +105,9 @@ internal static class IWorkPagesReader {
     private const uint DocumentArchive = 10000;
     private const uint SectionArchive = 10011;
     private const uint HeadersFootersArchive = 10143;
+    private const int FirstPageTemplateField = 23;
+    private const int EvenPageTemplateField = 24;
+    private const int DefaultPageTemplateField = 25;
     private const uint TextStorageArchive = 2001;
     private const uint ShapeInfoArchive = 2011;
 
@@ -403,10 +406,12 @@ internal static class IWorkPagesReader {
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         int sectionIndex = 0;
         foreach (IWorkWireMessage entry in entries) {
-            var headers = new List<IWorkTextContent>();
-            var footers = new List<IWorkTextContent>();
-            var seenHeaders = new HashSet<ulong>();
-            var seenFooters = new HashSet<ulong>();
+            List<IWorkTextContent>? firstPageHeaders = null;
+            List<IWorkTextContent>? firstPageFooters = null;
+            List<IWorkTextContent>? evenPageHeaders = null;
+            List<IWorkTextContent>? evenPageFooters = null;
+            List<IWorkTextContent>? defaultPageHeaders = null;
+            List<IWorkTextContent>? defaultPageFooters = null;
             IReadOnlyList<IWorkArchiveRecord> referencedSections = index.DereferenceAll(
                 entry, 2, out int unresolvedSectionCount);
             if (unresolvedSectionCount > 0 || referencedSections.Count != 1
@@ -418,13 +423,31 @@ internal static class IWorkPagesReader {
                         "The Pages section table contains an unresolved or unsupported section; editable reconstruction is incomplete.",
                         body.EntryPath, body.Identifier));
                 }
-                sections.Add(new IWorkPagesSection(sectionIndex++, headers, footers));
+                sections.Add(new IWorkPagesSection(sectionIndex++, null, null, null, null, null, null));
                 continue;
             }
             IWorkArchiveRecord section = referencedSections[0];
             IWorkWireMessage sectionMessage = index.Message(section);
-            foreach (int field in new[] { 23, 24, 25 }) {
+            foreach (int field in new[] {
+                         FirstPageTemplateField, EvenPageTemplateField, DefaultPageTemplateField
+                     }) {
                 if (!sectionMessage.HasField(field)) continue;
+                var headers = new List<IWorkTextContent>();
+                var footers = new List<IWorkTextContent>();
+                switch (field) {
+                    case FirstPageTemplateField:
+                        firstPageHeaders = headers;
+                        firstPageFooters = footers;
+                        break;
+                    case EvenPageTemplateField:
+                        evenPageHeaders = headers;
+                        evenPageFooters = footers;
+                        break;
+                    default:
+                        defaultPageHeaders = headers;
+                        defaultPageFooters = footers;
+                        break;
+                }
                 IWorkArchiveRecord? archive = index.Dereference(sectionMessage, field);
                 if (sectionMessage.LacksWireKind(field, IWorkWireKind.Bytes)
                     || archive == null || archive.MessageType != HeadersFootersArchive) {
@@ -438,12 +461,14 @@ internal static class IWorkPagesReader {
                     continue;
                 }
                 IWorkWireMessage archiveMessage = index.Message(archive);
-                AddSectionStorageText(index, archiveMessage, 1, archive, headers, seenHeaders,
+                AddSectionStorageText(index, archiveMessage, 1, archive, headers, new HashSet<ulong>(),
                     textCache, projectionBudget, diagnostics, ref supportsEditableReconstruction);
-                AddSectionStorageText(index, archiveMessage, 2, archive, footers, seenFooters,
+                AddSectionStorageText(index, archiveMessage, 2, archive, footers, new HashSet<ulong>(),
                     textCache, projectionBudget, diagnostics, ref supportsEditableReconstruction);
             }
-            sections.Add(new IWorkPagesSection(sectionIndex++, headers, footers));
+            sections.Add(new IWorkPagesSection(sectionIndex++,
+                firstPageHeaders, firstPageFooters, evenPageHeaders, evenPageFooters,
+                defaultPageHeaders, defaultPageFooters));
         }
     }
 

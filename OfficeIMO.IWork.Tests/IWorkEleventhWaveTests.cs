@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Keynote_owner_preserves_slide_names_full_list_labels_and_inline_breaks() {
+    public void Keynote_owner_preserves_slide_names_native_numbering_and_inline_breaks() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "First\u2028Second", slideName: "Named slide", listLabel: "10.");
 
@@ -77,7 +77,10 @@ public sealed partial class IWorkBoundaryTests {
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(slide.TextBoxes).Paragraphs);
 
         Assert.Equal("Named slide", slide.Name);
-        Assert.StartsWith("10. ", paragraph.Text, StringComparison.Ordinal);
+        Assert.Equal("First\nSecond", paragraph.Text);
+        Assert.True(paragraph.IsNumbered);
+        Assert.Equal(PowerPointNumberingScheme.ArabicPeriod, paragraph.NumberingScheme);
+        Assert.Equal(10, paragraph.NumberingStartAt);
         Assert.Contains(paragraph.InlineNodes,
             node => node.Kind == PowerPointParagraphInlineKind.LineBreak);
         using var saved = new MemoryStream();
@@ -86,7 +89,11 @@ public sealed partial class IWorkBoundaryTests {
         using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
         PowerPointSlide persisted = Assert.Single(reopened.Slides);
         Assert.Equal("Named slide", persisted.Name);
-        Assert.Contains(Assert.Single(Assert.Single(persisted.TextBoxes).Paragraphs).InlineNodes,
+        PowerPointParagraph persistedParagraph = Assert.Single(
+            Assert.Single(persisted.TextBoxes).Paragraphs);
+        Assert.Equal(PowerPointNumberingScheme.ArabicPeriod, persistedParagraph.NumberingScheme);
+        Assert.Equal(10, persistedParagraph.NumberingStartAt);
+        Assert.Contains(persistedParagraph.InlineNodes,
             node => node.Kind == PowerPointParagraphInlineKind.LineBreak);
     }
 
