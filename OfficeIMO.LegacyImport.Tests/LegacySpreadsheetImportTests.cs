@@ -31,13 +31,85 @@ public sealed class LegacySpreadsheetImportTests {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(LegacyFixtureFactory.Wk(), new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
         Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
         Assert.Single(imported.Charts);
-        Assert.Contains(imported.Report.Findings, finding => finding.Code == "LEGACY_FORMULA_CACHED_VALUE");
+        Assert.DoesNotContain(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "LEGACY_CHART_METADATA_ONLY");
+        Assert.Equal("($A$1+$B$1)", Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3).Formula);
+        Assert.Equal(84d, Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3).CachedValue);
+        Assert.Equal("Input", Assert.Single(imported.Names).Name);
+        Assert.Equal("Input", Assert.Single(imported.Names).ProjectedName);
+        Assert.Contains(imported.Document.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
         var sheet = Assert.Single(imported.Document.CreateInspectionSnapshot().Worksheets);
         Assert.Equal("Name", Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1).Value);
         Assert.Equal("left", Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1).Style?.HorizontalAlignment);
+        Assert.Equal(OfficeIMO.Excel.ExcelHorizontalAlignment.Left, Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 1).Alignment);
         Assert.Equal(42, Convert.ToInt32(Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2).Value));
-        Assert.Equal(84d, Convert.ToDouble(Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3).Value));
+        var formulaCell = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Equal("($A$1+$B$1)", formulaCell.Formula);
+        Assert.Equal(84d, Convert.ToDouble(formulaCell.Value));
+        Assert.Equal("84", imported.Document.Sheets[0].CellAt(1, 3).GetValue().CachedText);
+    }
+
+    [Fact]
+    public void WkFormulaFallbackAndRecordBoundsAreExplicit() {
+        using LegacySpreadsheetImportResult fallback = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0xFE, 0x03 }),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+        LegacySpreadsheetCellContent formula = Assert.Single(fallback.Cells, cell => cell.Row == 1 && cell.Column == 3);
+        Assert.Null(formula.Formula);
+        Assert.Equal(84d, formula.CachedValue);
+        Assert.Contains(fallback.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
+
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(declaredFormulaLength: 99),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" }));
+
+        var expansiveFormula = new List<byte>();
+        for (short value = 0; value < 6; value++) { expansiveFormula.Add(0x05); expansiveFormula.Add((byte)value); expansiveFormula.Add(0); }
+        expansiveFormula.AddRange(Enumerable.Repeat((byte)0x09, 5));
+        expansiveFormula.Add(0x03);
+        using LegacySpreadsheetImportResult bounded = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(formulaTokens: expansiveFormula.ToArray()),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", Limits = new OfficeLegacyImportLimits { MaxItems = 10 } });
+        Assert.Null(Assert.Single(bounded.Cells, cell => cell.Row == 1 && cell.Column == 3).Formula);
+        Assert.Contains(bounded.Metadata.Values, value => value.Contains("expression-node limit", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void WkBlankCellsAndUnknownRecordsCannotDisappearFromNoLossClaims() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(includeBlank: true, extraRecordType: 0x7777),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+        Assert.Contains(imported.Cells, cell => cell.Row == 1 && cell.Column == 4 && cell.CachedValue == null);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_RECORDS_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void NamedRangeProjectionIsStrictCollisionSafeAndObservable() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkWithNames("Input", "input", "A1"),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+        Assert.Equal("Input", imported.Names[0].ProjectedName);
+        Assert.Null(imported.Names[1].ProjectedName);
+        Assert.Null(imported.Names[2].ProjectedName);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_COLLISION");
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
+        Assert.Single(imported.Document.CreateInspectionSnapshot().NamedRanges);
+    }
+
+    [Fact]
+    public void QuattroFormulaEnvelopeIsValidatedEvenWhenTokensRemainInert() {
+        Assert.Throws<InvalidDataException>(() => LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wq2WithTruncatedFormulaEnvelope(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wq2" }));
+    }
+
+    [Fact]
+    public void WkSheetIdentifiersProjectToSeparateWorksheets() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(LegacyFixtureFactory.WkMultiSheet(), new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
+        Assert.Equal(2, imported.Document.Sheets.Count);
+        Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet1" && Convert.ToInt32(cell.CachedValue) == 1);
+        Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet2" && Convert.ToInt32(cell.CachedValue) == 2);
     }
 
     [Fact]
@@ -53,9 +125,9 @@ public sealed class LegacySpreadsheetImportTests {
         }));
 
         using LegacySpreadsheetImportResult formatted = LegacySpreadsheetImporter.Import(
-            LegacyFixtureFactory.Wk(cellFormat: 1),
+            LegacyFixtureFactory.Wk(cellFormat: 0x60),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
-        Assert.Contains(formatted.Report.Findings, finding => finding.Code == "LEGACY_CELL_FORMAT_PARTIAL");
+        Assert.Contains(formatted.Report.Findings, finding => finding.Code == "WK_CELL_FORMAT_PARTIAL");
     }
 
     [Fact]

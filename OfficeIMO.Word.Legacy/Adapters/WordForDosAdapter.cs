@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.Legacy;
 
 internal sealed class WordForDosAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordForDos;
-    public override string ProfileId => "microsoft-word-dos-4-6";
+    public override string ProfileId => "microsoft-word-dos-4-6-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         bool sharedHeader = data.Length > 96 && (data[0] == 0x31 || data[0] == 0x32) && data[1] == 0xBE && data[5] == 0xAB;

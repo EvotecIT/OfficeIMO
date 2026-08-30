@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -56,11 +57,14 @@ public static class LegacySpreadsheetImporter {
             throw new InvalidDataException($"The {detection.ProfileId} adapter produced salvage quality while structured import was required.");
         }
 
+        PrepareNameProjection(model, cancellationToken);
         ExcelDocument document = Project(model, cancellationToken);
         var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.RecoveredCellCount);
         return new LegacySpreadsheetImportResult(document, detection, report,
             new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase)),
-            Array.AsReadOnly(model.Charts.ToArray()));
+            Array.AsReadOnly(model.Charts.ToArray()),
+            Array.AsReadOnly(model.Sheets.SelectMany(static sheet => sheet.Cells.Select(cell => new LegacySpreadsheetCellContent(sheet.Name, cell))).ToArray()),
+            Array.AsReadOnly(model.Names.Select(static name => new LegacySpreadsheetNameContent(name)).ToArray()));
     }
 
     private static ExcelDocument Project(LegacySpreadsheetModel model, CancellationToken cancellationToken) {
@@ -71,11 +75,20 @@ public static class LegacySpreadsheetImporter {
                 ExcelSheet target = document.AddWorksheet(sourceSheet.Name);
                 foreach (LegacySpreadsheetCell cell in sourceSheet.Cells) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (!string.IsNullOrWhiteSpace(cell.Formula)) target.CellFormula(cell.Row, cell.Column, cell.Formula!);
-                    else target.CellValue(cell.Row, cell.Column, cell.Value);
+                    if (!string.IsNullOrWhiteSpace(cell.Formula)) {
+                        target.CellValue(cell.Row, cell.Column, cell.Value);
+                        target.CellFormula(cell.Row, cell.Column, cell.Formula!);
+                    } else target.CellValue(cell.Row, cell.Column, cell.Value);
                     if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
+                    if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.CellAt(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                     if (!string.IsNullOrWhiteSpace(cell.Comment)) target.SetComment(cell.Row, cell.Column, cell.Comment!, "Legacy source");
                 }
+            }
+            foreach (LegacySpreadsheetName name in model.Names) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (name.ProjectedName == null) continue;
+                string reference = "'" + name.SheetName.Replace("'", "''") + "'!$" + ColumnName(name.FirstColumn) + "$" + name.FirstRow.ToString(CultureInfo.InvariantCulture) + ":$" + ColumnName(name.LastColumn) + "$" + name.LastRow.ToString(CultureInfo.InvariantCulture);
+                document.SetNamedRange(name.ProjectedName, reference, save: false, validationMode: ExcelDefinedNameValidationMode.Strict);
             }
             if (model.Sheets.Count == 0) document.AddWorksheet("Sheet1");
             return document;
@@ -85,11 +98,36 @@ public static class LegacySpreadsheetImporter {
         }
     }
 
+    private static void PrepareNameProjection(LegacySpreadsheetModel model, CancellationToken cancellationToken) {
+        var projected = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (LegacySpreadsheetName name in model.Names) {
+            cancellationToken.ThrowIfCancellationRequested();
+            try {
+                string validated = ExcelDocument.NormalizeDefinedName(name.Name, ExcelDefinedNameValidationMode.Strict);
+                if (!projected.Add(validated)) {
+                    model.Metadata["UnprojectedName.Collision." + model.Metadata.Count.ToString(CultureInfo.InvariantCulture)] = name.Name;
+                    model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_COLLISION", "Name", $"Source name '{name.Name}' collided case-insensitively with another workbook name and was retained in the semantic snapshot without overwriting it."));
+                    continue;
+                }
+                name.ProjectedName = validated;
+            } catch (ArgumentException) {
+                model.Metadata["UnprojectedName.Invalid." + model.Metadata.Count.ToString(CultureInfo.InvariantCulture)] = name.Name;
+                model.Findings.Add(LegacySpreadsheetAdapterBase.LossFinding("WK_NAME_INVALID", "Name", $"Source name '{name.Name}' is not a valid Excel defined name and was retained in the semantic snapshot without silent sanitization."));
+            }
+        }
+    }
+
+    private static string ColumnName(int column) {
+        string result = string.Empty;
+        while (column > 0) { column--; result = (char)('A' + column % 26) + result; column /= 26; }
+        return result;
+    }
+
     private static (ILegacySpreadsheetAdapter Adapter, LegacySpreadsheetDetection Detection) SelectAdapter(byte[] data, LegacySpreadsheetImportOptions options) {
         if (options.FormatHint.HasValue) {
             ILegacySpreadsheetAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
             int confidence = hinted.Probe(data, options.SourceName, out string evidence);
-            return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.ProfileId, Math.Max(1, confidence),
+            return (hinted, new LegacySpreadsheetDetection(hinted.Format, hinted.GetProfileId(data), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
         ILegacySpreadsheetAdapter? selected = null;
@@ -106,7 +144,7 @@ public static class LegacySpreadsheetImporter {
         if (selected == null || selectedConfidence < 50) {
             throw new InvalidDataException("The source does not match a supported bounded legacy-spreadsheet profile. Supply FormatHint only when the family is known.");
         }
-        return (selected, new LegacySpreadsheetDetection(selected.Format, selected.ProfileId, selectedConfidence, selectedReason));
+        return (selected, new LegacySpreadsheetDetection(selected.Format, selected.GetProfileId(data), selectedConfidence, selectedReason));
     }
 
     private static LegacySpreadsheetImportOptions Prepare(LegacySpreadsheetImportOptions? source, string? fallbackName) {

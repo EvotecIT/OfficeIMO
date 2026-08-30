@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel.Legacy;
 
 internal sealed class MultiplanAdapter : LegacySpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.Multiplan;
-    public override string ProfileId => "microsoft-multiplan-dos-1-3";
+    public override string ProfileId => "microsoft-multiplan-dos-1-3-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x08, 0xE7) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xEC) || OfficeLegacyImportBuffer.StartsWith(data, 0x0C, 0xED)) {

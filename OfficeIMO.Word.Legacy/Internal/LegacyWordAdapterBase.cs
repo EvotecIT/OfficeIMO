@@ -8,6 +8,7 @@ namespace OfficeIMO.Word.Legacy;
 internal abstract class LegacyWordAdapterBase : ILegacyWordAdapter {
     public abstract LegacyWordFormat Format { get; }
     public abstract string ProfileId { get; }
+    public virtual string GetProfileId(byte[] data) => ProfileId;
     public abstract int Probe(byte[] data, string? sourceName, out string reason);
     public abstract LegacyWordModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 
@@ -46,4 +47,8 @@ internal abstract class LegacyWordAdapterBase : ILegacyWordAdapter {
     protected static OfficeCompatibilityFinding Inert(string code, string category, string message) =>
         new(code, category, message, OfficeCompatibilityState.Dropped, OfficeCompatibilitySeverity.Warning,
             OfficeCompatibilityImpact.Behavioral | OfficeCompatibilityImpact.Security | OfficeCompatibilityImpact.Carrier, true);
+
+    internal static OfficeCompatibilityFinding LossFinding(string code, string category, string message) => Loss(code, category, message);
+
+    internal static OfficeCompatibilityFinding InertFinding(string code, string category, string message) => Inert(code, category, message);
 }

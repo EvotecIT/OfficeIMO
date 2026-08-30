@@ -8,6 +8,7 @@ internal sealed class LegacySpreadsheetModel {
     internal List<LegacySpreadsheetSheet> Sheets { get; } = new();
     internal Dictionary<string, string> Metadata { get; } = new(StringComparer.OrdinalIgnoreCase);
     internal List<LegacySpreadsheetChartMetadata> Charts { get; } = new();
+    internal List<LegacySpreadsheetName> Names { get; } = new();
     internal List<OfficeCompatibilityFinding> Findings { get; } = new();
     internal OfficeLegacyImportQuality Quality { get; set; } = OfficeLegacyImportQuality.Salvage;
     internal OfficeLegacyInertContentKind InertContent { get; set; }
@@ -21,12 +22,13 @@ internal sealed class LegacySpreadsheetSheet {
 }
 
 internal sealed class LegacySpreadsheetCell {
-    internal LegacySpreadsheetCell(int row, int column, object? value, string? formula = null, byte format = 0, string? comment = null, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = null) {
+    internal LegacySpreadsheetCell(int row, int column, object? value, string? formula = null, byte sourceFormat = 0, string? numberFormat = null, string? comment = null, OfficeIMO.Excel.ExcelHorizontalAlignment? alignment = null) {
         Row = row;
         Column = column;
         Value = value;
         Formula = formula;
-        Format = format;
+        SourceFormat = sourceFormat;
+        NumberFormat = numberFormat;
         Comment = comment;
         Alignment = alignment;
     }
@@ -34,14 +36,29 @@ internal sealed class LegacySpreadsheetCell {
     internal int Column { get; }
     internal object? Value { get; }
     internal string? Formula { get; }
-    internal byte Format { get; }
+    internal byte SourceFormat { get; }
+    internal string? NumberFormat { get; }
     internal string? Comment { get; }
     internal OfficeIMO.Excel.ExcelHorizontalAlignment? Alignment { get; }
+}
+
+internal sealed class LegacySpreadsheetName {
+    internal LegacySpreadsheetName(string name, string sheetName, int firstRow, int firstColumn, int lastRow, int lastColumn) {
+        Name = name; SheetName = sheetName; FirstRow = firstRow; FirstColumn = firstColumn; LastRow = lastRow; LastColumn = lastColumn;
+    }
+    internal string Name { get; }
+    internal string? ProjectedName { get; set; }
+    internal string SheetName { get; }
+    internal int FirstRow { get; }
+    internal int FirstColumn { get; }
+    internal int LastRow { get; }
+    internal int LastColumn { get; }
 }
 
 internal interface ILegacySpreadsheetAdapter {
     LegacySpreadsheetFormat Format { get; }
     string ProfileId { get; }
+    string GetProfileId(byte[] data);
     int Probe(byte[] data, string? sourceName, out string reason);
     LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 }

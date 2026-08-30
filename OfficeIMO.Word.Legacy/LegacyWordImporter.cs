@@ -63,10 +63,12 @@ public static class LegacyWordImporter {
         }
 
         WordDocument document = Project(model, cancellationToken);
-        string text = string.Join(Environment.NewLine, model.Paragraphs.Select(static paragraph => paragraph.Text));
-        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count);
+        string text = string.Join(Environment.NewLine, model.Paragraphs.Select(static paragraph => paragraph.Text)
+            .Concat(model.Notes.Select(static note => "[" + note.Kind + "] " + note.Text)));
+        var report = new OfficeLegacyImportReport(detection.ProfileId, model.Quality, model.Findings, model.InertContent, model.Paragraphs.Count + model.Notes.Count + model.Resources.Count);
         return new LegacyWordImportResult(document, detection, report, text,
-            new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase)));
+            new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(model.Metadata, StringComparer.OrdinalIgnoreCase)),
+            new LegacyWordContent(model));
     }
 
     private static WordDocument Project(LegacyWordModel model, CancellationToken cancellationToken) {
@@ -77,11 +79,19 @@ public static class LegacyWordImporter {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (source.IsList) {
                     activeList ??= document.AddListBulleted();
-                    activeList.AddItem(source.Text, Math.Max(0, Math.Min(8, source.ListLevel)));
+                    WordParagraph paragraph = activeList.AddItem(string.Empty, Math.Max(0, Math.Min(8, source.ListLevel)));
+                    ProjectParagraph(source, paragraph);
                 } else {
                     activeList = null;
-                    document.AddParagraph(source.Text);
+                    WordParagraph paragraph = document.AddParagraph();
+                    ProjectParagraph(source, paragraph);
                 }
+            }
+            foreach (LegacyWordNote note in model.Notes) {
+                cancellationToken.ThrowIfCancellationRequested();
+                activeList = null;
+                WordParagraph paragraph = document.AddParagraph("[Recovered " + note.Kind + "] " + note.Text);
+                paragraph.AddComment("Legacy source", "LS", note.Kind + " recovered without its original source anchor.");
             }
             if (model.Paragraphs.Count == 0) document.AddParagraph(string.Empty);
             return document;
@@ -91,11 +101,29 @@ public static class LegacyWordImporter {
         }
     }
 
+    private static void ProjectParagraph(LegacyWordParagraph source, WordParagraph paragraph) {
+        foreach (LegacyWordRun sourceRun in source.Runs) {
+            WordParagraph run = paragraph.AddFormattedText(sourceRun.Text, sourceRun.Bold, sourceRun.Italic, sourceRun.Underline);
+            if (sourceRun.Strike) run.SetStrike();
+            if (sourceRun.VerticalPosition.HasValue) run.SetVerticalTextAlignment(sourceRun.VerticalPosition);
+            if (sourceRun.FontSizePoints.HasValue) run.SetFontSize(sourceRun.FontSizePoints.Value);
+            if (!string.IsNullOrWhiteSpace(sourceRun.FontFamily)) run.SetFontFamily(sourceRun.FontFamily!);
+            if (!string.IsNullOrWhiteSpace(sourceRun.ColorHex)) run.SetColorHex(sourceRun.ColorHex!);
+        }
+        if (source.Alignment.HasValue) paragraph.SetAlignment(source.Alignment.Value);
+        paragraph.PageBreakBefore = source.PageBreakBefore;
+        paragraph.KeepWithNext = source.KeepWithNext;
+        paragraph.KeepLinesTogether = source.KeepLinesTogether;
+        paragraph.LineSpacingPoints = source.LineSpacingPoints;
+        paragraph.LineSpacingBeforePoints = source.SpacingBeforePoints;
+        paragraph.LineSpacingAfterPoints = source.SpacingAfterPoints;
+    }
+
     private static (ILegacyWordAdapter Adapter, LegacyWordDetection Detection) SelectAdapter(byte[] data, LegacyWordImportOptions options) {
         if (options.FormatHint.HasValue) {
             ILegacyWordAdapter hinted = Adapters.Single(adapter => adapter.Format == options.FormatHint.Value);
             int confidence = hinted.Probe(data, options.SourceName, out string evidence);
-            return (hinted, new LegacyWordDetection(hinted.Format, hinted.ProfileId, Math.Max(1, confidence),
+            return (hinted, new LegacyWordDetection(hinted.Format, hinted.GetProfileId(data), Math.Max(1, confidence),
                 confidence == 0 ? "Explicit caller format hint." : evidence + " Explicit caller format hint confirmed the family."));
         }
 
@@ -113,7 +141,7 @@ public static class LegacyWordImporter {
         if (selected == null || selectedConfidence < 50) {
             throw new InvalidDataException("The source does not match a supported bounded legacy-word profile. Supply FormatHint only when the family is known.");
         }
-        return (selected, new LegacyWordDetection(selected.Format, selected.ProfileId, selectedConfidence, selectedReason));
+        return (selected, new LegacyWordDetection(selected.Format, selected.GetProfileId(data), selectedConfidence, selectedReason));
     }
 
     private static LegacyWordImportOptions Prepare(LegacyWordImportOptions? source, string? fallbackName) {

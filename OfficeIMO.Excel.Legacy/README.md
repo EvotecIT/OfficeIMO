@@ -7,6 +7,9 @@ using OfficeIMO.Excel.Legacy;
 
 using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import("archive.wk1");
 Console.WriteLine(imported.Report.Quality);
+foreach (LegacySpreadsheetCellContent cell in imported.Cells) {
+    Console.WriteLine($"{cell.SheetName}!R{cell.Row}C{cell.Column}: {cell.Formula ?? cell.CachedValue}");
+}
 foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
     Console.WriteLine($"{finding.Code}: {finding.Message}");
 }
@@ -16,6 +19,18 @@ imported.Document.Save("archive.xlsx");
 
 The importer is deliberately read-only. It never saves back to a legacy format, executes macros, activates embedded objects, or resolves and refreshes external links. Each result states whether recovery was structured or salvage quality and includes explicit feature-level loss diagnostics. The existing OfficeIMO Excel converter packages can export the returned workbook to ODS, CSV, HTML, or PDF.
 
-Supported early WK-family record streams recover cell addresses, text, numbers, cached formula results, basic label alignment, source names as metadata, and chart-record metadata. Unsupported formula token streams are never guessed: the cached value is used and the loss report records that decision. Later compound profiles use bounded salvage and identify the missing workbook structures explicitly.
+## Profile coverage
+
+| Family/profile | Quality | Recovered today | Explicit boundary |
+| --- | --- | --- | --- |
+| Lotus 1-2-3 WK1/WK2 record streams | Structured | sheet identifiers, blank and populated cells, labels, integers, doubles, finite formula caches, safely translated bounded RPN formulas, range names, selected number formats, label alignment, and chart-record metadata | unsupported formula tokens retain the cache with a diagnostic; every unprojected record kind is inventoried as loss; advanced styles, comments, and live chart reconstruction remain open |
+| Quattro Pro DOS WQ1/WQ2 record streams | Structured | sheet identifiers, cells, finite cached values, range names, label alignment, and chart metadata | the Quattro formula/reference dialect retains cached values with a diagnostic; WB/QPW structures, comments, advanced formatting, and live charts are not claimed |
+| Microsoft Works DOS WKS record streams | Structured | the shared early record contract: sheets, cells, cached values, safe formulas, range names, selected number formats, alignment, and chart metadata | later Works binary/compound structures and comments are not claimed |
+| Later Lotus 123, Quattro QPW, and Works XLR/binary profiles | Salvage | bounded text/tabular runs and compound-content safety inventory where applicable | workbook structure, formulas, names, comments, advanced formatting, and charts are reported as unavailable |
+| Microsoft Multiplan DOS 1-3 | Salvage | bounded text and tabular runs | cell zones, formulas, names, formats, comments, and charts are not yet semantically decoded |
+
+Formula translation is allow-listed, expression-depth/node/character bounded, and never evaluates the source expression. The source-oriented `Cells` collection retains each cached value, alignment, and translated formula. `Names` retains validated fixed-layout source records and exposes `ProjectedName`; it is null when strict Excel-name validation or collision handling kept the source name as metadata instead of silently rewriting or overwriting it. Unsupported formula tokens are never guessed: the finite cached value is projected and the loss report records that decision.
+
+`Structured` means the record stream passed the documented profile grammar. It does not mean lossless conversion: inspect `Report.Findings`, or call `Report.RequireStructuredNoLoss()` when every known approximation must fail the workflow.
 
 Path, stream, and byte-array inputs share the same limits, cancellation, detection, and loss-report contracts.

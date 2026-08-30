@@ -1,24 +1,20 @@
 using System;
-using System.IO;
-using System.Text;
 
 namespace OfficeIMO.Word.Legacy;
 
 internal sealed class WordStarAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordStar;
-    public override string ProfileId => "wordstar-3-7";
+    public override string ProfileId => "wordstar-3-7-character-stream";
+    public override string GetProfileId(byte[] data) => HasCoherentGrammar(data, out _, default) ? ProfileId : "wordstar-family-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
-        int highAscii = 0;
-        int printable = 0;
-        for (int index = 0; index < Math.Min(data.Length, 4096); index++) {
-            byte value = data[index];
-            if ((value & 0x7F) >= 32 && (value & 0x7F) <= 126) printable++;
-            if (value >= 0x80 && (value & 0x7F) >= 32 && (value & 0x7F) <= 126) highAscii++;
+        if (HasCoherentGrammar(data, out bool malformed, default)) {
+            reason = "Coherent WordStar character-stream controls, paragraph terminator, and EOF grammar.";
+            return 85;
         }
-        if (highAscii >= 8 && printable > 0 && highAscii * 4 >= printable) {
-            reason = "WordStar high-bit character flags.";
-            return 70;
+        if (malformed) {
+            reason = "Malformed WordStar symmetrical-sequence grammar.";
+            return 0;
         }
         if (ExtensionIs(sourceName, ".ws", ".ws3", ".ws4", ".ws5", ".ws6", ".ws7")) {
             reason = "WordStar-family source extension only; use FormatHint when the family is independently known.";
@@ -29,20 +25,42 @@ internal sealed class WordStarAdapter : LegacyWordAdapterBase {
     }
 
     public override LegacyWordModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
-        string text = OfficeLegacyImportBuffer.ExtractPrintableText(data, 0, data.Length, limits.MaxTextCharacters, stripHighBit: true, minimumRunLength: 1, cancellationToken: cancellationToken);
-        if (string.IsNullOrWhiteSpace(text)) throw new InvalidDataException("WordStar source did not contain recoverable text.");
-        var filtered = new StringBuilder(text.Length);
-        var model = new LegacyWordModel { Quality = OfficeLegacyImportQuality.Structured };
-        foreach (string line in text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n')) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (line.StartsWith(".", StringComparison.Ordinal)) {
-                model.Findings.Add(Loss("WORDSTAR_DOT_COMMAND", "Layout", "A WordStar dot command was kept inert and omitted from the editable document."));
-                continue;
+        if (HasCoherentGrammar(data, out bool malformed, cancellationToken)) return new WordStarStructuredParser(data, limits, cancellationToken).Parse();
+        if (malformed) throw new System.IO.InvalidDataException("Malformed WordStar symmetrical-sequence grammar.");
+        return Salvage(data, limits, 0, stripHighBit: true, "wordstar-family-salvage",
+            "WordStar family text was salvaged because a coherent WordStar 3-7 control/paragraph/EOF grammar was not present; formatting, notes, images, and layout are not claimed.", cancellationToken);
+    }
+
+    private static bool HasCoherentGrammar(byte[] data, out bool malformed, System.Threading.CancellationToken cancellationToken) {
+        malformed = false;
+        bool eof = false;
+        bool hardParagraph = false;
+        int formattingControls = 0;
+        int highBitPrintable = 0;
+        int printable = 0;
+        bool validSequence = false;
+        int end = data.Length;
+        for (int index = 0; index < end; index++) {
+            if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            byte value = data[index];
+            if (value == 0x1A) { eof = true; break; }
+            if ((value & 0x7F) >= 0x20 && (value & 0x7F) <= 0x7E) {
+                printable++;
+                if (value >= 0x80) highBitPrintable++;
             }
-            filtered.AppendLine(line);
+            if (value == 0x0D && index + 1 < end && data[index + 1] == 0x0A) hardParagraph = true;
+            if (value == 0x02 || value == 0x13 || value == 0x14 || value == 0x16 || value == 0x18 || value == 0x19) formattingControls++;
+            if (value != 0x1D) continue;
+            if (index + 4 > data.Length) { malformed = true; return false; }
+            int count = data[index + 1] | (data[index + 2] << 8);
+            int totalLength = count + 3;
+            if (totalLength < 7 || index > data.Length - totalLength) { malformed = true; return false; }
+            int suffix = index + totalLength - 3;
+            if (data[suffix] != data[index + 1] || data[suffix + 1] != data[index + 2] || data[suffix + 2] != 0x1D) { malformed = true; return false; }
+            validSequence = true;
+            index += totalLength - 1;
         }
-        AddParagraphs(model, filtered.ToString(), limits, cancellationToken);
-        model.Findings.Add(Loss("WORDSTAR_FORMATTING_PARTIAL", "Formatting", "WordStar character flags and paragraph boundaries were recovered; unsupported print controls and page layout were omitted."));
-        return model;
+        bool highBitGrammar = highBitPrintable >= 4 && printable > 0 && highBitPrintable * 5 >= printable;
+        return eof && hardParagraph && printable > 0 && (validSequence || formattingControls >= 2 || highBitGrammar);
     }
 }

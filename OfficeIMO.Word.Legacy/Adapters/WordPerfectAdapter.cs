@@ -4,7 +4,7 @@ namespace OfficeIMO.Word.Legacy;
 
 internal sealed class WordPerfectAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.WordPerfect;
-    public override string ProfileId => "wordperfect-5-6";
+    public override string ProfileId => "wordperfect-5-6-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xFF, 0x57, 0x50, 0x43)) {

@@ -2,7 +2,7 @@ namespace OfficeIMO.Word.Legacy;
 
 internal sealed class MicrosoftWorksWordAdapter : LegacyWordAdapterBase {
     public override LegacyWordFormat Format => LegacyWordFormat.MicrosoftWorks;
-    public override string ProfileId => "microsoft-works-word-2-8";
+    public override string ProfileId => "microsoft-works-word-2-8-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0) && ExtensionIs(sourceName, ".wps")) {

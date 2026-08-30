@@ -61,15 +61,67 @@ public sealed class LegacySpreadsheetChartMetadata {
     public int PayloadLength { get; }
 }
 
+/// <summary>Describes a recovered source cell, including its cached value and translated formula.</summary>
+public sealed class LegacySpreadsheetCellContent {
+    internal LegacySpreadsheetCellContent(string sheetName, LegacySpreadsheetCell source) {
+        SheetName = sheetName; Row = source.Row; Column = source.Column; CachedValue = source.Value; Formula = source.Formula;
+        SourceFormat = source.SourceFormat; NumberFormat = source.NumberFormat; Comment = source.Comment;
+        Alignment = source.Alignment;
+    }
+    /// <summary>Gets the projected sheet name.</summary>
+    public string SheetName { get; }
+    /// <summary>Gets the 1-based row.</summary>
+    public int Row { get; }
+    /// <summary>Gets the 1-based column.</summary>
+    public int Column { get; }
+    /// <summary>Gets the finite cached value retained from the source.</summary>
+    public object? CachedValue { get; }
+    /// <summary>Gets the safely translated formula, or null when cached-value fallback was required.</summary>
+    public string? Formula { get; }
+    /// <summary>Gets the original format byte.</summary>
+    public byte SourceFormat { get; }
+    /// <summary>Gets the mapped Excel number format.</summary>
+    public string? NumberFormat { get; }
+    /// <summary>Gets a recovered comment.</summary>
+    public string? Comment { get; }
+    /// <summary>Gets the recovered horizontal alignment.</summary>
+    public ExcelHorizontalAlignment? Alignment { get; }
+}
+
+/// <summary>Describes a safely recovered source named range.</summary>
+public sealed class LegacySpreadsheetNameContent {
+    internal LegacySpreadsheetNameContent(LegacySpreadsheetName source) {
+        Name = source.Name; SheetName = source.SheetName; FirstRow = source.FirstRow; FirstColumn = source.FirstColumn; LastRow = source.LastRow; LastColumn = source.LastColumn;
+        ProjectedName = source.ProjectedName;
+    }
+    /// <summary>Gets the source name.</summary>
+    public string Name { get; }
+    /// <summary>Gets the exact workbook name that was projected, or null when validation or collision handling retained the source name as metadata only.</summary>
+    public string? ProjectedName { get; }
+    /// <summary>Gets the projected sheet name.</summary>
+    public string SheetName { get; }
+    /// <summary>Gets the first 1-based row.</summary>
+    public int FirstRow { get; }
+    /// <summary>Gets the first 1-based column.</summary>
+    public int FirstColumn { get; }
+    /// <summary>Gets the last 1-based row.</summary>
+    public int LastRow { get; }
+    /// <summary>Gets the last 1-based column.</summary>
+    public int LastColumn { get; }
+}
+
 /// <summary>Owns an imported editable workbook and its source-loss report.</summary>
 public sealed class LegacySpreadsheetImportResult : IDisposable {
     internal LegacySpreadsheetImportResult(ExcelDocument document, LegacySpreadsheetDetection detection, OfficeLegacyImportReport report,
-        IReadOnlyDictionary<string, string> metadata, IReadOnlyList<LegacySpreadsheetChartMetadata> charts) {
+        IReadOnlyDictionary<string, string> metadata, IReadOnlyList<LegacySpreadsheetChartMetadata> charts,
+        IReadOnlyList<LegacySpreadsheetCellContent> cells, IReadOnlyList<LegacySpreadsheetNameContent> names) {
         Document = document;
         Detection = detection;
         Report = report;
         Metadata = metadata;
         Charts = charts;
+        Cells = cells;
+        Names = names;
     }
     /// <summary>Gets the normal OfficeIMO workbook used by XLSX and converter packages.</summary>
     public ExcelDocument Document { get; }
@@ -81,6 +133,10 @@ public sealed class LegacySpreadsheetImportResult : IDisposable {
     public IReadOnlyDictionary<string, string> Metadata { get; }
     /// <summary>Gets bounded chart metadata discovered in the source.</summary>
     public IReadOnlyList<LegacySpreadsheetChartMetadata> Charts { get; }
+    /// <summary>Gets recovered source cells, including cached values retained beside translated formulas.</summary>
+    public IReadOnlyList<LegacySpreadsheetCellContent> Cells { get; }
+    /// <summary>Gets recovered source names and whether each was projected into the workbook.</summary>
+    public IReadOnlyList<LegacySpreadsheetNameContent> Names { get; }
     /// <inheritdoc />
     public void Dispose() => Document.Dispose();
 }

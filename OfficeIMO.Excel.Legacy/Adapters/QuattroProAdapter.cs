@@ -2,7 +2,10 @@ namespace OfficeIMO.Excel.Legacy;
 
 internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.QuattroPro;
-    public override string ProfileId => "quattro-pro-wq-wb-qpw";
+    public override string ProfileId => "quattro-pro-selected";
+    public override string GetProfileId(byte[] data) => OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)
+        ? "quattro-pro-wq1-records" : OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)
+            ? "quattro-pro-wq2-records" : "quattro-pro-wb-qpw-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         bool wq = OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51) ||
@@ -23,7 +26,12 @@ internal sealed class QuattroProAdapter : WkRecordSpreadsheetAdapterBase {
     }
 
     public override LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, System.Threading.CancellationToken cancellationToken) {
-        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00)) return ParseWkRecords(data, limits, "Quattro Pro WQ/WB", cancellationToken);
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x20, 0x51)) {
+            return ParseWkRecords(data, limits, "Quattro Pro WQ1", cancellationToken, translateFormulas: false);
+        }
+        if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00, 0x21, 0x51)) {
+            return ParseWkRecords(data, limits, "Quattro Pro WQ2", cancellationToken, WkRecordLayout.QuattroWq2, translateFormulas: false);
+        }
         LegacySpreadsheetModel model = ParseDelimitedSalvage(data, limits,
             "Quattro Pro compound-workbook text was salvaged; workbook structure, formulas, formatting, comments, and charts were not reconstructed.", cancellationToken);
         model.InertContent |= OfficeLegacyCompoundInspector.Inspect(data, limits, out bool inspectionIncomplete, cancellationToken);

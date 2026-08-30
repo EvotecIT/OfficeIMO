@@ -8,6 +8,7 @@ namespace OfficeIMO.Excel.Legacy;
 internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter {
     public abstract LegacySpreadsheetFormat Format { get; }
     public abstract string ProfileId { get; }
+    public virtual string GetProfileId(byte[] data) => ProfileId;
     public abstract int Probe(byte[] data, string? sourceName, out string reason);
     public abstract LegacySpreadsheetModel Parse(byte[] data, OfficeLegacyImportLimits limits, CancellationToken cancellationToken);
 
@@ -23,6 +24,8 @@ internal abstract class LegacySpreadsheetAdapterBase : ILegacySpreadsheetAdapter
     protected static OfficeCompatibilityFinding Inert(string code, string category, string message) =>
         new(code, category, message, OfficeCompatibilityState.Dropped, OfficeCompatibilitySeverity.Warning,
             OfficeCompatibilityImpact.Behavioral | OfficeCompatibilityImpact.Security | OfficeCompatibilityImpact.Carrier, true);
+
+    internal static OfficeCompatibilityFinding LossFinding(string code, string category, string message) => Loss(code, category, message);
 
     protected static LegacySpreadsheetModel ParseDelimitedSalvage(byte[] data, OfficeLegacyImportLimits limits, string limitation, CancellationToken cancellationToken) {
         string text = OfficeLegacyImportBuffer.ExtractPrintableText(data, 0, data.Length, limits.MaxTextCharacters, false, cancellationToken: cancellationToken);

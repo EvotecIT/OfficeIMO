@@ -2,7 +2,10 @@ namespace OfficeIMO.Excel.Legacy;
 
 internal sealed class MicrosoftWorksSpreadsheetAdapter : WkRecordSpreadsheetAdapterBase {
     public override LegacySpreadsheetFormat Format => LegacySpreadsheetFormat.MicrosoftWorks;
-    public override string ProfileId => "microsoft-works-spreadsheet-2-8";
+    public override string ProfileId => "microsoft-works-spreadsheet-selected";
+    public override string GetProfileId(byte[] data) => OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00)
+        ? "microsoft-works-wks-dos-records" : OfficeLegacyImportBuffer.StartsWith(data, 0xD0, 0xCF, 0x11, 0xE0)
+            ? "microsoft-works-xlr-compound-salvage" : "microsoft-works-spreadsheet-binary-salvage";
 
     public override int Probe(byte[] data, string? sourceName, out string reason) {
         if (OfficeLegacyImportBuffer.StartsWith(data, 0x00, 0x00, 0x02, 0x00) && ExtensionIs(sourceName, ".wks")) {
