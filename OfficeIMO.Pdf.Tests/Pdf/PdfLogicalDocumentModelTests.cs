@@ -535,6 +535,7 @@ public partial class PdfLogicalDocumentTests {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("1037.25 total"))
             .Paragraph(paragraph => paragraph.Text("1. Actual numbered item"))
+            .Paragraph(paragraph => paragraph.Text("2)Compact numbered item"))
             .ToBytes();
 
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
@@ -542,5 +543,6 @@ public partial class PdfLogicalDocumentTests {
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("1037.25", StringComparison.Ordinal));
         Assert.Contains(logical.Paragraphs, paragraph => paragraph.Text.Contains("1037.25 total", StringComparison.Ordinal));
         Assert.Contains(logical.ListItems, item => item.Text.Contains("Actual numbered item", StringComparison.Ordinal));
+        Assert.Contains(logical.ListItems, item => item.Text.Contains("Compact numbered item", StringComparison.Ordinal));
     }
 }

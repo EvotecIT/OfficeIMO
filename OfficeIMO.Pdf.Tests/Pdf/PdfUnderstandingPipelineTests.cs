@@ -213,11 +213,17 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Theory]
-    [InlineData("1.2. Nested numbered item")]
-    [InlineData("2.3.1) Deep numbered item")]
-    public void AdvancedPipeline_ClassifiesHierarchicalNumberedListItems(string text) {
+    [InlineData(false, "1.2. Nested numbered item")]
+    [InlineData(true, "1.2. Nested numbered item")]
+    [InlineData(false, "2.3.1)Deep numbered item")]
+    [InlineData(true, "2.3.1)Deep numbered item")]
+    [InlineData(false, "3.Compact numbered item")]
+    [InlineData(true, "3.Compact numbered item")]
+    public void Pipeline_ClassifiesHierarchicalAndCompactNumberedListItems(bool advanced, string text) {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = advanced
+            ? PdfUnderstandingPipelineOptions.Advanced()
+            : new PdfUnderstandingPipelineOptions();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan(text, "F1", 11, 50, 500, 180)
         });
