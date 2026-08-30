@@ -67,6 +67,26 @@ public sealed class PdfTableDetectionValidationTests {
     }
 
     [Fact]
+    public void LogicalTables_RetainRegularFontQualitativeTablesWithRepeatedHeaders() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Actual", "Actual", "Forecast" },
+                new[] { "North", "Ready", "Planned" },
+                new[] { "South", "Complete", "Pending" }
+            }, style: new PdfTableStyle {
+                HeaderBold = false,
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 140D, 140D, 140D }
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        Assert.Contains("Forecast", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
+        Assert.Contains("Pending", data.Rows.SelectMany(static row => row));
+    }
+
+    [Fact]
     public void LogicalTables_RetainSparseSpanningRowsWhenTheTableHasStrongEvidence() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {

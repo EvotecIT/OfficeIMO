@@ -617,11 +617,9 @@ internal static class TableDetector {
             return false;
         }
 
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < cells.Length; i++) {
             string cell = cells[i].Trim();
             if (cell.Length == 0 ||
-                !seen.Add(cell) ||
                 (HasManyDigits(cell) && !cell.Any(char.IsLetter))) {
                 return false;
             }

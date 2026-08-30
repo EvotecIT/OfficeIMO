@@ -289,6 +289,46 @@ public class PdfUnderstandingPipelineTests {
         Assert.True(right - left >= 10D, $"Expected the rotated glyph thickness to span about one font size, but it spanned {right - left:0.###}.");
     }
 
+    [Fact]
+    public void AdvancedReadingOrder_LimitsSourceRunExtentToEachWordSegment() {
+        var sourceRun = new PdfTextSpan("Left Right", "Helvetica", 11D, 50D, 500D, 500D);
+        var leftRegion = new PdfUnderstandingRegion(new[] {
+            new PdfUnderstandingLine(new[] {
+                new PdfUnderstandingWord("Left", 50D, 250D, 500D, 11D, 0D, new[] { sourceRun })
+            })
+        });
+        var rightRegion = new PdfUnderstandingRegion(new[] {
+            new PdfUnderstandingLine(new[] {
+                new PdfUnderstandingWord("Right", 350D, 550D, 500D, 11D, 0D, new[] { sourceRun })
+            })
+        });
+
+        var leftBounds = PdfRecursiveXyCutReadingOrderStage.GetSourceBounds(leftRegion);
+        var rightBounds = PdfRecursiveXyCutReadingOrderStage.GetSourceBounds(rightRegion);
+
+        Assert.True(leftBounds.Right < rightBounds.Left, $"Expected the split word segments to retain their gutter, but bounds overlap at {leftBounds.Right:0.###} and {rightBounds.Left:0.###}.");
+    }
+
+    [Fact]
+    public void AdvancedReadingOrder_IsolatesCloseSpanningHeadingBeforeColumns() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10000, 10000);
+        PdfUnderstandingRegion heading = new(new[] { CreateUnderstandingLine("Spanning heading", 50D, 500D, 710D) });
+        PdfUnderstandingRegion leftTop = new(new[] { CreateUnderstandingLine("Left top", 50D, 160D, 700D) });
+        PdfUnderstandingRegion leftBottom = new(new[] { CreateUnderstandingLine("Left bottom", 50D, 160D, 650D) });
+        PdfUnderstandingRegion rightTop = new(new[] { CreateUnderstandingLine("Right top", 320D, 430D, 700D) });
+        PdfUnderstandingRegion rightBottom = new(new[] { CreateUnderstandingLine("Right bottom", 320D, 430D, 650D) });
+
+        IReadOnlyList<PdfUnderstandingRegion> ordered = new PdfRecursiveXyCutReadingOrderStage().Order(
+            context,
+            new[] { heading, leftTop, rightTop, leftBottom, rightBottom });
+
+        Assert.Equal(
+            new[] { "Spanning heading", "Left top", "Left bottom", "Right top", "Right bottom" },
+            ordered.Select(static region => region.Text));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -357,6 +397,14 @@ public class PdfUnderstandingPipelineTests {
     [InlineData("-,25 margin")]
     [InlineData("-$.5 variance")]
     public void SharedListParser_DoesNotClassifyLeadingDecimalValuesAsCompactBullets(string text) {
+        Assert.False(ContentStructureExtractor.IsListItemText(text));
+    }
+
+    [Theory]
+    [InlineData("--output path")]
+    [InlineData("**bold**")]
+    [InlineData("-*literal")]
+    public void SharedListParser_DoesNotClassifyRepeatedPunctuationAsCompactBullets(string text) {
         Assert.False(ContentStructureExtractor.IsListItemText(text));
     }
 

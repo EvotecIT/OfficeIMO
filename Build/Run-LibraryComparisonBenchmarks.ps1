@@ -39,7 +39,8 @@ param(
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
-        'pdfstructure',
+        'pdfunderstanding',
+        'pdflogicalstructure',
         'pdfsplit',
         'pdfmerge',
         'pdfselect')]
@@ -463,18 +464,29 @@ $definitions = [ordered]@{
             }
         )
     }
-    pdfstructure = [pscustomobject]@{
+    pdfunderstanding = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfUnderstandingBenchmarks*'
-        ComparisonId = "officeimo-pdf-structured-understanding-$Framework"
-        Suite = 'OfficeIMO.Pdf.StructuredUnderstanding'
+        Filter = '*PdfUnderstandingBenchmarks.AdvancedUnderstanding*'
+        ComparisonId = "officeimo-pdf-advanced-understanding-$Framework"
+        Suite = 'OfficeIMO.Pdf.AdvancedUnderstanding'
         CatalogEligible = $false
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High')) {
-                foreach ($workflow in @('AdvancedUnderstanding', 'LogicalStructureAndTables')) {
-                    "$workflow|Scale=$scale"
-                }
+                "AdvancedUnderstanding|Scale=$scale"
+            }
+        )
+    }
+    pdflogicalstructure = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfUnderstandingBenchmarks.LogicalStructureAndTables*'
+        ComparisonId = "officeimo-pdf-logical-structure-tables-$Framework"
+        Suite = 'OfficeIMO.Pdf.LogicalStructureAndTables'
+        CatalogEligible = $false
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                "LogicalStructureAndTables|Scale=$scale"
             }
         )
     }

@@ -58,6 +58,16 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         WhitespaceCut? vertical = forceSingleColumn
             ? null
             : FindBestCut(boxes, horizontal: false, minimumVerticalGap);
+        if (!forceSingleColumn &&
+            !vertical.HasValue &&
+            TryAppendSpanningTopRegion(
+                boxes,
+                ordered,
+                minimumHorizontalGap,
+                minimumVerticalGap,
+                depth)) {
+            return;
+        }
         WhitespaceCut? selected = SelectCut(boxes, horizontal, vertical);
         if (!selected.HasValue) {
             AppendFallback(boxes, ordered);
@@ -165,6 +175,40 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         return best;
     }
 
+    private static bool TryAppendSpanningTopRegion(
+        IReadOnlyList<RegionBox> boxes,
+        List<PdfUnderstandingRegion> ordered,
+        double minimumHorizontalGap,
+        double minimumVerticalGap,
+        int depth) {
+        foreach (RegionBox candidate in boxes.OrderByDescending(static box => box.Top)) {
+            RegionBox[] remaining = boxes.Where(box => !ReferenceEquals(box.Region, candidate.Region)).ToArray();
+            if (remaining.Length < 2) continue;
+
+            double candidateCenter = (candidate.Bottom + candidate.Top) / 2D;
+            if (remaining.Any(box => (box.Bottom + box.Top) / 2D >= candidateCenter)) continue;
+
+            WhitespaceCut? columnCut = FindBestCut(remaining, horizontal: false, minimumVerticalGap);
+            if (!columnCut.HasValue ||
+                candidate.Left > columnCut.Value.Start ||
+                candidate.Right < columnCut.Value.End) {
+                continue;
+            }
+
+            ordered.Add(candidate.Region);
+            AppendPartition(
+                remaining,
+                ordered,
+                minimumHorizontalGap,
+                minimumVerticalGap,
+                forceSingleColumn: false,
+                depth + 1);
+            return true;
+        }
+
+        return false;
+    }
+
     private static void AppendFallback(IReadOnlyList<RegionBox> boxes, List<PdfUnderstandingRegion> ordered) {
         foreach (RegionBox box in boxes
                      .OrderByDescending(static box => box.Top)
@@ -228,25 +272,41 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double bottom = region.YBottom - (fontSize * 0.25D);
         double top = region.YTop + (fontSize * 0.8D);
 
-        foreach (PdfTextSpan sourceRun in region.Lines
-                     .SelectMany(static line => line.Words)
-                     .SelectMany(static word => word.SourceRuns)) {
-            double runFontSize = Math.Max(1D, sourceRun.FontSize);
-            double advance = sourceRun.Advance > 0D
-                ? sourceRun.Advance
-                : (sourceRun.Text?.Length ?? 0) * runFontSize * 0.55D;
-            double radians = sourceRun.RotationDegrees * Math.PI / 180D;
+        foreach (PdfUnderstandingWord word in region.Lines.SelectMany(static line => line.Words)) {
+            PdfTextSpan? sourceRun = word.SourceRuns.Count > 0 ? word.SourceRuns[0] : null;
+            double wordFontSize = Math.Max(1D, word.FontSize);
+            double radians = word.RotationDegrees * Math.PI / 180D;
             double alongX = Math.Cos(radians);
             double alongY = Math.Sin(radians);
             double normalX = -alongY;
             double normalY = alongX;
-            double endX = sourceRun.X + (alongX * advance);
-            double endY = sourceRun.Y + (alongY * advance);
-            ExpandBounds(sourceRun.X, sourceRun.Y, normalX, normalY, runFontSize, ref left, ref right, ref bottom, ref top);
-            ExpandBounds(endX, endY, normalX, normalY, runFontSize, ref left, ref right, ref bottom, ref top);
+            double advance = GetWordAdvance(word, sourceRun, alongX, wordFontSize);
+            double startX = alongX >= 0D ? word.XStart : word.XEnd;
+            double startY = word.BaselineY;
+            double endX = startX + (alongX * advance);
+            double endY = startY + (alongY * advance);
+            ExpandBounds(startX, startY, normalX, normalY, wordFontSize, ref left, ref right, ref bottom, ref top);
+            ExpandBounds(endX, endY, normalX, normalY, wordFontSize, ref left, ref right, ref bottom, ref top);
         }
 
         return (left, right, bottom, top, fontSize);
+    }
+
+    private static double GetWordAdvance(
+        PdfUnderstandingWord word,
+        PdfTextSpan? sourceRun,
+        double alongX,
+        double fontSize) {
+        double horizontalExtent = Math.Abs(word.XEnd - word.XStart);
+        if (horizontalExtent > 0.001D && Math.Abs(alongX) > 0.05D) {
+            return horizontalExtent / Math.Abs(alongX);
+        }
+
+        if (sourceRun is not null && sourceRun.Advance > 0D && !string.IsNullOrEmpty(sourceRun.Text)) {
+            return sourceRun.Advance * word.Text.Length / sourceRun.Text.Length;
+        }
+
+        return word.Text.Length * fontSize * 0.55D;
     }
 
     private static void ExpandBounds(
