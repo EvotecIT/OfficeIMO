@@ -71,6 +71,17 @@ public sealed class LegacyWordImportTests {
     }
 
     [Fact]
+    public void StructuredWordStarParagraphsEnforceTheRecordLimit() {
+        Assert.Throws<InvalidDataException>(() => LegacyWordImporter.Import(
+            Encoding.ASCII.GetBytes("One\r\nTwo\r\n\x1A"),
+            new LegacyWordImportOptions {
+                FormatHint = LegacyWordFormat.WordStar,
+                RequireStructured = true,
+                Limits = new OfficeLegacyImportLimits { MaxRecords = 1, MaxItems = 100 }
+            }));
+    }
+
+    [Fact]
     public void AmiProSam4RecoversStylesRunsAndParagraphLayout() {
         using LegacyWordImportResult imported = LegacyWordImporter.Import(LegacyFixtureFactory.AmiPro(), new LegacyWordImportOptions { SourceName = "archive.sam", RequireStructured = true });
         Assert.Equal("4", imported.Metadata["AmiProVersion"]);

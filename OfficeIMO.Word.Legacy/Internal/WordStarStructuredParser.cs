@@ -20,6 +20,7 @@ internal sealed class WordStarStructuredParser {
     private readonly Dictionary<byte, int> _unsupportedSequenceCounts = new();
     private readonly Dictionary<byte, int> _unsupportedControlCounts = new();
     private int _characterCount;
+    private int _recordCount;
     private int _sequenceCount;
     private int _itemCount;
     private int _unknownDotCommandCount;
@@ -95,7 +96,8 @@ internal sealed class WordStarStructuredParser {
     }
 
     private int ParseSymmetricalSequence(int index) {
-        if (++_sequenceCount > _limits.MaxRecords) throw new InvalidDataException("WordStar source exceeds the configured record limit.");
+        ConsumeRecord("symmetrical sequence");
+        _sequenceCount++;
         if (index + 4 > _data.Length) throw new InvalidDataException("Truncated WordStar symmetrical-sequence header.");
         int count = _data[index + 1] | (_data[index + 2] << 8);
         int totalLength = count + 3;
@@ -209,6 +211,7 @@ internal sealed class WordStarStructuredParser {
     private void FlushParagraph(bool force = false, bool explicitBreak = false) {
         FlushRun();
         if (_runs.Count == 0 && !force && !explicitBreak) return;
+        ConsumeRecord("paragraph");
         string text = JoinText(_runs);
         if (TryHandleDotCommand(text)) {
             _runs.Clear();
@@ -233,6 +236,10 @@ internal sealed class WordStarStructuredParser {
 
     private void ConsumeItem(string kind) {
         if (++_itemCount > _limits.MaxItems) throw new InvalidDataException($"WordStar source exceeds the configured item limit while recovering a {kind}.");
+    }
+
+    private void ConsumeRecord(string kind) {
+        if (++_recordCount > _limits.MaxRecords) throw new InvalidDataException($"WordStar source exceeds the configured record limit while inspecting a {kind}.");
     }
 
     private void ConsumeText(int count) {

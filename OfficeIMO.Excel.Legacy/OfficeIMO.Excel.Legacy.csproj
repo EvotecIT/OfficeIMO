@@ -31,6 +31,7 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Excel.Legacy.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Excel" />
   </ItemGroup>
 </Project>

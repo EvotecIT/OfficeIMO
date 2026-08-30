@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Legacy;
 
@@ -26,7 +27,7 @@ internal static class WkFormulaDecoder {
     };
 
     internal static bool TryDecode(byte[] data, int offset, int length, int currentRowZeroBased, int currentColumnZeroBased,
-        OfficeLegacyImportLimits limits, int maxTextCharacters, out string? formula, out string error) {
+        OfficeLegacyImportLimits limits, int maxTextCharacters, CancellationToken cancellationToken, out string? formula, out string error) {
         formula = null;
         error = string.Empty;
         int maximumCharacters = Math.Min(ExcelFormulaCharacterLimit, Math.Max(0, maxTextCharacters));
@@ -38,6 +39,7 @@ internal static class WkFormulaDecoder {
         int tokenCount = 0;
         try {
             while (cursor < end) {
+                if ((tokenCount & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (++tokenCount > limits.MaxRecords) throw new InvalidDataException("Formula exceeds the configured token limit.");
                 byte token = data[cursor++];
                 switch (token) {
@@ -67,6 +69,7 @@ internal static class WkFormulaDecoder {
                         int zero = Array.IndexOf(data, (byte)0, cursor, end - cursor);
                         if (zero < 0) throw new InvalidDataException("Formula string token has no terminator.");
                         for (int index = cursor; index < zero; index++) {
+                            if (((index - cursor) & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                             if (data[index] > 0x7F) {
                                 throw new InvalidDataException("Formula string contains an extended character byte outside the validated ASCII profile.");
                             }

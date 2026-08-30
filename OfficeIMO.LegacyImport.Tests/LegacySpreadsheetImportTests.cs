@@ -122,6 +122,14 @@ public sealed class LegacySpreadsheetImportTests {
     }
 
     [Fact]
+    public void WkFormulaDecoderObservesCancellationInsideItsTokenLoop() {
+        Assert.Throws<OperationCanceledException>(() => WkFormulaDecoder.TryDecode(
+            new byte[] { 0x03 }, 0, 1, 0, 0,
+            new OfficeLegacyImportLimits(), 100, new CancellationToken(canceled: true),
+            out _, out _));
+    }
+
+    [Fact]
     public void WkFormulaStringRejectsUndeclaredExtendedTextWithoutReplacement() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wk(formulaTokens: new byte[] { 0x06, 0xE9, 0x00, 0x03 }),
@@ -204,6 +212,28 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_COLLISION");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
         Assert.Single(imported.Document.CreateInspectionSnapshot().NamedRanges);
+    }
+
+    [Fact]
+    public void WkNameRecordsWithTrailingPayloadRemainExplicitLoss() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.WkNameWithTrailingByte(),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        Assert.Empty(imported.Names);
+        Assert.Equal("Input", imported.Metadata["UnresolvedName.Sample.1"]);
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_REFERENCE_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+    }
+
+    [Fact]
+    public void WkCellProtectionCannotDisappearFromNoLossClaims() {
+        using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
+            LegacyFixtureFactory.Wk(cellFormat: 0x80, includeFormulaAndChart: false),
+            new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
+
+        Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_CELL_PROTECTION_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
     }
 
     [Fact]
