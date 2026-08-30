@@ -19,9 +19,8 @@ public sealed partial class DocBookDocument {
     private static bool IsKnownUntypedDocBookElement(System.Xml.Linq.XName name, System.Xml.Linq.XNamespace sourceNamespace) =>
         name.Namespace == sourceNamespace && KnownUntypedDocBookElementNames.Contains(name.LocalName);
 
-    private static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
-        !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
-            string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
+    private static bool IsDerivedBlock(OfficeDocumentModelBlock block, ILookup<string, OfficeDocumentModelNode> nodesById) =>
+        !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodesById[block.Id].Any(node =>
             string.Equals(node.Kind, block.Kind, StringComparison.OrdinalIgnoreCase) && node.Level == block.Level &&
             (string.Equals(node.Text, block.Text, StringComparison.Ordinal) ||
              ShouldReplaceChildrenWithPrimaryText(node) &&
@@ -82,15 +81,14 @@ public sealed partial class DocBookDocument {
 
     private static bool IsDerivedAsset(
         OfficeDocumentModelAsset asset,
-        IEnumerable<OfficeDocumentModelNode> nodes,
+        ILookup<string, OfficeDocumentModelNode> nodesById,
         IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> parents) {
         const string prefix = "docbook-image-";
         if (string.IsNullOrEmpty(asset.Id) || !asset.Id.StartsWith(prefix, StringComparison.Ordinal) ||
             !string.Equals(asset.Kind, "image", StringComparison.OrdinalIgnoreCase)) return false;
         string nodeId = "docbook-" + asset.Id.Substring(prefix.Length);
         string? reference = string.IsNullOrWhiteSpace(asset.SourceObjectId) ? asset.FileName : asset.SourceObjectId;
-        OfficeDocumentModelNode? image = nodes.FirstOrDefault(node =>
-            string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
+        OfficeDocumentModelNode? image = nodesById[nodeId].FirstOrDefault(node =>
             string.Equals(node.Kind, "image", StringComparison.OrdinalIgnoreCase) &&
             node.Attributes.TryGetValue("fileref", out string? value) && string.Equals(value, reference, StringComparison.Ordinal));
         if (image == null || !string.Equals(asset.FileName, GetReferenceFileNameFromReference(reference!), StringComparison.Ordinal)) return false;
@@ -146,15 +144,14 @@ public sealed partial class DocBookDocument {
         return null;
     }
 
-    private static bool IsDerivedLink(OfficeDocumentModelLink link, IEnumerable<OfficeDocumentModelNode> nodes) {
+    private static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
         const string prefix = "docbook-link-";
         if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) ||
             link.DestinationPageNumber.HasValue || !string.IsNullOrWhiteSpace(link.DestinationMode) ||
             !string.IsNullOrWhiteSpace(link.NamedAction) || !string.IsNullOrWhiteSpace(link.RemoteFile) ||
             !string.IsNullOrWhiteSpace(link.RemoteDestinationName) || link.RemoteDestinationPageNumber.HasValue) return false;
         string nodeId = "docbook-" + link.Id.Substring(prefix.Length);
-        return nodes.Any(node =>
-            string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
+        return nodesById[nodeId].Any(node =>
             (string.Equals(node.Kind, "link", StringComparison.OrdinalIgnoreCase) ||
              string.Equals(node.Kind, "cross-reference", StringComparison.OrdinalIgnoreCase)) &&
             string.Equals(node.Kind, link.Kind, StringComparison.OrdinalIgnoreCase) &&
@@ -174,14 +171,14 @@ public sealed partial class DocBookDocument {
 
     private static bool IsDerivedTable(
         OfficeDocumentModelTable table,
-        IEnumerable<OfficeDocumentModelNode> nodes,
+        ILookup<int, OfficeDocumentModelNode> nodesByTableIndex,
         ISet<OfficeDocumentModelNode> consumedNodes) {
         if (table.Location == null || !table.Location.TableIndex.HasValue || string.IsNullOrEmpty(table.PayloadHash) ||
             !string.Equals(table.PayloadHash, ComputeTablePayloadHash(table), StringComparison.OrdinalIgnoreCase)) return false;
         OfficeDocumentModelLocation tableLocation = table.Location;
         string expectedKind = string.Equals(table.Kind, "informaltable", StringComparison.OrdinalIgnoreCase)
             ? "informal-table" : "table";
-        foreach (OfficeDocumentModelNode node in nodes) {
+        foreach (OfficeDocumentModelNode node in nodesByTableIndex[tableLocation.TableIndex.Value]) {
             if (consumedNodes.Contains(node) || !string.Equals(node.Kind, expectedKind, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(node.Text, table.Title ?? string.Empty, StringComparison.Ordinal) ||
                 node.Location?.TableIndex != tableLocation.TableIndex) continue;

@@ -108,6 +108,13 @@ public sealed class DocBookNode {
     /// <summary>Adds a supported common node.</summary>
     public DocBookNode Add(DocBookNodeKind kind, string? text = null) {
         if (kind == DocBookNodeKind.Unknown) throw new ArgumentOutOfRangeException(nameof(kind));
+        if (kind == DocBookNodeKind.Info && Kind == DocBookNodeKind.Section) {
+            string infoName = _document.Profile == DocBookProfile.DocBook45 ? "sectioninfo" : "info";
+            var element = new XElement(_document.Namespace + infoName);
+            if (text != null) element.Value = text;
+            Element.AddFirst(element); _document.MarkModified();
+            return new DocBookNode(_document, element);
+        }
         if (kind == DocBookNodeKind.Info && _document.Profile == DocBookProfile.DocBook45) {
             return AddRaw(Kind == DocBookNodeKind.Section
                 ? "sectioninfo"

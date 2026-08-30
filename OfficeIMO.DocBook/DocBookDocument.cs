@@ -181,7 +181,8 @@ public sealed partial class DocBookDocument {
                     !(parent?.Name == Namespace + "varlistentry" &&
                       parent?.Parent is XElement variableList &&
                       DocBookNames.GetKind(variableList.Name, Namespace) == DocBookNodeKind.VariableList) ||
-                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) && parentKind != DocBookNodeKind.Section ||
+                kind == DocBookNodeKind.Info && element != root && !ReferenceEquals(parent, root) &&
+                    parentKind != DocBookNodeKind.Section && parentKind != DocBookNodeKind.Unknown ||
                 Kind == DocBookDocumentKind.Book && ReferenceEquals(parent, root) && element.Name.Namespace == Namespace &&
                     !IsAllowedBookRootChild(localName);
             if (invalidParent) {

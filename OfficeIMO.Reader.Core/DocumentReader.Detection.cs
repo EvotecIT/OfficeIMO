@@ -623,7 +623,16 @@ internal static partial class DocumentReaderEngine {
                     if (current == quote) quote = '\0';
                     continue;
                 }
-                if (current == '\'' || current == '"') quote = current;
+                if (current == '<' && index + 3 < value.Length && value[index + 1] == '!' &&
+                    value[index + 2] == '-' && value[index + 3] == '-') {
+                    int end = value.IndexOf("-->", index + 4, StringComparison.Ordinal);
+                    if (end < 0) return false;
+                    index = end + 2;
+                } else if (current == '<' && index + 1 < value.Length && value[index + 1] == '?') {
+                    int end = value.IndexOf("?>", index + 2, StringComparison.Ordinal);
+                    if (end < 0) return false;
+                    index = end + 1;
+                } else if (current == '\'' || current == '"') quote = current;
                 else if (current == '[') bracketDepth++;
                 else if (current == ']') bracketDepth = Math.Max(0, bracketDepth - 1);
                 else if (current == '>' && bracketDepth == 0) {

@@ -124,6 +124,16 @@ public sealed class DocBookDocumentTests {
     }
 
     [Fact]
+    public void ValidationAllowsInfoUnderAcceptedBookComponents() {
+        const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><info><title>Chapter</title></info><para>Body</para></chapter></book>";
+
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.True(validation.IsValid);
+        Assert.DoesNotContain(validation.Diagnostics, diagnostic => diagnostic.Code == "DB015");
+    }
+
+    [Fact]
     public void ValidationRejectsListItemsOutsideSupportedListParents() {
         DocBookDocument invalid = DocBookDocument.CreateArticle();
         invalid.Root.AddListItem("Root item");
@@ -1122,7 +1132,7 @@ public sealed class DocBookDocumentTests {
 
     [Fact]
     public void ProfileConversionRequalifiesUntypedDocBookVocabularyButNotExtensions() {
-        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><custom flag=\"five\">native</custom><x:box><x:item>value</x:item></x:box></article>";
+        const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:x=\"urn:extension\" version=\"5.2\"><info><author><personname xml:id=\"five-person\"><firstname>Jane</firstname><surname>Doe</surname></personname></author></info><indexterm><primary>topic</primary></indexterm><custom flag=\"five\">native</custom><x:box><x:item>value</x:item></x:box></article>";
         DocBookDocument asFour = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook45).Value;
@@ -1131,12 +1141,14 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(4, fourVocabulary.Length);
         Assert.All(fourVocabulary,
             element => Assert.Equal(XNamespace.None, element.Name.Namespace));
+        Assert.Equal("five-person", (string?)fourVocabulary.Single(element => element.Name.LocalName == "personname").Attribute("id"));
+        Assert.Null(fourVocabulary.Single(element => element.Name.LocalName == "personname").Attribute(XNamespace.Xml + "id"));
         XElement fourCustom = asFour.Xml.Descendants().Single(element => element.Name.LocalName == "custom");
         Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, fourCustom.Name.NamespaceName);
         Assert.Equal("five", (string?)fourCustom.Attribute("flag"));
         Assert.Equal("urn:extension", asFour.Xml.Descendants().Single(element => element.Name.LocalName == "box").Name.NamespaceName);
 
-        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm><custom flag=\"four\">native</custom></article>";
+        const string docBookFour = "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><articleinfo><author><personname id=\"four-person\"><firstname>Jane</firstname><surname>Doe</surname></personname></author></articleinfo><indexterm><primary>topic</primary></indexterm><custom flag=\"four\">native</custom></article>";
         DocBookDocument asFive = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFour).ToOfficeDocumentModel().Value,
             profile: DocBookProfile.DocBook52).Value;
@@ -1145,6 +1157,8 @@ public sealed class DocBookDocumentTests {
         Assert.Equal(4, fiveVocabulary.Length);
         Assert.All(fiveVocabulary,
             element => Assert.Equal(DocBookSchemaProfiles.DocBook52.NamespaceUri, element.Name.NamespaceName));
+        Assert.Equal("four-person", (string?)fiveVocabulary.Single(element => element.Name.LocalName == "personname").Attribute(XNamespace.Xml + "id"));
+        Assert.Null(fiveVocabulary.Single(element => element.Name.LocalName == "personname").Attribute("id"));
         XElement fiveCustom = asFive.Xml.Descendants().Single(element => element.Name.LocalName == "custom");
         Assert.Equal(XNamespace.None, fiveCustom.Name.Namespace);
         Assert.Equal("four", (string?)fiveCustom.Attribute("flag"));
@@ -1179,14 +1193,22 @@ public sealed class DocBookDocumentTests {
         Assert.All(sections, section => Assert.True(section.Location.HeadingPath!.Length <= 1_024));
     }
 
-    [Fact]
-    public void DocBookFourUsesSectionInfoForTypedSectionMetadata() {
-        DocBookDocument created = DocBookDocument.CreateArticle(DocBookProfile.DocBook45);
-        DocBookNode sectionInfo = created.AddSection("Section").Add(DocBookNodeKind.Info);
-        Assert.Equal("sectioninfo", sectionInfo.Name);
-        Assert.Equal(DocBookNodeKind.Info, DocBookDocument.Parse(created.ToDocBook()).Root.Children
-            .Single(node => node.Kind == DocBookNodeKind.Section).Children.Single(node => node.Name == "sectioninfo").Kind);
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45, "sectioninfo")]
+    [InlineData(DocBookProfile.DocBook52, "info")]
+    public void TypedSectionMetadataPrecedesTitle(DocBookProfile profile, string expectedName) {
+        DocBookDocument created = DocBookDocument.CreateArticle(profile);
+        DocBookNode section = created.AddSection("Section");
+        DocBookNode info = section.Add(DocBookNodeKind.Info);
 
+        Assert.Equal(expectedName, info.Name);
+        Assert.Equal(expectedName, section.Children.First().Name);
+        Assert.Equal(DocBookNodeKind.Info, DocBookDocument.Parse(created.ToDocBook()).Root.Children
+            .Single(node => node.Kind == DocBookNodeKind.Section).Children.First().Kind);
+    }
+
+    [Fact]
+    public void ProfileConversionUsesSectionInfoForDocBookFour() {
         const string docBookFive = "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><section><title>Section</title><info><author>Jane Doe</author></info></section></article>";
         DocBookDocument converted = DocBookDocument.FromOfficeDocumentModel(
             DocBookDocument.Parse(docBookFive).ToOfficeDocumentModel().Value,

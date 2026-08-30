@@ -591,6 +591,11 @@ public sealed partial class DocBookDocument {
         options.Validate();
         IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(
             model.Structure, options.MaxStructureDepth, options.MaxStructureNodes);
+        ILookup<string, OfficeDocumentModelNode> structureNodesById = structureNodes
+            .Where(node => !string.IsNullOrEmpty(node.Id)).ToLookup(node => node.Id, StringComparer.Ordinal);
+        ILookup<int, OfficeDocumentModelNode> structureTableNodesByIndex = structureNodes
+            .Where(node => node.Location?.TableIndex.HasValue == true)
+            .ToLookup(node => node.Location!.TableIndex!.Value);
         IReadOnlyDictionary<OfficeDocumentModelNode, OfficeDocumentModelNode> structureParents = BuildStructureParentMap(structureNodes);
         var diagnostics = new DocBookDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceKind = model.Metadata.FirstOrDefault(entry => entry.Category == "docbook" && entry.Name == "kind")?.Value;
@@ -626,6 +631,7 @@ public sealed partial class DocBookDocument {
 
         void Add(OfficeDocumentModelNode source, DocBookNode parent) {
             DocBookNode target;
+            bool profileOwnedNode = !source.Kind.StartsWith("extension:", StringComparison.Ordinal);
             bool replaceChildrenWithPrimaryText = PrimaryTextShouldTakePrecedence(source);
             if (string.Equals(source.Kind, "text", StringComparison.OrdinalIgnoreCase)) {
                 parent.AddText(source.Text);
@@ -637,6 +643,7 @@ public sealed partial class DocBookDocument {
                     XName extensionName = XName.Get(expandedName);
                     if (requalifySourceVocabulary && IsKnownUntypedDocBookElement(extensionName, sourceDocBookNamespace)) {
                         extensionName = targetDocBookNamespace + extensionName.LocalName;
+                        profileOwnedNode = true;
                     }
                     target = parent.AddExtension(extensionName,
                         source.Children.Count == 0 || replaceChildrenWithPrimaryText ? source.Text : null);
@@ -682,7 +689,6 @@ public sealed partial class DocBookDocument {
             foreach (KeyValuePair<string, string> attribute in source.Attributes) {
                 try {
                     XName attributeName = XName.Get(attribute.Key);
-                    bool profileOwnedNode = !source.Kind.StartsWith("extension:", StringComparison.Ordinal);
                     if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook52 && attributeName == XName.Get("id")) {
                         attributeName = XNamespace.Xml + "id";
                     } else if (profileOwnedNode && selectedProfile == DocBookProfile.DocBook45 && attributeName == XNamespace.Xml + "id") {
@@ -808,18 +814,18 @@ public sealed partial class DocBookDocument {
                 ReplaceDocumentAuthor(resolvedDocumentAuthor);
             }
             var consumedTableNodes = new HashSet<OfficeDocumentModelNode>();
-            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodesById))) {
                 document.AddParagraph(block.Text);
                 AddSupplementaryDiagnostic("block", block.Id, block.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelTable table in model.Tables.Where(table => !IsDerivedTable(table, structureNodes, consumedTableNodes))) {
+            foreach (OfficeDocumentModelTable table in model.Tables.Where(table => !IsDerivedTable(table, structureTableNodesByIndex, consumedTableNodes))) {
                 AddFlatTable(table);
                 AddSupplementaryDiagnostic("table", table.Title ?? table.Kind ?? "unnamed", table.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodes, structureParents))) {
+            foreach (OfficeDocumentModelAsset asset in model.Assets.Where(asset => !IsDerivedAsset(asset, structureNodesById, structureParents))) {
                 if (AddFlatAsset(asset)) AddSupplementaryDiagnostic("asset", asset.Id, asset.Location?.HeadingPath);
             }
-            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodes))) {
+            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodesById))) {
                 if (AddFlatLink(link)) AddSupplementaryDiagnostic("link", link.Id, link.Location?.HeadingPath);
             }
         } else {

@@ -132,6 +132,10 @@ public sealed partial class OpmlDocument {
         options.Validate();
         IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(
             model.Structure, options.MaxStructureDepth, options.MaxStructureNodes);
+        ILookup<string, OfficeDocumentModelNode> structureNodesById = structureNodes
+            .Where(node => !string.IsNullOrEmpty(node.Id)).ToLookup(node => node.Id, StringComparer.Ordinal);
+        ILookup<string, OfficeDocumentModelBlock> blocksById = model.Blocks
+            .Where(block => !string.IsNullOrEmpty(block.Id)).ToLookup(block => block.Id, StringComparer.Ordinal);
         var diagnostics = new OpmlDiagnosticCollector(options.MaxDetailedDiagnosticsPerCode);
         string? sourceVersion = model.Metadata.FirstOrDefault(entry => entry.Category == "opml" && entry.Name == "version")?.Value;
         bool sourceVersionIsSupported = sourceVersion == null || sourceVersion == "1.0" || sourceVersion == "1.1" || sourceVersion == "2.0";
@@ -241,8 +245,7 @@ public sealed partial class OpmlDocument {
         string ResolveOutlineText(OfficeDocumentModelNode node) {
             if (!node.Attributes.TryGetValue("text", out string? attributeText) ||
                 string.Equals(attributeText, node.Text, StringComparison.Ordinal)) return node.Text;
-            OfficeDocumentModelBlock? projectedBlock = model.Blocks.FirstOrDefault(block =>
-                string.Equals(block.Id, node.Id, StringComparison.Ordinal) &&
+            OfficeDocumentModelBlock? projectedBlock = blocksById[node.Id].FirstOrDefault(block =>
                 string.Equals(block.Kind, node.Kind, StringComparison.OrdinalIgnoreCase) &&
                 block.Level == node.Level);
             bool attributeWins = projectedBlock != null &&
@@ -322,13 +325,13 @@ public sealed partial class OpmlDocument {
 
         if (model.Structure.Count > 0) {
             foreach (OfficeDocumentModelNode node in model.Structure) Add(node, null);
-            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodes))) {
+            foreach (OfficeDocumentModelBlock block in model.Blocks.Where(block => !IsDerivedBlock(block, structureNodesById))) {
                 document.AddOutline(block.Text);
                 diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
                     $"Supplementary shared block '{block.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
                     block.Location?.HeadingPath));
             }
-            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodes))) {
+            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodesById))) {
                 if (AddFlatLink(link)) {
                     diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
                         $"Supplementary shared link '{link.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
@@ -349,14 +352,13 @@ public sealed partial class OpmlDocument {
         }
         return new OpmlConversionResult<OpmlDocument>(document, diagnostics.ToArray());
 
-        static bool IsDerivedBlock(OfficeDocumentModelBlock block, IEnumerable<OfficeDocumentModelNode> nodes) =>
-            !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodes.Any(node =>
-                string.Equals(node.Id, block.Id, StringComparison.Ordinal) &&
+        static bool IsDerivedBlock(OfficeDocumentModelBlock block, ILookup<string, OfficeDocumentModelNode> nodesById) =>
+            !string.IsNullOrEmpty(block.Id) && block.Marker == null && block.Region == null && nodesById[block.Id].Any(node =>
                 string.Equals(node.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(block.Kind, "outline", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(node.Text, block.Text, StringComparison.Ordinal) && node.Level == block.Level);
 
-        static bool IsDerivedLink(OfficeDocumentModelLink link, IEnumerable<OfficeDocumentModelNode> nodes) {
+        static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
             const string prefix = "opml-link-";
             if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) || string.IsNullOrEmpty(link.Uri) ||
                 !string.IsNullOrWhiteSpace(link.DestinationName) || link.DestinationPageNumber.HasValue ||
@@ -371,7 +373,7 @@ public sealed partial class OpmlDocument {
                 : string.Equals(kind, "subscription", StringComparison.Ordinal) ? "xmlUrl"
                 : string.Equals(kind, "html", StringComparison.Ordinal) ? "htmlUrl" : null;
             if (attributeName == null || !string.Equals(kind, link.Kind, StringComparison.OrdinalIgnoreCase)) return false;
-            return nodes.Any(node => string.Equals(node.Id, nodeId, StringComparison.Ordinal) &&
+            return nodesById[nodeId].Any(node =>
                 (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal)) &&
                 node.Attributes.TryGetValue(attributeName, out string? value) && string.Equals(value, link.Uri, StringComparison.Ordinal));
         }

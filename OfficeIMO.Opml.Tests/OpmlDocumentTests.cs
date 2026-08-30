@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace OfficeIMO.Opml.Tests;
 
@@ -377,6 +378,41 @@ public sealed class OpmlDocumentTests {
         Assert.Equal(new[] { "Structured", "Supplemental", "Site" }, converted.Value.Outlines.Select(outline => outline.Text));
         Assert.Equal("https://example.test/", converted.Value.Outlines[2].Url);
         Assert.Equal(2, converted.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML107"));
+    }
+
+    [Fact]
+    public void SharedReverseConversionIndexesLargeDerivedFlatProjections() {
+        const int count = 25_000;
+        OfficeDocumentModelNode[] nodes = Enumerable.Range(0, count).Select(index => {
+            string id = "outline-" + index;
+            string text = "Outline " + index;
+            return new OfficeDocumentModelNode {
+                Id = id,
+                Kind = "outline",
+                Text = text,
+                Attributes = new Dictionary<string, string> { ["url"] = "https://example.test/" + index }
+            };
+        }).ToArray();
+        var model = new OfficeDocumentModel {
+            Format = OfficeDocumentFormat.Opml,
+            Structure = nodes,
+            Blocks = nodes.Select(node => new OfficeDocumentModelBlock {
+                Id = node.Id, Kind = node.Kind, Text = node.Text, Level = node.Level
+            }).ToArray(),
+            Links = nodes.Select((node, index) => new OfficeDocumentModelLink {
+                Id = "opml-link-" + index + "-url", Kind = "url", Text = node.Text,
+                Uri = node.Attributes["url"]
+            }).ToArray()
+        };
+
+        var stopwatch = Stopwatch.StartNew();
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+        stopwatch.Stop();
+
+        Assert.Equal(count, converted.Value.Outlines.Count);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
+        Assert.True(stopwatch.Elapsed < TimeSpan.FromSeconds(10),
+            $"Indexed reverse conversion took {stopwatch.Elapsed}.");
     }
 
     [Fact]

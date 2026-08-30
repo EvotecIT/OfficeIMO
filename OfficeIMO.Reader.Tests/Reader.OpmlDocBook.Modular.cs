@@ -405,6 +405,11 @@ public sealed class ReaderOpmlDocBookModularTests {
         Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook45, "renamed.bin", new ReaderDetectionOptions {
             Mode = ReaderDetectionMode.PreferContent
         }).Kind);
+        byte[] docBook45WithSubsetMarkup = Encoding.UTF8.GetBytes(
+            "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\" [<!-- ]> --><!ENTITY role \"guide\"><?officeimo ]>?>]><article role=\"&role;\"><para>P</para></article>");
+        Assert.Equal(ReaderInputKind.DocBook, reader.Detect(docBook45WithSubsetMarkup, "renamed.bin", new ReaderDetectionOptions {
+            Mode = ReaderDetectionMode.PreferContent
+        }).Kind);
     }
 
     [Theory]
