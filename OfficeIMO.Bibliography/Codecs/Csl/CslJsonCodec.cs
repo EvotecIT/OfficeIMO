@@ -407,6 +407,8 @@ internal static class CslJsonCodec {
         if (parts.Length < 1 || parts.Length > 3) return false;
         var numbers = new int[parts.Length];
         for (int index = 0; index < parts.Length; index++) if (parts[index].ValueKind != JsonValueKind.Number || !parts[index].TryGetInt32(out numbers[index])) return false;
+        if (numbers.Length > 1 && (numbers[1] < 1 || numbers[1] > 12)) return false;
+        if (numbers.Length > 2 && (numbers[2] < 1 || numbers[2] > 31)) return false;
         year = numbers[0];
         if (numbers.Length > 1) month = numbers[1];
         if (numbers.Length > 2) day = numbers[2];
@@ -526,6 +528,10 @@ internal static class CslJsonCodec {
             cancellationToken.ThrowIfCancellationRequested();
             int characterCount = Math.Min(characters.Length, source.Length - position);
             source.CopyTo(position, characters, 0, characterCount);
+            for (int index = 0; index < characterCount; index++) {
+                int sourceIndex = position + index;
+                if (characters[index] == '\r' && (sourceIndex + 1 >= source.Length || source[sourceIndex + 1] != '\n')) characters[index] = '\n';
+            }
             bool flush = position + characterCount == source.Length;
             try {
                 encoder.Convert(characters, 0, characterCount, bytes, 0, bytes.Length, flush, out int charactersUsed, out int bytesUsed, out _);
@@ -789,13 +795,12 @@ internal static class CslJsonCodec {
         int zeroBasedLine = checked((int)exception.LineNumber.Value);
         int lineStart = 0;
         for (int currentLine = 0; currentLine < zeroBasedLine && lineStart < source.Length; currentLine++) {
-            int newLine = source.IndexOf('\n', lineStart);
-            if (newLine < 0) { lineStart = source.Length; break; }
-            lineStart = newLine + 1;
+            while (lineStart < source.Length && source[lineStart] != '\r' && source[lineStart] != '\n') lineStart++;
+            if (lineStart >= source.Length) break;
+            if (source[lineStart++] == '\r' && lineStart < source.Length && source[lineStart] == '\n') lineStart++;
         }
-        int lineEnd = source.IndexOf('\n', lineStart);
-        if (lineEnd < 0) lineEnd = source.Length;
-        if (lineEnd > lineStart && source[lineEnd - 1] == '\r') lineEnd--;
+        int lineEnd = lineStart;
+        while (lineEnd < source.Length && source[lineEnd] != '\r' && source[lineEnd] != '\n') lineEnd++;
         long bytePosition = exception.BytePositionInLine.Value;
         int characterCount = 0;
         while (lineStart + characterCount < lineEnd) {

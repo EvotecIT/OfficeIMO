@@ -50,6 +50,8 @@ public sealed class BibliographyWriteOptions {
     public bool RequireNoLoss { get; set; }
 
     internal void Validate() {
+        if (!Enum.IsDefined(typeof(BibliographyWriterMode), Mode)) throw new ArgumentOutOfRangeException(nameof(Mode), Mode, "Unknown bibliography writer mode.");
+        if (Format.HasValue && !Enum.IsDefined(typeof(BibliographyFormat), Format.Value)) throw new ArgumentOutOfRangeException(nameof(Format), Format, "Unknown bibliography format.");
         if (LineEnding != "\n" && LineEnding != "\r" && LineEnding != "\r\n") throw new ArgumentException("LineEnding must be LF, CR, or CRLF.", nameof(LineEnding));
         if (Encoding == null) throw new ArgumentNullException(nameof(Encoding));
     }

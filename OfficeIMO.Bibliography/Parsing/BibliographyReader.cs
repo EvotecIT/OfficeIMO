@@ -186,12 +186,12 @@ internal static class BibliographyFormatDetector {
             cancellationToken.ThrowIfCancellationRequested();
             position = SkipWhitespace(source, position, cancellationToken);
             if (bibComments && position < source.Length && source[position] == '%') {
-                int end = FindCharacter(source, position + 1, '\n', cancellationToken);
+                int end = FindLineBreak(source, position + 1, cancellationToken);
                 position = end < 0 ? source.Length : end + 1;
                 continue;
             }
             if (!bibComments && position + 1 < source.Length && source[position] == '/' && source[position + 1] == '/') {
-                int end = FindCharacter(source, position + 2, '\n', cancellationToken);
+                int end = FindLineBreak(source, position + 2, cancellationToken);
                 position = end < 0 ? source.Length : end + 1;
                 continue;
             }
@@ -284,11 +284,11 @@ internal static class BibliographyFormatDetector {
         return position;
     }
 
-    private static int FindCharacter(string source, int position, char value, CancellationToken cancellationToken) {
+    private static int FindLineBreak(string source, int position, CancellationToken cancellationToken) {
         int start = position;
         while (position < source.Length) {
             if (((position - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (source[position] == value) return position;
+            if (source[position] == '\r' || source[position] == '\n') return position;
             position++;
         }
         return -1;
