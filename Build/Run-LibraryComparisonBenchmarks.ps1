@@ -39,6 +39,7 @@ param(
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
+        'pdfstructure',
         'pdfsplit',
         'pdfmerge',
         'pdfselect')]
@@ -431,6 +432,21 @@ $definitions = [ordered]@{
                     foreach ($engine in @('OfficeIMO', 'PdfPig', 'IText')) {
                         "$engine|Producer=$producer&Scale=$scale"
                     }
+                }
+            }
+        )
+    }
+    pdfstructure = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfUnderstandingBenchmarks*'
+        ComparisonId = "officeimo-pdf-structured-understanding-$Framework"
+        Suite = 'OfficeIMO.Pdf.StructuredUnderstanding'
+        CatalogEligible = $false
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                foreach ($workflow in @('AdvancedUnderstanding', 'LogicalStructureAndTables')) {
+                    "$workflow|Scale=$scale"
                 }
             }
         )

@@ -13,7 +13,7 @@ public static class PdfAdvancedUnderstandingStages {
     /// <summary>Spatial connected-region segmentation.</summary>
     public static IPdfPageSegmentationStage PageSegmentation { get; } = new AdvancedPageSegmentationStage();
     /// <summary>Spanning-band and multi-column reading order.</summary>
-    public static IPdfReadingOrderStage ReadingOrder { get; } = new AdvancedReadingOrderStage();
+    public static IPdfReadingOrderStage ReadingOrder { get; } = new PdfRecursiveXyCutReadingOrderStage();
     /// <summary>Business-document semantic classification.</summary>
     public static IPdfSemanticClassificationStage SemanticClassification { get; } = new AdvancedSemanticClassificationStage();
 
@@ -132,41 +132,6 @@ public static class PdfAdvancedUnderstandingStages {
         }
     }
 
-    private sealed class AdvancedReadingOrderStage : IPdfReadingOrderStage {
-        public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) {
-            if (regions.Count <= 1) return regions.ToArray();
-            double pageWidth = Math.Max(1D, context.Width);
-            PdfUnderstandingRegion[] spanning = regions.Where(region => region.XEnd - region.XStart >= pageWidth * 0.62D).OrderByDescending(static region => region.YTop).ToArray();
-            var ordered = new List<PdfUnderstandingRegion>(regions.Count);
-            var consumed = new HashSet<PdfUnderstandingRegion>();
-            double bandTop = double.PositiveInfinity;
-            foreach (PdfUnderstandingRegion divider in spanning) {
-                AddBand(regions.Where(region => !consumed.Contains(region) && !ReferenceEquals(region, divider) && region.YTop <= bandTop && region.YTop > divider.YTop));
-                ordered.Add(divider); consumed.Add(divider); bandTop = divider.YBottom;
-            }
-            AddBand(regions.Where(region => !consumed.Contains(region)));
-            return ordered.ToArray();
-
-            void AddBand(IEnumerable<PdfUnderstandingRegion> candidates) {
-                PdfUnderstandingRegion[] band = candidates.ToArray();
-                if (band.Length == 0) return;
-                double medianWidth = band.Select(region => region.XEnd - region.XStart).OrderBy(static width => width).ElementAt(band.Length / 2);
-                double columnTolerance = Math.Max(18D, medianWidth * 0.2D);
-                var columns = new List<List<PdfUnderstandingRegion>>();
-                foreach (PdfUnderstandingRegion region in band.OrderBy(static region => region.XStart)) {
-                    List<PdfUnderstandingRegion>? column = columns.FirstOrDefault(candidate => Math.Abs(candidate.Average(static item => item.XStart) - region.XStart) <= columnTolerance);
-                    if (column is null) { column = new List<PdfUnderstandingRegion>(); columns.Add(column); }
-                    column.Add(region);
-                }
-                foreach (List<PdfUnderstandingRegion> column in columns.OrderBy(static column => column.Min(static region => region.XStart))) {
-                    foreach (PdfUnderstandingRegion region in column.OrderByDescending(static region => region.YTop).ThenBy(static region => region.XStart)) {
-                        if (consumed.Add(region)) ordered.Add(region);
-                    }
-                }
-            }
-        }
-    }
-
     private sealed class AdvancedSemanticClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
             double[] sizes = orderedRegions.SelectMany(static region => region.Lines).Select(static line => line.FontSize).OrderBy(static size => size).ToArray();
@@ -208,7 +173,10 @@ public static class PdfAdvancedUnderstandingStages {
             if (text.Length == 0) return false;
             if (text[0] == '-' || text[0] == '*' || text[0] == '•') return true;
             int index = 0; while (index < text.Length && char.IsDigit(text[index])) index++;
-            return index > 0 && index < text.Length && (text[index] == '.' || text[index] == ')');
+            return index is > 0 and <= 4 &&
+                index + 1 < text.Length &&
+                (text[index] == '.' || text[index] == ')') &&
+                char.IsWhiteSpace(text[index + 1]);
         }
     }
 

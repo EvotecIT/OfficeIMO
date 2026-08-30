@@ -1,0 +1,232 @@
+namespace OfficeIMO.Pdf;
+
+/// <summary>
+/// Orders page regions by recursively partitioning whitespace into horizontal bands and vertical columns.
+/// </summary>
+internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage {
+    private const int MaximumDepth = 64;
+
+    /// <inheritdoc />
+    public IReadOnlyList<PdfUnderstandingRegion> Order(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfUnderstandingRegion> regions) {
+        Guard.NotNull(context, nameof(context));
+        Guard.NotNull(regions, nameof(regions));
+        if (regions.Count <= 1) {
+            return regions.ToArray();
+        }
+
+        RegionBox[] boxes = regions.Select(static region => RegionBox.From(region)).ToArray();
+        double medianFontSize = Median(boxes.Select(static box => box.FontSize));
+        double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
+        double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D);
+        var ordered = new List<PdfUnderstandingRegion>(regions.Count);
+
+        AppendPartition(
+            boxes,
+            ordered,
+            minimumHorizontalGap,
+            minimumVerticalGap,
+            context.LayoutOptions.ForceSingleColumn,
+            depth: 0);
+
+        return ordered.ToArray();
+    }
+
+    private static void AppendPartition(
+        IReadOnlyList<RegionBox> boxes,
+        List<PdfUnderstandingRegion> ordered,
+        double minimumHorizontalGap,
+        double minimumVerticalGap,
+        bool forceSingleColumn,
+        int depth) {
+        if (boxes.Count == 0) {
+            return;
+        }
+
+        if (boxes.Count == 1) {
+            ordered.Add(boxes[0].Region);
+            return;
+        }
+
+        if (depth >= MaximumDepth) {
+            AppendFallback(boxes, ordered);
+            return;
+        }
+
+        WhitespaceCut? horizontal = FindBestCut(boxes, horizontal: true, minimumHorizontalGap);
+        WhitespaceCut? vertical = forceSingleColumn
+            ? null
+            : FindBestCut(boxes, horizontal: false, minimumVerticalGap);
+        WhitespaceCut? selected = SelectCut(boxes, horizontal, vertical);
+        if (!selected.HasValue) {
+            AppendFallback(boxes, ordered);
+            return;
+        }
+
+        WhitespaceCut cut = selected.Value;
+        var first = new List<RegionBox>();
+        var second = new List<RegionBox>();
+        for (int index = 0; index < boxes.Count; index++) {
+            RegionBox box = boxes[index];
+            double center = cut.Horizontal
+                ? (box.Bottom + box.Top) / 2D
+                : (box.Left + box.Right) / 2D;
+            if (center < cut.Midpoint) {
+                first.Add(box);
+            } else {
+                second.Add(box);
+            }
+        }
+
+        if (first.Count == 0 || second.Count == 0) {
+            AppendFallback(boxes, ordered);
+            return;
+        }
+
+        if (cut.Horizontal) {
+            AppendPartition(second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+            AppendPartition(first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+        } else {
+            AppendPartition(first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+            AppendPartition(second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+        }
+    }
+
+    private static WhitespaceCut? SelectCut(
+        IReadOnlyList<RegionBox> boxes,
+        WhitespaceCut? horizontal,
+        WhitespaceCut? vertical) {
+        if (!vertical.HasValue) return horizontal;
+        if (!horizontal.HasValue) return vertical;
+        return HasVerticalOverlapAcrossCut(boxes, vertical.Value) ? vertical : horizontal;
+    }
+
+    private static bool HasVerticalOverlapAcrossCut(IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+        double firstBottom = double.PositiveInfinity;
+        double firstTop = double.NegativeInfinity;
+        double secondBottom = double.PositiveInfinity;
+        double secondTop = double.NegativeInfinity;
+        for (int index = 0; index < boxes.Count; index++) {
+            RegionBox box = boxes[index];
+            bool first = (box.Left + box.Right) / 2D < verticalCut.Midpoint;
+            if (first) {
+                firstBottom = Math.Min(firstBottom, box.Bottom);
+                firstTop = Math.Max(firstTop, box.Top);
+            } else {
+                secondBottom = Math.Min(secondBottom, box.Bottom);
+                secondTop = Math.Max(secondTop, box.Top);
+            }
+        }
+        if (double.IsPositiveInfinity(firstBottom) || double.IsPositiveInfinity(secondBottom)) return false;
+        return Math.Min(firstTop, secondTop) > Math.Max(firstBottom, secondBottom);
+    }
+
+    private static WhitespaceCut? FindBestCut(
+        IReadOnlyList<RegionBox> boxes,
+        bool horizontal,
+        double minimumGap) {
+        Interval[] intervals = boxes
+            .Select(box => horizontal
+                ? new Interval(box.Bottom, box.Top)
+                : new Interval(box.Left, box.Right))
+            .OrderBy(static interval => interval.Start)
+            .ThenBy(static interval => interval.End)
+            .ToArray();
+        if (intervals.Length < 2) {
+            return null;
+        }
+
+        double occupiedEnd = intervals[0].End;
+        WhitespaceCut? best = null;
+        for (int index = 1; index < intervals.Length; index++) {
+            Interval interval = intervals[index];
+            double gap = interval.Start - occupiedEnd;
+            if (gap >= minimumGap && (!best.HasValue || gap > best.Value.Size)) {
+                best = new WhitespaceCut(horizontal, occupiedEnd, interval.Start);
+            }
+            occupiedEnd = Math.Max(occupiedEnd, interval.End);
+        }
+
+        return best;
+    }
+
+    private static void AppendFallback(IReadOnlyList<RegionBox> boxes, List<PdfUnderstandingRegion> ordered) {
+        foreach (RegionBox box in boxes
+                     .OrderByDescending(static box => box.Top)
+                     .ThenBy(static box => box.Left)
+                     .ThenByDescending(static box => box.Bottom)) {
+            ordered.Add(box.Region);
+        }
+    }
+
+    private static double Median(IEnumerable<double> values) {
+        double[] ordered = values.OrderBy(static value => value).ToArray();
+        if (ordered.Length == 0) {
+            return 0D;
+        }
+        int middle = ordered.Length / 2;
+        return ordered.Length % 2 == 0
+            ? (ordered[middle - 1] + ordered[middle]) / 2D
+            : ordered[middle];
+    }
+
+    private readonly struct RegionBox {
+        private RegionBox(
+            PdfUnderstandingRegion region,
+            double left,
+            double right,
+            double bottom,
+            double top,
+            double fontSize) {
+            Region = region;
+            Left = left;
+            Right = right;
+            Bottom = bottom;
+            Top = top;
+            FontSize = fontSize;
+        }
+
+        internal PdfUnderstandingRegion Region { get; }
+        internal double Left { get; }
+        internal double Right { get; }
+        internal double Bottom { get; }
+        internal double Top { get; }
+        internal double FontSize { get; }
+
+        internal static RegionBox From(PdfUnderstandingRegion region) {
+            double fontSize = Math.Max(1D, region.Lines.Max(static line => line.FontSize));
+            return new RegionBox(
+                region,
+                region.XStart,
+                Math.Max(region.XStart, region.XEnd),
+                region.YBottom - (fontSize * 0.25D),
+                region.YTop + (fontSize * 0.8D),
+                fontSize);
+        }
+    }
+
+    private readonly struct Interval {
+        internal Interval(double start, double end) {
+            Start = start;
+            End = end;
+        }
+
+        internal double Start { get; }
+        internal double End { get; }
+    }
+
+    private readonly struct WhitespaceCut {
+        internal WhitespaceCut(bool horizontal, double start, double end) {
+            Horizontal = horizontal;
+            Start = start;
+            End = end;
+        }
+
+        internal bool Horizontal { get; }
+        internal double Start { get; }
+        internal double End { get; }
+        internal double Size => End - Start;
+        internal double Midpoint => (Start + End) / 2D;
+    }
+}

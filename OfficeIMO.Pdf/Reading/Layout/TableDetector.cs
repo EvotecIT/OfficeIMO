@@ -63,7 +63,7 @@ internal static class TableDetector {
                 var splits = InferSplits(band);
                 if (splits.Count == 0) continue;
                 var table = BuildTableFromLinesAndSplits(band, splits, "band-splits");
-                if (table != null && table.Rows.Count >= 2) tables.Add(table);
+                if (table != null && table.Rows.Count >= 2 && HasValidatedRows(table, band)) tables.Add(table);
             }
         }
         List<TextLayoutEngine.TextLine> unmatchedLines = nonLeaderBands
@@ -372,7 +372,7 @@ internal static class TableDetector {
 
             for (int i = start; i <= end; i++) groupLines.AddRange(bandSplits[i].lines);
             var table = BuildTableFromLinesAndSplits(groupLines, baseSplits, "band-group");
-            if (table != null && table.Rows.Count >= 3) result.Add(table);
+            if (table != null && table.Rows.Count >= 3 && HasValidatedRows(table, groupLines)) result.Add(table);
             k = end + 1;
         }
         return result;
@@ -448,6 +448,97 @@ internal static class TableDetector {
         }
         return table.Rows.Count > 0 ? table : null;
     }
+
+    private static bool HasValidatedRows(StructuredTable table, IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+        int columnCount = table.Columns.Count;
+        if (columnCount < 2 || table.Rows.Count < 2) return false;
+
+        int denseRows = 0;
+        bool hasTabularValueEvidence = false;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            string[] row = table.Rows[rowIndex];
+            int populatedCells = 0;
+            for (int columnIndex = 0; columnIndex < Math.Min(columnCount, row.Length); columnIndex++) {
+                string value = row[columnIndex];
+                if (!string.IsNullOrWhiteSpace(value)) populatedCells++;
+                if (rowIndex > 0 && IsTabularValue(value)) hasTabularValueEvidence = true;
+            }
+            if (populatedCells >= 2 && populatedCells * 2 >= columnCount) denseRows++;
+        }
+
+        bool dense = denseRows >= 2 && denseRows * 4 >= table.Rows.Count * 3;
+        return dense && (
+            hasTabularValueEvidence ||
+            HasEmphasizedHeader(sourceLines) ||
+            HasCompactCellGrid(table) ||
+            HasStableColumnAnchors(table, sourceLines));
+    }
+
+    private static bool HasCompactCellGrid(StructuredTable table) {
+        if (table.Rows.Count < 2 || !LooksLikeHeaderRow(table.Rows[0])) return false;
+        int populatedCells = 0;
+        int wordCount = 0;
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            string[] row = table.Rows[rowIndex];
+            if (row.Length < table.Columns.Count) return false;
+            for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
+                string value = row[columnIndex].Trim();
+                if (value.Length == 0) return false;
+                populatedCells++;
+                wordCount += value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+            }
+        }
+        return populatedCells > 0 && wordCount <= populatedCells * 2;
+    }
+
+    private static bool HasStableColumnAnchors(
+        StructuredTable table,
+        IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+        if (table.Rows.Count < 2 || !LooksLikeHeaderRow(table.Rows[0])) return false;
+        for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
+            StructuredTableColumn column = table.Columns[columnIndex];
+            double left = Math.Min(column.From, column.To) - 0.5D;
+            double right = Math.Max(column.From, column.To) + 0.5D;
+            var anchors = new List<double>();
+            var fontSizes = new List<double>();
+            for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+                PdfTextSpan[] cellSpans = sourceLines[lineIndex].Spans
+                    .Where(span => span.X >= left && span.X <= right && !string.IsNullOrWhiteSpace(span.Text))
+                    .ToArray();
+                if (cellSpans.Length == 0) continue;
+                anchors.Add(cellSpans.Min(static span => span.X));
+                fontSizes.Add(cellSpans.Max(static span => span.FontSize));
+            }
+            if (anchors.Count < 2) return false;
+            double tolerance = Math.Max(8D, Median(fontSizes));
+            if (anchors.Max() - anchors.Min() > tolerance) return false;
+        }
+        return true;
+    }
+
+    private static bool HasEmphasizedHeader(IReadOnlyList<TextLayoutEngine.TextLine> sourceLines) {
+        if (sourceLines.Count < 2) return false;
+        double headerY = sourceLines.Max(static line => line.Y);
+        PdfTextSpan[] headerSpans = sourceLines
+            .Where(line => Math.Abs(line.Y - headerY) <= 2D)
+            .SelectMany(static line => line.Spans)
+            .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
+            .ToArray();
+        return headerSpans.Length >= 2 && headerSpans.All(static span => IsEmphasizedFont(span.BaseFont));
+    }
+
+    private static bool IsEmphasizedFont(string? baseFont) =>
+        baseFont?.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        baseFont?.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        baseFont?.IndexOf("Demi", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        baseFont?.IndexOf("SemiBold", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool IsTabularValue(string value) =>
+        HasManyDigits(value) ||
+        string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     public static StructuredTable? DetectLeaderTable(
         List<TextLayoutEngine.TextLine> lines,

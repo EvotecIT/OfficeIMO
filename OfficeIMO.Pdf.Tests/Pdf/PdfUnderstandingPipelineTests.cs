@@ -91,6 +91,64 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedPipeline_UsesRecursiveWhitespaceCutsForIndentedColumnContent() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Left one", "F1", 12, 50, 700, 110),
+            new PdfTextSpan("Left two", "F1", 12, 80, 650, 110),
+            new PdfTextSpan("Left three", "F1", 12, 50, 600, 110),
+            new PdfTextSpan("Right one", "F1", 12, 320, 700, 110),
+            new PdfTextSpan("Right two", "F1", 12, 320, 650, 110),
+            new PdfTextSpan("Right three", "F1", 12, 320, 600, 110)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(new[] {
+            "Left one", "Left two", "Left three",
+            "Right one", "Right two", "Right three"
+        }, page.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
+    public void AdvancedPipeline_ForceSingleColumnOrdersRowsBeforeColumns() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Left top", "F1", 12, 50, 700, 90),
+            new PdfTextSpan("Right top", "F1", 12, 320, 700, 90),
+            new PdfTextSpan("Left bottom", "F1", 12, 50, 640, 90),
+            new PdfTextSpan("Right bottom", "F1", 12, 320, 640, 90)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced(new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(new[] { "Left top", "Right top", "Left bottom", "Right bottom" },
+            page.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
+    public void AdvancedPipeline_OrdersStaggeredRegionsTopToBottomInsteadOfAsColumns() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Upper right heading", "F1", 16, 320, 700, 150),
+            new PdfTextSpan("Lower left body", "F1", 11, 50, 500, 120)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(new[] { "Upper right heading", "Lower left body" },
+            page.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
     public void AdvancedPipeline_ClassifiesTablesCaptionsHeadersAndFootnotes() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
@@ -109,6 +167,24 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
+    }
+
+    [Fact]
+    public void AdvancedPipeline_DoesNotClassifyDecimalAmountsAsListItems() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("1037.25", "F1", 11, 50, 500, 45),
+            new PdfTextSpan("1. Actual numbered item", "F1", 11, 50, 430, 120)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
+            Assert.Single(page.Elements, element => element.Region.Text == "1037.25").Kind);
+        Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
+            Assert.Single(page.Elements, element => element.Region.Text == "1. Actual numbered item").Kind);
     }
 
     private sealed class ReverseReadingOrderStage : IPdfReadingOrderStage {
