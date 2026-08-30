@@ -279,6 +279,13 @@ public sealed partial class DocBookDocument {
                 diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
                     $"{localName} cannot contain direct text in the bounded common-structure profile.", path));
             }
+            if (kind != DocBookNodeKind.Author && kind != DocBookNodeKind.Info && kind != DocBookNodeKind.CrossReference &&
+                (kind != DocBookNodeKind.Unknown && !AllowsDirectText(kind) ||
+                 kind == DocBookNodeKind.Unknown && IsSupportedComponent(element)) &&
+                element.Nodes().OfType<XText>().Any(text => !string.IsNullOrWhiteSpace(text.Value))) {
+                diagnostics.Add(new DocBookDiagnostic("DB018", DocBookDiagnosticSeverity.Error,
+                    $"{localName} cannot contain direct text in the bounded common-structure profile.", path));
+            }
             if ((kind == DocBookNodeKind.Section || kind == DocBookNodeKind.Figure ||
                  kind == DocBookNodeKind.Table && element.Name.LocalName == "table") &&
                 !element.Elements(Namespace + "title").Any()) {
@@ -287,6 +294,15 @@ public sealed partial class DocBookDocument {
             }
             if (kind == DocBookNodeKind.ListItem && !element.Elements().Any()) {
                 diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error, "listitem must contain content.", path));
+            }
+            if ((kind == DocBookNodeKind.ItemizedList || kind == DocBookNodeKind.OrderedList) &&
+                !element.Elements(Namespace + "listitem").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    $"{localName} must contain at least one listitem.", path));
+            }
+            if (kind == DocBookNodeKind.VariableList && !element.Elements(Namespace + "varlistentry").Any()) {
+                diagnostics.Add(new DocBookDiagnostic("DB012", DocBookDiagnosticSeverity.Error,
+                    "variablelist must contain at least one varlistentry.", path));
             }
             if ((kind == DocBookNodeKind.TableHead || kind == DocBookNodeKind.TableBody || localName == "tfoot") &&
                 !element.Elements(Namespace + "row").Any()) {
@@ -381,6 +397,12 @@ public sealed partial class DocBookDocument {
 
     internal static bool IsInlineChildKind(DocBookNodeKind kind) =>
         kind == DocBookNodeKind.Link || kind == DocBookNodeKind.CrossReference || kind == DocBookNodeKind.IndexTerm;
+
+    internal static bool AllowsDirectText(DocBookNodeKind kind) =>
+        kind == DocBookNodeKind.Title || kind == DocBookNodeKind.Subtitle ||
+        kind == DocBookNodeKind.Paragraph || kind == DocBookNodeKind.Entry ||
+        kind == DocBookNodeKind.ProgramListing || kind == DocBookNodeKind.Screen ||
+        kind == DocBookNodeKind.Link;
 
     internal bool CanContainParagraphContent(XElement element) {
         if (GetComponentInfoElementName(element) != null) return true;

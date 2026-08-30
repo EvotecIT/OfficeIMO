@@ -55,6 +55,16 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(result.Diagnostics, d => d.Code == "OPML012");
     }
 
+    [Theory]
+    [InlineData("<opml version=\"1.0\"><head/><body/></opml>")]
+    [InlineData("<opml version=\"2.0\"><head/><body><extension><outline text=\"Nested\"/></extension></body></opml>")]
+    public void ValidationRequiresADirectOutlineInTheBody(string source) {
+        OpmlValidationResult validation = OpmlDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "OPML013" &&
+            diagnostic.Severity == OpmlDiagnosticSeverity.Error);
+    }
+
     [Fact]
     public void LimitsAndDtdPolicyRejectHostileInputs() {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
@@ -523,7 +533,7 @@ public sealed class OpmlDocumentTests {
     }
 
     [Fact]
-    public void SharedConversionDoesNotReportFlatFallbackForMetadataOnlyModels() {
+    public void SharedConversionReportsInvalidEmptyBodyWithoutFlatFallbackForMetadataOnlyModels() {
         var empty = new OfficeDocumentModel { Format = OfficeDocumentFormat.Opml };
         var metadataOnly = new OfficeDocumentModel {
             Format = OfficeDocumentFormat.Opml,
@@ -533,11 +543,13 @@ public sealed class OpmlDocumentTests {
         OpmlConversionResult<OpmlDocument> emptyResult = OpmlDocument.FromOfficeDocumentModel(empty);
         OpmlConversionResult<OpmlDocument> metadataResult = OpmlDocument.FromOfficeDocumentModel(metadataOnly);
 
-        Assert.False(emptyResult.HasLoss);
-        Assert.False(metadataResult.HasLoss);
+        Assert.True(emptyResult.HasLoss);
+        Assert.True(metadataResult.HasLoss);
         Assert.Equal("Feeds", metadataResult.Value.Head.Title);
         Assert.Equal("Owner", metadataResult.Value.Head.OwnerName);
         Assert.DoesNotContain(metadataResult.Diagnostics, diagnostic => diagnostic.Code == "OPML101");
+        Assert.Contains(emptyResult.Diagnostics, diagnostic => diagnostic.Code == "OPML013");
+        Assert.Contains(metadataResult.Diagnostics, diagnostic => diagnostic.Code == "OPML013");
     }
 
     [Fact]
@@ -676,6 +688,47 @@ public sealed class OpmlDocumentTests {
         Assert.Equal("Edited together", synchronizedResult.Value.Outlines.Single().Text);
         Assert.Contains(synchronizedResult.Diagnostics, diagnostic => diagnostic.Code == "OPML110" &&
             diagnostic.Message.IndexOf("synchronized", StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    [Fact]
+    public void SharedReverseConversionSuppressesStaleProjectedLinksAfterRecursiveEdits() {
+        OfficeDocumentModel model = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\" type=\"rss\" url=\"https://example.test/direct\" xmlUrl=\"https://example.test/feed.xml\" htmlUrl=\"https://example.test/\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        OfficeDocumentModelNode node = Assert.Single(model.Structure);
+        node.Text = "Edited";
+        Dictionary<string, string> attributes = node.Attributes.ToDictionary(
+            pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        attributes["url"] = "https://edited.test/direct";
+        attributes["xmlUrl"] = "https://edited.test/feed.xml";
+        attributes["htmlUrl"] = "https://edited.test/";
+        node.Attributes = attributes;
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        OpmlOutline outline = Assert.Single(converted.Value.Outlines);
+        Assert.Equal("Edited", outline.Text);
+        Assert.Equal("https://edited.test/direct", outline.Url);
+        Assert.Equal("https://edited.test/feed.xml", outline.XmlUrl);
+        Assert.Equal("https://edited.test/", outline.HtmlUrl);
+        Assert.DoesNotContain(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void SharedReverseConversionRetainsIndependentlyEditedProjectedLinks(bool editUri) {
+        OfficeDocumentModel model = OpmlDocument.Parse(
+            "<opml version=\"2.0\"><head/><body><outline text=\"Original\" url=\"https://example.test/original\"/></body></opml>")
+            .ToOfficeDocumentModel().Value;
+        OfficeDocumentModelLink link = Assert.Single(model.Links);
+        if (editUri) link.Uri = "https://example.test/edited";
+        else link.Text = "Edited flat link";
+
+        OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
+
+        Assert.Equal(2, converted.Value.Outlines.Count);
+        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == "OPML107");
     }
 
     [Fact]

@@ -236,6 +236,52 @@ public sealed class DocBookDocumentTests {
             diagnostic.Message.IndexOf("direct text", StringComparison.OrdinalIgnoreCase) >= 0);
     }
 
+    [Theory]
+    [InlineData(DocBookProfile.DocBook45)]
+    [InlineData(DocBookProfile.DocBook52)]
+    public void ElementOnlyTypedNodesRejectDirectTextAndEmptyListsAreInvalid(DocBookProfile profile) {
+        DocBookDocument document = DocBookDocument.CreateArticle(profile);
+        DocBookNodeKind[] elementOnlyKinds = {
+            DocBookNodeKind.Section,
+            DocBookNodeKind.ItemizedList,
+            DocBookNodeKind.OrderedList,
+            DocBookNodeKind.VariableList,
+            DocBookNodeKind.ListItem,
+            DocBookNodeKind.Table,
+            DocBookNodeKind.TableGroup,
+            DocBookNodeKind.TableHead,
+            DocBookNodeKind.TableBody,
+            DocBookNodeKind.Row,
+            DocBookNodeKind.Note,
+            DocBookNodeKind.Tip,
+            DocBookNodeKind.Important,
+            DocBookNodeKind.Caution,
+            DocBookNodeKind.Warning,
+            DocBookNodeKind.Figure,
+            DocBookNodeKind.MediaObject,
+            DocBookNodeKind.ImageObject,
+            DocBookNodeKind.ImageData,
+            DocBookNodeKind.Caption,
+            DocBookNodeKind.Index,
+            DocBookNodeKind.IndexTerm
+        };
+        foreach (DocBookNodeKind kind in elementOnlyKinds) {
+            Assert.Throws<ArgumentException>(() => document.Root.Add(kind, "orphan"));
+        }
+        DocBookNode list = document.Root.Add(DocBookNodeKind.ItemizedList);
+        Assert.Throws<InvalidOperationException>(() => list.Text = "orphan");
+
+        string source = profile == DocBookProfile.DocBook52
+            ? "<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><itemizedlist>orphan</itemizedlist><orderedlist/><variablelist/></article>"
+            : "<!DOCTYPE article PUBLIC \"-//OASIS//DTD DocBook XML V4.5//EN\" \"http://www.oasis-open.org/docbook/xml/4.5/docbookx.dtd\"><article><itemizedlist>orphan</itemizedlist><orderedlist/><variablelist/></article>";
+        DocBookValidationResult validation = DocBookDocument.Parse(source).Validate();
+
+        Assert.Contains(validation.Diagnostics, diagnostic => diagnostic.Code == "DB018" &&
+            diagnostic.Message.IndexOf("itemizedlist", StringComparison.OrdinalIgnoreCase) >= 0);
+        Assert.Equal(3, validation.Diagnostics.Count(diagnostic => diagnostic.Code == "DB012" &&
+            diagnostic.Message.IndexOf("list", StringComparison.OrdinalIgnoreCase) >= 0));
+    }
+
     [Fact]
     public void ValidationAllowsInfoUnderAcceptedBookComponents() {
         const string source = "<book xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\"><chapter><info><title>Chapter</title></info><para>Body</para></chapter></book>";

@@ -18,7 +18,7 @@ public sealed class DocBookNode {
     public DocBookNodeKind Kind => DocBookNames.GetKind(Element.Name, _document.Namespace);
     /// <summary>Element local name.</summary>
     public string Name => Element.Name.LocalName;
-    /// <summary>Combined descendant text. Setting it intentionally replaces child content; metadata containers reject direct text.</summary>
+    /// <summary>Combined descendant text. Setting it intentionally replaces child content; element-only typed nodes reject direct text.</summary>
     public string Text {
         get => Element.Value;
         set {
@@ -28,6 +28,9 @@ public sealed class DocBookNode {
                 throw new InvalidOperationException("DocBook cross-references cannot contain direct text.");
             } else if (Kind == DocBookNodeKind.Author) {
                 Element.ReplaceNodes(new XElement(_document.Namespace + "personname", value ?? string.Empty));
+            } else if ((Kind != DocBookNodeKind.Unknown && !DocBookDocument.AllowsDirectText(Kind)) ||
+                       (Kind == DocBookNodeKind.Unknown && _document.IsSupportedComponent(Element))) {
+                throw new InvalidOperationException($"DocBook {Name} elements cannot contain direct text in the bounded common-structure profile.");
             } else {
                 Element.Value = value ?? string.Empty;
             }
@@ -131,6 +134,9 @@ public sealed class DocBookNode {
         }
         if (kind == DocBookNodeKind.Info && text != null) {
             throw new ArgumentException("DocBook metadata containers cannot contain direct text.", nameof(text));
+        }
+        if (text != null && kind != DocBookNodeKind.Author && !DocBookDocument.AllowsDirectText(kind)) {
+            throw new ArgumentException($"DocBook {DocBookNames.GetElementName(kind)} elements cannot contain direct text in the bounded common-structure profile.", nameof(text));
         }
         if (kind == DocBookNodeKind.Info && _document.GetComponentInfoElementName(Element) is string infoName) {
             XElement? existing = Element.Element(_document.Namespace + infoName);

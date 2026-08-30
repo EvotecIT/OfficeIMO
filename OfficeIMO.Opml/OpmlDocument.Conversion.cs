@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Xml.Linq;
 
@@ -83,7 +85,12 @@ public sealed partial class OpmlDocument {
                     Kind = kind,
                     Uri = uri,
                     Text = outline.Text,
-                    Location = new OfficeDocumentModelLocation { Path = sourcePath, BlockIndex = nodeIndex, HeadingPath = headingPath }
+                    Location = new OfficeDocumentModelLocation {
+                        Path = sourcePath,
+                        BlockIndex = nodeIndex,
+                        HeadingPath = headingPath,
+                        BlockAnchor = BuildProjectedLinkBaseline(kind, outline.Text, uri)
+                    }
                 });
             }
         }
@@ -357,7 +364,8 @@ public sealed partial class OpmlDocument {
                     $"Supplementary shared block '{block.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
                     block.Location?.HeadingPath));
             }
-            foreach (OfficeDocumentModelLink link in model.Links.Where(link => !IsDerivedLink(link, structureNodesById))) {
+            foreach (OfficeDocumentModelLink link in model.Links.Where(link =>
+                         !IsDerivedLink(link, structureNodesById, model.Format == OfficeDocumentFormat.Opml))) {
                 if (AddFlatLink(link)) {
                     diagnostics.Add(new OpmlDiagnostic("OPML107", OpmlDiagnosticSeverity.Warning,
                         $"Supplementary shared link '{link.Id}' was appended as a top-level outline because it was not represented by recursive Structure.",
@@ -391,7 +399,10 @@ public sealed partial class OpmlDocument {
             });
         }
 
-        static bool IsDerivedLink(OfficeDocumentModelLink link, ILookup<string, OfficeDocumentModelNode> nodesById) {
+        static bool IsDerivedLink(
+            OfficeDocumentModelLink link,
+            ILookup<string, OfficeDocumentModelNode> nodesById,
+            bool isOpmlProjection) {
             const string prefix = "opml-link-";
             if (string.IsNullOrEmpty(link.Id) || !link.Id.StartsWith(prefix, StringComparison.Ordinal) || string.IsNullOrEmpty(link.Uri) ||
                 link.Region != null ||
@@ -407,10 +418,24 @@ public sealed partial class OpmlDocument {
                 : string.Equals(kind, "subscription", StringComparison.Ordinal) ? "xmlUrl"
                 : string.Equals(kind, "html", StringComparison.Ordinal) ? "htmlUrl" : null;
             if (attributeName == null || !string.Equals(kind, link.Kind, StringComparison.OrdinalIgnoreCase)) return false;
-            return nodesById[nodeId].Any(node =>
-                (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal)) &&
-                node.Attributes.TryGetValue(attributeName, out string? value) && string.Equals(value, link.Uri, StringComparison.Ordinal));
+            bool unchangedProjectedLink = isOpmlProjection && string.Equals(
+                link.Location?.BlockAnchor,
+                BuildProjectedLinkBaseline(link.Kind, link.Text, link.Uri),
+                StringComparison.Ordinal);
+            return nodesById[nodeId].Any(node => {
+                bool exactProjection =
+                    (link.Text == null || string.Equals(node.Text, link.Text, StringComparison.Ordinal)) &&
+                    node.Attributes.TryGetValue(attributeName, out string? value) &&
+                    string.Equals(value, link.Uri, StringComparison.Ordinal);
+                return exactProjection || unchangedProjectedLink;
+            });
         }
+    }
+
+    private static string BuildProjectedLinkBaseline(string? kind, string? text, string? uri) {
+        string payload = (kind ?? string.Empty) + "\0" + (text ?? string.Empty) + "\0" + (uri ?? string.Empty);
+        using SHA256 hash = SHA256.Create();
+        return "opml-link-projection-sha256:" + Convert.ToBase64String(hash.ComputeHash(Encoding.UTF8.GetBytes(payload)));
     }
 
     private IReadOnlyList<OfficeDocumentModelMetadataEntry> BuildMetadata(

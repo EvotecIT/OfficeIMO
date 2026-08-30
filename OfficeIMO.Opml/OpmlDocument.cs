@@ -158,6 +158,20 @@ public sealed partial class OpmlDocument {
                 "OPML 1.1 is interpreted using the OPML 1.0 profile.", "/opml/@version"));
         }
 
+        if (bodyElements.Length == 1) {
+            bool hasDirectOutline = false;
+            foreach (XElement child in bodyElements[0].Elements()) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (child.Name != "outline") continue;
+                hasDirectOutline = true;
+                break;
+            }
+            if (!hasDirectOutline) {
+                diagnostics.Add(new OpmlDiagnostic("OPML013", OpmlDiagnosticSeverity.Error,
+                    "The OPML body requires at least one direct outline child.", "/opml/body"));
+            }
+        }
+
         int index = 0;
         IEnumerable<OpmlOutline> outlines = bodyElements.Length == 1
             ? bodyElements[0].Descendants("outline").Select(element => new OpmlOutline(this, element))
