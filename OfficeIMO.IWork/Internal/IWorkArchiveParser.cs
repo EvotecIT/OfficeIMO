@@ -19,6 +19,21 @@ internal sealed class IWorkObjectIndex {
     internal IWorkArchiveRecord? FirstOfType(uint type) =>
         _objects.Values.FirstOrDefault(record => record.MessageType == type);
 
+    internal IReadOnlyCollection<IWorkArchiveRecord> ReachableFrom(params IWorkArchiveRecord[] roots) {
+        var result = new Dictionary<ulong, IWorkArchiveRecord>();
+        var pending = new Stack<IWorkArchiveRecord>(roots);
+        while (pending.Count > 0) {
+            IWorkArchiveRecord record = pending.Pop();
+            if (result.ContainsKey(record.Identifier)) continue;
+            result.Add(record.Identifier, record);
+            foreach (ulong reference in record.ObjectReferences) {
+                if (_objects.TryGetValue(reference, out IWorkArchiveRecord? target)
+                    && !result.ContainsKey(target.Identifier)) pending.Push(target);
+            }
+        }
+        return result.Values.ToArray();
+    }
+
     internal IWorkArchiveRecord? Dereference(IWorkWireMessage message, int field) {
         IWorkWireMessage? reference = TryGetMessage(message, field);
         ulong? identifier = reference?.GetUnsigned(1);

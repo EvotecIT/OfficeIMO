@@ -5,7 +5,7 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the requested semantic projection mode.</summary>
     public IWorkImportMode ImportMode { get; set; } = IWorkImportMode.Auto;
 
-    /// <summary>Gets or sets whether raw records not consumed by a typed projection remain available on the result.</summary>
+    /// <summary>Gets or sets whether raw records not losslessly represented by a typed projection remain available on the result.</summary>
     public bool PreserveUnsupportedRecords { get; set; } = true;
 
     /// <summary>Gets or sets the maximum source package size in bytes.</summary>

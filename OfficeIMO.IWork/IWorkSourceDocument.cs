@@ -65,12 +65,9 @@ public sealed partial class IWorkSourceDocument {
     internal IWorkReadOptions Options => _options;
 
     internal IWorkImportReport CreateReport(IWorkProjectionKind projectionKind,
-        IReadOnlyCollection<IWorkArchiveRecord> recognizedRecords, IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
+        IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
         IWorkPreviewAsset? preview, int reconstructedItemCount) {
-        HashSet<IWorkArchiveRecord> recognized = new(recognizedRecords);
-        IWorkArchiveRecord[] allUnsupported = Records
-            .Where(record => !record.IsPrimary || !recognized.Contains(record))
-            .ToArray();
+        IWorkArchiveRecord[] allUnsupported = Records.ToArray();
         IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
             ? allUnsupported
             : Array.Empty<IWorkArchiveRecord>();

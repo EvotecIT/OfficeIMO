@@ -7,15 +7,24 @@ using System.Text;
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
         private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize) {
-            var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-                bufferSize, FileOptions.SequentialScan);
+            SafeFileHandle handle = CreateFile(path, GenericRead, FileShare.Read,
+                IntPtr.Zero, OpenExisting, FileFlagOpenReparsePoint | FileFlagSequentialScan, IntPtr.Zero);
+            if (handle.IsInvalid) {
+                handle.Dispose();
+                throw WindowsIdentityError(path, "open");
+            }
             try {
-                if (!GetWindowsMetadata(path, stream.SafeFileHandle).IsRegularFile) {
+                if (!GetFileInformationByHandle(handle, out ByHandleFileInformation information)) {
+                    throw WindowsIdentityError(path, "inspect");
+                }
+                if ((information.FileAttributes & (FileAttributeDirectory | FileAttributeReparsePoint)) != 0
+                    || GetFileType(handle) != FileTypeDisk) {
                     throw new InvalidDataException("The filesystem entry is not a regular file.");
                 }
-                return stream;
+                _ = GetWindowsMetadata(path, handle);
+                return new FileStream(handle, FileAccess.Read, bufferSize, isAsync: false);
             } catch {
-                stream.Dispose();
+                handle.Dispose();
                 throw;
             }
         }
@@ -24,7 +33,11 @@ namespace OfficeIMO.Internal {
         private const int FileCaseSensitiveInfo = 23;
         private const uint FileCaseSensitiveDirectory = 0x00000001;
         private const uint OpenExisting = 3;
+        private const uint GenericRead = 0x80000000;
         private const uint FileFlagBackupSemantics = 0x02000000;
+        private const uint FileFlagOpenReparsePoint = 0x00200000;
+        private const uint FileFlagSequentialScan = 0x08000000;
+        private const uint FileTypeDisk = 0x0001;
         private const uint InvalidFileAttributes = 0xffffffff;
         private const uint FileAttributeReparsePoint = 0x00000400;
         private const uint FileAttributeDirectory = 0x00000010;
@@ -241,6 +254,9 @@ namespace OfficeIMO.Internal {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetFileInformationByHandle(SafeFileHandle file,
             out ByHandleFileInformation fileInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint GetFileType(SafeFileHandle file);
 
         [DllImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetFinalPathNameByHandle(SafeFileHandle file,

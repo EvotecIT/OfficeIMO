@@ -112,17 +112,39 @@ namespace OfficeIMO.Internal {
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
         }
 
-        internal static FileStream OpenRegularFileForRead(string path, int bufferSize) {
+        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize) {
             if (path == null) throw new ArgumentNullException(nameof(path));
+            if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));
             if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
             string fullPath = Path.GetFullPath(path);
+            FileStream stream;
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                return OpenWindowsRegularFileForRead(fullPath, bufferSize);
+                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                stream = OpenUnixRegularFileForRead(fullPath, bufferSize);
+            } else {
+                throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
             }
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                return OpenUnixRegularFileForRead(fullPath, bufferSize);
+            try {
+                string openedPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? GetWindowsFinalPath(stream.SafeFileHandle)
+                    : GetUnixOpenedPath(stream.SafeFileHandle);
+                if (!IsPhysicalPathWithinRoot(openedPath, physicalRoot)) {
+                    throw new InvalidDataException("The opened filesystem entry resolves outside the source directory.");
+                }
+                return stream;
+            } catch {
+                stream.Dispose();
+                throw;
             }
-            throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
+        }
+
+        private static bool IsPhysicalPathWithinRoot(string candidatePath, string physicalRoot) {
+            string root = TrimEndingDirectorySeparators(Path.GetFullPath(physicalRoot));
+            bool caseInsensitive = IsCaseInsensitiveFileSystem(root);
+            string candidate = Normalize(candidatePath, caseInsensitive);
+            string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
+            return candidate.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal);
         }
 
         internal static bool IsCaseInsensitiveFileSystem(string path) {

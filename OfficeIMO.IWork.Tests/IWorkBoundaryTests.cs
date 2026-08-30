@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
+using OfficeIMO.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 
@@ -50,6 +51,12 @@ public sealed class IWorkBoundaryTests {
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal("=?", cell.Formula);
         Assert.Equal(42d, Assert.IsType<double>(cell.Value), 10);
+
+        using MemoryStream ownerPackage = CreateNumbersPackage(new[] {
+            new TableSpec("Formula", 1, 1, 42d, hasFormula: true)
+        });
+        using var result = ExcelDocument.LoadNumbersWithReport(ownerPackage);
+        Assert.Equal(42d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -220,6 +227,28 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Regular_file_handles_must_resolve_within_the_captured_bundle_root() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-iwork-physical-root-" + Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(directory, "root");
+        string outside = Path.Combine(directory, "outside");
+        Directory.CreateDirectory(root);
+        Directory.CreateDirectory(outside);
+        try {
+            string outsideFile = Path.Combine(outside, "Document.iwa");
+            File.WriteAllBytes(outsideFile, FrameIwa(ArchiveRecord(1, 1, Array.Empty<byte>())));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
+                using FileStream _ = OfficePathIdentity.OpenRegularFileForRead(
+                    outsideFile, OfficePathIdentity.ResolvePhysicalPath(root), 81920);
+            });
+
+            Assert.Contains("outside the source directory", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Splits_the_first_numbers_table_when_leading_text_would_overflow_xlsx_rows() {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Full Height", 1_048_576, 1, 42d)
@@ -277,6 +306,50 @@ public sealed class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Missing_pages_section_references_disable_editable_reconstruction() {
+        using MemoryStream package = CreatePagesPackageWithMissingSection();
+
+        using var result = WordDocument.LoadPagesWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_PAGES_SECTION_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Pages_headers_are_deduplicated_in_source_order() {
+        using MemoryStream package = CreatePagesPackageWithDuplicateHeaders();
+
+        IWorkPagesProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+
+        Assert.True(projection.HasEditableContent);
+        Assert.Equal("Header", Assert.Single(projection.Headers));
+    }
+
+    [Fact]
+    public void Orphaned_pages_shapes_are_preserved_but_not_inserted_as_text_boxes() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong orphanShapeId = 3;
+        const ulong orphanStorageId = 4;
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, Message(StringField(3, "Body"))),
+            ArchiveRecord(orphanShapeId, 2011, Message(ReferenceField(2, orphanStorageId)), new[] { orphanStorageId }),
+            ArchiveRecord(orphanStorageId, 2001, Message(StringField(3, "Orphan"))));
+        using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkPagesProjection projection = source.ReadPages();
+        IWorkImportReport report = projection.CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+
+        Assert.Empty(projection.TextBoxes);
+        Assert.Contains(report.UnsupportedRecords, record => record.Identifier == orphanShapeId);
+        Assert.Contains(report.UnsupportedRecords, record => record.Identifier == orphanStorageId);
+    }
+
+    [Fact]
     public void Wrong_numbers_sheet_record_types_disable_editable_reconstruction() {
         byte[] records = Message(
             ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
@@ -308,9 +381,48 @@ public sealed class IWorkBoundaryTests {
 
         Assert.True(projection.HasEditableContent);
         Assert.Equal(3, report.TotalRecordCount);
-        IWorkArchiveRecord duplicate = Assert.Single(report.UnsupportedRecords);
-        Assert.Equal((ulong)2, duplicate.Identifier);
-        Assert.Equal((uint)9999, duplicate.MessageType);
+        Assert.Contains(report.UnsupportedRecords, record =>
+            record.Identifier == 2 && record.MessageType == 9999);
+    }
+
+    [Fact]
+    public void Every_partially_consumed_iwa_record_remains_in_the_loss_report() {
+        using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Reachable", includePreview: false);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+
+        IWorkImportReport report = source.ReadPages().CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+
+        Assert.Equal(report.TotalRecordCount, report.UnsupportedRecordCount);
+        Assert.Equal(source.Records.Count, report.UnsupportedRecords.Count);
+        Assert.True(report.HasConversionLoss);
+    }
+
+    [Fact]
+    public void Duplicate_numbers_cell_coordinates_disable_editable_reconstruction() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Duplicate", 1, 1, 1d, duplicateCell: true)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_DUPLICATE_CELL");
+    }
+
+    [Fact]
+    public void Duplicate_numbers_string_keys_disable_editable_reconstruction() {
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec("Duplicate strings", 1, 1, 0d, textValue: "Value", duplicateString: true)
+        }, includePreview: true);
+
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(result.Projection.HasEditableContent);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_NUMBERS_STRING_STORAGE_UNSUPPORTED");
     }
 
     [Fact]
@@ -467,6 +579,41 @@ public sealed class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
     }
 
+    private static MemoryStream CreatePagesPackageWithMissingSection() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong missingSectionId = 3;
+        byte[] sectionTable = Message(BytesField(1, Message(ReferenceField(2, missingSectionId))));
+        byte[] body = Message(StringField(3, "Body"), BytesField(17, sectionTable));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, body));
+        return CreatePackage(
+            ("Index/Document.iwa", FrameIwa(records)),
+            ("preview.png", ValidPreviewPng()));
+    }
+
+    private static MemoryStream CreatePagesPackageWithDuplicateHeaders() {
+        const ulong documentId = 1;
+        const ulong bodyId = 2;
+        const ulong sectionId = 3;
+        const ulong headerFooterId = 4;
+        const ulong firstHeaderId = 5;
+        const ulong secondHeaderId = 6;
+        byte[] sectionTable = Message(BytesField(1, Message(ReferenceField(2, sectionId))));
+        byte[] body = Message(StringField(3, "Body"), BytesField(17, sectionTable));
+        byte[] records = Message(
+            ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
+            ArchiveRecord(bodyId, 2001, body, new[] { sectionId }),
+            ArchiveRecord(sectionId, 10011, Message(ReferenceField(23, headerFooterId)), new[] { headerFooterId }),
+            ArchiveRecord(headerFooterId, 10143,
+                Message(ReferenceField(1, firstHeaderId), ReferenceField(1, secondHeaderId)),
+                new[] { firstHeaderId, secondHeaderId }),
+            ArchiveRecord(firstHeaderId, 2001, Message(StringField(3, "Header"))),
+            ArchiveRecord(secondHeaderId, 2001, Message(StringField(3, "Header"))));
+        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+    }
+
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null) {
         const ulong documentId = 1;
@@ -494,7 +641,15 @@ public sealed class IWorkBoundaryTests {
             if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
-            byte[] tileStorage = Message(BytesField(1, tileEntry));
+            byte[] tileStorage;
+            if (table.DuplicateCell) {
+                ulong duplicateTileId = tileId + 100_000;
+                records.Add(ArchiveRecord(duplicateTileId, 6002, tilePayload));
+                byte[] duplicateEntry = Message(VarintField(1, 0), ReferenceField(2, duplicateTileId));
+                tileStorage = Message(BytesField(1, tileEntry), BytesField(1, duplicateEntry));
+            } else {
+                tileStorage = Message(BytesField(1, tileEntry));
+            }
             byte[] store = table.TextValue == null
                 ? Message(BytesField(3, tileStorage))
                 : Message(BytesField(3, tileStorage), ReferenceField(4, stringListId));
@@ -506,7 +661,10 @@ public sealed class IWorkBoundaryTests {
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
                 byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
-                records.Add(ArchiveRecord(stringListId, 6200, Message(BytesField(3, stringEntry))));
+                byte[] stringPayload = table.DuplicateString
+                    ? Message(BytesField(3, stringEntry), BytesField(3, stringEntry))
+                    : Message(BytesField(3, stringEntry));
+                records.Add(ArchiveRecord(stringListId, 6200, stringPayload));
             }
         }
 
@@ -556,13 +714,17 @@ public sealed class IWorkBoundaryTests {
         const ulong bodyId = 2;
         const ulong shapeId = 3;
         const ulong shapeStorageId = 4;
+        var documentReferences = new List<ulong>();
+        if (includeBody) documentReferences.Add(bodyId);
+        if (textBox != null) documentReferences.Add(shapeId);
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 10000,
-                includeBody ? Message(ReferenceField(4, bodyId)) : Message())
+                includeBody ? Message(ReferenceField(4, bodyId)) : Message(), documentReferences)
         };
         if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(StringField(3, bodyText))));
         if (textBox != null) {
-            records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId))));
+            records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, shapeStorageId)),
+                new[] { shapeStorageId }));
             records.Add(ArchiveRecord(shapeStorageId, 2001, Message(StringField(3, textBox))));
         }
         byte[] iwaStream = Message(records.ToArray());
@@ -572,8 +734,15 @@ public sealed class IWorkBoundaryTests {
         return CreatePackage(entries.ToArray());
     }
 
-    private static byte[] ArchiveRecord(ulong identifier, uint type, byte[] payload) {
-        byte[] messageInfo = Message(VarintField(1, type), VarintField(3, checked((ulong)payload.Length)));
+    private static byte[] ArchiveRecord(ulong identifier, uint type, byte[] payload,
+        IReadOnlyList<ulong>? objectReferences = null) {
+        byte[][] referenceFields = (objectReferences ?? Array.Empty<ulong>())
+            .Select(reference => VarintField(5, reference))
+            .ToArray();
+        byte[] messageInfo = Message(new[] {
+            VarintField(1, type),
+            VarintField(3, checked((ulong)payload.Length))
+        }.Concat(referenceFields).ToArray());
         byte[] archiveInfo = Message(VarintField(1, identifier), BytesField(2, messageInfo));
         return Message(Varint(checked((ulong)archiveInfo.Length)), archiveInfo, payload);
     }
@@ -729,7 +898,7 @@ public sealed class IWorkBoundaryTests {
         internal TableSpec(string name, int rows, int columns, double value,
             bool wideOffsets = false, bool legacyStorage = false, bool hasFormula = false,
             bool missingModel = false, bool missingTile = false, string? textValue = null,
-            bool duration = false) {
+            bool duration = false, bool duplicateCell = false, bool duplicateString = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -741,6 +910,8 @@ public sealed class IWorkBoundaryTests {
             MissingTile = missingTile;
             TextValue = textValue;
             Duration = duration;
+            DuplicateCell = duplicateCell;
+            DuplicateString = duplicateString;
         }
 
         internal string Name { get; }
@@ -754,5 +925,7 @@ public sealed class IWorkBoundaryTests {
         internal bool MissingTile { get; }
         internal string? TextValue { get; }
         internal bool Duration { get; }
+        internal bool DuplicateCell { get; }
+        internal bool DuplicateString { get; }
     }
 }

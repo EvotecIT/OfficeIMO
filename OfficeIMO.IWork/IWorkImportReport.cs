@@ -23,7 +23,7 @@ public sealed class IWorkImportReport {
     public IWorkProjectionKind ProjectionKind { get; }
     /// <summary>Gets producer build-history strings stored by the package.</summary>
     public IReadOnlyList<string> BuildVersions { get; }
-    /// <summary>Gets preserved IWA payload records not consumed by the typed projection, including auxiliary payloads.</summary>
+    /// <summary>Gets preserved IWA payload records not losslessly represented by the typed projection, including partially consumed and auxiliary payloads.</summary>
     public IReadOnlyList<IWorkArchiveRecord> UnsupportedRecords { get; }
     /// <summary>Gets parser and projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }

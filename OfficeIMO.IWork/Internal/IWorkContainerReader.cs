@@ -36,6 +36,7 @@ internal static class IWorkContainerReader {
         if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) {
             throw new InvalidDataException("Directory bundles cannot be symbolic links or reparse points.");
         }
+        string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(path);
         string root = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
@@ -74,7 +75,7 @@ internal static class IWorkContainerReader {
                     throw new InvalidDataException("Directory bundle size exceeds a configured package limit.");
                 }
                 byte[] bytes;
-                using (FileStream input = OfficePathIdentity.OpenRegularFileForRead(full, 81920)) {
+                using (FileStream input = OfficePathIdentity.OpenRegularFileForRead(full, physicalRoot, 81920)) {
                     bytes = ReadBounded(input, readLimit, relative);
                 }
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);

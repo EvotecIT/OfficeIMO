@@ -70,6 +70,7 @@ public partial class ExcelDocument {
                         int tableStartRow = targetRow;
                         foreach (IWorkNumbersCell cell in table.Cells) {
                             object? value = cell.Kind switch {
+                                IWorkCellKind.Formula when cell.Value != null => cell.Value,
                                 IWorkCellKind.Formula or IWorkCellKind.Error => cell.DisplayText,
                                 IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
                                 _ => cell.Value
@@ -107,9 +108,9 @@ public partial class ExcelDocument {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
                 foreach (IWorkNumbersCell cell in table.Cells) {
-                    string? text = cell.Kind is IWorkCellKind.Formula or IWorkCellKind.Error
+                    string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText
-                        : cell.Value as string;
+                        : cell.Value as string ?? (cell.Kind == IWorkCellKind.Formula ? cell.DisplayText : null);
                     if (text?.Length > 32_767) {
                         return $"Numbers table '{table.Name}' contains text longer than the XLSX cell limit of 32,767 characters.";
                     }

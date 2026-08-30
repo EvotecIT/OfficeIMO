@@ -17,10 +17,10 @@ OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one
 | Capability | Current contract |
 |---|---|
 | Containers | ZIP packages, directory bundles, and packages with nested `Index.zip` |
-| Package safety | Configurable package, entry, entry-count, aggregate-uncompressed-size, and path bounds; duplicate, absolute, traversal, empty-segment, and linked directory entries are rejected |
+| Package safety | Configurable package, entry, entry-count, aggregate-uncompressed-size, and path bounds; duplicate, absolute, traversal, empty-segment, and linked directory entries are rejected; directory reads verify the opened regular-file handle remains under the captured physical package root |
 | IWA framing | Raw Snappy chunks used by modern iWork, with declared-size, chunk-size, aggregate-size, copy-offset, truncation, and integer-overflow checks |
 | Object envelope | Bounded ArchiveInfo and MessageInfo protobuf parsing with field-count, depth, record-count, record-size, wire-type, varint, and reference validation |
-| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; import reports list payloads not consumed by the selected semantic projection |
+| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; import reports conservatively retain payloads not losslessly represented, including partially consumed records |
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
 | Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
 
@@ -31,7 +31,7 @@ OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one
 | Application | Reconstructed today | Preserved or diagnosed rather than reconstructed |
 |---|---|---|
 | Pages | Body paragraphs, section header/footer text, and text-box text | Exact typography, layout geometry, styles, lists, tables, charts, equations, media, comments, change tracking, fields, and application-only metadata |
-| Numbers | Sheets, tables, declared dimensions, sparse typed text/number/Boolean/date/duration cells, cached formula markers, cell decode errors, and text-box text | Pre-BNC cell storage, exact canvas positions, formatting, formula expressions, rich-text runs, merges, filters, names, charts, forms, comments, media, and application-only metadata |
+| Numbers | Sheets, tables, declared dimensions, sparse typed text/number/Boolean/date/duration cells, cached formula values with source markers, cell decode errors, and text-box text | Pre-BNC cell storage, exact canvas positions, formatting, formula expressions, rich-text runs, merges, filters, names, charts, forms, comments, media, and application-only metadata |
 | Keynote | Slide order, skipped-slide state, title/body text, and presenter notes | Masters, layouts, exact geometry, typography, themes, tables, charts, builds, media, transitions, animations, comments, and application-only metadata |
 
 Editable reconstruction means the supported content is represented as normal DOCX, XLSX, or PPTX objects and can be edited and saved through its owner. It does not mean the destination is visually identical or that unsupported iWork records are written into the Office package.

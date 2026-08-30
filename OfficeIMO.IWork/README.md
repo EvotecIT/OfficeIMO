@@ -64,7 +64,7 @@ The equivalent entry points are `WordDocument.LoadPages*` and `PowerPointPresent
 
 ## Preservation and authoring boundary
 
-Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports identify payloads that the selected semantic projection did not consume. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
+Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports conservatively retain every payload that is not losslessly represented, including records whose supported text or values were only partially consumed. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 
 There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
 
