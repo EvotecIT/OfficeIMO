@@ -90,7 +90,7 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(null, rootElementName, outputNamespace);
                 WriteDocumentAttributes(writer, document, rootElementName, report, cancellationToken);
                 foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
-                    if (TryWriteRootElement(writer, entry.Value, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                    if (TryWriteRootElement(writer, entry, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                     else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed or reserved and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
                 }
             }
@@ -99,7 +99,7 @@ internal static class EndNoteXmlCodec {
             writer.WriteStartElement(null, recordsElementName, recordsNamespace);
             WriteDocumentAttributes(writer, document, recordsElementName, report, cancellationToken);
             foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
-                if (TryWriteRecordsElement(writer, entry.Value, recordsNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                if (TryWriteRecordsElement(writer, entry, recordsNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                 else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"EndNote XML records-container element '{entry.Name}' is malformed, reserved, or otherwise unsafe and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
             }
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
@@ -148,7 +148,7 @@ internal static class EndNoteXmlCodec {
         BibliographyItemType itemType = ParseEndNoteType(refType, type, out string nativeType);
         var item = new BibliographyItem { Key = Value(record, "rec-number", cancellationToken), NativeType = nativeType, Type = itemType };
         AddStructuralTextDiagnostic(record, diagnostics, cancellationToken, item.Key);
-        if (refType?.Attribute("name") != null && item.Type != BibliographyItemType.Unknown &&
+        if (refType?.Attribute("name") != null &&
             int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber) &&
             nativeTypeNumber != ToEndNoteNumber(item.Type))
             diagnostics.Add(new BibliographyDiagnostic("BIBEND004", BibliographyDiagnosticSeverity.Warning, $"EndNote XML ref-type name '{type}' conflicts with numeric code '{nativeTypeNumber}'.", GetOffset(refType), itemKey: item.Key, field: "ref-type"));
@@ -309,9 +309,10 @@ internal static class EndNoteXmlCodec {
     }
 
     private static bool TryWriteElement(XmlWriter writer, string xml) { try { XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace); element.WriteTo(writer); return true; } catch (XmlException) { return false; } }
-    private static bool TryWriteRootElement(XmlWriter writer, string xml, string rootNamespace) {
+    private static bool TryWriteRootElement(XmlWriter writer, BibliographyNativeEntry entry, string rootNamespace) {
         try {
-            XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+            XElement element = XElement.Parse(entry.Value, LoadOptions.PreserveWhitespace);
+            if (!string.Equals(entry.Name, element.Name.LocalName, StringComparison.Ordinal)) return false;
             if (HasName(element, XNamespace.Get(rootNamespace), "records")) return false;
             element.WriteTo(writer);
             return true;
@@ -319,9 +320,10 @@ internal static class EndNoteXmlCodec {
             return false;
         }
     }
-    private static bool TryWriteRecordsElement(XmlWriter writer, string xml, string recordsNamespace) {
+    private static bool TryWriteRecordsElement(XmlWriter writer, BibliographyNativeEntry entry, string recordsNamespace) {
         try {
-            XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+            XElement element = XElement.Parse(entry.Value, LoadOptions.PreserveWhitespace);
+            if (!string.Equals(entry.Name, element.Name.LocalName, StringComparison.Ordinal)) return false;
             if (HasName(element, XNamespace.Get(recordsNamespace), "record")) return false;
             element.WriteTo(writer);
             return true;

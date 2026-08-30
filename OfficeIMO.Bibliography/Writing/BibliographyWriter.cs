@@ -95,7 +95,6 @@ internal static class BibliographyConversionInspector {
 
     private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         bool exact;
-        bool sameFormatNativeType = item.Type == BibliographyItemType.Unknown && !string.IsNullOrWhiteSpace(item.NativeType) && sourceFormat == format;
         switch (format) {
             case BibliographyFormat.CslJson:
                 exact = CslJsonCodec.CanRoundTripType(sourceFormat, item) || IsExactCslType(item.Type) || item.Type == BibliographyItemType.Unknown && CslJsonCodec.HasNativeProperty(item, "type", cancellationToken);
@@ -107,12 +106,15 @@ internal static class BibliographyConversionInspector {
                     : BibCodec.CanRoundTripType(item.Type, format);
                 break;
             case BibliographyFormat.Ris:
-                exact = TaggedCodec.CanPreserveNativeType(sourceFormat, item) || (item.Type == BibliographyItemType.Unknown
-                    ? sameFormatNativeType && TaggedCodec.CanPreserveUnknownRisType(item.NativeType)
-                    : TaggedCodec.CanRoundTripRisType(item.Type));
+                exact = sourceFormat == BibliographyFormat.Ris && item.NativeType != null
+                    ? TaggedCodec.CanPreserveNativeType(sourceFormat, item) ||
+                      item.Type == BibliographyItemType.Unknown && TaggedCodec.CanPreserveUnknownRisType(item.NativeType)
+                    : TaggedCodec.CanRoundTripRisType(item.Type);
                 break;
             case BibliographyFormat.Nbib:
-                exact = TaggedCodec.CanRoundTripNbibType(item.Type) || sourceFormat == BibliographyFormat.Nbib && Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
+                exact = TaggedCodec.CanRoundTripNbibType(item.Type) ||
+                    item.Type != BibliographyItemType.Unknown && sourceFormat == BibliographyFormat.Nbib &&
+                    Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase) && CodecMappings.ParseType(field.Value) == item.Type);
                 break;
             case BibliographyFormat.EndNoteXml:
                 exact = EndNoteXmlCodec.CanPreserveNativeType(sourceFormat, item) ||
@@ -229,7 +231,7 @@ internal static class BibliographyConversionInspector {
         }
         BibliographyDate? issued = item.GetDate(BibliographyDateRole.Issued);
         if (format == BibliographyFormat.BibTex && issued?.Day != null) Loss(report, item, "dates.Issued.day", "BIBCONV212", "Classic BibTeX output omits issued-day precision.", BibliographyConversionAction.Omitted);
-        if (format == BibliographyFormat.BibTex && issued != null && !issued.Year.HasValue && !issued.Month.HasValue && !issued.Day.HasValue && string.IsNullOrEmpty(issued.Literal))
+        if (format == BibliographyFormat.BibTex && issued != null && !issued.Year.HasValue && !issued.Month.HasValue && !issued.Day.HasValue && issued.Literal == null)
             Loss(report, item, "dates.Issued", "BIBCONV241", "Classic BibTeX output omits an issued date with no representable year, month, day, or literal value.", BibliographyConversionAction.Omitted);
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken)) {
             if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
