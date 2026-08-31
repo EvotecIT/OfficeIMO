@@ -10,7 +10,7 @@ NativeAOT is useful for small command-line tools, containerized document workers
 
 ## What works as a native executable
 
-OfficeIMO accounts for all production projects instead of choosing five attractive packages. The current matrix validates **103 of 106 production projects** in NativeAOT: **101 libraries are fully rooted** across the main native host and dedicated hosts for `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa`, the optional Google APIs adapter runs a bounded token-store workflow, and the production CLI tool publishes and starts natively. Three optional integrations use managed deployment: the Chromium browser-PDF bridge and local HTML/PDF workbench run cross-platform, while the WPF/WebView2 renderer stays on Windows because the .NET SDK rejects trimming for WPF executables.
+OfficeIMO accounts for all production projects instead of choosing five attractive packages. The current matrix validates **104 of 107 production projects** in NativeAOT: **102 libraries are fully rooted** across the main native host and dedicated hosts for `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa`, the optional Google APIs adapter runs a bounded token-store workflow, and the production CLI tool publishes and starts natively. Three optional integrations use managed deployment: the Chromium browser-PDF bridge and local HTML/PDF workbench run cross-platform, while the WPF/WebView2 renderer stays on Windows because the .NET SDK rejects trimming for WPF executables.
 
 That project-level matrix is reinforced by eight customer workflow applications, all of which currently pass on both Windows and Linux:
 
