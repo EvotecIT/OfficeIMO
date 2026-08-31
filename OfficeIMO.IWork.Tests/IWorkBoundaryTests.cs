@@ -1033,7 +1033,10 @@ public sealed partial class IWorkBoundaryTests {
                 ? Message(BytesField(5, rowInfo), BytesField(5, new byte[] { 0x80 }))
                 : table.DuplicateTileRow
                     ? Message(BytesField(5, rowInfo), BytesField(5, rowInfo))
-                    : Message(BytesField(5, rowInfo));
+                    : Message(new[] { BytesField(5, rowInfo) }
+                        .Concat(Enumerable.Range(0, table.UnexpectedTileFieldCount)
+                            .Select(value => VarintField(1, checked((ulong)value))))
+                        .ToArray());
             if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
@@ -1183,7 +1186,9 @@ public sealed partial class IWorkBoundaryTests {
                     ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
                         byte.MaxValue, byte.MaxValue }
                     : new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
-        var fields = new List<byte[]> { VarintField(1, 0), BytesField(6, buffer) };
+        var fields = new List<byte[]> { VarintField(1, 0) };
+        if (table.MixedRowIndexWire) fields.Add(StringField(1, "invalid"));
+        fields.Add(BytesField(6, buffer));
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
         return Message(fields.ToArray());
@@ -1497,7 +1502,8 @@ public sealed partial class IWorkBoundaryTests {
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
             bool completeFormula = false, bool decimal128Underflow = false,
             bool unknownCellValueFlag = false, bool boolean = false,
-            bool mixedFormulaTypeWire = false, byte[]? formulaPayload = null) {
+            bool mixedFormulaTypeWire = false, byte[]? formulaPayload = null,
+            int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1537,6 +1543,8 @@ public sealed partial class IWorkBoundaryTests {
             Boolean = boolean;
             MixedFormulaTypeWire = mixedFormulaTypeWire;
             FormulaPayload = formulaPayload;
+            UnexpectedTileFieldCount = unexpectedTileFieldCount;
+            MixedRowIndexWire = mixedRowIndexWire;
         }
 
         internal string Name { get; }
@@ -1578,5 +1586,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool Boolean { get; }
         internal bool MixedFormulaTypeWire { get; }
         internal byte[]? FormulaPayload { get; }
+        internal int UnexpectedTileFieldCount { get; }
+        internal bool MixedRowIndexWire { get; }
     }
 }

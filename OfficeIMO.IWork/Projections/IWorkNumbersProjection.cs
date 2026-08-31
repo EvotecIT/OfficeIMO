@@ -83,6 +83,7 @@ internal static class IWorkNumbersReader {
     private const uint TextStorageArchive = 2001;
     private const uint TextShapeArchive = 2011;
     private const int TileRowStride = 256;
+    private const int MaximumTileMetadataFields = 6;
     private const uint RecognizedCellValueMask = (1u << 21) - 1;
 
     internal static IWorkNumbersProjection Read(IWorkSourceDocument source) {
@@ -473,7 +474,15 @@ internal static class IWorkNumbersReader {
                 ? 0
                 : (int)Math.Min(TileRowStride, remainingRows);
             int declaredRowsInTile = IWorkProtobuf.CountFields(tile.Payload, 5,
-                source.Options.MaximumProtobufFieldCount);
+                source.Options.MaximumProtobufFieldCount, out int totalTileFieldCount);
+            if (totalTileFieldCount - declaredRowsInTile > MaximumTileMetadataFields) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_TABLE_TILE_FIELDS_UNSUPPORTED",
+                    "An iWork table tile contains more metadata fields than the supported tile envelope; editable reconstruction is incomplete.",
+                    tile.EntryPath, tile.Identifier));
+                continue;
+            }
             if (declaredRowsInTile > maximumRowsInTile) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -495,7 +504,10 @@ internal static class IWorkNumbersReader {
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
-                if (rowInfo.HasUnexpectedWireKind(6, IWorkWireKind.Bytes)
+                if (rowInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                    || rowInfo.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
+                    || rowInfo.HasUnexpectedWireKind(4, IWorkWireKind.Bytes)
+                    || rowInfo.HasUnexpectedWireKind(6, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(7, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(8, IWorkWireKind.Varint)
                     || (currentBuffer == null) != (currentOffsets == null)

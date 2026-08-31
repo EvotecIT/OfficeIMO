@@ -553,7 +553,17 @@ internal static class IWorkPagesReader {
                 }
                 continue;
             }
-            if (!seen.Add(storage.Identifier)) continue;
+            if (!seen.Add(storage.Identifier)) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic =>
+                        diagnostic.Code == "IWORK_PAGES_HEADER_FOOTER_DUPLICATE")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_PAGES_HEADER_FOOTER_DUPLICATE",
+                        "A Pages header or footer repeats the same text storage; editable reconstruction is incomplete.",
+                        archive.EntryPath, archive.Identifier));
+                }
+                continue;
+            }
             bool reused = textCache.TryGetValue(storage.Identifier, out IWorkTextContent? text);
             if (!reused) {
                 text = IWorkTextReader.Read(index, storage, projectionBudget);

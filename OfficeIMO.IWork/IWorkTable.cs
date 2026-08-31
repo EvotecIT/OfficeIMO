@@ -36,7 +36,7 @@ public sealed class IWorkTableCell {
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
-        IWorkCellKind.DateTime when Value is DateTime date => date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+        IWorkCellKind.DateTime when Value is DateTime date => FormatDateTime(date),
         IWorkCellKind.Duration when Value is double seconds => seconds.ToString("R", CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Formula => Formula ?? "=?",
         IWorkCellKind.Error => Error ?? "#ERROR",
@@ -46,11 +46,14 @@ public sealed class IWorkTableCell {
     /// <summary>Gets a culture-invariant display representation of the cached value, including for formula cells.</summary>
     public string CachedDisplayText => ValueKind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
-        IWorkCellKind.DateTime when Value is DateTime date => date.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+        IWorkCellKind.DateTime when Value is DateTime date => FormatDateTime(date),
         IWorkCellKind.Duration when Value is double seconds => seconds.ToString("R", CultureInfo.InvariantCulture) + "s",
         IWorkCellKind.Error => Error ?? "#ERROR",
         _ => Convert.ToString(Value, CultureInfo.InvariantCulture) ?? string.Empty
     };
+
+    private static string FormatDateTime(DateTime value) =>
+        value.ToString("yyyy-MM-dd HH:mm:ss.FFFFFFF", CultureInfo.InvariantCulture);
 }
 
 /// <summary>One rectangular merged-cell range in an iWork table.</summary>
