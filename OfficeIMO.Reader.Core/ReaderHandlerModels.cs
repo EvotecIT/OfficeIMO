@@ -90,10 +90,47 @@ public sealed class ReaderHandlerRegistration {
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; set; }
 
     /// <summary>
+    /// Optional bounded validator used only when this handler owns the exact source extension but
+    /// <see cref="ReaderDetectionMode.PreferContent"/> reports a content mismatch. Return true to
+    /// retain extension routing for a source that the handler recognizes. The delegate must not
+    /// close the caller-owned stream; Core restores caller-visible stream position after validation.
+    /// </summary>
+    public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; set; }
+
+    /// <summary>
     /// Optional advertised default max input bytes for this handler.
     /// Null means "no handler-specific default advertised".
     /// </summary>
     public long? DefaultMaxInputBytes { get; set; }
+
+    /// <summary>
+    /// Optional per-extension default input limits. Keys are normalized like <see cref="Extensions"/>
+    /// and must name extensions claimed by this handler. A matching value overrides
+    /// <see cref="DefaultMaxInputBytes"/> before Reader buffers or opens the source.
+    /// </summary>
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; set; } =
+        new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Optional absolute handler ceiling. Unlike <see cref="DefaultMaxInputBytes"/>, callers cannot
+    /// raise this value through <see cref="ReaderOptions.MaxInputBytes"/>; Core combines both by
+    /// taking the minimum before it creates a stream snapshot.
+    /// </summary>
+    public long? MaxInputBytesCeiling { get; set; }
+
+    /// <summary>
+    /// Optional number of leading bytes required by <see cref="ResolveMaxInputBytesFromPrefix"/>.
+    /// Core reads this bounded prefix before completing a stream snapshot so a shared extension can
+    /// select a stricter limit from content without lowering the normal format's advertised ceiling.
+    /// </summary>
+    public int InputLimitProbeBytes { get; set; }
+
+    /// <summary>
+    /// Optional deterministic resolver for a stricter content-specific input limit. Return null to
+    /// retain the handler or per-extension default. A returned value is combined with that default
+    /// and any caller limit by taking the minimum.
+    /// </summary>
+    public Func<ReadOnlyMemory<byte>, long?>? ResolveMaxInputBytesFromPrefix { get; set; }
 
     /// <summary>
     /// Defines whether Core derives the source hash from <see cref="ReaderOptions.ComputeHashes"/>
@@ -192,6 +229,10 @@ public sealed class ReaderHandlerCapability {
     /// </summary>
     public long? DefaultMaxInputBytes { get; set; }
 
+    /// <summary>Advertised per-extension overrides for <see cref="DefaultMaxInputBytes"/>.</summary>
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; set; } =
+        new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>
     /// Advertised warning model for this handler.
     /// </summary>
@@ -215,7 +256,7 @@ public static class ReaderCapabilitySchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 4;
+    public const int Version = 5;
 }
 
 /// <summary>Identifies the publisher of a configured Reader handler.</summary>

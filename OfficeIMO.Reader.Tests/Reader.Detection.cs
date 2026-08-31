@@ -302,6 +302,88 @@ public sealed class ReaderDetectionTests {
     }
 
     [Fact]
+    public void DocumentReader_PreferContent_DoesNotRepurposeStructuralContainerProbe() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "# Detected Markdown\n\nBody");
+
+        try {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.text-container-probe",
+                    Kind = ReaderInputKind.Text,
+                    Extensions = new[] { ".txt" },
+                    ReadDocumentPath = (sourcePath, options, cancellationToken) => new OfficeDocumentReadResult {
+                        Kind = ReaderInputKind.Text,
+                        Source = new OfficeDocumentSource { Path = sourcePath }
+                    },
+                    ProbeStream = static (_, _, _, _) => throw new InvalidOperationException("Container probe must not validate extension mismatches.")
+                }, replaceExisting: true)
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.markdown-fallback",
+                    Kind = ReaderInputKind.Markdown,
+                    Extensions = new[] { ".md" },
+                    ReadDocumentPath = (sourcePath, options, cancellationToken) => new OfficeDocumentReadResult {
+                        Kind = ReaderInputKind.Markdown,
+                        Source = new OfficeDocumentSource { Path = sourcePath }
+                    }
+                }, replaceExisting: true)
+                .Build();
+
+            OfficeDocumentReadResult result = reader.ReadDocument(
+                path,
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+            Assert.Equal(ReaderInputKind.Markdown, result.Kind);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_PreferContent_UsesDedicatedExtensionValidatorForPathOnlyHandler() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "# Handler-owned text\n\nBody");
+        bool validatorInvoked = false;
+
+        try {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.text-extension-validator",
+                    Kind = ReaderInputKind.Text,
+                    Extensions = new[] { ".txt" },
+                    ReadDocumentPath = (sourcePath, options, cancellationToken) => new OfficeDocumentReadResult {
+                        Kind = ReaderInputKind.Text,
+                        Source = new OfficeDocumentSource { Path = sourcePath }
+                    },
+                    ExtensionValidationProbeStream = (stream, sourceName, options, cancellationToken) => {
+                        validatorInvoked = true;
+                        Assert.Equal(0, stream.Position);
+                        return true;
+                    }
+                }, replaceExisting: true)
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.markdown-fallback",
+                    Kind = ReaderInputKind.Markdown,
+                    Extensions = new[] { ".md" },
+                    ReadDocumentPath = (sourcePath, options, cancellationToken) => new OfficeDocumentReadResult {
+                        Kind = ReaderInputKind.Markdown,
+                        Source = new OfficeDocumentSource { Path = sourcePath }
+                    }
+                }, replaceExisting: true)
+                .Build();
+
+            OfficeDocumentReadResult result = reader.ReadDocument(
+                path,
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+            Assert.True(validatorInvoked);
+            Assert.Equal(ReaderInputKind.Text, result.Kind);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_EmitsDetectedKindDiagnosticForUnknownExtension() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".blob");
         File.WriteAllText(path, "# Detected Markdown\n\nBody");

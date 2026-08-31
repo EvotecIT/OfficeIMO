@@ -15,10 +15,12 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Legacy\OfficeIMO.Word.Legacy.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
   </ItemGroup>
   <ItemGroup><Compile Include="..\OfficeIMO.Reader.FormatInternals\OpenXmlImageAssetCollector.cs" Link="FormatInternals\OpenXmlImageAssetCollector.cs" /></ItemGroup>
   <ItemGroup><None Include="README.md" Pack="True" PackagePath="README.md" /></ItemGroup>
   <ItemGroup><Using Include="System" /><Using Include="System.Collections.Generic" /><Using Include="System.IO" /><Using Include="System.Linq" /><Using Include="System.Threading" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.Tests" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="OfficeIMO.Reader.All" /></ItemGroup>
 </Project>

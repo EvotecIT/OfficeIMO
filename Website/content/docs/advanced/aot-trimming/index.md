@@ -4,15 +4,15 @@ description: Publish OfficeIMO applications as native executables, choose AOT-sa
 order: 80
 ---
 
-OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **104 of 107 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge and local HTML/PDF workbench use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
+OfficeIMO's NativeAOT evidence covers the complete production project inventory rather than a hand-picked package list. **106 of 109 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge and local HTML/PDF workbench use managed cross-platform deployment. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
-The 104 native-validated projects are not all proved in the same way:
+The 106 native-validated projects are not all proved in the same way:
 
-- **102 production libraries** are fully rooted as complete assemblies across three native hosts: 100 in the main compile graph, with the optional `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` packages each exercised in a dedicated host. All three executables must start successfully.
+- **104 production libraries** are fully rooted as complete assemblies across three native hosts: 102 in the main compile graph, with the optional `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` packages each exercised in a dedicated host. All three executables must start successfully.
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 107 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 109 production projects and records which proof applies to each one. This distinction matters to customers: a green native workflow is useful evidence, but it is not permission to assume that every optional third-party API has been executed.
 
 ## Publish your application
 

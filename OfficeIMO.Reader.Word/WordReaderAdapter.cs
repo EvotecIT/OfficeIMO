@@ -14,12 +14,20 @@ internal static class WordReaderAdapter {
         PageLocationOptions = source?.PageLocationOptions?.Clone()
     };
 
-    internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions, ReaderWordOptions options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions, bool routeWordForDos, CancellationToken cancellationToken) {
+        if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(path, cancellationToken)) {
+            return LegacyWordReaderAdapter.ReadWordForDosDocument(path, readerOptions, options, legacyImportOptions, cancellationToken);
+        }
         using WordDocument document = Load(path, readerOptions);
         return Project(document, path, readerOptions, options, cancellationToken);
     }
 
-    internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
+        global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions, bool routeWordForDos, CancellationToken cancellationToken) {
+        if (routeWordForDos && LegacyWordReaderAdapter.HasWordForDosHeader(stream, sourceName, cancellationToken)) {
+            return LegacyWordReaderAdapter.ReadWordForDosDocument(stream, sourceName, readerOptions, options, legacyImportOptions, cancellationToken);
+        }
         using WordDocument document = Load(stream, readerOptions);
         return Project(document, string.IsNullOrWhiteSpace(sourceName) ? "document.docx" : sourceName!, readerOptions, options, cancellationToken);
     }
@@ -70,7 +78,7 @@ internal static class WordReaderAdapter {
         }
     }
 
-    private static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken) {
+    internal static OfficeDocumentReadResult Project(WordDocument document, string sourceName, ReaderOptions readerOptions, ReaderWordOptions options, CancellationToken cancellationToken, IReadOnlyList<string>? sourceWarnings = null, string capabilityId = OfficeDocumentReaderBuilderWordExtensions.HandlerId) {
         WordDocumentSnapshot snapshot = document.CreateInspectionSnapshot();
         IReadOnlyList<WordDocumentVisualSnapshot> pageSnapshots = Array.Empty<WordDocumentVisualSnapshot>();
         if (options.IncludePageLocations) {
@@ -81,7 +89,7 @@ internal static class WordReaderAdapter {
             layoutOptions.PageCount = null;
             pageSnapshots = document.CreateVisualSnapshots(layoutOptions, cancellationToken);
         }
-        IReadOnlyList<string>? legacyWarnings = BuildLegacyWarnings(document);
+        IReadOnlyList<string>? legacyWarnings = Combine(sourceWarnings, BuildLegacyWarnings(document));
         var chunks = new List<ReaderChunk>();
         IReadOnlyList<OfficeDocumentAsset> assets = OpenXmlImageAssetCollector.CollectWord(
             document.OpenXmlDocument, sourceName, readerOptions, options.IncludeFootnotes, cancellationToken);
@@ -145,8 +153,14 @@ internal static class WordReaderAdapter {
             chunks,
             ReaderInputKind.Word,
             source: null,
-            capabilities: new[] { OfficeDocumentReaderBuilderWordExtensions.HandlerId },
+            capabilities: new[] { capabilityId },
             assets: assets);
+        if (chunks.Count == 0 && legacyWarnings is { Count: > 0 }) {
+            var warningLocation = new ReaderLocation { Path = sourceName };
+            result.Diagnostics = result.Diagnostics
+                .Concat(legacyWarnings.Distinct(StringComparer.Ordinal).Select(warning => DocumentReaderEngine.BuildWarningDiagnostic(warning, warningLocation)))
+                .ToArray();
+        }
         return WordRichMapping.Apply(snapshot, pageSnapshots, readerOptions, options, result);
     }
 
