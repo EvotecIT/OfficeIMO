@@ -85,7 +85,25 @@ public sealed class RowMapper<T> where T : new() {
             throw new ArgumentNullException(nameof(assign));
         }
 
-        Entries.Add(new RowMappingEntry<T, TValue>(columnName, assign));
+        Entries.Add(new RowMappingEntry<T, TValue>(new[] { columnName }, assign));
+        return this;
+    }
+
+    /// <summary>Binds the first matching column name or alias to an assignment delegate.</summary>
+    public RowMapper<T> FromColumns<TValue>(
+        IReadOnlyList<string> columnNames,
+        Func<T, TValue, T> assign) {
+        if (columnNames is null) throw new ArgumentNullException(nameof(columnNames));
+        if (assign is null) throw new ArgumentNullException(nameof(assign));
+        string[] names = columnNames
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        if (names.Length == 0) {
+            throw new ArgumentException("At least one non-empty column name is required.", nameof(columnNames));
+        }
+
+        Entries.Add(new RowMappingEntry<T, TValue>(names, assign));
         return this;
     }
 }
@@ -241,7 +259,7 @@ public static class DataReaderMappingExtensions {
 }
 
 internal interface IRowMappingEntry<T> {
-    string ColumnName { get; }
+    IReadOnlyList<string> ColumnNames { get; }
     T Apply(
         T instance,
         object? rawValue,
@@ -263,12 +281,12 @@ internal interface IRowMappingEntry<T> {
 internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
     private readonly Func<T, TValue, T> _assign;
 
-    internal RowMappingEntry(string columnName, Func<T, TValue, T> assign) {
-        ColumnName = columnName;
+    internal RowMappingEntry(IReadOnlyList<string> columnNames, Func<T, TValue, T> assign) {
+        ColumnNames = columnNames;
         _assign = assign;
     }
 
-    public string ColumnName { get; }
+    public IReadOnlyList<string> ColumnNames { get; }
 
     public T Apply(
         T instance,

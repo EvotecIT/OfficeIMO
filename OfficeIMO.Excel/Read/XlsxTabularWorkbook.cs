@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
         private const int MaximumMetadataPartBytes = 16 * 1024 * 1024;
+        private const int MaximumPrefetchedWorksheetBytes = 64 * 1024 * 1024;
         private const string WorksheetContentType =
             "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml";
         private const string SharedStringsContentType =
@@ -48,6 +49,8 @@ namespace OfficeIMO.Excel {
         };
 
         private readonly OpenXmlPackagePartBufferReader _parts;
+        private readonly OpenXmlPackagePartBufferReader? _prefetchedParts;
+        private readonly string? _prefetchedSheetPartName;
         private readonly IDisposable? _ownedResource;
         private readonly SharedStringCache _sharedStrings;
         private readonly StylesCacheProvider _styles;
@@ -60,9 +63,11 @@ namespace OfficeIMO.Excel {
 
         private XlsxTabularWorkbook(
             OpenXmlPackagePartBufferReader parts,
+            OpenXmlPackagePartBufferReader? prefetchedParts,
             IDisposable? ownedResource,
             ExcelReadOptions options) {
             _parts = parts;
+            _prefetchedParts = prefetchedParts;
             _ownedResource = ownedResource;
             _options = options;
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -85,6 +90,16 @@ namespace OfficeIMO.Excel {
 
             DateSystem = dateSystem;
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
+            XlsxTabularSheet? prefetchedSheet = options.EnableWorksheetPrefetch
+                ? ResolvePrefetchedSheet(_sheets, options)
+                : null;
+            _prefetchedSheetPartName = prefetchedSheet?.PartName;
+            if (_prefetchedSheetPartName != null && _prefetchedParts != null) {
+                _prefetchedParts.BeginPrefetch(
+                    _prefetchedSheetPartName,
+                    MaximumPrefetchedWorksheetBytes,
+                    options.CancellationToken);
+            }
             int maximumPartBytes = options.MaxInputBytes > int.MaxValue
                 ? int.MaxValue
                 : checked((int)options.MaxInputBytes);
@@ -127,6 +142,7 @@ namespace OfficeIMO.Excel {
 
             SharedReadOnlyFileSnapshot? snapshot = null;
             OpenXmlPackagePartBufferReader? parts = null;
+            OpenXmlPackagePartBufferReader? prefetchedParts = null;
             try {
                 snapshot = SharedReadOnlyFileSnapshot.Open(path);
                 if (snapshot.Length > options.MaxInputBytes) {
@@ -137,12 +153,17 @@ namespace OfficeIMO.Excel {
                 parts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1))
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
-                var workbook = new XlsxTabularWorkbook(parts, snapshot, options);
+                if (options.EnableWorksheetPrefetch) {
+                    prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
+                }
+                var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options);
                 parts = null;
+                prefetchedParts = null;
                 snapshot = null;
                 return workbook;
             } catch {
                 parts?.Dispose();
+                prefetchedParts?.Dispose();
                 snapshot?.Dispose();
                 throw;
             }
@@ -163,12 +184,18 @@ namespace OfficeIMO.Excel {
             OpenXmlPackagePartBufferReader parts = OpenXmlPackagePartBufferReader.TryOpen(bytes)
                 ?? throw new XlsxTabularFastPathNotSupportedException(
                     "The workbook is not a readable Open XML package.");
+            OpenXmlPackagePartBufferReader? prefetchedParts = null;
             try {
-                var workbook = new XlsxTabularWorkbook(parts, ownedResource: null, options);
+                prefetchedParts = options.EnableWorksheetPrefetch
+                    ? OpenXmlPackagePartBufferReader.TryOpen(bytes)
+                    : null;
+                var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, ownedResource: null, options);
                 parts = null!;
+                prefetchedParts = null;
                 return workbook;
             } catch {
                 parts.Dispose();
+                prefetchedParts?.Dispose();
                 throw;
             }
         }
@@ -191,7 +218,9 @@ namespace OfficeIMO.Excel {
                 _styles,
                 _options,
                 DateSystem,
-                _parts);
+                string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
+                    ? _prefetchedParts ?? _parts
+                    : _parts);
             DbDataReader dataReader = string.IsNullOrWhiteSpace(_options.A1Range)
                 ? (DbDataReader)reader.ReadUsedRangeAsDataReader(
                     hasHeaderRow,
@@ -649,6 +678,21 @@ namespace OfficeIMO.Excel {
                 StrictOfficeRelationshipsNamespace + suffix,
                 StringComparison.Ordinal);
 
+        private static XlsxTabularSheet? ResolvePrefetchedSheet(
+            IReadOnlyList<XlsxTabularSheet> sheets,
+            ExcelReadOptions options) {
+            if (!string.IsNullOrWhiteSpace(options.SheetName)) {
+                return sheets.FirstOrDefault(sheet => string.Equals(
+                    sheet.Name,
+                    options.SheetName,
+                    StringComparison.OrdinalIgnoreCase));
+            }
+            if (options.SheetIndex is int sheetIndex) {
+                return (uint)sheetIndex < (uint)sheets.Count ? sheets[sheetIndex] : null;
+            }
+            return sheets.Count == 0 ? null : sheets[0];
+        }
+
         private void ThrowIfDisposed() {
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(XlsxTabularWorkbook));
@@ -662,7 +706,11 @@ namespace OfficeIMO.Excel {
 
             _disposed = true;
             try {
-                _parts.Dispose();
+                try {
+                    _prefetchedParts?.Dispose();
+                } finally {
+                    _parts.Dispose();
+                }
             } finally {
                 _ownedResource?.Dispose();
             }

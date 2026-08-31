@@ -32,6 +32,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj"
+                      Condition="'$(TargetFramework)' != 'net472'" />
+    <ProjectReference Include="..\OfficeIMO.Data.Generators\OfficeIMO.Data.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

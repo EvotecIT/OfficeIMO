@@ -165,6 +165,21 @@ while (reader.Read()) {
 }
 ```
 
+On .NET 8 and later, `ReadAsync`, `NextResultAsync`, and `RowsAsAsync<T>` propagate
+cancellation through the native workbook reader:
+
+```csharp
+using OfficeIMO.Data;
+
+await using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+    SheetName = "Data"
+});
+
+await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToken)) {
+    await ProcessAsync(row, cancellationToken);
+}
+```
+
 `ExcelDocument.OpenDataReader` returns an `ExcelWorkbookDataReader`, the package-owned read-only entry point for
 XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS. It discovers used ranges and exposes
 additional worksheets through `NextResult()`. Select one worksheet with
@@ -183,6 +198,11 @@ reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
 `DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
+
+`ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
+decompression with workbook metadata parsing on a spare worker. It is disabled by default,
+retains the existing package-part limits, and can be slower for small or simple workbooks.
+Enable it only after measuring a representative workbook on the target CPU.
 
 ### Choose automatic or ordered parallel reads
 

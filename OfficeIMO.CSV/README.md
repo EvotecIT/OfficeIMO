@@ -139,6 +139,28 @@ foreach (Person person in reader.RowsAs<Person>()) {
 The same automatic and explicit `RowsAs<T>` mappings work on both a materialized
 `CsvDocument` and a forward-only reader. The caller owns and disposes the reader.
 
+On .NET 8 and later, use `RowsAsAsync<T>()` when the reader should advance through
+`DbDataReader.ReadAsync` and observe cancellation between rows:
+
+```csharp
+using OfficeIMO.CSV;
+using OfficeIMO.Data;
+using System.Data.Common;
+
+await using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+    "people.csv",
+    cancellationToken: cancellationToken);
+
+await foreach (Person person in reader.RowsAsAsync<Person>(cancellationToken)) {
+    await ProcessAsync(person, cancellationToken);
+}
+```
+
+`OpenDataReaderAsync` performs the bounded source read asynchronously and returns a
+memory-backed reader owned by the caller. Automatic, explicit `RowMapper<T>`, and factory
+mapping all have async overloads. This is asynchronous I/O and cursor traversal, not
+parallel row mapping; use `RowsAsParallel<T>()` for CPU-heavy synchronous projection.
+
 Use the explicit overload when assignments must be declared without reflection,
 including trimming- and NativeAOT-sensitive applications. This overload still
 requires `T : new()`:
@@ -243,8 +265,9 @@ contract. Concurrent factories must not mutate unprotected shared state or
 retain the transient `IDataRecord`.
 
 On .NET 8 and later, decoded text can use the lower-overhead transient-record
-API. The builder resolves headers once; its returned factory receives
-span-backed fields directly from bounded parser batches:
+API. The builder resolves headers once, finds quote-safe record partitions, and
+maps bounded partition waves concurrently while retaining source order. Its
+returned factory receives span-backed fields directly from parser batches:
 
 ```csharp
 Person[] people = CsvDocument.ReadTextRowsAsParallel<Person>(
@@ -367,11 +390,12 @@ hybrid CPUs. Custom schema converters may run concurrently in this mode and
 must be thread-safe; keep the reader sequential when a converter depends on
 mutable single-threaded state.
 
-`OpenDataReader` is the forward-only entry point. Use `CsvDocument.Load` when a
-materialized document is required; the current API does not expose a load-mode switch.
+`OpenDataReader` is the streaming forward-only entry point. On .NET 8 and later,
+`OpenDataReaderAsync` performs bounded asynchronous source I/O and returns a
+memory-backed reader whose `ReadAsync` cursor works with `RowsAsAsync<T>`.
+Use `CsvDocument.Load` when an editable materialized document is required.
 `LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but
-still materialize the document or serialized output. They are not an async CSV
-cursor; `DbDataReader.Read()` remains the bounded forward-only read path.
+still materialize the document or serialized output.
 
 Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 `RecordNumber` is the one-based data-record number, while

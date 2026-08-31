@@ -6,6 +6,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+#if NET8_0_OR_GREATER
+using System.Threading.Tasks;
+#endif
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -43,6 +46,27 @@ public sealed class CsvDataReaderApiTests {
         Assert.Null(typeof(CsvLoadOptions).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
         Assert.Null(typeof(CsvDocument).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
     }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task OpenDataReaderAsyncUsesAsyncIoAndReturnsMemoryBackedAsyncCursor() {
+        byte[] bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n");
+        await using var stream = new AsyncOnlyReadStream(bytes);
+
+        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+            stream,
+            readerOptions: new CsvDataReaderOptions { InferSchema = true });
+
+        Assert.True(stream.AsyncReadCount > 0);
+        Assert.True(await reader.ReadAsync(CancellationToken.None));
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Alpha", reader.GetString(1));
+        Assert.True(await reader.ReadAsync(CancellationToken.None));
+        Assert.Equal("Beta", reader.GetString(1));
+        Assert.False(await reader.ReadAsync(CancellationToken.None));
+        Assert.False(stream.IsDisposed);
+    }
+#endif
 
     [Fact]
     public void OpenDataReader_StreamSupportsTypedGettersAndLeavesStreamOpen() {
@@ -574,6 +598,54 @@ public sealed class CsvDataReaderApiTests {
         Assert.Equal("Ada", reader.GetString(1));
         Assert.Equal(1, stream.ReadCount);
     }
+
+#if NET8_0_OR_GREATER
+    private sealed class AsyncOnlyReadStream : Stream {
+        private readonly byte[] _bytes;
+        private int _position;
+
+        internal AsyncOnlyReadStream(byte[] bytes) => _bytes = bytes;
+
+        internal int AsyncReadCount { get; private set; }
+        internal bool IsDisposed { get; private set; }
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => _position;
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new InvalidOperationException("The asynchronous reader must not use synchronous source I/O.");
+
+        public override Task<int> ReadAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            AsyncReadCount++;
+            int copied = Math.Min(count, _bytes.Length - _position);
+            if (copied > 0) {
+                Array.Copy(_bytes, _position, buffer, offset, copied);
+                _position += copied;
+            }
+            return Task.FromResult(copied);
+        }
+
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            IsDisposed = true;
+            base.Dispose(disposing);
+        }
+    }
+#endif
 
     private sealed class SingleChunkNonSeekableReadStream : Stream {
         private readonly byte[] _bytes;

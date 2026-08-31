@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
 
 namespace OfficeIMO.CSV;
@@ -94,6 +95,27 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     }
 
 #if NET8_0_OR_GREATER
+    internal bool TryPrepareTextPartitioning(
+        CancellationToken cancellationToken,
+        out CsvParser.CsvTextDataReaderRowSource? source,
+        out int dataStart)
+    {
+        source = null;
+        dataStart = 0;
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_closed || _checkedForRows || _currentRawRow is not null ||
+            _currentStringRow is not null || _hasCurrentTextRow ||
+            _textRowSource is not CsvParser.CsvTextDataReaderRowSource textRows ||
+            !textRows.CanTakeParallelBatch)
+        {
+            return false;
+        }
+
+        dataStart = textRows.PrepareForParallelPartition(cancellationToken);
+        source = textRows;
+        return true;
+    }
+
     internal bool TryReadCsvRecordBatch(
         int preferredBatchSize,
         CancellationToken cancellationToken,
@@ -1053,6 +1075,22 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 
     /// <inheritdoc />
     public override bool NextResult() => false;
+
+    /// <inheritdoc />
+    public override Task<bool> NextResultAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(false);
+    }
+
+    /// <inheritdoc />
+    public override Task<bool> ReadAsync(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
+        return Task.FromResult(Read());
+    }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -58,6 +58,65 @@ public class CsvMappingTests
     }
 
     [Fact]
+    public void Transient_Record_Projection_Partitions_Quoted_Multiline_Rows_In_Order()
+    {
+        string text = "Id,Value\n" + string.Concat(
+            Enumerable.Range(1, 32).Select(index =>
+                $"{index},\"line {index}\ncontinued \"\"{index}\"\"\"\n"));
+
+        PositionalPerson[] rows = CsvDocument.ReadTextRowsAsParallel<PositionalPerson>(
+            text,
+            header => {
+                int id = header.GetOrdinal("Id");
+                int value = header.GetOrdinal("Value");
+                return record => new PositionalPerson(
+                    record.GetInt32(id),
+                    record.GetString(value));
+            },
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 4,
+                BatchSize = 4
+            }).ToArray();
+
+        Assert.Equal(Enumerable.Range(1, 32), rows.Select(row => row.Id));
+        Assert.Equal("line 17\ncontinued \"17\"", rows[16].Name);
+    }
+
+    [Fact]
+    public void Transient_Record_Projection_Partition_Waves_Remain_Bounded_When_Enumeration_Stops()
+    {
+        string text = "Id\n" + string.Join("\n", Enumerable.Range(1, 20)) + "\n";
+        int calls = 0;
+        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>(
+            text,
+            _ => record => {
+                Interlocked.Increment(ref calls);
+                return record.GetInt32(0);
+            },
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 2
+            }).GetEnumerator();
+
+        Assert.True(rows.MoveNext());
+        Assert.Equal(1, rows.Current);
+        Assert.Equal(4, Volatile.Read(ref calls));
+    }
+
+    [Fact]
+    public void Transient_Record_Projection_Retains_Lenient_Bare_Quote_Fallback()
+    {
+        Assert.Throws<CsvParseException>(() =>
+            CsvDocument.ReadTextRowsAsParallel<string>(
+                "Value\na\"b\nc\n",
+                _ => record => record.GetString(0),
+                parallelOptions: new ParallelRowMappingOptions {
+                    MaxDegreeOfParallelism = 2,
+                    BatchSize = 1
+                }).ToArray());
+    }
+
+    [Fact]
     public void Transient_Record_Projection_Observes_Cancellation_And_Conversion_Failures()
     {
         using var cancellation = new CancellationTokenSource();

@@ -1,0 +1,267 @@
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text;
+using Apache.Arrow;
+using Apache.Arrow.Arrays;
+using Apache.Arrow.Types;
+
+namespace OfficeIMO.Data.Arrow;
+
+/// <summary>Apache Arrow projections for forward-only tabular readers.</summary>
+public static class DbDataReaderArrowExtensions {
+    /// <summary>
+    /// Converts the current result set into bounded Arrow record batches.
+    /// The caller retains ownership of both the reader and every returned batch.
+    /// </summary>
+    public static IEnumerable<RecordBatch> ReadArrowBatches(
+        this DbDataReader reader,
+        ArrowReadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
+        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
+        Schema schema = CreateSchema(reader, columns);
+
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
+            int rowCount = 0;
+            while (rowCount < effectiveOptions.BatchSize) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!reader.Read()) break;
+                AppendRow(reader, builders);
+                rowCount++;
+            }
+
+            if (rowCount == 0) yield break;
+            yield return BuildBatch(schema, builders, rowCount);
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously converts the current result set into bounded Arrow record batches.
+    /// The caller retains ownership of both the reader and every returned batch.
+    /// </summary>
+    public static async IAsyncEnumerable<RecordBatch> ReadArrowBatchesAsync(
+        this DbDataReader reader,
+        ArrowReadOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(reader);
+        ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
+        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
+        Schema schema = CreateSchema(reader, columns);
+
+        while (true) {
+            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
+            int rowCount = 0;
+            while (rowCount < effectiveOptions.BatchSize &&
+                   await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) {
+                AppendRow(reader, builders);
+                rowCount++;
+            }
+
+            if (rowCount == 0) yield break;
+            yield return BuildBatch(schema, builders, rowCount);
+        }
+    }
+
+    private static ArrowColumnFactory[] CreateColumns(DbDataReader reader, ArrowReadOptions options) {
+        var columns = new ArrowColumnFactory[reader.FieldCount];
+        for (int ordinal = 0; ordinal < columns.Length; ordinal++) {
+            Type type = reader.GetFieldType(ordinal);
+            columns[ordinal] = ArrowColumnFactory.Create(type, options);
+        }
+        return columns;
+    }
+
+    private static Schema CreateSchema(DbDataReader reader, ArrowColumnFactory[] columns) {
+        var fields = new Field[columns.Length];
+        for (int ordinal = 0; ordinal < fields.Length; ordinal++) {
+            fields[ordinal] = new Field(reader.GetName(ordinal), columns[ordinal].ArrowType, nullable: true);
+        }
+        return new Schema(fields, metadata: null);
+    }
+
+    private static ArrowColumnBuilder[] CreateBuilders(ArrowColumnFactory[] columns, int capacity) {
+        var builders = new ArrowColumnBuilder[columns.Length];
+        for (int ordinal = 0; ordinal < builders.Length; ordinal++) {
+            builders[ordinal] = columns[ordinal].CreateBuilder(capacity);
+        }
+        return builders;
+    }
+
+    private static void AppendRow(DbDataReader reader, ArrowColumnBuilder[] builders) {
+        for (int ordinal = 0; ordinal < builders.Length; ordinal++) {
+            if (reader.IsDBNull(ordinal)) {
+                builders[ordinal].AppendNull();
+            } else {
+                builders[ordinal].Append(reader, ordinal);
+            }
+        }
+    }
+
+    private static RecordBatch BuildBatch(Schema schema, ArrowColumnBuilder[] builders, int rowCount) {
+        var arrays = new IArrowArray[builders.Length];
+        try {
+            for (int ordinal = 0; ordinal < arrays.Length; ordinal++) {
+                arrays[ordinal] = builders[ordinal].Build();
+            }
+            return new RecordBatch(schema, arrays, rowCount);
+        } catch {
+            foreach (IArrowArray? array in arrays) array?.Dispose();
+            throw;
+        }
+    }
+
+    private sealed class ArrowColumnFactory {
+        private readonly Func<int, ArrowColumnBuilder> _createBuilder;
+
+        private ArrowColumnFactory(IArrowType arrowType, Func<int, ArrowColumnBuilder> createBuilder) {
+            ArrowType = arrowType;
+            _createBuilder = createBuilder;
+        }
+
+        internal IArrowType ArrowType { get; }
+
+        internal ArrowColumnBuilder CreateBuilder(int capacity) => _createBuilder(capacity);
+
+        internal static ArrowColumnFactory Create(Type sourceType, ArrowReadOptions options) {
+            Type type = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
+            if (type == typeof(bool)) return Primitive<BooleanArray.Builder, BooleanArray, bool>(
+                new BooleanType(), static () => new BooleanArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetBoolean(i));
+            if (type == typeof(sbyte)) return Primitive<Int8Array.Builder, Int8Array, sbyte>(
+                new Int8Type(), static () => new Int8Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToSByte(r.GetValue(i), CultureInfo.InvariantCulture));
+            if (type == typeof(byte)) return Primitive<UInt8Array.Builder, UInt8Array, byte>(
+                new UInt8Type(), static () => new UInt8Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetByte(i));
+            if (type == typeof(short)) return Primitive<Int16Array.Builder, Int16Array, short>(
+                new Int16Type(), static () => new Int16Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetInt16(i));
+            if (type == typeof(ushort)) return Primitive<UInt16Array.Builder, UInt16Array, ushort>(
+                new UInt16Type(), static () => new UInt16Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToUInt16(r.GetValue(i), CultureInfo.InvariantCulture));
+            if (type == typeof(int)) return Primitive<Int32Array.Builder, Int32Array, int>(
+                new Int32Type(), static () => new Int32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetInt32(i));
+            if (type == typeof(uint)) return Primitive<UInt32Array.Builder, UInt32Array, uint>(
+                new UInt32Type(), static () => new UInt32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToUInt32(r.GetValue(i), CultureInfo.InvariantCulture));
+            if (type == typeof(long)) return Primitive<Int64Array.Builder, Int64Array, long>(
+                new Int64Type(), static () => new Int64Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetInt64(i));
+            if (type == typeof(ulong)) return Primitive<UInt64Array.Builder, UInt64Array, ulong>(
+                new UInt64Type(), static () => new UInt64Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToUInt64(r.GetValue(i), CultureInfo.InvariantCulture));
+            if (type == typeof(float)) return Primitive<FloatArray.Builder, FloatArray, float>(
+                new FloatType(), static () => new FloatArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetFloat(i));
+            if (type == typeof(double)) return Primitive<DoubleArray.Builder, DoubleArray, double>(
+                new DoubleType(), static () => new DoubleArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetDouble(i));
+            if (type == typeof(decimal)) {
+                var decimalType = new Decimal128Type(options.DecimalPrecision, options.DecimalScale);
+                return new ArrowColumnFactory(decimalType, capacity => {
+                    var builder = new Decimal128Array.Builder(decimalType).Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(reader.GetDecimal(ordinal)),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(DateTime) || type == typeof(DateTimeOffset)) {
+                var timestampType = new TimestampType(TimeUnit.Microsecond, TimeZoneInfo.Utc);
+                return new ArrowColumnFactory(timestampType, capacity => {
+                    var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(ToDateTimeOffset(reader.GetValue(ordinal))),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(DateOnly)) return Primitive<Date32Array.Builder, Date32Array, DateOnly>(
+                new Date32Type(), static () => new Date32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetFieldValue<DateOnly>(i));
+            if (type == typeof(TimeOnly)) {
+                var timeType = new Time64Type(TimeUnit.Microsecond);
+                return new ArrowColumnFactory(timeType, capacity => {
+                    var builder = new Time64Array.Builder(timeType).Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(reader.GetFieldValue<TimeOnly>(ordinal)),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(Guid)) {
+                var guidType = new FixedSizeBinaryType(16);
+                return new ArrowColumnFactory(guidType, capacity => {
+                    var builder = new GuidArray.Builder().Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(reader.GetGuid(ordinal)),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(byte[])) {
+                return new ArrowColumnFactory(new BinaryType(), capacity => {
+                    var builder = new BinaryArray.Builder().Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append((byte[])reader.GetValue(ordinal)),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(string) || options.ConvertUnsupportedTypesToString) {
+                return new ArrowColumnFactory(new StringType(), capacity => {
+                    var builder = new StringArray.Builder().Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(
+                            Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
+                            Encoding.UTF8),
+                        () => builder.Build());
+                });
+            }
+
+            throw new NotSupportedException($"CLR type '{type.FullName}' does not have an Apache Arrow adapter.");
+        }
+
+        private static ArrowColumnFactory Primitive<TBuilder, TArray, TValue>(
+            IArrowType arrowType,
+            Func<TBuilder> create,
+            Func<TBuilder, int, TBuilder> reserve,
+            Func<TBuilder, TBuilder> appendNull,
+            Func<TBuilder, TArray> build,
+            Action<TBuilder, TValue> append,
+            Func<DbDataReader, int, TValue> read)
+            where TArray : IArrowArray {
+            return new ArrowColumnFactory(arrowType, capacity => {
+                TBuilder builder = reserve(create(), capacity);
+                return new ArrowColumnBuilder(
+                    () => appendNull(builder),
+                    (reader, ordinal) => append(builder, read(reader, ordinal)),
+                    () => build(builder));
+            });
+        }
+
+        private static DateTimeOffset ToDateTimeOffset(object value) => value switch {
+            DateTimeOffset offset => offset.ToUniversalTime(),
+            DateTime dateTime when dateTime.Kind == DateTimeKind.Utc => new DateTimeOffset(dateTime),
+            DateTime dateTime when dateTime.Kind == DateTimeKind.Local => new DateTimeOffset(dateTime).ToUniversalTime(),
+            DateTime dateTime => new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)),
+            _ => throw new InvalidCastException($"Value of type '{value.GetType().FullName}' is not a date and time.")
+        };
+    }
+
+    private sealed class ArrowColumnBuilder {
+        private readonly Action _appendNull;
+        private readonly Action<DbDataReader, int> _append;
+        private readonly Func<IArrowArray> _build;
+
+        internal ArrowColumnBuilder(
+            Action appendNull,
+            Action<DbDataReader, int> append,
+            Func<IArrowArray> build) {
+            _appendNull = appendNull;
+            _append = append;
+            _build = build;
+        }
+
+        internal void AppendNull() => _appendNull();
+
+        internal void Append(DbDataReader reader, int ordinal) => _append(reader, ordinal);
+
+        internal IArrowArray Build() => _build();
+    }
+}

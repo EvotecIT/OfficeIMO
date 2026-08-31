@@ -42,6 +42,17 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool InferSchema { get; set; }
 
+        /// <summary>
+        /// Gets or sets whether the selected XLSX worksheet should be decompressed on a
+        /// background worker while workbook metadata is parsed. The default is false.
+        /// </summary>
+        /// <remarks>
+        /// Prefetch is bounded by the existing package-part limits and is most useful for large,
+        /// compressed worksheets on machines with spare CPU capacity. It does not weaken package
+        /// validation or change row ordering.
+        /// </remarks>
+        public bool EnableWorksheetPrefetch { get; set; }
+
         /// <summary>Gets or sets the maximum rows sampled when schema inference is enabled.</summary>
         public int SchemaSampleRows {
             get => _schemaSampleRows;

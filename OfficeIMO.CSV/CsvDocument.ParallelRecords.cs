@@ -79,55 +79,73 @@ public sealed class CsvRecordHeader
 public readonly ref struct CsvRecord
 {
     private readonly CsvParser.CsvTextDataReaderBatch? _batch;
+    private readonly CsvParser.CsvTextDataReaderRowSource? _source;
     private readonly CsvDataReader? _reader;
 
     internal CsvRecord(CsvParser.CsvTextDataReaderBatch batch)
     {
         _batch = batch;
+        _source = null;
+        _reader = null;
+    }
+
+    internal CsvRecord(CsvParser.CsvTextDataReaderRowSource source)
+    {
+        _batch = null;
+        _source = source;
         _reader = null;
     }
 
     internal CsvRecord(CsvDataReader reader)
     {
         _batch = null;
+        _source = null;
         _reader = reader;
     }
 
     /// <summary>Gets the number of source fields.</summary>
-    public int FieldCount => _batch?.SourceColumnCount ?? _reader!.FieldCount;
+    public int FieldCount => _batch?.SourceColumnCount ?? _source?.SourceColumnCount ?? _reader!.FieldCount;
 
     /// <summary>Gets a transient unescaped field span.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ReadOnlySpan<char> GetSpan(int ordinal) => _batch is not null
         ? _batch.GetSpan(ordinal)
-        : _reader!.GetCurrentSourceString(ordinal).AsSpan();
+        : _source is not null
+            ? _source.GetSpan(ordinal)
+            : _reader!.GetCurrentSourceString(ordinal).AsSpan();
 
     /// <summary>Materializes a field as a string.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetString(int ordinal) => _batch is not null
         ? _batch.MaterializeString(ordinal)
-        : _reader!.GetCurrentSourceString(ordinal);
+        : _source is not null
+            ? _source.GetString(ordinal)
+            : _reader!.GetCurrentSourceString(ordinal);
 
     /// <summary>Returns whether the source row omitted the field at the specified ordinal.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsMissing(int ordinal) => _batch is not null
         ? _batch.IsMissing(ordinal)
-        : _reader!.IsCurrentFieldMissing(ordinal);
+        : _source is not null
+            ? _source.IsMissing(ordinal)
+            : _reader!.IsCurrentFieldMissing(ordinal);
 
     /// <summary>Returns whether the field matches the configured CSV null marker.</summary>
     /// <remarks>A missing field is not a configured null field; use <see cref="IsMissing"/> to distinguish it.</remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsNull(int ordinal) => !IsMissing(ordinal) && (_batch is not null
         ? _batch.IsConfiguredNull(ordinal)
-        : _reader!.IsDBNull(ordinal));
+        : _source is not null
+            ? _source.IsNull(ordinal, _source.Options.NullValue)
+            : _reader!.IsDBNull(ordinal));
 
     /// <summary>Parses a Boolean field, accepting true/false and 0/1.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool GetBoolean(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetBoolean(ordinal);
+            return _reader.GetBoolean(ordinal);
         }
         ReadOnlySpan<char> value = GetSpan(ordinal);
         if (bool.TryParse(value, out bool result))
@@ -145,12 +163,12 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetInt32(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetInt32(ordinal);
+            return _reader.GetInt32(ordinal);
         }
         ReadOnlySpan<char> value = GetSpan(ordinal);
-        CultureInfo culture = _batch.Culture;
+        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
         if (ReferenceEquals(culture, CultureInfo.InvariantCulture) &&
             CsvDataProjectionConverter.TryParseInvariantInt32(value, out int result))
         {
@@ -167,11 +185,12 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long GetInt64(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetInt64(ordinal);
+            return _reader.GetInt64(ordinal);
         }
-        if (long.TryParse(GetSpan(ordinal), NumberStyles.Any, _batch.Culture, out long result))
+        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
+        if (long.TryParse(GetSpan(ordinal), NumberStyles.Any, culture, out long result))
         {
             return result;
         }
@@ -182,12 +201,12 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public decimal GetDecimal(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetDecimal(ordinal);
+            return _reader.GetDecimal(ordinal);
         }
         ReadOnlySpan<char> value = GetSpan(ordinal);
-        CultureInfo culture = _batch.Culture;
+        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
         if (ReferenceEquals(culture, CultureInfo.InvariantCulture) &&
             CsvDataProjectionConverter.TryParseInvariantDecimal(value, out decimal result))
         {
@@ -204,11 +223,12 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetDouble(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetDouble(ordinal);
+            return _reader.GetDouble(ordinal);
         }
-        if (double.TryParse(GetSpan(ordinal), NumberStyles.Any, _batch.Culture, out double result))
+        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
+        if (double.TryParse(GetSpan(ordinal), NumberStyles.Any, culture, out double result))
         {
             return result;
         }
@@ -219,14 +239,16 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public DateTime GetDateTime(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetDateTime(ordinal);
+            return _reader.GetDateTime(ordinal);
         }
+        CultureInfo culture = _batch?.Culture ?? _source!.Options.Culture;
+        IReadOnlyList<string>? dateTimeFormats = _batch?.DateTimeFormats ?? _source!.Options.DateTimeFormats;
         if (CsvDataProjectionConverter.TryParseDateTime(
                 GetSpan(ordinal),
-                _batch.Culture,
-                _batch.DateTimeFormats,
+                culture,
+                dateTimeFormats,
                 out DateTime result))
         {
             return result;
@@ -238,9 +260,9 @@ public readonly ref struct CsvRecord
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Guid GetGuid(int ordinal)
     {
-        if (_batch is null)
+        if (_reader is not null)
         {
-            return _reader!.GetGuid(ordinal);
+            return _reader.GetGuid(ordinal);
         }
         if (Guid.TryParse(GetSpan(ordinal), out Guid result))
         {
@@ -312,6 +334,33 @@ public sealed partial class CsvDocument
         ParallelRowMappingOptions options = parallelOptions ?? new ParallelRowMappingOptions();
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         int batchSize = options.GetBatchSize(CsvParser.GetPreferredTextParallelBatchSize());
+        if (degreeOfParallelism > 1 &&
+            reader.TryPrepareTextPartitioning(
+                cancellationToken,
+                out CsvParser.CsvTextDataReaderRowSource? textSource,
+                out int dataStart) &&
+            TryCreateTextPartitions(
+                text,
+                dataStart,
+                degreeOfParallelism,
+                batchSize,
+                textSource!.Options,
+                cancellationToken,
+                out CsvTextPartition[]? partitions))
+        {
+            foreach (T row in EnumeratePartitionedTextRows(
+                         text,
+                         textSource,
+                         partitions!,
+                         degreeOfParallelism,
+                         batchSize,
+                         factory,
+                         cancellationToken))
+            {
+                yield return row;
+            }
+            yield break;
+        }
         if (degreeOfParallelism == 1)
         {
             bool sequentialRemainderNeeded = false;

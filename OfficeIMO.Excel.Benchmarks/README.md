@@ -37,6 +37,11 @@ logical processor count, and GC mode.
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- read-profile .\Ignore\Benchmarks\excel-read-ccd0.json --rows 25000 --warmup 5 --iterations 10 --affinity 0xFFFF
 ```
 
+On an AMD Ryzen 9 9950X3D2, use `0xFFFF` and `0xFFFF0000` to measure the two
+complete 16-logical-processor cache domains separately. A mask such as `0x1`
+measures one logical processor and is not a substitute for a domain-constrained
+parallel run.
+
 Affinity masks are topology-specific. Do not copy the example to another
 machine without deriving its CPU sets and cache domains first.
 
@@ -434,6 +439,63 @@ The measured assemblies were SHA-256
 for `OfficeIMO.Excel.Benchmarks.dll` and
 `3D7C721A2DFF57B1505C453A256594C027E13D88F9EB4C6DD2810F75603D89D7`
 for `OfficeIMO.Excel.dll`.
+
+### Dated ExcelReader.NET 2.3.0 snapshot (2026-08-31)
+
+This candidate was also compared with ExcelReader.NET 2.3.0 on .NET 10 using
+High process priority, workstation GC, the Windows High performance power plan,
+and both complete 16-logical-processor cache domains of the same AMD Ryzen 9
+9950X3D2 (`0xFFFF` and `0xFFFF0000`). The paired runners use symmetric ABBA
+ordering, retain every sample, validate the complete typed read observation, and
+validate the generated artifact outside the timed write operation.
+
+For the equivalent 25,000-row XLSX write, OfficeIMO had the lower median on both
+domains:
+
+| Cache domain | OfficeIMO median | ExcelReader.NET median | OfficeIMO / ExcelReader.NET |
+| --- | ---: | ---: | ---: |
+| `0xFFFF` | 4.676 ms | 7.447 ms | 0.6279 |
+| `0xFFFF0000` | 4.482 ms | 7.341 ms | 0.6105 |
+
+The native binary write lanes deliberately keep faster, non-equivalent output
+in the report instead of dropping it. ExcelReader.NET's XLS round-tripped its
+own values but contained none of the required BIFF8 `DBCell` blocks; its XLSB
+round-tripped its own values but omitted the required `BrtWsDim` record. At
+25,000 rows the invalid XLS output was about 2.0-2.1 times faster than OfficeIMO,
+and the invalid XLSB output was about 2.1 times faster. Those ratios are
+diagnostic threat signals, not claims that the implementations perform the same
+work. OfficeIMO setup fails unless every expected BIFF8 `Index`/`DBCell` block is
+present, so an OfficeIMO regression cannot make this lane look faster by
+silently weakening the artifact.
+
+The equivalent 65K read lanes found XLSX parity with prefetch disabled and an
+OfficeIMO median about 2% lower on both domains. OfficeIMO's XLSB median was
+15-18% lower. XLS stayed close but favored ExcelReader.NET by 2-4% at the
+median. Enabling the experimental bounded XLSX worksheet prefetch made this
+fixture 19% slower on both domains. Prefetch therefore remains opt-in and
+disabled by default; the negative result is retained instead of being presented
+as a win.
+
+The measured assemblies were SHA-256
+`A76991AE9336A4CFB8A9D6A20F6825C7A6E68896F41FB637C6CEA7F1BE4745F3`
+for `OfficeIMO.Excel.Benchmarks.dll` and
+`AF8FFC2832A9F19A974D38A26660975B859C5BD513487A2C27DC5A5421CA5374`
+for `OfficeIMO.Excel.dll`.
+
+Reproduce the paired lanes on each cache-domain mask with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsx-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsx-paired 40 0xFFFF High prefetch
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsb-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xls-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsx 25000 30 0xFFFF High 8
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsb 25000 30 0xFFFF High 8
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xls 25000 30 0xFFFF High 8
+```
+
+Repeat with `0xFFFF0000` for the second cache domain. A one-logical-processor
+mask is not equivalent to either domain-constrained parallel measurement.
 
 ### Dated 65K XLS and XLSB snapshot (2026-08-10)
 

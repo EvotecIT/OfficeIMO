@@ -13,6 +13,7 @@ internal static partial class CsvParser
     internal sealed class CsvTextDataReaderRowSource : ICsvDataReaderTextRowSource
     {
         private readonly string _text;
+        private readonly int _endPosition;
         private readonly CsvLoadOptions _options;
         private CsvTextFieldSpanReadState _state;
         private CsvDataReaderTextRowVisitor _visitor;
@@ -25,10 +26,34 @@ internal static partial class CsvParser
             CsvLoadOptions options,
             int recordsToSkip,
             int sourceColumnCount)
+            : this(text, options, recordsToSkip, sourceColumnCount, 0, text.Length)
         {
+        }
+
+        internal CsvTextDataReaderRowSource(
+            string text,
+            CsvLoadOptions options,
+            int recordsToSkip,
+            int sourceColumnCount,
+            int startPosition,
+            int endPosition)
+        {
+            if ((uint)startPosition > (uint)text.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(startPosition));
+            }
+            if ((uint)endPosition > (uint)text.Length || endPosition < startPosition)
+            {
+                throw new ArgumentOutOfRangeException(nameof(endPosition));
+            }
             _text = text;
+            _endPosition = endPosition;
             _options = options;
-            _state = CreateTextFieldSpanReadState(text.AsSpan(), options, recordsToSkip);
+            _state = CreateTextFieldSpanReadState(
+                text.AsSpan(startPosition, endPosition - startPosition),
+                options,
+                recordsToSkip);
+            _state.Position = startPosition;
             _visitor = new CsvDataReaderTextRowVisitor(text, sourceColumnCount);
             _batch = sourceColumnCount is > 0 and <= TextQuoteAwareFieldSpanCapacity
                 ? new CsvTextDataReaderBatch(
@@ -43,13 +68,29 @@ internal static partial class CsvParser
 
         internal bool CanTakeParallelBatch => !_disposed && _batch is not null && !_batch.HasStarted;
 
+        internal int SourceColumnCount => _visitor.SourceColumnCount;
+
+        internal CsvLoadOptions Options => _options;
+
+        internal int PrepareForParallelPartition(CancellationToken cancellationToken)
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            SkipPendingTextDataReaderRecords(
+                _text.AsSpan(0, _endPosition),
+                _options,
+                cancellationToken,
+                ref _state);
+            return _state.Position;
+        }
+
         public bool Read()
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_batch is not null)
             {
                 if (_batch.MoveNext() ||
-                    (TryFillTextDataReaderBatchAvx2(_text.AsSpan(), _options, ref _state, _batch) && _batch.MoveNext()))
+                    (TryFillTextDataReaderBatchAvx2(_text.AsSpan(0, _endPosition), _options, ref _state, _batch) && _batch.MoveNext()))
                 {
                     _usingBatchRow = true;
                     ValidateFieldCount(_batch.CurrentFieldCount);
@@ -58,7 +99,7 @@ internal static partial class CsvParser
             }
 
             _usingBatchRow = false;
-            if (!TryReadNextTextRecordFieldSpans(_text.AsSpan(), _options, null, ref _state, ref _visitor, out var fieldCount))
+            if (!TryReadNextTextRecordFieldSpans(_text.AsSpan(0, _endPosition), _options, null, ref _state, ref _visitor, out var fieldCount))
             {
                 return false;
             }
@@ -95,15 +136,15 @@ internal static partial class CsvParser
                     requestedRowCapacity);
             }
 
-            SkipPendingTextDataReaderRecords(_text.AsSpan(), _options, cancellationToken, ref _state);
+            SkipPendingTextDataReaderRecords(_text.AsSpan(0, _endPosition), _options, cancellationToken, ref _state);
 
-            if (_state.Position >= _text.Length)
+            if (_state.Position >= _endPosition)
             {
                 return true;
             }
 
             if (!TryFillTextDataReaderBatchAvx2(
-                    _text.AsSpan(),
+                    _text.AsSpan(0, _endPosition),
                     _options,
                     ref _state,
                     _batch,

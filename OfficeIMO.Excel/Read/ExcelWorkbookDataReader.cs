@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
@@ -489,6 +490,12 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        /// <inheritdoc />
+        public override Task<bool> NextResultAsync(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(NextResult());
+        }
+
         private void CloseAfterSheetOpenFailure() {
             _closed = true;
             try {
@@ -633,6 +640,15 @@ namespace OfficeIMO.Excel {
             ThrowIfClosed();
             _cancellationToken.ThrowIfCancellationRequested();
             return _current.Read();
+        }
+        /// <inheritdoc />
+        public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
+            ThrowIfClosed();
+            cancellationToken.ThrowIfCancellationRequested();
+            _cancellationToken.ThrowIfCancellationRequested();
+            bool hasRow = await _current.ReadAsync(cancellationToken).ConfigureAwait(false);
+            _cancellationToken.ThrowIfCancellationRequested();
+            return hasRow;
         }
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _current.GetSchemaTable();

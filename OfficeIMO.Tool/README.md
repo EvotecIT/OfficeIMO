@@ -46,6 +46,12 @@ officeimo extract report.docx --format markdown --output report.md
 
 # Return a compact JSON inspection result
 officeimo inspect deck.pptx
+
+# Inspect and convert tabular data without loading an editable workbook
+officeimo tabular sheets workbook.xlsx
+officeimo tabular schema workbook.xlsx --sheet Data
+officeimo tabular convert input.csv output.xlsx
+officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -59,6 +65,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo convert` routes PDF destinations to the first-party Word, Excel, or PowerPoint PDF adapter and Markdown/JSON destinations to OfficeIMO.Reader.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
+- `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
@@ -66,6 +73,11 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
 Run `officeimo help` or append `<area> --help` for the complete command contract.
+
+Tabular conversion writes through an atomic sibling staging file and refuses to replace an
+existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,
+`.xlsb`, and `.xls`; CSV and TSV are supported as delimited output. Select a workbook sheet
+with `--sheet <name>` or `--sheet-index <zero-based-index>`.
 
 ## Office documents to PDF
 

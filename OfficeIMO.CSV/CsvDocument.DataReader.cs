@@ -2,6 +2,7 @@
 
 using System.Data.Common;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.CSV;
 
@@ -183,6 +184,57 @@ public sealed partial class CsvDocument
             throw;
         }
     }
+
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// Asynchronously reads a bounded CSV file snapshot and opens a forward-only data reader over it.
+    /// Subsequent <see cref="DbDataReader.ReadAsync(CancellationToken)"/> calls are memory-backed and
+    /// therefore do not block on file I/O.
+    /// </summary>
+    /// <param name="path">Source CSV path.</param>
+    /// <param name="loadOptions">CSV load and input-bound options.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <param name="cancellationToken">Cancels asynchronous file reading and parsing.</param>
+    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
+    public static async Task<DbDataReader> OpenDataReaderAsync(
+        string path,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateAsyncReaderOptions(readerOptions);
+        CsvDocument document = await LoadAsync(path, loadOptions, cancellationToken).ConfigureAwait(false);
+        return document.CreateDataReader(readerOptions);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a bounded snapshot from a caller-owned stream and opens a forward-only
+    /// data reader over it. Disposing the returned reader does not dispose the source stream.
+    /// </summary>
+    /// <param name="stream">Readable source stream.</param>
+    /// <param name="loadOptions">CSV load and input-bound options.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <param name="cancellationToken">Cancels asynchronous stream reading and parsing.</param>
+    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
+    public static async Task<DbDataReader> OpenDataReaderAsync(
+        Stream stream,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateAsyncReaderOptions(readerOptions);
+        CsvDocument document = await LoadAsync(stream, loadOptions, cancellationToken).ConfigureAwait(false);
+        return document.CreateDataReader(readerOptions);
+    }
+
+    private static void ValidateAsyncReaderOptions(CsvDataReaderOptions? readerOptions)
+    {
+        if (readerOptions is { SchemaSampleSize: <= 0 })
+        {
+            throw new ArgumentOutOfRangeException(nameof(readerOptions), "Schema sample size must be greater than zero.");
+        }
+    }
+#endif
 
     /// <summary>
     /// Opens a forward-only data reader over a CSV stream.
