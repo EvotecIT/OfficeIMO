@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -5,29 +7,29 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public enum PdfLogicalElementKind {
     /// <summary>Line-level text recovered from positioned PDF text spans.</summary>
-    TextBlock,
+    TextBlock = 0,
     /// <summary>Heuristic heading line inferred from text size and geometry.</summary>
-    Heading,
-    /// <summary>Document-wide repeated or explicitly identified page header.</summary>
-    Header,
-    /// <summary>Document-wide repeated or explicitly identified page footer.</summary>
-    Footer,
-    /// <summary>Caption associated with nearby visual or tabular content.</summary>
-    Caption,
-    /// <summary>Footnote text identified by geometry and typography.</summary>
-    Footnote,
+    Heading = 1,
     /// <summary>Detected bullet or numbered list item.</summary>
-    ListItem,
+    ListItem = 2,
     /// <summary>Detected leader row such as label plus dotted value.</summary>
-    LeaderRow,
+    LeaderRow = 3,
     /// <summary>Detected table-like region.</summary>
-    Table,
+    Table = 4,
     /// <summary>Image XObject referenced by the page.</summary>
-    Image,
+    Image = 5,
     /// <summary>URI, named-destination, direct-destination, named-action, or remote GoTo link annotation on the page.</summary>
-    LinkAnnotation,
+    LinkAnnotation = 6,
     /// <summary>AcroForm widget annotation on the page.</summary>
-    FormWidget
+    FormWidget = 7,
+    /// <summary>Document-wide repeated or explicitly identified page header.</summary>
+    Header = 8,
+    /// <summary>Document-wide repeated or explicitly identified page footer.</summary>
+    Footer = 9,
+    /// <summary>Caption associated with nearby visual or tabular content.</summary>
+    Caption = 10,
+    /// <summary>Footnote text identified by geometry and typography.</summary>
+    Footnote = 11
 }
 
 /// <summary>
@@ -1130,7 +1132,8 @@ public sealed partial class PdfDocumentReadResult {
         PdfTextLayoutOptions? options,
         int[] pageNumbers,
         IReadOnlyList<PdfUnderstandingPageResult> analyses,
-        PdfReadProfile profile) {
+        PdfReadProfile profile,
+        CancellationToken cancellationToken) {
         document.DemandContentExtraction("logical object");
         if (analyses.Count != pageNumbers.Length) {
             throw new ArgumentException("Semantic analysis count must match the selected page count.", nameof(analyses));
@@ -1174,6 +1177,7 @@ public sealed partial class PdfDocumentReadResult {
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
             formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets);
             pages.Add(PdfLogicalPage.From(
@@ -1182,11 +1186,14 @@ public sealed partial class PdfDocumentReadResult {
                 pageNumber,
                 options,
                 pageFormWidgets,
-                analyses[i]));
+                analyses[i],
+                cancellationToken));
         }
         if (profile == PdfReadProfile.Structured) {
-            ApplyDocumentHeadingFontTiers(pages);
+            ApplyDocumentHeadingFontTiers(pages, cancellationToken);
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfDocumentReadResult(
             document.Metadata,
@@ -1216,18 +1223,23 @@ public sealed partial class PdfDocumentReadResult {
             profile);
     }
 
-    private static void ApplyDocumentHeadingFontTiers(IReadOnlyList<PdfLogicalPage> pages) {
+    private static void ApplyDocumentHeadingFontTiers(
+        IReadOnlyList<PdfLogicalPage> pages,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalHeading[] headings = pages.SelectMany(static page => page.Headings).ToArray();
         if (headings.Length == 0) return;
 
         var tiers = new List<double>();
         foreach (double fontSize in headings.Select(static heading => heading.FontSize).OrderByDescending(static size => size)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (tiers.Count == 0 || Math.Abs(tiers[tiers.Count - 1] - fontSize) > 0.5D) {
                 tiers.Add(fontSize);
             }
         }
 
         foreach (PdfLogicalHeading heading in headings) {
+            cancellationToken.ThrowIfCancellationRequested();
             int tier = tiers.FindIndex(size => Math.Abs(size - heading.FontSize) <= 0.5D) + 1;
             heading.ApplyDocumentFontTier(tier);
         }

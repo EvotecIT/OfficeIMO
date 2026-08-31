@@ -7,7 +7,6 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 /// layout recovery, table extraction, and the selected semantic profile.
 /// </summary>
 [MemoryDiagnoser]
-[RankColumn]
 public class PdfStructuredReadBenchmarks {
     private byte[] _pdf = null!;
 
@@ -32,7 +31,7 @@ public class PdfStructuredReadBenchmarks {
         }
     }
 
-    [Benchmark(Baseline = true)]
+    [Benchmark]
     public PdfStructuredReadObservation FastLoadAndRead() =>
         PdfUnderstandingBenchmarkValidation.Observe(Read(PdfReadProfile.Fast));
 

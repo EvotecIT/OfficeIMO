@@ -267,7 +267,7 @@ public sealed class PdfLogicalHeading {
         if (Evidence.Any(static item =>
                 string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
                 string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) return;
-        Level = Math.Max(Level, Math.Min(6, Math.Max(1, level)));
+        Level = Math.Min(6, Math.Max(1, level));
     }
 }
 

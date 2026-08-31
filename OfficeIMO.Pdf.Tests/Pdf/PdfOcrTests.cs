@@ -62,6 +62,9 @@ public class PdfOcrTests {
         PdfLogicalPage page = Assert.Single(result.EnrichedDocument.Pages);
 
         Assert.Equal("OCR first", page.TextBlocks[0].Text);
+        Assert.Equal(
+            page.TextBlocks.Select(static block => block.Text),
+            page.Elements.OfType<PdfLogicalTextBlock>().Select(static block => block.Text));
         Assert.True(page.TextBlocks.ToList().FindIndex(static block =>
             block.Text.Contains("Native follows OCR", StringComparison.Ordinal)) > 0);
         Assert.True(result.EnrichedDocument.Text.IndexOf("OCR first", StringComparison.Ordinal) <

@@ -247,6 +247,23 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_PromotesPageLocalHeadingToItsDocumentFontTier() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Only document heading")
+            .Paragraph(paragraph => paragraph.Text("Document body."))
+            .ToBytes();
+        var pipeline = new PdfUnderstandingPipelineOptions {
+            SemanticClassification = new HeadingLevelTwoClassificationStage()
+        };
+
+        PdfLogicalHeading fast = Assert.Single(Read(pdf, pipeline, PdfReadProfile.Fast).Headings);
+        PdfLogicalHeading structured = Assert.Single(Read(pdf, pipeline, PdfReadProfile.Structured).Headings);
+
+        Assert.Equal(2, fast.Level);
+        Assert.Equal(1, structured.Level);
+    }
+
+    [Fact]
     public void StructuredRead_PreservesDigitsWhenMatchingOutlineTitles() {
         PdfDocumentReadResult result = PdfDocument.Load(CreateNumberedOutlinePdf()).Read();
         PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
@@ -282,6 +299,85 @@ public class PdfUnderstandingPipelineTests {
             result.TaggedContent!.StructureElements,
             static element => element.StructureType == "P").MarkedContentReferences.Single();
         Assert.Equal(6, formReference.ContentStreamObjectNumber);
+    }
+
+    [Fact]
+    public void DocumentEnrichment_EnforcesSemanticElementLimitAfterOutlineProjection() {
+        PdfReadDocument document = PdfReadDocument.Open(CreateNumberedOutlinePdf());
+        PdfUnderstandingLine first = CreateUnderstandingLine("Section 1", 72D, 150D, 700D);
+        PdfUnderstandingLine second = CreateUnderstandingLine("Section 2", 72D, 150D, 650D);
+        var region = new PdfUnderstandingRegion(new[] { first, second });
+        var page = new PdfUnderstandingPageResult(
+            1,
+            first.Words.SelectMany(static word => word.SourceRuns)
+                .Concat(second.Words.SelectMany(static word => word.SourceRuns))
+                .ToArray(),
+            first.Words.Concat(second.Words).ToArray(),
+            new[] { first, second },
+            new[] { region },
+            new[] { region },
+            Array.Empty<PdfReadingOrderEvidence>(),
+            new[] {
+                new PdfUnderstandingSemanticElement(
+                    region,
+                    PdfUnderstandingSemanticKind.Paragraph,
+                    0.8D)
+            },
+            Array.Empty<PdfUnderstandingStageTrace>());
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocumentSemanticEnricher.Enrich(
+                document,
+                new[] { 1 },
+                new[] { page },
+                1,
+                10_000,
+                CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
+    }
+
+    [Fact]
+    public void LogicalProjection_ReusesCanonicalDecodedRunsAndHonorsCancellation() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Source content must not be decoded twice"))
+            .ToBytes();
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        PdfUnderstandingLine line = CreateUnderstandingLine("Canonical decoded content", 72D, 250D, 700D);
+        PdfTextSpan[] runs = line.Words.SelectMany(static word => word.SourceRuns).ToArray();
+        var region = new PdfUnderstandingRegion(new[] { line });
+        var analysis = new PdfUnderstandingPageResult(
+            1,
+            runs,
+            line.Words,
+            new[] { line },
+            new[] { region },
+            new[] { region },
+            Array.Empty<PdfReadingOrderEvidence>(),
+            new[] { new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph, 0.8D) },
+            Array.Empty<PdfUnderstandingStageTrace>());
+
+        PdfLogicalPage projected = PdfLogicalPage.From(
+            document,
+            document.Pages[0],
+            1,
+            new PdfTextLayoutOptions(),
+            analysis: analysis,
+            cancellationToken: CancellationToken.None);
+
+        Assert.Contains(projected.TextBlocks, static block => block.Text == "Canonical decoded content");
+        Assert.DoesNotContain(projected.TextBlocks, static block => block.Text.Contains("Source content", StringComparison.Ordinal));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => PdfLogicalPage.From(
+            document,
+            document.Pages[0],
+            1,
+            new PdfTextLayoutOptions(),
+            analysis: analysis,
+            cancellationToken: cancellation.Token));
     }
 
     [Fact]
@@ -1031,5 +1127,12 @@ public class PdfUnderstandingPipelineTests {
     private sealed class HeadingClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
             orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 1)).ToArray();
+    }
+
+    private sealed class HeadingLevelTwoClassificationStage : IPdfSemanticClassificationStage {
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
+            orderedRegions.Select(static region => region.Lines.Max(static line => line.FontSize) >= 15D
+                ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 2)
+                : new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
     }
 }

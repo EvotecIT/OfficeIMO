@@ -8,6 +8,7 @@ internal static class PdfDocumentSemanticEnricher {
         PdfReadDocument document,
         int[] pageNumbers,
         IReadOnlyList<PdfUnderstandingPageResult> pages,
+        int maxElementsPerPage,
         long maxWorkUnits,
         CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
@@ -23,8 +24,11 @@ internal static class PdfDocumentSemanticEnricher {
             .Select(static page => page.Elements.ToList())
             .ToArray();
         ApplyRepeatedPageEdgeEvidence(document, pageNumbers, pages, elements, workBudget);
+        EnsureElementLimits(elements, maxElementsPerPage);
         ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
+        EnsureElementLimits(elements, maxElementsPerPage);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, workBudget);
+        EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
         var result = new PdfUnderstandingPageResult[pages.Count];
@@ -43,6 +47,17 @@ internal static class PdfDocumentSemanticEnricher {
                 page.Trace);
         }
         return Array.AsReadOnly(result);
+    }
+
+    private static void EnsureElementLimits(
+        IReadOnlyList<PdfUnderstandingSemanticElement>[] elements,
+        int maximum) {
+        for (int pageIndex = 0; pageIndex < elements.Length; pageIndex++) {
+            int actual = elements[pageIndex].Count;
+            if (actual > maximum) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, actual);
+            }
+        }
     }
 
     private static void ApplyRepeatedPageEdgeEvidence(

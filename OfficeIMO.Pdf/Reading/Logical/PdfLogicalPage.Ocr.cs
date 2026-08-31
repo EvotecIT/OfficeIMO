@@ -39,13 +39,16 @@ public sealed partial class PdfLogicalPage {
             Analysis);
         IReadOnlyList<PdfLogicalTextBlock> orderedTextBlocks = OrderTextBlocks(merged);
         if (orderedTextBlocks.SequenceEqual(textBlocks)) return merged;
+        var orderedElements = new List<IPdfLogicalElement>(elements.Count);
+        orderedElements.AddRange(orderedTextBlocks);
+        orderedElements.AddRange(elements.Where(static element => element is not PdfLogicalTextBlock));
         return new PdfLogicalPage(
             PageNumber,
             Width,
             Height,
             RotationDegrees,
             Geometry,
-            elements.AsReadOnly(),
+            orderedElements.AsReadOnly(),
             orderedTextBlocks,
             headings,
             paragraphs,

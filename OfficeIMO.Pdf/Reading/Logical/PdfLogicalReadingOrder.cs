@@ -225,10 +225,12 @@ public static class PdfLogicalReadingOrderAnalysis {
         PdfLogicalReadingOrderItem[] items) {
         if (page.Analysis.ReadingOrder.Count == 0 || items.Length < 2) return items;
 
+        Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
+            IndexCanonicalLines(page.Analysis.ReadingOrder);
         var ranked = new CanonicalRank[items.Length];
         var matchedIndexes = new List<int>();
         for (int index = 0; index < items.Length; index++) {
-            bool matched = TryGetCanonicalPosition(page, items[index], out long position);
+            bool matched = TryGetCanonicalPosition(page, items[index], canonicalLines, out long position);
             ranked[index] = new CanonicalRank(items[index], index, matched, matched ? position : 0D);
             if (matched) matchedIndexes.Add(index);
         }
@@ -296,6 +298,7 @@ public static class PdfLogicalReadingOrderAnalysis {
     private static bool TryGetCanonicalPosition(
         PdfLogicalPage page,
         PdfLogicalReadingOrderItem item,
+        Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines,
         out long position) {
         position = 0L;
         IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
@@ -310,23 +313,72 @@ public static class PdfLogicalReadingOrderAnalysis {
         long best = long.MaxValue;
         for (int logicalLineIndex = 0; logicalLineIndex < lines.Count; logicalLineIndex++) {
             PdfLogicalTextBlock block = lines[logicalLineIndex];
-            for (int regionIndex = 0; regionIndex < page.Analysis.ReadingOrder.Count; regionIndex++) {
-                PdfUnderstandingRegion region = page.Analysis.ReadingOrder[regionIndex];
-                for (int lineIndex = 0; lineIndex < region.Lines.Count; lineIndex++) {
-                    PdfUnderstandingLine candidate = region.Lines[lineIndex];
-                    if (Math.Abs(candidate.BaselineY - block.BaselineY) > 0.25D ||
-                        Math.Abs(candidate.XStart - block.XStart) > 0.5D ||
-                        !string.Equals(
-                            PdfTextSimilarity.NormalizeSignature(candidate.Text),
-                            PdfTextSimilarity.NormalizeSignature(block.Text),
-                            StringComparison.Ordinal)) continue;
-                    best = Math.Min(best, checked((long)regionIndex * 100_000L + lineIndex));
+            string text = PdfTextSimilarity.NormalizeSignature(block.Text);
+            long baselineBucket = GetCanonicalBucket(block.BaselineY, 0.25D);
+            long xBucket = GetCanonicalBucket(block.XStart, 0.5D);
+            for (long baselineOffset = -1; baselineOffset <= 1; baselineOffset++) {
+                for (long xOffset = -1; xOffset <= 1; xOffset++) {
+                    if (!canonicalLines.TryGetValue(
+                            (baselineBucket + baselineOffset, xBucket + xOffset, text),
+                            out IReadOnlyList<CanonicalLinePosition>? candidates)) continue;
+                    for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                        CanonicalLinePosition candidate = candidates[candidateIndex];
+                        if (Math.Abs(candidate.BaselineY - block.BaselineY) > 0.25D ||
+                            Math.Abs(candidate.XStart - block.XStart) > 0.5D) continue;
+                        best = Math.Min(best, candidate.Position);
+                    }
                 }
             }
         }
         if (best == long.MaxValue) return false;
         position = best;
         return true;
+    }
+
+    private static Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>>
+        IndexCanonicalLines(IReadOnlyList<PdfUnderstandingRegion> regions) {
+        var index = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<CanonicalLinePosition>>();
+        for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> lines = regions[regionIndex].Lines;
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                PdfUnderstandingLine line = lines[lineIndex];
+                var key = (
+                    GetCanonicalBucket(line.BaselineY, 0.25D),
+                    GetCanonicalBucket(line.XStart, 0.5D),
+                    PdfTextSimilarity.NormalizeSignature(line.Text));
+                if (!index.TryGetValue(key, out List<CanonicalLinePosition>? positions)) {
+                    positions = new List<CanonicalLinePosition>();
+                    index.Add(key, positions);
+                }
+                positions.Add(new CanonicalLinePosition(
+                    line.BaselineY,
+                    line.XStart,
+                    checked((long)regionIndex * 100_000L + lineIndex)));
+            }
+        }
+        return index.ToDictionary(
+            static pair => pair.Key,
+            static pair => (IReadOnlyList<CanonicalLinePosition>)pair.Value.AsReadOnly());
+    }
+
+    private static long GetCanonicalBucket(double value, double width) {
+        if (double.IsNaN(value)) return 0L;
+        double bucket = Math.Floor(value / width);
+        if (bucket <= long.MinValue) return long.MinValue + 1;
+        if (bucket >= long.MaxValue) return long.MaxValue - 1;
+        return (long)bucket;
+    }
+
+    private readonly struct CanonicalLinePosition {
+        internal CanonicalLinePosition(double baselineY, double xStart, long position) {
+            BaselineY = baselineY;
+            XStart = xStart;
+            Position = position;
+        }
+
+        internal double BaselineY { get; }
+        internal double XStart { get; }
+        internal long Position { get; }
     }
 
     private readonly struct CanonicalRank {

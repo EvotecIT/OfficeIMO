@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -503,6 +504,15 @@ public static class PdfReadPageExtensions {
     /// <param name="options">Optional layout options.</param>
     public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
+        return ExtractStructured(page, spans, options, CancellationToken.None);
+    }
+
+    internal static StructuredPage ExtractStructured(
+        this PdfReadPage page,
+        IReadOnlyList<PdfTextSpan> spans,
+        PdfTextLayoutOptions? options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
             var (_, h) = page.GetPageSize();
             double topCut = h - options.IgnoreHeaderHeight;
@@ -513,9 +523,11 @@ public static class PdfReadPageExtensions {
 
         var engineOpts = options?.ToEngineOptions();
         var (_, pageHeight) = page.GetPageSize();
-        return ContentStructureExtractor.Extract(
+        StructuredPage result = ContentStructureExtractor.Extract(
             spans,
             engineOpts ?? new TextLayoutEngine.Options(),
             pageHeight);
+        cancellationToken.ThrowIfCancellationRequested();
+        return result;
     }
 }

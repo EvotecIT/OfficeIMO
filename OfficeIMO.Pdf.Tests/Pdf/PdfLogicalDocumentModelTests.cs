@@ -6,6 +6,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentReadResultTests {
     [Fact]
+    public void PdfLogicalElementKind_PreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)PdfLogicalElementKind.TextBlock);
+        Assert.Equal(1, (int)PdfLogicalElementKind.Heading);
+        Assert.Equal(2, (int)PdfLogicalElementKind.ListItem);
+        Assert.Equal(3, (int)PdfLogicalElementKind.LeaderRow);
+        Assert.Equal(4, (int)PdfLogicalElementKind.Table);
+        Assert.Equal(5, (int)PdfLogicalElementKind.Image);
+        Assert.Equal(6, (int)PdfLogicalElementKind.LinkAnnotation);
+        Assert.Equal(7, (int)PdfLogicalElementKind.FormWidget);
+        Assert.Equal(8, (int)PdfLogicalElementKind.Header);
+        Assert.Equal(9, (int)PdfLogicalElementKind.Footer);
+        Assert.Equal(10, (int)PdfLogicalElementKind.Caption);
+        Assert.Equal(11, (int)PdfLogicalElementKind.Footnote);
+    }
+
+    [Fact]
     public void Read_BuildsHeadingHierarchyAndDirectSectionOwnership() {
         byte[] pdf = PdfDocument.Create()
             .H1("Operations")

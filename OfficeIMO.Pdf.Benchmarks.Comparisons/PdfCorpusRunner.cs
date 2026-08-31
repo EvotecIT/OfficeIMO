@@ -157,10 +157,13 @@ internal static partial class PdfCorpusRunner {
             };
             long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
             var stopwatch = Stopwatch.StartNew();
-            officePages = PdfDocumentReaders.ExtractOfficeImoTextByPage(bytes, readOptions);
-            stopwatch.Stop();
-            readElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
-            readAllocatedBytes = Math.Max(0L, GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
+            try {
+                officePages = PdfDocumentReaders.ExtractOfficeImoTextByPage(bytes, readOptions);
+            } finally {
+                stopwatch.Stop();
+                readElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
+                readAllocatedBytes = Math.Max(0L, GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
+            }
             File.WriteAllText(
                 GetEntryOutputPath(diagnosticsDirectory, entry.Id, "." + oracle + ".txt"),
                 string.Join("\n\f\n", oraclePages));

@@ -34,6 +34,7 @@ internal static class PdfDocumentReadEngine {
                 document,
                 pageNumbers,
                 analyses,
+                pipelineOptions.MaxRegionsPerPage,
                 pipelineOptions.MaxDocumentWorkUnits,
                 cancellationToken);
         }
@@ -44,6 +45,7 @@ internal static class PdfDocumentReadEngine {
             options.LayoutOptions,
             pageNumbers,
             analyses,
-            options.Profile);
+            options.Profile,
+            cancellationToken);
     }
 }
