@@ -146,6 +146,14 @@ internal static class IWorkArchiveParser {
             if (offset > stream.Length - infoLength) throw new InvalidDataException($"Truncated ArchiveInfo at offset {offset}.");
             byte[] infoBytes = Slice(stream, offset, infoLength);
             offset += infoLength;
+            int messageCount = IWorkProtobuf.CountFields(
+                infoBytes, 2, options.MaximumProtobufFieldCount);
+            if (messageCount == 0) {
+                throw new InvalidDataException("ArchiveInfo does not declare any payloads.");
+            }
+            if (messageCount > options.MaximumRecordCount - records.Count) {
+                throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaximumRecordCount}.");
+            }
             IWorkWireMessage archiveInfo = IWorkProtobuf.Parse(infoBytes, options);
             ulong? identifier = archiveInfo.GetUnsigned(1);
             if (!identifier.HasValue || archiveInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
@@ -154,14 +162,6 @@ internal static class IWorkArchiveParser {
 
             if (archiveInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)) {
                 throw new InvalidDataException($"ArchiveInfo {identifier.Value} contains malformed MessageInfo entries.");
-            }
-            int messageCount = IWorkProtobuf.CountFields(
-                infoBytes, 2, options.MaximumProtobufFieldCount);
-            if (messageCount == 0) {
-                throw new InvalidDataException($"ArchiveInfo {identifier.Value} does not declare any payloads.");
-            }
-            if (messageCount > options.MaximumRecordCount - records.Count) {
-                throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaximumRecordCount}.");
             }
             IReadOnlyList<IWorkWireMessage> messages = archiveInfo.GetRepeatedMessages(2);
             if (messages.Count != messageCount) {

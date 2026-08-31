@@ -184,8 +184,10 @@ internal static class IWorkPagesReader {
         } else {
             bodyContent = IWorkTextReader.Read(index, body, projectionBudget);
             if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction);
+            int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
+                paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
             ReadHeadersAndFooters(index, body, sections, projectionBudget, diagnostics,
-                ref supportsEditableReconstruction);
+                maximumSectionCount, ref supportsEditableReconstruction);
         }
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
@@ -436,13 +438,38 @@ internal static class IWorkPagesReader {
 
     private static void ReadHeadersAndFooters(IWorkObjectIndex index, IWorkArchiveRecord body,
         List<IWorkPagesSection> sections, IWorkProjectionBudget projectionBudget,
-        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        List<IWorkDiagnostic> diagnostics, int maximumSectionCount,
+        ref bool supportsEditableReconstruction) {
         IWorkWireMessage bodyMessage = index.Message(body);
         bool hasSectionTable = bodyMessage.HasField(17);
-        IWorkWireMessage? sectionTable = IWorkObjectIndex.TryGetMessage(bodyMessage, 17, out bool malformedSectionTable);
         if (!hasSectionTable) return;
+        byte[]? sectionTableBytes = bodyMessage.GetBytes(17);
+        int declaredSectionCount;
+        int totalSectionTableFields = -1;
+        try {
+            declaredSectionCount = sectionTableBytes == null
+                ? -1
+                : bodyMessage.CountNestedFields(sectionTableBytes, 1,
+                    out totalSectionTableFields);
+        } catch (InvalidDataException) {
+            declaredSectionCount = -1;
+            totalSectionTableFields = -1;
+        }
         if (bodyMessage.HasUnexpectedWireKind(17, IWorkWireKind.Bytes)
-            || malformedSectionTable || sectionTable == null) {
+            || bodyMessage.FieldCount(17) != 1 || declaredSectionCount < 0
+            || totalSectionTableFields != declaredSectionCount
+            || declaredSectionCount > maximumSectionCount) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_PAGES_SECTION_UNSUPPORTED",
+                "The Pages section table is malformed; editable reconstruction is incomplete.",
+                body.EntryPath, body.Identifier));
+            return;
+        }
+        IWorkWireMessage sectionTable;
+        try {
+            sectionTable = bodyMessage.ParseNestedMessage(sectionTableBytes!);
+        } catch (InvalidDataException) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_SECTION_UNSUPPORTED",

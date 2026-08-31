@@ -97,7 +97,9 @@ public sealed partial class IWorkBoundaryTests {
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)), new[] { bodyId }),
             ArchiveRecord(bodyId, 2001,
-                Message(StringField(3, "Body"), BytesField(17, sectionTable)), sectionIds),
+                Message(StringField(3, string.Join("\u0004",
+                        Enumerable.Repeat("Body", sectionCount))),
+                    BytesField(17, sectionTable)), sectionIds),
             ArchiveRecord(headerFooterId, 10143, Message(ReferenceField(1, headerStorageId)),
                 new[] { headerStorageId }),
             ArchiveRecord(headerStorageId, 2001, Message(StringField(3, "Header")))

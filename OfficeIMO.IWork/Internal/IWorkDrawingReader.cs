@@ -108,42 +108,51 @@ internal static class IWorkDrawingReader {
             complete = false;
             return null;
         }
-        ulong? dataIdentifier = null;
+        var dataIdentifiers = new List<ulong>(6);
+        var seenIdentifiers = new HashSet<ulong>();
         foreach (int field in new[] { 11, 15, 17, 13, 12, 23 }) {
             ulong? candidate = DataIdentifier(message, field, out bool identifierComplete);
             if (!identifierComplete) {
                 complete = false;
                 return null;
             }
-            dataIdentifier ??= candidate;
+            if (candidate.HasValue && seenIdentifiers.Add(candidate.Value)) {
+                dataIdentifiers.Add(candidate.Value);
+            }
         }
-        if (!dataIdentifier.HasValue) {
+        if (dataIdentifiers.Count == 0) {
             complete = false;
             return null;
         }
         ImageLookup lookup = ImageLookups.GetValue(source, CreateImageLookup);
-        if (!lookup.IsMetadataComplete || lookup.DuplicateDataIdentifiers.Contains(dataIdentifier.Value)
-            || !lookup.DataEntries.TryGetValue(dataIdentifier.Value, out DataEntry? data)) {
+        if (!lookup.IsMetadataComplete) {
             complete = false;
             return null;
         }
-        string path = "Data/" + data.StoredFileName;
-        if (!lookup.PackageEntries.TryGetValue(path, out IWorkPackageEntry? entry)) {
+        (DataEntry Data, IWorkPackageEntry Entry, string MediaType,
+            int PixelWidth, int PixelHeight, long DecodedBytes)? resolved = null;
+        foreach (ulong dataIdentifier in dataIdentifiers) {
+            if (lookup.DuplicateDataIdentifiers.Contains(dataIdentifier)
+                || !lookup.DataEntries.TryGetValue(dataIdentifier, out DataEntry? candidateData)) continue;
+            string candidatePath = "Data/" + candidateData.StoredFileName;
+            if (!lookup.PackageEntries.TryGetValue(candidatePath,
+                    out IWorkPackageEntry? candidateEntry)) continue;
+            string candidateMediaType = MediaType(candidateEntry.Path, candidateEntry.Bytes);
+            if (!IsEditableOwnerImageMediaType(candidateMediaType)) continue;
+            (int? candidateWidth, int? candidateHeight) = IWorkImageInfo.Read(
+                candidateEntry.Bytes, candidateMediaType,
+                projectionBudget.RemainingDecodedImageBytes, out long candidateDecodedBytes);
+            if (!candidateWidth.HasValue || !candidateHeight.HasValue) continue;
+            resolved = (candidateData, candidateEntry, candidateMediaType,
+                candidateWidth.Value, candidateHeight.Value, candidateDecodedBytes);
+            break;
+        }
+        if (!resolved.HasValue) {
             complete = false;
             return null;
         }
-        string mediaType = MediaType(entry.Path, entry.Bytes);
-        if (!IsEditableOwnerImageMediaType(mediaType)) {
-            complete = false;
-            return null;
-        }
-        (int? pixelWidth, int? pixelHeight) = IWorkImageInfo.Read(
-            entry.Bytes, mediaType, projectionBudget.RemainingDecodedImageBytes,
-            out long decodedBytes);
-        if (!pixelWidth.HasValue || !pixelHeight.HasValue) {
-            complete = false;
-            return null;
-        }
+        (DataEntry data, IWorkPackageEntry entry, string mediaType,
+            int pixelWidth, int pixelHeight, long decodedBytes) = resolved.Value;
         projectionBudget.AddDecodedImageBytes(decodedBytes);
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
