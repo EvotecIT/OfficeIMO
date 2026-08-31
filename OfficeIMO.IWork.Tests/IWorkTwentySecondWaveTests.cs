@@ -108,7 +108,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreateKeynotePackageWithTableDefaults(
         int rows, int columns, double defaultRowHeight, double defaultColumnWidth,
-        bool includePreview = false) {
+        bool includePreview = false, string? accessibilityDescription = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -127,7 +127,11 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5, Message(ReferenceField(6, tableId))),
             ArchiveRecord(tableId, 6000,
-                Message(ReferenceField(2, modelId)), new[] { modelId }),
+                Message(
+                    accessibilityDescription == null
+                        ? Array.Empty<byte>()
+                        : BytesField(1, Message(StringField(8, accessibilityDescription))),
+                    ReferenceField(2, modelId)), new[] { modelId }),
             ArchiveRecord(modelId, 6001, model));
         return includePreview
             ? CreatePackage(("Index/Slide.iwa", FrameIwa(records)),

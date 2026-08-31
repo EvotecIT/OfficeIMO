@@ -79,7 +79,8 @@ public sealed class IWorkTable {
     internal IWorkTable(string name, int rowCount, int columnCount,
         IReadOnlyList<IWorkTableCell> cells, int headerRowCount = 0, int headerColumnCount = 0,
         int footerRowCount = 0, double? defaultRowHeight = null, double? defaultColumnWidth = null,
-        IReadOnlyList<IWorkTableMergeRange>? mergedRanges = null, IWorkGeometry? geometry = null) {
+        IReadOnlyList<IWorkTableMergeRange>? mergedRanges = null, IWorkGeometry? geometry = null,
+        string? accessibilityDescription = null) {
         Name = name;
         RowCount = rowCount;
         ColumnCount = columnCount;
@@ -90,6 +91,7 @@ public sealed class IWorkTable {
         DefaultColumnWidth = defaultColumnWidth;
         MergedRanges = Array.AsReadOnly((mergedRanges ?? Array.Empty<IWorkTableMergeRange>()).ToArray());
         Geometry = geometry;
+        AccessibilityDescription = accessibilityDescription;
         _cells = new Dictionary<long, IWorkTableCell>();
         foreach (IWorkTableCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
         Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
@@ -115,6 +117,8 @@ public sealed class IWorkTable {
     public IReadOnlyList<IWorkTableMergeRange> MergedRanges { get; }
     /// <summary>Gets the table drawable geometry when present.</summary>
     public IWorkGeometry? Geometry { get; }
+    /// <summary>Gets the source table accessibility description.</summary>
+    public string? AccessibilityDescription { get; }
     /// <summary>Gets materialized non-empty or diagnostic cells.</summary>
     public IReadOnlyList<IWorkTableCell> Cells { get; }
 

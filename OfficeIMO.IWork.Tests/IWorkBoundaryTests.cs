@@ -989,7 +989,7 @@ public sealed partial class IWorkBoundaryTests {
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
         byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false,
-        byte[]? textBoxDrawable = null) {
+        byte[]? textBoxDrawable = null, byte[]? tableDrawable = null) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -1009,7 +1009,11 @@ public sealed partial class IWorkBoundaryTests {
             ulong stringListId = tableInfoId + 3;
             sheetFields.Add(ReferenceField(2, tableInfoId));
             records.Add(ArchiveRecord(tableInfoId, 6000,
-                table.MissingModel ? Message() : Message(ReferenceField(2, modelId))));
+                table.MissingModel
+                    ? Message()
+                    : Message(
+                        tableDrawable == null ? Array.Empty<byte>() : BytesField(1, tableDrawable),
+                        ReferenceField(2, modelId))));
             if (table.MissingModel) continue;
 
             byte[] rowInfo = table.LegacyStorage

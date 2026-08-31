@@ -109,9 +109,9 @@ public sealed class IWorkKeynoteProjection {
         return _source.CreateReport(kind, Diagnostics, preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
-                : Slides.Count + Slides.Sum(slide => slide.Body.Count + slide.Images.Count + slide.Tables.Count
+                : Slides.Count + Slides.Sum(slide => slide.TextBoxes.Count + slide.Images.Count + slide.Tables.Count
                     + slide.Tables.Sum(table => table.Cells.Count)
-                    + (slide.Title.Length > 0 ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
+                    + (slide.TitleBox != null ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {

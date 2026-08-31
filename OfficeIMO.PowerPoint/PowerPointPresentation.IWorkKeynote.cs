@@ -136,6 +136,7 @@ public sealed partial class PowerPointPresentation {
                 : Math.Max(36d, 24d * source.RowCount);
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
+        table.AltText = source.AccessibilityDescription;
         table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
         table.FirstRow = source.HeaderRowCount > 0;
         table.FirstColumn = source.HeaderColumnCount > 0;

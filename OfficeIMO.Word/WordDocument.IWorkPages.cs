@@ -219,6 +219,7 @@ public partial class WordDocument {
     private static void AddTable(WordDocument document, IWorkTable source) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         WordTable table = document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
+        table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0) {
             int width = ToSignedTwips(source.DefaultColumnWidth.Value);
             table.ColumnWidthType = WordTableWidthUnit.Dxa;

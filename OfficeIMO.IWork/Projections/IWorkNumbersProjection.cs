@@ -257,7 +257,8 @@ internal static class IWorkNumbersReader {
             return null;
         }
         IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(tableInfo, 1, out bool malformedDrawable);
-        if (malformedDrawable || tableInfo.HasBytes(1) && drawable == null) {
+        if (malformedDrawable || tableInfo.LacksWireKind(1, IWorkWireKind.Bytes)
+            || tableInfo.HasField(1) && drawable == null) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_DRAWABLE_UNSUPPORTED",
@@ -281,20 +282,40 @@ internal static class IWorkNumbersReader {
         bool metadataComplete = true;
         string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4,
             projectionBudget, ref metadataComplete);
-        if (!metadataComplete || hyperlink != null) {
+        string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(drawable, 8,
+            projectionBudget, ref metadataComplete);
+        if (!metadataComplete) {
+            supportsEditableReconstruction = false;
+            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_DRAWABLE_UNSUPPORTED"
+                    && diagnostic.RecordIdentifier == tableRecord.Identifier)) {
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_TABLE_DRAWABLE_UNSUPPORTED",
+                    "An iWork table contains malformed drawable metadata; editable reconstruction is incomplete.",
+                    tableRecord.EntryPath, tableRecord.Identifier));
+            }
+        }
+        if (hyperlink != null) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_HYPERLINK_UNSUPPORTED",
                 "An iWork table contains a drawable hyperlink that is preserved but cannot be represented by the editable table owners.",
                 tableRecord.EntryPath, tableRecord.Identifier));
         }
+        if (accessibilityDescription != null && source.Kind == IWorkDocumentKind.Numbers) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_NUMBERS_TABLE_ACCESSIBILITY_UNSUPPORTED",
+                "A Numbers table accessibility description is preserved but cannot be represented by the editable worksheet projection.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+        }
         return ReadTable(source, source.Index, model, geometry, projectionBudget, diagnostics,
-            ref materializedCellCount, ref supportsEditableReconstruction);
+            accessibilityDescription, ref materializedCellCount, ref supportsEditableReconstruction);
     }
 
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
         IWorkArchiveRecord model, IWorkGeometry? geometry, IWorkProjectionBudget projectionBudget,
         List<IWorkDiagnostic> diagnostics,
+        string? accessibilityDescription,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
         IWorkWireMessage message = index.Message(model);
         if (HasUnsupportedTableScalarEncoding(message)) {
@@ -528,7 +549,7 @@ internal static class IWorkNumbersReader {
 
         IWorkTable CreateTable() => new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
-            mergedRanges, geometry);
+            mergedRanges, geometry, accessibilityDescription);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

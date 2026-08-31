@@ -19,8 +19,15 @@ internal static class IWorkContainerReader {
         if (Directory.Exists(path)) return ReadDirectory(path, options);
         if (!File.Exists(path)) throw new FileNotFoundException("The iWork source was not found.", path);
 
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
-            bufferSize: 81920, FileOptions.SequentialScan);
+        string fullPath = Path.GetFullPath(path);
+        if ((File.GetAttributes(fullPath) & FileAttributes.ReparsePoint) != 0) {
+            throw new InvalidDataException("iWork package paths cannot be symbolic links or reparse points.");
+        }
+        string parent = Path.GetDirectoryName(fullPath)
+            ?? throw new InvalidDataException("The iWork package path has no parent directory.");
+        string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(parent);
+        using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(
+            fullPath, physicalRoot, 81920);
         return Read(stream, options);
     }
 
@@ -83,10 +90,8 @@ internal static class IWorkContainerReader {
             }
         }
         ExpandNestedIndex(entries, ref total, ref nodeCount, options);
-        IWorkContainerKind kind = entries.ContainsKey("Index.zip")
-            ? IWorkContainerKind.ZipPackageWithNestedIndex
-            : IWorkContainerKind.DirectoryBundle;
-        return new IWorkPackageData(kind, entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
+        return new IWorkPackageData(IWorkContainerKind.DirectoryBundle,
+            entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
     }
 
     private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options) {
