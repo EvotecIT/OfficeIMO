@@ -176,11 +176,15 @@ internal static class IWorkPagesReader {
                 "The Pages document declares invalid page measurements; editable reconstruction is incomplete.",
                 document.EntryPath, document.Identifier));
         }
-        IWorkArchiveRecord? body = index.Dereference(documentMessage, 4);
-        if (body == null || body.MessageType != TextStorageArchive) {
+        bool bodyReferenceComplete = documentMessage.FieldCount(4) == 1
+            && !documentMessage.HasUnexpectedWireKind(4, IWorkWireKind.Bytes);
+        IWorkArchiveRecord? body = bodyReferenceComplete
+            ? index.Dereference(documentMessage, 4)
+            : null;
+        if (!bodyReferenceComplete || body == null || body.MessageType != TextStorageArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
-                "The Pages document root does not reference a supported body text storage.", document.EntryPath, document.Identifier));
+                "The Pages document root does not reference exactly one supported body text storage.", document.EntryPath, document.Identifier));
         } else {
             bodyContent = IWorkTextReader.Read(index, body, projectionBudget);
             if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction);

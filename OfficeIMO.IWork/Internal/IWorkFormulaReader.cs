@@ -14,6 +14,7 @@ internal sealed class IWorkFormulaResult {
 
 internal static class IWorkFormulaReader {
     private const int PrimaryPrecedence = 10;
+    private const int SumFunctionIndex = 168;
     private const int UnaryPrecedence = 6;
     private static readonly IReadOnlyDictionary<int, string> FunctionNames = new Dictionary<int, string> {
         [1] = "ABS",
@@ -45,7 +46,7 @@ internal static class IWorkFormulaReader {
         [112] = "ROUND",
         [119] = "SECOND",
         [124] = "RIGHT",
-        [168] = "SUM",
+        [SumFunctionIndex] = "SUM",
         [169] = "SUMIF"
     };
 
@@ -209,13 +210,21 @@ internal static class IWorkFormulaReader {
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes)) return false;
         if (nodes.Any(node => node.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
+            if (nodes.Count != 1) return false;
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
             if (tract == null
                 || !TryAbsoluteRange(tract, 4, out firstRow, out lastRow)
                 || !TryAbsoluteRange(tract, 3, out firstColumn, out lastColumn)) return false;
             return firstRow >= 0 && firstColumn >= 0 && lastRow >= firstRow && lastColumn >= firstColumn;
         }
-        if (nodes.Count < 3 || nodes[0].GetUnsigned(1) != 36
+        bool hasSupportedRangeWrapper = nodes.Count == 4
+            && nodes[3].GetUnsigned(1) == 16
+            && !nodes[3].HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+            && !nodes[3].HasUnexpectedWireKind(3, IWorkWireKind.Varint)
+            && nodes[3].GetUnsigned(2) == SumFunctionIndex
+            && nodes[3].GetUnsigned(3) == 1;
+        if (nodes.Count != 3 && !hasSupportedRangeWrapper) return false;
+        if (nodes[0].GetUnsigned(1) != 36
             || nodes[1].GetUnsigned(1) != 36 || nodes[2].GetUnsigned(1) != 29
             || !TryAbsoluteCell(nodes[0], out firstRow, out firstColumn)
             || !TryAbsoluteCell(nodes[1], out lastRow, out lastColumn)) return false;

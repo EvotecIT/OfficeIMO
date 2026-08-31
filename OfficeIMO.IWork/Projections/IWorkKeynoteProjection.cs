@@ -159,10 +159,15 @@ internal static class IWorkKeynoteReader {
                     : "No supported Keynote document root was found; editable reconstruction is unavailable."));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
-        IWorkArchiveRecord? show = index.Dereference(index.Message(document), 2);
-        if (show == null || show.MessageType != ShowArchive) {
+        IWorkWireMessage documentMessage = index.Message(document);
+        bool showReferenceComplete = documentMessage.FieldCount(2) == 1
+            && !documentMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
+        IWorkArchiveRecord? show = showReferenceComplete
+            ? index.Dereference(documentMessage, 2)
+            : null;
+        if (!showReferenceComplete || show == null || show.MessageType != ShowArchive) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
-                "The Keynote document root does not reference a supported show object.", document.EntryPath, document.Identifier));
+                "The Keynote document root does not reference exactly one supported show object.", document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkWireMessage showMessage = index.Message(show);

@@ -928,14 +928,12 @@ internal static class IWorkNumbersReader {
             case 5:
                 if (!hasDate) return Error(row, column, "Date cell has no date value field.");
                 if (!IsFinite(dateValue)) return Error(row, column, "Date cell has a non-finite value.");
-                try {
-                    DateTime value = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddSeconds(dateValue);
-                    return hasFormula
-                        ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, value, IWorkCellKind.DateTime)
-                        : new IWorkTableCell(row, column, IWorkCellKind.DateTime, value);
-                } catch (ArgumentOutOfRangeException) {
+                if (!TryReadDateTime(dateValue, out DateTime value)) {
                     return Error(row, column, "Date cell is outside the supported DateTime range.");
                 }
+                return hasFormula
+                    ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, value, IWorkCellKind.DateTime)
+                    : new IWorkTableCell(row, column, IWorkCellKind.DateTime, value);
             case 6:
                 if (!hasDouble) return Error(row, column, "Boolean cell has no value field.");
                 if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
@@ -1007,6 +1005,26 @@ internal static class IWorkNumbersReader {
         BitConverter.Int64BitsToDouble(unchecked((long)IWorkProtobuf.ReadUInt64(buffer, offset)));
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static bool TryReadDateTime(double seconds, out DateTime value) {
+        long epochTicks = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
+        double roundedDeltaTicks = Math.Round(seconds * TimeSpan.TicksPerSecond,
+            MidpointRounding.AwayFromZero);
+        if (!IsFinite(roundedDeltaTicks)
+            || roundedDeltaTicks < -epochTicks
+            || roundedDeltaTicks > DateTime.MaxValue.Ticks - epochTicks) {
+            value = default;
+            return false;
+        }
+        long absoluteTicks = epochTicks + (long)roundedDeltaTicks;
+        if (absoluteTicks < DateTime.MinValue.Ticks
+            || absoluteTicks > DateTime.MaxValue.Ticks) {
+            value = default;
+            return false;
+        }
+        value = new DateTime(absoluteTicks, DateTimeKind.Utc);
+        return true;
+    }
 
     private static double? ReadDecimal128(byte[] buffer, int offset) {
         int exponent = (((buffer[offset + 15] & 0x7f) << 7) | (buffer[offset + 14] >> 1)) - 0x1820;

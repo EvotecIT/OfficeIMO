@@ -86,15 +86,23 @@ internal static class IWorkTextReader {
         }
         byte[] tableBytes = storage.GetBytes(field)!;
         int boundaryCount;
+        int totalTableFieldCount;
         try {
-            boundaryCount = storage.CountNestedFields(tableBytes, 1);
+            boundaryCount = storage.CountNestedFields(tableBytes, 1,
+                out totalTableFieldCount);
         } catch (InvalidDataException) {
             complete = false;
             return Array.Empty<AttributeBoundary>();
         }
         projectionBudget.AddTextBoundaries(boundaryCount);
-        IWorkWireMessage? table = IWorkObjectIndex.TryGetMessage(storage, field, out bool malformedTable);
-        if (malformedTable || table == null) {
+        if (storage.FieldCount(field) != 1 || totalTableFieldCount != boundaryCount) {
+            complete = false;
+            return Array.Empty<AttributeBoundary>();
+        }
+        IWorkWireMessage table;
+        try {
+            table = storage.ParseNestedMessage(tableBytes);
+        } catch (InvalidDataException) {
             complete = false;
             return Array.Empty<AttributeBoundary>();
         }
