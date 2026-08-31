@@ -339,6 +339,7 @@ public sealed class LegacyWordImportTests {
     [Theory]
     [InlineData("<:f0,Arial,0,0,0>")]
     [InlineData("<:f-20,Arial,0,0,0>")]
+    [InlineData("<:f15,Arial,0,0,0>")]
     [InlineData("<:f240,Arial,999,0,0>")]
     [InlineData("<:S+0>")]
     [InlineData("<:S+-4>")]
@@ -360,6 +361,7 @@ public sealed class LegacyWordImportTests {
 
     [Theory]
     [InlineData("Body Text\n0\n[fnt]", "Body Text\nbad\n[fnt]")]
+    [InlineData("[fnt]\nArial\n240\n", "[fnt]\nArial\n15\n")]
     [InlineData("240\n255\n16385", "240\nbad\n16385")]
     [InlineData("255\n16385\n[algn]", "255\nbad\n[algn]")]
     [InlineData("[algn]\n1\n0\n0\n0\n0", "[algn]\nbad\n0\n0\n0\n0")]

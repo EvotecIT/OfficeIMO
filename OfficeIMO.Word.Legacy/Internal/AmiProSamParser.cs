@@ -144,7 +144,7 @@ internal sealed class AmiProSamParser {
             !string.Equals(lines[13], "[spc]", StringComparison.OrdinalIgnoreCase) ||
             !string.Equals(lines[19], "[brk]", StringComparison.OrdinalIgnoreCase)) return null;
         if (!int.TryParse(lines[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out _)) return null;
-        if (!int.TryParse(lines[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int fontTwips) || fontTwips <= 0) return null;
+        if (!int.TryParse(lines[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int fontTwips) || !IsDocxRepresentableFontSize(fontTwips)) return null;
         if (!uint.TryParse(lines[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint color) || (color & 0xFF000000) != 0) return null;
         if (!uint.TryParse(lines[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out uint formatting)) return null;
         uint unsupportedFormatting = formatting & ~SupportedStyleFormattingMask;
@@ -191,6 +191,8 @@ internal sealed class AmiProSamParser {
     }
 
     private static bool HasMultipleFlags(uint value) => value != 0 && (value & (value - 1)) != 0;
+
+    private static bool IsDocxRepresentableFontSize(int twips) => twips > 0 && twips % 10 == 0;
 
     private void RecordUnsupportedStyleFlags(uint unsupported, ref uint aggregate) {
         if (unsupported == 0) return;
@@ -351,7 +353,7 @@ internal sealed class AmiProSamParser {
     }
 
     private bool ParseFont(string value, AmiRunState state) {
-        if (!TrySplitFontFields(value, out string[] parts) || !int.TryParse(parts[0], out int size) || size <= 0) return false;
+        if (!TrySplitFontFields(value, out string[] parts) || !int.TryParse(parts[0], out int size) || !IsDocxRepresentableFontSize(size)) return false;
         string family = parts[1].Length > 1 && char.IsDigit(parts[1][0]) ? parts[1].Substring(1) : parts[1];
         if (!byte.TryParse(parts[2], out byte red) || !byte.TryParse(parts[3], out byte green) || !byte.TryParse(parts[4], out byte blue)) return false;
         ConsumeText(family.Length, "inline font family");
