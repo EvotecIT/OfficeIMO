@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk" TreatAsLocalProperty="TargetFramework;EnableAotAnalyzer;EnableTrimAnalyzer">
+  <PropertyGroup>
+    <Description>Incremental source generators for AOT-safe OfficeIMO tabular row mappings.</Description>
+    <AssemblyName>OfficeIMO.Data.Generators</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Data.Generators</AssemblyTitle>
+    <VersionPrefix>3.3.0</VersionPrefix>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Data.Generators</PackageId>
+    <PackageTags>source-generator;aot;excel;csv;mapping;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);1591;RS1035</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="$(OutputPath)$(AssemblyName).dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
+  </ItemGroup>
+</Project>

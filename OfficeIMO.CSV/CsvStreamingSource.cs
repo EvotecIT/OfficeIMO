@@ -73,10 +73,15 @@ internal sealed class CsvStreamingSource
 
     public IEnumerable<object?[]> ReadReusableRows()
     {
+        return ReadReusableRows(_options);
+    }
+
+    internal IEnumerable<object?[]> ReadReusableRows(CsvLoadOptions options)
+    {
         using var reader = _readerFactory();
         var skipped = 0;
         object?[]? row = null;
-        foreach (var record in CsvParser.ParseReusable(reader, _options))
+        foreach (var record in CsvParser.ParseReusable(reader, options))
         {
             if (skipped < _skipRecordCount)
             {
@@ -84,16 +89,21 @@ internal sealed class CsvStreamingSource
                 continue;
             }
 
-            row = CsvDocument.FillParsedObjectValues(record, _headerCount, _options, row);
+            row = CsvDocument.FillParsedObjectValues(record, _headerCount, options, row);
             yield return row;
         }
     }
 
     public IEnumerable<IReadOnlyList<string>> ReadReusableStringRows()
     {
+        return ReadReusableStringRows(_options);
+    }
+
+    internal IEnumerable<IReadOnlyList<string>> ReadReusableStringRows(CsvLoadOptions options)
+    {
         using var reader = _readerFactory();
         var skipped = 0;
-        foreach (var record in CsvParser.ParseReusable(reader, _options))
+        foreach (var record in CsvParser.ParseReusable(reader, options))
         {
             if (skipped < _skipRecordCount)
             {

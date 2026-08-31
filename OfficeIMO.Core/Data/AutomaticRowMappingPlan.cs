@@ -393,17 +393,16 @@ internal sealed class AutomaticRowMappingPlan<
 
     private static IEnumerable<string> GetAliases(PropertyInfo property) {
         var aliases = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (property.GetCustomAttribute<DisplayNameAttribute>(inherit: true)?.DisplayName is { } displayName &&
+        object[] attributes = Attribute.GetCustomAttributes(property, inherit: true);
+        if (attributes.OfType<DisplayNameAttribute>().FirstOrDefault()?.DisplayName is { } displayName &&
             !string.IsNullOrWhiteSpace(displayName)) {
             aliases.Add(displayName);
         }
-        if (property.GetCustomAttribute<DataMemberAttribute>(inherit: true)?.Name is { } dataMemberName &&
+        if (attributes.OfType<DataMemberAttribute>().FirstOrDefault()?.Name is { } dataMemberName &&
             !string.IsNullOrWhiteSpace(dataMemberName)) {
             aliases.Add(dataMemberName);
         }
-        foreach (IDataColumnAliasProvider provider in property
-                     .GetCustomAttributes(inherit: true)
-                     .OfType<IDataColumnAliasProvider>()) {
+        foreach (IDataColumnAliasProvider provider in attributes.OfType<IDataColumnAliasProvider>()) {
             foreach (string alias in provider.ColumnAliases) {
                 if (!string.IsNullOrWhiteSpace(alias)) aliases.Add(alias);
             }

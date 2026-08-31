@@ -3,6 +3,7 @@
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -44,7 +45,7 @@ internal static partial class CsvParser
             _trim = options.TrimWhitespace;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
             _allowEmpty = options.AllowEmptyLines;
-            _lineReader = new CsvLineReader(reader, options.CancellationToken);
+            _lineReader = new CsvLineReader(reader, options);
             _visitor = new CsvDataReaderStreamRowVisitor(_lineReader.Buffer);
             _emittedRecordCount = initialEmittedRecordCount;
             _physicalLineOffset = physicalLineOffset;
@@ -72,14 +73,31 @@ internal static partial class CsvParser
         void ICsvDataReaderHeaderRowSource.SetSourceColumnCount(int sourceColumnCount) =>
             SetSourceColumnCount(sourceColumnCount);
 
-        public bool Read()
+        public bool Read() => Read(_options.CancellationToken);
+
+        public bool Read(CancellationToken cancellationToken)
+        {
+            _lineReader.SetOperationCancellationToken(cancellationToken);
+            try
+            {
+                return ReadCore(cancellationToken);
+            }
+            finally
+            {
+                _lineReader.ClearOperationCancellationToken();
+            }
+        }
+
+        private bool ReadCore(CancellationToken cancellationToken)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
             _visitor.Reset();
             _currentPhysicalLineNumber = null;
             _currentPhysicalEndLineNumber = null;
             while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 ThrowIfCancellationRequested(_options);
                 bool recordStartedFromPendingLine = _pendingLines.Count > 0;
                 int recordStartLineNumber = recordStartedFromPendingLine

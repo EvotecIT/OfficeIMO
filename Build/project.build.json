@@ -12,6 +12,8 @@
     "OfficeIMO.ChartForgeX": "3.3.X",
     "OfficeIMO.Confluence": "3.3.X",
     "OfficeIMO.Core": "3.3.X",
+    "OfficeIMO.Data.Arrow": "3.3.X",
+    "OfficeIMO.Data.Generators": "3.3.X",
     "OfficeIMO.DocBook": "3.3.X",
     "OfficeIMO.Drawing.CodeGlyphX": "3.3.X",
     "OfficeIMO.Drawing.HarfBuzz": "3.3.X",

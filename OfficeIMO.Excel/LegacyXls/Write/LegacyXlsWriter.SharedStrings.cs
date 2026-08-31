@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
@@ -85,7 +86,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 throw new InvalidOperationException("The native XLS shared-string table is missing a direct worksheet text cell.");
             }
 
-            internal void WriteRecords(Stream stream) {
+            internal bool TryGetDirectIndex(string text, out uint index) {
+                if (_directIndexesByValue != null) {
+                    return _directIndexesByValue.TryGetValue(text, out index);
+                }
+
+                index = 0;
+                return false;
+            }
+
+            internal void WriteRecords(Stream stream, CancellationToken cancellationToken = default) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (_entries.Count == 0) {
                     return;
                 }
@@ -94,29 +105,40 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 writer.WriteUInt32(_totalCount);
                 writer.WriteUInt32(checked((uint)_entries.Count));
                 var stringPositions = new List<LegacyXlsStringPosition>(_entries.Count);
-                foreach (LegacyXlsSharedStringEntry entry in _entries) {
+                for (int entryIndex = 0; entryIndex < _entries.Count; entryIndex++) {
+                    if ((entryIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+                    LegacyXlsSharedStringEntry entry = _entries[entryIndex];
                     stringPositions.Add(writer.WriteUnicodeString(entry.Text, entry.FormattingRuns));
                 }
 
-                IReadOnlyList<byte[]> payloads = writer.GetPayloads();
+                cancellationToken.ThrowIfCancellationRequested();
+                IReadOnlyList<byte[]> payloads = writer.GetPayloads(cancellationToken);
                 long sharedStringTableOffset = stream.Position;
                 WriteRecord(stream, 0x00fc, payloads[0]);
                 for (int i = 1; i < payloads.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     WriteRecord(stream, 0x003c, payloads[i]);
                 }
 
-                WriteExtSstRecord(stream, sharedStringTableOffset, payloads, stringPositions);
+                WriteExtSstRecord(
+                    stream,
+                    sharedStringTableOffset,
+                    payloads,
+                    stringPositions,
+                    cancellationToken);
             }
 
             private void WriteExtSstRecord(
                 Stream stream,
                 long sharedStringTableOffset,
                 IReadOnlyList<byte[]> sharedStringPayloads,
-                IReadOnlyList<LegacyXlsStringPosition> stringPositions) {
+                IReadOnlyList<LegacyXlsStringPosition> stringPositions,
+                CancellationToken cancellationToken) {
                 int stringsPerBucket = Math.Max((_entries.Count / 128) + 1, 8);
                 long[] recordOffsets = new long[sharedStringPayloads.Count];
                 long recordOffset = sharedStringTableOffset;
                 for (int i = 0; i < sharedStringPayloads.Count; i++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     recordOffsets[i] = recordOffset;
                     recordOffset = checked(recordOffset + 4L + sharedStringPayloads[i].Length);
                 }
@@ -124,6 +146,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 using var payload = new MemoryStream();
                 WriteUInt16(payload, checked((ushort)stringsPerBucket));
                 for (int stringIndex = 0; stringIndex < stringPositions.Count; stringIndex += stringsPerBucket) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsStringPosition position = stringPositions[stringIndex];
                     ushort recordRelativeOffset = checked((ushort)(position.Offset + 4));
                     uint containingRecordOffset = checked((uint)recordOffsets[position.SegmentIndex]);
@@ -132,6 +155,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     WriteUInt16(payload, 0);
                 }
 
+                cancellationToken.ThrowIfCancellationRequested();
                 WriteRecord(stream, 0x00ff, payload.ToArray());
             }
         }
@@ -210,8 +234,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return position;
             }
 
-            internal IReadOnlyList<byte[]> GetPayloads() {
-                return _segments.Select(segment => segment.ToArray()).ToArray();
+            internal IReadOnlyList<byte[]> GetPayloads(CancellationToken cancellationToken = default) {
+                var payloads = new byte[_segments.Count][];
+                for (int segmentIndex = 0; segmentIndex < _segments.Count; segmentIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    payloads[segmentIndex] = _segments[segmentIndex].ToArray();
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                return payloads;
             }
 
             private void WriteStringCharacters(string text, bool compressed, byte continuationOptions) {

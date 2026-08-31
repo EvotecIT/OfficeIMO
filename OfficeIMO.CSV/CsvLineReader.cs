@@ -25,6 +25,8 @@ internal sealed partial class CsvLineReader : IDisposable
     private readonly TextReader _reader;
     private char[] _buffer;
     private readonly CancellationToken _cancellationToken;
+    private readonly CsvLoadOptions? _options;
+    private CancellationToken _operationCancellationToken;
     private int _position;
     private int _length;
     private bool _endOfReader;
@@ -62,6 +64,18 @@ internal sealed partial class CsvLineReader : IDisposable
         _cancellationToken = cancellationToken;
         _buffer = ArrayPool<char>.Shared.Rent(DefaultBufferSize);
     }
+
+    public CsvLineReader(TextReader reader, CsvLoadOptions options)
+        : this(reader, options?.CancellationToken ?? throw new ArgumentNullException(nameof(options)))
+    {
+        _options = options;
+    }
+
+    internal void SetOperationCancellationToken(CancellationToken cancellationToken) =>
+        _operationCancellationToken = cancellationToken;
+
+    internal void ClearOperationCancellationToken() =>
+        _operationCancellationToken = default;
 
     public void Dispose()
     {
@@ -930,7 +944,7 @@ internal sealed partial class CsvLineReader : IDisposable
 
     private bool EnsureBuffered()
     {
-        _cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfCancellationRequested();
         while (true)
         {
             if (_position < _length)
@@ -958,7 +972,7 @@ internal sealed partial class CsvLineReader : IDisposable
             }
 
             _length = _reader.Read(_buffer, 0, Math.Min(MaximumReadRequestSize, _buffer.Length));
-            _cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfCancellationRequested();
             _position = 0;
             if (_length == 0)
             {
@@ -970,7 +984,7 @@ internal sealed partial class CsvLineReader : IDisposable
 #if NET8_0_OR_GREATER
     private bool TryExtendCurrentSegment()
     {
-        _cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfCancellationRequested();
         var remaining = _length - _position;
         if (_position == 0 || remaining >= _buffer.Length)
         {
@@ -988,7 +1002,7 @@ internal sealed partial class CsvLineReader : IDisposable
             _buffer,
             remaining,
             Math.Min(MaximumReadRequestSize, _buffer.Length - remaining));
-        _cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfCancellationRequested();
         if (read == 0)
         {
             _endOfReader = true;
@@ -998,7 +1012,16 @@ internal sealed partial class CsvLineReader : IDisposable
         _length += read;
         return true;
     }
+
 #endif
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    private void ThrowIfCancellationRequested()
+    {
+        _operationCancellationToken.ThrowIfCancellationRequested();
+        _options?.OperationCancellationToken.ThrowIfCancellationRequested();
+        _cancellationToken.ThrowIfCancellationRequested();
+    }
 }
 
 internal enum CsvLineReadResult

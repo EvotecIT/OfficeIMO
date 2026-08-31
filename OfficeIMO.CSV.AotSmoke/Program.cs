@@ -1,7 +1,11 @@
 using System.Data;
 using System.Globalization;
+using Apache.Arrow;
+using Apache.Arrow.C;
+using Apache.Arrow.Ipc;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
+using OfficeIMO.Data.Arrow;
 
 CsvDocument document = CsvDocument.Parse("Name,Score,Date,Time\nAlice,42,2026-08-06,14:35:12\n");
 if (!document.Header.SequenceEqual(new[] { "Name", "Score", "Date", "Time" })) {
@@ -96,7 +100,28 @@ using (var parallelExportedText = new StringWriter(CultureInfo.InvariantCulture)
     }
 }
 
-Console.WriteLine("PASS | CSV parse, schema inspection, mapping, and sequential/parallel typed DataReader writing");
+using var arrowReader = CsvDocument.OpenTextDataReader(
+    "Id,Name\n1,Ada\n2,Grace\n",
+    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+using ArrowCArrayStreamOwner arrowOwner = arrowReader.ExportArrowCStream(
+    new ArrowReadOptions { BatchSize = 1 });
+IArrowArrayStream importedArrowStream;
+unsafe {
+    importedArrowStream = CArrowArrayStreamImporter.ImportArrayStream(
+        arrowOwner.DangerousGetPointer());
+}
+arrowOwner.Dispose();
+using (importedArrowStream) {
+    using RecordBatch importedArrowBatch =
+        (await importedArrowStream.ReadNextRecordBatchAsync())!;
+    if (importedArrowBatch.Length != 1
+        || importedArrowBatch.Schema.FieldsList.Count != 2
+        || importedArrowBatch.Column(0).Length != 1) {
+        throw new InvalidOperationException("The bounded Arrow C stream did not survive NativeAOT.");
+    }
+}
+
+Console.WriteLine("PASS | CSV parse, schema inspection, mapping, Arrow C stream, and sequential/parallel typed DataReader writing");
 
 internal sealed class CsvSmokeRow {
     public string Name { get; set; } = string.Empty;

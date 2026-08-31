@@ -22,6 +22,7 @@ public sealed class OfficeImoToolAppTests {
         Assert.Contains("officeimo inspect", help, StringComparison.Ordinal);
         Assert.Contains("officeimo reader", help, StringComparison.Ordinal);
         Assert.Contains("officeimo markup", help, StringComparison.Ordinal);
+        Assert.Contains("officeimo tabular", help, StringComparison.Ordinal);
         Assert.Equal(string.Empty, error.ToString());
     }
 

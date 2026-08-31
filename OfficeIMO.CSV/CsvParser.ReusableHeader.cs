@@ -51,7 +51,7 @@ internal static partial class CsvParser
         var pendingLines = new Queue<CsvLine>();
         var metadataAccepted = false;
         var stringCache = CreateStringCache(options);
-        using var lineReader = new CsvLineReader(reader, options.CancellationToken);
+        using var lineReader = new CsvLineReader(reader, options);
 
         while (pendingLines.Count > 0 || true)
         {

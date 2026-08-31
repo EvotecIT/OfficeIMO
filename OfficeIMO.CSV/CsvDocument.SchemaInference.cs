@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -11,22 +12,28 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="sampleSize">Maximum number of rows to inspect. Defaults to 1000.</param>
     /// <returns>A schema containing one inferred column for each header field.</returns>
-    public CsvSchema InferSchema(int sampleSize = 1000)
+    public CsvSchema InferSchema(int sampleSize = 1000) =>
+        InferSchema(sampleSize, CancellationToken.None);
+
+    private CsvSchema InferSchema(int sampleSize, CancellationToken cancellationToken)
     {
         if (sampleSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(sampleSize), "Sample size must be greater than zero.");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         using var rows = EnumerateRawRows().GetEnumerator();
-        return InferSchema(rows, sampleSize, sampledRows: null);
+        return InferSchema(rows, sampleSize, sampledRows: null, cancellationToken: cancellationToken);
     }
 
     private CsvSchema InferSchema(
         IEnumerator<object?[]> rows,
         int sampleSize,
         ICollection<object?[]>? sampledRows,
-        bool cloneSampledRows = false)
+        bool cloneSampledRows = false,
+        CancellationToken cancellationToken = default,
+        CsvLoadOptions? operationCancellationOptions = null)
     {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
@@ -35,8 +42,12 @@ public sealed partial class CsvDocument
         }
 
         var sampledRowCount = 0;
-        while (sampledRowCount < sampleSize && rows.MoveNext())
+        while (sampledRowCount < sampleSize && MoveNextForSchemaInference(
+                   rows,
+                   operationCancellationOptions,
+                   cancellationToken))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var row = rows.Current;
             if (sampledRows is not null)
             {
@@ -52,6 +63,8 @@ public sealed partial class CsvDocument
             sampledRowCount++;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
+
         var schemaColumns = new List<CsvSchemaColumn>(columns.Length);
         foreach (var column in columns)
         {
@@ -61,11 +74,34 @@ public sealed partial class CsvDocument
         return new CsvSchema(schemaColumns);
     }
 
+    internal static bool MoveNextForSchemaInference(
+        IEnumerator<object?[]> rows,
+        CsvLoadOptions? operationCancellationOptions,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (operationCancellationOptions is null)
+        {
+            return rows.MoveNext();
+        }
+
+        operationCancellationOptions.OperationCancellationToken = cancellationToken;
+        try
+        {
+            return rows.MoveNext();
+        }
+        finally
+        {
+            operationCancellationOptions.OperationCancellationToken = default;
+        }
+    }
+
 #if NET8_0_OR_GREATER
     private CsvSchema InferSchema(
         CsvParser.CsvTextDataReaderRowSource rows,
         int sampleSize,
-        string? nullValue)
+        string? nullValue,
+        CancellationToken cancellationToken = default)
     {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
@@ -74,8 +110,9 @@ public sealed partial class CsvDocument
         }
 
         var sampledRowCount = 0;
-        while (sampledRowCount < sampleSize && rows.Read())
+        while (sampledRowCount < sampleSize && rows.Read(cancellationToken))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var i = 0; i < columns.Length; i++)
             {
                 if (nullValue is not null && rows.IsNull(i, nullValue))
@@ -90,6 +127,8 @@ public sealed partial class CsvDocument
 
             sampledRowCount++;
         }
+
+        cancellationToken.ThrowIfCancellationRequested();
 
         var schemaColumns = new List<CsvSchemaColumn>(columns.Length);
         foreach (var column in columns)

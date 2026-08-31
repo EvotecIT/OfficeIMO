@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 208,
-    "productionComponentCount": 109,
+    "projectCount": 210,
+    "productionComponentCount": 111,
     "testProjectCount": 39,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41703
+    "conceptualWordCount": 41858
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 8
+      "componentCount": 10
     }
   ],
   "components": [
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 493,
+      "sourceFileCount": 495,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -157,11 +157,37 @@
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 73,
+      "sourceFileCount": 74,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.CSV"
+    },
+    {
+      "name": "OfficeIMO.Data.Arrow",
+      "packageId": "OfficeIMO.Data.Arrow",
+      "category": "Specialized components",
+      "description": "Apache Arrow adapters for forward-only OfficeIMO and ADO.NET tabular readers.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Data.Arrow/OfficeIMO.Data.Arrow.csproj",
+      "sourceFileCount": 4,
+      "referencingTestProjectCount": 2,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Arrow"
+    },
+    {
+      "name": "OfficeIMO.Data.Generators",
+      "packageId": "OfficeIMO.Data.Generators",
+      "category": "Specialized components",
+      "description": "Incremental source generators for AOT-safe OfficeIMO tabular row mappings.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Data.Generators/OfficeIMO.Data.Generators.csproj",
+      "sourceFileCount": 1,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Data.Generators"
     },
     {
       "name": "OfficeIMO.DocBook",
@@ -274,7 +300,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 986,
+      "sourceFileCount": 991,
       "referencingTestProjectCount": 9,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -1314,7 +1340,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 32,
+      "sourceFileCount": 34,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

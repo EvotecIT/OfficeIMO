@@ -57,8 +57,8 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated source packages | 99 |
-| Documented package, tool, and example projects below | 106 |
+| Coordinated source packages | 101 |
+| Documented package, tool, and example projects below | 108 |
 | Native format, foundation, and shared-service packages | 29 |
 | Conversion and cloud bridge packages | 36 |
 | Unified Reader packages | 29 |
@@ -96,6 +96,22 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Reproducible, output-validated identification, decode, encode, resize, and placement-optimization benchmarks with opt-in library comparisons isolated from runtime packages
 
 _Dependency footprint:_ zero third-party runtime dependencies.
+
+#### [OfficeIMO.Data.Arrow](OfficeIMO.Data.Arrow/README.md)
+
+- [x] Bounded synchronous and asynchronous Apache Arrow record batches from any forward-only `DbDataReader`
+- [x] Native Boolean, numeric, decimal, temporal, GUID, binary, and text arrays with explicit unsupported-type policy
+- [x] Shared adapter for OfficeIMO Excel, CSV, and ordinary ADO.NET providers without adding Arrow to their runtime graphs
+
+_Dependency footprint:_ `OfficeIMO.Core` and Apache.Arrow; Excel and CSV remain independently usable.
+
+#### [OfficeIMO.Data.Generators](OfficeIMO.Data.Generators/README.md)
+
+- [x] Compile-time `RowMapper<T>` configuration shared by Excel, CSV, and other `DbDataReader` sources
+- [x] Primary column names, aliases, inherited writable properties, and build diagnostics for unsupported model shapes
+- [x] Reflection-free generated mapping validated in a NativeAOT consumer
+
+_Dependency footprint:_ build-time Roslyn analyzer only; no generator assembly is deployed with the application.
 
 #### [OfficeIMO.Drawing.HarfBuzz](OfficeIMO.Drawing.HarfBuzz/README.md)
 

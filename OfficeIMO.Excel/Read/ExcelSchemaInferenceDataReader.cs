@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -215,6 +216,21 @@ namespace OfficeIMO.Excel {
 
             _sampledCurrentRow = null;
             return _inner.Read();
+        }
+
+        public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
+            if (_closed) {
+                return false;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_sampleIndex < _sampledRows.Count) {
+                _sampledCurrentRow = _sampledRows[_sampleIndex++];
+                return true;
+            }
+
+            _sampledCurrentRow = null;
+            return await _inner.ReadAsync(cancellationToken).ConfigureAwait(false);
         }
 
         public override void Close() {

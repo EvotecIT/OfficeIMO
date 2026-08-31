@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
                 ValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 ValueKind.Boolean => _booleans[ordinal],
-                ValueKind.Date => ConvertDate(_numbers[ordinal]),
+                ValueKind.Date => _dates[ordinal],
                 _ => DBNull.Value
             };
         }
@@ -57,7 +57,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 ValueKind.Text or ValueKind.Error => _strings[ordinal]!,
                 ValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 ValueKind.Boolean => _booleans[ordinal].ToString(),
-                ValueKind.Date => ConvertDate(_numbers[ordinal]).ToString(_options.Culture),
+                ValueKind.Date => _dates[ordinal].ToString(_options.Culture),
                 _ => throw new InvalidCastException("The XLS cell is blank.")
             };
         }
@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
             return _kinds[ordinal] == ValueKind.Date
-                ? ConvertDate(_numbers[ordinal])
+                ? _dates[ordinal]
                 : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
         }
 
@@ -160,11 +160,6 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 }
             }
             return value;
-        }
-
-        private DateTime ConvertDate(double serial) {
-            if (LegacyXlsDateSerialConverter.TryConvert(serial, _uses1904DateSystem, out DateTime value)) return value;
-            throw new InvalidCastException($"The XLS numeric value '{serial}' is not a valid Excel date.");
         }
 
         private static long CopySegment<T>(T[] source, long dataOffset, T[]? destination, int destinationOffset, int length) {
