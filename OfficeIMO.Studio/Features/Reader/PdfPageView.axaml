@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+             x:Class="OfficeIMO.Studio.Features.Reader.PdfPageView"
+             x:DataType="reader:PdfPageViewModel">
+  <StackPanel Margin="24,14" HorizontalAlignment="Center" Spacing="8">
+    <Border Width="{Binding DisplayWidth}"
+            Height="{Binding DisplayHeight}"
+            Background="White"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="1"
+            CornerRadius="2"
+            BoxShadow="0 5 18 0 #30000000">
+      <Grid>
+        <Image Source="{Binding PageImage}"
+               Stretch="Fill"
+               IsVisible="{Binding HasImage}" />
+
+        <StackPanel IsVisible="{Binding IsRendering}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="10">
+          <ProgressBar Width="120" IsIndeterminate="True" />
+          <TextBlock Text="Rendering page…"
+                     Foreground="#667085"
+                     HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <Border IsVisible="{Binding HasRenderError}"
+                Background="#FFF4F2"
+                Padding="24"
+                Margin="24"
+                CornerRadius="8"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                MaxWidth="480">
+          <StackPanel Spacing="8">
+            <TextBlock Text="This page could not be rendered"
+                       Foreground="#B42318"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding RenderError}"
+                       Foreground="#7A271A"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </Grid>
+    </Border>
+
+    <Grid ColumnDefinitions="*,Auto,*" MinHeight="22">
+      <TextBlock Grid.Column="1"
+                 Text="{Binding PageLabel}"
+                 Foreground="{DynamicResource StudioMutedTextBrush}"
+                 FontSize="12" />
+      <Border Grid.Column="2"
+              IsVisible="{Binding HasDiagnostics}"
+              Background="{DynamicResource StudioAccentSoftBrush}"
+              CornerRadius="10"
+              Padding="8,2"
+              Margin="8,0,0,0"
+              HorizontalAlignment="Left">
+        <TextBlock Text="{Binding DiagnosticsSummary}"
+                   Foreground="{DynamicResource StudioAccentBrush}"
+                   FontSize="11" />
+      </Border>
+    </Grid>
+  </StackPanel>
+</UserControl>

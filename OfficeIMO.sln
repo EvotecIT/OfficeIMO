@@ -434,6 +434,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Opml", "Of
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.DocBook", "OfficeIMO.Reader.DocBook\OfficeIMO.Reader.DocBook.csproj", "{A1000006-6B63-4F7E-9D1E-000000000006}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Studio", "OfficeIMO.Studio\OfficeIMO.Studio.csproj", "{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Studio.Tests", "OfficeIMO.Studio.Tests\OfficeIMO.Studio.Tests.csproj", "{F7EF4618-0C86-4286-AE0A-8616AA4C830C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -2340,6 +2344,30 @@ Global
 		{A1000006-6B63-4F7E-9D1E-000000000006}.Release|x64.Build.0 = Release|Any CPU
 		{A1000006-6B63-4F7E-9D1E-000000000006}.Release|x86.ActiveCfg = Release|Any CPU
 		{A1000006-6B63-4F7E-9D1E-000000000006}.Release|x86.Build.0 = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|x64.Build.0 = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Debug|x86.Build.0 = Debug|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|x64.ActiveCfg = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|x64.Build.0 = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|x86.ActiveCfg = Release|Any CPU
+		{68EE1CD8-8D93-4B72-BB02-78A2A8CCED9C}.Release|x86.Build.0 = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|x64.Build.0 = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Debug|x86.Build.0 = Debug|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|x64.ActiveCfg = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|x64.Build.0 = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|x86.ActiveCfg = Release|Any CPU
+		{F7EF4618-0C86-4286-AE0A-8616AA4C830C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

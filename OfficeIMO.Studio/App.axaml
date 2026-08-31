@@ -1,0 +1,55 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="OfficeIMO.Studio.App"
+             RequestedThemeVariant="Default">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#F4F6F9" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#E9EDF3" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#DCE1E8" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#D5DAE2" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#172033" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#667085" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#356AE6" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#E8EFFF" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#B42318" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#FEE4E2" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#10141C" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#171C26" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#202735" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#0B0E14" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#2C3443" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#F1F4F9" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#98A2B3" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#7AA2FF" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#243557" />
+          <SolidColorBrush x:Key="StudioErrorBrush" Color="#FDA29B" />
+          <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#4A1D1F" />
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme DensityStyle="Compact" />
+
+    <Style Selector="Button.tool">
+      <Setter Property="MinWidth" Value="36" />
+      <Setter Property="Height" Value="34" />
+      <Setter Property="Padding" Value="10,4" />
+      <Setter Property="CornerRadius" Value="6" />
+    </Style>
+
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Padding" Value="18,9" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+  </Application.Styles>
+</Application>

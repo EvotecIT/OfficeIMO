@@ -1,0 +1,227 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+        xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+        x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
+        x:DataType="shell:MainWindowViewModel"
+        x:Name="StudioWindow"
+        Title="OfficeIMO Studio"
+        Width="1280"
+        Height="820"
+        MinWidth="860"
+        MinHeight="560"
+        Background="{DynamicResource StudioWindowBrush}"
+        Foreground="{DynamicResource StudioTextBrush}"
+        DragDrop.AllowDrop="True">
+  <Grid RowDefinitions="54,Auto,*">
+    <Border Grid.Row="0"
+            Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,Auto,*,Auto" Margin="16,0">
+        <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    VerticalAlignment="Center">
+          <Border Width="30"
+                  Height="30"
+                  Background="{DynamicResource StudioAccentBrush}"
+                  CornerRadius="7">
+            <TextBlock Text="O"
+                       Foreground="White"
+                       FontSize="17"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Border>
+          <StackPanel VerticalAlignment="Center">
+            <TextBlock Text="{Binding DocumentName}"
+                       FontWeight="SemiBold"
+                       MaxWidth="260"
+                       TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding DocumentDescription}"
+                       Foreground="{DynamicResource StudioMutedTextBrush}"
+                       FontSize="11" />
+          </StackPanel>
+        </StackPanel>
+
+        <Button Grid.Column="1"
+                Classes="tool"
+                Command="{Binding OpenCommand}"
+                Content="Open PDF"
+                Margin="18,0,0,0"
+                VerticalAlignment="Center" />
+
+        <StackPanel Grid.Column="2"
+                    IsVisible="{Binding HasDocument}"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center">
+          <Button Classes="tool"
+                  Command="{Binding PreviousPageCommand}"
+                  IsEnabled="{Binding CanGoPrevious}"
+                  Content="‹"
+                  FontSize="20"
+                  ToolTip.Tip="Previous page" />
+          <TextBlock Text="{Binding SelectedPagePosition}"
+                     MinWidth="110"
+                     TextAlignment="Center"
+                     VerticalAlignment="Center" />
+          <Button Classes="tool"
+                  Command="{Binding NextPageCommand}"
+                  IsEnabled="{Binding CanGoNext}"
+                  Content="›"
+                  FontSize="20"
+                  ToolTip.Tip="Next page" />
+
+          <Border Width="1"
+                  Height="24"
+                  Background="{DynamicResource StudioBorderBrush}"
+                  Margin="8,0" />
+
+          <Button Classes="tool"
+                  Command="{Binding ZoomOutCommand}"
+                  Content="−"
+                  FontSize="17"
+                  ToolTip.Tip="Zoom out" />
+          <Button Classes="tool"
+                  Command="{Binding ActualSizeCommand}"
+                  Content="{Binding ZoomLabel}"
+                  MinWidth="62"
+                  ToolTip.Tip="Actual size" />
+          <Button Classes="tool"
+                  Command="{Binding ZoomInCommand}"
+                  Content="+"
+                  FontSize="17"
+                  ToolTip.Tip="Zoom in" />
+          <Button Classes="tool"
+                  Command="{Binding FitWidthCommand}"
+                  Content="Fit width"
+                  ToolTip.Tip="Fit page width" />
+          <Button Classes="tool"
+                  Command="{Binding FitPageCommand}"
+                  Content="Fit page"
+                  ToolTip.Tip="Fit one page" />
+        </StackPanel>
+
+        <Button Grid.Column="3"
+                Classes="tool"
+                IsVisible="{Binding HasDocument}"
+                Command="{Binding CloseDocumentCommand}"
+                Content="Close"
+                VerticalAlignment="Center" />
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1"
+            IsVisible="{Binding HasError}"
+            Background="{DynamicResource StudioErrorSoftBrush}"
+            BorderBrush="{DynamicResource StudioErrorBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,10">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding ErrorMessage}"
+                   Foreground="{DynamicResource StudioErrorBrush}"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center" />
+        <Button Grid.Column="1"
+                Classes="tool"
+                Command="{Binding DismissErrorCommand}"
+                Content="Dismiss"
+                Margin="12,0,0,0" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" x:Name="PageViewport">
+      <Border IsVisible="{Binding IsEmpty}"
+              Margin="28"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="1"
+              CornerRadius="12">
+        <StackPanel HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Spacing="14"
+                    MaxWidth="540">
+          <Border Width="72"
+                  Height="88"
+                  Background="{DynamicResource StudioAccentSoftBrush}"
+                  BorderBrush="{DynamicResource StudioAccentBrush}"
+                  BorderThickness="1"
+                  CornerRadius="8">
+            <TextBlock Text="PDF"
+                       Foreground="{DynamicResource StudioAccentBrush}"
+                       FontWeight="Bold"
+                       FontSize="16"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center" />
+          </Border>
+          <TextBlock Text="Open a PDF document"
+                     FontSize="24"
+                     FontWeight="SemiBold"
+                     HorizontalAlignment="Center" />
+          <TextBlock Text="Choose a file or drop one anywhere in this window."
+                     Foreground="{DynamicResource StudioMutedTextBrush}"
+                     FontSize="14"
+                     HorizontalAlignment="Center"
+                     TextAlignment="Center" />
+          <Button Classes="primary"
+                  Command="{Binding OpenCommand}"
+                  Content="Choose PDF"
+                  HorizontalAlignment="Center"
+                  Margin="0,8,0,0" />
+        </StackPanel>
+      </Border>
+
+      <ListBox x:Name="PagesList"
+               IsVisible="{Binding HasDocument}"
+               ItemsSource="{Binding Pages}"
+               SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
+               Background="{DynamicResource StudioCanvasBrush}"
+               BorderThickness="0"
+               ScrollViewer.HorizontalScrollBarVisibility="Auto"
+               ScrollViewer.VerticalScrollBarVisibility="Auto">
+        <ListBox.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </ListBox.ItemsPanel>
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+          </Style>
+          <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+          </Style>
+        </ListBox.Styles>
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="reader:PdfPageViewModel">
+            <reader:PdfPageView />
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+
+      <Border IsVisible="{Binding IsOpening}"
+              Background="#66000000">
+        <Border Background="{DynamicResource StudioPanelBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="28,22"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+          <StackPanel Spacing="12">
+            <ProgressBar Width="180" IsIndeterminate="True" />
+            <TextBlock Text="Opening PDF…"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center" />
+          </StackPanel>
+        </Border>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>
