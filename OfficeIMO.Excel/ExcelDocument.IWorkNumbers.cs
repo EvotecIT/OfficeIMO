@@ -84,7 +84,7 @@ public partial class ExcelDocument {
                                     && cell.ValueKind == IWorkCellKind.Error;
                             if (hasNativeError) {
                                 sheet.CellError(cell.Row, cell.Column, ExcelErrorLiteral(cell));
-                            } else {
+                            } else if (cell.Kind != IWorkCellKind.Formula || cell.Value != null) {
                                 targetCell.SetValue(value);
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount

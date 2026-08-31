@@ -96,6 +96,8 @@ internal sealed class IWorkWireMessage {
 
     internal bool HasField(int field) => Values(field).Count > 0;
 
+    internal int FieldCount(int field) => Values(field).Count;
+
     internal bool LacksWireKind(int field, params IWorkWireKind[] expectedKinds) {
         IReadOnlyList<IWorkWireValue> values = Values(field);
         return values.Count > 0 && !values.Any(value => expectedKinds.Contains(value.Kind));

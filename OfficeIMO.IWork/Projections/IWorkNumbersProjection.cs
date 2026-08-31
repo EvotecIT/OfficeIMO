@@ -190,7 +190,12 @@ internal static class IWorkNumbersReader {
                                 drawable.EntryPath, drawable.Identifier));
                         }
                     }
-                    IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
+                    IWorkWireMessage storageOwner = index.Message(drawable);
+                    bool storageReferenceComplete = storageOwner.FieldCount(2) == 1
+                        && !storageOwner.LacksWireKind(2, IWorkWireKind.Bytes);
+                    IWorkArchiveRecord? storage = storageReferenceComplete
+                        ? index.Dereference(storageOwner, 2)
+                        : null;
                     if (storage != null && storage.MessageType == TextStorageArchive) {
                         string text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
                             out bool textComplete);

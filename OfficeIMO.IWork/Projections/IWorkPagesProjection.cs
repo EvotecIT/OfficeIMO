@@ -206,7 +206,12 @@ internal static class IWorkPagesReader {
             IWorkArchiveRecord? field4Storage = index.Dereference(shapeMessage, 4);
             IWorkArchiveRecord? field2Storage = index.Dereference(shapeMessage, 2);
             IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
-            if (shapeMessage.LacksWireKind(4, IWorkWireKind.Bytes)
+            bool hasAmbiguousStorage = shapeMessage.FieldCount(4) > 1
+                || shapeMessage.FieldCount(2) > 1
+                || field4Storage != null && field2Storage != null
+                    && field4Storage.Identifier != field2Storage.Identifier;
+            if (hasAmbiguousStorage
+                || shapeMessage.LacksWireKind(4, IWorkWireKind.Bytes)
                 || shapeMessage.LacksWireKind(2, IWorkWireKind.Bytes)
                 || shapeMessage.HasField(4) && (field4Storage == null || field4Storage.MessageType != TextStorageArchive)
                 || shapeMessage.HasField(2) && (field2Storage == null || field2Storage.MessageType != TextStorageArchive)) {
@@ -214,7 +219,7 @@ internal static class IWorkPagesReader {
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                         "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
-                        "A Pages drawable contains an unresolved text-storage reference; editable reconstruction is incomplete.",
+                        "A Pages drawable contains an unresolved or ambiguous text-storage reference; editable reconstruction is incomplete.",
                         shape.EntryPath, shape.Identifier));
                 }
                 continue;

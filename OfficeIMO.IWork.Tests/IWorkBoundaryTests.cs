@@ -990,7 +990,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
         byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false,
         byte[]? textBoxDrawable = null, byte[]? tableDrawable = null,
-        bool includeMalformedSecondSheetReference = false) {
+        bool includeMalformedSecondSheetReference = false,
+        bool duplicateTextBoxStorageReference = false) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -1048,7 +1049,9 @@ public sealed partial class IWorkBoundaryTests {
             ulong formulaListId = tableInfoId + 200_000;
             var storeFields = new List<byte[]> { BytesField(3, tileStorage) };
             if (table.TextValue != null) storeFields.Add(ReferenceField(4, stringListId));
-            if (table.DuplicateFormula) storeFields.Add(ReferenceField(6, formulaListId));
+            if (table.DuplicateFormula || table.CompleteFormula) {
+                storeFields.Add(ReferenceField(6, formulaListId));
+            }
             byte[] store = Message(storeFields.ToArray());
             var modelFields = new List<byte[]> {
                 BytesField(4, store),
@@ -1088,6 +1091,11 @@ public sealed partial class IWorkBoundaryTests {
                 byte[] secondEntry = Message(VarintField(1, 0), BytesField(5, secondFormula));
                 records.Add(ArchiveRecord(formulaListId, 6201,
                     Message(BytesField(3, firstEntry), BytesField(3, secondEntry))));
+            } else if (table.CompleteFormula) {
+                byte[] formulaEntry = Message(VarintField(1, 0),
+                    BytesField(5, FormulaConstant(1d)));
+                records.Add(ArchiveRecord(formulaListId, 6201,
+                    Message(BytesField(3, formulaEntry))));
             }
         }
 
@@ -1096,9 +1104,11 @@ public sealed partial class IWorkBoundaryTests {
             const ulong storageId = 1001;
             sheetFields.Add(ReferenceField(2, shapeId));
             byte[] shape = textBoxDrawable == null
-                ? Message(ReferenceField(2, storageId))
+                ? Message(ReferenceField(2, storageId),
+                    duplicateTextBoxStorageReference ? ReferenceField(2, storageId) : Array.Empty<byte>())
                 : Message(BytesField(1, Message(BytesField(1, textBoxDrawable))),
-                    ReferenceField(2, storageId));
+                    ReferenceField(2, storageId),
+                    duplicateTextBoxStorageReference ? ReferenceField(2, storageId) : Array.Empty<byte>());
             records.Add(ArchiveRecord(shapeId, 2011, shape, new[] { storageId }));
             records.Add(ArchiveRecord(storageId, 2001, Message(
                 textBoxBytes != null ? BytesField(3, textBoxBytes) : StringField(3, textBox!))));
@@ -1181,11 +1191,13 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
         string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
         byte[]? bodyBytes = null, byte[]? textBoxDrawable = null, byte[]? documentLayoutFields = null,
-        uint textBoxStorageType = 2001) {
+        uint textBoxStorageType = 2001, string? alternateTextBox = null,
+        bool aliasTextBoxStorageFields = false, bool duplicateTextBoxStorageField = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong shapeId = 3;
         const ulong shapeStorageId = 4;
+        const ulong alternateShapeStorageId = 5;
         var documentReferences = new List<ulong>();
         if (includeBody) documentReferences.Add(bodyId);
         if (textBox != null) documentReferences.Add(shapeId);
@@ -1197,13 +1209,24 @@ public sealed partial class IWorkBoundaryTests {
         if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(
             bodyBytes != null ? BytesField(3, bodyBytes) : StringField(3, bodyText))));
         if (textBox != null) {
-            byte[] shape = textBoxDrawable == null
-                ? Message(ReferenceField(2, shapeStorageId))
-                : Message(BytesField(1, Message(BytesField(1, textBoxDrawable))),
-                    ReferenceField(2, shapeStorageId));
+            var shapeFields = new List<byte[]>();
+            if (textBoxDrawable != null) {
+                shapeFields.Add(BytesField(1, Message(BytesField(1, textBoxDrawable))));
+            }
+            shapeFields.Add(ReferenceField(2, shapeStorageId));
+            if (duplicateTextBoxStorageField) shapeFields.Add(ReferenceField(2, shapeStorageId));
+            if (alternateTextBox != null) shapeFields.Add(ReferenceField(4, alternateShapeStorageId));
+            else if (aliasTextBoxStorageFields) shapeFields.Add(ReferenceField(4, shapeStorageId));
+            byte[] shape = Message(shapeFields.ToArray());
             records.Add(ArchiveRecord(shapeId, 2011, shape,
-                new[] { shapeStorageId }));
+                alternateTextBox == null
+                    ? new[] { shapeStorageId }
+                    : new[] { shapeStorageId, alternateShapeStorageId }));
             records.Add(ArchiveRecord(shapeStorageId, textBoxStorageType, Message(StringField(3, textBox))));
+            if (alternateTextBox != null) {
+                records.Add(ArchiveRecord(alternateShapeStorageId, 2001,
+                    Message(StringField(3, alternateTextBox))));
+            }
         }
         byte[] iwaStream = Message(records.ToArray());
         var entries = new List<(string Path, byte[] Bytes)> { (archivePath, FrameIwa(iwaStream)) };
@@ -1452,7 +1475,8 @@ public sealed partial class IWorkBoundaryTests {
             int headerRows = 0, int footerRows = 0, bool error = false,
             bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
             bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
-            bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false) {
+            bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
+            bool completeFormula = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1486,6 +1510,7 @@ public sealed partial class IWorkBoundaryTests {
             MalformedSecondMergePair = malformedSecondMergePair;
             MalformedSecondTileRow = malformedSecondTileRow;
             MalformedSecondTileEntry = malformedSecondTileEntry;
+            CompleteFormula = completeFormula;
         }
 
         internal string Name { get; }
@@ -1521,5 +1546,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool MalformedSecondMergePair { get; }
         internal bool MalformedSecondTileRow { get; }
         internal bool MalformedSecondTileEntry { get; }
+        internal bool CompleteFormula { get; }
     }
 }
