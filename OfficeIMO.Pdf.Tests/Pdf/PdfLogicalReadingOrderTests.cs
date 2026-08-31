@@ -1,8 +1,11 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Pdf;
+using System.IO.Compression;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -136,6 +139,47 @@ public sealed class PdfLogicalReadingOrderTests {
         AssertInOrder(html, "Left top", "Left bottom", "Right top", "Right bottom");
     }
 
+    [Fact]
+    public void ArtifactConverters_UsePageContentOrderForClassifiedHeadersAndFooters() {
+        byte[] pdf = PdfDocument.Create()
+            .Header(header => header.AlignLeft().Text("Artifact header {page}/{pages}"))
+            .Footer(footer => footer.AlignLeft().Text("Artifact footer {page}/{pages}"))
+            .Paragraph(paragraph => paragraph.Text("First page body marker."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page body marker."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third page body marker."))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
+        PdfLogicalPage firstPage = logical.Pages[0];
+        string header = Assert.Single(firstPage.Headers).Text;
+        string footer = Assert.Single(firstPage.Footers).Text;
+
+        Assert.DoesNotContain(
+            PdfLogicalReadingOrderAnalysis.Analyze(firstPage),
+            item => item.Kind == PdfLogicalReadingOrderKind.TextBlock &&
+                firstPage.TextBlocks[item.SourceIndex].Kind is PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer);
+        Assert.Contains(
+            PdfLogicalReadingOrderAnalysis.Analyze(firstPage, PdfLogicalReadingOrderScope.PageContent),
+            item => item.Kind == PdfLogicalReadingOrderKind.TextBlock &&
+                firstPage.TextBlocks[item.SourceIndex].Kind == PdfLogicalElementKind.Header);
+
+        using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfWordImportOptions { UseSharedPageReadingOrder = true })) {
+            using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
+            string wordText = string.Join(" ", package.MainDocumentPart!.Document.Body!.Descendants<Text>().Select(static text => text.Text));
+            AssertArtifactSequence(wordText, header, "First page body marker.", footer);
+        }
+
+        string html = logical.ToHtml(new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            UseSharedPageReadingOrder = true
+        });
+        AssertArtifactSequence(html, header, "First page body marker.", footer);
+
+        byte[] odt = logical.ToOdtDocument().ToBytes();
+        AssertArtifactSequence(ReadOpenDocumentText(odt), header, "First page body marker.", footer);
+    }
+
     private static void AssertInOrder(string value, params string[] markers) {
         int previous = -1;
         foreach (string marker in markers) {
@@ -143,6 +187,30 @@ public sealed class PdfLogicalReadingOrderTests {
             Assert.True(current > previous, "Expected marker '" + marker + "' after the previous marker.");
             previous = current;
         }
+    }
+
+    private static void AssertArtifactSequence(string value, string header, string body, string footer) {
+        AssertInOrder(value, header, body, footer);
+        Assert.Equal(1, CountOccurrences(value, header));
+        Assert.Equal(1, CountOccurrences(value, body));
+        Assert.Equal(1, CountOccurrences(value, footer));
+    }
+
+    private static int CountOccurrences(string value, string marker) {
+        int count = 0;
+        int offset = 0;
+        while ((offset = value.IndexOf(marker, offset, StringComparison.Ordinal)) >= 0) {
+            count++;
+            offset += marker.Length;
+        }
+        return count;
+    }
+
+    private static string ReadOpenDocumentText(byte[] artifact) {
+        using var archive = new ZipArchive(new MemoryStream(artifact), ZipArchiveMode.Read, leaveOpen: false);
+        ZipArchiveEntry content = archive.GetEntry("content.xml") ?? throw new InvalidDataException("OpenDocument package did not contain content.xml.");
+        using var reader = new StreamReader(content.Open());
+        return Regex.Replace(reader.ReadToEnd(), "<[^>]+>", " ");
     }
 
     private static byte[] BuildPositionedTextPdf(string content, int width = 420, int height = 320) {

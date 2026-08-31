@@ -989,7 +989,9 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         bool enabled) {
         if (!enabled) return new Dictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int>();
-        return PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(page).ToDictionary(
+        return PdfCore.PdfLogicalReadingOrderAnalysis.Analyze(
+            page,
+            PdfCore.PdfLogicalReadingOrderScope.PageContent).ToDictionary(
             static item => (item.Kind, item.SourceIndex, item.PlacementIndex),
             static item => item.OrderIndex);
     }

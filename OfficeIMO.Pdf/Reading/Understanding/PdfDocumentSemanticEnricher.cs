@@ -131,11 +131,11 @@ internal static class PdfDocumentSemanticEnricher {
         IReadOnlyList<PdfUnderstandingPageResult> pages,
         List<PdfUnderstandingSemanticElement>[] elements,
         PdfUnderstandingWorkBudget workBudget) {
-        PdfOutlineItem[] flattened = FlattenOutlines(outlines).Where(static outline => outline.PageNumber.HasValue).ToArray();
-        if (flattened.Length == 0) return;
+        IReadOnlyDictionary<int, IReadOnlyList<PdfOutlineItem>> outlinesByPage =
+            IndexOutlinesByPage(outlines, workBudget);
+        if (outlinesByPage.Count == 0) return;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
-            PdfOutlineItem[] pageOutlines = flattened.Where(outline => outline.PageNumber == pages[pageIndex].PageNumber).ToArray();
-            if (pageOutlines.Length == 0) continue;
+            if (!outlinesByPage.TryGetValue(pages[pageIndex].PageNumber, out IReadOnlyList<PdfOutlineItem>? pageOutlines)) continue;
             var usedLines = new HashSet<(long BaselineY, long XStart, string Text)>();
             var lineElements = new List<PdfUnderstandingSemanticElement>();
             foreach (PdfOutlineItem outline in pageOutlines) {
@@ -393,21 +393,42 @@ internal static class PdfDocumentSemanticEnricher {
             current.Evidence.Concat(new[] { evidence }),
             level ?? current.Level);
 
-    private static int? HeadingLevel(string role) =>
+    internal static int? HeadingLevel(string role) =>
         role.Length == 2 && (role[0] == 'H' || role[0] == 'h') && char.IsDigit(role[1])
             && role[1] >= '1' && role[1] <= '6'
             ? role[1] - '0'
             : null;
 
     private static IEnumerable<PdfOutlineItem> FlattenOutlines(IReadOnlyList<PdfOutlineItem> outlines) {
-        var stack = new Stack<PdfOutlineItem>(outlines.Reverse());
+        var stack = new Stack<(IReadOnlyList<PdfOutlineItem> Items, int Index)>();
+        stack.Push((outlines, 0));
         while (stack.Count > 0) {
-            PdfOutlineItem current = stack.Pop();
+            (IReadOnlyList<PdfOutlineItem> items, int index) = stack.Pop();
+            if (index >= items.Count) continue;
+            PdfOutlineItem current = items[index];
+            stack.Push((items, index + 1));
             yield return current;
-            for (int childIndex = current.Children.Count - 1; childIndex >= 0; childIndex--) {
-                stack.Push(current.Children[childIndex]);
-            }
+            if (current.Children.Count > 0) stack.Push((current.Children, 0));
         }
+    }
+
+    internal static IReadOnlyDictionary<int, IReadOnlyList<PdfOutlineItem>> IndexOutlinesByPage(
+        IReadOnlyList<PdfOutlineItem> outlines,
+        PdfUnderstandingWorkBudget workBudget) {
+        var mutable = new Dictionary<int, List<PdfOutlineItem>>();
+        foreach (PdfOutlineItem outline in FlattenOutlines(outlines)) {
+            workBudget.Consume();
+            if (!outline.PageNumber.HasValue) continue;
+            if (!mutable.TryGetValue(outline.PageNumber.Value, out List<PdfOutlineItem>? pageOutlines)) {
+                pageOutlines = new List<PdfOutlineItem>();
+                mutable.Add(outline.PageNumber.Value, pageOutlines);
+            }
+            pageOutlines.Add(outline);
+        }
+
+        return mutable.ToDictionary(
+            static pair => pair.Key,
+            static pair => (IReadOnlyList<PdfOutlineItem>)pair.Value.AsReadOnly());
     }
 
     private static bool IsBetterOutlineCandidate(OutlineLineCandidate current, OutlineLineCandidate previous) {

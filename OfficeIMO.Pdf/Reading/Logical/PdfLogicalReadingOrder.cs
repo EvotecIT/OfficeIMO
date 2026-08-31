@@ -20,6 +20,14 @@ public enum PdfLogicalReadingOrderKind {
     FormWidget
 }
 
+/// <summary>Controls which logical page content participates in shared reading-order analysis.</summary>
+public enum PdfLogicalReadingOrderScope {
+    /// <summary>Orders the semantic body while excluding classified running headers and footers.</summary>
+    SemanticBody,
+    /// <summary>Orders all page content, including classified running headers and footers.</summary>
+    PageContent
+}
+
 /// <summary>
 /// One logical page item in crop-, rotation-, and column-aware reading order.
 /// </summary>
@@ -105,9 +113,22 @@ public static class PdfLogicalReadingOrderAnalysis {
     /// <summary>
     /// Orders semantic page items using visible crop geometry, page rotation, spanning bands, and columns.
     /// </summary>
-    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(PdfLogicalPage page) {
+    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(PdfLogicalPage page) =>
+        Analyze(page, PdfLogicalReadingOrderScope.SemanticBody);
+
+    /// <summary>
+    /// Orders logical page items using visible crop geometry, page rotation, spanning bands, and columns.
+    /// </summary>
+    /// <param name="page">Logical page to analyze.</param>
+    /// <param name="scope">Whether to return semantic body content or all page content.</param>
+    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderScope scope) {
         Guard.NotNull(page, nameof(page));
-        var candidates = BuildCandidates(page);
+        if (scope is not (PdfLogicalReadingOrderScope.SemanticBody or PdfLogicalReadingOrderScope.PageContent)) {
+            throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported logical reading-order scope.");
+        }
+        var candidates = BuildCandidates(page, scope);
         if (candidates.Count == 0) return Array.Empty<PdfLogicalReadingOrderItem>();
 
         (double pageWidth, double pageHeight) = page.GetVisualPageSize();
@@ -323,7 +344,7 @@ public static class PdfLogicalReadingOrderAnalysis {
         internal CanonicalRank WithPosition(double position) => new CanonicalRank(Item, OriginalIndex, Matched, position);
     }
 
-    private static List<Candidate> BuildCandidates(PdfLogicalPage page) {
+    private static List<Candidate> BuildCandidates(PdfLogicalPage page, PdfLogicalReadingOrderScope scope) {
         var result = new List<Candidate>();
         var semanticTextBlocks = new HashSet<PdfLogicalTextBlock>();
         for (int index = 0; index < page.Headings.Count; index++) semanticTextBlocks.Add(page.Headings[index].Line);
@@ -334,7 +355,8 @@ public static class PdfLogicalReadingOrderAnalysis {
         int sequence = 0;
         for (int index = 0; index < page.TextBlocks.Count; index++) {
             PdfLogicalTextBlock block = page.TextBlocks[index];
-            if (block.Kind is PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer) continue;
+            if (scope == PdfLogicalReadingOrderScope.SemanticBody &&
+                block.Kind is (PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer)) continue;
             if (!semanticTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });

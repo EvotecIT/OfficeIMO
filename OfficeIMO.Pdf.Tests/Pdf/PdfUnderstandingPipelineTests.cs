@@ -300,6 +300,18 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_StopsTaggedAncestorCyclesWithoutLeakingARole() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateCyclicTaggedStructurePdf()).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        PdfUnderstandingSemanticElement element = Assert.Single(
+            page.Elements,
+            static candidate => candidate.Region.Text.Contains("Cyclic tagged content", StringComparison.Ordinal));
+        Assert.NotEqual(PdfUnderstandingSemanticKind.Heading, element.Kind);
+        Assert.DoesNotContain(element.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
+    }
+
+    [Fact]
     public void Pipeline_WorkBudgetAcceptsExactLimitAndRejectsNextUnit() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10));
@@ -363,6 +375,46 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void OutlineIndexing_ChargesEveryNodeBeforePageLookup() {
+        PdfOutlineItem[] outlines = Enumerable.Range(0, 32)
+            .Select(index => new PdfOutlineItem(
+                "Off-page outline " + index,
+                1,
+                pageNumber: 2,
+                destinationTop: null,
+                isExpanded: false,
+                Array.Empty<PdfOutlineItem>()))
+            .ToArray();
+        var budget = new PdfUnderstandingWorkBudget(8, CancellationToken.None);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocumentSemanticEnricher.IndexOutlinesByPage(outlines, budget));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(8, exception.Limit);
+        Assert.Equal(9, exception.Actual);
+    }
+
+    [Fact]
+    public void OutlineIndexing_ObservesCancellationAcrossOffPageNodes() {
+        PdfOutlineItem[] outlines = Enumerable.Range(0, 32)
+            .Select(index => new PdfOutlineItem(
+                "Off-page outline " + index,
+                1,
+                pageNumber: 2,
+                destinationTop: null,
+                isExpanded: false,
+                Array.Empty<PdfOutlineItem>()))
+            .ToArray();
+        using var cancellation = new CancellationTokenSource();
+        var budget = new PdfUnderstandingWorkBudget(100, cancellation.Token);
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocumentSemanticEnricher.IndexOutlinesByPage(outlines, budget));
+    }
+
+    [Fact]
     public void StructuredRead_BindsMixedTaggedHeadingLevelsToTheirOwnMarkedContent() {
         byte[] pdf = PdfDocument.Create()
             .TaggedPdfCatalogMarkers()
@@ -401,6 +453,17 @@ public class PdfUnderstandingPipelineTests {
         Assert.DoesNotContain(page.Elements, element =>
             element.Kind == PdfUnderstandingSemanticKind.Heading && element.Level is <= 0);
         Assert.Contains(result.TaggedContent!.StructureElements, element => element.StructureType == "H0");
+    }
+
+    [Theory]
+    [InlineData("H0")]
+    [InlineData("H7")]
+    [InlineData("H9")]
+    [InlineData("H10")]
+    [InlineData("H٢")]
+    [InlineData("Heading2")]
+    public void TaggedHeadingLevels_RejectMalformedRoles(string role) {
+        Assert.Null(PdfDocumentSemanticEnricher.HeadingLevel(role));
     }
 
     [Fact]
@@ -808,6 +871,22 @@ public class PdfUnderstandingPipelineTests {
             "<< /Type /StructElem /S /H1 /P 6 0 R /Pg 3 0 R /K [8 0 R] >>",
             "<< /Type /StructElem /S /Span /P 7 0 R /Pg 3 0 R /K 0 >>",
             "<< /Nums [0 [8 0 R]] >>");
+    }
+
+    private static byte[] CreateCyclicTaggedStructurePdf() {
+        string content = "/Span << /MCID 0 >> BDC\n" +
+            "BT /F1 12 Tf 72 700 Td (Cyclic tagged content) Tj ET\nEMC\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /Span /P 8 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Type /StructElem /S /Div /P 7 0 R /Pg 3 0 R /K [] >>",
+            "<< /Nums [0 [7 0 R]] >>");
     }
 
     private static string BuildStreamBody(string dictionaryEntries, string content) {

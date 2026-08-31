@@ -253,7 +253,7 @@ public static class PdfLogicalTableContinuations {
         string signature = PdfTextSimilarity.NormalizeSignaturePreservingDigits(value);
         return System.Text.RegularExpressions.Regex.Replace(
             signature,
-            @"\s+(?:page|pg|p)\s+\d+(?:\s+of\s+\d+)?$",
+            @"\s+(?:page|pg|p)\.?\s+\d+(?:(?:\s+of\s+|/)\d+)?$",
             string.Empty,
             System.Text.RegularExpressions.RegexOptions.CultureInvariant);
     }
