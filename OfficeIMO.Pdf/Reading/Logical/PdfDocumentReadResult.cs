@@ -1297,6 +1297,13 @@ public sealed partial class PdfDocumentReadResult {
         var lines = new List<string>(page.TextBlocks.Count);
         for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
             PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
+            if (item.Kind == PdfLogicalReadingOrderKind.Table) {
+                IReadOnlyList<IReadOnlyList<string>> rows = page.Tables[item.SourceIndex].Rows;
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    lines.Add(string.Join("\t", rows[rowIndex]));
+                }
+                continue;
+            }
             IReadOnlyList<PdfLogicalTextBlock>? itemLines = item.Kind switch {
                 PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
                 PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },

@@ -246,7 +246,7 @@ public sealed partial class PdfLogicalPage {
             ? page.ExtractStructured(options)
             : page.ExtractStructured(analysis.DecodedRuns, options, cancellationToken);
         if (analysis is not null) {
-            ReplaceProjectionLines(structured, analysis.Lines, cancellationToken);
+            ReplaceProjectionLines(page, structured, analysis.Lines, cancellationToken);
         }
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
@@ -277,7 +277,16 @@ public sealed partial class PdfLogicalPage {
                     : isStructuredListItem
                     ? PdfLogicalElementKind.ListItem
                     : PdfLogicalElementKind.TextBlock);
-            var block = new PdfLogicalTextBlock(pageNumber, kind, text, line.XStart, line.XEnd, line.Y, line.FontSize, line.Spans);
+            var block = new PdfLogicalTextBlock(
+                pageNumber,
+                kind,
+                text,
+                line.XStart,
+                line.XEnd,
+                line.Y,
+                line.FontSize,
+                line.Spans,
+                visualBounds: line.VisualBounds);
             textBlocks.Add(block);
             if (semantic is not null) semanticByTextBlock.Add(block, semantic);
             elements.Add(block);
@@ -364,6 +373,7 @@ public sealed partial class PdfLogicalPage {
     }
 
     private static void ReplaceProjectionLines(
+        PdfReadPage page,
         StructuredPage structured,
         IReadOnlyList<PdfUnderstandingLine> sourceLines,
         CancellationToken cancellationToken) {
@@ -389,8 +399,66 @@ public sealed partial class PdfLogicalPage {
                 XEnd = sourceLine.XEnd,
                 Text = sourceLine.Text,
                 FontSize = sourceLine.FontSize,
-                Spans = Array.AsReadOnly(spans.ToArray())
+                Spans = Array.AsReadOnly(spans.ToArray()),
+                VisualBounds = CreateLineVisualBounds(page, sourceLine, spans)
             });
+        }
+    }
+
+    private static PdfLogicalVisualBounds? CreateLineVisualBounds(
+        PdfReadPage page,
+        PdfUnderstandingLine line,
+        List<PdfTextSpan> spans) {
+        double left = double.MaxValue;
+        double bottom = double.MaxValue;
+        double right = double.MinValue;
+        double top = double.MinValue;
+        for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+            PdfTextSpan span = spans[spanIndex];
+            double advance = Math.Abs(span.Advance) > 0.001D
+                ? span.Advance
+                : span.FontSize * Math.Max(1, span.Text.Length) * 0.55D;
+            IncludeOrientedBounds(span.X, span.Y, advance, span.FontSize, span.RotationDegrees);
+        }
+        if (spans.Count == 0) {
+            for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                PdfUnderstandingWord word = line.Words[wordIndex];
+                double radians = word.RotationDegrees * Math.PI / 180D;
+                double startX = Math.Cos(radians) >= 0D ? word.XStart : word.XEnd;
+                double projectedWidth = Math.Max(0D, word.XEnd - word.XStart);
+                double advance = Math.Abs(Math.Cos(radians)) > 0.001D && projectedWidth > 0.001D
+                    ? projectedWidth / Math.Abs(Math.Cos(radians))
+                    : word.FontSize * Math.Max(1, word.Text.Length) * 0.55D;
+                IncludeOrientedBounds(startX, word.BaselineY, advance, word.FontSize, word.RotationDegrees);
+            }
+        }
+        if (left == double.MaxValue || right <= left || top <= bottom) return null;
+        PdfVisualBounds visual = page.TransformBoundsToVisual(left, bottom, right, top);
+        return visual.Right > visual.Left && visual.Bottom > visual.Top
+            ? new PdfLogicalVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom)
+            : null;
+
+        void IncludeOrientedBounds(double x, double y, double advance, double fontSize, double rotationDegrees) {
+            double radians = rotationDegrees * Math.PI / 180D;
+            double alongX = Math.Cos(radians);
+            double alongY = Math.Sin(radians);
+            double normalX = -alongY;
+            double normalY = alongX;
+            double endX = x + alongX * advance;
+            double endY = y + alongY * advance;
+            double descent = Math.Max(1D, fontSize * 0.25D);
+            double ascent = Math.Max(1D, fontSize);
+            Include(x - normalX * descent, y - normalY * descent);
+            Include(x + normalX * ascent, y + normalY * ascent);
+            Include(endX - normalX * descent, endY - normalY * descent);
+            Include(endX + normalX * ascent, endY + normalY * ascent);
+        }
+
+        void Include(double x, double y) {
+            left = Math.Min(left, x);
+            bottom = Math.Min(bottom, y);
+            right = Math.Max(right, x);
+            top = Math.Max(top, y);
         }
     }
 
@@ -478,8 +546,7 @@ public sealed partial class PdfLogicalPage {
             if (block.Kind != PdfLogicalElementKind.ListItem ||
                 !semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic) ||
                 semantic.Kind != PdfUnderstandingSemanticKind.ListItem ||
-                !semantic.Evidence.Any(static evidence =>
-                    string.Equals(evidence.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) continue;
+                !PreservesListContinuationOwnership(semantic)) continue;
             if (!semanticGroups.TryGetValue(semantic, out List<PdfLogicalTextBlock>? group)) {
                 group = new List<PdfLogicalTextBlock>();
                 semanticGroups.Add(semantic, group);
@@ -535,6 +602,19 @@ public sealed partial class PdfLogicalPage {
         }
 
         return result.AsReadOnly();
+    }
+
+    private static bool PreservesListContinuationOwnership(PdfUnderstandingSemanticElement semantic) {
+        if (semantic.Evidence.Any(static evidence =>
+                string.Equals(evidence.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) return true;
+        if (semantic.Region.Lines.Count < 2 ||
+            !semantic.Evidence.Any(static evidence =>
+                string.Equals(evidence.Code, "semantic.list-marker", StringComparison.Ordinal)) ||
+            !ContentStructureExtractor.IsListItemText(semantic.Region.Lines[0].Text)) return false;
+        for (int lineIndex = 1; lineIndex < semantic.Region.Lines.Count; lineIndex++) {
+            if (ContentStructureExtractor.IsListItemText(semantic.Region.Lines[lineIndex].Text)) return false;
+        }
+        return true;
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<string> BuildListItemLineTexts(

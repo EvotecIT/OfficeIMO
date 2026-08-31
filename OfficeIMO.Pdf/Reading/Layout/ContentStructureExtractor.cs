@@ -212,6 +212,7 @@ public sealed class StructuredLine {
     public double FontSize { get; set; }
     /// <summary>Immutable snapshot of the positioned text spans grouped into this line.</summary>
     public IReadOnlyList<PdfTextSpan> Spans { get; internal set; } = Array.Empty<PdfTextSpan>();
+    internal PdfLogicalVisualBounds? VisualBounds { get; set; }
     /// <summary>Number of underlying spans grouped into this line.</summary>
     public int SpanCount => Spans.Count;
 }

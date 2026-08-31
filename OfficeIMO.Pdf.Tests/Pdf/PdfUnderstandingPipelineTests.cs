@@ -305,6 +305,27 @@ public class PdfUnderstandingPipelineTests {
         Assert.DoesNotContain(section.TextBlocks, block =>
             block.Text.Contains("Metric", StringComparison.Ordinal) ||
             block.Text.Contains("Quality", StringComparison.Ordinal));
+        Assert.Contains("Metric\tValue", result.Text, StringComparison.Ordinal);
+        Assert.Contains("Quality\tPremium", result.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LogicalProjection_PreservesRotatedLineVisualBounds() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Vertical text", "F1", 12D, 220D, 300D, 72D, rotationDegrees: 90D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfLogicalTextBlock block = Assert.Single(page.TextBlocks);
+        PdfLogicalVisualBounds bounds = Assert.IsType<PdfLogicalVisualBounds>(block.VisualBounds);
+        PdfLogicalReadingOrderItem item = Assert.Single(PdfLogicalReadingOrderAnalysis.Analyze(page));
+
+        Assert.True(bounds.Height > 60D);
+        Assert.True(bounds.Width > 5D);
+        Assert.True(item.HasGeometry);
+        Assert.True(item.Bottom - item.Top > 60D);
     }
 
     [Fact]
@@ -1162,6 +1183,52 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void LogicalProjection_KeepsHeuristicWrappedListContinuationInOneItem() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("- Wrapped list item", "F1", 12D, 72D, 700D, 110D),
+            new PdfTextSpan("continuation line", "F1", 12D, 90D, 680D, 90D)
+        });
+        options.PageSegmentation = new WholePageRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+        PdfLogicalListItem item = Assert.Single(Assert.Single(logical.Pages).ListItems);
+
+        Assert.Equal(2, item.Lines.Count);
+        Assert.Equal("Wrapped list item continuation line", item.Text);
+        Assert.Single(PdfLogicalReadingOrderAnalysis.Analyze(logical.Pages[0]),
+            static candidate => candidate.Kind == PdfLogicalReadingOrderKind.ListItem);
+        Assert.Single(logical.ToMarkdown().Split('\n'), static line => line.StartsWith("- ", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentEnrichment_KeepsPartialTaggedRegionsAlignedWithCanonicalOrder() {
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.PageSegmentation = new WholePageRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+        options.SemanticClassification = new ParagraphClassificationStage();
+
+        PdfUnderstandingPageResult page = Assert.Single(Read(CreatePartiallyTaggedRegionPdf(), options).Pages).Analysis;
+
+        Assert.Equal(2, page.Elements.Count);
+        Assert.Equal(page.Elements.Count, page.Regions.Count);
+        Assert.Equal(page.Elements.Count, page.ReadingOrder.Count);
+        Assert.Equal(page.Elements.Count, page.ReadingOrderEvidence.Count);
+        Assert.Equal(new[] { "Tagged heading", "Untagged continuation" },
+            page.Elements.Select(static element => element.Region.Text));
+        Assert.Equal(PdfUnderstandingSemanticKind.Heading, page.Elements[0].Kind);
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph, page.Elements[1].Kind);
+        for (int index = 0; index < page.Elements.Count; index++) {
+            Assert.Same(page.Elements[index].Region, page.Regions[index]);
+            Assert.Same(page.Elements[index].Region, page.ReadingOrder[index]);
+            Assert.Same(page.Elements[index].Region, page.ReadingOrderEvidence[index].Region);
+            Assert.Equal(index, page.ReadingOrderEvidence[index].Index);
+        }
+    }
+
+    [Fact]
     public void AdvancedPipeline_UsesCanonicalRegularFontProseTableRegions() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {
@@ -1442,6 +1509,22 @@ public class PdfUnderstandingPipelineTests {
             "<< /Type /StructElem /S /H1 /P 6 0 R /Pg 3 0 R /K 0 >>",
             "<< /Type /StructElem /S /LI /P 6 0 R /Pg 3 0 R /K [1 2] >>",
             "<< /Nums [0 [7 0 R 8 0 R 8 0 R]] >>");
+    }
+
+    private static byte[] CreatePartiallyTaggedRegionPdf() {
+        string content = "/H2 << /MCID 0 >> BDC\n" +
+            "BT /F1 18 Tf 72 700 Td (Tagged heading) Tj ET\nEMC\n" +
+            "BT /F1 12 Tf 72 680 Td (Untagged continuation) Tj ET\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /H2 /P 6 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Nums [0 [7 0 R]] >>");
     }
 
     private static byte[] CreateInvalidTaggedHeadingPdf() {

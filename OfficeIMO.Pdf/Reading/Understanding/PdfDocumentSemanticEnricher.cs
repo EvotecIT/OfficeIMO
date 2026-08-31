@@ -35,14 +35,31 @@ internal static class PdfDocumentSemanticEnricher {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             workBudget.Consume();
             PdfUnderstandingPageResult page = pages[pageIndex];
+            PdfUnderstandingRegion[] canonicalRegions = elements[pageIndex]
+                .Select(static element => element.Region)
+                .ToArray();
+            bool regionsChanged = canonicalRegions.Length != page.ReadingOrder.Count;
+            for (int regionIndex = 0; !regionsChanged && regionIndex < canonicalRegions.Length; regionIndex++) {
+                workBudget.Consume();
+                regionsChanged = !ReferenceEquals(canonicalRegions[regionIndex], page.ReadingOrder[regionIndex]);
+            }
+            IReadOnlyList<PdfUnderstandingRegion> regions = regionsChanged
+                ? Array.AsReadOnly(canonicalRegions)
+                : page.Regions;
+            IReadOnlyList<PdfUnderstandingRegion> readingOrder = regionsChanged
+                ? regions
+                : page.ReadingOrder;
+            IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence = regionsChanged
+                ? BuildReadingOrderEvidence(page.ReadingOrderEvidence, canonicalRegions, workBudget)
+                : page.ReadingOrderEvidence;
             result[pageIndex] = new PdfUnderstandingPageResult(
                 page.PageNumber,
                 page.DecodedRuns,
                 page.Words,
                 page.Lines,
-                page.Regions,
-                page.ReadingOrder,
-                page.ReadingOrderEvidence,
+                regions,
+                readingOrder,
+                readingOrderEvidence,
                 elements[pageIndex].AsReadOnly(),
                 page.Trace);
         }
@@ -161,7 +178,6 @@ internal static class PdfDocumentSemanticEnricher {
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             if (!outlinesByPage.TryGetValue(pages[pageIndex].PageNumber, out IReadOnlyList<PdfOutlineItem>? pageOutlines)) continue;
             var usedLines = new HashSet<(long BaselineY, long XStart, string Text)>();
-            var lineElements = new List<PdfUnderstandingSemanticElement>();
             foreach (PdfOutlineItem outline in pageOutlines) {
                 string outlineText = PdfTextSimilarity.NormalizeSignaturePreservingDigits(outline.Title);
                 if (outlineText.Length == 0) continue;
@@ -204,19 +220,20 @@ internal static class PdfDocumentSemanticEnricher {
                         evidence,
                         outline.Level);
                 } else {
-                    var lineRegion = new PdfUnderstandingRegion(
-                        new[] { candidate.Line },
-                        candidate.Line.Confidence,
-                        candidate.Element.Region.Evidence);
-                    lineElements.Add(new PdfUnderstandingSemanticElement(
-                        lineRegion,
-                        PdfUnderstandingSemanticKind.Heading,
-                        Math.Max(candidate.Element.Confidence, 0.96D),
-                        candidate.Element.Evidence.Concat(new[] { evidence }),
-                        outline.Level));
+                    List<PdfUnderstandingSemanticElement> split = SplitElementByLine(
+                        candidate.Element,
+                        candidate.Line,
+                        new PdfUnderstandingSemanticElement(
+                            CreateLineRegion(candidate.Element.Region, candidate.Line),
+                            PdfUnderstandingSemanticKind.Heading,
+                            Math.Max(candidate.Element.Confidence, 0.96D),
+                            candidate.Element.Evidence.Concat(new[] { evidence }),
+                            outline.Level),
+                        workBudget);
+                    elements[pageIndex].RemoveAt(candidate.ElementIndex);
+                    elements[pageIndex].InsertRange(candidate.ElementIndex, split);
                 }
             }
-            if (lineElements.Count > 0) elements[pageIndex].InsertRange(0, lineElements);
         }
     }
 
@@ -260,7 +277,7 @@ internal static class PdfDocumentSemanticEnricher {
                 }
             }
             if (rolesByMarkedContent.Count == 0) continue;
-            var lineElements = new List<PdfUnderstandingSemanticElement>();
+            var enriched = new List<PdfUnderstandingSemanticElement>(elements[pageIndex].Count);
             for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
                 workBudget.Consume();
                 PdfUnderstandingSemanticElement current = elements[pageIndex][elementIndex];
@@ -286,31 +303,108 @@ internal static class PdfDocumentSemanticEnricher {
                     if (!bestRole.HasValue) continue;
                     matches.Add(new TaggedLineMatch(line, markedContent, bestRole.Value));
                 }
-                if (matches.Count == 0) continue;
+                if (matches.Count == 0) {
+                    enriched.Add(current);
+                    continue;
+                }
 
                 bool coversWholeRegion = matches.Count == current.Region.Lines.Count &&
                     matches.All(match => match.Role.Kind == matches[0].Role.Kind && match.Role.Level == matches[0].Role.Level);
                 if (coversWholeRegion) {
-                    elements[pageIndex][elementIndex] = WithTaggedEvidence(current, matches[0]);
+                    enriched.Add(WithTaggedEvidence(current, matches[0]));
                     continue;
                 }
-                for (int matchIndex = 0; matchIndex < matches.Count; matchIndex++) {
-                    TaggedLineMatch match = matches[matchIndex];
-                    var lineRegion = new PdfUnderstandingRegion(
-                        new[] { match.Line },
-                        match.Line.Confidence,
-                        current.Region.Evidence);
-                    var lineElement = new PdfUnderstandingSemanticElement(
-                        lineRegion,
-                        current.Kind,
-                        current.Confidence,
-                        current.Evidence,
-                        current.Level);
-                    lineElements.Add(WithTaggedEvidence(lineElement, match));
+                var matchByLine = matches.ToDictionary(static match => match.Line);
+                for (int lineIndex = 0; lineIndex < current.Region.Lines.Count; lineIndex++) {
+                    workBudget.Consume();
+                    PdfUnderstandingLine line = current.Region.Lines[lineIndex];
+                    PdfUnderstandingSemanticElement lineElement = CreateSplitLineElement(current, line);
+                    enriched.Add(matchByLine.TryGetValue(line, out TaggedLineMatch match)
+                        ? WithTaggedEvidence(lineElement, match)
+                        : lineElement);
                 }
             }
-            if (lineElements.Count > 0) elements[pageIndex].InsertRange(0, lineElements);
+            elements[pageIndex] = enriched;
         }
+    }
+
+    private static List<PdfUnderstandingSemanticElement> SplitElementByLine(
+        PdfUnderstandingSemanticElement source,
+        PdfUnderstandingLine replacementLine,
+        PdfUnderstandingSemanticElement replacement,
+        PdfUnderstandingWorkBudget workBudget) {
+        var split = new List<PdfUnderstandingSemanticElement>(source.Region.Lines.Count);
+        for (int lineIndex = 0; lineIndex < source.Region.Lines.Count; lineIndex++) {
+            workBudget.Consume();
+            PdfUnderstandingLine line = source.Region.Lines[lineIndex];
+            split.Add(ReferenceEquals(line, replacementLine)
+                ? replacement
+                : CreateSplitLineElement(source, line));
+        }
+        return split;
+    }
+
+    private static PdfUnderstandingSemanticElement CreateSplitLineElement(
+        PdfUnderstandingSemanticElement source,
+        PdfUnderstandingLine line) {
+        if (!ContentStructureExtractor.IsListItemText(line.Text)) {
+            return new PdfUnderstandingSemanticElement(
+                CreateLineRegion(source.Region, line),
+                source.Kind,
+                source.Confidence,
+                source.Evidence,
+                source.Level);
+        }
+
+        IEnumerable<PdfInferenceEvidence> evidence = source.Evidence;
+        if (!source.Evidence.Any(static item =>
+                string.Equals(item.Code, "semantic.list-marker", StringComparison.Ordinal))) {
+            evidence = evidence.Concat(new[] {
+                new PdfInferenceEvidence(
+                    "semantic.list-marker",
+                    "The split line begins with a bullet or numbered marker.",
+                    0.4D)
+            });
+        }
+        return new PdfUnderstandingSemanticElement(
+            CreateLineRegion(source.Region, line),
+            PdfUnderstandingSemanticKind.ListItem,
+            Math.Max(source.Confidence, 0.9D),
+            evidence);
+    }
+
+    private static PdfUnderstandingRegion CreateLineRegion(
+        PdfUnderstandingRegion source,
+        PdfUnderstandingLine line) =>
+        new(new[] { line }, line.Confidence, source.Evidence);
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(
+        IReadOnlyList<PdfReadingOrderEvidence> source,
+        PdfUnderstandingRegion[] regions,
+        PdfUnderstandingWorkBudget workBudget) {
+        var evidenceByLine = new Dictionary<PdfUnderstandingLine, PdfReadingOrderEvidence>();
+        for (int evidenceIndex = 0; evidenceIndex < source.Count; evidenceIndex++) {
+            PdfReadingOrderEvidence evidence = source[evidenceIndex];
+            for (int lineIndex = 0; lineIndex < evidence.Region.Lines.Count; lineIndex++) {
+                workBudget.Consume();
+                evidenceByLine[evidence.Region.Lines[lineIndex]] = evidence;
+            }
+        }
+        var result = new PdfReadingOrderEvidence[regions.Length];
+        for (int regionIndex = 0; regionIndex < regions.Length; regionIndex++) {
+            workBudget.Consume();
+            PdfUnderstandingRegion region = regions[regionIndex];
+            PdfReadingOrderEvidence? sourceEvidence = region.Lines.Count > 0 &&
+                evidenceByLine.TryGetValue(region.Lines[0], out PdfReadingOrderEvidence? matched)
+                    ? matched
+                    : null;
+            result[regionIndex] = new PdfReadingOrderEvidence(
+                regionIndex,
+                region,
+                sourceEvidence?.Confidence ?? region.Confidence,
+                sourceEvidence?.Evidence ?? Array.Empty<PdfInferenceEvidence>());
+        }
+        return Array.AsReadOnly(result);
     }
 
     private static void ApplyHeadingFontTierEvidence(List<PdfUnderstandingSemanticElement>[] elements, PdfUnderstandingWorkBudget workBudget) {
