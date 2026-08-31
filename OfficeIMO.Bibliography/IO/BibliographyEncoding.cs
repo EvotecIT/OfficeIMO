@@ -3,44 +3,94 @@ namespace OfficeIMO.Bibliography;
 internal static class BibliographyEncoding {
     private const int EncodingCharacterChunkSize = 4096;
 
-    internal static Encoding Detect(byte[] bytes) {
+    internal static Encoding Detect(byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return new UTF8Encoding(true, true);
         if (bytes.Length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0x00 && bytes[3] == 0x00) return new UTF32Encoding(false, true, true);
         if (bytes.Length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xFE && bytes[3] == 0xFF) return new UTF32Encoding(true, true, true);
         if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) return new UnicodeEncoding(false, true, true);
         if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) return new UnicodeEncoding(true, true, true);
-        if (StartsWithXmlMarkup(bytes, 4, true)) return new UTF32Encoding(true, false, true);
-        if (StartsWithXmlMarkup(bytes, 4, false)) return new UTF32Encoding(false, false, true);
-        if (StartsWithXmlMarkup(bytes, 2, true)) return new UnicodeEncoding(true, false, true);
-        if (StartsWithXmlMarkup(bytes, 2, false)) return new UnicodeEncoding(false, false, true);
+        if (StartsWithXmlMarkup(bytes, 4, true, cancellationToken)) return new UTF32Encoding(true, false, true);
+        if (StartsWithXmlMarkup(bytes, 4, false, cancellationToken)) return new UTF32Encoding(false, false, true);
+        if (StartsWithXmlMarkup(bytes, 2, true, cancellationToken)) return new UnicodeEncoding(true, false, true);
+        if (StartsWithXmlMarkup(bytes, 2, false, cancellationToken)) return new UnicodeEncoding(false, false, true);
 
         var fallback = new UTF8Encoding(false, true);
-        string prefix = Encoding.ASCII.GetString(bytes, 0, Math.Min(bytes.Length, 4096));
-        return ResolveXmlDeclaration(prefix, fallback);
+        return ResolveXmlDeclaration(bytes, fallback, cancellationToken);
     }
 
-    internal static Encoding ResolveXmlDeclaration(string source, Encoding fallback) {
-        int declarationStart = source.IndexOf("<?xml", StringComparison.OrdinalIgnoreCase);
-        if (declarationStart < 0 || source.Substring(0, declarationStart).Any(character => !char.IsWhiteSpace(character) && character != '\uFEFF')) return fallback;
-        int declarationEnd = source.IndexOf("?>", declarationStart, StringComparison.Ordinal);
-        if (declarationEnd < 0) return fallback;
-        string declaration = source.Substring(declarationStart, declarationEnd - declarationStart);
-        int encodingStart = declaration.IndexOf("encoding", StringComparison.OrdinalIgnoreCase);
-        if (encodingStart < 0) return fallback;
-        int equals = declaration.IndexOf('=', encodingStart + 8);
-        if (equals < 0) return fallback;
-        int quote = equals + 1;
-        while (quote < declaration.Length && char.IsWhiteSpace(declaration[quote])) quote++;
-        if (quote >= declaration.Length || declaration[quote] != '\'' && declaration[quote] != '"') return fallback;
-        char delimiter = declaration[quote++];
-        int valueEnd = declaration.IndexOf(delimiter, quote);
-        if (valueEnd <= quote) return fallback;
-        try {
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            return Encoding.GetEncoding(declaration.Substring(quote, valueEnd - quote), EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-        } catch (ArgumentException) {
-            return fallback;
+    private static Encoding ResolveXmlDeclaration(byte[] bytes, Encoding fallback, CancellationToken cancellationToken) {
+        int declarationStart = 0;
+        while (declarationStart < bytes.Length && IsAsciiXmlWhitespace(bytes[declarationStart])) {
+            if ((declarationStart & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            declarationStart++;
         }
+        if (!MatchesAscii(bytes, declarationStart, "<?xml")) return fallback;
+
+        int declarationEnd = -1;
+        for (int index = declarationStart + 5; index + 1 < bytes.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (bytes[index] == (byte)'?' && bytes[index + 1] == (byte)'>') { declarationEnd = index; break; }
+        }
+        if (declarationEnd < 0) return fallback;
+
+        int encodingStart = IndexOfAscii(bytes, declarationStart + 5, declarationEnd, "encoding", cancellationToken);
+        if (encodingStart < 0) return fallback;
+        int equals = encodingStart + 8;
+        while (equals < declarationEnd && IsAsciiXmlWhitespace(bytes[equals])) {
+            if ((equals & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            equals++;
+        }
+        if (equals >= declarationEnd || bytes[equals] != (byte)'=') return fallback;
+        int quote = equals + 1;
+        while (quote < declarationEnd && IsAsciiXmlWhitespace(bytes[quote])) {
+            if ((quote & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            quote++;
+        }
+        if (quote >= declarationEnd || bytes[quote] != (byte)'\'' && bytes[quote] != (byte)'"') return fallback;
+        byte delimiter = bytes[quote++];
+        int valueEnd = quote;
+        while (valueEnd < declarationEnd && bytes[valueEnd] != delimiter) {
+            if ((valueEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            valueEnd++;
+        }
+        if (valueEnd <= quote || valueEnd >= declarationEnd) return fallback;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ResolveEncodingName(Encoding.ASCII.GetString(bytes, quote, valueEnd - quote), fallback);
+    }
+
+    internal static Encoding ResolveXmlDeclaration(string source, Encoding fallback, CancellationToken cancellationToken) {
+        int declarationStart = 0;
+        while (declarationStart < source.Length && (char.IsWhiteSpace(source[declarationStart]) || source[declarationStart] == '\uFEFF')) {
+            if ((declarationStart & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            declarationStart++;
+        }
+        if (!MatchesText(source, declarationStart, "<?xml")) return fallback;
+        int declarationEnd = IndexOfText(source, declarationStart + 5, source.Length, "?>", cancellationToken, caseInsensitive: false);
+        if (declarationEnd < 0) return fallback;
+        int encodingStart = IndexOfText(source, declarationStart + 5, declarationEnd, "encoding", cancellationToken, caseInsensitive: true);
+        if (encodingStart < 0) return fallback;
+        int equals = encodingStart + 8;
+        while (equals < declarationEnd && char.IsWhiteSpace(source[equals])) {
+            if ((equals & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            equals++;
+        }
+        if (equals >= declarationEnd || source[equals] != '=') return fallback;
+        int quote = equals + 1;
+        while (quote < declarationEnd && char.IsWhiteSpace(source[quote])) {
+            if ((quote & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            quote++;
+        }
+        if (quote >= declarationEnd || source[quote] != '\'' && source[quote] != '"') return fallback;
+        char delimiter = source[quote++];
+        int valueEnd = quote;
+        while (valueEnd < declarationEnd && source[valueEnd] != delimiter) {
+            if ((valueEnd & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            valueEnd++;
+        }
+        if (valueEnd <= quote || valueEnd >= declarationEnd) return fallback;
+        cancellationToken.ThrowIfCancellationRequested();
+        return ResolveEncodingName(source.Substring(quote, valueEnd - quote), fallback);
     }
 
     internal static string DecodeBounded(byte[] bytes, Encoding encoding, int maximumCharacters, CancellationToken cancellationToken) {
@@ -133,9 +183,10 @@ internal static class BibliographyEncoding {
         return true;
     }
 
-    private static bool StartsWithXmlMarkup(byte[] bytes, int width, bool bigEndian) {
-        int maximum = Math.Min(bytes.Length - bytes.Length % width, 4096);
+    private static bool StartsWithXmlMarkup(byte[] bytes, int width, bool bigEndian, CancellationToken cancellationToken) {
+        int maximum = bytes.Length - bytes.Length % width;
         for (int offset = 0; offset < maximum; offset += width) {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             uint value = 0;
             for (int index = 0; index < width; index++) {
                 int sourceIndex = bigEndian ? offset + index : offset + width - index - 1;
@@ -144,6 +195,61 @@ internal static class BibliographyEncoding {
             if (value == '<') return true;
             if (value != ' ' && value != '\t' && value != '\r' && value != '\n' && value != 0xFEFF) return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return false;
+    }
+
+    private static int IndexOfAscii(byte[] bytes, int start, int end, string value, CancellationToken cancellationToken) {
+        int maximum = end - value.Length;
+        for (int index = start; index <= maximum; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (MatchesAscii(bytes, index, value)) return index;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return -1;
+    }
+
+    private static bool MatchesAscii(byte[] bytes, int start, string value) {
+        if (start < 0 || start > bytes.Length - value.Length) return false;
+        for (int index = 0; index < value.Length; index++) {
+            byte current = bytes[start + index];
+            char expected = value[index];
+            if (current >= (byte)'A' && current <= (byte)'Z') current = (byte)(current + ((byte)'a' - (byte)'A'));
+            if (expected >= 'A' && expected <= 'Z') expected = (char)(expected + ('a' - 'A'));
+            if (current != (byte)expected) return false;
+        }
+        return true;
+    }
+
+    private static int IndexOfText(string source, int start, int end, string value, CancellationToken cancellationToken, bool caseInsensitive) {
+        int maximum = end - value.Length;
+        for (int index = start; index <= maximum; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (MatchesText(source, index, value, caseInsensitive)) return index;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return -1;
+    }
+
+    private static bool MatchesText(string source, int start, string value, bool caseInsensitive = true) {
+        if (start < 0 || start > source.Length - value.Length) return false;
+        for (int index = 0; index < value.Length; index++) {
+            char current = source[start + index];
+            char expected = value[index];
+            if (caseInsensitive) { current = char.ToLowerInvariant(current); expected = char.ToLowerInvariant(expected); }
+            if (current != expected) return false;
+        }
+        return true;
+    }
+
+    private static bool IsAsciiXmlWhitespace(byte value) => value == (byte)' ' || value == (byte)'\t' || value == (byte)'\r' || value == (byte)'\n';
+
+    private static Encoding ResolveEncodingName(string name, Encoding fallback) {
+        try {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            return Encoding.GetEncoding(name, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
+        } catch (ArgumentException) {
+            return fallback;
+        }
     }
 }

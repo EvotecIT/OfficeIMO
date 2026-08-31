@@ -60,7 +60,7 @@ internal static class CslJsonCodec {
                 HashSet<string> emitted = GetEmittedProperties(item, cancellationToken);
                 foreach (BibliographyNativeField field in item.NativeFields) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    bool changesOwner = field.Format == BibliographyFormat.CslJson && WouldBindTypedItemProperty(field);
+                    bool changesOwner = field.Format == BibliographyFormat.CslJson && WouldBindTypedItemProperty(field, cancellationToken);
                     if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name) && !changesOwner) {
                         WritePropertyName(writer, field.Name, cancellationToken);
                         bool exact = WriteNativeValue(writer, field, cancellationToken);
@@ -112,18 +112,18 @@ internal static class CslJsonCodec {
                 case "abstract": BindScalar(item, property, assigned => item.Abstract = assigned, items, limits); break;
                 case "language": BindScalar(item, property, assigned => item.Language = assigned, items, limits); break;
                 case "URL": BindScalar(item, property, assigned => item.Url = assigned, items, limits); break;
-                case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits); break;
-                case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits); break;
-                case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits); break;
-                case "recipient": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Recipient, items, limits); break;
-                case "interviewer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Interviewer, items, limits); break;
-                case "composer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Composer, items, limits); break;
-                case "collection-editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.CollectionEditor, items, limits); break;
-                case "issued": ParseDate(item, property, BibliographyDateRole.Issued, diagnostics, items, limits); break;
-                case "accessed": ParseDate(item, property, BibliographyDateRole.Accessed, diagnostics, items, limits); break;
-                case "submitted": ParseDate(item, property, BibliographyDateRole.Submitted, diagnostics, items, limits); break;
-                case "original-date": ParseDate(item, property, BibliographyDateRole.Original, diagnostics, items, limits); break;
-                case "event-date": ParseDate(item, property, BibliographyDateRole.Event, diagnostics, items, limits); break;
+                case "author": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Author, items, limits, cancellationToken); break;
+                case "editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Editor, items, limits, cancellationToken); break;
+                case "translator": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Translator, items, limits, cancellationToken); break;
+                case "recipient": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Recipient, items, limits, cancellationToken); break;
+                case "interviewer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Interviewer, items, limits, cancellationToken); break;
+                case "composer": PreserveWrongShapedNames(item, property, BibliographyContributorRole.Composer, items, limits, cancellationToken); break;
+                case "collection-editor": PreserveWrongShapedNames(item, property, BibliographyContributorRole.CollectionEditor, items, limits, cancellationToken); break;
+                case "issued": ParseDate(item, property, BibliographyDateRole.Issued, diagnostics, items, limits, cancellationToken); break;
+                case "accessed": ParseDate(item, property, BibliographyDateRole.Accessed, diagnostics, items, limits, cancellationToken); break;
+                case "submitted": ParseDate(item, property, BibliographyDateRole.Submitted, diagnostics, items, limits, cancellationToken); break;
+                case "original-date": ParseDate(item, property, BibliographyDateRole.Original, diagnostics, items, limits, cancellationToken); break;
+                case "event-date": ParseDate(item, property, BibliographyDateRole.Event, diagnostics, items, limits, cancellationToken); break;
                 case "DOI": BindIdentifier(item, property, "DOI", items, limits); break;
                 case "ISBN": BindIdentifier(item, property, "ISBN", items, limits); break;
                 case "ISSN": BindIdentifier(item, property, "ISSN", items, limits); break;
@@ -192,25 +192,29 @@ internal static class CslJsonCodec {
         return false;
     }
 
-    private static void PreserveWrongShapedNames(BibliographyItem item, JsonProperty property, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
-        if (ParseNames(item, property.Value, role, items, limits)) return;
+    private static void PreserveWrongShapedNames(BibliographyItem item, JsonProperty property, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
+        if (ParseNames(item, property.Value, role, items, limits, cancellationToken)) return;
         string raw = GetBoundedRawValue(property.Value, items, limits);
         item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw));
     }
 
-    private static bool ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    internal static bool ParseNames(BibliographyItem item, JsonElement value, BibliographyContributorRole role, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (value.ValueKind != JsonValueKind.Array) return false;
         if (value.GetArrayLength() == 0) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
-            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
+            if (element.ValueKind == JsonValueKind.Object && HasWrongShapedKnownNameProperty(element, cancellationToken)) return false;
         }
         foreach (JsonElement element in value.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element.ValueKind == JsonValueKind.String) item.Contributors.Add(new BibliographyContributor(role, new BibliographyName { Literal = element.GetString() }));
             else if (element.ValueKind == JsonValueKind.Object) {
                 var name = new BibliographyName();
-                    var seenProperties = new HashSet<string>(StringComparer.Ordinal);
+                var seenProperties = new HashSet<string>(StringComparer.Ordinal);
                 foreach (JsonProperty property in element.EnumerateObject()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string scalar = Scalar(property.Value);
                     if (!seenProperties.Add(property.Name)) { string raw = GetBoundedRawValue(property.Value, items, limits); name.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); continue; }
                     switch (property.Name) {
@@ -222,7 +226,16 @@ internal static class CslJsonCodec {
                 item.Contributors.Add(new BibliographyContributor(role, name));
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return true;
+    }
+
+    private static bool HasWrongShapedKnownNameProperty(JsonElement element, CancellationToken cancellationToken) {
+        foreach (JsonProperty property in element.EnumerateObject()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String) return true;
+        }
+        return false;
     }
 
     private static bool IsKnownNameProperty(string name) {
@@ -232,7 +245,7 @@ internal static class CslJsonCodec {
         }
     }
 
-    private static void ParseDate(BibliographyItem item, JsonProperty sourceProperty, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void ParseDate(BibliographyItem item, JsonProperty sourceProperty, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
         JsonElement value = sourceProperty.Value;
         if (value.ValueKind != JsonValueKind.Object) {
             string raw = GetBoundedRawValue(value, items, limits);
@@ -242,6 +255,7 @@ internal static class CslJsonCodec {
         var date = new BibliographyDate { Role = role };
         var seenProperties = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonProperty property in value.EnumerateObject()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!seenProperties.Add(property.Name)) {
                 string duplicateRaw = GetBoundedRawValue(property.Value, items, limits);
                 date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, duplicateRaw), duplicateRaw));
@@ -250,18 +264,18 @@ internal static class CslJsonCodec {
             if (string.Equals(property.Name, "literal", StringComparison.Ordinal)) {
                 if (property.Value.ValueKind != JsonValueKind.String) { string literalRaw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, literalRaw), literalRaw)); }
                 else date.Literal = property.Value.GetString();
-            } else if (string.Equals(property.Name, "date-parts", StringComparison.Ordinal)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits);
+            } else if (string.Equals(property.Name, "date-parts", StringComparison.Ordinal)) ParseDateParts(item, date, property.Value, role, diagnostics, items, limits, cancellationToken);
             else { string raw = GetBoundedRawValue(property.Value, items, limits); date.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.CslJson, property.Name, ScalarOrRaw(property.Value, raw), raw)); }
         }
         item.Dates.Add(date);
     }
 
-    private static void ParseDateParts(BibliographyItem item, BibliographyDate date, JsonElement parts, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
-        JsonElement[] ranges = parts.ValueKind == JsonValueKind.Array ? parts.EnumerateArray().ToArray() : Array.Empty<JsonElement>();
+    private static void ParseDateParts(BibliographyItem item, BibliographyDate date, JsonElement parts, BibliographyDateRole role, BibliographyDiagnosticGuard diagnostics, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
+        List<JsonElement> ranges = TakeBoundedElements(parts, 2, cancellationToken, out bool tooManyRanges);
         int? year = null; int? month = null; int? day = null;
         int? endYear = null; int? endMonth = null; int? endDay = null;
-        bool valid = ranges.Length >= 1 && ranges.Length <= 2 && TryReadDatePart(ranges[0], out year, out month, out day);
-        if (valid && ranges.Length == 2) valid = TryReadDatePart(ranges[1], out endYear, out endMonth, out endDay);
+        bool valid = !tooManyRanges && ranges.Count >= 1 && TryReadDatePart(ranges[0], cancellationToken, out year, out month, out day);
+        if (valid && ranges.Count == 2) valid = TryReadDatePart(ranges[1], cancellationToken, out endYear, out endMonth, out endDay);
         if (valid) {
             date.Year = year; date.Month = month; date.Day = day;
             date.EndYear = endYear; date.EndMonth = endMonth; date.EndDay = endDay;
@@ -339,7 +353,7 @@ internal static class CslJsonCodec {
         if (date.Literal != null) { WriteString(writer, "literal", date.Literal, cancellationToken); emitted.Add("literal"); }
         foreach (BibliographyNativeField field in date.NativeFields) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name) && !WouldBindTypedDateProperty(field)) { WritePropertyName(writer, field.Name, cancellationToken); bool exact = WriteNativeValue(writer, field, cancellationToken); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
+            if (field.Format == BibliographyFormat.CslJson && !emitted.Contains(field.Name) && !WouldBindTypedDateProperty(field, cancellationToken)) { WritePropertyName(writer, field.Name, cancellationToken); bool exact = WriteNativeValue(writer, field, cancellationToken); emitted.Add(field.Name); report.Add(exact ? "BIBCONV017" : "BIBCONV128", exact ? BibliographyDiagnosticSeverity.Information : BibliographyDiagnosticSeverity.Warning, exact ? $"Preserved native CSL JSON date property '{field.Name}'." : $"Native CSL JSON date property '{field.Name}' was emitted as a string because its raw JSON value was invalid or too deeply nested.", exact ? BibliographyConversionAction.PreservedExtension : BibliographyConversionAction.Approximated, item, property + "." + field.Name); }
             else report.Add("BIBCONV125", BibliographyDiagnosticSeverity.Warning, $"Native date property '{field.Name}' cannot be represented safely in CSL JSON.", BibliographyConversionAction.Omitted, item, property + "." + field.Name);
         }
         writer.WriteEndObject();
@@ -398,13 +412,15 @@ internal static class CslJsonCodec {
         return builder.ToString();
     }
 
-    private static bool TryReadDatePart(JsonElement value, out int? year, out int? month, out int? day) {
+    private static bool TryReadDatePart(JsonElement value, CancellationToken cancellationToken, out int? year, out int? month, out int? day) {
         year = null; month = null; day = null;
-        if (value.ValueKind != JsonValueKind.Array) return false;
-        JsonElement[] parts = value.EnumerateArray().ToArray();
-        if (parts.Length < 1 || parts.Length > 3) return false;
-        var numbers = new int[parts.Length];
-        for (int index = 0; index < parts.Length; index++) if (parts[index].ValueKind != JsonValueKind.Number || !parts[index].TryGetInt32(out numbers[index])) return false;
+        List<JsonElement> parts = TakeBoundedElements(value, 3, cancellationToken, out bool tooManyParts);
+        if (tooManyParts || parts.Count < 1) return false;
+        var numbers = new int[parts.Count];
+        for (int index = 0; index < parts.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (parts[index].ValueKind != JsonValueKind.Number || !parts[index].TryGetInt32(out numbers[index])) return false;
+        }
         if (numbers.Length > 1 && (numbers[1] < 1 || numbers[1] > 12)) return false;
         if (numbers.Length > 2 && (numbers[2] < 1 || numbers[2] > 31)) return false;
         year = numbers[0];
@@ -413,16 +429,29 @@ internal static class CslJsonCodec {
         return true;
     }
 
+    private static List<JsonElement> TakeBoundedElements(JsonElement value, int maximum, CancellationToken cancellationToken, out bool tooMany) {
+        var elements = new List<JsonElement>(maximum);
+        tooMany = false;
+        if (value.ValueKind != JsonValueKind.Array) return elements;
+        foreach (JsonElement element in value.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (elements.Count == maximum) { tooMany = true; break; }
+            elements.Add(element);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return elements;
+    }
+
     private static void WriteDatePart(Utf8JsonWriter writer, int year, int? month, int? day) {
         writer.WriteStartArray(); writer.WriteNumberValue(year); if (month.HasValue) writer.WriteNumberValue(month.Value); if (day.HasValue) writer.WriteNumberValue(day.Value); writer.WriteEndArray();
     }
 
-    private static bool TryWriteRaw(Utf8JsonWriter writer, string raw) {
-        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); writer.WriteRawValue(raw, skipInputValidation: true); return true; } catch (JsonException) { return false; }
+    private static bool TryWriteRaw(Utf8JsonWriter writer, string raw, CancellationToken cancellationToken) {
+        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); cancellationToken.ThrowIfCancellationRequested(); writer.WriteRawValue(raw, skipInputValidation: true); return true; } catch (JsonException) { return false; }
     }
 
-    private static bool WouldBindTypedItemProperty(BibliographyNativeField field) {
-        using JsonDocument? output = GetNativeOutputJson(field);
+    private static bool WouldBindTypedItemProperty(BibliographyNativeField field, CancellationToken cancellationToken) {
+        using JsonDocument? output = GetNativeOutputJson(field, cancellationToken);
         JsonValueKind kind = output?.RootElement.ValueKind ?? JsonValueKind.String;
         if (IsTypedScalarProperty(field.Name)) {
             if (IsIdentifierProperty(field.Name) && kind == JsonValueKind.String) {
@@ -431,48 +460,56 @@ internal static class CslJsonCodec {
             }
             return kind == JsonValueKind.String;
         }
-        if (IsTypedNameProperty(field.Name)) return kind == JsonValueKind.Array && CanParseNames(output!.RootElement);
+        if (IsTypedNameProperty(field.Name)) return kind == JsonValueKind.Array && CanParseNames(output!.RootElement, cancellationToken);
         if (IsTypedDateProperty(field.Name)) return kind == JsonValueKind.Object;
         return false;
     }
 
-    private static bool WouldBindTypedDateProperty(BibliographyNativeField field) {
-        using JsonDocument? output = GetNativeOutputJson(field);
+    private static bool WouldBindTypedDateProperty(BibliographyNativeField field, CancellationToken cancellationToken) {
+        using JsonDocument? output = GetNativeOutputJson(field, cancellationToken);
         JsonValueKind kind = output?.RootElement.ValueKind ?? JsonValueKind.String;
         if (string.Equals(field.Name, "literal", StringComparison.Ordinal)) return kind == JsonValueKind.String;
-        return string.Equals(field.Name, "date-parts", StringComparison.Ordinal) && kind == JsonValueKind.Array && CanParseDateParts(output!.RootElement);
+        return string.Equals(field.Name, "date-parts", StringComparison.Ordinal) && kind == JsonValueKind.Array && CanParseDateParts(output!.RootElement, cancellationToken);
     }
 
-    private static JsonDocument? GetNativeOutputJson(BibliographyNativeField field) {
+    private static JsonDocument? GetNativeOutputJson(BibliographyNativeField field, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string? raw = field.UnmodifiedRawValue;
-        if (raw != null) return TryParseNativeJson(raw);
-        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue);
+        if (raw != null) return TryParseNativeJson(raw, cancellationToken);
+        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue, cancellationToken);
         if (originalKind.HasValue && originalKind != JsonValueKind.String && originalKind != JsonValueKind.Null && originalKind != JsonValueKind.Undefined) {
-            JsonDocument? edited = TryParseNativeJson(field.Value);
+            JsonDocument? edited = TryParseNativeJson(field.Value, cancellationToken);
             if (edited != null && edited.RootElement.ValueKind != JsonValueKind.String && edited.RootElement.ValueKind != JsonValueKind.Null && edited.RootElement.ValueKind != JsonValueKind.Undefined) return edited;
             edited?.Dispose();
         }
         return null;
     }
 
-    private static JsonDocument? TryParseNativeJson(string raw) {
-        try { return JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); }
+    private static JsonDocument? TryParseNativeJson(string raw, CancellationToken cancellationToken) {
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            JsonDocument result = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            if (cancellationToken.IsCancellationRequested) { result.Dispose(); cancellationToken.ThrowIfCancellationRequested(); }
+            return result;
+        }
         catch (JsonException) { return null; }
     }
 
-    private static bool CanParseNames(JsonElement value) {
+    private static bool CanParseNames(JsonElement value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (value.GetArrayLength() == 0) return false;
         foreach (JsonElement element in value.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (element.ValueKind != JsonValueKind.String && element.ValueKind != JsonValueKind.Object) return false;
-            if (element.ValueKind == JsonValueKind.Object && element.EnumerateObject().Any(property => IsKnownNameProperty(property.Name) && property.Value.ValueKind != JsonValueKind.String)) return false;
+            if (element.ValueKind == JsonValueKind.Object && HasWrongShapedKnownNameProperty(element, cancellationToken)) return false;
         }
         return true;
     }
 
-    private static bool CanParseDateParts(JsonElement parts) {
-        JsonElement[] ranges = parts.EnumerateArray().ToArray();
-        if (ranges.Length < 1 || ranges.Length > 2 || !TryReadDatePart(ranges[0], out _, out _, out _)) return false;
-        return ranges.Length != 2 || TryReadDatePart(ranges[1], out _, out _, out _);
+    private static bool CanParseDateParts(JsonElement parts, CancellationToken cancellationToken) {
+        List<JsonElement> ranges = TakeBoundedElements(parts, 2, cancellationToken, out bool tooManyRanges);
+        if (tooManyRanges || ranges.Count < 1 || !TryReadDatePart(ranges[0], cancellationToken, out _, out _, out _)) return false;
+        return ranges.Count != 2 || TryReadDatePart(ranges[1], cancellationToken, out _, out _, out _);
     }
 
     private static bool IsTypedScalarProperty(string name) {
@@ -753,29 +790,31 @@ internal static class CslJsonCodec {
         cancellationToken.ThrowIfCancellationRequested();
         string? raw = field.UnmodifiedRawValue;
         if (raw != null) {
-            if (TryWriteRaw(writer, raw)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
+            if (TryWriteRaw(writer, raw, cancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
             writer.WriteStringValue(SanitizeUtf16(field.Value, cancellationToken));
             return false;
         }
-        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue);
+        JsonValueKind? originalKind = GetRawJsonKind(field.RawValue, cancellationToken);
         if (originalKind == JsonValueKind.String || field.RawValue == null) {
             writer.WriteStringValue(SanitizeUtf16(field.Value, cancellationToken));
             return true;
         }
-        if (originalKind.HasValue && TryWriteEditedRaw(writer, field.Value)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
+        if (originalKind.HasValue && TryWriteEditedRaw(writer, field.Value, cancellationToken)) { cancellationToken.ThrowIfCancellationRequested(); return true; }
         writer.WriteStringValue(SanitizeUtf16(field.Value, cancellationToken));
         return false;
     }
 
-    private static JsonValueKind? GetRawJsonKind(string? raw) {
+    private static JsonValueKind? GetRawJsonKind(string? raw, CancellationToken cancellationToken) {
         if (raw == null) return null;
-        try { using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); return value.RootElement.ValueKind; }
+        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); cancellationToken.ThrowIfCancellationRequested(); return value.RootElement.ValueKind; }
         catch (JsonException) { return null; }
     }
 
-    private static bool TryWriteEditedRaw(Utf8JsonWriter writer, string value) {
+    private static bool TryWriteEditedRaw(Utf8JsonWriter writer, string value, CancellationToken cancellationToken) {
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            cancellationToken.ThrowIfCancellationRequested();
             if (parsed.RootElement.ValueKind == JsonValueKind.String || parsed.RootElement.ValueKind == JsonValueKind.Null || parsed.RootElement.ValueKind == JsonValueKind.Undefined) return false;
             writer.WriteRawValue(value, skipInputValidation: true);
             return true;

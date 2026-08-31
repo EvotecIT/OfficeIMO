@@ -10,7 +10,7 @@ internal static class BibliographyWriter {
         var report = new BibliographyConversionReport();
 
         if (options.Mode == BibliographyWriterMode.Preserve && format == document.SourceFormat && !document.IsModifiedWithCancellation(cancellationToken) && document.OriginalText != null) {
-            Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding) : options.Encoding;
+            Encoding preservedEncoding = document.OriginalBytes == null ? ResolvePreservedEncoding(document.OriginalText, format, options.Encoding, cancellationToken) : options.Encoding;
             if (document.OriginalBytes == null) InspectEncoding(document.OriginalText, preservedEncoding, report, cancellationToken);
             if (options.RequireNoLoss) report.RequireNoLoss();
             byte[] bytes = document.OriginalBytes != null ? BibliographyEncoding.CloneBytes(document.OriginalBytes, cancellationToken) : BibliographyEncoding.Encode(document.OriginalText, preservedEncoding, cancellationToken);
@@ -50,8 +50,8 @@ internal static class BibliographyWriter {
         }
     }
 
-    private static Encoding ResolvePreservedEncoding(string source, BibliographyFormat format, Encoding fallback) {
-        return format == BibliographyFormat.EndNoteXml ? BibliographyEncoding.ResolveXmlDeclaration(source, fallback) : fallback;
+    private static Encoding ResolvePreservedEncoding(string source, BibliographyFormat format, Encoding fallback, CancellationToken cancellationToken) {
+        return format == BibliographyFormat.EndNoteXml ? BibliographyEncoding.ResolveXmlDeclaration(source, fallback, cancellationToken) : fallback;
     }
 }
 
