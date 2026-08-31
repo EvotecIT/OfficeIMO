@@ -468,15 +468,63 @@ the timed lane. OfficeIMO setup fails unless every expected BIFF8
 `Index`/`DBCell` block is present, so an OfficeIMO regression cannot make this
 lane look faster by silently weakening the artifact.
 
-The equivalent 65K read lanes found XLSX parity with prefetch disabled and an
-OfficeIMO median about 2% lower on both domains. OfficeIMO's XLSB median was
-15-18% lower. XLS stayed close but favored ExcelReader.NET by 2-4% at the
-median. Enabling the experimental bounded XLSX worksheet prefetch made this
-fixture 19% slower on both domains. Prefetch therefore remains opt-in and
-disabled by default; the negative result is retained instead of being presented
-as a win.
+The final equivalent 65K XLSX read rerun, with prefetch disabled, found a tie on
+`0xFFFF` and an OfficeIMO win on `0xFFFF0000` under the repository's 5%
+threshold:
 
-The measured assemblies were SHA-256
+| Cache domain | OfficeIMO median | ExcelReader.NET median | Ratio of medians | Paired ratio median (P25-P75) |
+| --- | ---: | ---: | ---: | ---: |
+| `0xFFFF` | 74.932 ms | 75.181 ms | 0.9967 | 0.9920 (0.9596-1.0362) |
+| `0xFFFF0000` | 70.980 ms | 75.707 ms | 0.9376 | 0.9448 (0.9085-0.9958) |
+
+The earlier equivalent XLSB lane had an OfficeIMO median 15-18% lower. XLS
+stayed close but favored ExcelReader.NET by 2-4% at the median. Enabling the
+experimental bounded XLSX worksheet prefetch made this fixture 19% slower on
+both domains. Prefetch therefore remains opt-in and disabled by default; the
+negative result is retained instead of being presented as a win.
+
+The Arrow lane uses the same hash-pinned 65K XLSX and explicit schemas that
+produce identical field names, Arrow types, nullability, row and cell counts,
+and payload and schema checksums. It measures OfficeIMO's generic
+`DbDataReader` adapter against `ExcelReader.Arrow` 2.3.0. Thirty symmetric ABBA
+samples after twelve warmups produced a practical tie on both cache domains:
+
+| Cache domain | OfficeIMO median | ExcelReader.NET median | Ratio of medians | Paired ratio median (P25-P75) |
+| --- | ---: | ---: | ---: | ---: |
+| `0xFFFF` | 100.144 ms | 98.003 ms | 1.0218 | 0.9893 (0.9287-1.0257) |
+| `0xFFFF0000` | 88.863 ms | 90.817 ms | 0.9785 | 0.9809 (0.9328-1.0299) |
+
+The result is parity, not a broad speed win: OfficeIMO has the lower raw median
+on one domain and ExcelReader.NET on the other, while both paired distributions
+cross 1.0. OfficeIMO's explicit `ColumnTypes` path avoids source schema
+sampling, and its 8,192-row bounded-output lane is validated against the same
+one-batch payload. `ExcelReader.Arrow` materializes the complete sheet as one
+`RecordBatch`.
+
+BenchmarkDotNet's 15-iteration allocation lane reported 105.85 MB for OfficeIMO
+and 32.07 MB for ExcelReader.NET on both domains. The OfficeIMO figure includes
+the pooled, at-most-64-MiB worksheet buffer used by its fastest UTF-8 source path
+when BenchmarkDotNet's collection pressure prevents reuse. Arrow output itself
+remains batch-bounded, but this is still a real cold/allocation-pressure cost and
+is not presented as a memory win. On the same run the elapsed means had
+overlapping intervals: 106.39 versus 100.96 ms on `0xFFFF`, and 92.56 versus
+93.85 ms on `0xFFFF0000`.
+
+The inferred-schema payloads are also equal, but the schemas are not:
+OfficeIMO chooses nullable timestamp/double fields while ExcelReader.NET chooses
+required date32/int64 fields for the date and whole-number columns in this
+fixture. The runner therefore fails closed before timing instead of publishing
+a ratio for non-equivalent work.
+
+The final XLSX and Arrow measurements used SHA-256
+`321032C5C18CFA840FC366EB20513CCF61526BCAF38198C9161D3F3C9A9AD324`
+for `OfficeIMO.Excel.Benchmarks.dll`,
+`D1DB0A5E5DCE8BF2E3F2CEA392622E893E99293C825DC1DE46A8AD8ACA8E280B`
+for `OfficeIMO.Excel.dll`, and
+`38D08905AD40EC733112A21E03743DEFE8DC6428EE198158F9105DCC1FCFE053`
+for `OfficeIMO.Data.Arrow.dll`.
+
+The earlier read/write measurements above used SHA-256
 `A76991AE9336A4CFB8A9D6A20F6825C7A6E68896F41FB637C6CEA7F1BE4745F3`
 for `OfficeIMO.Excel.Benchmarks.dll` and
 `AF8FFC2832A9F19A974D38A26660975B859C5BD513487A2C27DC5A5421CA5374`
@@ -489,6 +537,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsx-paired 40 0xFFFF High prefetch
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsb-paired 40 0xFFFF High
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xls-paired 40 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-arrow-paired explicit 30 0xFFFF High
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsx 25000 30 0xFFFF High 8
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsb 25000 30 0xFFFF High 8
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xls 25000 30 0xFFFF High 8
@@ -496,6 +545,12 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 
 Repeat with `0xFFFF0000` for the second cache domain. A one-logical-processor
 mask is not equivalent to either domain-constrained parallel measurement.
+
+Run the allocation lane with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelArrowConversionBenchmarks.OfficeIMO_ExplicitSchema" "*ExcelArrowConversionBenchmarks.ExcelReaderNet_ExplicitSchema" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 1 --unrollFactor 1 --warmupCount 8 --iterationCount 15 --launchCount 1 --outliers DontRemove
+```
 
 ### Dated 65K XLS and XLSB snapshot (2026-08-10)
 

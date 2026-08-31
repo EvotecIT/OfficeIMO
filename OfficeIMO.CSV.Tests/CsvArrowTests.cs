@@ -76,6 +76,27 @@ public sealed class CsvArrowTests {
     }
 
     [Fact]
+    public void ExplicitColumnTypesSkipReaderSchemaInferenceAndAreValidated() {
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Id", typeof(object));
+        table.Rows.Add(42);
+        using var reader = table.CreateDataReader();
+
+        RecordBatch batch = Assert.Single(reader.ReadArrowBatches(
+            new ArrowReadOptions { ColumnTypes = new[] { typeof(int) } }));
+        try {
+            Assert.IsType<Int32Type>(batch.Schema.GetFieldByIndex(0).DataType);
+            Assert.Equal(42, Assert.IsType<Int32Array>(batch.Column(0)).GetValue(0));
+        } finally {
+            batch.Dispose();
+        }
+
+        using var invalidReader = table.CreateDataReader();
+        Assert.Throws<ArgumentException>(() => invalidReader.ReadArrowBatches(
+            new ArrowReadOptions { ColumnTypes = new[] { typeof(int), typeof(string) } }).ToArray());
+    }
+
+    [Fact]
     public void WideArrowReaderBoundsInitialReservationAcrossColumns() {
         const int columnCount = 1024;
         var table = new System.Data.DataTable();

@@ -39,11 +39,36 @@ public sealed class ArrowReadOptions {
     /// </summary>
     public bool ConvertUnsupportedTypesToString { get; set; } = true;
 
-    internal void Validate() {
+    /// <summary>
+    /// Gets or sets an optional CLR type for every source column, in ordinal order.
+    /// When supplied, these types replace <see cref="System.Data.Common.DbDataReader.GetFieldType(int)"/>
+    /// and allow callers to skip source-reader schema inference.
+    /// </summary>
+    public IReadOnlyList<Type>? ColumnTypes { get; set; }
+
+    internal Type[]? ValidateAndSnapshotColumnTypes(int fieldCount) {
         if (_decimalScale > _decimalPrecision) {
             throw new ArgumentOutOfRangeException(
                 nameof(DecimalScale),
                 "Decimal scale cannot be greater than the configured precision.");
         }
+
+        if (ColumnTypes == null) {
+            return null;
+        }
+        if (ColumnTypes.Count != fieldCount) {
+            throw new ArgumentException(
+                $"Explicit Arrow column types contain {ColumnTypes.Count} entries for a {fieldCount}-column reader.",
+                nameof(ColumnTypes));
+        }
+
+        var snapshot = new Type[fieldCount];
+        for (int ordinal = 0; ordinal < snapshot.Length; ordinal++) {
+            snapshot[ordinal] = ColumnTypes[ordinal]
+                ?? throw new ArgumentException(
+                    $"Explicit Arrow column type {ordinal} is null.",
+                    nameof(ColumnTypes));
+        }
+        return snapshot;
     }
 }

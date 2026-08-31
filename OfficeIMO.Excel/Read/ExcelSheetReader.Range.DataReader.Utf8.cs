@@ -245,6 +245,74 @@ namespace OfficeIMO.Excel {
 
             internal bool CellsFitWithinRange => _cellsFitWithinRange;
 
+            internal bool IsNull(int ordinal) {
+                EnsureNotDisposed();
+                int cellIndex = _currentRowOffset + ordinal;
+                Utf8CellKind cellKind = (Utf8CellKind)(_cellKinds![cellIndex] & CellKindMask);
+                if (cellKind == Utf8CellKind.Missing) {
+                    return true;
+                }
+
+                bool useFormula = _formulaLengths != null
+                    && _formulaLengths[cellIndex] >= 0
+                    && (!_options.UseCachedFormulaResult
+                        || (_valueLengths![cellIndex] < 0
+                            && _valueLengths[cellIndex] != SharedStringIndexValueLength));
+                int length = useFormula ? _formulaLengths![cellIndex] : _valueLengths![cellIndex];
+                return !useFormula
+                    && cellKind == Utf8CellKind.SharedString
+                    && length == SharedStringIndexValueLength
+                        ? false
+                        : length < 0;
+            }
+
+            internal bool TryGetUtf8Value(int ordinal, out ArraySegment<byte> result) {
+                EnsureNotDisposed();
+                int cellIndex = _currentRowOffset + ordinal;
+                Utf8CellKind cellKind = (Utf8CellKind)(_cellKinds![cellIndex] & CellKindMask);
+                if (cellKind == Utf8CellKind.Missing) {
+                    result = default;
+                    return false;
+                }
+
+                bool useFormula = _formulaLengths != null
+                    && _formulaLengths[cellIndex] >= 0
+                    && (!_options.UseCachedFormulaResult
+                        || (_valueLengths![cellIndex] < 0
+                            && _valueLengths[cellIndex] != SharedStringIndexValueLength));
+                int start = useFormula ? _formulaStarts![cellIndex] : _valueStarts![cellIndex];
+                int length = useFormula ? _formulaLengths![cellIndex] : _valueLengths![cellIndex];
+                if (!useFormula
+                    && cellKind == Utf8CellKind.SharedString
+                    && length == SharedStringIndexValueLength) {
+                    return _owner.TryGetSharedStringUtf8(start, out result);
+                }
+                if (useFormula || length < 0) {
+                    result = default;
+                    return false;
+                }
+
+                ReadOnlySpan<byte> value = _buffer!.AsSpan(start, length);
+                if (cellKind == Utf8CellKind.SharedString) {
+                    if (TryParseInt32(value, out int sharedStringIndex)) {
+                        return _owner.TryGetSharedStringUtf8(sharedStringIndex, out result);
+                    }
+
+                    result = default;
+                    return false;
+                }
+                if ((cellKind == Utf8CellKind.String
+                        || cellKind == Utf8CellKind.InlineString
+                        || cellKind == Utf8CellKind.Error)
+                    && value.IndexOf((byte)'&') < 0) {
+                    result = new ArraySegment<byte>(_buffer!, start, length);
+                    return true;
+                }
+
+                result = default;
+                return false;
+            }
+
             internal bool TryGetUsedBounds(
                 out int firstRow,
                 out int firstColumn,

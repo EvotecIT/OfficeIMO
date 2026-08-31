@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Package-owned ADO.NET projection for XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF8 XLS workbook worksheets.
     /// </summary>
-    public sealed class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata {
+    public sealed class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastValueSource {
         private readonly IReadOnlyList<SheetSelection> _sheets;
         private readonly IReadOnlyList<string> _sheetNames;
         private readonly Func<int, CancellationToken, DbDataReader> _openSheet;
@@ -32,6 +32,44 @@ namespace OfficeIMO.Excel {
         Func<object, Type, CultureInfo, (bool ok, object? value)>? IDataReaderMappingMetadata.MappingTypeConverter => _typeConverter;
         bool IDataReaderMappingMetadata.RequireAllColumnsMapped => _requireAllColumnsMapped;
         DataMappingErrorValuePolicy IDataReaderMappingErrorMetadata.MappingErrorValuePolicy => _mappingErrorValuePolicy;
+        IDataReaderFastValueSource? IDataReaderFastValueSource.FastValueSource =>
+            (_current as IDataReaderFastValueSource)?.FastValueSource;
+        bool IDataReaderFastValueSource.TryGetUtf8Value(int ordinal, out ArraySegment<byte> value) {
+            if (_current is IDataReaderFastValueSource source) {
+                return source.TryGetUtf8Value(ordinal, out value);
+            }
+
+            value = default;
+            return false;
+        }
+
+        bool IDataReaderFastValueSource.TryGetInt64(int ordinal, out long value) {
+            if (_current is IDataReaderFastValueSource source) {
+                return source.TryGetInt64(ordinal, out value);
+            }
+
+            value = default;
+            return false;
+        }
+
+        bool IDataReaderFastValueSource.TryGetDouble(int ordinal, out double value) {
+            if (_current is IDataReaderFastValueSource source) {
+                return source.TryGetDouble(ordinal, out value);
+            }
+
+            value = default;
+            return false;
+        }
+
+        bool IDataReaderFastValueSource.TryGetDateTime(int ordinal, out DateTime value) {
+            if (_current is IDataReaderFastValueSource source) {
+                return source.TryGetDateTime(ordinal, out value);
+            }
+
+            value = default;
+            return false;
+        }
+
         private readonly Func<object, Type, CultureInfo, (bool ok, object? value)>? _typeConverter;
         private readonly bool _requireAllColumnsMapped;
         private readonly DataMappingErrorValuePolicy _mappingErrorValuePolicy;

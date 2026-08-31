@@ -21,6 +21,8 @@ namespace OfficeIMO.Excel {
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
+        private readonly object _utf8CacheLock = new object();
+        private byte[]?[]? _utf8Cache;
 
         private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -301,6 +303,30 @@ namespace OfficeIMO.Excel {
             var items = GetLoadedItems();
             if ((uint)index < (uint)items.Count) return items[index];
             return null;
+        }
+
+        internal bool TryGetUtf8(int index, out ArraySegment<byte> value) {
+            var items = GetLoadedItems();
+            if ((uint)index >= (uint)items.Count) {
+                value = default;
+                return false;
+            }
+
+            byte[]?[]? cache = _utf8Cache;
+            if (cache == null) {
+                lock (_utf8CacheLock) {
+                    cache = _utf8Cache ??= new byte[items.Count][];
+                }
+            }
+
+            byte[]? bytes = Volatile.Read(ref cache[index]);
+            if (bytes == null) {
+                byte[] encoded = Encoding.UTF8.GetBytes(items[index]);
+                bytes = Interlocked.CompareExchange(ref cache[index], encoded, null) ?? encoded;
+            }
+
+            value = new ArraySegment<byte>(bytes);
+            return true;
         }
 
         internal List<string> GetItems() {

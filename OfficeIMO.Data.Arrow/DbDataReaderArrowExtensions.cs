@@ -6,6 +6,7 @@ using System.Text;
 using Apache.Arrow;
 using Apache.Arrow.Arrays;
 using Apache.Arrow.Types;
+using OfficeIMO.Data;
 
 namespace OfficeIMO.Data.Arrow;
 
@@ -23,14 +24,16 @@ public static class DbDataReaderArrowExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
-        effectiveOptions.Validate();
-        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
+        Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
         Schema schema = CreateSchema(reader, columns);
+        IDataReaderFastValueSource? fastValueSource =
+            (reader as IDataReaderFastValueSource)?.FastValueSource;
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!reader.Read()) yield break;
-            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
+            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize, fastValueSource);
             int rowCount = 0;
             do {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -52,14 +55,16 @@ public static class DbDataReaderArrowExtensions {
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
-        effectiveOptions.Validate();
-        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
+        Type[]? columnTypes = effectiveOptions.ValidateAndSnapshotColumnTypes(reader.FieldCount);
+        ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions, columnTypes);
         Schema schema = CreateSchema(reader, columns);
+        IDataReaderFastValueSource? fastValueSource =
+            (reader as IDataReaderFastValueSource)?.FastValueSource;
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) yield break;
-            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
+            ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize, fastValueSource);
             int rowCount = 0;
             do {
                 AppendRow(reader, builders);
@@ -71,10 +76,13 @@ public static class DbDataReaderArrowExtensions {
         }
     }
 
-    private static ArrowColumnFactory[] CreateColumns(DbDataReader reader, ArrowReadOptions options) {
+    private static ArrowColumnFactory[] CreateColumns(
+        DbDataReader reader,
+        ArrowReadOptions options,
+        IReadOnlyList<Type>? columnTypes) {
         var columns = new ArrowColumnFactory[reader.FieldCount];
         for (int ordinal = 0; ordinal < columns.Length; ordinal++) {
-            Type type = reader.GetFieldType(ordinal);
+            Type type = columnTypes?[ordinal] ?? reader.GetFieldType(ordinal);
             columns[ordinal] = ArrowColumnFactory.Create(type, options);
         }
         return columns;
@@ -88,20 +96,25 @@ public static class DbDataReaderArrowExtensions {
         return new Schema(fields, metadata: null);
     }
 
-    private static ArrowColumnBuilder[] CreateBuilders(ArrowColumnFactory[] columns, int capacity) {
+    private static ArrowColumnBuilder[] CreateBuilders(
+        ArrowColumnFactory[] columns,
+        int capacity,
+        IDataReaderFastValueSource? fastValueSource) {
         var builders = new ArrowColumnBuilder[columns.Length];
         int initialCapacity = columns.Length == 0
             ? 0
             : Math.Min(capacity, Math.Max(1, MaximumInitialReservedCells / columns.Length));
         for (int ordinal = 0; ordinal < builders.Length; ordinal++) {
-            builders[ordinal] = columns[ordinal].CreateBuilder(initialCapacity);
+            builders[ordinal] = columns[ordinal].CreateBuilder(initialCapacity, fastValueSource);
         }
         return builders;
     }
 
     private static void AppendRow(DbDataReader reader, ArrowColumnBuilder[] builders) {
         for (int ordinal = 0; ordinal < builders.Length; ordinal++) {
-            if (reader.IsDBNull(ordinal)) {
+            if (builders[ordinal].HandlesNulls) {
+                builders[ordinal].Append(reader, ordinal);
+            } else if (reader.IsDBNull(ordinal)) {
                 builders[ordinal].AppendNull();
             } else {
                 builders[ordinal].Append(reader, ordinal);
@@ -124,15 +137,27 @@ public static class DbDataReaderArrowExtensions {
 
     private sealed class ArrowColumnFactory {
         private readonly Func<int, ArrowColumnBuilder> _createBuilder;
+        private readonly Func<int, IDataReaderFastValueSource?, ArrowColumnBuilder>? _createFastBuilder;
 
         private ArrowColumnFactory(IArrowType arrowType, Func<int, ArrowColumnBuilder> createBuilder) {
             ArrowType = arrowType;
             _createBuilder = createBuilder;
         }
 
+        private ArrowColumnFactory(
+            IArrowType arrowType,
+            Func<int, IDataReaderFastValueSource?, ArrowColumnBuilder> createBuilder) {
+            ArrowType = arrowType;
+            _createBuilder = capacity => createBuilder(capacity, null);
+            _createFastBuilder = createBuilder;
+        }
+
         internal IArrowType ArrowType { get; }
 
-        internal ArrowColumnBuilder CreateBuilder(int capacity) => _createBuilder(capacity);
+        internal ArrowColumnBuilder CreateBuilder(
+            int capacity,
+            IDataReaderFastValueSource? fastValueSource) =>
+            _createFastBuilder?.Invoke(capacity, fastValueSource) ?? _createBuilder(capacity);
 
         internal static ArrowColumnFactory Create(Type sourceType, ArrowReadOptions options) {
             Type type = Nullable.GetUnderlyingType(sourceType) ?? sourceType;
@@ -150,14 +175,54 @@ public static class DbDataReaderArrowExtensions {
                 new Int32Type(), static () => new Int32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetInt32(i));
             if (type == typeof(uint)) return Primitive<UInt32Array.Builder, UInt32Array, uint>(
                 new UInt32Type(), static () => new UInt32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToUInt32(r.GetValue(i), CultureInfo.InvariantCulture));
-            if (type == typeof(long)) return Primitive<Int64Array.Builder, Int64Array, long>(
-                new Int64Type(), static () => new Int64Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetInt64(i));
+            if (type == typeof(long)) {
+                return new ArrowColumnFactory(new Int64Type(), (capacity, fastValueSource) => {
+                    var builder = new Int64Array.Builder().Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => {
+                            if (fastValueSource != null) {
+                                if (fastValueSource.TryGetInt64(ordinal, out long value)) {
+                                    builder.Append(value);
+                                } else {
+                                    builder.AppendNull();
+                                }
+                            } else if (reader.IsDBNull(ordinal)) {
+                                builder.AppendNull();
+                            } else {
+                                builder.Append(reader.GetInt64(ordinal));
+                            }
+                        },
+                        () => builder.Build(),
+                        handlesNulls: true);
+                });
+            }
             if (type == typeof(ulong)) return Primitive<UInt64Array.Builder, UInt64Array, ulong>(
                 new UInt64Type(), static () => new UInt64Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => Convert.ToUInt64(r.GetValue(i), CultureInfo.InvariantCulture));
             if (type == typeof(float)) return Primitive<FloatArray.Builder, FloatArray, float>(
                 new FloatType(), static () => new FloatArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetFloat(i));
-            if (type == typeof(double)) return Primitive<DoubleArray.Builder, DoubleArray, double>(
-                new DoubleType(), static () => new DoubleArray.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetDouble(i));
+            if (type == typeof(double)) {
+                return new ArrowColumnFactory(new DoubleType(), (capacity, fastValueSource) => {
+                    var builder = new DoubleArray.Builder().Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => {
+                            if (fastValueSource != null) {
+                                if (fastValueSource.TryGetDouble(ordinal, out double value)) {
+                                    builder.Append(value);
+                                } else {
+                                    builder.AppendNull();
+                                }
+                            } else if (reader.IsDBNull(ordinal)) {
+                                builder.AppendNull();
+                            } else {
+                                builder.Append(reader.GetDouble(ordinal));
+                            }
+                        },
+                        () => builder.Build(),
+                        handlesNulls: true);
+                });
+            }
             if (type == typeof(decimal)) {
                 var decimalType = new Decimal128Type(options.DecimalPrecision, options.DecimalScale);
                 return new ArrowColumnFactory(decimalType, capacity => {
@@ -170,12 +235,25 @@ public static class DbDataReaderArrowExtensions {
             }
             if (type == typeof(DateTime)) {
                 var timestampType = new TimestampType(TimeUnit.Microsecond, (string)null!);
-                return new ArrowColumnFactory(timestampType, capacity => {
+                return new ArrowColumnFactory(timestampType, (capacity, fastValueSource) => {
                     var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
                     return new ArrowColumnBuilder(
                         () => builder.AppendNull(),
-                        (reader, ordinal) => builder.Append(ToTimezoneLessTimestamp(reader.GetDateTime(ordinal))),
-                        () => builder.Build());
+                        (reader, ordinal) => {
+                            if (fastValueSource != null) {
+                                if (fastValueSource.TryGetDateTime(ordinal, out DateTime value)) {
+                                    builder.Append(ToTimezoneLessTimestamp(value));
+                                } else {
+                                    builder.AppendNull();
+                                }
+                            } else if (reader.IsDBNull(ordinal)) {
+                                builder.AppendNull();
+                            } else {
+                                builder.Append(ToTimezoneLessTimestamp(reader.GetDateTime(ordinal)));
+                            }
+                        },
+                        () => builder.Build(),
+                        handlesNulls: true);
                 });
             }
             if (type == typeof(DateTimeOffset)) {
@@ -220,14 +298,29 @@ public static class DbDataReaderArrowExtensions {
                 });
             }
             if (type == typeof(string) || options.ConvertUnsupportedTypesToString) {
-                return new ArrowColumnFactory(new StringType(), capacity => {
+                return new ArrowColumnFactory(new StringType(), (capacity, fastValueSource) => {
                     var builder = new StringArray.Builder().Reserve(capacity);
                     return new ArrowColumnBuilder(
                         () => builder.AppendNull(),
-                        (reader, ordinal) => builder.Append(
-                            Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
-                            Encoding.UTF8),
-                        () => builder.Build());
+                        (reader, ordinal) => {
+                            if (type == typeof(string) && fastValueSource != null) {
+                                if (fastValueSource.TryGetUtf8Value(ordinal, out ArraySegment<byte> value)) {
+                                    builder.Append(value.Array!.AsSpan(value.Offset, value.Count));
+                                } else if (reader.IsDBNull(ordinal)) {
+                                    builder.AppendNull();
+                                } else {
+                                    builder.Append(reader.GetString(ordinal), Encoding.UTF8);
+                                }
+                            } else if (reader.IsDBNull(ordinal)) {
+                                builder.AppendNull();
+                            } else {
+                                builder.Append(
+                                    Convert.ToString(reader.GetValue(ordinal), CultureInfo.InvariantCulture) ?? string.Empty,
+                                    Encoding.UTF8);
+                            }
+                        },
+                        () => builder.Build(),
+                        handlesNulls: true);
                 });
             }
 
@@ -264,11 +357,15 @@ public static class DbDataReaderArrowExtensions {
         internal ArrowColumnBuilder(
             Action appendNull,
             Action<DbDataReader, int> append,
-            Func<IArrowArray> build) {
+            Func<IArrowArray> build,
+            bool handlesNulls = false) {
             _appendNull = appendNull;
             _append = append;
             _build = build;
+            HandlesNulls = handlesNulls;
         }
+
+        internal bool HandlesNulls { get; }
 
         internal void AppendNull() => _appendNull();
 

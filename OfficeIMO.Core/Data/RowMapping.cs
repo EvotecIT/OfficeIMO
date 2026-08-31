@@ -45,6 +45,14 @@ internal interface IDataReaderFastMappingValues {
     bool HasOnlyNonNullFastValues { get; }
 }
 
+internal interface IDataReaderFastValueSource {
+    IDataReaderFastValueSource? FastValueSource { get; }
+    bool TryGetUtf8Value(int ordinal, out ArraySegment<byte> value);
+    bool TryGetInt64(int ordinal, out long value);
+    bool TryGetDouble(int ordinal, out double value);
+    bool TryGetDateTime(int ordinal, out DateTime value);
+}
+
 internal interface IDataReaderParallelBatchSource {
     bool CanReadParallelBatches { get; }
 

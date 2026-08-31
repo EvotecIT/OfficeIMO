@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private sealed class ExcelXmlRangeDataReader : DbDataReader {
+        private sealed class ExcelXmlRangeDataReader : DbDataReader, IDataReaderFastValueSource {
             private readonly ExcelSheetReader _owner;
             private readonly Stream _stream = Stream.Null;
             private readonly XmlReader _reader = null!;
@@ -55,6 +55,9 @@ namespace OfficeIMO.Excel {
             private bool? _rowsAreSorted;
             private bool _closed;
             private bool _disposed;
+
+            IDataReaderFastValueSource? IDataReaderFastValueSource.FastValueSource =>
+                _utf8Source != null ? this : null;
 
             internal ExcelXmlRangeDataReader(
                 ExcelSheetReader owner,
@@ -279,7 +282,167 @@ namespace OfficeIMO.Excel {
             }
 
             /// <inheritdoc />
-            public override bool IsDBNull(int ordinal) => GetValue(ordinal) == DBNull.Value;
+            public override bool IsDBNull(int ordinal) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                if (_currentRowIsBlank || _currentRow == null) {
+                    return true;
+                }
+                if (_currentValueLoaded[ordinal]) {
+                    return _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None
+                        && (_currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value);
+                }
+                if (_utf8Source != null) {
+                    return _utf8Source.IsNull(ordinal + _utf8SourceOrdinalOffset);
+                }
+
+                EnsureCurrentValue(ordinal);
+                return _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.None
+                    && (_currentRow[ordinal] == null || _currentRow[ordinal] == DBNull.Value);
+            }
+
+            bool IDataReaderFastValueSource.TryGetUtf8Value(int ordinal, out ArraySegment<byte> value) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                if (!_currentRowIsBlank
+                    && _currentRow != null
+                    && !_currentValueLoaded[ordinal]
+                    && _utf8Source != null) {
+                    return _utf8Source.TryGetUtf8Value(ordinal + _utf8SourceOrdinalOffset, out value);
+                }
+
+                value = default;
+                return false;
+            }
+
+            bool IDataReaderFastValueSource.TryGetInt64(int ordinal, out long value) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                if (_currentRowIsBlank || _currentRow == null) {
+                    value = default;
+                    return false;
+                }
+                if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
+                    _utf8Source.ReadValue(
+                        ordinal + _utf8SourceOrdinalOffset,
+                        XmlDataReaderTargetKind.Numeric,
+                        out XmlDataReaderPrimitiveKind primitiveKind,
+                        out double doubleValue,
+                        out _,
+                        out _,
+                        out _,
+                        out _,
+                        out object? objectValue);
+                    if (primitiveKind == XmlDataReaderPrimitiveKind.Double) {
+                        value = Convert.ToInt64(doubleValue);
+                        return true;
+                    }
+                    if (objectValue == null || objectValue == DBNull.Value) {
+                        value = default;
+                        return false;
+                    }
+
+                    value = Convert.ToInt64(objectValue, _culture);
+                    return true;
+                }
+                if (IsDBNull(ordinal)) {
+                    value = default;
+                    return false;
+                }
+
+                value = GetInt64(ordinal);
+                return true;
+            }
+
+            bool IDataReaderFastValueSource.TryGetDouble(int ordinal, out double value) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                if (_currentRowIsBlank || _currentRow == null) {
+                    value = default;
+                    return false;
+                }
+                if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
+                    _utf8Source.ReadValue(
+                        ordinal + _utf8SourceOrdinalOffset,
+                        XmlDataReaderTargetKind.Numeric,
+                        out XmlDataReaderPrimitiveKind primitiveKind,
+                        out double doubleValue,
+                        out _,
+                        out _,
+                        out _,
+                        out _,
+                        out object? objectValue);
+                    if (primitiveKind == XmlDataReaderPrimitiveKind.Double) {
+                        value = doubleValue;
+                        return true;
+                    }
+                    if (objectValue == null || objectValue == DBNull.Value) {
+                        value = default;
+                        return false;
+                    }
+
+                    value = Convert.ToDouble(objectValue, _culture);
+                    return true;
+                }
+                if (IsDBNull(ordinal)) {
+                    value = default;
+                    return false;
+                }
+
+                value = GetDouble(ordinal);
+                return true;
+            }
+
+            bool IDataReaderFastValueSource.TryGetDateTime(int ordinal, out DateTime value) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                if (_currentRowIsBlank || _currentRow == null) {
+                    value = default;
+                    return false;
+                }
+                if (!_currentValueLoaded[ordinal] && _utf8Source != null) {
+                    _utf8Source.ReadValue(
+                        ordinal + _utf8SourceOrdinalOffset,
+                        XmlDataReaderTargetKind.DateTime,
+                        out XmlDataReaderPrimitiveKind primitiveKind,
+                        out _,
+                        out DateTime dateTimeValue,
+                        out _,
+                        out _,
+                        out _,
+                        out object? objectValue);
+                    if (primitiveKind == XmlDataReaderPrimitiveKind.DateTime) {
+                        value = dateTimeValue;
+                        return true;
+                    }
+                    if (objectValue == null || objectValue == DBNull.Value) {
+                        value = default;
+                        return false;
+                    }
+
+                    value = objectValue is DateTime dateTime
+                        ? dateTime
+                        : Convert.ToDateTime(objectValue, _culture);
+                    return true;
+                }
+                if (IsDBNull(ordinal)) {
+                    value = default;
+                    return false;
+                }
+
+                value = GetDateTime(ordinal);
+                return true;
+            }
 
             /// <inheritdoc />
             public override bool NextResult() => false;

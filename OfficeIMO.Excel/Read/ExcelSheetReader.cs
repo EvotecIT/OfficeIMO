@@ -113,6 +113,9 @@ namespace OfficeIMO.Excel {
             return GetSharedString(index, items);
         }
 
+        private bool TryGetSharedStringUtf8(int index, out ArraySegment<byte> value) =>
+            _sst.TryGetUtf8(index, out value);
+
         private static string? GetSharedString(int index, List<string> items) {
             return (uint)index < (uint)items.Count ? items[index] : null;
         }
