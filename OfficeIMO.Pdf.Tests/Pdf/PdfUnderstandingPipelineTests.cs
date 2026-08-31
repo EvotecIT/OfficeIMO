@@ -596,6 +596,55 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void Pipeline_RemovesIgnoredPageBandsInRotatedCropCoordinates() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        pdf = PdfPageEditor.SetCropBox(pdf, 100D, 200D, 500D, 800D);
+        pdf = PdfPageEditor.RotatePages(pdf, 90);
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Ignored visual header", "F1", 8D, 470D, 400D, 20D),
+            new PdfTextSpan("Retained visual body", "F1", 12D, 300D, 400D, 20D),
+            new PdfTextSpan("Ignored visual footer", "F1", 8D, 130D, 400D, 20D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions {
+                IgnoreHeaderHeight = 60D,
+                IgnoreFooterHeight = 60D
+            }).Pages);
+
+        Assert.Equal("Retained visual body", Assert.Single(page.Analysis.DecodedRuns).Text);
+        Assert.DoesNotContain(page.Analysis.Elements, static element => element.Region.Text.Contains("Ignored", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.TextBlocks, static block => block.Text.Contains("Ignored", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void AdvancedLineGrouping_ChargesOrderingWorkBeforeGroupingTraversal() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(
+            sourcePage,
+            1,
+            new PdfTextLayoutOptions(),
+            10_000,
+            10_000,
+            maxWorkUnitsPerPage: 2);
+        PdfUnderstandingWord[] words = {
+            CreateUnderstandingWord("second", 100D, 700D),
+            CreateUnderstandingWord("first", 50D, 700D)
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfAdvancedUnderstandingStages.LineGrouping.GroupLines(context, words));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
     public void AdvancedSegmentation_SortsCallerSuppliedLinesBeforeVerticalGapExit() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
@@ -684,7 +733,7 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
             spans,
-            792D,
+            PdfReadDocument.Open(PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes()).Pages[0],
             new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D },
             consumeWork: null,
             cancellationCheck: () => {
@@ -1434,6 +1483,11 @@ public class PdfUnderstandingPipelineTests {
         var run = new PdfTextSpan(text, "Helvetica", 11D, xStart, baselineY, xEnd - xStart);
         var word = new PdfUnderstandingWord(text, xStart, xEnd, baselineY, 11D, 0D, new[] { run });
         return new PdfUnderstandingLine(new[] { word });
+    }
+
+    private static PdfUnderstandingWord CreateUnderstandingWord(string text, double xStart, double baselineY) {
+        var run = new PdfTextSpan(text, "Helvetica", 11D, xStart, baselineY, 40D);
+        return new PdfUnderstandingWord(text, xStart, xStart + 40D, baselineY, 11D, 0D, new[] { run });
     }
 
     private sealed class FixedGlyphStage : IPdfGlyphDecodingStage {

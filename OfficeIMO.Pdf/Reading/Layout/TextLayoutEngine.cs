@@ -144,26 +144,30 @@ internal static class TextLayoutEngine {
 
     internal static IReadOnlyList<PdfTextSpan> FilterIgnoredPageBands(
         IReadOnlyList<PdfTextSpan> spans,
-        double pageHeight,
+        PdfReadPage page,
         PdfTextLayoutOptions options) =>
-        FilterIgnoredPageBands(spans, pageHeight, options, consumeWork: null, cancellationCheck: null);
+        FilterIgnoredPageBands(spans, page, options, consumeWork: null, cancellationCheck: null);
 
     internal static IReadOnlyList<PdfTextSpan> FilterIgnoredPageBands(
         IReadOnlyList<PdfTextSpan> spans,
-        double pageHeight,
+        PdfReadPage page,
         PdfTextLayoutOptions options,
         Action<long>? consumeWork,
         Action? cancellationCheck) {
         if (options.IgnoreHeaderHeight <= 0D && options.IgnoreFooterHeight <= 0D) return spans;
-        double topCut = pageHeight - options.IgnoreHeaderHeight;
-        double bottomCut = options.IgnoreFooterHeight;
+        double visualHeight = page.GetVisualPageSize().Height;
+        Matrix2D visualTransform = page.GetVisualPageTransform();
+        double bodyTop = options.IgnoreHeaderHeight;
+        double bodyBottom = visualHeight - options.IgnoreFooterHeight;
         var filtered = new List<PdfTextSpan>(spans.Count);
         for (int index = 0; index < spans.Count; index++) {
             cancellationCheck?.Invoke();
             consumeWork?.Invoke(1);
             PdfTextSpan span = spans[index];
-            if ((options.IgnoreHeaderHeight <= 0D || span.Y < topCut) &&
-                (options.IgnoreFooterHeight <= 0D || span.Y > bottomCut)) {
+            double visualBaselineFromBottom = visualTransform.Transform(span.X, span.Y).Y;
+            double visualBaselineFromTop = visualHeight - visualBaselineFromBottom;
+            if ((options.IgnoreHeaderHeight <= 0D || visualBaselineFromTop > bodyTop) &&
+                (options.IgnoreFooterHeight <= 0D || visualBaselineFromTop < bodyBottom)) {
                 filtered.Add(span);
             }
         }
@@ -535,6 +539,9 @@ public static class PdfReadPageExtensions {
     /// <returns>Plain text for this page in inferred reading order.</returns>
     public static string ExtractTextWithColumns(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
+        if (options is not null) {
+            spans = TextLayoutEngine.FilterIgnoredPageBands(spans, page, options);
+        }
         var engineOpts = options?.ToEngineOptions() ?? new TextLayoutEngine.Options();
         if (!engineOpts.ForceSingleColumn) {
             engineOpts.SplitWideSameBaselineRuns = true;
@@ -542,14 +549,6 @@ public static class PdfReadPageExtensions {
 
         var lines = TextLayoutEngine.BuildLines(spans, engineOpts);
         var (w, _) = page.GetPageSize();
-        // Optional header/footer filtering
-        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
-            var (_, h) = page.GetPageSize();
-            double topCut = h - options.IgnoreHeaderHeight;
-            double bottomCut = options.IgnoreFooterHeight;
-            lines = lines.Where(l => (options.IgnoreHeaderHeight <= 0 || l.Y < topCut)
-                                  && (options.IgnoreFooterHeight <= 0 || l.Y > bottomCut)).ToList();
-        }
         var layout = TextLayoutEngine.DetectColumns(lines, w, engineOpts);
         return TextLayoutEngine.EmitText(lines, layout, options);
     }
@@ -574,7 +573,7 @@ public static class PdfReadPageExtensions {
         if (options is not null) {
             spans = TextLayoutEngine.FilterIgnoredPageBands(
                 spans,
-                pageHeight,
+                page,
                 options,
                 consumeWork: null,
                 cancellationToken.ThrowIfCancellationRequested);

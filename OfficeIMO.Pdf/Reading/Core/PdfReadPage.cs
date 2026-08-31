@@ -79,12 +79,12 @@ public sealed partial class PdfReadPage {
         return (box.Width, box.Height);
     }
 
-    private (double Width, double Height) GetVisualPageSize() {
+    internal (double Width, double Height) GetVisualPageSize() {
         PdfPageBox pageBox = GetPageBoundaryBox();
         return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees());
     }
 
-    private Matrix2D GetVisualPageTransform() =>
+    internal Matrix2D GetVisualPageTransform() =>
         PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees());
 
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>

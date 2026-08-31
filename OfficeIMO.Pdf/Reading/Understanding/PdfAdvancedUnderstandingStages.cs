@@ -80,7 +80,16 @@ public static class PdfAdvancedUnderstandingStages {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
             var groups = new List<BaselineGroup>();
             var spatialIndex = new Dictionary<(int Angle, int Normal), List<BaselineGroup>>();
-            foreach (PdfUnderstandingWord word in words.OrderBy(static word => NormalizeAngle(word.RotationDegrees)).ThenByDescending(static word => word.BaselineY).ThenBy(static word => word.XStart)) {
+            PdfUnderstandingWord[] sortedWords = CopyAndSort(
+                context,
+                words,
+                static (left, right) => {
+                    int angle = NormalizeAngle(left.RotationDegrees).CompareTo(NormalizeAngle(right.RotationDegrees));
+                    if (angle != 0) return angle;
+                    int baseline = right.BaselineY.CompareTo(left.BaselineY);
+                    return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
+                });
+            foreach (PdfUnderstandingWord word in sortedWords) {
                 context.ConsumeWork();
                 double angle = NormalizeAngle(word.RotationDegrees);
                 double radians = angle * Math.PI / 180D;
@@ -103,7 +112,10 @@ public static class PdfAdvancedUnderstandingStages {
             var lines = new List<PdfUnderstandingLine>(groups.Count);
             foreach (BaselineGroup group in groups) {
                 double radians = group.Angle * Math.PI / 180D;
-                PdfUnderstandingWord[] ordered = group.Words.OrderBy(word => (Math.Cos(radians) * WordAnchorX(word)) + (Math.Sin(radians) * word.BaselineY)).ToArray();
+                PdfUnderstandingWord[] ordered = CopyAndSort(
+                    context,
+                    group.Words,
+                    (left, right) => ProjectAlong(left, radians).CompareTo(ProjectAlong(right, radians)));
                 var runs = new List<List<PdfUnderstandingWord>> { new List<PdfUnderstandingWord>() };
                 double previousAlongEnd = double.NegativeInfinity;
                 for (int i = 0; i < ordered.Length; i++) {
@@ -126,9 +138,55 @@ public static class PdfAdvancedUnderstandingStages {
                     }));
                 }
             }
-            lines.Sort(static (left, right) => { int top = right.BaselineY.CompareTo(left.BaselineY); return top != 0 ? top : left.XStart.CompareTo(right.XStart); });
-            return lines.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : lines.AsReadOnly();
+            PdfUnderstandingLine[] sortedLines = CopyAndSort(
+                context,
+                lines,
+                static (left, right) => {
+                    int top = right.BaselineY.CompareTo(left.BaselineY);
+                    return top != 0 ? top : left.XStart.CompareTo(right.XStart);
+                });
+            return sortedLines.Length == 0 ? Array.Empty<PdfUnderstandingLine>() : Array.AsReadOnly(sortedLines);
         }
+
+        private static T[] CopyAndSort<T>(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<T> values,
+            Comparison<T> comparison) {
+            var source = new T[values.Count];
+            for (int index = 0; index < values.Count; index++) {
+                context.ConsumeWork();
+                source[index] = values[index];
+            }
+            if (source.Length < 2) return source;
+
+            var target = new T[source.Length];
+            for (int width = 1; width < source.Length;) {
+                for (int left = 0; left < source.Length; left += width * 2) {
+                    int middle = Math.Min(left + width, source.Length);
+                    int right = Math.Min(left + (width * 2), source.Length);
+                    int first = left;
+                    int second = middle;
+                    int output = left;
+                    while (first < middle && second < right) {
+                        context.ConsumeWork();
+                        target[output++] = comparison(source[first], source[second]) <= 0
+                            ? source[first++]
+                            : source[second++];
+                    }
+                    while (first < middle) target[output++] = source[first++];
+                    while (second < right) target[output++] = source[second++];
+                }
+                T[] swap = source;
+                source = target;
+                target = swap;
+                if (width > source.Length / 2) break;
+                width *= 2;
+            }
+            return source;
+        }
+
+        private static double ProjectAlong(PdfUnderstandingWord word, double radians) =>
+            (Math.Cos(radians) * WordAnchorX(word)) + (Math.Sin(radians) * word.BaselineY);
 
         private static string BuildLineText(
             PdfUnderstandingPageContext context,

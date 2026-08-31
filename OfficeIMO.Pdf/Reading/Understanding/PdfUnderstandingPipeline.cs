@@ -130,7 +130,7 @@ internal sealed class PdfUnderstandingPipeline {
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
         runs = TextLayoutEngine.FilterIgnoredPageBands(
             runs,
-            context.Height,
+            context.Page,
             _layout,
             context.ConsumeWork,
             context.ThrowIfCancellationRequested);
