@@ -206,7 +206,8 @@ internal static class IWorkDrawingReader {
             ulong? identifier = message.GetUnsigned(1);
             string? preferred = message.GetString(3, out bool preferredComplete);
             string? stored = message.GetString(4, out bool storedComplete) ?? preferred;
-            if (message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            if (message.FieldCount(1) != 1
+                || message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                 || !preferredComplete || !storedComplete) metadataComplete = false;
             if (identifier.HasValue && preferred != null && stored != null
                 && IsSafeFileName(stored)) {
@@ -227,6 +228,7 @@ internal static class IWorkDrawingReader {
             image, field, out bool malformedIdentifier);
         ulong? value = identifier?.GetUnsigned(1);
         if (malformedIdentifier || identifier == null
+            || identifier.FieldCount(1) != 1
             || identifier.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
             || !value.HasValue) {
             complete = false;

@@ -447,7 +447,9 @@ internal static class IWorkNumbersReader {
         var tileIdentifiers = new HashSet<ulong>();
         foreach (IWorkWireMessage tileEntry in tileEntries) {
             ulong? declaredTileId = tileEntry.GetUnsigned(1);
-            if (!declaredTileId.HasValue || declaredTileId.Value > int.MaxValue) {
+            if (tileEntry.FieldCount(1) != 1
+                || tileEntry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || !declaredTileId.HasValue || declaredTileId.Value > int.MaxValue) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_TABLE_TILE_INDEX_UNSUPPORTED",
@@ -509,7 +511,8 @@ internal static class IWorkNumbersReader {
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
-                if (rowInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                if (rowInfo.FieldCount(1) != 1
+                    || rowInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                     || rowInfo.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(4, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(6, IWorkWireKind.Bytes)
@@ -519,6 +522,7 @@ internal static class IWorkNumbersReader {
                     || rowInfo.FieldCount(4) > 1
                     || rowInfo.FieldCount(6) > 1
                     || rowInfo.FieldCount(7) > 1
+                    || rowInfo.FieldCount(8) > 1
                     || (currentBuffer == null) != (currentOffsets == null)
                     || currentOffsets != null && currentOffsets.Length % 2 != 0) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
@@ -694,7 +698,9 @@ internal static class IWorkNumbersReader {
         foreach (IWorkWireMessage entry in entries) {
             ulong? key = entry.GetUnsigned(1);
             string? value = entry.GetString(3);
-            if (!key.HasValue || key.Value > uint.MaxValue || value == null) {
+            if (entry.FieldCount(1) != 1
+                || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || !key.HasValue || key.Value > uint.MaxValue || value == null) {
                 fullyReconstructed = false;
                 continue;
             }
@@ -721,7 +727,9 @@ internal static class IWorkNumbersReader {
         foreach (IWorkWireMessage entry in entries) {
             ulong? key = entry.GetUnsigned(1);
             IWorkWireMessage? formula = IWorkObjectIndex.TryGetMessage(entry, 5, out bool malformedFormula);
-            if (!key.HasValue || key.Value > uint.MaxValue || malformedFormula || formula == null) {
+            if (entry.FieldCount(1) != 1
+                || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || !key.HasValue || key.Value > uint.MaxValue || malformedFormula || formula == null) {
                 fullyReconstructed = false;
                 continue;
             }
@@ -761,7 +769,8 @@ internal static class IWorkNumbersReader {
     }
 
     private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>
-        message.HasUnexpectedWireKind(6, IWorkWireKind.Varint)
+        new[] { 6, 7, 9, 10, 11, 16, 17 }.Any(field => message.FieldCount(field) > 1)
+        || message.HasUnexpectedWireKind(6, IWorkWireKind.Varint)
         || message.HasUnexpectedWireKind(7, IWorkWireKind.Varint)
         || message.HasUnexpectedWireKind(9, IWorkWireKind.Varint)
         || message.HasUnexpectedWireKind(10, IWorkWireKind.Varint)

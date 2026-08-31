@@ -50,6 +50,8 @@ internal sealed class IWorkObjectIndex {
 
     internal IWorkArchiveRecord? Dereference(IWorkWireMessage message, int field) {
         IWorkWireMessage? reference = TryGetMessage(message, field);
+        if (reference == null || reference.FieldCount(1) != 1
+            || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) return null;
         ulong? identifier = reference?.GetUnsigned(1);
         return identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)
             ? record
@@ -70,6 +72,11 @@ internal sealed class IWorkObjectIndex {
             return result;
         }
         foreach (IWorkWireMessage reference in references) {
+            if (reference.FieldCount(1) != 1
+                || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
+                unresolvedReferenceCount++;
+                continue;
+            }
             ulong? identifier = reference.GetUnsigned(1);
             if (identifier.HasValue && _objects.TryGetValue(identifier.Value, out IWorkArchiveRecord? record)) {
                 result.Add(record);

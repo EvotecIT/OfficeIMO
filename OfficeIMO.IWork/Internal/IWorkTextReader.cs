@@ -117,7 +117,8 @@ internal static class IWorkTextReader {
                 continue;
             }
             ulong? rawIndex = entry.GetUnsigned(1);
-            if (entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            if (entry.FieldCount(1) != 1
+                || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                 || !rawIndex.HasValue || rawIndex.Value > int.MaxValue
                 || rawIndex.Value > (ulong)textLength) {
                 complete = false;
@@ -129,7 +130,8 @@ internal static class IWorkTextReader {
                 ? IWorkObjectIndex.TryGetMessage(entry, 2, out malformedReference)
                 : null;
             if (hasObject && (entry.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
-                    || malformedReference || reference?.GetUnsigned(1) == null
+                    || malformedReference || reference?.FieldCount(1) != 1
+                    || reference?.GetUnsigned(1) == null
                     || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) {
                 complete = false;
                 continue;

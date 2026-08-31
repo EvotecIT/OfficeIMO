@@ -1198,6 +1198,7 @@ public sealed partial class IWorkBoundaryTests {
                         byte.MaxValue, byte.MaxValue }
                     : new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
         var fields = new List<byte[]> { VarintField(1, 0) };
+        if (table.DuplicateRowIndex) fields.Add(VarintField(1, 1));
         if (table.MixedRowIndexWire) fields.Add(StringField(1, "invalid"));
         fields.Add(BytesField(6, buffer));
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
@@ -1517,7 +1518,8 @@ public sealed partial class IWorkBoundaryTests {
             int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false,
             int unexpectedStringCatalogFieldCount = 0,
             int unexpectedFormulaCatalogFieldCount = 0,
-            int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false) {
+            int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
+            bool duplicateRowIndex = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1563,6 +1565,7 @@ public sealed partial class IWorkBoundaryTests {
             UnexpectedFormulaCatalogFieldCount = unexpectedFormulaCatalogFieldCount;
             TrailingEmptyOffsetCount = trailingEmptyOffsetCount;
             DuplicateTableStore = duplicateTableStore;
+            DuplicateRowIndex = duplicateRowIndex;
         }
 
         internal string Name { get; }
@@ -1610,5 +1613,6 @@ public sealed partial class IWorkBoundaryTests {
         internal int UnexpectedFormulaCatalogFieldCount { get; }
         internal int TrailingEmptyOffsetCount { get; }
         internal bool DuplicateTableStore { get; }
+        internal bool DuplicateRowIndex { get; }
     }
 }

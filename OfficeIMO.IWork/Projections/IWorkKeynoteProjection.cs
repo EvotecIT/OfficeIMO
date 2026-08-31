@@ -246,7 +246,8 @@ internal static class IWorkKeynoteReader {
             IWorkWireMessage nodeMessage = index.Message(node);
             ulong? skippedValue = nodeMessage.GetUnsigned(4);
             bool skipped = skippedValue == 1;
-            if (nodeMessage.HasUnexpectedWireKind(4, IWorkWireKind.Varint)
+            if (nodeMessage.FieldCount(4) > 1
+                || nodeMessage.HasUnexpectedWireKind(4, IWorkWireKind.Varint)
                 || skippedValue > 1) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic =>
