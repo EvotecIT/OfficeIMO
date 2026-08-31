@@ -447,9 +447,9 @@ internal static class BibCodec {
                 case "abstract": SetScalar(item, field, value, () => item.Abstract, assigned => item.Abstract = assigned); break;
                 case "language": case "langid": if (item.Language == null) { item.Language = value; item.BibFieldNames["language"] = field; } else PreserveAdditionalField(item, field, value); break;
                 case "url": SetScalar(item, field, value, () => item.Url, assigned => item.Url = assigned); break;
-                case "author": AddNames(item, BibliographyContributorRole.Author, value); break;
-                case "editor": AddNames(item, BibliographyContributorRole.Editor, value); break;
-                case "translator": AddNames(item, BibliographyContributorRole.Translator, value); break;
+                case "author": AddNames(item, BibliographyContributorRole.Author, name, value); break;
+                case "editor": AddNames(item, BibliographyContributorRole.Editor, name, value); break;
+                case "translator": AddNames(item, BibliographyContributorRole.Translator, name, value); break;
                 case "date": SetIssuedDate(item, value); break;
                 case "year": SetYear(item, value); break;
                 case "month": SetMonth(item, value); break;
@@ -469,8 +469,16 @@ internal static class BibCodec {
             }
         }
 
-        private void AddNames(BibliographyItem item, BibliographyContributorRole role, string value) {
-            foreach (string part in SplitNames(value)) { _limits.AddValue(_items, part, _position); item.Contributors.Add(new BibliographyContributor(role, ParseBibName(part))); }
+        private void AddNames(BibliographyItem item, BibliographyContributorRole role, string fieldName, string value) {
+            bool hasSurplusSegments = false;
+            foreach (string part in SplitNames(value)) {
+                _limits.AddValue(_items, part, _position);
+                item.Contributors.Add(new BibliographyContributor(role, ParseBibName(part, out bool contributorHasSurplusSegments)));
+                hasSurplusSegments |= contributorHasSurplusSegments;
+            }
+            if (!hasSurplusSegments) return;
+            PreserveAdditionalField(item, fieldName, value);
+            AddDiagnostic("BIBBIB011", "A BibTeX contributor contains surplus top-level comma segments; the complete field was retained as native source data.", _position, item.Key, fieldName, BibliographyDiagnosticSeverity.Error);
         }
 
         private void PreserveAdditionalField(BibliographyItem item, string fieldName, string value) => item.NativeFields.Add(new BibliographyNativeField(_format, fieldName, value));
@@ -488,10 +496,12 @@ internal static class BibCodec {
         private void AppendValue(StringBuilder builder, string value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, value.Length, offset); builder.Append(value); }
         private void AppendValue(StringBuilder builder, char value, int offset) { _limits.CheckAdditionalValueLength(_items, builder.Length, 1, offset); builder.Append(value); }
 
-        private BibliographyName ParseBibName(string value) {
+        private BibliographyName ParseBibName(string value, out bool hasSurplusSegments) {
             string trimmed = value.Trim();
+            hasSurplusSegments = false;
             if (trimmed.Length >= 2 && trimmed[0] == '{' && trimmed[trimmed.Length - 1] == '}') return new BibliographyName { Literal = trimmed.Substring(1, trimmed.Length - 2) };
-            string[] parts = SplitTopLevel(trimmed, ',').Take(3).ToArray();
+            string[] parts = SplitTopLevel(trimmed, ',').Take(4).ToArray();
+            hasSurplusSegments = parts.Length > 3;
             if (parts.Length == 1) return ParseBibFirstVonLast(trimmed);
             SplitBibFamily(parts[0], out string? particle, out string? family);
             SplitBibGiven(parts.Length == 3 ? parts[2] : parts[1], out string? given, out string? droppingParticle);

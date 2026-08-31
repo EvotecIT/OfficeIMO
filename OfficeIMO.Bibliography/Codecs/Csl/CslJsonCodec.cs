@@ -626,7 +626,8 @@ internal static class CslJsonCodec {
                 continue;
             }
             if (token == JsonTokenType.StartObject || token == JsonTokenType.StartArray || token == JsonTokenType.String || token == JsonTokenType.Number || token == JsonTokenType.True || token == JsonTokenType.False || token == JsonTokenType.Null) {
-                if (parentIsArray && !(rootIsArray && arrayContainers.Count == 1)) limits.AddValue(partialItems, null, tokenUtf16Offset);
+                bool rootArrayItemObject = rootIsArray && arrayContainers.Count == 1 && token == JsonTokenType.StartObject;
+                if (parentIsArray && !rootArrayItemObject) limits.AddValue(partialItems, null, tokenUtf16Offset);
                 if (token == JsonTokenType.StartObject && (arrayContainers.Count == 0 || rootIsArray && arrayContainers.Count == 1))
                     limits.AddItem(partialItems, tokenUtf16Offset);
             }
