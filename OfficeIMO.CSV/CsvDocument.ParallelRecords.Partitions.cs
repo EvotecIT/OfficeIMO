@@ -15,6 +15,8 @@ namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
 {
+    private const int MaximumPlannedTextPartitions = 16_384;
+
     private static IEnumerable<T> EnumeratePartitionedTextRows<T>(
         string text,
         CsvParser.CsvTextDataReaderRowSource preparedSource,
@@ -257,6 +259,10 @@ public sealed partial class CsvDocument
         }
         if (state.PartitionRows > 0)
         {
+            if (state.Result.Count >= MaximumPlannedTextPartitions)
+            {
+                return false;
+            }
             state.Result.Add(new CsvTextPartition(
                 state.PartitionStart,
                 text.Length,
@@ -411,6 +417,10 @@ public sealed partial class CsvDocument
         state.QuoteStart = -1;
         if (state.PartitionRows == state.BatchSize)
         {
+            if (state.Result.Count >= MaximumPlannedTextPartitions)
+            {
+                return false;
+            }
             state.Result.Add(new CsvTextPartition(
                 state.PartitionStart,
                 recordEnd,

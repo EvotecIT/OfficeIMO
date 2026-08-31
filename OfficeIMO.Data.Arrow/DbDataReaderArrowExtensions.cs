@@ -11,6 +11,8 @@ namespace OfficeIMO.Data.Arrow;
 
 /// <summary>Apache Arrow projections for forward-only tabular readers.</summary>
 public static class DbDataReaderArrowExtensions {
+    private const int MaximumInitialReservedCells = 65_536;
+
     /// <summary>
     /// Converts the current result set into bounded Arrow record batches.
     /// The caller retains ownership of both the reader and every returned batch.
@@ -21,21 +23,21 @@ public static class DbDataReaderArrowExtensions {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
+        effectiveOptions.Validate();
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
         Schema schema = CreateSchema(reader, columns);
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!reader.Read()) yield break;
             ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
             int rowCount = 0;
-            while (rowCount < effectiveOptions.BatchSize) {
+            do {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!reader.Read()) break;
                 AppendRow(reader, builders);
                 rowCount++;
-            }
+            } while (rowCount < effectiveOptions.BatchSize && reader.Read());
 
-            if (rowCount == 0) yield break;
             yield return BuildBatch(schema, builders, rowCount);
         }
     }
@@ -50,19 +52,21 @@ public static class DbDataReaderArrowExtensions {
         [EnumeratorCancellation] CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(reader);
         ArrowReadOptions effectiveOptions = options ?? new ArrowReadOptions();
+        effectiveOptions.Validate();
         ArrowColumnFactory[] columns = CreateColumns(reader, effectiveOptions);
         Schema schema = CreateSchema(reader, columns);
 
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) yield break;
             ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize);
             int rowCount = 0;
-            while (rowCount < effectiveOptions.BatchSize &&
-                   await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) {
+            do {
                 AppendRow(reader, builders);
                 rowCount++;
-            }
+            } while (rowCount < effectiveOptions.BatchSize &&
+                     await reader.ReadAsync(cancellationToken).ConfigureAwait(false));
 
-            if (rowCount == 0) yield break;
             yield return BuildBatch(schema, builders, rowCount);
         }
     }
@@ -86,8 +90,11 @@ public static class DbDataReaderArrowExtensions {
 
     private static ArrowColumnBuilder[] CreateBuilders(ArrowColumnFactory[] columns, int capacity) {
         var builders = new ArrowColumnBuilder[columns.Length];
+        int initialCapacity = columns.Length == 0
+            ? 0
+            : Math.Min(capacity, Math.Max(1, MaximumInitialReservedCells / columns.Length));
         for (int ordinal = 0; ordinal < builders.Length; ordinal++) {
-            builders[ordinal] = columns[ordinal].CreateBuilder(capacity);
+            builders[ordinal] = columns[ordinal].CreateBuilder(initialCapacity);
         }
         return builders;
     }

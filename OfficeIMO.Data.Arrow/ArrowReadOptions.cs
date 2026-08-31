@@ -21,9 +21,6 @@ public sealed class ArrowReadOptions {
             if (value is < 1 or > 38) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Decimal precision must be between 1 and 38.");
             }
-            if (value < _decimalScale) {
-                throw new ArgumentOutOfRangeException(nameof(value), "Decimal precision cannot be less than the configured scale.");
-            }
             _decimalPrecision = value;
         }
     }
@@ -31,9 +28,9 @@ public sealed class ArrowReadOptions {
     /// <summary>Gets or sets the scale used for CLR <see cref="decimal"/> columns.</summary>
     public int DecimalScale {
         get => _decimalScale;
-        set => _decimalScale = value >= 0 && value <= DecimalPrecision
+        set => _decimalScale = value is >= 0 and <= 38
             ? value
-            : throw new ArgumentOutOfRangeException(nameof(value), "Decimal scale must be between zero and the configured precision.");
+            : throw new ArgumentOutOfRangeException(nameof(value), "Decimal scale must be between zero and 38.");
     }
 
     /// <summary>
@@ -41,4 +38,12 @@ public sealed class ArrowReadOptions {
     /// When false, encountering such a column throws <see cref="NotSupportedException"/>.
     /// </summary>
     public bool ConvertUnsupportedTypesToString { get; set; } = true;
+
+    internal void Validate() {
+        if (_decimalScale > _decimalPrecision) {
+            throw new ArgumentOutOfRangeException(
+                nameof(DecimalScale),
+                "Decimal scale cannot be greater than the configured precision.");
+        }
+    }
 }

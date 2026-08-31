@@ -60,12 +60,40 @@ public sealed class CsvArrowTests {
     }
 
     [Fact]
-    public void ArrowDecimalOptionsCannotEnterAnInvalidPrecisionScaleState() {
-        var options = new ArrowReadOptions { DecimalScale = 12 };
+    public void ArrowDecimalOptionsAreInitializerOrderIndependentAndValidateBeforeReading() {
+        var valid = new ArrowReadOptions { DecimalPrecision = 5, DecimalScale = 2 };
+        Assert.Equal(5, valid.DecimalPrecision);
+        Assert.Equal(2, valid.DecimalScale);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => options.DecimalPrecision = 10);
-        Assert.Equal(29, options.DecimalPrecision);
-        Assert.Equal(12, options.DecimalScale);
+        var invalid = new ArrowReadOptions { DecimalPrecision = 10, DecimalScale = 12 };
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Value", typeof(decimal));
+        table.Rows.Add(1m);
+        using var reader = table.CreateDataReader();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            reader.ReadArrowBatches(invalid).ToArray());
+    }
+
+    [Fact]
+    public void WideArrowReaderBoundsInitialReservationAcrossColumns() {
+        const int columnCount = 1024;
+        var table = new System.Data.DataTable();
+        object[] values = new object[columnCount];
+        for (int ordinal = 0; ordinal < columnCount; ordinal++) {
+            table.Columns.Add("Column" + ordinal, typeof(int));
+            values[ordinal] = ordinal;
+        }
+        table.Rows.Add(values);
+        using var reader = table.CreateDataReader();
+
+        RecordBatch batch = Assert.Single(reader.ReadArrowBatches());
+        try {
+            Assert.Equal(1, batch.Length);
+            Assert.Equal(columnCount, batch.ColumnCount);
+        } finally {
+            batch.Dispose();
+        }
     }
 
     [Fact]

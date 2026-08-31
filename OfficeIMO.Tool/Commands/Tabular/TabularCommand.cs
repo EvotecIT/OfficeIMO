@@ -127,6 +127,7 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
             Path.GetFileNameWithoutExtension(outputPath) + "." + Guid.NewGuid().ToString("N") + outputExtension);
         try {
             await WriteConversionAsync(options, temporaryPath, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
             File.Move(temporaryPath, outputPath, overwrite: options.Force);
         } catch {
             if (File.Exists(temporaryPath)) File.Delete(temporaryPath);
@@ -144,7 +145,10 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
         bool inputIsCsv = IsCsvPath(options.InputPath);
         bool outputIsCsv = IsCsvPath(temporaryPath);
         if (inputIsCsv || outputIsCsv) {
-            using DbDataReader reader = OpenReader(options, inferSchema: inputIsCsv, cancellationToken);
+            using DbDataReader reader = OpenReader(
+                options,
+                inferSchema: inputIsCsv && !outputIsCsv,
+                cancellationToken);
             if (outputIsCsv) {
                 var saveOptions = new CsvSaveOptions {
                     Delimiter = ResolveDelimiter(temporaryPath, options.Delimiter),
@@ -193,13 +197,36 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
                 Path.GetExtension(options.InputPath),
                 Path.GetExtension(temporaryPath),
                 StringComparison.OrdinalIgnoreCase)) {
-            File.Copy(options.InputPath, temporaryPath);
+            await CopyFileAsync(options.InputPath, temporaryPath, cancellationToken).ConfigureAwait(false);
             return;
         }
         await ExcelDocument.ConvertAsync(
             options.InputPath,
             temporaryPath,
             cancellationToken: cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async Task CopyFileAsync(
+        string inputPath,
+        string outputPath,
+        CancellationToken cancellationToken) {
+        await using var input = new FileStream(
+            inputPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            128 * 1024,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await using var output = new FileStream(
+            outputPath,
+            FileMode.CreateNew,
+            FileAccess.Write,
+            FileShare.None,
+            128 * 1024,
+            FileOptions.Asynchronous | FileOptions.SequentialScan);
+        await input.CopyToAsync(output, 128 * 1024, cancellationToken).ConfigureAwait(false);
+        await output.FlushAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     private static DbDataReader OpenReader(

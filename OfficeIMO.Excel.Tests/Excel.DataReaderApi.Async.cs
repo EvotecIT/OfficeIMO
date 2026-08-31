@@ -39,5 +39,44 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public async Task NextResultAsyncThreadsThePerCallTokenIntoSheetOpening() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.AsyncNextResult.{Guid.NewGuid():N}.xlsx");
+        using var cancellation = new CancellationTokenSource();
+        bool cancelDuringNextSheet = false;
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Alpha");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                for (int row = 2; row <= 512; row++) {
+                    second.CellValue(row, 1, row == 2 ? "CancelHere" : "Value" + row);
+                }
+                document.Save();
+            }
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+                path,
+                new ExcelReadOptions {
+                    InferSchema = true,
+                    SchemaSampleRows = 512,
+                    CellValueConverter = _ => {
+                        if (Volatile.Read(ref cancelDuringNextSheet)) cancellation.Cancel();
+                        return ExcelCellValue.NotHandled;
+                    }
+                });
+
+            Volatile.Write(ref cancelDuringNextSheet, true);
+            await Assert.ThrowsAsync<OperationCanceledException>(
+                () => reader.NextResultAsync(cancellation.Token));
+        } finally {
+            File.Delete(path);
+        }
+    }
 }
 #endif

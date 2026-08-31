@@ -104,6 +104,25 @@ public class CsvMappingTests
     }
 
     [Fact]
+    public void Transient_Record_Projection_Falls_Back_After_The_Partition_Metadata_Budget()
+    {
+        const int rowCount = 16_385;
+        string text = "Id\n" + string.Join("\n", Enumerable.Range(1, rowCount)) + "\n";
+
+        int[] rows = CsvDocument.ReadTextRowsAsParallel<int>(
+            text,
+            _ => record => record.GetInt32(0),
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 1
+            }).ToArray();
+
+        Assert.Equal(rowCount, rows.Length);
+        Assert.Equal(1, rows[0]);
+        Assert.Equal(rowCount, rows[^1]);
+    }
+
+    [Fact]
     public void Transient_Record_Projection_Retains_Lenient_Bare_Quote_Fallback()
     {
         Assert.Throws<CsvParseException>(() =>

@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
     public sealed class ExcelWorkbookDataReader : DbDataReader, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata {
         private readonly IReadOnlyList<SheetSelection> _sheets;
         private readonly IReadOnlyList<string> _sheetNames;
-        private readonly Func<int, DbDataReader> _openSheet;
+        private readonly Func<int, CancellationToken, DbDataReader> _openSheet;
         private IDisposable _owner;
         private readonly CultureInfo _culture;
 
@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
 
         private ExcelWorkbookDataReader(
             IReadOnlyList<SheetSelection> sheets,
-            Func<int, DbDataReader> openSheet,
+            Func<int, CancellationToken, DbDataReader> openSheet,
             IDisposable owner,
             CultureInfo culture,
             Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter,
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
             _requireAllColumnsMapped = requireAllColumnsMapped;
             _mappingErrorValuePolicy = mappingErrorValuePolicy;
             _cancellationToken = cancellationToken;
-            _current = _openSheet(0);
+            _current = _openSheet(0, cancellationToken);
         }
 
         internal ExcelWorkbookDataReader OwnLifetime(IDisposable lifetime) {
@@ -297,7 +297,11 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(availableSheets, options);
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    index => OpenOpenXmlSheet(owner, sheets[index].Name, options),
+                    (index, cancellationToken) => OpenOpenXmlSheet(
+                        owner,
+                        sheets[index].Name,
+                        options,
+                        cancellationToken),
                     lifetime,
                     options.Culture,
                     options.TypeConverter,
@@ -323,10 +327,10 @@ namespace OfficeIMO.Excel {
 
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    index => owner.OpenTable(
+                    (index, cancellationToken) => owner.OpenTable(
                         sheets[index].Name,
                         options.HasHeaderRow,
-                        options.CancellationToken),
+                        cancellationToken),
                     owner,
                     options.Culture,
                     options.TypeConverter,
@@ -346,19 +350,21 @@ namespace OfficeIMO.Excel {
         private static DbDataReader OpenOpenXmlSheet(
             ExcelDocumentReader owner,
             string sheetName,
-            ExcelReadOptions options) {
+            ExcelReadOptions options,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             ExcelSheetReader sheet = owner.GetSheet(sheetName);
             return string.IsNullOrWhiteSpace(options.A1Range)
                 ? (DbDataReader)sheet.ReadUsedRangeAsDataReader(
                     headersInFirstRow: options.HasHeaderRow,
                     schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
-                    ct: options.CancellationToken)
+                    ct: cancellationToken)
                 : (DbDataReader)sheet.ReadRangeAsDataReader(
                     options.A1Range!,
                     headersInFirstRow: options.HasHeaderRow,
                     chunkRows: Math.Min(1024, options.MaxDataReaderChunkRows),
                     schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
-                    ct: options.CancellationToken);
+                    ct: cancellationToken);
         }
 
         private static ExcelWorkbookDataReader CreateBinary(
@@ -368,11 +374,11 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    index => owner.OpenTable(
+                    (index, cancellationToken) => owner.OpenTable(
                         sheets[index].Name,
                         options.HasHeaderRow,
                         options,
-                        options.CancellationToken),
+                        cancellationToken),
                     owner,
                     options.Culture,
                     options.TypeConverter,
@@ -392,11 +398,11 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<SheetSelection> sheets = SelectSheets(owner.TableNames, options);
                 return new ExcelWorkbookDataReader(
                     sheets,
-                    index => owner.OpenTable(
+                    (index, cancellationToken) => owner.OpenTable(
                         sheets[index].Name,
                         options.HasHeaderRow,
                         options,
-                        options.CancellationToken),
+                        cancellationToken),
                     owner,
                     options.Culture,
                     options.TypeConverter,
@@ -472,8 +478,12 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
 
         public override bool NextResult() {
+            return MoveNextResult(_cancellationToken);
+        }
+
+        private bool MoveNextResult(CancellationToken cancellationToken) {
             ThrowIfClosed();
-            _cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
             if (_resultIndex + 1 >= _sheetNames.Count) {
                 return false;
             }
@@ -481,7 +491,7 @@ namespace OfficeIMO.Excel {
             _current.Dispose();
             int nextResultIndex = _resultIndex + 1;
             try {
-                _current = _openSheet(nextResultIndex);
+                _current = _openSheet(nextResultIndex, cancellationToken);
             } catch {
                 CloseAfterSheetOpenFailure();
                 throw;
@@ -491,9 +501,45 @@ namespace OfficeIMO.Excel {
         }
 
         /// <inheritdoc />
-        public override Task<bool> NextResultAsync(CancellationToken cancellationToken) {
-            cancellationToken.ThrowIfCancellationRequested();
-            return Task.FromResult(NextResult());
+        public override Task<bool> NextResultAsync(CancellationToken cancellationToken) =>
+            NextResultAsyncCore(cancellationToken);
+
+        private async Task<bool> NextResultAsyncCore(CancellationToken cancellationToken) {
+            CancellationTokenSource? linkedSource = CreateEffectiveCancellationToken(
+                cancellationToken,
+                out CancellationToken effectiveToken);
+
+            try {
+                effectiveToken.ThrowIfCancellationRequested();
+                return await Task.Run(
+                        () => MoveNextResult(effectiveToken),
+                        effectiveToken)
+                    .ConfigureAwait(false);
+            } finally {
+                linkedSource?.Dispose();
+            }
+        }
+
+        private CancellationTokenSource? CreateEffectiveCancellationToken(
+            CancellationToken callerToken,
+            out CancellationToken effectiveToken) {
+            effectiveToken = callerToken;
+            if (!_cancellationToken.CanBeCanceled) {
+                return null;
+            }
+            if (!callerToken.CanBeCanceled) {
+                effectiveToken = _cancellationToken;
+                return null;
+            }
+            if (_cancellationToken == callerToken) {
+                return null;
+            }
+
+            CancellationTokenSource linkedSource = CancellationTokenSource.CreateLinkedTokenSource(
+                _cancellationToken,
+                callerToken);
+            effectiveToken = linkedSource.Token;
+            return linkedSource;
         }
 
         private void CloseAfterSheetOpenFailure() {
@@ -644,11 +690,15 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
             ThrowIfClosed();
-            cancellationToken.ThrowIfCancellationRequested();
-            _cancellationToken.ThrowIfCancellationRequested();
-            bool hasRow = await _current.ReadAsync(cancellationToken).ConfigureAwait(false);
-            _cancellationToken.ThrowIfCancellationRequested();
-            return hasRow;
+            CancellationTokenSource? linkedSource = CreateEffectiveCancellationToken(
+                cancellationToken,
+                out CancellationToken effectiveToken);
+            try {
+                effectiveToken.ThrowIfCancellationRequested();
+                return await _current.ReadAsync(effectiveToken).ConfigureAwait(false);
+            } finally {
+                linkedSource?.Dispose();
+            }
         }
         /// <inheritdoc />
         public override DataTable? GetSchemaTable() => _current.GetSchemaTable();
