@@ -515,7 +515,7 @@ internal static class IWorkKeynoteReader {
         complete = true;
         if (!show.HasField(4)) return null;
         IWorkWireMessage? size = IWorkObjectIndex.TryGetMessage(show, 4, out bool malformedSize);
-        if (show.LacksWireKind(4, IWorkWireKind.Bytes) || malformedSize || size == null) {
+        if (show.HasUnexpectedWireKind(4, IWorkWireKind.Bytes) || malformedSize || size == null) {
             complete = false;
             return null;
         }
@@ -523,8 +523,8 @@ internal static class IWorkKeynoteReader {
         double width = declaredSize.GetFloat(1) ?? 0;
         double height = declaredSize.GetFloat(2) ?? 0;
         if (!declaredSize.HasField(1) || !declaredSize.HasField(2)
-            || declaredSize.LacksWireKind(1, IWorkWireKind.Fixed32)
-            || declaredSize.LacksWireKind(2, IWorkWireKind.Fixed32)
+            || declaredSize.HasUnexpectedWireKind(1, IWorkWireKind.Fixed32)
+            || declaredSize.HasUnexpectedWireKind(2, IWorkWireKind.Fixed32)
             || !declaredSize.GetFloat(1).HasValue || !declaredSize.GetFloat(2).HasValue
             || width <= 0 || height <= 0 || double.IsNaN(width) || double.IsInfinity(width)
             || double.IsNaN(height) || double.IsInfinity(height)) {

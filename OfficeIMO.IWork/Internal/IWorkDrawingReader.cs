@@ -23,7 +23,7 @@ internal static class IWorkDrawingReader {
     internal static IWorkGeometry? ReadGeometry(IWorkWireMessage drawable, out bool complete) {
         IWorkWireMessage? geometry = IWorkObjectIndex.TryGetMessage(drawable, 1, out bool malformedGeometry);
         complete = !malformedGeometry
-            && !drawable.LacksWireKind(1, IWorkWireKind.Bytes)
+            && !drawable.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             && (!drawable.HasField(1) || geometry != null);
         if (geometry == null) return null;
         IWorkGeometry? result = ReadGeometryArchive(geometry, out bool archiveComplete);
@@ -39,8 +39,8 @@ internal static class IWorkDrawingReader {
         IWorkWireMessage? position = IWorkObjectIndex.TryGetMessage(geometry, 1, out bool malformedPosition);
         IWorkWireMessage? size = IWorkObjectIndex.TryGetMessage(geometry, 2, out bool malformedSize);
         complete = !malformedPosition && !malformedSize
-            && !geometry.LacksWireKind(1, IWorkWireKind.Bytes)
-            && !geometry.LacksWireKind(2, IWorkWireKind.Bytes)
+            && !geometry.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
+            && !geometry.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
             && (!geometry.HasField(1) || position != null)
             && (!geometry.HasField(2) || size != null);
         if (!complete) return null;
@@ -74,13 +74,13 @@ internal static class IWorkDrawingReader {
         if (record.MessageType is ImageArchive or 6000) {
             IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedDrawable);
             complete = !malformedDrawable
-                && !message.LacksWireKind(1, IWorkWireKind.Bytes)
+                && !message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 && (!message.HasField(1) || drawable != null);
             return drawable;
         }
         if (record.MessageType == 2011) {
             IWorkWireMessage? shape = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedShape);
-            if (malformedShape || message.LacksWireKind(1, IWorkWireKind.Bytes)
+            if (malformedShape || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 || message.HasField(1) && shape == null) {
                 complete = false;
                 return null;
@@ -90,7 +90,7 @@ internal static class IWorkDrawingReader {
                 ? null
                 : IWorkObjectIndex.TryGetMessage(shape, 1, out malformedDrawable);
             complete = shape == null || !malformedDrawable
-                && !shape.LacksWireKind(1, IWorkWireKind.Bytes)
+                && !shape.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 && (!shape.HasField(1) || drawable != null);
             return drawable;
         }
@@ -103,7 +103,7 @@ internal static class IWorkDrawingReader {
         if (record.MessageType != ImageArchive) return null;
         IWorkWireMessage message = source.Index.Message(record);
         IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedDrawable);
-        if (malformedDrawable || message.LacksWireKind(1, IWorkWireKind.Bytes)
+        if (malformedDrawable || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || drawable == null) {
             complete = false;
             return null;
@@ -145,7 +145,7 @@ internal static class IWorkDrawingReader {
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
         bool hasMask = message.HasBytes(5);
-        if (hasMask || message.LacksWireKind(5, IWorkWireKind.Bytes)) complete = false;
+        if (hasMask || message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)) complete = false;
         string? hyperlink = drawable.GetString(4, out bool hyperlinkComplete);
         string? accessibilityDescription = drawable.GetString(8, out bool accessibilityComplete);
         if (!hyperlinkComplete || !accessibilityComplete) complete = false;
@@ -223,7 +223,7 @@ internal static class IWorkDrawingReader {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool InvalidFloat(IWorkWireMessage message, int field) =>
-        message.LacksWireKind(field, IWorkWireKind.Fixed32)
+        message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
         || message.HasField(field) && !message.GetFloat(field).HasValue;
 
     private sealed class DataEntry {

@@ -83,6 +83,7 @@ internal static class IWorkNumbersReader {
     private const uint TextStorageArchive = 2001;
     private const uint TextShapeArchive = 2011;
     private const int TileRowStride = 256;
+    private const uint RecognizedCellValueMask = (1u << 21) - 1;
 
     internal static IWorkNumbersProjection Read(IWorkSourceDocument source) {
         var diagnostics = new List<IWorkDiagnostic>();
@@ -192,7 +193,7 @@ internal static class IWorkNumbersReader {
                     }
                     IWorkWireMessage storageOwner = index.Message(drawable);
                     bool storageReferenceComplete = storageOwner.FieldCount(2) == 1
-                        && !storageOwner.LacksWireKind(2, IWorkWireKind.Bytes);
+                        && !storageOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
                     IWorkArchiveRecord? storage = storageReferenceComplete
                         ? index.Dereference(storageOwner, 2)
                         : null;
@@ -267,7 +268,7 @@ internal static class IWorkNumbersReader {
             return null;
         }
         IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(tableInfo, 1, out bool malformedDrawable);
-        if (malformedDrawable || tableInfo.LacksWireKind(1, IWorkWireKind.Bytes)
+        if (malformedDrawable || tableInfo.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || tableInfo.HasField(1) && drawable == null) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -492,9 +493,9 @@ internal static class IWorkNumbersReader {
             foreach (IWorkWireMessage rowInfo in rowsInTile) {
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
-                if (rowInfo.LacksWireKind(6, IWorkWireKind.Bytes)
-                    || rowInfo.LacksWireKind(7, IWorkWireKind.Bytes)
-                    || rowInfo.LacksWireKind(8, IWorkWireKind.Varint)
+                if (rowInfo.HasUnexpectedWireKind(6, IWorkWireKind.Bytes)
+                    || rowInfo.HasUnexpectedWireKind(7, IWorkWireKind.Bytes)
+                    || rowInfo.HasUnexpectedWireKind(8, IWorkWireKind.Varint)
                     || (currentBuffer == null) != (currentOffsets == null)
                     || currentOffsets != null && currentOffsets.Length % 2 != 0) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
@@ -722,13 +723,13 @@ internal static class IWorkNumbersReader {
     }
 
     private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>
-        message.LacksWireKind(6, IWorkWireKind.Varint)
-        || message.LacksWireKind(7, IWorkWireKind.Varint)
-        || message.LacksWireKind(9, IWorkWireKind.Varint)
-        || message.LacksWireKind(10, IWorkWireKind.Varint)
-        || message.LacksWireKind(11, IWorkWireKind.Varint)
-        || message.LacksWireKind(16, IWorkWireKind.Fixed64)
-        || message.LacksWireKind(17, IWorkWireKind.Fixed64);
+        message.HasUnexpectedWireKind(6, IWorkWireKind.Varint)
+        || message.HasUnexpectedWireKind(7, IWorkWireKind.Varint)
+        || message.HasUnexpectedWireKind(9, IWorkWireKind.Varint)
+        || message.HasUnexpectedWireKind(10, IWorkWireKind.Varint)
+        || message.HasUnexpectedWireKind(11, IWorkWireKind.Varint)
+        || message.HasUnexpectedWireKind(16, IWorkWireKind.Fixed64)
+        || message.HasUnexpectedWireKind(17, IWorkWireKind.Fixed64);
 
     private static IReadOnlyList<IWorkTableMergeRange> ReadMergedRanges(IWorkWireMessage table,
         int rowCount, int columnCount, int maximumRanges, int maximumFormulaNodes,
@@ -825,7 +826,7 @@ internal static class IWorkNumbersReader {
 
     private static bool HasInvalidDeclaredDimension(IWorkWireMessage message, int field,
         double? value) => message.HasField(field)
-        && !message.LacksWireKind(field, IWorkWireKind.Fixed64)
+        && !message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed64)
         && (!value.HasValue || !IsFinite(value.Value) || value.Value <= 0);
 
     private static int CheckedDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
@@ -846,6 +847,9 @@ internal static class IWorkNumbersReader {
         int type = buffer[offset + 1];
         if (version != 5) return Error(row, column, $"Unsupported cell storage version {version}.");
         uint flags = IWorkProtobuf.ReadUInt32(buffer, offset + 8);
+        if ((flags & ~RecognizedCellValueMask) != 0) {
+            return Error(row, column, "Cell storage contains unsupported value fields.");
+        }
         int position = offset + 12;
         double? decimalValue = null;
         double doubleValue = 0;

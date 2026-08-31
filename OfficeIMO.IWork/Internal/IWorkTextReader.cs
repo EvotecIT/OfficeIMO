@@ -69,7 +69,7 @@ internal static class IWorkTextReader {
     private static string ReadText(IWorkWireMessage message, IWorkProjectionBudget projectionBudget,
         ref bool complete) {
         var parts = new List<string>();
-        if (message.LacksWireKind(3, IWorkWireKind.Bytes)) complete = false;
+        if (message.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)) complete = false;
         foreach (byte[] bytes in message.EnumerateRepeatedBytes(3)) {
             if (TryDecodeUtf8(bytes, projectionBudget, out string part)) parts.Add(part);
             else complete = false;
@@ -80,7 +80,7 @@ internal static class IWorkTextReader {
     private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
         int field, int textLength, IWorkProjectionBudget projectionBudget, ref bool complete) {
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
-        if (storage.LacksWireKind(field, IWorkWireKind.Bytes)) {
+        if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
             return Array.Empty<AttributeBoundary>();
         }
@@ -99,7 +99,7 @@ internal static class IWorkTextReader {
             return Array.Empty<AttributeBoundary>();
         }
         var result = new List<AttributeBoundary>();
-        if (table.LacksWireKind(1, IWorkWireKind.Bytes)) complete = false;
+        if (table.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) complete = false;
         foreach (byte[] entryBytes in table.EnumerateRepeatedBytes(1)) {
             IWorkWireMessage entry;
             try {
@@ -109,7 +109,7 @@ internal static class IWorkTextReader {
                 continue;
             }
             ulong? rawIndex = entry.GetUnsigned(1);
-            if (entry.LacksWireKind(1, IWorkWireKind.Varint)
+            if (entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                 || !rawIndex.HasValue || rawIndex.Value > int.MaxValue
                 || rawIndex.Value > (ulong)textLength) {
                 complete = false;
@@ -120,9 +120,9 @@ internal static class IWorkTextReader {
             IWorkWireMessage? reference = hasObject
                 ? IWorkObjectIndex.TryGetMessage(entry, 2, out malformedReference)
                 : null;
-            if (hasObject && (entry.LacksWireKind(2, IWorkWireKind.Bytes)
+            if (hasObject && (entry.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                     || malformedReference || reference?.GetUnsigned(1) == null
-                    || reference.LacksWireKind(1, IWorkWireKind.Varint))) {
+                    || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) {
                 complete = false;
                 continue;
             }
@@ -193,11 +193,11 @@ internal static class IWorkTextReader {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
-            if (malformedCharacter || message.LacksWireKind(11, IWorkWireKind.Bytes)
+            if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
                 || message.HasField(11) && character == null) resolvedCompletely = false;
             if (character != null) OverlayText(character, data.Text, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? paragraph = IWorkObjectIndex.TryGetMessage(message, 12, out bool malformedParagraph);
-            if (malformedParagraph || message.LacksWireKind(12, IWorkWireKind.Bytes)
+            if (malformedParagraph || message.HasUnexpectedWireKind(12, IWorkWireKind.Bytes)
                 || message.HasField(12) && paragraph == null) resolvedCompletely = false;
             if (paragraph != null) OverlayParagraph(paragraph, data, ref resolvedCompletely);
         }
@@ -227,7 +227,7 @@ internal static class IWorkTextReader {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IWorkWireMessage? character = IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedCharacter);
-            if (malformedCharacter || message.LacksWireKind(11, IWorkWireKind.Bytes)
+            if (malformedCharacter || message.HasUnexpectedWireKind(11, IWorkWireKind.Bytes)
                 || message.HasField(11) && character == null) resolvedCompletely = false;
             if (character != null) OverlayText(character, data, projectionBudget, ref resolvedCompletely);
         }
@@ -259,14 +259,14 @@ internal static class IWorkTextReader {
             IWorkWireMessage message = index.Message(record);
             chain.Add(message);
             IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-            if (malformedSuper || message.LacksWireKind(1, IWorkWireKind.Bytes)
+            if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 || message.HasField(1) && super == null) {
                 complete = false;
                 break;
             }
             if (super == null) break;
             IWorkArchiveRecord? parent = index.Dereference(super, 3);
-            if (super.LacksWireKind(3, IWorkWireKind.Bytes)
+            if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                 || super.HasField(3) && parent == null) {
                 complete = false;
                 break;
@@ -280,13 +280,13 @@ internal static class IWorkTextReader {
     private static void ApplyStyleName(IWorkWireMessage message, Action<string> apply,
         IWorkProjectionBudget projectionBudget, ref bool complete) {
         IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-        if (malformedSuper || message.LacksWireKind(1, IWorkWireKind.Bytes)
+        if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || message.HasField(1) && super == null) {
             complete = false;
             return;
         }
         if (super == null || !super.HasField(1)) return;
-        if (super.LacksWireKind(1, IWorkWireKind.Bytes)
+        if (super.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || !TryDecodeUtf8(super.GetBytes(1)!, projectionBudget, out string name)) complete = false;
         else apply(name);
     }
@@ -298,13 +298,13 @@ internal static class IWorkTextReader {
         OverlayFlag(message, 11, value => data.Underline = value, ref complete);
         OverlayFlag(message, 12, value => data.Strikethrough = value, ref complete);
         float? size = message.GetFloat(3);
-        if (message.LacksWireKind(3, IWorkWireKind.Fixed32)) complete = false;
+        if (message.HasUnexpectedWireKind(3, IWorkWireKind.Fixed32)) complete = false;
         else if (size.HasValue && IsFinitePositive(size.Value)) data.FontSizePoints = size.Value;
         else if (message.HasField(3)) complete = false;
         ulong? clearFont = ReadUnsigned(message, 4, ref complete);
         if (clearFont == 1) data.FontName = null;
         else if (message.HasField(5)) {
-            if (message.LacksWireKind(5, IWorkWireKind.Bytes)
+            if (message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
                 || !TryDecodeUtf8(message.GetBytes(5)!, projectionBudget, out string fontName)) complete = false;
             else data.FontName = fontName;
         }
@@ -359,7 +359,7 @@ internal static class IWorkTextReader {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
             IReadOnlyList<ulong> labelTypes;
-            if (message.LacksWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {
+            if (message.HasUnexpectedWireKind(11, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {
                 resolvedCompletely = false;
                 labelTypes = Array.Empty<ulong>();
             } else {
@@ -371,14 +371,14 @@ internal static class IWorkTextReader {
                 }
             }
             if (labelTypes.Count > 0) data.LabelTypes = labelTypes;
-            if (message.LacksWireKind(16, IWorkWireKind.Bytes)) resolvedCompletely = false;
+            if (message.HasUnexpectedWireKind(16, IWorkWireKind.Bytes)) resolvedCompletely = false;
             var labels = new List<string>();
             foreach (byte[] bytes in message.EnumerateRepeatedBytes(16)) {
                 if (!TryDecodeUtf8(bytes, projectionBudget, out string decodedLabel)) resolvedCompletely = false;
                 else labels.Add(decodedLabel);
             }
             if (labels.Count > 0) data.Labels = labels;
-            if (message.LacksWireKind(13, IWorkWireKind.Fixed32)) resolvedCompletely = false;
+            if (message.HasUnexpectedWireKind(13, IWorkWireKind.Fixed32)) resolvedCompletely = false;
             IReadOnlyList<float> indents = message.GetRepeatedFloat(13);
             if (indents.Count > 0) data.LeftIndents = indents;
         }
@@ -435,7 +435,7 @@ internal static class IWorkTextReader {
             resolvedCompletely = false;
         } else {
             IWorkWireMessage message = index.Message(record);
-            if (!message.HasField(2) || message.LacksWireKind(2, IWorkWireKind.Bytes)
+            if (!message.HasField(2) || message.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                 || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
                 resolvedCompletely = false;
             } else {
@@ -452,7 +452,7 @@ internal static class IWorkTextReader {
         color = null;
         bool hasColor = owner.HasField(field);
         IWorkWireMessage? message = IWorkObjectIndex.TryGetMessage(owner, field, out bool malformedColor);
-        if (owner.LacksWireKind(field, IWorkWireKind.Bytes)
+        if (owner.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)
             || malformedColor || hasColor && message == null) {
             complete = false;
             return false;
@@ -464,7 +464,7 @@ internal static class IWorkTextReader {
         float blue = white ?? message.GetFloat(5) ?? 0;
         float alpha = message.GetFloat(6) ?? 1;
         if (new[] { 3, 4, 5, 6, 11 }.Any(component =>
-                message.LacksWireKind(component, IWorkWireKind.Fixed32)
+                message.HasUnexpectedWireKind(component, IWorkWireKind.Fixed32)
                 || message.HasField(component) && !message.GetFloat(component).HasValue)
             || !new[] { red, green, blue, alpha }.All(IsNormalizedColorComponent)) {
             complete = false;
@@ -477,13 +477,13 @@ internal static class IWorkTextReader {
     private static void OverlayFinite(IWorkWireMessage message, int field, Action<double> apply,
         ref bool complete) {
         float? value = message.GetFloat(field);
-        if (message.LacksWireKind(field, IWorkWireKind.Fixed32)) complete = false;
+        if (message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)) complete = false;
         else if (value.HasValue && IsFinite(value.Value)) apply(value.Value);
         else if (message.HasField(field)) complete = false;
     }
 
     private static ulong? ReadUnsigned(IWorkWireMessage message, int field, ref bool complete) {
-        if (message.LacksWireKind(field, IWorkWireKind.Varint)) complete = false;
+        if (message.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) complete = false;
         return message.GetUnsigned(field);
     }
 

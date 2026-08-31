@@ -1146,7 +1146,9 @@ public sealed partial class IWorkBoundaryTests {
             : table.Decimal128HighBit || table.Decimal128Underflow ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
-        WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
+        WriteUInt32(buffer, cellOffset + 8, valueFlag
+            | (table.HasFormula ? 1u << 9 : 0)
+            | (table.UnknownCellValueFlag ? 1u << 21 : 0));
         if (!table.FormulaWithoutCachedValue && !table.Error) {
             if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
             else if (table.Decimal128HighBit) {
@@ -1478,7 +1480,8 @@ public sealed partial class IWorkBoundaryTests {
             bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
             bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
-            bool completeFormula = false, bool decimal128Underflow = false) {
+            bool completeFormula = false, bool decimal128Underflow = false,
+            bool unknownCellValueFlag = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1514,6 +1517,7 @@ public sealed partial class IWorkBoundaryTests {
             MalformedSecondTileEntry = malformedSecondTileEntry;
             CompleteFormula = completeFormula;
             Decimal128Underflow = decimal128Underflow;
+            UnknownCellValueFlag = unknownCellValueFlag;
         }
 
         internal string Name { get; }
@@ -1551,5 +1555,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool MalformedSecondTileEntry { get; }
         internal bool CompleteFormula { get; }
         internal bool Decimal128Underflow { get; }
+        internal bool UnknownCellValueFlag { get; }
     }
 }

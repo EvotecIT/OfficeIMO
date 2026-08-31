@@ -211,8 +211,8 @@ internal static class IWorkPagesReader {
                 || field4Storage != null && field2Storage != null
                     && field4Storage.Identifier != field2Storage.Identifier;
             if (hasAmbiguousStorage
-                || shapeMessage.LacksWireKind(4, IWorkWireKind.Bytes)
-                || shapeMessage.LacksWireKind(2, IWorkWireKind.Bytes)
+                || shapeMessage.HasUnexpectedWireKind(4, IWorkWireKind.Bytes)
+                || shapeMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                 || shapeMessage.HasField(4) && (field4Storage == null || field4Storage.MessageType != TextStorageArchive)
                 || shapeMessage.HasField(2) && (field2Storage == null || field2Storage.MessageType != TextStorageArchive)) {
                 supportsEditableReconstruction = false;
@@ -362,16 +362,20 @@ internal static class IWorkPagesReader {
         }
 
         IWorkArchiveRecord? zOrder = index.Dereference(documentMessage, 20);
-        if (documentMessage.LacksWireKind(20, IWorkWireKind.Bytes)
+        if (documentMessage.HasUnexpectedWireKind(20, IWorkWireKind.Bytes)
             || documentMessage.HasField(20) && zOrder == null) complete = false;
         if (zOrder != null) {
             int unresolvedZOrderCount;
+            var zOrderOccurrences = new HashSet<ulong>();
             foreach (IWorkArchiveRecord record in index.DereferenceAll(
-                         index.Message(zOrder), 1, out unresolvedZOrderCount)) Add(record);
+                         index.Message(zOrder), 1, out unresolvedZOrderCount)) {
+                if (!zOrderOccurrences.Add(record.Identifier)) complete = false;
+                Add(record);
+            }
             if (unresolvedZOrderCount > 0) complete = false;
         }
         IWorkArchiveRecord? floating = index.Dereference(documentMessage, 3);
-        if (documentMessage.LacksWireKind(3, IWorkWireKind.Bytes)
+        if (documentMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
             || documentMessage.HasField(3) && floating == null) complete = false;
         if (floating != null) {
             IReadOnlyList<IWorkWireMessage> pageGroups = IWorkObjectIndex.TryGetMessages(
@@ -379,14 +383,18 @@ internal static class IWorkPagesReader {
             if (malformedPageGroups) complete = false;
             foreach (IWorkWireMessage pageGroup in pageGroups) {
                 foreach (int field in new[] { 2, 3, 4 }) {
+                    var fieldOccurrences = new HashSet<ulong>();
                     IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
                         pageGroup, field, out bool malformedEntries);
                     if (malformedEntries) complete = false;
                     foreach (IWorkWireMessage entry in entries) {
                         IWorkArchiveRecord? record = index.Dereference(entry, 1);
-                        if (entry.LacksWireKind(1, IWorkWireKind.Bytes)
+                        if (entry.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                             || entry.HasField(1) && record == null) complete = false;
-                        else if (record != null) Add(record);
+                        else if (record != null) {
+                            if (!fieldOccurrences.Add(record.Identifier)) complete = false;
+                            Add(record);
+                        }
                     }
                 }
             }
@@ -411,9 +419,9 @@ internal static class IWorkPagesReader {
         double bottom = document.GetFloat(35) ?? 0;
         double header = document.GetFloat(36) ?? 0;
         double footer = document.GetFloat(37) ?? 0;
-        if (fields.Any(field => document.LacksWireKind(field, IWorkWireKind.Fixed32)
+        if (fields.Any(field => document.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
                 || document.HasField(field) && !document.GetFloat(field).HasValue)
-            || document.LacksWireKind(42, IWorkWireKind.Varint)
+            || document.HasUnexpectedWireKind(42, IWorkWireKind.Varint)
             || width <= 0 || height <= 0 || new[] { width, height, left, right, top, bottom, header, footer }
                 .Any(value => double.IsNaN(value) || double.IsInfinity(value) || value < 0)) {
             complete = false;
@@ -430,7 +438,7 @@ internal static class IWorkPagesReader {
         bool hasSectionTable = bodyMessage.HasField(17);
         IWorkWireMessage? sectionTable = IWorkObjectIndex.TryGetMessage(bodyMessage, 17, out bool malformedSectionTable);
         if (!hasSectionTable) return;
-        if (bodyMessage.LacksWireKind(17, IWorkWireKind.Bytes)
+        if (bodyMessage.HasUnexpectedWireKind(17, IWorkWireKind.Bytes)
             || malformedSectionTable || sectionTable == null) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -494,7 +502,7 @@ internal static class IWorkPagesReader {
                         break;
                 }
                 IWorkArchiveRecord? archive = index.Dereference(sectionMessage, field);
-                if (sectionMessage.LacksWireKind(field, IWorkWireKind.Bytes)
+                if (sectionMessage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)
                     || archive == null || archive.MessageType != HeadersFootersArchive) {
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED")) {
