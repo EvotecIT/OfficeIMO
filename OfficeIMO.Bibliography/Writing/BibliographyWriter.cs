@@ -64,7 +64,7 @@ internal static class BibliographyConversionInspector {
         InspectKeys(document, format, report, cancellationToken);
         InspectDocumentStructure(document, format, report, cancellationToken);
         foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken)) {
-            InspectType(item, document.SourceFormat, format, report, cancellationToken); InspectContributors(item, format, report, cancellationToken); InspectDates(item, format, report, cancellationToken); InspectNestedNativeFields(item, format, report, cancellationToken); InspectProperties(item, format, report); InspectIdentifiers(item, format, report, cancellationToken); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report, cancellationToken); InspectNativeStructure(item, format, report, cancellationToken);
+            InspectType(item, document.SourceFormat, format, report, cancellationToken); InspectContributors(item, format, report, cancellationToken); InspectDates(item, format, report, cancellationToken); InspectNestedNativeFields(item, format, report, cancellationToken); InspectProperties(item, format, report, cancellationToken); InspectIdentifiers(item, format, report, cancellationToken); InspectRepeatableValues(item, format, report); InspectTextEncoding(item, format, report, cancellationToken); InspectNativeStructure(item, format, report, cancellationToken);
         }
     }
 
@@ -94,6 +94,8 @@ internal static class BibliographyConversionInspector {
     }
 
     private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
+        if (format == BibliographyFormat.CslJson && CslJsonCodec.UsesNativeType(sourceFormat, item) && CslJsonCodec.ContainsInvalidUtf16(item.NativeType!, cancellationToken))
+            Loss(report, item, "type", "BIBCONV250", "Invalid UTF-16 in the native item type is replaced during CSL JSON serialization.", BibliographyConversionAction.Approximated);
         bool exact;
         switch (format) {
             case BibliographyFormat.CslJson:
@@ -278,11 +280,11 @@ internal static class BibliographyConversionInspector {
         return year.Value >= 1;
     }
 
-    private static void InspectProperties(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report) {
+    internal static void InspectProperties(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.Nbib) {
             Check(item.Publisher, "publisher"); Check(item.PublisherPlace, "publisher-place"); Check(item.Edition, "edition"); Check(item.Url, "URL"); Check(item.CollectionTitle, "collection-title");
         } else if (format == BibliographyFormat.Ris) Check(item.CollectionTitle, "collection-title");
-        else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0 && item.NativeFields.Any(static field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)))
+        else if (format == BibliographyFormat.EndNoteXml && item.Url != null && item.Url.Length == 0 && Cancellable(item.NativeFields, cancellationToken).Any(static field => field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)))
             Loss(report, item, "URL", "BIBCONV237", "An empty primary EndNote URL with additional URL roles reopens as a missing primary URL.", BibliographyConversionAction.Approximated);
         void Check(string? value, string field) { if (value != null) Loss(report, item, field, "BIBCONV203", $"Field '{field}' is not represented in {format}.", BibliographyConversionAction.Omitted); }
     }
@@ -334,11 +336,13 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, text.Key, "BIBCONV209", $"Line breaks in '{text.Key}' normalize to tagged-format continuations in {format}.", BibliographyConversionAction.Approximated);
             if ((format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && text.Value.Length > 0 && char.IsWhiteSpace(text.Value[0]) && !IsProtectedRisIdentifierWhitespace(item, text, format, cancellationToken))
                 Loss(report, item, text.Key, "BIBCONV239", $"Leading whitespace in '{text.Key}' is normalized by {format} tagged-value parsing.", BibliographyConversionAction.Approximated);
-            if (format == BibliographyFormat.EndNoteXml && HasInvalidXmlCharacters(text.Value))
+            if (format == BibliographyFormat.CslJson && CslJsonCodec.ContainsInvalidUtf16(text.Value, cancellationToken))
+                Loss(report, item, text.Key, "BIBCONV250", $"Invalid UTF-16 in '{text.Key}' is replaced during CSL JSON serialization.", BibliographyConversionAction.Approximated);
+            if (format == BibliographyFormat.EndNoteXml && HasInvalidXmlCharacters(text.Value, cancellationToken))
                 Loss(report, item, text.Key, "BIBCONV210", $"Invalid XML characters in '{text.Key}' are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.EndNoteXml && text.Value.IndexOf('\r') >= 0)
                 Loss(report, item, text.Key, "BIBCONV235", $"Carriage returns in '{text.Key}' normalize to line feeds in EndNote XML.", BibliographyConversionAction.Approximated);
-            if ((format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) && !HasBalancedBraces(text.Value))
+            if ((format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) && !HasBalancedBraces(text.Value, cancellationToken))
                 Loss(report, item, text.Key, "BIBCONV211", $"Unbalanced braces in '{text.Key}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) {
@@ -352,7 +356,7 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "native." + field.Name, "BIBCONV235", $"Carriage returns in native field '{field.Name}' normalize to line feeds in EndNote XML.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(static field => (field.Format == BibliographyFormat.BibTex || field.Format == BibliographyFormat.BibLatex) && !HasBalancedBraces(field.Value)))
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(field => (field.Format == BibliographyFormat.BibTex || field.Format == BibliographyFormat.BibLatex) && !HasBalancedBraces(field.Value, cancellationToken)))
                 Loss(report, item, "native." + field.Name, "BIBCONV233", $"Unbalanced braces in native field '{field.Name}' are escaped for safe BibTeX output.", BibliographyConversionAction.Approximated);
         }
     }
@@ -371,6 +375,9 @@ internal static class BibliographyConversionInspector {
         void InspectRaw(BibliographyNativeField field, string path) {
             if (field.Format == format && field.HasInconsistentRawValue)
                 Loss(report, item, path, "BIBCONV247", $"Native {format} field '{field.Name}' has a raw representation that does not match its decoded value or field name.", BibliographyConversionAction.Approximated);
+            if (format == BibliographyFormat.CslJson && field.Format == BibliographyFormat.CslJson &&
+                (CslJsonCodec.ContainsInvalidUtf16(field.Name, cancellationToken) || CslJsonCodec.ContainsInvalidUtf16(field.Value, cancellationToken)))
+                Loss(report, item, path, "BIBCONV250", $"Invalid UTF-16 in native CSL JSON field '{field.Name}' is replaced during serialization.", BibliographyConversionAction.Approximated);
         }
     }
 
@@ -393,21 +400,25 @@ internal static class BibliographyConversionInspector {
         foreach (string value in Cancellable(item.Notes, cancellationToken)) yield return new KeyValuePair<string, string>("notes", value);
     }
 
-    private static bool HasBalancedBraces(string value) {
+    private static bool HasBalancedBraces(string value, CancellationToken cancellationToken) {
         int depth = 0;
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
             if (value[index] == '{') depth++;
             else if (value[index] == '}' && --depth < 0) return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return depth == 0;
     }
 
-    private static bool HasInvalidXmlCharacters(string value) {
+    private static bool HasInvalidXmlCharacters(string value, CancellationToken cancellationToken) {
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
             if (!System.Xml.XmlConvert.IsXmlChar(value[index])) return true;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
 

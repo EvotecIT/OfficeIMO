@@ -15,12 +15,17 @@ public sealed class BibliographyDependencyGuardrailTests {
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("OfficeIMO.Word", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("DocumentFormat.OpenXml", StringComparison.OrdinalIgnoreCase) >= 0);
 
-        XElement jsonReference = Assert.Single(project.Descendants(), element => element.Name.LocalName == "PackageReference" && (string?)element.Attribute("Include") == "System.Text.Json");
-        string? jsonCondition = (string?)jsonReference.Parent?.Attribute("Condition");
-        Assert.Contains("netstandard2.0", jsonCondition, StringComparison.Ordinal);
-        Assert.Contains("net472", jsonCondition, StringComparison.Ordinal);
-        Assert.DoesNotContain("net8.0", jsonCondition, StringComparison.Ordinal);
-        Assert.DoesNotContain("net10.0", jsonCondition, StringComparison.Ordinal);
+        AssertCompatibilityReference("System.Text.Encoding.CodePages");
+        AssertCompatibilityReference("System.Text.Json");
+
+        void AssertCompatibilityReference(string package) {
+            XElement reference = Assert.Single(project.Descendants(), element => element.Name.LocalName == "PackageReference" && (string?)element.Attribute("Include") == package);
+            string? condition = (string?)reference.Parent?.Attribute("Condition");
+            Assert.Contains("netstandard2.0", condition, StringComparison.Ordinal);
+            Assert.Contains("net472", condition, StringComparison.Ordinal);
+            Assert.DoesNotContain("net8.0", condition, StringComparison.Ordinal);
+            Assert.DoesNotContain("net10.0", condition, StringComparison.Ordinal);
+        }
     }
 
     private static string GetRepositoryRoot() {
