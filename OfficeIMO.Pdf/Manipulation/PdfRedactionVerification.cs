@@ -22,7 +22,7 @@ internal static partial class PdfRedactionVerification {
 
         if (options.CheckDecodedPdfStreams &&
             options.FailOnUndecodablePdfStreams &&
-            options.RemovedTextMarkers.Count > 0) {
+            (options.RemovedTextMarkers.Count > 0 || options.RequireCompleteStreamInspection)) {
             issues.AddRange(FindUndecodableStreamIssues(redactedPdf, effectiveReadOptions));
         }
 
@@ -81,6 +81,56 @@ internal static partial class PdfRedactionVerification {
     }
 
     /// <summary>
+    /// Verifies configured markers and proves that the reviewed plan no longer finds text, image,
+    /// or annotation intersections in the rewritten document.
+    /// </summary>
+    public static PdfRedactionVerificationReport VerifyAppliedPlan(
+        byte[] redactedPdf,
+        PdfRedactionPlan reviewedPlan,
+        PdfRedactionVerificationOptions options,
+        PdfReadOptions? readOptions = null) {
+        Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
+        PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
+        PdfRedactionPlan residualPlan = PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
+        var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
+        PdfDiagnosticFinding[] blockingFindings = residualPlan.Findings
+            .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
+            .ToArray();
+        if (!residualPlan.Preflight.CanReadLogicalObjects || blockingFindings.Length > 0) {
+            string detail = blockingFindings.Length == 0
+                ? string.Join(" ", residualPlan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects))
+                : string.Join(" ", blockingFindings.Select(static finding => finding.Message));
+            issues.Add(new PdfRedactionVerificationIssue(
+                "RedactionPlanInspectionBlocked",
+                "ReviewedAreas",
+                "The rewritten PDF could not be inspected for residual content inside the reviewed redaction areas." +
+                (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
+        }
+
+        foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in residualPlan.Matches
+            .GroupBy(static match => (match.Kind, match.PageNumber))) {
+            string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            issues.Add(new PdfRedactionVerificationIssue(
+                "RedactionPlanResidual",
+                marker,
+                $"The rewritten PDF still contains {group.Count()} {group.Key.Kind} match(es) inside a reviewed redaction area on page {group.Key.PageNumber}."));
+        }
+
+        if (issues.Count == markerReport.Issues.Count) {
+            return markerReport;
+        }
+
+        return new PdfRedactionVerificationReport(
+            markerReport.ExtractedText,
+            markerReport.RawPdfBytesChecked,
+            markerReport.EncodedPdfStringsChecked,
+            markerReport.DecodedPdfStreamsChecked,
+            markerReport.ManagedRenderingChecked,
+            markerReport.ExternalValidationResults,
+            issues.AsReadOnly());
+    }
+
+    /// <summary>
     /// Verifies a redacted PDF and throws when removed text remains or retained text disappears.
     /// </summary>
     public static PdfRedactionVerificationReport AssertVerified(
@@ -88,6 +138,17 @@ internal static partial class PdfRedactionVerification {
         PdfRedactionVerificationOptions options,
         PdfReadOptions? readOptions = null) {
         PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions);
+        report.ThrowIfFailed();
+        return report;
+    }
+
+    /// <summary>Verifies a reviewed redaction plan and throws when any planned content class remains in its areas.</summary>
+    public static PdfRedactionVerificationReport AssertAppliedPlan(
+        byte[] redactedPdf,
+        PdfRedactionPlan reviewedPlan,
+        PdfRedactionVerificationOptions options,
+        PdfReadOptions? readOptions = null) {
+        PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions);
         report.ThrowIfFailed();
         return report;
     }

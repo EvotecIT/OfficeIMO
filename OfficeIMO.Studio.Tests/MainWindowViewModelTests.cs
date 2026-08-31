@@ -1,11 +1,192 @@
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class MainWindowViewModelTests {
+    [Fact]
+    public async Task RedactionPreviewPersistsOnPageUntilCancelled() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-redaction-preview-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "editable.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page
+            .Size(600D, 800D)
+            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text"))))))
+            .Save(path);
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Redact);
+            var gesture = new PdfEditorGesture(
+                1,
+                36D,
+                48D,
+                240D,
+                92D,
+                Array.Empty<PdfEditorVisualPoint>());
+
+            viewModel.Pages[0].CompleteEditorGesture(gesture);
+            await WaitUntilAsync(() => viewModel.HasPendingRedaction);
+
+            Assert.Equal(new Avalonia.Rect(36D, 48D, 204D, 44D), viewModel.Pages[0].PendingRedactionArea);
+
+            viewModel.CancelPendingRedactionCommand.Execute(null);
+
+            Assert.False(viewModel.HasPendingRedaction);
+            Assert.Null(viewModel.Pages[0].PendingRedactionArea);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SuccessfulMutationInvalidatesReviewedRedactionAndAnnotationSelection() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-review-state-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "editable.pdf");
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page
+            .Size(600D, 800D)
+            .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Sensitive review text")))))).ToBytes();
+        byte[] annotated = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Text",
+            Rectangle = [40D, 50D, 60D, 70D],
+            Contents = "Original",
+            Title = "Reviewer"
+        }).Bytes;
+        await File.WriteAllBytesAsync(path, annotated);
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+            int objectNumber = Assert.Single(PdfDocument.Open(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            viewModel.Pages[0].SelectAnnotation(new PdfEditorSelection(1, objectNumber, "Text"));
+            Assert.True(viewModel.HasSelectedAnnotation);
+            viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Redact);
+            viewModel.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1, 36D, 48D, 240D, 92D, Array.Empty<PdfEditorVisualPoint>()));
+            await WaitUntilAsync(() => viewModel.HasPendingRedaction);
+
+            viewModel.SetOrganizerSelection([viewModel.OrganizerPages[0]]);
+            await viewModel.DuplicateSelectedCommand.ExecuteAsync(null);
+
+            Assert.False(viewModel.HasPendingRedaction);
+            Assert.False(viewModel.HasSelectedAnnotation);
+            Assert.All(viewModel.Pages, page => Assert.Null(page.PendingRedactionArea));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AnnotationUpdatePreservesEditedContentsAndAuthor() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-annotation-update-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "editable.pdf");
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] annotated = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Text",
+            Rectangle = [40D, 50D, 60D, 70D],
+            Contents = "Original",
+            Title = "Reviewer"
+        }).Bytes;
+        await File.WriteAllBytesAsync(path, annotated);
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+            int objectNumber = Assert.Single(PdfDocument.Open(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+            viewModel.Pages[0].SelectAnnotation(new PdfEditorSelection(1, objectNumber, "Text"));
+            viewModel.SelectedAnnotationContents = "Edited contents";
+            viewModel.SelectedAnnotationAuthor = "Edited author";
+
+            await viewModel.UpdateSelectedAnnotationCommand.ExecuteAsync(null);
+            await viewModel.SaveCommand.ExecuteAsync(null);
+
+            PdfAnnotation updated = Assert.Single(PdfDocument.Open(path).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Equal("Edited contents", updated.Contents);
+            Assert.Equal("Edited author", updated.Title);
+            Assert.False(viewModel.HasSelectedAnnotation);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task AddImagePromptsForEachPlacementAndDoesNotReuseRetainedBytes() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-picker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "editable.pdf");
+        string imagePath = Path.Combine(root, "pixel.png");
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).Save(path);
+        await File.WriteAllBytesAsync(imagePath, TinyPng);
+        int picks = 0;
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                pickImage: _ => {
+                    picks++;
+                    return Task.FromResult<string?>(imagePath);
+                });
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddImage);
+            var gesture = new PdfEditorGesture(1, 40D, 50D, 80D, 90D, Array.Empty<PdfEditorVisualPoint>());
+            PdfPageViewModel firstPage = viewModel.Pages[0];
+            firstPage.CompleteEditorGesture(gesture);
+            await WaitUntilAsync(() => !ReferenceEquals(firstPage, viewModel.Pages[0]));
+            PdfPageViewModel secondPage = viewModel.Pages[0];
+            secondPage.CompleteEditorGesture(gesture with { Left = 100D, Right = 140D });
+            await WaitUntilAsync(() => !ReferenceEquals(secondPage, viewModel.Pages[0]));
+
+            Assert.Equal(2, picks);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task FailedEditorGestureKeepsFailureStatus() {
+        using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        await viewModel.OpenDocumentAsync(GetFixturePath());
+        viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddText);
+
+        viewModel.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>()));
+        await WaitUntilAsync(() => !viewModel.IsWorkspaceBusy && viewModel.HasError);
+
+        Assert.Equal("Operation failed", viewModel.OperationStatus);
+        Assert.DoesNotContain("Edit added", viewModel.OperationStatus, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task AppendOnlyFormFillDoesNotEnableFillAndFlatten() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-form-capability-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "certified-form.pdf");
+        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfDocument.Open(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            CertificationPermission = PdfCertificationPermissionLevel.FormFillingAndSignatures,
+            FieldName = "Certification",
+            ReservedSignatureContentsBytes = 512
+        });
+        await File.WriteAllBytesAsync(path, preparation.Complete([0x30, 0x01, 0x00]).ToBytes());
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+
+            Assert.True(viewModel.CanFillForms);
+            Assert.False(viewModel.CanFlattenForms);
+            Assert.False(viewModel.CanFillAndFlattenForms);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task OpenCommandLoadsPathReturnedByPicker() {
         string fixture = GetFixturePath();
@@ -241,4 +422,12 @@ public sealed class MainWindowViewModelTests {
 
     private static string GetFixturePath() =>
         System.IO.Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
+
+    private static async Task WaitUntilAsync(Func<bool> condition) {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!condition()) await Task.Delay(10, timeout.Token);
+    }
+
+    private static readonly byte[] TinyPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 }

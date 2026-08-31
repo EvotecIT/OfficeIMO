@@ -348,7 +348,7 @@
                 <Button Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}"
                         IsEnabled="{Binding CanFillForms}" IsVisible="{Binding HasFormFields}" />
                 <Button Classes="tool" Content="Fill and flatten field" Command="{Binding FillAndFlattenFormFieldCommand}"
-                        IsEnabled="{Binding CanFillForms}" IsVisible="{Binding HasFormFields}" />
+                        IsEnabled="{Binding CanFillAndFlattenForms}" IsVisible="{Binding HasFormFields}" />
                 <Border Background="#FFF8E7" BorderBrush="#E9B949" BorderThickness="1"
                         CornerRadius="7" Padding="10" IsVisible="{Binding HasFormFields}">
                   <StackPanel Spacing="7">

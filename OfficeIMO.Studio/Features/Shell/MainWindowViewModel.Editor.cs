@@ -1,9 +1,11 @@
+using Avalonia;
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -28,7 +30,10 @@ public sealed partial class MainWindowViewModel {
     };
 
     private PdfEditorGesture? _pendingRedaction;
-    private byte[]? _pendingImageBytes;
+    private PdfRedactionPlan? _pendingRedactionPlan;
+    private PdfWorkspace? _pendingRedactionWorkspace;
+    private long _pendingRedactionRevision;
+    private long _redactionPlanGeneration;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ActiveEditorTool))]
@@ -109,6 +114,8 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanFlattenForms => _workspace?.CanFlattenForms == true;
 
+    public bool CanFillAndFlattenForms => CanFillForms && CanFlattenForms;
+
     partial void OnSelectedEditorToolChoiceChanged(PdfEditorToolChoice value) {
         foreach (PdfPageViewModel page in Pages) page.EditorTool = value.Tool;
         if (value.Tool != PdfEditorTool.Redact) CancelPendingRedaction();
@@ -117,40 +124,65 @@ public sealed partial class MainWindowViewModel {
     partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? value) {
         FormFieldValue = value?.Value ?? string.Empty;
         OnPropertyChanged(nameof(CanFillForms));
+        OnPropertyChanged(nameof(CanFillAndFlattenForms));
     }
 
     private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
         if (_workspace is null || ActiveEditorTool == PdfEditorTool.Select || IsWorkspaceBusy) return;
+        PdfWorkspace workspace = _workspace;
+        long revision = workspace.Revision;
+        PdfEditorTool tool = ActiveEditorTool;
+        PdfEditorProperties properties = CreateEditorProperties();
         ErrorMessage = null;
-        if (ActiveEditorTool == PdfEditorTool.Redact) {
+        if (tool == PdfEditorTool.Redact) {
             if (!CanRedact) {
                 ErrorMessage = "This document cannot be safely redacted under its current security and rewrite policy.";
                 return;
             }
-            try {
-                PdfRedactionPlan plan = await _workspace.PlanRedactionAsync(gesture, CreateEditorProperties(), CancellationToken.None).ConfigureAwait(true);
-                int textMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.TextBlock);
-                int imageMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
-                int annotationMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.Annotation);
-                _pendingRedaction = gesture;
-                PendingRedactionSummary = $"Page {gesture.PageNumber}: {textMatches} text, {imageMatches} image, and {annotationMatches} annotation match(es). Review the area, then apply permanent verified redaction.";
-            } catch (Exception ex) {
-                ErrorMessage = ex.Message;
+            CancelPendingRedaction();
+            long generation = _redactionPlanGeneration;
+            PdfRedactionPlan? plan = null;
+            bool succeeded = await RunStandaloneAsync(async token => {
+                OperationStatus = "Planning redaction";
+                plan = await workspace.PlanRedactionAsync(gesture, properties, token).ConfigureAwait(true);
+                token.ThrowIfCancellationRequested();
+            }, CancellationToken.None).ConfigureAwait(true);
+            if (!succeeded || plan is null) return;
+            if (generation != _redactionPlanGeneration ||
+                !ReferenceEquals(_workspace, workspace) ||
+                workspace.Revision != revision ||
+                ActiveEditorTool != PdfEditorTool.Redact) {
+                OperationStatus = "The document changed before the redaction preview was ready. Draw the area again.";
+                return;
             }
+            int textMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.TextBlock);
+            int imageMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+            int annotationMatches = plan.Matches.Count(static match => match.Kind == PdfRedactionMatchKind.Annotation);
+            _pendingRedaction = gesture;
+            _pendingRedactionPlan = plan;
+            _pendingRedactionWorkspace = workspace;
+            _pendingRedactionRevision = revision;
+            SetPendingRedactionArea(gesture);
+            PendingRedactionSummary = $"Page {gesture.PageNumber}: {textMatches} text, {imageMatches} image, and {annotationMatches} annotation match(es). Intersecting images are removed as whole placements. Review the area, then apply permanent verified redaction.";
             return;
         }
 
         try {
-            if (ActiveEditorTool == PdfEditorTool.AddImage && _pendingImageBytes is null) {
+            byte[]? imageBytes = null;
+            if (tool == PdfEditorTool.AddImage) {
                 string? path = await _pickImage(CancellationToken.None).ConfigureAwait(true);
                 if (string.IsNullOrWhiteSpace(path)) return;
-                _pendingImageBytes = await File.ReadAllBytesAsync(path).ConfigureAwait(true);
+                imageBytes = await File.ReadAllBytesAsync(path).ConfigureAwait(true);
+                if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
+                    OperationStatus = "The document changed while the image was being selected. Place the image again.";
+                    return;
+                }
             }
-            PdfEditorProperties properties = CreateEditorProperties();
-            await RunMutationAsync(
-                token => _workspace.ApplyEditorGestureAsync(ActiveEditorTool, gesture, properties, token, CreateProgress()),
+            properties = properties with { ImageBytes = imageBytes };
+            bool succeeded = await RunMutationAsync(
+                token => workspace.ApplyEditorGestureAsync(tool, gesture, properties, token, CreateProgress()),
                 CancellationToken.None).ConfigureAwait(true);
-            OperationStatus = "Edit added. Save when ready.";
+            if (succeeded) OperationStatus = "Edit added. Save when ready.";
         } catch (Exception ex) {
             ErrorMessage = ex.Message;
         }
@@ -178,27 +210,48 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task ApplyPendingRedactionAsync(CancellationToken cancellationToken) {
-        if (_workspace is null || _pendingRedaction is null) return;
-        PdfEditorGesture gesture = _pendingRedaction;
+        if (_workspace is null ||
+            _pendingRedaction is null ||
+            _pendingRedactionPlan is null ||
+            _pendingRedactionWorkspace is null) return;
+        PdfWorkspace workspace = _pendingRedactionWorkspace;
+        PdfRedactionPlan plan = _pendingRedactionPlan;
+        long revision = _pendingRedactionRevision;
+        if (!ReferenceEquals(_workspace, workspace) || workspace.Revision != revision) {
+            CancelPendingRedaction();
+            ErrorMessage = "The document changed after this redaction was reviewed. Draw and review the area again.";
+            return;
+        }
         PdfVerifiedRedactionResult? proof = null;
-        await RunMutationAsync(async token => {
-            proof = await _workspace.ApplyVerifiedRedactionAsync(
-                gesture,
-                CreateEditorProperties(),
+        bool succeeded = await RunMutationAsync(async token => {
+            proof = await workspace.ApplyVerifiedRedactionAsync(
+                plan,
+                revision,
                 RedactionRemovedMarker,
                 token,
                 CreateProgress()).ConfigureAwait(true);
         }, cancellationToken).ConfigureAwait(true);
-        if (proof is null) return;
-        PendingRedactionSummary = null;
-        _pendingRedaction = null;
+        if (!succeeded || proof is null) return;
         OperationStatus = proof.Verification.Summary + $" Removed {proof.Plan.Matches.Count} intersecting item(s).";
     }
 
     [RelayCommand]
     private void CancelPendingRedaction() {
+        _redactionPlanGeneration++;
         _pendingRedaction = null;
+        _pendingRedactionPlan = null;
+        _pendingRedactionWorkspace = null;
+        _pendingRedactionRevision = 0;
         PendingRedactionSummary = null;
+        SetPendingRedactionArea(null);
+    }
+
+    private void SetPendingRedactionArea(PdfEditorGesture? gesture) {
+        foreach (PdfPageViewModel page in Pages) {
+            page.PendingRedactionArea = gesture is not null && page.PageNumber == gesture.PageNumber
+                ? new Rect(gesture.Left, gesture.Top, gesture.Right - gesture.Left, gesture.Bottom - gesture.Top)
+                : null;
+        }
     }
 
     [RelayCommand]
@@ -245,9 +298,11 @@ public sealed partial class MainWindowViewModel {
     private async Task UpdateSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         PdfColor color = ParseColor(EditorColorHex);
+        string contents = SelectedAnnotationContents;
+        string author = SelectedAnnotationAuthor;
         ClearAnnotationSelection();
         await RunMutationAsync(
-            token => _workspace.UpdateAnnotationAsync(objectNumber, SelectedAnnotationContents, SelectedAnnotationAuthor, color, token, CreateProgress()),
+            token => _workspace.UpdateAnnotationAsync(objectNumber, contents, author, color, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
     }
 
@@ -287,8 +342,7 @@ public sealed partial class MainWindowViewModel {
         ParseColor(EditorColorHex),
         string.IsNullOrWhiteSpace(EditorStampName) ? "Approved" : EditorStampName.Trim(),
         EditorLinkUri ?? string.Empty,
-        Math.Clamp(EditorFontSize, 4D, 144D),
-        _pendingImageBytes);
+        Math.Clamp(EditorFontSize, 4D, 144D));
 
     private void RebuildFormFields() {
         string? selectedName = SelectedFormField?.Name;
@@ -308,6 +362,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasFormFields));
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFlattenForms));
+        OnPropertyChanged(nameof(CanFillAndFlattenForms));
     }
 
     private void ClearAnnotationSelection() {

@@ -93,6 +93,60 @@ public sealed class PdfEditorCommandTests {
         Assert.True(result.Verification.ManagedRenderingChecked);
     }
 
+    [Fact]
+    public void AreaRedaction_AllowsIdenticalTextOutsideTheReviewedArea() {
+        const string repeated = "Confidential";
+        byte[] source = PdfDocument.Create(compose => {
+            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+            compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
+        }).ToBytes();
+        PdfPageInteractionRegion[] regions = PdfDocument.Open(source).Read.Interactions(1).TextRegions
+            .Where(region => !string.IsNullOrWhiteSpace(region.Text))
+            .ToArray();
+        var gesture = new PdfEditorGesture(
+            1,
+            regions.Min(region => region.Quad.Left),
+            regions.Min(region => region.Quad.Top),
+            regions.Max(region => region.Quad.Right),
+            regions.Max(region => region.Quad.Bottom),
+            Array.Empty<PdfEditorVisualPoint>());
+
+        PdfVerifiedRedactionResult result = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
+            source,
+            PdfEditorCommandFactory.Create(source, PdfEditorTool.Redact, gesture, CreateProperties()));
+
+        Assert.True(result.Verification.IsVerified, result.Verification.Summary);
+        Assert.Contains(repeated, PdfDocument.Open(result.Bytes).Read.Text(), StringComparison.Ordinal);
+        Assert.Empty(PdfDocument.Open(result.Bytes).Redactions.Plan(result.Plan.Areas).Matches);
+    }
+
+    [Fact]
+    public void VerifiedRedaction_ProvesImageOnlyAndAnnotationOnlyAreas() {
+        byte[] blank = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        PdfEditorGesture gesture = CreateGesture();
+        byte[] withImage = PdfEditorCommandExecutor.Apply(
+            blank,
+            PdfEditorCommandFactory.Create(blank, PdfEditorTool.AddImage, gesture, CreateProperties() with { ImageBytes = TinyPng }));
+        PdfVerifiedRedactionResult imageResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
+            withImage,
+            PdfEditorCommandFactory.Create(withImage, PdfEditorTool.Redact, gesture, CreateProperties()));
+
+        Assert.Contains(imageResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
+        Assert.True(imageResult.Verification.IsVerified, imageResult.Verification.Summary);
+        Assert.Empty(PdfDocument.Open(imageResult.Bytes).Redactions.Plan(imageResult.Plan.Areas).Matches);
+
+        byte[] withAnnotation = PdfEditorCommandExecutor.Apply(
+            blank,
+            PdfEditorCommandFactory.Create(blank, PdfEditorTool.Note, gesture, CreateProperties()));
+        PdfVerifiedRedactionResult annotationResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
+            withAnnotation,
+            PdfEditorCommandFactory.Create(withAnnotation, PdfEditorTool.Redact, gesture, CreateProperties()));
+
+        Assert.Contains(annotationResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.Annotation);
+        Assert.True(annotationResult.Verification.IsVerified, annotationResult.Verification.Summary);
+        Assert.Empty(PdfDocument.Open(annotationResult.Bytes).Redactions.Plan(annotationResult.Plan.Areas).Matches);
+    }
+
     private static byte[] CreateSource(string text = "Existing content") =>
         PdfDocument.Create(compose => compose.Page(page => page
             .Size(600D, 800D)

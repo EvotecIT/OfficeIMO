@@ -40,6 +40,35 @@ public sealed class PdfPageViewTests {
         }, CancellationToken.None);
     }
 
+    [Fact]
+    public async Task PendingRedactionAreaBindsToThePageCanvas() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(() => {
+            using var renderCoordinator = new PageRenderCoordinator((page, scale, _) =>
+                Task.FromResult(new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>())));
+            using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+                Task.FromResult(TestPdfPageScenes.Create(page)));
+            using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 1D, sceneCoordinator, renderCoordinator) {
+                PendingRedactionArea = new Rect(42D, 64D, 180D, 36D)
+            };
+            var view = new PdfPageView { DataContext = viewModel };
+            var window = new Window { Content = view };
+
+            try {
+                window.Show();
+                window.Measure(new Size(800, 900));
+                window.Arrange(new Rect(0, 0, 800, 900));
+
+                PdfPageCanvas canvas = Assert.IsType<PdfPageCanvas>(view.FindControl<PdfPageCanvas>("PageCanvas"));
+                Assert.Equal(viewModel.PendingRedactionArea, canvas.PendingRedactionArea);
+            } finally {
+                window.Close();
+            }
+
+            return Task.CompletedTask;
+        }, CancellationToken.None);
+    }
+
     private static async Task WaitUntilAsync(Func<bool> condition) {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         while (!condition()) await Task.Delay(10, timeout.Token);

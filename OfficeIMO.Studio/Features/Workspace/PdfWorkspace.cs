@@ -50,6 +50,8 @@ internal sealed class PdfWorkspace : IDisposable {
 
     internal long FileSize => _bytes.LongLength;
 
+    internal long Revision => _revision;
+
     internal PdfDocumentInfo DocumentInfo => _documentInfo;
 
     internal IReadOnlyList<PdfPageInfo> Pages => _documentInfo.Pages;
@@ -205,19 +207,22 @@ internal sealed class PdfWorkspace : IDisposable {
     }
 
     internal async Task<PdfVerifiedRedactionResult> ApplyVerifiedRedactionAsync(
-        PdfEditorGesture gesture,
-        PdfEditorProperties properties,
+        PdfRedactionPlan reviewedPlan,
+        long expectedRevision,
         string? removedTextMarker,
         CancellationToken cancellationToken,
         IProgress<PdfWorkspaceProgress>? progress = null) {
+        ArgumentNullException.ThrowIfNull(reviewedPlan);
         PdfVerifiedRedactionResult? verified = null;
         await MutateBytesAsync(
             PdfWorkspaceOperationKind.Redaction,
-            "Applied and verified redaction on page " + gesture.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
-            new[] { gesture.PageNumber },
+            "Applied and verified redaction on page " + reviewedPlan.Areas[0].PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            reviewedPlan.Areas.Select(static area => area.PageNumber).Distinct().ToArray(),
             bytes => {
-                PdfEditorCommand command = PdfEditorCommandFactory.Create(bytes, PdfEditorTool.Redact, gesture, properties);
-                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, command, removedTextMarker);
+                if (_revision != expectedRevision) {
+                    throw new InvalidOperationException("The document changed after this redaction was reviewed. Plan the redaction again before applying it.");
+                }
+                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, reviewedPlan, removedTextMarker);
                 return verified.Bytes;
             },
             cancellationToken,

@@ -100,13 +100,15 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task UndoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanUndo != true) return;
-        await RunMutationAsync(token => _workspace.UndoAsync(token), cancellationToken).ConfigureAwait(true);
+        bool succeeded = await RunMutationAsync(token => _workspace.UndoAsync(token), cancellationToken).ConfigureAwait(true);
+        if (succeeded) OperationStatus = "Undo complete.";
     }
 
     [RelayCommand]
     private async Task RedoAsync(CancellationToken cancellationToken) {
         if (_workspace?.CanRedo != true) return;
-        await RunMutationAsync(token => _workspace.RedoAsync(token), cancellationToken).ConfigureAwait(true);
+        bool succeeded = await RunMutationAsync(token => _workspace.RedoAsync(token), cancellationToken).ConfigureAwait(true);
+        if (succeeded) OperationStatus = "Redo complete.";
     }
 
     [RelayCommand]
@@ -255,9 +257,10 @@ public sealed partial class MainWindowViewModel {
         if (succeeded) NotifyWorkspaceStateChanged();
     }
 
-    private async Task RunMutationAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) {
+    private async Task<bool> RunMutationAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) {
         bool succeeded = await RunStandaloneAsync(operation, cancellationToken).ConfigureAwait(true);
         if (succeeded && _workspace is not null) RefreshWorkspacePresentation();
+        return succeeded;
     }
 
     private async Task<bool> RunStandaloneAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) {
@@ -325,6 +328,8 @@ public sealed partial class MainWindowViewModel {
 
     private void RefreshWorkspacePresentation() {
         if (_workspace is null) return;
+        CancelPendingRedaction();
+        ClearAnnotationSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
         PdfDocumentSession session = PdfDocumentSession.FromWorkspace(_workspace);
         var sceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
@@ -361,6 +366,7 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanRedact));
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFlattenForms));
+        OnPropertyChanged(nameof(CanFillAndFlattenForms));
         OnPropertyChanged(nameof(SecurityWarning));
         OnPropertyChanged(nameof(HasSecurityWarning));
         if (_workspace is not null) {

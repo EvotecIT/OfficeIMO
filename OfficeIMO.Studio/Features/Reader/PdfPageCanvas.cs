@@ -24,6 +24,9 @@ public sealed class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<int?> SelectedAnnotationObjectNumberProperty =
         AvaloniaProperty.Register<PdfPageCanvas, int?>(nameof(SelectedAnnotationObjectNumber));
 
+    public static readonly StyledProperty<Rect?> PendingRedactionAreaProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(PendingRedactionArea));
+
     private readonly OfficeDrawingAvaloniaRenderer _renderer = new();
     private readonly Cursor _textCursor = new(StandardCursorType.Ibeam);
     private readonly Cursor _handCursor = new(StandardCursorType.Hand);
@@ -37,7 +40,12 @@ public sealed class PdfPageCanvas : Control, IDisposable {
     private bool _disposed;
 
     static PdfPageCanvas() {
-        AffectsRender<PdfPageCanvas>(SceneProperty, FallbackImageProperty, EditorToolProperty, SelectedAnnotationObjectNumberProperty);
+        AffectsRender<PdfPageCanvas>(
+            SceneProperty,
+            FallbackImageProperty,
+            EditorToolProperty,
+            SelectedAnnotationObjectNumberProperty,
+            PendingRedactionAreaProperty);
     }
 
     public PdfPageCanvas() {
@@ -63,6 +71,11 @@ public sealed class PdfPageCanvas : Control, IDisposable {
     public int? SelectedAnnotationObjectNumber {
         get => GetValue(SelectedAnnotationObjectNumberProperty);
         set => SetValue(SelectedAnnotationObjectNumberProperty, value);
+    }
+
+    public Rect? PendingRedactionArea {
+        get => GetValue(PendingRedactionAreaProperty);
+        set => SetValue(PendingRedactionAreaProperty, value);
     }
 
     internal string SelectedText {
@@ -98,6 +111,7 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
         DrawSelectedAnnotation(context, scene);
+        DrawPendingRedaction(context);
         DrawEditorPreview(context);
     }
 
@@ -308,6 +322,18 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         var fill = new SolidColorBrush(Color.FromArgb(32, 53, 106, 230));
         var stroke = new Pen(new SolidColorBrush(Color.FromRgb(53, 106, 230)), 2D);
         context.DrawRectangle(fill, stroke, new Rect(selected.Quad.Left, selected.Quad.Top, selected.Quad.Width, selected.Quad.Height));
+    }
+
+    private void DrawPendingRedaction(DrawingContext context) {
+        if (PendingRedactionArea is not Rect area || area.Width <= 0D || area.Height <= 0D) return;
+        var fill = new SolidColorBrush(Color.FromArgb(58, 220, 38, 38));
+        var stroke = new Pen(new SolidColorBrush(Color.FromArgb(235, 220, 38, 38)), 2D);
+        context.DrawRectangle(fill, stroke, area);
+
+        double corner = Math.Min(10D, Math.Min(area.Width, area.Height) / 3D);
+        if (corner <= 1D) return;
+        context.DrawLine(stroke, area.TopLeft, area.TopLeft + new Vector(corner, corner));
+        context.DrawLine(stroke, area.BottomRight, area.BottomRight - new Vector(corner, corner));
     }
 
     private void DrawEditorPreview(DrawingContext context) {

@@ -16,6 +16,7 @@
                               Scene="{Binding Scene}"
                               EditorTool="{Binding EditorTool}"
                               SelectedAnnotationObjectNumber="{Binding SelectedAnnotationObjectNumber}"
+                              PendingRedactionArea="{Binding PendingRedactionArea}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
 

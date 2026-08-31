@@ -137,16 +137,44 @@ public sealed class PdfWorkspaceTests {
         try {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
             byte[] original = workspace.CopyBytes();
+            PdfRedactionPlan plan = await workspace.PlanRedactionAsync(gesture, properties, CancellationToken.None);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => workspace.ApplyVerifiedRedactionAsync(
-                gesture,
-                properties,
+                plan,
+                workspace.Revision,
                 "Keep this marker",
                 CancellationToken.None));
 
             Assert.Equal(original, workspace.CopyBytes());
             Assert.False(workspace.IsDirty);
             Assert.False(workspace.CanUndo);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ReviewedRedactionPlanCannotApplyAfterWorkspaceRevisionChanges() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-stale-redaction-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        CreateEditableSource(source);
+        var gesture = new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>());
+        var properties = new PdfEditorProperties("Review", "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            long reviewedRevision = workspace.Revision;
+            PdfRedactionPlan plan = await workspace.PlanRedactionAsync(gesture, properties, CancellationToken.None);
+            await workspace.ApplyEditorGestureAsync(PdfEditorTool.Note, gesture, properties, CancellationToken.None);
+            byte[] afterNote = workspace.CopyBytes();
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                workspace.ApplyVerifiedRedactionAsync(plan, reviewedRevision, null, CancellationToken.None));
+
+            Assert.Contains("changed after this redaction was reviewed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(afterNote, workspace.CopyBytes());
+            Assert.Single(PdfDocument.Open(afterNote).Inspect().GetAnnotationsBySubtype("Text"));
         } finally {
             Directory.Delete(root, recursive: true);
         }

@@ -12,6 +12,20 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionVerificationTests {
     [Fact]
+    public void AppliedPlanVerificationReportsResidualContentInsideReviewedArea() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Still present")).ToBytes();
+        var area = new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page");
+        PdfRedactionPlan plan = PdfDocument.Open(source).Redactions.Plan([area]);
+
+        PdfRedactionVerificationReport report = PdfDocument.Open(source).Redactions.VerifyAppliedPlan(
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanResidual");
+    }
+
+    [Fact]
     public void AssertVerified_ConfirmsRemovedAndRetainedTextMarkersAfterApply() {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 

@@ -31,27 +31,31 @@ internal static class PdfEditorCommandExecutor {
         PdfEditorCommand command,
         string? removedTextMarker = null) {
         if (command.Tool != PdfEditorTool.Redact) throw new ArgumentException("A redaction command is required.", nameof(command));
-        PdfDocument source = PdfDocument.Open(pdf);
         PdfRedactionPlan plan = PlanRedaction(pdf, command);
+        return ApplyVerifiedRedaction(pdf, plan, removedTextMarker);
+    }
+
+    internal static PdfVerifiedRedactionResult ApplyVerifiedRedaction(
+        byte[] pdf,
+        PdfRedactionPlan plan,
+        string? removedTextMarker = null) {
+        ArgumentNullException.ThrowIfNull(pdf);
+        ArgumentNullException.ThrowIfNull(plan);
+        PdfDocument source = PdfDocument.Open(pdf);
         PdfDocument redacted = source.Redactions.Apply(plan, new PdfRedactionApplyOptions {
             PaintUnmatchedAreas = true,
-            UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.FailClosed,
+            UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
             RemoveIntersectingPaths = true
         });
         var verificationOptions = new PdfRedactionVerificationOptions {
             CheckManagedRendering = true,
-            FailOnUndecodablePdfStreams = true
+            FailOnUndecodablePdfStreams = true,
+            RequireCompleteStreamInspection = true
         };
-        foreach (string matchedText in plan.Matches
-            .Where(static match => match.Kind == PdfRedactionMatchKind.TextBlock && !string.IsNullOrWhiteSpace(match.Text))
-            .Select(static match => match.Text!)
-            .Distinct(StringComparer.Ordinal)) {
-            verificationOptions.RequireRemovedText(matchedText);
-        }
         if (!string.IsNullOrWhiteSpace(removedTextMarker)) {
             verificationOptions.RequireRemovedText(removedTextMarker.Trim());
         }
-        PdfRedactionVerificationReport verification = redacted.Redactions.AssertVerified(verificationOptions);
+        PdfRedactionVerificationReport verification = redacted.Redactions.AssertAppliedPlan(plan, verificationOptions);
         return new PdfVerifiedRedactionResult(redacted.ToBytes(), plan, verification);
     }
 

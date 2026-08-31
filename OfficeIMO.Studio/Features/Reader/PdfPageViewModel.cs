@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -54,6 +55,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     [ObservableProperty]
     private int? _selectedAnnotationObjectNumber;
+
+    [ObservableProperty]
+    private Rect? _pendingRedactionArea;
 
     private double _zoom;
 

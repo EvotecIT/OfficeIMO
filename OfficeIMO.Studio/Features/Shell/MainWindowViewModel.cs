@@ -316,6 +316,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyList<PdfPageViewModel> pages,
         IReadOnlyList<PdfOrganizerPageViewModel> organizerPages) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
+        CancelPendingRedaction();
+        ClearAnnotationSelection();
         foreach (PdfPageViewModel page in Pages) page.Dispose();
         foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();
         Pages.Clear();
