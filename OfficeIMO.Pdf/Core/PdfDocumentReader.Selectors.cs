@@ -73,6 +73,70 @@ public sealed partial class PdfDocumentReader {
         return _document.TryOperation("Extract image placements", PdfPreflightCapability.ExtractImages, () => ImagePlacements(selector, options), ResolveReadOptions(options));
     }
 
+    /// <summary>Inspects unique fonts declared by pages resolved by a document-relative selector.</summary>
+    public PdfFontInventory Fonts(
+        PdfPageSelector selector,
+        PdfFontInspectionOptions? inspectionOptions = null,
+        PdfReadOptions? readOptions = null) =>
+        Fonts(ResolveSelector(selector, readOptions), inspectionOptions, readOptions);
+
+    /// <summary>Attempts to inspect fonts on pages resolved by a document-relative selector.</summary>
+    public PdfOperationResult<PdfFontInventory> TryFonts(
+        PdfPageSelector selector,
+        PdfFontInspectionOptions? inspectionOptions = null,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(selector, nameof(selector));
+        return _document.TryOperation(
+            "Inspect fonts",
+            PdfPreflightCapability.ReadLogicalObjects,
+            () => Fonts(selector, inspectionOptions, options),
+            ResolveReadOptions(options));
+    }
+
+    /// <summary>Recovers conservative paragraph continuation groups from pages resolved by a document-relative selector.</summary>
+    public IReadOnlyList<PdfLogicalParagraphContinuationGroup> ParagraphContinuations(
+        PdfPageSelector selector,
+        PdfLogicalParagraphContinuationOptions? continuationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfReadOptions? readOptions = null) =>
+        ParagraphContinuations(ResolveSelector(selector, readOptions), continuationOptions, layoutOptions, readOptions);
+
+    /// <summary>Attempts to recover paragraph continuation groups from pages resolved by a document-relative selector.</summary>
+    public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> TryParagraphContinuations(
+        PdfPageSelector selector,
+        PdfLogicalParagraphContinuationOptions? continuationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(selector, nameof(selector));
+        return _document.TryOperation(
+            "Recover paragraph continuations",
+            PdfPreflightCapability.ReadLogicalObjects,
+            () => ParagraphContinuations(selector, continuationOptions, layoutOptions, options),
+            ResolveReadOptions(options));
+    }
+
+    /// <summary>Recovers bounded table continuation groups from pages resolved by a document-relative selector.</summary>
+    public IReadOnlyList<PdfLogicalTableContinuationGroup> TableContinuations(
+        PdfPageSelector selector,
+        PdfLogicalTableContinuationOptions? continuationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfReadOptions? readOptions = null) =>
+        TableContinuations(ResolveSelector(selector, readOptions), continuationOptions, layoutOptions, readOptions);
+
+    /// <summary>Attempts to recover table continuation groups from pages resolved by a document-relative selector.</summary>
+    public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TryTableContinuations(
+        PdfPageSelector selector,
+        PdfLogicalTableContinuationOptions? continuationOptions = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        PdfReadOptions? options = null) {
+        Guard.NotNull(selector, nameof(selector));
+        return _document.TryOperation(
+            "Recover table continuations",
+            PdfPreflightCapability.ReadLogicalObjects,
+            () => TableContinuations(selector, continuationOptions, layoutOptions, options),
+            ResolveReadOptions(options));
+    }
+
     /// <summary>Renders pages resolved by a document-relative selector.</summary>
     public IReadOnlyList<PdfPageRenderResult> RenderPages(
         PdfPageSelector selector,

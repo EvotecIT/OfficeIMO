@@ -295,19 +295,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
     }
 
     private static bool TryParseList(string text, out string marker, out string body) {
-        marker = string.Empty;
-        body = text;
-        string trimmed = text.TrimStart();
-        int separator = trimmed.IndexOf(' ');
-        if (separator <= 0) return false;
-        string candidate = trimmed.Substring(0, separator);
-        bool bullet = candidate == "-" || candidate == "*" || candidate == "•";
-        string numeric = candidate.TrimEnd('.', ')').TrimStart('(');
-        bool numbered = numeric.Length > 0 && numeric.All(static character => char.IsDigit(character) || character == '.');
-        if (!bullet && !numbered) return false;
-        marker = candidate;
-        body = trimmed.Substring(separator + 1).TrimStart();
-        return body.Length > 0;
+        return ContentStructureExtractor.TryParseListItemText(text, out marker, out body, out _);
     }
 
     private static int HeadingLevel(double height, double medianHeight) =>

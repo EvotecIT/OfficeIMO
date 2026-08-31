@@ -51,6 +51,7 @@ public sealed class PdfImagePlacement {
         Width = width;
         Height = height;
         ClipPath = clipPath;
+        Clip = clipPath.HasValue ? new PdfImageClipInfo(clipPath.Value) : null;
         ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
         ImageOpacity = imageOpacity;
         InlineImageStream = inlineImageStream;
@@ -111,25 +112,48 @@ public sealed class PdfImagePlacement {
 
     internal PdfPageClipPath? ClipPath { get; }
 
-    internal OfficeColor ImageMaskColor { get; }
+    /// <summary>Effective clipping path applied to this image placement, when present.</summary>
+    public PdfImageClipInfo? Clip { get; }
 
-    internal double? ImageOpacity { get; }
+    /// <summary>Paint color applied to a stencil image mask.</summary>
+    public OfficeColor ImageMaskColor { get; }
+
+    /// <summary>Authored or inherited nondefault opacity, or null when the effective opacity is one.</summary>
+    public double? ImageOpacity { get; }
+
+    /// <summary>Authored or inherited nondefault opacity, or null when the effective opacity is one.</summary>
+    public double? AuthoredOpacity => ImageOpacity;
+
+    /// <summary>Effective image opacity from zero through one.</summary>
+    public double Opacity => ImageOpacity ?? 1D;
 
     internal PdfStream? InlineImageStream { get; }
 
     internal PdfDictionary? InlineImageResources { get; }
 
-    internal double PaintOrder { get; }
+    /// <summary>Stable page-content paint order used to interleave images with other recovered primitives.</summary>
+    public double PaintOrder { get; }
 
-    internal OfficeIccRenderingIntent RenderingIntent { get; }
+    /// <summary>Effective ICC rendering intent for the image placement.</summary>
+    public OfficeIccRenderingIntent RenderingIntent { get; }
 
-    internal OfficeBlendMode? BlendMode { get; }
+    /// <summary>Authored or inherited supported blend mode, or null for the normal default.</summary>
+    public OfficeBlendMode? BlendMode { get; }
 
-    internal bool HasUnsupportedBlendMode { get; }
+    /// <summary>Authored or inherited supported blend mode, or null for the normal default.</summary>
+    public OfficeBlendMode? AuthoredBlendMode => BlendMode;
 
-    internal bool HasSoftMask { get; }
+    /// <summary>Effective supported blend mode.</summary>
+    public OfficeBlendMode EffectiveBlendMode => BlendMode ?? OfficeBlendMode.Normal;
 
-    internal bool HasAuthoredRenderingIntent { get; }
+    /// <summary>True when the source declared a blend mode that could not be represented.</summary>
+    public bool HasUnsupportedBlendMode { get; }
+
+    /// <summary>True when a soft-mask graphics state applies to the placement.</summary>
+    public bool HasSoftMask { get; }
+
+    /// <summary>True when the source explicitly selected a rendering intent.</summary>
+    public bool HasAuthoredRenderingIntent { get; }
 
     internal string? SourceDocumentIdentity { get; set; }
 

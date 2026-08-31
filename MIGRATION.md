@@ -31,6 +31,14 @@ Reader capability descriptors and manifests now advertise `officeimo.reader.capa
 
 Hosts that require an exact capability schema version must accept version `5` before upgrading OfficeIMO. Update generated clients or manifest validators to read `defaultMaxInputBytesByExtension` as a string-to-integer map, continue using `defaultMaxInputBytes` when the map is absent or has no entry for the selected extension, and tolerate the new field when it is not needed. A host pinned to schema version `4` will reject manifests produced by the upgraded Reader until that gate is updated.
 
+## OfficeIMO 3.2: Reader schema version 7 and shared format enums
+
+`OfficeDocumentReadResult` now defaults to schema version 7. Version 7 adds `ReaderInputKind.Opml` (`23`) and `ReaderInputKind.DocBook` (`24`) so serialized Reader results can retain those source formats. Applications that validate `schemaVersion`, use the packaged JSON Schema, generate transport bindings, or switch exhaustively over `ReaderInputKind` must accept version 7 and handle the two new values. Load the current schema with `OfficeDocumentReadResultSchema.GetJsonSchema()` instead of pinning the version 5 or 6 artifact.
+
+The shared `OfficeDocumentFormat` enum also adds `Opml` and `DocBook`. Applications that switch exhaustively over `OfficeDocumentFormat` must handle both values after upgrading.
+
+Version 5 and 6 payloads remain readable and are normalized to the current model after deserialization. They cannot represent OPML or DocBook kinds: do not force a version 5 or 6 header when serializing either format.
+
 ## OfficeIMO 3.2: bounded email body resource projections
 
 `EmailBodyProjection.Create(...)` now indexes at most 128 resources, accepts at most 128 MiB from one resource, and reads or declares at most 256 MiB across one projection by default. Older versions had no resource-count or projection-wide byte ceiling. Exceeding a ceiling throws `EmailLimitExceededException`; repeated and parallel reads share the same projection-wide budget.
@@ -105,6 +113,12 @@ Direct ODT and ODP byte-array `AddImage(...)` methods now validate complete imag
 PDF reading now accepts at most 4,096 text-show clipping paths across one page content tree, including repeated and nested Form XObjects reached through Type 3 glyph programs. The limit counts one path for each non-empty shown-string run from `Tj`, `'`, `"`, and each string entry in a `TJ` array, not individual glyphs. Older versions reset the count at each text object or parser traversal and could perform unbounded path intersections across consecutive objects and repeated forms; current versions throw `PdfReadLimitException` with `Kind == PdfReadLimitKind.TextClippingPaths` when the aggregate path ceiling is exceeded, `PdfReadLimitKind.TextClippingIntersectionWork` when text-derived clipping exceeds the fixed page work budget, or `PdfReadLimitKind.ClippingIntersectionWork` when ordinary clipping exceeds the same aggregate budget. Disjoint clip bounds and conservative overlapping-contour fallbacks are handled before polygon-intersection work is charged. These safety ceilings are not configurable through `PdfReadLimits`. Applications that accept external PDFs should handle these exceptions as unsupported or over-complex input. Trusted producers must simplify clipping paths, simplify clipping text, or reduce consecutive clipping-mode text objects before OfficeIMO reads the file.
 
 Type 3 glyph programs now enter `MaxContentNestingDepth` one level below the content stream that invokes the glyph. A glyph invoked at the previous depth boundary can therefore throw `PdfReadLimitException` where older versions rendered it at the enclosing depth. Applications using a deliberately low custom nesting limit should raise it by the required trusted glyph depth or handle the exception as an over-complex PDF; the default remains the recommended limit for untrusted input.
+
+## OfficeIMO 3.2: PDF Reader paragraph continuation metadata
+
+`OfficeIMO.Reader.Pdf` document results now include conservative cross-page paragraph continuation evidence by default. This adds `officeimo.pdf.paragraph-continuations` to `CapabilitiesUsed` and may add `pdf.paragraph.continuation` metadata entries. Page-local text, Markdown, chunks, and source pages remain unchanged.
+
+Applications that persist or compare the complete normalized Reader envelope and require the previous metadata shape must set `ReaderPdfOptions.IncludeParagraphContinuationMetadata = false`. Applications that enable the metadata can configure inference through `ReaderPdfOptions.ParagraphContinuationOptions`; likely line-ending hyphens are preserved unless `RejoinLineEndingHyphens` is explicitly enabled.
 
 ## OfficeIMO 3.2: one PDF authoring and operation model
 

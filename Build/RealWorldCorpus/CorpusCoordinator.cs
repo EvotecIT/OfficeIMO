@@ -185,6 +185,7 @@ internal static class CorpusCoordinator {
         file.WarningDiagnostics = worker.WarningDiagnostics;
         file.ErrorDiagnostics = worker.ErrorDiagnostics;
         file.DiagnosticCodes = worker.DiagnosticCodes;
+        file.PdfEvidence = worker.PdfEvidence;
         file.Outcome = worker.ErrorDiagnostics > 0
             ? CorpusOutcomes.CompletedWithErrors
             : worker.WarningDiagnostics > 0
@@ -213,7 +214,14 @@ internal static class CorpusCoordinator {
             CompletedWithErrors = Count(files, CorpusOutcomes.CompletedWithErrors),
             RejectedByPolicy = Count(files, CorpusOutcomes.Rejected),
             Failed = Count(files, CorpusOutcomes.Failed),
-            TimedOut = Count(files, CorpusOutcomes.TimedOut)
+            TimedOut = Count(files, CorpusOutcomes.TimedOut),
+            PdfSelected = files.Count(file => file.Selected && file.ContentKind == ReaderInputKind.Pdf),
+            PdfDeepStages = files.Sum(file => file.PdfEvidence?.Stages.Count ?? 0),
+            PdfDeepStagesPassed = files.Sum(file => file.PdfEvidence?.Stages.Count(stage => stage.Succeeded) ?? 0),
+            PdfRenderedPages = files.Sum(file => file.PdfEvidence?.RenderSucceededPages ?? 0),
+            PdfMutationPlans = files.Sum(file => file.PdfEvidence?.MutationPlanCount ?? 0),
+            PdfDeclaredComplianceClaims = files.Sum(file => file.PdfEvidence?.DeclaredComplianceClaimCount ?? 0),
+            PdfClaimableComplianceClaims = files.Sum(file => file.PdfEvidence?.ClaimableComplianceClaimCount ?? 0)
         };
         CorpusStratum[] strata = options.Formats.Select(format => {
             CorpusFileRecord[] formatFiles = files.Where(file =>

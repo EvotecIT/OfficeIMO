@@ -96,6 +96,18 @@ internal static class StreamDecoder {
         return TryDecodeCore(dict, data, maxOutputBytes, out decoded, out _, objects);
     }
 
+    internal static bool TryDecode(
+        PdfDictionary dict,
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] decoded,
+        out bool decodedLimitExceeded,
+        Dictionary<int, PdfIndirectObject>? objects = null) {
+        bool succeeded = TryDecodeCore(dict, data, maxOutputBytes, out decoded, out PdfReadLimitException? limitException, objects);
+        decodedLimitExceeded = limitException is not null;
+        return succeeded;
+    }
+
     internal static byte[] DecodeRequired(
         PdfDictionary dict,
         byte[] data,

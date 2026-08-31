@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
@@ -6,6 +7,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeOpenTypeCmap {
     internal const int MaximumSubtables = 64;
     internal const uint MaximumFormat12Groups = 4096;
+    private const uint MaximumVariationSelectorRecords = 256;
 
     internal static bool IsUnicodeEncoding(int platform, int encoding) =>
         platform == 0 ||
@@ -18,6 +20,191 @@ internal static class OfficeOpenTypeCmap {
         else if (platform == 0) score += 15;
         else if (platform == 3 && encoding == 1) score += 10;
         return score;
+    }
+
+    internal static bool HasGlyphs(
+        string text,
+        Func<int, int> mapGlyph,
+        Func<int, int, int> mapVariationSequence) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        for (int index = 0; index < text.Length;) {
+            int glyph = ReadMappedGlyph(text, ref index, mapGlyph, mapVariationSequence, out int scalar);
+            if (glyph < 0) continue;
+            if (glyph == 0 && !(scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar))) return false;
+        }
+        return true;
+    }
+
+    internal static int ReadMappedGlyph(
+        string text,
+        ref int index,
+        Func<int, int> mapGlyph,
+        Func<int, int, int> mapVariationSequence,
+        out int scalar) {
+        scalar = ReadScalar(text, ref index);
+        if (IsVariationSelector(scalar) || OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) return -1;
+
+        int followingIndex = index;
+        int followingScalar = followingIndex < text.Length
+            ? ReadScalar(text, ref followingIndex)
+            : -1;
+        if (IsVariationSelector(followingScalar)) {
+            index = followingIndex;
+            return mapVariationSequence(scalar, followingScalar);
+        }
+
+        return mapGlyph(scalar);
+    }
+
+    internal static int MapVariationSequence(
+        byte[] data,
+        int cmapOffset,
+        int cmapLength,
+        int glyphCount,
+        int scalar,
+        int variationSelector,
+        Func<int, int> mapGlyph) {
+        if (data == null || cmapOffset < 0 || cmapLength < 4 || cmapOffset > data.Length - cmapLength ||
+            glyphCount <= 0 || scalar < 0 || scalar > 0x10FFFF || !IsVariationSelector(variationSelector)) return 0;
+        int cmapEnd = cmapOffset + cmapLength;
+        int count = ReadUInt16(data, cmapOffset + 2);
+        if (count <= 0 || count > MaximumSubtables || cmapLength < 4 + count * 8) return 0;
+        for (int index = 0; index < count; index++) {
+            int record = cmapOffset + 4 + index * 8;
+            int platform = ReadUInt16(data, record);
+            int encoding = ReadUInt16(data, record + 2);
+            if (platform != 0 || encoding != 5) continue;
+            uint relativeValue = ReadUInt32(data, record + 4);
+            if (relativeValue > (uint)(cmapLength - 10)) continue;
+            int table = cmapOffset + (int)relativeValue;
+            if (table < cmapOffset || table > cmapEnd - 10 || ReadUInt16(data, table) != 14) continue;
+            int glyph = MapVariationSequenceSubtable(data, table, cmapEnd, glyphCount, scalar, variationSelector, mapGlyph);
+            if (glyph != 0) return glyph;
+        }
+        return 0;
+    }
+
+    private static int MapVariationSequenceSubtable(
+        byte[] data,
+        int table,
+        int cmapEnd,
+        int glyphCount,
+        int scalar,
+        int variationSelector,
+        Func<int, int> mapGlyph) {
+        uint lengthValue = ReadUInt32(data, table + 2);
+        uint recordCountValue = ReadUInt32(data, table + 6);
+        if (lengthValue > int.MaxValue || recordCountValue > MaximumVariationSelectorRecords) return 0;
+        int length = (int)lengthValue;
+        int recordCount = (int)recordCountValue;
+        if (length < 10 || table > cmapEnd - length || 10L + recordCount * 11L > length) return 0;
+        int tableEnd = table + length;
+
+        int matchingRecord = -1;
+        int previousSelector = -1;
+        for (int index = 0; index < recordCount; index++) {
+            int record = table + 10 + index * 11;
+            int selector = ReadUInt24(data, record);
+            if (!IsVariationSelector(selector) || selector <= previousSelector) return 0;
+            if (selector == variationSelector) matchingRecord = record;
+            previousSelector = selector;
+        }
+        if (matchingRecord < 0) return 0;
+
+        uint defaultOffset = ReadUInt32(data, matchingRecord + 3);
+        uint nonDefaultOffset = ReadUInt32(data, matchingRecord + 7);
+        if (nonDefaultOffset != 0) {
+            if (!TryResolveNonDefaultVariation(
+                    data,
+                    table,
+                    tableEnd,
+                    nonDefaultOffset,
+                    glyphCount,
+                    scalar,
+                    out int glyph)) return 0;
+            if (glyph != 0) return glyph;
+        }
+        if (defaultOffset == 0 ||
+            !TryResolveDefaultVariation(data, table, tableEnd, defaultOffset, scalar, out bool isDefault)) return 0;
+        return isDefault ? mapGlyph(scalar) : 0;
+    }
+
+    private static bool TryResolveNonDefaultVariation(
+        byte[] data,
+        int table,
+        int tableEnd,
+        uint relativeOffset,
+        int glyphCount,
+        int scalar,
+        out int glyph) {
+        glyph = 0;
+        if (relativeOffset > int.MaxValue) return false;
+        int offset = table + (int)relativeOffset;
+        if (offset < table || offset > tableEnd - 4) return false;
+        uint countValue = ReadUInt32(data, offset);
+        if (countValue > int.MaxValue || countValue > (uint)((tableEnd - offset - 4) / 5)) return false;
+        int low = 0;
+        int high = (int)countValue - 1;
+        while (low <= high) {
+            int index = low + ((high - low) / 2);
+            int mapping = offset + 4 + index * 5;
+            int unicodeValue = ReadUInt24(data, mapping);
+            if (unicodeValue < scalar) {
+                low = index + 1;
+            } else if (unicodeValue > scalar) {
+                high = index - 1;
+            } else {
+                int mappedGlyph = ReadUInt16(data, mapping + 3);
+                if (mappedGlyph <= 0 || mappedGlyph >= glyphCount) return false;
+                glyph = mappedGlyph;
+                return true;
+            }
+        }
+        return true;
+    }
+
+    private static bool TryResolveDefaultVariation(
+        byte[] data,
+        int table,
+        int tableEnd,
+        uint relativeOffset,
+        int scalar,
+        out bool isDefault) {
+        isDefault = false;
+        if (relativeOffset > int.MaxValue) return false;
+        int offset = table + (int)relativeOffset;
+        if (offset < table || offset > tableEnd - 4) return false;
+        uint countValue = ReadUInt32(data, offset);
+        if (countValue > int.MaxValue || countValue > (uint)((tableEnd - offset - 4) / 4)) return false;
+        int low = 0;
+        int high = (int)countValue - 1;
+        while (low <= high) {
+            int index = low + ((high - low) / 2);
+            int range = offset + 4 + index * 4;
+            int start = ReadUInt24(data, range);
+            int end = start + data[range + 3];
+            if (end > 0x10FFFF) return false;
+            if (scalar < start) {
+                high = index - 1;
+            } else if (scalar > end) {
+                low = index + 1;
+            } else {
+                isDefault = true;
+                return true;
+            }
+        }
+        return true;
+    }
+
+    private static bool IsVariationSelector(int scalar) =>
+        scalar >= 0xFE00 && scalar <= 0xFE0F || scalar >= 0xE0100 && scalar <= 0xE01EF;
+
+    private static int ReadScalar(string value, ref int index) {
+        char first = value[index++];
+        if (char.IsHighSurrogate(first) && index < value.Length && char.IsLowSurrogate(value[index])) {
+            return char.ConvertToUtf32(first, value[index++]);
+        }
+        return first;
     }
 
     internal static HashSet<int> CollectValidFormat12Subtables(
@@ -126,6 +313,9 @@ internal static class OfficeOpenTypeCmap {
     }
 
     private static int ReadUInt16(byte[] data, int offset) => (data[offset] << 8) | data[offset + 1];
+
+    private static int ReadUInt24(byte[] data, int offset) =>
+        (data[offset] << 16) | (data[offset + 1] << 8) | data[offset + 2];
 
     private static uint ReadUInt32(byte[] data, int offset) =>
         ((uint)data[offset] << 24)

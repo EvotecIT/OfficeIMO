@@ -12,7 +12,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Website guide](officeimo.website.md) — local build and publication workflow.
 - [Website search and answer-engine operations](officeimo.website-seo-geo-operations.md) — publication and discovery checks.
 - [CI and test strategy](officeimo.ci-test-strategy.md) — test ownership and validation lanes.
-- [Real-world corpus evidence](officeimo.real-world-corpus-evidence.md) — bounded external-corpus discovery, deterministic sampling, isolation, and interpretation limits.
+- [Real-world and PDF quality corpus evidence](officeimo.real-world-corpus-evidence.md) — bounded external discovery, strict provenance-bound PDF scorecards, deterministic sampling, isolation, and interpretation limits.
 - [Excel benchmark notes](officeimo.excel.benchmark-notes.md) — reproducible comparison-suite execution and provenance.
 - [Image engine benchmarks](../OfficeIMO.Drawing.Benchmarks/README.md) — validated identification, decode, encode, resize, and placement-optimization workloads, with isolated opt-in library comparisons.
 
@@ -52,6 +52,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Email performance evidence](officeimo.email-performance.md)
 - [AsciiDoc support](officeimo.asciidoc-support-matrix.md)
 - [LaTeX support](officeimo.latex-support-matrix.md)
+- [Bibliography support](officeimo.bibliography-support-matrix.md)
 - [Markdown compatibility](officeimo.markdown.compatibility-matrix.md)
 - [Markdown extension authoring](officeimo.markdown.extension-authoring.md)
 - [Markdown lossless round-trip design](officeimo.markdown.lossless-roundtrip-design.md)

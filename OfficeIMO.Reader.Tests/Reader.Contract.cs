@@ -11,12 +11,14 @@ public sealed class ReaderContractTests {
         Type[] publicPackageAnchors = {
             typeof(OfficeIMO.Reader.AsciiDoc.OfficeDocumentReaderBuilderAsciiDocExtensions),
             typeof(OfficeIMO.Reader.Csv.OfficeDocumentReaderBuilderCsvExtensions),
+            typeof(OfficeIMO.Reader.DocBook.OfficeDocumentReaderBuilderDocBookExtensions),
             typeof(OfficeIMO.Reader.Epub.OfficeDocumentReaderBuilderEpubExtensions),
             typeof(OfficeIMO.Reader.Html.OfficeDocumentReaderBuilderHtmlExtensions),
             typeof(OfficeIMO.Reader.Json.OfficeDocumentReaderBuilderJsonExtensions),
             typeof(OfficeIMO.Reader.Latex.OfficeDocumentReaderBuilderLatexExtensions),
             typeof(OfficeIMO.Reader.OpenDocument.OfficeDocumentReaderBuilderOpenDocumentExtensions),
             typeof(OfficeIMO.Reader.OneNote.OfficeDocumentReaderBuilderOneNoteExtensions),
+            typeof(OfficeIMO.Reader.Opml.OfficeDocumentReaderBuilderOpmlExtensions),
             typeof(OfficeIMO.Reader.Pdf.OfficeDocumentReaderBuilderPdfExtensions),
             typeof(OfficeIMO.Reader.Rtf.OfficeDocumentReaderBuilderRtfExtensions),
             typeof(OfficeIMO.Reader.Visio.OfficeDocumentReaderBuilderVisioExtensions),
@@ -35,7 +37,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(6, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(7, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
@@ -57,6 +59,24 @@ public sealed class ReaderContractTests {
             .GetProperty("const").GetInt32());
         Assert.DoesNotContain(nameof(ReaderInputKind.Calendar), kinds);
         Assert.DoesNotContain(nameof(ReaderInputKind.VCard), kinds);
+        Assert.DoesNotContain(nameof(ReaderInputKind.Opml), kinds);
+        Assert.DoesNotContain(nameof(ReaderInputKind.DocBook), kinds);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultSchema_PreservesTheClosedVersion6KindContract() {
+        using JsonDocument schema = JsonDocument.Parse(OfficeDocumentReadResultSchema.GetJsonSchema(6));
+        JsonElement root = schema.RootElement;
+        string[] kinds = root.GetProperty("properties").GetProperty("kind").GetProperty("enum")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray();
+
+        Assert.Equal("urn:officeimo:schema:document-read-result:6", root.GetProperty("$id").GetString());
+        Assert.Equal(6, root.GetProperty("properties").GetProperty("schemaVersion")
+            .GetProperty("const").GetInt32());
+        Assert.Contains(nameof(ReaderInputKind.Calendar), kinds);
+        Assert.Contains(nameof(ReaderInputKind.VCard), kinds);
+        Assert.DoesNotContain(nameof(ReaderInputKind.Opml), kinds);
+        Assert.DoesNotContain(nameof(ReaderInputKind.DocBook), kinds);
     }
 
     [Fact]
@@ -268,7 +288,7 @@ public sealed class ReaderContractTests {
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]
-    [InlineData("officeimo.document.read-result", 7)]
+    [InlineData("officeimo.document.read-result", 8)]
     public void OfficeDocumentReadResultJson_RejectsUnsupportedSchemaHeaders(string schemaId, int schemaVersion) {
         string json = $"{{\"schemaId\":\"{schemaId}\",\"schemaVersion\":{schemaVersion}}}";
 
@@ -291,7 +311,7 @@ public sealed class ReaderContractTests {
 
     [Fact]
     public void OfficeDocumentReadResultJson_RejectsIncompleteCurrentEnvelope() {
-        const string json = "{\"schemaId\":\"officeimo.document.read-result\",\"schemaVersion\":6}";
+        const string json = "{\"schemaId\":\"officeimo.document.read-result\",\"schemaVersion\":7}";
 
         JsonException exception = Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(json));
 
@@ -354,6 +374,52 @@ public sealed class ReaderContractTests {
         JsonException readException = Assert.Throws<JsonException>(() =>
             OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
         Assert.Contains("schema version 5", readException.Message,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_ReadsVersion6ButRejectsVersion7Kinds() {
+        string legacyJson = OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult {
+            SchemaVersion = 6,
+            Kind = ReaderInputKind.Calendar
+        });
+        OfficeDocumentReadResult legacy = OfficeDocumentReadResultJson.Deserialize(legacyJson);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, legacy.SchemaVersion);
+        Assert.Equal(ReaderInputKind.Calendar, legacy.Kind);
+
+        JsonObject invalid = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(
+            new OfficeDocumentReadResult { Kind = ReaderInputKind.Opml }))!.AsObject();
+        invalid["schemaVersion"] = 6;
+        Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_RejectsVersion7KindsInVersion6Chunks() {
+        var result = new OfficeDocumentReadResult {
+            SchemaVersion = 6,
+            Kind = ReaderInputKind.Email,
+            Chunks = new[] {
+                new ReaderChunk { Id = "outline", Kind = ReaderInputKind.Opml }
+            }
+        };
+
+        JsonException writeException = Assert.Throws<JsonException>(() =>
+            OfficeDocumentReadResultJson.Serialize(result));
+        Assert.Contains("schema version 6", writeException.Message,
+            StringComparison.OrdinalIgnoreCase);
+
+        JsonObject invalid = JsonNode.Parse(OfficeDocumentReadResultJson.Serialize(
+            new OfficeDocumentReadResult {
+                Kind = ReaderInputKind.Email,
+                Chunks = new[] {
+                    new ReaderChunk { Id = "book", Kind = ReaderInputKind.DocBook }
+                }
+            }))!.AsObject();
+        invalid["schemaVersion"] = 6;
+
+        JsonException readException = Assert.Throws<JsonException>(() =>
+            OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
+        Assert.Contains("schema version 6", readException.Message,
             StringComparison.OrdinalIgnoreCase);
     }
 

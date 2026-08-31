@@ -8,5 +8,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../../OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj" />
+    <ProjectReference Include="../../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj" />
   </ItemGroup>
 </Project>

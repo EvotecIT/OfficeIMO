@@ -1,5 +1,6 @@
 using OfficeIMO.Reader.AsciiDoc;
 using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.DocBook;
 using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Excel;
@@ -10,6 +11,7 @@ using OfficeIMO.Reader.Latex;
 using OfficeIMO.Reader.Markdown;
 using OfficeIMO.Reader.Notebook;
 using OfficeIMO.Reader.OneNote;
+using OfficeIMO.Reader.Opml;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.PowerPoint;
@@ -48,6 +50,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddPlainTextHandlers()
             .AddAsciiDocHandler(configured.AsciiDoc)
             .AddCsvHandler(configured.Csv)
+            .AddDocBookHandler(configured.DocBook)
             .AddEmailHandlers(configured.Email)
             .AddEpubHandler(configured.Epub)
             .AddExcelHandler(configured.Excel);
@@ -62,6 +65,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddMarkdownHandler(configured.Markdown)
             .AddNotebookHandler(configured.Notebook)
             .AddOneNoteHandler(oneNoteOptions)
+            .AddOpmlHandler(configured.Opml)
             .AddOpenDocumentHandler(configured.OpenDocument)
             .AddPdfHandler(configured.Pdf)
             .AddPowerPointHandler(configured.PowerPoint)

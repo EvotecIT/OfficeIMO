@@ -537,6 +537,8 @@ jobs:
             project: OfficeIMO.AsciiDoc.Tests/OfficeIMO.AsciiDoc.Tests.csproj
           - name: AsciiDoc-Markdown
             project: OfficeIMO.AsciiDoc.Markdown.Tests/OfficeIMO.AsciiDoc.Markdown.Tests.csproj
+          - name: Bibliography
+            project: OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj
           - name: CSV
             project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
           - name: ChartForgeX
@@ -936,6 +938,7 @@ jobs:
             dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
             dotnet restore OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj
             dotnet restore OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj
+            dotnet restore OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet restore OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
@@ -987,6 +990,7 @@ jobs:
             dotnet build OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet build OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1270,6 +1274,7 @@ jobs:
               run_shared_tests "shared-contracts" 'FullyQualifiedName~OfficeIMO.Shared.Tests.'
               dotnet test OfficeIMO.ChartForgeX.Tests/OfficeIMO.ChartForgeX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.Tool.Tests/OfficeIMO.Tool.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+              dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx

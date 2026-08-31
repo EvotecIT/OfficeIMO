@@ -1,5 +1,5 @@
-using OfficeIMO.OpenDocument;
 using OfficeIMO.OneNote;
+using OfficeIMO.OpenDocument;
 using OfficeIMO.Reader.All;
 using OfficeIMO.Reader.Zip;
 using Xunit;
@@ -11,6 +11,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.asciidoc",
         "officeimo.reader.calendar",
         "officeimo.reader.csv",
+        "officeimo.reader.docbook",
         "officeimo.reader.email",
         "officeimo.reader.email.address-book",
         "officeimo.reader.email.mailbox",
@@ -27,6 +28,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.notebook",
         "officeimo.reader.onenote",
         "officeimo.reader.opendocument",
+        "officeimo.reader.opml",
         "officeimo.reader.pdf",
         "officeimo.reader.powerpoint",
         "officeimo.reader.powerpoint.binary",

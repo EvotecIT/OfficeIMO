@@ -15,6 +15,8 @@ public sealed class ReaderPackagingGuardrailTests {
     [InlineData("OfficeIMO.Reader.AsciiDoc/OfficeIMO.Reader.AsciiDoc.csproj")]
     [InlineData("OfficeIMO.Reader.Latex/OfficeIMO.Reader.Latex.csproj")]
     [InlineData("OfficeIMO.Reader.Csv/OfficeIMO.Reader.Csv.csproj")]
+    [InlineData("OfficeIMO.Reader.DocBook/OfficeIMO.Reader.DocBook.csproj")]
+    [InlineData("OfficeIMO.Reader.Opml/OfficeIMO.Reader.Opml.csproj")]
     [InlineData("OfficeIMO.Reader.Json/OfficeIMO.Reader.Json.csproj")]
     [InlineData("OfficeIMO.Reader.Xml/OfficeIMO.Reader.Xml.csproj")]
     [InlineData("OfficeIMO.Reader.Yaml/OfficeIMO.Reader.Yaml.csproj")]

@@ -56,7 +56,7 @@ Console.WriteLine($"{document.Assets.Count} assets");
 string json = OfficeDocumentReadResultJson.Serialize(document, indented: true);
 ```
 
-The rich JSON envelope currently writes schema version 6 and still reads the first stable version 5 contract. The package embeds and ships both JSON Schemas, rejects incomplete or incompatible envelopes, and preserves structured diagnostics rather than requiring consumers to parse warning text.
+The rich JSON envelope currently writes schema version 7 and still reads the stable version 5 and 6 contracts. The package embeds and ships each supported JSON Schema, rejects incomplete or incompatible envelopes, and preserves structured diagnostics rather than requiring consumers to parse warning text.
 
 ## Isolated readers for services
 

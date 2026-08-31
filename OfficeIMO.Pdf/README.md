@@ -440,6 +440,64 @@ IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
 ```
 
+### Inspect fonts, image paint, and cross-page continuations
+
+The font inventory reports every unique declared font dictionary and every page
+or nested Form XObject resource path that references it. Embedded OpenType and
+TrueType programs are parsed through the same bounded font engine used by PDF
+generation. The parsed glyph count describes the embedded program; it is not a
+count of glyphs painted by the page.
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument pdf = PdfDocument.Open("annual-report.pdf");
+PdfFontInventory fonts = pdf.Read.Fonts();
+
+foreach (PdfFontInfo font in fonts.Fonts) {
+    Console.WriteLine($"{font.FamilyName}: embedded={font.IsEmbedded}, subset={font.IsSubset}");
+    if (font.EmbeddedOpenTypeInfo is PdfOpenTypeFontInfo program) {
+        Console.WriteLine($"Program glyphs: {program.GlyphCount}; Unicode mappings: {program.UnicodeScalarCount}");
+    }
+}
+
+IReadOnlyList<PdfImagePlacement> placements = pdf.Read.ImagePlacements();
+foreach (PdfImagePlacement placement in placements) {
+    Console.WriteLine(
+        $"Page {placement.PageNumber}: {placement.Width} x {placement.Height}, " +
+        $"opacity={placement.Opacity}, blend={placement.EffectiveBlendMode}, clipped={placement.Clip is not null}");
+}
+
+IReadOnlyList<PdfLogicalParagraphContinuationGroup> paragraphs =
+    pdf.Read.ParagraphContinuations(new PdfLogicalParagraphContinuationOptions {
+        MinimumConfidence = 0.80
+    });
+IReadOnlyList<PdfLogicalTableContinuationGroup> tables =
+    pdf.Read.TableContinuations(new PdfLogicalTableContinuationOptions {
+        MinimumConfidence = 0.80
+    });
+
+foreach (PdfLogicalParagraphContinuationGroup paragraph in paragraphs.Where(item => item.SpansPages)) {
+    Console.WriteLine($"Paragraph {paragraph.FirstPageNumber}-{paragraph.LastPageNumber}: {paragraph.Confidence:P0}");
+}
+foreach (PdfLogicalTableContinuationGroup table in tables.Where(item => item.SpansPages)) {
+    Console.WriteLine($"Table {table.FirstPageNumber}-{table.LastPageNumber}: {table.TotalRowCount} rows");
+}
+```
+
+Cross-page recovery is conservative. It joins only adjacent boundary items with
+compatible geometry and content evidence, returns confidence and evidence flags,
+and leaves the original page-local logical model unchanged. Embedded program bytes
+are returned only when `IncludeEmbeddedProgramBytes` is explicitly enabled and
+remain subject to both `MaxEmbeddedProgramBytes` per font and
+`MaxTotalDecodedFontBytes` across embedded programs and ToUnicode maps. ToUnicode
+per-map and aggregate limit outcomes have separate diagnostics and inventory counts,
+so resource limits are not reported as malformed maps. Nested Form XObject discovery
+deduplicates shared resource contexts by their shallowest reachable depth and is
+bounded by `MaxFormResourceTraversals`.
+For image paint inspection, `AuthoredBlendMode` is null when the normal PDF default
+was not declared and retains an explicit or inherited authored `Normal` value.
+
 Text extraction excludes PDF artifact marked content by default, which is the
 logical-text behavior expected for decorative headers, footers, and chart
 labels. Opt into visual text when those marked artifacts are part of the
@@ -888,7 +946,11 @@ PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForAr
 
 PdfComplianceProofReport proof = artifact.AssessProof(new[] { validation });
 
-if (!proof.CanClaimConformance) {
+PdfDeclaredComplianceClaimsReport declaredClaims = PdfDocument
+    .Open(pdf)
+    .AssessDeclaredComplianceClaims(new[] { validation });
+
+if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance) {
     throw new InvalidOperationException(proof.ExternalProofSummary);
 }
 ```
@@ -1113,12 +1175,18 @@ dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj -c Release -f net10.0
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net8.0 -- --verify-budgets
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-budgets
 dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj -c Release -f net10.0 -- --verify-timing-budgets
+Build/Test-PdfQualityCorpus.ps1 -Configuration Release -Framework net8.0
+Build/Test-RealWorldCorpusContract.ps1
 Build/Export-PdfComplianceProof.ps1 -Configuration Release -Framework net8.0
 Build/Export-PdfVisualReviewGallery.ps1 -Configuration Release -Framework net8.0
 ```
 
-The checked-in interoperability gate uses hash-pinned Open Preservation
-Foundation and veraPDF fixtures with explicit provenance. The performance gate
+The strict PDF quality scorecard runs every public inspection and semantic stage,
+the complete 21-operation mutation portfolio, managed rendering, and declared
+compliance claim gating against hash-pinned Open Preservation Foundation and
+veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
+a deterministic sample of a checksum-pinned public GovDocs archive in isolated
+processes. The performance gate
 uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
 SVG rendering, PNG rendering, output integrity, absolute allocation and heap
 budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
