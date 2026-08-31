@@ -65,3 +65,13 @@ public enum IWorkKeynoteDrawableKind {
     /// <summary>An editable table.</summary>
     Table
 }
+
+/// <summary>Identifies one drawable recovered from a Pages document.</summary>
+public enum IWorkPagesDrawableKind {
+    /// <summary>A positioned rich-text shape.</summary>
+    TextBox,
+    /// <summary>An embedded raster image.</summary>
+    Image,
+    /// <summary>An editable table.</summary>
+    Table
+}

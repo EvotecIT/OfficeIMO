@@ -2,6 +2,33 @@ using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.IWork;
 
+/// <summary>One typed Pages drawable retained in source stacking order.</summary>
+public sealed class IWorkPagesDrawable {
+    internal IWorkPagesDrawable(IWorkTextBox textBox) {
+        Kind = IWorkPagesDrawableKind.TextBox;
+        TextBox = textBox;
+    }
+
+    internal IWorkPagesDrawable(IWorkImageAsset image) {
+        Kind = IWorkPagesDrawableKind.Image;
+        Image = image;
+    }
+
+    internal IWorkPagesDrawable(IWorkTable table) {
+        Kind = IWorkPagesDrawableKind.Table;
+        Table = table;
+    }
+
+    /// <summary>Gets the drawable kind.</summary>
+    public IWorkPagesDrawableKind Kind { get; }
+    /// <summary>Gets the text-box payload when <see cref="Kind"/> is <see cref="IWorkPagesDrawableKind.TextBox"/>.</summary>
+    public IWorkTextBox? TextBox { get; }
+    /// <summary>Gets the image payload when <see cref="Kind"/> is <see cref="IWorkPagesDrawableKind.Image"/>.</summary>
+    public IWorkImageAsset? Image { get; }
+    /// <summary>Gets the table payload when <see cref="Kind"/> is <see cref="IWorkPagesDrawableKind.Table"/>.</summary>
+    public IWorkTable? Table { get; }
+}
+
 /// <summary>Read-only Pages structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkPagesProjection {
     private readonly IWorkSourceDocument _source;
@@ -10,7 +37,8 @@ public sealed class IWorkPagesProjection {
     internal IWorkPagesProjection(IWorkSourceDocument source, IWorkTextContent body,
         IReadOnlyList<IWorkPagesSection> sections,
         IReadOnlyList<IWorkTextBox> textBoxObjects, IReadOnlyList<IWorkImageAsset> images,
-        IReadOnlyList<IWorkTable> tables, IWorkPageLayout? pageLayout,
+        IReadOnlyList<IWorkTable> tables, IReadOnlyList<IWorkPagesDrawable> drawables,
+        IWorkPageLayout? pageLayout,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction) {
         _source = source;
         Body = body;
@@ -21,6 +49,7 @@ public sealed class IWorkPagesProjection {
         TextBoxContents = Array.AsReadOnly(TextBoxObjects.Select(textBox => textBox.Content).ToArray());
         Images = Array.AsReadOnly(images.ToArray());
         Tables = Array.AsReadOnly(tables.ToArray());
+        Drawables = Array.AsReadOnly(drawables.ToArray());
         PageLayout = pageLayout;
         Paragraphs = Array.AsReadOnly(body.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
         Headers = Array.AsReadOnly(HeaderContents.Select(content => content.PlainText).ToArray());
@@ -46,6 +75,8 @@ public sealed class IWorkPagesProjection {
     public IReadOnlyList<IWorkImageAsset> Images { get; }
     /// <summary>Gets editable tables reachable from the document graph.</summary>
     public IReadOnlyList<IWorkTable> Tables { get; }
+    /// <summary>Gets text boxes, images, and tables in their shared source stacking order.</summary>
+    public IReadOnlyList<IWorkPagesDrawable> Drawables { get; }
     /// <summary>Gets source page dimensions and margins.</summary>
     public IWorkPageLayout? PageLayout { get; }
     /// <summary>Gets body paragraphs in source order.</summary>
@@ -91,7 +122,7 @@ public sealed partial class IWorkSourceDocument {
         if (RequestedImportMode == IWorkImportMode.VisualOnly) {
             return new IWorkPagesProjection(this, EmptyText(), Array.Empty<IWorkPagesSection>(),
                 Array.Empty<IWorkTextBox>(), Array.Empty<IWorkImageAsset>(),
-                Array.Empty<IWorkTable>(), null,
+                Array.Empty<IWorkTable>(), Array.Empty<IWorkPagesDrawable>(), null,
                 new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
         }
         return IWorkPagesReader.Read(this);
@@ -117,6 +148,10 @@ internal static class IWorkPagesReader {
         var textBoxes = new List<IWorkTextBox>();
         var images = new List<IWorkImageAsset>();
         var tables = new List<IWorkTable>();
+        var drawables = new List<IWorkPagesDrawable>();
+        var projectedTextBoxes = new Dictionary<ulong, IWorkTextBox>();
+        var projectedImages = new Dictionary<ulong, IWorkImageAsset>();
+        var projectedTables = new Dictionary<ulong, IWorkTable>();
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         IWorkObjectIndex index = source.Index;
         IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
@@ -126,7 +161,8 @@ internal static class IWorkPagesReader {
                 duplicateDocument
                     ? "More than one Pages document root was found; editable reconstruction is unavailable."
                     : "No supported Pages document root was found; editable reconstruction is unavailable."));
-            return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables, null, diagnostics,
+            return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables,
+                drawables, null, diagnostics,
                 supportsEditableReconstruction: false);
         }
 
@@ -254,7 +290,9 @@ internal static class IWorkPagesReader {
             }
             if (text.PlainText.Length == 0 && hyperlink == null
                 && accessibilityDescription == null) continue;
-            textBoxes.Add(new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription));
+            var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
+            textBoxes.Add(textBox);
+            projectedTextBoxes.Add(shape.Identifier, textBox);
         }
         IWorkArchiveRecord? unsupportedDrawable = documentDrawables.FirstOrDefault(record =>
             record.MessageType is not TextStorageArchive and not ShapeInfoArchive
@@ -281,6 +319,7 @@ internal static class IWorkPagesReader {
                     continue;
                 }
                 images.Add(image);
+                projectedImages.Add(drawable.Identifier, image);
             }
         }
         int materializedCellCount = 0;
@@ -289,7 +328,19 @@ internal static class IWorkPagesReader {
             projectionBudget.AddTable();
             IWorkTable? table = IWorkTableReader.Read(source, tableRecord, projectionBudget, diagnostics,
                 ref materializedCellCount, ref supportsEditableReconstruction);
-            if (table != null) tables.Add(table);
+            if (table != null) {
+                tables.Add(table);
+                projectedTables.Add(tableRecord.Identifier, table);
+            }
+        }
+        foreach (IWorkArchiveRecord drawable in documentDrawables) {
+            if (projectedTextBoxes.TryGetValue(drawable.Identifier, out IWorkTextBox? textBox)) {
+                drawables.Add(new IWorkPagesDrawable(textBox));
+            } else if (projectedImages.TryGetValue(drawable.Identifier, out IWorkImageAsset? image)) {
+                drawables.Add(new IWorkPagesDrawable(image));
+            } else if (projectedTables.TryGetValue(drawable.Identifier, out IWorkTable? table)) {
+                drawables.Add(new IWorkPagesDrawable(table));
+            }
         }
         int bodySectionCount = bodyContent.Paragraphs.Count(paragraph =>
             paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
@@ -300,7 +351,8 @@ internal static class IWorkPagesReader {
                 "Pages body section boundaries do not match the section table; editable reconstruction is incomplete.",
                 body?.EntryPath, body?.Identifier));
         }
-        return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables, pageLayout, diagnostics,
+        return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables,
+            drawables, pageLayout, diagnostics,
             supportsEditableReconstruction);
     }
 

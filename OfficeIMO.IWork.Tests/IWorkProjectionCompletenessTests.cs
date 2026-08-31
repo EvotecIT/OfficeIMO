@@ -302,7 +302,8 @@ public sealed partial class IWorkBoundaryTests {
         float? rotation = null, float? fontSize = null, bool wrongWireSlideSize = false,
         uint showType = 2, uint nodeType = 4, uint slideType = 5,
         string text = "Title", string? slideName = null, string? listLabel = null,
-        bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null) {
+        bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null,
+        float? slideWidth = null, float? slideHeight = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -339,9 +340,12 @@ public sealed partial class IWorkBoundaryTests {
             extraRecords.Add(ArchiveRecord(characterStyleId, 2021,
                 Message(BytesField(11, Message(FloatField(3, fontSize.Value))))));
         }
+        byte[] slideSize = slideWidth.HasValue && slideHeight.HasValue
+            ? BytesField(4, Message(FloatField(1, slideWidth.Value), FloatField(2, slideHeight.Value)))
+            : Array.Empty<byte>();
         byte[] showPayload = wrongWireSlideSize
             ? Message(BytesField(3, slideTree), VarintField(4, 1))
-            : Message(BytesField(3, slideTree));
+            : Message(BytesField(3, slideTree), slideSize);
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
             ArchiveRecord(showId, showType, showPayload),

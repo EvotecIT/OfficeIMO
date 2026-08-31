@@ -52,13 +52,13 @@ public sealed partial class PowerPointPresentation {
 
         PowerPointPresentation presentation = Create();
         try {
+            double canvasWidth = projection.SlideSize?.WidthPoints ?? 960d;
+            double canvasHeight = projection.SlideSize?.HeightPoints ?? 540d;
+            if (projection.SlideSize != null) {
+                presentation.SlideSize.SetSizePoints(projection.SlideSize.WidthPoints,
+                    projection.SlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
+            }
             if (editable) {
-                double canvasWidth = projection.SlideSize?.WidthPoints ?? 960d;
-                double canvasHeight = projection.SlideSize?.HeightPoints ?? 540d;
-                if (projection.SlideSize != null) {
-                    presentation.SlideSize.SetSizePoints(projection.SlideSize.WidthPoints,
-                        projection.SlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
-                }
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
@@ -95,7 +95,8 @@ public sealed partial class PowerPointPresentation {
                 OfficeImageFormat format = preview.MediaType == "image/png"
                     ? OfficeImageFormat.Png
                     : OfficeImageFormat.Jpeg;
-                (double left, double top, double width, double height) = PreviewLayout(preview);
+                (double left, double top, double width, double height) = PreviewLayout(preview,
+                    canvasWidth / 72d, canvasHeight / 72d);
                 slide.AddPictureInches(image, format, left, top, width, height);
             }
 
@@ -109,9 +110,8 @@ public sealed partial class PowerPointPresentation {
         }
     }
 
-    private static (double Left, double Top, double Width, double Height) PreviewLayout(IWorkPreviewAsset preview) {
-        const double slideWidth = 13.333;
-        const double slideHeight = 7.5;
+    private static (double Left, double Top, double Width, double Height) PreviewLayout(
+        IWorkPreviewAsset preview, double slideWidth, double slideHeight) {
         double pixelWidth = preview.PixelWidth.GetValueOrDefault(16);
         double pixelHeight = preview.PixelHeight.GetValueOrDefault(9);
         double scale = Math.Min(slideWidth / pixelWidth, slideHeight / pixelHeight);
