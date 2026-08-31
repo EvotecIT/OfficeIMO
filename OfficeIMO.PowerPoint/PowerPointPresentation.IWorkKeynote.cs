@@ -87,7 +87,7 @@ public sealed partial class PowerPointPresentation {
                                 AddEditableTable(slide, drawable.Table!);
                                 break;
                             case IWorkKeynoteDrawableKind.Image:
-                                AddEditableImage(slide, drawable.Image!);
+                                AddEditableImage(slide, drawable.Image!, canvasWidth, canvasHeight);
                                 break;
                         }
                     }
@@ -174,7 +174,8 @@ public sealed partial class PowerPointPresentation {
         }
     }
 
-    private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source) {
+    private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source,
+        double canvasWidth, double canvasHeight) {
         if (source.MediaType is not "image/png" and not "image/jpeg") return;
         double left = source.Geometry?.LeftPoints ?? 72;
         double top = source.Geometry?.TopPoints ?? 72;
@@ -182,6 +183,15 @@ public sealed partial class PowerPointPresentation {
             ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
         double height = source.Geometry?.HeightPoints
             ?? source.PixelHeight.GetValueOrDefault(480) * 72d / 96d;
+        if (source.Geometry == null) {
+            left = Math.Min(left, Math.Max(0d, canvasWidth - 1d));
+            top = Math.Min(top, Math.Max(0d, canvasHeight - 1d));
+            double scale = Math.Min(1d, Math.Min(
+                Math.Max(1d, canvasWidth - left) / width,
+                Math.Max(1d, canvasHeight - top) / height));
+            width *= scale;
+            height *= scale;
+        }
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
         PowerPointPicture picture = slide.AddPicturePoints(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,

@@ -135,12 +135,12 @@ public sealed class IWorkTable {
     internal bool HasPopulatedCoveredMergeCells() {
         if (MergedRanges.Count == 0) return false;
         if (Internal.IWorkMergeRangeValidator.HasOverlaps(MergedRanges, ColumnCount)) return true;
-        foreach (IWorkTableMergeRange merge in MergedRanges) {
-            for (int row = merge.FirstRow; row <= merge.LastRow; row++) {
-                for (int column = merge.FirstColumn; column <= merge.LastColumn; column++) {
-                    if (row == merge.FirstRow && column == merge.FirstColumn) continue;
-                    if (_cells.ContainsKey(Key(row, column))) return true;
-                }
+        foreach (IWorkTableCell cell in _cells.Values) {
+            foreach (IWorkTableMergeRange merge in MergedRanges) {
+                if (cell.Row < merge.FirstRow || cell.Row > merge.LastRow
+                    || cell.Column < merge.FirstColumn || cell.Column > merge.LastColumn
+                    || cell.Row == merge.FirstRow && cell.Column == merge.FirstColumn) continue;
+                return true;
             }
         }
         return false;

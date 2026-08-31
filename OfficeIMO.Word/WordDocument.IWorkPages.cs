@@ -431,7 +431,9 @@ public partial class WordDocument {
         && FitsSignedTwips(layout.TopMarginPoints)
         && FitsSignedTwips(layout.BottomMarginPoints)
         && FitsUnsignedTwips(layout.HeaderMarginPoints)
-        && FitsUnsignedTwips(layout.FooterMarginPoints);
+        && layout.HeaderMarginPoints <= layout.HeightPoints
+        && FitsUnsignedTwips(layout.FooterMarginPoints)
+        && layout.FooterMarginPoints <= layout.HeightPoints;
 
     private static bool FitsSignedTwips(double? points) => !points.HasValue
         || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / 20d

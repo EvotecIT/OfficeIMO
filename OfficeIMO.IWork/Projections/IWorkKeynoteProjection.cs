@@ -255,7 +255,11 @@ internal static class IWorkKeynoteReader {
                         node.EntryPath, node.Identifier));
                 }
             }
-            IWorkArchiveRecord? slide = index.Dereference(nodeMessage, 2);
+            bool slideReferenceComplete = nodeMessage.FieldCount(2) == 1
+                && !nodeMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
+            IWorkArchiveRecord? slide = slideReferenceComplete
+                ? index.Dereference(nodeMessage, 2)
+                : null;
             if (slide == null || slide.MessageType != SlideArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

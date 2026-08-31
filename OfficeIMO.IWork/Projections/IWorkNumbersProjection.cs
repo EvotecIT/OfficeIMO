@@ -261,7 +261,11 @@ internal static class IWorkNumbersReader {
                 tableRecord.EntryPath, tableRecord.Identifier));
             return null;
         }
-        IWorkArchiveRecord? model = source.Index.Dereference(tableInfo, 2);
+        bool modelReferenceComplete = tableInfo.FieldCount(2) == 1
+            && !tableInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
+        IWorkArchiveRecord? model = modelReferenceComplete
+            ? source.Index.Dereference(tableInfo, 2)
+            : null;
         if (model == null || model.MessageType != TableModelArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

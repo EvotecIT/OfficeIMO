@@ -373,7 +373,7 @@ internal static class IWorkFormulaReader {
         }
         absolute = false;
         IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, relativeField, out bool malformed);
-        if (malformed || ranges.Count == 0
+        if (malformed || ranges.Count != 1
             || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
             || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)) {
             first = last = 0;
@@ -401,7 +401,7 @@ internal static class IWorkFormulaReader {
 
     private static bool TryAbsoluteRange(IWorkWireMessage tract, int field, out int first, out int last) {
         IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, field, out bool malformed);
-        if (malformed || ranges.Count == 0
+        if (malformed || ranges.Count != 1
             || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
             || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)
             || ranges[0].GetUnsigned(1) is not ulong rawFirst || rawFirst > int.MaxValue) {
