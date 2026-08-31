@@ -52,24 +52,24 @@ public sealed class BibliographyReviewWave32RegressionTests {
     [InlineData(BibliographyFormat.Ris)]
     [InlineData(BibliographyFormat.Nbib)]
     [InlineData(BibliographyFormat.EndNoteXml)]
-    public void Literal_date_surrounding_whitespace_is_diagnosed_before_strict_output(BibliographyFormat format) {
+    public void Literal_date_trailing_whitespace_round_trips_strictly(BibliographyFormat format) {
         var document = new BibliographyDocument(format);
         var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book };
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = "n.d. " });
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
         document.Items.Add(item);
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Dates);
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV246" && diagnostic.Field == "dates.Issued.literal");
+        Assert.Equal("n.d. ", reopened.Literal);
+        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV246");
     }
 
     [Theory]
-    [InlineData(BibliographyFormat.BibLatex)]
     [InlineData(BibliographyFormat.Ris)]
     [InlineData(BibliographyFormat.Nbib)]
-    public void Whitespace_only_literal_dates_are_diagnosed_when_the_destination_trims_them(BibliographyFormat format) {
+    public void Tagged_whitespace_only_literal_dates_are_diagnosed_when_the_destination_trims_them(BibliographyFormat format) {
         var document = new BibliographyDocument(format);
         var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book };
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = " " });

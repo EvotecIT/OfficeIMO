@@ -128,7 +128,7 @@ public sealed class BibliographyNativeField {
         if (rawValue == null) return true;
         try {
             if (format == BibliographyFormat.CslJson) {
-                using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(rawValue, new System.Text.Json.JsonDocumentOptions { MaxDepth = CslJsonCodec.NativeJsonMaximumDepth });
+                using System.Text.Json.JsonDocument document = System.Text.Json.JsonDocument.Parse(rawValue, CslJsonCodec.NativeJsonDocumentOptions);
                 System.Text.Json.JsonElement root = document.RootElement;
                 switch (root.ValueKind) {
                     case System.Text.Json.JsonValueKind.String: return string.Equals(root.GetString() ?? string.Empty, value, StringComparison.Ordinal);

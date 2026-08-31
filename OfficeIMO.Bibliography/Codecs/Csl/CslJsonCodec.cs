@@ -6,6 +6,7 @@ namespace OfficeIMO.Bibliography;
 internal static class CslJsonCodec {
     internal const int NativeJsonMaximumDepth = 124;
     private const int JsonWriterMaximumDepth = 128;
+    internal static JsonDocumentOptions NativeJsonDocumentOptions => new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = NativeJsonMaximumDepth };
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
@@ -450,7 +451,15 @@ internal static class CslJsonCodec {
     }
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw, CancellationToken cancellationToken) {
-        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); cancellationToken.ThrowIfCancellationRequested(); writer.WriteRawValue(raw, skipInputValidation: true); return true; } catch (JsonException) { return false; }
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            using JsonDocument value = JsonDocument.Parse(raw, NativeJsonDocumentOptions);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsStrictNativeJson(raw, cancellationToken)) writer.WriteRawValue(raw, skipInputValidation: true);
+            else value.RootElement.WriteTo(writer);
+            cancellationToken.ThrowIfCancellationRequested();
+            return true;
+        } catch (JsonException) { return false; }
     }
 
     private static bool WouldBindTypedItemProperty(BibliographyNativeField field, CancellationToken cancellationToken) {
@@ -491,7 +500,7 @@ internal static class CslJsonCodec {
     private static JsonDocument? TryParseNativeJson(string raw, CancellationToken cancellationToken) {
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            JsonDocument result = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            JsonDocument result = JsonDocument.Parse(raw, NativeJsonDocumentOptions);
             if (cancellationToken.IsCancellationRequested) { result.Dispose(); cancellationToken.ThrowIfCancellationRequested(); }
             return result;
         }
@@ -815,17 +824,30 @@ internal static class CslJsonCodec {
 
     private static JsonValueKind? GetRawJsonKind(string? raw, CancellationToken cancellationToken) {
         if (raw == null) return null;
-        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth }); cancellationToken.ThrowIfCancellationRequested(); return value.RootElement.ValueKind; }
+        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, NativeJsonDocumentOptions); cancellationToken.ThrowIfCancellationRequested(); return value.RootElement.ValueKind; }
         catch (JsonException) { return null; }
     }
 
     private static bool TryWriteEditedRaw(Utf8JsonWriter writer, string value, CancellationToken cancellationToken) {
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            using JsonDocument parsed = JsonDocument.Parse(value, NativeJsonDocumentOptions);
             cancellationToken.ThrowIfCancellationRequested();
             if (parsed.RootElement.ValueKind == JsonValueKind.String || parsed.RootElement.ValueKind == JsonValueKind.Null || parsed.RootElement.ValueKind == JsonValueKind.Undefined) return false;
-            writer.WriteRawValue(value, skipInputValidation: true);
+            if (IsStrictNativeJson(value, cancellationToken)) writer.WriteRawValue(value, skipInputValidation: true);
+            else parsed.RootElement.WriteTo(writer);
+            cancellationToken.ThrowIfCancellationRequested();
+            return true;
+        } catch (JsonException) {
+            return false;
+        }
+    }
+
+    private static bool IsStrictNativeJson(string value, CancellationToken cancellationToken) {
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            cancellationToken.ThrowIfCancellationRequested();
             return true;
         } catch (JsonException) {
             return false;

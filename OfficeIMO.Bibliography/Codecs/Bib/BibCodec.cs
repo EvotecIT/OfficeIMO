@@ -20,7 +20,7 @@ internal static class BibCodec {
         string[] outputKeys = CodecMappings.OutputKeys(document.Items, format, cancellationToken);
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => IsBibFamily(entry.Format) && IsBibFamily(format))) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (TryWriteNativeEntry(builder, entry, options.LineEnding)) report.Add("BIBCONV010", BibliographyDiagnosticSeverity.Information, $"Preserved native BibTeX @{entry.Kind} entry.", BibliographyConversionAction.PreservedExtension, field: entry.Name ?? entry.Kind);
+            if (TryWriteNativeEntry(builder, entry, options.LineEnding, cancellationToken)) report.Add("BIBCONV010", BibliographyDiagnosticSeverity.Information, $"Preserved native BibTeX @{entry.Kind} entry.", BibliographyConversionAction.PreservedExtension, field: entry.Name ?? entry.Kind);
             else report.Add("BIBCONV118", BibliographyDiagnosticSeverity.Warning, $"Native BibTeX document entry '{entry.Kind}' is not safe to write.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         }
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => !IsBibFamily(entry.Format))) {
@@ -94,11 +94,11 @@ internal static class BibCodec {
             for (int index = 0; index < fields.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 KeyValuePair<string, string> field = fields[index];
-                bool normalizesTerminalBackslash = HasOddTrailingBackslash(field.Value);
-                string escaped = Escape(field.Value);
+                bool normalizesTerminalBackslash = HasOddTrailingBackslash(field.Value, cancellationToken);
+                string escaped = Escape(field.Value, cancellationToken);
                 if (normalizesTerminalBackslash)
                     report.Add("BIBCONV133", BibliographyDiagnosticSeverity.Warning, $"Bib field '{field.Key}' ends in an odd backslash run that must be normalized before the closing delimiter.", BibliographyConversionAction.Approximated, item, field.Key);
-                if (!IsSafeDelimitedValue(escaped)) {
+                if (!IsSafeDelimitedValue(escaped, cancellationToken)) {
                     report.Add("BIBCONV134", BibliographyDiagnosticSeverity.Warning, $"Bib field '{field.Key}' cannot be enclosed safely after escaping and was omitted.", BibliographyConversionAction.Omitted, item, field.Key);
                     continue;
                 }
@@ -177,7 +177,7 @@ internal static class BibCodec {
     }
 
     private static string FormatBibName(BibliographyName name) =>
-        string.IsNullOrWhiteSpace(name.Literal) ? FormatStructuredBibName(name) : "{" + name.Literal + "}";
+        name.Literal == null ? FormatStructuredBibName(name) : "{" + name.Literal + "}";
 
     private static string FormatStructuredBibName(BibliographyName name) {
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
@@ -189,25 +189,42 @@ internal static class BibCodec {
     private static string FormatBibListItem(string value) =>
         string.IsNullOrWhiteSpace(value) || !string.Equals(value, value.Trim(), StringComparison.Ordinal) || value.IndexOf(',') >= 0 || value.IndexOf(';') >= 0 || value.Length >= 2 && value[0] == '{' && value[value.Length - 1] == '}' ? "{" + value + "}" : value;
 
-    private static string Escape(string value) {
+    private static string Escape(string value, CancellationToken cancellationToken) {
         int depth = 0;
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
             if (value[index] == '{') depth++;
-            else if (value[index] == '}') { if (depth == 0) return EscapeAllBraces(value); depth--; }
+            else if (value[index] == '}') { if (depth == 0) return EscapeAllBraces(value, cancellationToken); depth--; }
         }
-        string escaped = depth == 0 ? value : EscapeAllBraces(value);
-        return HasOddTrailingBackslash(escaped) ? escaped + "\\" : escaped;
+        cancellationToken.ThrowIfCancellationRequested();
+        string escaped = depth == 0 ? value : EscapeAllBraces(value, cancellationToken);
+        return HasOddTrailingBackslash(escaped, cancellationToken) ? escaped + "\\" : escaped;
     }
-    private static string EscapeAllBraces(string value) => value.Replace("{", "\\{").Replace("}", "\\}");
-    internal static bool HasOddTrailingBackslash(string value) {
+    private static string EscapeAllBraces(string value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var builder = new StringBuilder(value.Length);
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index] == '{' || value[index] == '}') builder.Append('\\');
+            builder.Append(value[index]);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return builder.ToString();
+    }
+    internal static bool HasOddTrailingBackslash(string value, CancellationToken cancellationToken = default) {
         int count = 0;
-        for (int index = value.Length - 1; index >= 0 && value[index] == '\\'; index--) count++;
+        for (int index = value.Length - 1; index >= 0 && value[index] == '\\'; index--) {
+            if ((count & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            count++;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return (count & 1) != 0;
     }
-    private static bool IsSafeDelimitedValue(string value) {
+    private static bool IsSafeDelimitedValue(string value, CancellationToken cancellationToken) {
         int depth = 0;
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] == '\\') {
                 if (++index >= value.Length) return false;
                 continue;
@@ -215,25 +232,34 @@ internal static class BibCodec {
             if (value[index] == '{') depth++;
             else if (value[index] == '}' && --depth < 0) return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return depth == 0;
     }
-    private static bool TryWriteNativeEntry(StringBuilder builder, BibliographyNativeEntry entry, string lineEnding) {
-        if (entry.Kind == "string" && IsSafeFieldName(entry.Name ?? string.Empty) && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+    private static bool TryWriteNativeEntry(StringBuilder builder, BibliographyNativeEntry entry, string lineEnding, CancellationToken cancellationToken) {
+        if (entry.Kind == "string" && IsSafeFieldName(entry.Name ?? string.Empty) && string.Equals(Escape(entry.Value, cancellationToken), entry.Value, StringComparison.Ordinal)) {
             builder.Append("@string{").Append(entry.Name).Append(" = {").Append(entry.Value).Append("}}").Append(lineEnding).Append(lineEnding);
             return true;
         }
-        if (entry.Kind == "preamble" && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+        if (entry.Kind == "preamble" && string.Equals(Escape(entry.Value, cancellationToken), entry.Value, StringComparison.Ordinal)) {
             builder.Append("@preamble{{").Append(entry.Value).Append("}}").Append(lineEnding).Append(lineEnding);
             return true;
         }
-        if (entry.Kind == "comment" && string.Equals(Escape(entry.Value), entry.Value, StringComparison.Ordinal)) {
+        if (entry.Kind == "comment" && string.Equals(Escape(entry.Value, cancellationToken), entry.Value, StringComparison.Ordinal)) {
             builder.Append("@comment{").Append(entry.Value).Append('}').Append(lineEnding).Append(lineEnding);
             return true;
         }
-        if (entry.Kind == "line-comment" && entry.Value.IndexOf('\r') < 0 && entry.Value.IndexOf('\n') < 0) {
+        if (entry.Kind == "line-comment" && !ContainsLineBreak(entry.Value, cancellationToken)) {
             builder.Append('%').Append(entry.Value).Append(lineEnding);
             return true;
         }
+        return false;
+    }
+    private static bool ContainsLineBreak(string value, CancellationToken cancellationToken) {
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index] == '\r' || value[index] == '\n') return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
     internal static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => IsSafeKeyCharacter(character) ? character : '_').ToArray());
@@ -257,7 +283,7 @@ internal static class BibCodec {
         format == BibliographyFormat.BibLatex && type == BibliographyItemType.Thesis ? "thesis" : CodecMappings.ToBibType(type);
 
     internal static bool CanRoundTripStructuredName(BibliographyName name) {
-        if (!string.IsNullOrWhiteSpace(name.Literal)) return string.IsNullOrWhiteSpace(name.Given) && string.IsNullOrWhiteSpace(name.Family) && string.IsNullOrWhiteSpace(name.Suffix) && string.IsNullOrWhiteSpace(name.NonDroppingParticle) && string.IsNullOrWhiteSpace(name.DroppingParticle);
+        if (name.Literal != null) return name.Given == null && name.Family == null && name.Suffix == null && name.NonDroppingParticle == null && name.DroppingParticle == null;
         if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(value => ContainsBibNameSyntaxSeparator(value) || HasNormalizedBibNameWhitespace(value))) return false;
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));

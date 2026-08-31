@@ -63,16 +63,17 @@ public sealed class BibliographyReviewWave41RegressionTests {
     [InlineData(BibliographyFormat.Ris, "TY  - JOUR\nID  - x\nTI  - Before\nPY  - Spring \nER  -")]
     [InlineData(BibliographyFormat.Nbib, "PT  - Journal Article\nTI  - Before\nDP  - Spring \nPMID- x")]
     [InlineData(BibliographyFormat.EndNoteXml, "<xml><records><record><rec-number>x</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Before</title></titles><dates><pub-dates><date>Spring </date></pub-dates></dates></record></records></xml>")]
-    public void Literal_date_whitespace_is_retained_for_strict_diagnostics(BibliographyFormat format, string source) {
+    public void Parsed_literal_date_trailing_whitespace_round_trips_strictly(BibliographyFormat format, string source) {
         BibliographyDocument document = BibliographyDocument.Parse(source, format).Document;
         BibliographyDate date = Assert.Single(document.Items[0].Dates);
         document.Items[0].Title = "After";
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Dates);
 
         Assert.Equal("Spring ", date.Literal);
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV246" && diagnostic.Field == "dates.Issued.literal");
+        Assert.Equal("Spring ", reopened.Literal);
+        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV246");
     }
 
     [Theory]

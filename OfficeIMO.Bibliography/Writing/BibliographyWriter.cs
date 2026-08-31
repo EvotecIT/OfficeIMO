@@ -274,8 +274,7 @@ internal static class BibliographyConversionInspector {
     }
 
     private static bool LiteralDateWhitespaceIsNormalized(string? value, BibliographyFormat format) {
-        if (value == null || string.Equals(value, value.Trim(), StringComparison.Ordinal)) return false;
-        return format != BibliographyFormat.EndNoteXml || value.Trim().Length > 0;
+        return !string.IsNullOrEmpty(value) && (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib) && char.IsWhiteSpace(value![0]);
     }
 
     private static bool IsValidDate(int? year, int? month, int? day) {
