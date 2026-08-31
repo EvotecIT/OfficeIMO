@@ -100,7 +100,15 @@ public enum ReaderInputKind {
     /// <summary>
     /// Standalone vCard stream.
     /// </summary>
-    VCard = 22
+    VCard = 22,
+    /// <summary>
+    /// Outline Processor Markup Language document.
+    /// </summary>
+    Opml = 23,
+    /// <summary>
+    /// DocBook XML article or book.
+    /// </summary>
+    DocBook = 24
 }
 
 /// <summary>

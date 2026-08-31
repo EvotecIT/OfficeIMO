@@ -98,8 +98,6 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 
 - [ ] Promote `OfficeIMO.Epub` from its current bounded read-only content model to EPUB 2/3 authoring and round-trip editing. Add typed metadata, manifest, spine, navigation, chapter, stylesheet, media, accessibility, and fixed-layout declarations; preserve unknown safe resources; reopen every output; and expose conversion through the shared Reader and conversion owners. Keep scripting, DRM, and general encrypted-resource handling outside the authoring contract.
 - [ ] Add `OfficeIMO.Bibliography` as the canonical citation-data owner with a source-preserving model and deterministic codecs for BibTeX/BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML. Map Word bibliography sources to that model instead of growing a second bibliography engine, preserve unknown fields with diagnostics, and treat citation-style rendering as a separate later product.
-- [ ] Add a small lossless `OfficeIMO.Opml` product for OPML 1.0/2.0 create, read, edit, and write, including nested outlines, subscription-list attributes, unknown attribute preservation, limits, Reader integration, and conversions to and from the shared outline/document model.
-- [ ] Add bounded DocBook 4/5 create, read, edit, write, validation, and conversion around a typed common-structure model plus lossless extension preservation. Prioritize articles, books, sections, metadata, lists, tables, code, links, notes, media, and indexes; expose the exact schema/profile used and do not promise an exhaustive object API for every vocabulary extension.
 - [ ] Add JATS Archiving and Publishing read, validation, preservation, and conversion, with create/edit/write limited initially to the JATS Article Authoring profile. Preserve namespaced extensions and front/body/back matter that the typed model does not yet understand, report the tag-set/version explicitly, and require schema plus reopen evidence before expanding the authored profile.
 - [ ] Evaluate FictionBook 2 as a lower-priority full XML ebook product after EPUB authoring is stable. Reuse shared document, image, metadata, and Reader contracts, preserve unknown namespaces, and require independently produced fixtures before committing to deterministic write support.
 
@@ -114,7 +112,7 @@ Treat a format as a full OfficeIMO product only when a stable public model can s
 ### Admission and sequencing
 
 - [ ] Extend the generated capability and conversion catalogs so every additional format declares `FullProduct`, `ReadConvert`, `SalvageRead`, or `IntentionalBoundary`, together with versions/profiles, security behavior, preservation guarantees, fixture provenance, and route maturity.
-- [ ] Deliver the first expansion wave in ownership order: bibliography and OPML; the DbaClientX-backed DBF adapter; EPUB authoring; bounded DocBook and JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
+- [ ] Deliver the remaining first expansion wave in ownership order: bibliography; the DbaClientX-backed DBF adapter; EPUB authoring; bounded JATS; then proprietary legacy and additional ebook readers selected by real fixture availability and consumer demand.
 - [ ] Require hostile-input limits, path and stream parity, cancellation where applicable, reopen or independent-reader evidence, deterministic-loss reporting, and license/provenance review before publishing any new format package. A file-extension detector or text scraper alone does not qualify as format support.
 
 ## Completion rule

@@ -10,7 +10,7 @@
 
 OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing, converting, and exporting Office and document formats. It runs in services, desktop applications, build agents, containers, and automation hosts without Microsoft Office, Excel, PowerPoint, Visio, or LibreOffice automation.
 
-This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, Apple iWork source, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
+This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its OneNote, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP, drawing, Apple iWork source, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
 Applications should keep OfficeIMO packages on the same coordinated version. Converters compose package-owned document models and expose result-bearing APIs when callers need fidelity diagnostics.
 
@@ -39,7 +39,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
-| Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
+| Drawing, OneNote, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, OPML, DocBook, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Apple iWork source reading | No third-party document engine | Bounded package, Snappy/IWA, protobuf-envelope, record-preservation, and Pages/Numbers/Keynote projection layers |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, and PNG/JPEG/TIFF/SVG/WebP output; opt-in bridges add RTF, MHTML, email-image, and PDF workflows |
@@ -58,11 +58,11 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated source packages | 95 |
-| Documented package, tool, and example projects below | 102 |
-| Native format, foundation, and shared-service packages | 27 |
+| Coordinated source packages | 99 |
+| Documented package, tool, and example projects below | 106 |
+| Native format, foundation, and shared-service packages | 29 |
 | Conversion and cloud bridge packages | 36 |
-| Unified Reader packages | 27 |
+| Unified Reader packages | 29 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx`, `.vstx`, `.vssx`, `.vsdm`, `.vstm`, `.vssm` |
@@ -368,6 +368,22 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no Asciidoctor process or parser 
 - [x] Opt-in bounded expansion for safe document-local simple macros
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or parser dependency.
+
+#### [OfficeIMO.Opml](OfficeIMO.Opml/README.md)
+
+- [x] OPML 1.0/2.0 create, read, edit, validate, convert, and deterministic write
+- [x] Nested outlines, subscription attributes, qualified extension attributes, and exact unchanged-source output
+- [x] Explicit size, character, depth, outline, and attribute limits with DTD processing disabled
+
+_Dependency footprint:_ only `OfficeIMO.Core`; no external parser or runtime dependency.
+
+#### [OfficeIMO.DocBook](OfficeIMO.DocBook/README.md)
+
+- [x] DocBook 4.5 and 5.2 article/book creation, bounded reading, editing, validation, conversion, and writing
+- [x] Typed common structures for metadata, sections, lists, tables, code, links, notes, media, and indexes
+- [x] Lossless extension preservation and exact schema identifiers without claiming exhaustive vocabulary validation
+
+_Dependency footprint:_ only `OfficeIMO.Core`; external schemas are identified but not downloaded at runtime.
 
 #### [OfficeIMO.CSV](OfficeIMO.CSV/README.md)
 
@@ -802,6 +818,13 @@ _Dependency footprint:_ only OfficeIMO.Reader.Core, AsciiDoc, and AsciiDoc.Markd
 
 _Dependency footprint:_ only OfficeIMO.Reader.Core and CSV.
 
+#### [OfficeIMO.Reader.DocBook](OfficeIMO.Reader.DocBook/README.md)
+
+- [x] Dedicated `.dbk` and `.docbook` registration while generic `.xml` remains with Reader.Xml
+- [x] Bounded common-structure chunks with section paths and profile warnings
+
+_Dependency footprint:_ only OfficeIMO.Reader.Core and DocBook.
+
 #### [OfficeIMO.Reader.Email](OfficeIMO.Reader.Email/README.md)
 
 - [x] One adapter package for EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, vCard, PST/OST/OLM/EMLX, mailbox directories, and OAB
@@ -887,6 +910,13 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core`, LaTeX, and LaTeX.Markdown.
 - [x] Deterministic ingestion without running kernels or executing cells
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core`; JSON comes from Reader's established runtime graph.
+
+#### [OfficeIMO.Reader.Opml](OfficeIMO.Reader.Opml/README.md)
+
+- [x] `.opml` registration with one or more bounded chunks per nested outline
+- [x] Stable IDs, hierarchy paths, and OPML validation warnings
+
+_Dependency footprint:_ only OfficeIMO.Reader.Core and OPML.
 
 #### [OfficeIMO.Reader.OneNote](OfficeIMO.Reader.OneNote/README.md)
 

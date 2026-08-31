@@ -232,7 +232,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ? null
         : new CoreRegion { X = region.X, Y = region.Y, Width = region.Width, Height = region.Height };
 
-    private static OfficeDocumentFormat MapFormat(ReaderInputKind kind) => kind switch {
+    internal static OfficeDocumentFormat MapFormat(ReaderInputKind kind) => kind switch {
         ReaderInputKind.Word => OfficeDocumentFormat.Word,
         ReaderInputKind.Excel => OfficeDocumentFormat.Excel,
         ReaderInputKind.PowerPoint => OfficeDocumentFormat.PowerPoint,
@@ -255,6 +255,8 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ReaderInputKind.OneNote => OfficeDocumentFormat.OneNote,
         ReaderInputKind.Calendar => OfficeDocumentFormat.Calendar,
         ReaderInputKind.VCard => OfficeDocumentFormat.VCard,
+        ReaderInputKind.Opml => OfficeDocumentFormat.Opml,
+        ReaderInputKind.DocBook => OfficeDocumentFormat.DocBook,
         _ => OfficeDocumentFormat.Unknown
     };
 
