@@ -50,6 +50,25 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task EnrichedDocument_MergesNativeAndOcrBlocksInVisualReadingOrder() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Native follows OCR"))
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "OCR first", 30, 5, 70, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
+        PdfLogicalPage page = Assert.Single(result.EnrichedDocument.Pages);
+
+        Assert.Equal("OCR first", page.TextBlocks[0].Text);
+        Assert.True(page.TextBlocks.ToList().FindIndex(static block =>
+            block.Text.Contains("Native follows OCR", StringComparison.Ordinal)) > 0);
+        Assert.True(result.EnrichedDocument.Text.IndexOf("OCR first", StringComparison.Ordinal) <
+            result.EnrichedDocument.Text.IndexOf("Native follows OCR", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task RecognizeAndMergeAsync_HonorsSelectionAndCancellation() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("One"))

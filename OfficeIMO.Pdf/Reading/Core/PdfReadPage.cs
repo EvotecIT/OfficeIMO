@@ -129,10 +129,21 @@ public sealed partial class PdfReadPage {
 
     /// <summary>Gets text spans (text with position and font info) from this page.</summary>
     public IReadOnlyList<PdfTextSpan> GetTextSpans() {
-        return GetTextSpans(_includeArtifactText);
+        return GetTextSpans(_includeArtifactText, default);
     }
 
     internal IReadOnlyList<PdfTextSpan> GetTextSpans(bool includeArtifactText) {
+        return GetTextSpans(includeArtifactText, default);
+    }
+
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(System.Threading.CancellationToken cancellationToken) {
+        return GetTextSpans(_includeArtifactText, cancellationToken);
+    }
+
+    internal IReadOnlyList<PdfTextSpan> GetTextSpans(
+        bool includeArtifactText,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         _demandTextExtraction?.Invoke();
         var spans = new List<PdfTextSpan>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
@@ -156,7 +167,10 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 pageHeight,
                 includeArtifactText: includeArtifactText,
-                pageContentBudget: pageContentBudget);
+                pageContentBudget: pageContentBudget,
+                cancellationCheck: cancellationToken.CanBeCanceled
+                    ? cancellationToken.ThrowIfCancellationRequested
+                    : null);
         }
 
         return spans;
@@ -610,7 +624,9 @@ public sealed partial class PdfReadPage {
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
-        int? contentStreamObjectNumber = null) {
+        int? contentStreamObjectNumber = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
@@ -677,7 +693,8 @@ public sealed partial class PdfReadPage {
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            contentStreamObjectNumber: contentStreamObjectNumber));
+            contentStreamObjectNumber: contentStreamObjectNumber,
+            cancellationCheck: cancellationCheck));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -707,7 +724,8 @@ public sealed partial class PdfReadPage {
                      initialStrokeColorSelection: initialStrokeColorSelection,
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array))) {
+                     inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                     cancellationCheck: cancellationCheck)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -759,7 +777,8 @@ public sealed partial class PdfReadPage {
                     invocation.RenderingIntent,
                     invocation.FillColorSelection,
                     invocation.StrokeColorSelection,
-                    formObjectNumber);
+                    formObjectNumber,
+                    cancellationCheck);
             } finally {
                 activeForms.Remove(formStream);
             }

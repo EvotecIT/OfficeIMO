@@ -53,7 +53,8 @@ internal static class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         var candidates = new List<PageEdgeCandidate>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
-            (double width, double height) = document.Pages[pageNumbers[pageIndex] - 1].GetPageSize();
+            PdfReadPage readPage = document.Pages[pageNumbers[pageIndex] - 1];
+            (double width, double height) = readPage.GetInteractionPageSize();
             if (width <= 0D || height <= 0D) continue;
             for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
                 workBudget.Consume();
@@ -64,9 +65,14 @@ internal static class PdfDocumentSemanticEnricher {
                     PdfUnderstandingSemanticKind.Footer or
                     PdfUnderstandingSemanticKind.Footnote)) continue;
                 PdfUnderstandingRegion region = element.Region;
-                PageEdge edge = region.YTop >= height * 0.85D
+                PdfVisualBounds visual = readPage.TransformBoundsToVisual(
+                    region.XStart,
+                    region.YBottom,
+                    region.XEnd,
+                    region.YTop);
+                PageEdge edge = visual.Top <= height * 0.15D
                     ? PageEdge.Header
-                    : region.YBottom <= height * 0.15D
+                    : visual.Bottom >= height * 0.85D
                         ? PageEdge.Footer
                         : PageEdge.None;
                 string signature = PdfTextSimilarity.NormalizeSignature(region.Text);
@@ -77,8 +83,8 @@ internal static class PdfDocumentSemanticEnricher {
                     pageNumbers[pageIndex],
                     edge,
                     signature,
-                    region.XStart / width,
-                    Math.Max(0D, region.XEnd - region.XStart) / width));
+                    visual.Left / width,
+                    Math.Max(0D, visual.Width) / width));
             }
         }
         if (candidates.Count < 2) return;
@@ -133,51 +139,56 @@ internal static class PdfDocumentSemanticEnricher {
             var usedLines = new HashSet<(long BaselineY, long XStart, string Text)>();
             var lineElements = new List<PdfUnderstandingSemanticElement>();
             foreach (PdfOutlineItem outline in pageOutlines) {
-                if (elements[pageIndex].Count > 0) workBudget.Consume(elements[pageIndex].Count);
                 string outlineText = PdfTextSimilarity.NormalizeSignaturePreservingDigits(outline.Title);
                 if (outlineText.Length == 0) continue;
-                var candidates = elements[pageIndex]
-                    .SelectMany((element, elementIndex) => element.Region.Lines.Select(line => new {
-                        Element = element,
-                        ElementIndex = elementIndex,
-                        Line = line,
-                        Key = CreateLineKey(line),
-                        Score = PdfTextSimilarity.NormalizedSimilarity(
+                OutlineLineCandidate? candidate = null;
+                for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
+                    PdfUnderstandingSemanticElement element = elements[pageIndex][elementIndex];
+                    for (int lineIndex = 0; lineIndex < element.Region.Lines.Count; lineIndex++) {
+                        workBudget.Consume();
+                        PdfUnderstandingLine line = element.Region.Lines[lineIndex];
+                        (long BaselineY, long XStart, string Text) key = CreateLineKey(line);
+                        if (usedLines.Contains(key)) continue;
+                        double score = PdfTextSimilarity.NormalizedSimilarity(
                             PdfTextSimilarity.NormalizeSignaturePreservingDigits(line.Text),
-                            outlineText)
-                    }))
-                    .Where(candidate => candidate.Score >= 0.9D && !usedLines.Contains(candidate.Key))
-                    .OrderBy(candidate => outline.DestinationTop.HasValue
-                        ? Math.Abs(candidate.Line.BaselineY - outline.DestinationTop.Value)
-                        : 0D)
-                    .ThenByDescending(static candidate => candidate.Line.FontSize)
-                    .ThenByDescending(static candidate => candidate.Score)
-                    .ThenBy(static candidate => candidate.Element.Region.Lines.Count)
-                    .FirstOrDefault();
-                if (candidates is null) continue;
+                            outlineText);
+                        if (score < 0.9D) continue;
+                        var current = new OutlineLineCandidate(
+                            element,
+                            elementIndex,
+                            line,
+                            key,
+                            score,
+                            outline.DestinationTop.HasValue
+                                ? Math.Abs(line.BaselineY - outline.DestinationTop.Value)
+                                : 0D);
+                        if (candidate is null || IsBetterOutlineCandidate(current, candidate)) candidate = current;
+                    }
+                }
+                if (candidate is null) continue;
 
-                usedLines.Add(candidates.Key);
+                usedLines.Add(candidate.Key);
                 var evidence = new PdfInferenceEvidence(
                     "semantic.outline-heading",
                     "A page-targeted outline title matches this line at outline level " + outline.Level + ".",
                     0.98D);
-                if (candidates.Element.Region.Lines.Count == 1) {
-                    elements[pageIndex][candidates.ElementIndex] = WithEvidence(
-                        candidates.Element,
+                if (candidate.Element.Region.Lines.Count == 1) {
+                    elements[pageIndex][candidate.ElementIndex] = WithEvidence(
+                        candidate.Element,
                         PdfUnderstandingSemanticKind.Heading,
-                        Math.Max(candidates.Element.Confidence, 0.96D),
+                        Math.Max(candidate.Element.Confidence, 0.96D),
                         evidence,
                         outline.Level);
                 } else {
                     var lineRegion = new PdfUnderstandingRegion(
-                        new[] { candidates.Line },
-                        candidates.Line.Confidence,
-                        candidates.Element.Region.Evidence);
+                        new[] { candidate.Line },
+                        candidate.Line.Confidence,
+                        candidate.Element.Region.Evidence);
                     lineElements.Add(new PdfUnderstandingSemanticElement(
                         lineRegion,
                         PdfUnderstandingSemanticKind.Heading,
-                        Math.Max(candidates.Element.Confidence, 0.96D),
-                        candidates.Element.Evidence.Concat(new[] { evidence }),
+                        Math.Max(candidate.Element.Confidence, 0.96D),
+                        candidate.Element.Evidence.Concat(new[] { evidence }),
                         outline.Level));
                 }
             }
@@ -196,22 +207,29 @@ internal static class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         PdfTaggedContentInfo? tagged = document.TaggedContent;
         if (tagged is null || tagged.StructureElements.Count == 0) return;
+        IReadOnlyDictionary<int, PdfStructureElementInfo> structuresByObject = tagged.StructureElements
+            .ToDictionary(static element => element.ObjectNumber);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             int pageNumber = pageNumbers[pageIndex];
             var rolesByMarkedContent = new Dictionary<MarkedContentKey, List<string>>();
             foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
-                if (string.IsNullOrWhiteSpace(structureElement.StructureType)) continue;
-                string role = ResolveRole(tagged, structureElement.StructureType!);
+                if (structureElement.MarkedContentReferences.Count == 0) continue;
+                TaggedStructureBinding? binding = ResolveTaggedBinding(
+                    tagged,
+                    structuresByObject,
+                    structureElement,
+                    workBudget);
+                if (!binding.HasValue) continue;
                 foreach (PdfMarkedContentReference reference in structureElement.MarkedContentReferences) {
                     workBudget.Consume();
-                    int? pageObjectNumber = reference.PageObjectNumber ?? structureElement.PageObjectNumber;
+                    int? pageObjectNumber = reference.PageObjectNumber ?? binding.Value.PageObjectNumber;
                     if (!pageObjectNumber.HasValue || document.GetPageNumberForObject(pageObjectNumber.Value) != pageNumber) continue;
                     var key = new MarkedContentKey(reference.ContentStreamObjectNumber, reference.MarkedContentId);
                     if (!rolesByMarkedContent.TryGetValue(key, out List<string>? roles)) {
                         roles = new List<string>();
                         rolesByMarkedContent.Add(key, roles);
                     }
-                    if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase)) roles.Add(role);
+                    if (!roles.Contains(binding.Value.Role, StringComparer.OrdinalIgnoreCase)) roles.Add(binding.Value.Role);
                 }
             }
             if (rolesByMarkedContent.Count == 0) continue;
@@ -310,6 +328,33 @@ internal static class PdfDocumentSemanticEnricher {
     private static string ResolveRole(PdfTaggedContentInfo tagged, string role) =>
         tagged.RoleMap.TryGetValue(role, out string? mapped) ? mapped : role;
 
+    private static TaggedStructureBinding? ResolveTaggedBinding(
+        PdfTaggedContentInfo tagged,
+        IReadOnlyDictionary<int, PdfStructureElementInfo> structuresByObject,
+        PdfStructureElementInfo structureElement,
+        PdfUnderstandingWorkBudget workBudget) {
+        var visited = new HashSet<int>();
+        PdfStructureElementInfo? current = structureElement;
+        string? semanticRole = null;
+        int? pageObjectNumber = null;
+        while (current is not null && visited.Add(current.ObjectNumber)) {
+            workBudget.Consume();
+            pageObjectNumber ??= current.PageObjectNumber;
+            if (semanticRole is null && !string.IsNullOrWhiteSpace(current.StructureType)) {
+                string candidate = ResolveRole(tagged, current.StructureType!);
+                if (TryMapTaggedRole(candidate).HasValue) semanticRole = candidate;
+            }
+            if (semanticRole is not null && pageObjectNumber.HasValue) break;
+            current = current.ParentObjectNumber.HasValue &&
+                structuresByObject.TryGetValue(current.ParentObjectNumber.Value, out PdfStructureElementInfo? parent)
+                ? parent
+                : null;
+        }
+        return semanticRole is null
+            ? null
+            : new TaggedStructureBinding(semanticRole, pageObjectNumber);
+    }
+
     private static TaggedRole? TryMapTaggedRole(string role) {
         int? headingLevel = HeadingLevel(role);
         if (headingLevel.HasValue) return new TaggedRole(role, PdfUnderstandingSemanticKind.Heading, headingLevel, 0);
@@ -365,6 +410,16 @@ internal static class PdfDocumentSemanticEnricher {
         }
     }
 
+    private static bool IsBetterOutlineCandidate(OutlineLineCandidate current, OutlineLineCandidate previous) {
+        int distance = current.DestinationDistance.CompareTo(previous.DestinationDistance);
+        if (distance != 0) return distance < 0;
+        int fontSize = current.Line.FontSize.CompareTo(previous.Line.FontSize);
+        if (fontSize != 0) return fontSize > 0;
+        int score = current.Score.CompareTo(previous.Score);
+        if (score != 0) return score > 0;
+        return current.Element.Region.Lines.Count < previous.Element.Region.Lines.Count;
+    }
+
     private static int Find(int[] parent, int value) {
         while (parent[value] != value) {
             parent[value] = parent[parent[value]];
@@ -405,6 +460,31 @@ internal static class PdfDocumentSemanticEnricher {
         PdfUnderstandingSemanticKind Kind,
         int? Level,
         int Priority);
+
+    private readonly record struct TaggedStructureBinding(string Role, int? PageObjectNumber);
+
+    private sealed class OutlineLineCandidate {
+        internal OutlineLineCandidate(
+            PdfUnderstandingSemanticElement element,
+            int elementIndex,
+            PdfUnderstandingLine line,
+            (long BaselineY, long XStart, string Text) key,
+            double score,
+            double destinationDistance) {
+            Element = element;
+            ElementIndex = elementIndex;
+            Line = line;
+            Key = key;
+            Score = score;
+            DestinationDistance = destinationDistance;
+        }
+        internal PdfUnderstandingSemanticElement Element { get; }
+        internal int ElementIndex { get; }
+        internal PdfUnderstandingLine Line { get; }
+        internal (long BaselineY, long XStart, string Text) Key { get; }
+        internal double Score { get; }
+        internal double DestinationDistance { get; }
+    }
 
     private readonly record struct MarkedContentKey(int? ContentStreamObjectNumber, int MarkedContentId) {
         internal string Format() => ContentStreamObjectNumber.HasValue

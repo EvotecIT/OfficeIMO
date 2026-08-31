@@ -1004,10 +1004,6 @@ public sealed partial class PdfDocumentReadResult {
             }
         }
 
-        for (int index = all.Count - 1; index >= 0; index--) {
-            PdfLogicalSection section = all[index];
-            section.Parent?.IncludeDescendantPage(section.LastPageNumber);
-        }
         _sections = roots.AsReadOnly();
         _allSections = all.AsReadOnly();
     }

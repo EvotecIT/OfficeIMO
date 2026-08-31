@@ -58,6 +58,8 @@ a second logical model.
 | `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
 | `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.DocumentInfo()` / `pdf.Read.Pages()` / `pdf.Read.Annotations()` | `PdfDocumentInfo info = pdf.Inspect()`; use `info`, `info.Pages`, and `info.Annotations` |
+| `pdf.Read.TryDocumentInfo()` / `TryPages()` / `TryAnnotations()` and other inspection `Try*` calls | There is no parallel `Try*` inspection surface. Use `PdfDocument.Preflight(...)` for non-throwing capability diagnosis, then call `pdf.Inspect()` inside the application's existing exception or result boundary. |
 | `pdf.Read.ParagraphContinuations(...)` | `result.GetParagraphContinuationGroups(...)` |
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
 | `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |

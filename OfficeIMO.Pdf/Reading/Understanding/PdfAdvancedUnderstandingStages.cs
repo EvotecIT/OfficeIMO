@@ -22,7 +22,7 @@ public static class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
             context.ThrowIfCancellationRequested();
-            return context.Page.GetTextSpans();
+            return context.Page.GetTextSpans(context.CancellationToken);
         }
     }
 
@@ -185,7 +185,11 @@ public static class PdfAdvancedUnderstandingStages {
             AddCanonicalTableRegions(context, lines, remaining, regions);
             int[] parent = Enumerable.Range(0, lines.Count).ToArray();
             double maximumVerticalGap = lines.Count == 0 ? 0D : lines.Max(static line => line.FontSize) * 2.2D;
-            int[] candidates = remaining.OrderBy(static index => index).ToArray();
+            int[] candidates = remaining
+                .OrderByDescending(index => lines[index].BaselineY)
+                .ThenBy(index => lines[index].XStart)
+                .ThenBy(static index => index)
+                .ToArray();
             for (int leftPosition = 0; leftPosition < candidates.Length; leftPosition++) {
                 int leftIndex = candidates[leftPosition];
                 for (int rightPosition = leftPosition + 1; rightPosition < candidates.Length; rightPosition++) {

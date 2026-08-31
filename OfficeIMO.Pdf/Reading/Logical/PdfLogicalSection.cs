@@ -80,6 +80,7 @@ public sealed class PdfLogicalSection {
     internal void IncludeDescendantPage(int pageNumber) => Touch(pageNumber);
 
     private void Touch(int pageNumber) {
-        if (pageNumber > LastPageNumber) LastPageNumber = pageNumber;
+        LastPageNumber = pageNumber;
+        Parent?.IncludeDescendantPage(pageNumber);
     }
 }

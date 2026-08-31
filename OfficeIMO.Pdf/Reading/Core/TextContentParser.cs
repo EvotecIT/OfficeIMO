@@ -300,7 +300,8 @@ internal static class TextContentParser {
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
-        int? contentStreamObjectNumber = null) {
+        int? contentStreamObjectNumber = null,
+        Action? cancellationCheck = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -377,6 +378,7 @@ internal static class TextContentParser {
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            cancellationCheck?.Invoke();
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
@@ -1292,7 +1294,8 @@ internal static class TextContentParser {
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<string, int>? inlineImageComponentCount = null,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        Action? cancellationCheck = null) {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
@@ -1338,6 +1341,7 @@ internal static class TextContentParser {
         var args = new List<object>(8);
 
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
+            cancellationCheck?.Invoke();
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
