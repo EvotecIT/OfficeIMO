@@ -1090,7 +1090,10 @@ public sealed partial class IWorkBoundaryTests {
                 byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
                 byte[] stringPayload = table.DuplicateString
                     ? Message(BytesField(3, stringEntry), BytesField(3, stringEntry))
-                    : Message(BytesField(3, stringEntry));
+                    : Message(new[] { BytesField(3, stringEntry) }
+                        .Concat(Enumerable.Range(0, table.UnexpectedStringCatalogFieldCount)
+                            .Select(value => VarintField(4, checked((ulong)value))))
+                        .ToArray());
                 records.Add(ArchiveRecord(stringListId, 6200, stringPayload));
             }
             if (table.DuplicateFormula) {
@@ -1105,7 +1108,10 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(5, table.FormulaPayload
                         ?? FormulaConstant(1d, table.MixedFormulaTypeWire)));
                 records.Add(ArchiveRecord(formulaListId, 6201,
-                    Message(BytesField(3, formulaEntry))));
+                    Message(new[] { BytesField(3, formulaEntry) }
+                        .Concat(Enumerable.Range(0, table.UnexpectedFormulaCatalogFieldCount)
+                            .Select(value => VarintField(4, checked((ulong)value))))
+                        .ToArray())));
             }
         }
 
@@ -1503,7 +1509,9 @@ public sealed partial class IWorkBoundaryTests {
             bool completeFormula = false, bool decimal128Underflow = false,
             bool unknownCellValueFlag = false, bool boolean = false,
             bool mixedFormulaTypeWire = false, byte[]? formulaPayload = null,
-            int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false) {
+            int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false,
+            int unexpectedStringCatalogFieldCount = 0,
+            int unexpectedFormulaCatalogFieldCount = 0) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1545,6 +1553,8 @@ public sealed partial class IWorkBoundaryTests {
             FormulaPayload = formulaPayload;
             UnexpectedTileFieldCount = unexpectedTileFieldCount;
             MixedRowIndexWire = mixedRowIndexWire;
+            UnexpectedStringCatalogFieldCount = unexpectedStringCatalogFieldCount;
+            UnexpectedFormulaCatalogFieldCount = unexpectedFormulaCatalogFieldCount;
         }
 
         internal string Name { get; }
@@ -1588,5 +1598,7 @@ public sealed partial class IWorkBoundaryTests {
         internal byte[]? FormulaPayload { get; }
         internal int UnexpectedTileFieldCount { get; }
         internal bool MixedRowIndexWire { get; }
+        internal int UnexpectedStringCatalogFieldCount { get; }
+        internal int UnexpectedFormulaCatalogFieldCount { get; }
     }
 }

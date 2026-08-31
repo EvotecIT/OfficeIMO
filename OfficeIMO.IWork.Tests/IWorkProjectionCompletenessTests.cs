@@ -304,7 +304,9 @@ public sealed partial class IWorkBoundaryTests {
         bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null,
         float? slideWidth = null, float? slideHeight = null,
         bool naturalAlignment = false, bool duplicateDrawableInField = false,
-        bool aliasDrawableAcrossFields = false, int? drawableReferenceCount = null) {
+        bool aliasDrawableAcrossFields = false, int? drawableReferenceCount = null,
+        int unexpectedSlideTreeFieldCount = 0, float? spaceBefore = null,
+        float? spaceAfter = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -313,6 +315,8 @@ public sealed partial class IWorkBoundaryTests {
         const ulong storageId = 6;
         byte[] slideTree = Message(Enumerable.Range(0, referenceCount)
             .Select(_ => ReferenceField(2, nodeId))
+            .Concat(Enumerable.Range(0, unexpectedSlideTreeFieldCount)
+                .Select(value => VarintField(1, checked((ulong)value))))
             .ToArray());
         var shapeFields = new List<byte[]> { ReferenceField(2, storageId) };
         if (rotation.HasValue) {
@@ -341,13 +345,17 @@ public sealed partial class IWorkBoundaryTests {
             extraRecords.Add(ArchiveRecord(characterStyleId, 2021,
                 Message(BytesField(11, Message(FloatField(3, fontSize.Value))))));
         }
-        if (naturalAlignment) {
+        if (naturalAlignment || spaceBefore.HasValue || spaceAfter.HasValue) {
             const ulong paragraphStyleId = 9;
             byte[] styleEntry = Message(VarintField(1, 0),
                 ReferenceField(2, paragraphStyleId));
             storageFields.Add(BytesField(5, Message(BytesField(1, styleEntry))));
+            var paragraphFields = new List<byte[]>();
+            if (naturalAlignment) paragraphFields.Add(VarintField(1, 4));
+            if (spaceBefore.HasValue) paragraphFields.Add(FloatField(21, spaceBefore.Value));
+            if (spaceAfter.HasValue) paragraphFields.Add(FloatField(20, spaceAfter.Value));
             extraRecords.Add(ArchiveRecord(paragraphStyleId, 2022,
-                Message(BytesField(12, Message(VarintField(1, 4))))));
+                Message(BytesField(12, Message(paragraphFields.ToArray())))));
         }
         byte[] slideSize = slideWidth.HasValue && slideHeight.HasValue
             ? BytesField(4, Message(FloatField(1, slideWidth.Value), FloatField(2, slideHeight.Value)))

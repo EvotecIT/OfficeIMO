@@ -173,16 +173,18 @@ internal static class IWorkKeynoteReader {
         IWorkWireMessage showMessage = index.Message(show);
         byte[]? slideTreeBytes = showMessage.GetBytes(3);
         int slideReferenceCount;
+        int slideTreeFieldCount = 0;
         try {
             slideReferenceCount = slideTreeBytes == null
                 || showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                     ? -1
                     : IWorkProtobuf.CountFields(slideTreeBytes, 2,
-                        source.Options.MaximumProtobufFieldCount);
+                        source.Options.MaximumProtobufFieldCount,
+                        out slideTreeFieldCount);
         } catch (InvalidDataException) {
             slideReferenceCount = -1;
         }
-        if (slideReferenceCount < 0) {
+        if (slideReferenceCount < 0 || slideTreeFieldCount != slideReferenceCount) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);

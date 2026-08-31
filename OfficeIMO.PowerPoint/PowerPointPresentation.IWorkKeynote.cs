@@ -335,7 +335,9 @@ public sealed partial class PowerPointPresentation {
         || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint;
 
     private static bool FitsSpacing(double? points) => !points.HasValue
-        || IsFinite(points.Value) && points.Value >= 0 && points.Value <= int.MaxValue / 100d;
+        || IsFinite(points.Value) && points.Value >= 0 && points.Value <= int.MaxValue / 100d
+        && Math.Abs(points.Value - Math.Round(points.Value * 100d,
+            MidpointRounding.AwayFromZero) / 100d) <= 0.00001d;
 
     private static bool FitsRotation(double degrees) => IsFinite(degrees)
         && Math.Abs(degrees) <= int.MaxValue / 60000d;
@@ -504,10 +506,11 @@ public sealed partial class PowerPointPresentation {
             return true;
         }
 
-        if (!token.All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
+        bool uppercase = token.All(character => character is >= 'A' and <= 'Z');
+        bool lowercase = token.All(character => character is >= 'a' and <= 'z');
+        if (!uppercase && !lowercase
             || !TryParseAlphabetic(token, out start) || start > MaximumStart
             || !parenthesized && !rightParenthesis && !period) return false;
-        bool uppercase = token.All(character => character is >= 'A' and <= 'Z');
         scheme = uppercase
             ? parenthesized ? PowerPointNumberingScheme.AlphaUpperCharacterParenBoth
                 : rightParenthesis ? PowerPointNumberingScheme.AlphaUpperCharacterParenR

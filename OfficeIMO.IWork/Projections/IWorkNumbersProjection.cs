@@ -729,7 +729,18 @@ internal static class IWorkNumbersReader {
     private static void EnsureCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
         IWorkReadOptions options, string catalogName) {
         int declaredEntryCount = IWorkProtobuf.CountFields(
-            list.Payload, 3, options.MaximumProtobufFieldCount);
+            list.Payload, 3, options.MaximumProtobufFieldCount,
+            out int totalFieldCount);
+        int identifierFieldCount = IWorkProtobuf.CountFields(
+            list.Payload, 1, options.MaximumProtobufFieldCount);
+        int metadataFieldCount = IWorkProtobuf.CountFields(
+            list.Payload, 2, options.MaximumProtobufFieldCount);
+        if (identifierFieldCount > 1 || metadataFieldCount > 1
+            || totalFieldCount - declaredEntryCount
+                != identifierFieldCount + metadataFieldCount) {
+            throw new InvalidDataException(
+                $"An iWork {catalogName} catalog contains fields outside the supported entry envelope.");
+        }
         if (declaredEntryCount > maximumEntries) {
             throw new InvalidDataException(
                 $"An iWork {catalogName} catalog exceeds the remaining materialized-cell limit of {maximumEntries}.");
