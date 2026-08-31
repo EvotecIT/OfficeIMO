@@ -113,7 +113,7 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(recordPrefix, recordElementName, recordNamespace);
                 WriteRecordAttributes(writer, item, report, cancellationToken);
                 WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
-                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
+                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", SanitizeXml(OutputType(document.SourceFormat, item), cancellationToken)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
                 WriteContributors(writer, item, recordNamespace, cancellationToken); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
                 WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace, cancellationToken);
@@ -366,8 +366,24 @@ internal static class EndNoteXmlCodec {
         limits.AddValue(items, serialized, GetOffset(element));
         nativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, AttributesEntryKind, serialized, element.Name.LocalName));
     }
-    private static string SerializeAttributes(XElement element, CancellationToken cancellationToken) =>
-        new XElement(element.Name, Cancellable(element.Attributes(), cancellationToken).Select(static attribute => new XAttribute(attribute))).ToString(SaveOptions.DisableFormatting);
+    private static string SerializeAttributes(XElement element, CancellationToken cancellationToken) {
+        var attributes = Cancellable(element.Attributes(), cancellationToken).Select(static attribute => new XAttribute(attribute)).ToList();
+        AddInheritedNamespaceDeclaration(element, element.Name.Namespace, attributes);
+        foreach (XAttribute attribute in Cancellable(element.Attributes(), cancellationToken)) {
+            if (!attribute.IsNamespaceDeclaration) AddInheritedNamespaceDeclaration(element, attribute.Name.Namespace, attributes);
+        }
+        return new XElement(element.Name, attributes).ToString(SaveOptions.DisableFormatting);
+    }
+    private static void AddInheritedNamespaceDeclaration(XElement element, XNamespace xmlNamespace, IList<XAttribute> attributes) {
+        if (xmlNamespace == XNamespace.None || xmlNamespace == XNamespace.Xml) return;
+        string? prefix = element.GetPrefixOfNamespace(xmlNamespace);
+        if (prefix == null || attributes.Any(attribute => IsNamespaceDeclaration(attribute, prefix))) return;
+        attributes.Add(prefix.Length == 0
+            ? new XAttribute("xmlns", xmlNamespace.NamespaceName)
+            : new XAttribute(XNamespace.Xmlns + prefix, xmlNamespace.NamespaceName));
+    }
+    private static bool IsNamespaceDeclaration(XAttribute attribute, string prefix) =>
+        attribute.IsNamespaceDeclaration && string.Equals(attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName, prefix, StringComparison.Ordinal);
     private static bool HasElementMetadata(XElement element) => element.HasAttributes || element.Name.Namespace != XNamespace.None;
     private static string GetDocumentElementNamespace(BibliographyDocument document, string elementName, string fallback, CancellationToken cancellationToken) {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
@@ -468,7 +484,7 @@ internal static class EndNoteXmlCodec {
     private static bool IsAttributesEntry(BibliographyNativeEntry entry, string elementName) =>
         entry.Format == BibliographyFormat.EndNoteXml && string.Equals(entry.Kind, AttributesEntryKind, StringComparison.Ordinal) && string.Equals(entry.Name, elementName, StringComparison.OrdinalIgnoreCase);
     private static bool IsConsumedEndNoteEntry(BibliographyDocument document, BibliographyNativeEntry entry) =>
-        entry.Format == BibliographyFormat.EndNoteXml && (entry.Kind == "element" || entry.Kind == RecordsElementEntryKind ||
+        entry.Format == BibliographyFormat.EndNoteXml && (entry.Kind == "element" && !document.EndNoteRecordsRoot || entry.Kind == RecordsElementEntryKind ||
             IsAttributesEntry(entry, document.EndNoteRootElementName ?? (document.EndNoteRecordsRoot ? "records" : "xml")) ||
             IsAttributesEntry(entry, document.EndNoteRecordsElementName ?? "records"));
     private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
@@ -626,7 +642,12 @@ internal static class EndNoteXmlCodec {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { builder.Append(value[index]).Append(value[++index]); continue; }
+            if (char.IsHighSurrogate(value[index])) {
+                if (index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) builder.Append(value[index]).Append(value[++index]);
+                else builder.Append('\uFFFD');
+                continue;
+            }
+            if (char.IsLowSurrogate(value[index])) { builder.Append('\uFFFD'); continue; }
             builder.Append(XmlConvert.IsXmlChar(value[index]) ? value[index] : '\uFFFD');
         }
         cancellationToken.ThrowIfCancellationRequested();

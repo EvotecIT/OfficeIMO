@@ -96,6 +96,8 @@ internal static class BibliographyConversionInspector {
     private static void InspectType(BibliographyItem item, BibliographyFormat sourceFormat, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format == BibliographyFormat.CslJson && CslJsonCodec.UsesNativeType(sourceFormat, item) && CslJsonCodec.ContainsInvalidUtf16(item.NativeType!, cancellationToken))
             Loss(report, item, "type", "BIBCONV250", "Invalid UTF-16 in the native item type is replaced during CSL JSON serialization.", BibliographyConversionAction.Approximated);
+        if (format == BibliographyFormat.EndNoteXml && EndNoteXmlCodec.CanPreserveNativeType(sourceFormat, item) && HasInvalidXmlCharacters(item.NativeType!, cancellationToken))
+            Loss(report, item, "type", "BIBCONV210", "Invalid XML characters in the native item type are replaced in EndNote XML.", BibliographyConversionAction.Approximated);
         bool exact;
         switch (format) {
             case BibliographyFormat.CslJson:
@@ -418,7 +420,11 @@ internal static class BibliographyConversionInspector {
     private static bool HasInvalidXmlCharacters(string value, CancellationToken cancellationToken) {
         for (int index = 0; index < value.Length; index++) {
             if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
-            if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
+            if (char.IsHighSurrogate(value[index])) {
+                if (index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
+                return true;
+            }
+            if (char.IsLowSurrogate(value[index])) return true;
             if (!System.Xml.XmlConvert.IsXmlChar(value[index])) return true;
         }
         cancellationToken.ThrowIfCancellationRequested();
