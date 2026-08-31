@@ -236,6 +236,10 @@ public sealed partial class PowerPointPresentation {
             }
             foreach (IWorkTextContent content in SlideText(slide)) {
                 foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
+                    if (paragraph.BreakKind is IWorkParagraphBreakKind.Section
+                        or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page) {
+                        return $"Keynote slide {slide.Index} contains a section, layout, or page break that cannot be represented inside PPTX slide text.";
+                    }
                     if (paragraph.ListLevel > 8) {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
@@ -337,7 +341,7 @@ public sealed partial class PowerPointPresentation {
         }
         textBox.Clear();
         bool first = true;
-        ulong? previousListIdentifier = null;
+        var listState = new IWorkPowerPointListState();
         foreach (IWorkTextParagraph sourceParagraph in source.Content.Paragraphs) {
             PowerPointParagraph paragraph;
             if (first) {
@@ -347,36 +351,28 @@ public sealed partial class PowerPointPresentation {
             } else {
                 paragraph = textBox.AddParagraph();
             }
-            bool startsNewList = sourceParagraph.ListLevel >= 0
-                && sourceParagraph.ListIdentifier != previousListIdentifier;
-            ApplyParagraphStyle(paragraph, sourceParagraph, startsNewList);
+            ApplyParagraphStyle(paragraph, sourceParagraph,
+                listState.StartsAtSourceLabel(sourceParagraph));
             WriteParagraphContent(paragraph, sourceParagraph);
-            previousListIdentifier = sourceParagraph.ListLevel >= 0
-                ? sourceParagraph.ListIdentifier
-                : null;
         }
     }
 
     private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source) {
         IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
             source.Paragraphs.Select(_ => string.Empty));
-        ulong? previousListIdentifier = null;
+        var listState = new IWorkPowerPointListState();
         for (int paragraphIndex = 0; paragraphIndex < source.Paragraphs.Count; paragraphIndex++) {
             IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
-            bool startsNewList = sourceParagraph.ListLevel >= 0
-                && sourceParagraph.ListIdentifier != previousListIdentifier;
-            ApplyParagraphStyle(paragraph, sourceParagraph, startsNewList);
+            ApplyParagraphStyle(paragraph, sourceParagraph,
+                listState.StartsAtSourceLabel(sourceParagraph));
             WriteParagraphContent(paragraph, sourceParagraph);
-            previousListIdentifier = sourceParagraph.ListLevel >= 0
-                ? sourceParagraph.ListIdentifier
-                : null;
         }
         notes.Save();
     }
 
     private static void ApplyParagraphStyle(PowerPointParagraph paragraph,
-        IWorkTextParagraph source, bool startsNewList) {
+        IWorkTextParagraph source, bool startsAtSourceLabel) {
         IWorkParagraphStyle style = source.Style;
         if (style.Alignment.HasValue) {
             paragraph.Alignment = style.Alignment.Value switch {
@@ -395,9 +391,30 @@ public sealed partial class PowerPointPresentation {
             if (string.IsNullOrEmpty(source.ListLabel)) paragraph.SetBullet('\u2022');
             else if (TryParseNumbering(source.ListLabel!, out PowerPointNumberingScheme scheme,
                          out int start)) {
-                if (startsNewList) paragraph.SetNumbered(scheme, start);
+                if (startsAtSourceLabel) paragraph.SetNumbered(scheme, start);
                 else paragraph.SetNumbered(scheme);
             } else if (source.ListLabel!.Length == 1) paragraph.SetBullet(source.ListLabel[0]);
+        }
+    }
+
+    private sealed class IWorkPowerPointListState {
+        private readonly HashSet<int> _observedLevels = new();
+        private bool _inList;
+        private ulong? _listIdentifier;
+
+        internal bool StartsAtSourceLabel(IWorkTextParagraph paragraph) {
+            if (paragraph.ListLevel < 0) {
+                _inList = false;
+                _listIdentifier = null;
+                _observedLevels.Clear();
+                return false;
+            }
+            if (!_inList || paragraph.ListIdentifier != _listIdentifier) {
+                _inList = true;
+                _listIdentifier = paragraph.ListIdentifier;
+                _observedLevels.Clear();
+            }
+            return _observedLevels.Add(paragraph.ListLevel);
         }
     }
 

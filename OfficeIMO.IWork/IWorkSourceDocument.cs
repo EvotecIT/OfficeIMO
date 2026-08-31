@@ -235,17 +235,17 @@ public sealed partial class IWorkSourceDocument {
         var previews = new List<IWorkPreviewAsset>();
         var recognizedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         long remainingDecodedBytes = maximumDecodedBytes;
-        foreach (IWorkPackageEntry entry in entries) {
-            string lower = entry.Path.ToLowerInvariant();
-            string? mediaType = lower.EndsWith(".jpg", StringComparison.Ordinal) || lower.EndsWith(".jpeg", StringComparison.Ordinal)
-                ? "image/jpeg"
-                : lower.EndsWith(".png", StringComparison.Ordinal)
-                    ? "image/png"
-                    : lower.EndsWith(".pdf", StringComparison.Ordinal)
-                        ? "application/pdf"
-                        : null;
-            if (mediaType == null || !IsKnownPreviewPath(lower)
-                || !recognizedPaths.Add(entry.Path)
+        IEnumerable<IWorkPackageEntry> candidates = entries
+            .Where(entry => PreviewMediaType(entry.Path) != null
+                && IsKnownPreviewPath(entry.Path.ToLowerInvariant()))
+            .OrderBy(entry => PreviewMediaType(entry.Path) == "application/pdf" ? 0 : 1)
+            .ThenBy(entry => PreviewRank(entry.Path))
+            .ThenByDescending(entry => entry.Bytes.LongLength)
+            .ThenBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(entry => entry.Path, StringComparer.Ordinal);
+        foreach (IWorkPackageEntry entry in candidates) {
+            string mediaType = PreviewMediaType(entry.Path)!;
+            if (recognizedPaths.Contains(entry.Path)
                 || !HasExpectedSignature(entry.Bytes, mediaType)) continue;
             IWorkVisualCoverage coverage = mediaType == "application/pdf"
                 ? IWorkVisualCoverage.FullDocument
@@ -255,6 +255,7 @@ public sealed partial class IWorkSourceDocument {
             if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
             if (decodedBytes < 0 || decodedBytes > remainingDecodedBytes) continue;
             remainingDecodedBytes -= decodedBytes;
+            recognizedPaths.Add(entry.Path);
             previews.Add(new IWorkPreviewAsset(entry.Path, mediaType, coverage, width, height, entry.Bytes));
         }
         return previews
@@ -266,10 +267,20 @@ public sealed partial class IWorkSourceDocument {
 
     private static int PreviewRank(string path) {
         string lower = path.ToLowerInvariant();
-        if (lower.EndsWith("preview.jpg", StringComparison.Ordinal) || lower.EndsWith("preview.png", StringComparison.Ordinal)) return 0;
+        if (lower.EndsWith("preview.jpg", StringComparison.Ordinal)
+            || lower.EndsWith("preview.jpeg", StringComparison.Ordinal)
+            || lower.EndsWith("preview.png", StringComparison.Ordinal)) return 0;
         if (lower.Contains("preview-web")) return 1;
         if (lower.Contains("preview-micro")) return 3;
         return 2;
+    }
+
+    private static string? PreviewMediaType(string path) {
+        string lower = path.ToLowerInvariant();
+        if (lower.EndsWith(".jpg", StringComparison.Ordinal)
+            || lower.EndsWith(".jpeg", StringComparison.Ordinal)) return "image/jpeg";
+        if (lower.EndsWith(".png", StringComparison.Ordinal)) return "image/png";
+        return lower.EndsWith(".pdf", StringComparison.Ordinal) ? "application/pdf" : null;
     }
 
     private static bool IsKnownPreviewPath(string lowerPath) {

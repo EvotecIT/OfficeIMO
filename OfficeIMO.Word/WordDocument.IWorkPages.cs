@@ -287,6 +287,14 @@ public partial class WordDocument {
             || projection.Images.Any(image => image.Hyperlink != null)) {
             return "Pages contains a drawable hyperlink that cannot be represented by the DOCX owner.";
         }
+        if (projection.Sections.SelectMany(section => section.HeaderContents)
+            .Concat(projection.Sections.SelectMany(section => section.FooterContents))
+            .Any(HasContainerScopedBreak)) {
+            return "Pages headers or footers contain a section, layout, or page break that cannot be represented inside a DOCX header or footer.";
+        }
+        if (projection.TextBoxObjects.Any(textBox => HasContainerScopedBreak(textBox.Content))) {
+            return "A Pages text box contains a section, layout, or page break that cannot be represented inside a DOCX text box.";
+        }
         if (projection.Body.Paragraphs
                 .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
                 .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
@@ -396,6 +404,10 @@ public partial class WordDocument {
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) yield return textBox.Content;
     }
+
+    private static bool HasContainerScopedBreak(IWorkTextContent content) =>
+        content.Paragraphs.Any(paragraph => paragraph.BreakKind is IWorkParagraphBreakKind.Section
+            or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
 
     private static bool FitsUnsignedTwips(double points) =>
         IsFinite(points) && points >= 0 && points <= uint.MaxValue / 20d;
