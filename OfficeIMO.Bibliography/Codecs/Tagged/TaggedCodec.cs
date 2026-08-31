@@ -69,6 +69,8 @@ internal static class TaggedCodec {
         BibliographyItem? current = null;
         string? previousTag = null;
         BibliographyNativeField? previousNativeField = null;
+        BibliographyIdentifier? previousIdentifier = null;
+        bool previousIdentifierControlsKey = false;
         for (int offset = 0, lineIndex = 0; offset <= source.Length; lineIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             int lineOffset = offset;
@@ -78,13 +80,15 @@ internal static class TaggedCodec {
             if (lineIndex == 0 && contentStart < lineEnd && source[contentStart] == '\uFEFF') contentStart++;
             if (IsWhiteSpace(source, contentStart, lineEnd, cancellationToken)) {
                 if (format == BibliographyFormat.Nbib) current = null;
-                previousTag = null; previousNativeField = null; continue;
+                previousTag = null; previousNativeField = null; previousIdentifier = null; previousIdentifierControlsKey = false; continue;
             }
             if (TrySplitLine(source, contentStart, lineEnd, items, limits, lineOffset, cancellationToken, out string tag, out string value)) {
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "TY", StringComparison.OrdinalIgnoreCase)) {
                     current = NewItem(items, limits, lineOffset); current.NativeType = value; current.Type = CodecMappings.ParseRisType(value);
                     previousTag = tag;
                     previousNativeField = null;
+                    previousIdentifier = null;
+                    previousIdentifierControlsKey = false;
                     continue;
                 } else if (format == BibliographyFormat.Nbib && string.Equals(tag, "PMID", StringComparison.OrdinalIgnoreCase) && current != null && !string.IsNullOrEmpty(current.Key)) {
                     current = NewItem(items, limits, lineOffset);
@@ -93,10 +97,17 @@ internal static class TaggedCodec {
                 if (format == BibliographyFormat.Ris && string.Equals(tag, "ER", StringComparison.OrdinalIgnoreCase)) {
                     if (value.Length > 0) diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG004", BibliographyDiagnosticSeverity.Warning, "RIS record terminator contains a value that cannot be preserved canonically.", offset: lineOffset, line: lineIndex + 1, column: 1, itemKey: current!.Key, field: tag));
                     current = null;
+                    previousNativeField = null;
+                    previousIdentifier = null;
+                    previousIdentifierControlsKey = false;
                 } else {
                     int nativeCount = current!.NativeFields.Count;
+                    int identifierCount = current.Identifiers.Count;
+                    bool accessionCanSetKey = format == BibliographyFormat.Ris && string.Equals(tag, "AN", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(current.Key);
                     Bind(current, format, tag, value);
                     previousNativeField = current.NativeFields.Count > nativeCount ? current.NativeFields[current.NativeFields.Count - 1] : null;
+                    previousIdentifier = current.Identifiers.Count > identifierCount ? current.Identifiers[current.Identifiers.Count - 1] : null;
+                    previousIdentifierControlsKey = accessionCanSetKey && previousIdentifier != null;
                 }
                 previousTag = tag;
             } else if (current != null && previousTag != null && (char.IsWhiteSpace(source[contentStart]) || format == BibliographyFormat.Ris)) {
@@ -107,7 +118,7 @@ internal static class TaggedCodec {
                     previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
                     if (format == BibliographyFormat.Nbib && string.Equals(previousTag, "PT", StringComparison.OrdinalIgnoreCase)) UpdateNbibPublicationTypeAfterContinuation(current, previousNativeField, cancellationToken);
                 }
-                else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
+                else AppendContinuation(current, format, previousTag, continuation, previousIdentifier, previousIdentifierControlsKey, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
         }
         if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items, cancellationToken);
@@ -324,7 +335,7 @@ internal static class TaggedCodec {
         item.Pages = hasStart && hasEnd ? item.RisPageStart + "-" + item.RisPageEnd : hasStart ? item.RisPageStart : hasEnd ? item.RisPageEnd : null;
     }
 
-    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyDiagnosticGuard diagnostics, int line, int offset, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyIdentifier? identifierBinding, bool identifierControlsKey, BibliographyDiagnosticGuard diagnostics, int line, int offset, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
         string field = tag.ToUpperInvariant();
         if (format == BibliographyFormat.Ris) {
             switch (field) {
@@ -343,9 +354,9 @@ internal static class TaggedCodec {
                 case "UR": case "L1": item.Url = AppendChecked(item.Url, value, items, limits, offset); return;
                 case "PY": case "Y1": case "DA": AppendDate(item, BibliographyDateRole.Issued, field, value, items, limits, offset); return;
                 case "Y2": AppendDate(item, BibliographyDateRole.Accessed, field, value, items, limits, offset); return;
-                case "DO": AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase), value, items, limits, offset); return;
-                case "SN": AppendIdentifier(item, static identifier => string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase), value, items, limits, offset); return;
-                case "AN": if (item.TaggedScalarBindings.Contains("Ris:key-from-accession")) item.Key = AppendChecked(item.Key, value, items, limits, offset); AppendIdentifier(item, static identifier => !string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase) && !string.Equals(identifier.Scheme, "SN", StringComparison.OrdinalIgnoreCase), value, items, limits, offset); return;
+                case "DO": AppendIdentifier(identifierBinding, value, items, limits, offset); return;
+                case "SN": AppendIdentifier(identifierBinding, value, items, limits, offset); return;
+                case "AN": if (identifierControlsKey) item.Key = AppendChecked(item.Key, value, items, limits, offset); AppendIdentifier(identifierBinding, value, items, limits, offset); return;
                 case "N1": AppendLast(item.Notes, value, items, limits, offset); return;
                 case "KW": AppendLast(item.Keywords, value, items, limits, offset); return;
                 case "AU": case "A1": AppendContributor(item, BibliographyContributorRole.Author, value, items, limits, offset); return;
@@ -417,8 +428,7 @@ internal static class TaggedCodec {
         date.Year = parsed.Year; date.Month = parsed.Month; date.Day = parsed.Day; date.EndYear = parsed.EndYear; date.EndMonth = parsed.EndMonth; date.EndDay = parsed.EndDay; date.Literal = parsed.Literal;
     }
 
-    private static void AppendIdentifier(BibliographyItem item, Func<BibliographyIdentifier, bool> predicate, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
-        BibliographyIdentifier? identifier = item.Identifiers.LastOrDefault(predicate);
+    private static void AppendIdentifier(BibliographyIdentifier? identifier, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
         if (identifier != null) identifier.Value = AppendChecked(identifier.Value, continuation, items, limits, offset);
     }
 

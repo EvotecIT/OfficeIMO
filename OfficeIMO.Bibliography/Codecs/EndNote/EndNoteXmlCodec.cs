@@ -135,7 +135,7 @@ internal static class EndNoteXmlCodec {
                             wroteUrls = true;
                         }
                         continue;
-                    } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace, cancellationToken) && TryWriteNativeField(writer, field, recordNamespace)) {
+                    } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace, cancellationToken) && TryWriteNativeField(writer, field, recordNamespace, cancellationToken)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
                     } else if (field.Format != BibliographyFormat.EndNoteXml) {
                         report.Add("BIBCONV115", BibliographyDiagnosticSeverity.Warning, $"Native {field.Format} field '{field.Name}' cannot be represented safely in EndNote XML.", BibliographyConversionAction.Omitted, item, field.Name);
@@ -278,14 +278,14 @@ internal static class EndNoteXmlCodec {
         writer.WriteStartElement(null, "dates", xmlNamespace);
         BibliographyNativeField? nativeYear = Cancellable(date.NativeFields, cancellationToken).FirstOrDefault(field => CanPreserveNativeDateField(date, field, cancellationToken));
         if (nativeYear != null) {
-            if (TryWriteNativeField(writer, nativeYear, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct EndNote XML year component.", BibliographyConversionAction.PreservedExtension, item, "dates.year");
+            if (TryWriteNativeField(writer, nativeYear, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct EndNote XML year component.", BibliographyConversionAction.PreservedExtension, item, "dates.year");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct EndNote XML year component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.year");
         } else if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
         string formatted = CodecMappings.FormatDate(date);
         BibliographyNativeField? nativePublicationDate = Cancellable(date.NativeFields, cancellationToken).FirstOrDefault(field => CanPreserveNativePublicationDateField(date, field, cancellationToken));
         writer.WriteStartElement(null, "pub-dates", xmlNamespace);
         if (nativePublicationDate != null) {
-            if (TryWriteNativeField(writer, nativePublicationDate, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct empty EndNote XML publication-date component.", BibliographyConversionAction.PreservedExtension, item, "dates.date");
+            if (TryWriteNativeField(writer, nativePublicationDate, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct empty EndNote XML publication-date component.", BibliographyConversionAction.PreservedExtension, item, "dates.date");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct empty EndNote XML publication-date component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.date");
         } else WriteElement(writer, "date", formatted, xmlNamespace);
         writer.WriteEndElement();
@@ -307,9 +307,9 @@ internal static class EndNoteXmlCodec {
         BibliographyNativeField[] additionalUrls = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace)).ToArray();
         if (item.Url == null && additionalUrls.Length == 0) return;
         writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
-        writer.WriteElementString(null, "url", xmlNamespace, item.Url == null ? string.Empty : SanitizeXml(item.Url));
+        writer.WriteElementString(null, "url", xmlNamespace, item.Url == null ? string.Empty : SanitizeXml(item.Url, cancellationToken));
         foreach (BibliographyNativeField field in Cancellable(additionalUrls, cancellationToken)) {
-            if (TryWriteNativeField(writer, field, xmlNamespace)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
+            if (TryWriteNativeField(writer, field, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
         }
         writer.WriteEndElement(); writer.WriteEndElement();
@@ -325,7 +325,18 @@ internal static class EndNoteXmlCodec {
         else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value, xmlNamespace);
     }
 
-    private static bool TryWriteElement(XmlWriter writer, string xml) { try { XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace); element.WriteTo(writer); return true; } catch (XmlException) { return false; } }
+    private static bool TryWriteElement(XmlWriter writer, string xml, CancellationToken cancellationToken = default) {
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
+            cancellationToken.ThrowIfCancellationRequested();
+            element.WriteTo(writer);
+            cancellationToken.ThrowIfCancellationRequested();
+            return true;
+        } catch (XmlException) {
+            return false;
+        }
+    }
     private static bool TryWriteRootElement(XmlWriter writer, BibliographyNativeEntry entry, string rootNamespace) {
         try {
             XElement element = XElement.Parse(entry.Value, LoadOptions.PreserveWhitespace);
@@ -457,24 +468,28 @@ internal static class EndNoteXmlCodec {
         entry.Format == BibliographyFormat.EndNoteXml && (entry.Kind == "element" || entry.Kind == RecordsElementEntryKind ||
             IsAttributesEntry(entry, document.EndNoteRootElementName ?? (document.EndNoteRecordsRoot ? "records" : "xml")) ||
             IsAttributesEntry(entry, document.EndNoteRecordsElementName ?? "records"));
-    private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field, string xmlNamespace) {
+    private static bool TryWriteNativeField(XmlWriter writer, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string? raw = field.UnmodifiedRawValue;
-        if (raw != null) return TryWriteElement(writer, raw);
-        if (HasInvalidXmlCharacters(field.Value)) return false;
-        if (field.RawValue != null) return TryWriteEditedNativeElement(writer, field);
+        if (raw != null) return TryWriteElement(writer, raw, cancellationToken);
+        if (HasInvalidXmlCharacters(field.Value, cancellationToken)) return false;
+        if (field.RawValue != null) return TryWriteEditedNativeElement(writer, field, cancellationToken);
         try {
             XmlConvert.VerifyNCName(field.Name);
-            writer.WriteElementString(null, field.Name, xmlNamespace, SanitizeXml(field.Value));
+            writer.WriteElementString(null, field.Name, xmlNamespace, SanitizeXml(field.Value, cancellationToken));
             return true;
         } catch (XmlException) {
             return false;
         }
     }
-    private static bool TryWriteEditedNativeElement(XmlWriter writer, BibliographyNativeField field) {
+    private static bool TryWriteEditedNativeElement(XmlWriter writer, BibliographyNativeField field, CancellationToken cancellationToken) {
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             XElement original = XElement.Parse(field.RawValue!, LoadOptions.PreserveWhitespace);
-            var edited = new XElement(original.Name, original.Attributes(), SanitizeXml(field.Value));
+            cancellationToken.ThrowIfCancellationRequested();
+            var edited = new XElement(original.Name, original.Attributes(), SanitizeXml(field.Value, cancellationToken));
             edited.WriteTo(writer);
+            cancellationToken.ThrowIfCancellationRequested();
             return true;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
             return false;
@@ -571,11 +586,13 @@ internal static class EndNoteXmlCodec {
             return true;
         }
     }
-    private static bool HasInvalidXmlCharacters(string value) {
+    internal static bool HasInvalidXmlCharacters(string value, CancellationToken cancellationToken = default) {
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { index++; continue; }
             if (!XmlConvert.IsXmlChar(value[index])) return true;
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
 
@@ -602,12 +619,14 @@ internal static class EndNoteXmlCodec {
         return !IsKnownContainer(element.Name.LocalName);
     }
     private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value)); }
-    private static string SanitizeXml(string value) {
+    internal static string SanitizeXml(string value, CancellationToken cancellationToken = default) {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (char.IsHighSurrogate(value[index]) && index + 1 < value.Length && char.IsLowSurrogate(value[index + 1])) { builder.Append(value[index]).Append(value[++index]); continue; }
             builder.Append(XmlConvert.IsXmlChar(value[index]) ? value[index] : '\uFFFD');
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
     private static bool HasUnsupportedNestedContent(XElement element, CancellationToken cancellationToken = default) {

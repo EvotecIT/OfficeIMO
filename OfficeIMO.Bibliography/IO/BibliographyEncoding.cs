@@ -97,7 +97,9 @@ internal static class BibliographyEncoding {
         byte[] preamble = encoding.GetPreamble();
         int offset = HasPreamble(bytes, preamble) ? preamble.Length : 0;
         int end = bytes.Length;
-        var decoder = encoding.GetDecoder();
+        var strictEncoding = (Encoding)encoding.Clone();
+        strictEncoding.DecoderFallback = DecoderFallback.ExceptionFallback;
+        var decoder = strictEncoding.GetDecoder();
         var characters = new char[4096];
         var builder = new StringBuilder(Math.Min(maximumCharacters, Math.Min(end - offset, characters.Length)));
         bool completed = false;
