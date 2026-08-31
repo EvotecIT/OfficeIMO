@@ -632,8 +632,15 @@ namespace OfficeIMO.Excel {
             public override bool Read() => ReadCore(_ct);
 
             /// <inheritdoc />
-            public override Task<bool> ReadAsync(CancellationToken cancellationToken) =>
-                Task.Run(() => ReadCore(cancellationToken), cancellationToken);
+            public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
+                try {
+                    return Task.FromResult(ReadCore(cancellationToken));
+                } catch (OperationCanceledException exception) when (exception.CancellationToken.IsCancellationRequested) {
+                    return Task.FromCanceled<bool>(exception.CancellationToken);
+                } catch (Exception exception) {
+                    return Task.FromException<bool>(exception);
+                }
+            }
 
             private bool ReadCore(CancellationToken cancellationToken) {
                 _ct.ThrowIfCancellationRequested();

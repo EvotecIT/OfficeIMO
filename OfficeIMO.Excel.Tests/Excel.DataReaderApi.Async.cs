@@ -133,8 +133,41 @@ public partial class Excel {
             });
 
         Volatile.Write(ref cancelDuringRead, true);
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => reader.ReadAsync(cancellation.Token));
+        Task<bool> canceledRead = reader.ReadAsync(cancellation.Token);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => canceledRead);
+        Assert.True(canceledRead.IsCanceled);
+    }
+
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsx)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    [InlineData(ExcelFileFormat.Xls)]
+    public async Task ReadAsyncCompletesRowAdvanceWithoutThreadPoolDispatch(ExcelFileFormat format) {
+        byte[] workbook;
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            sheet.CellValue(2, 1, "Alpha");
+            workbook = document.ToBytes(format);
+        }
+
+        int callerThread = Environment.CurrentManagedThreadId;
+        int converterThread = 0;
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            workbook,
+            new ExcelReadOptions {
+                InferSchema = false,
+                CellValueConverter = value => {
+                    Volatile.Write(ref converterThread, Environment.CurrentManagedThreadId);
+                    return ExcelCellValue.NotHandled;
+                }
+            });
+
+        Task<bool> read = reader.ReadAsync(CancellationToken.None);
+
+        Assert.True(read.IsCompleted);
+        Assert.True(await read);
+        Assert.Equal(callerThread, Volatile.Read(ref converterThread));
     }
 }
 #endif

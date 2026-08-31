@@ -27,3 +27,6 @@ fallback behavior are controlled through `ArrowReadOptions`. Native adapters cov
 integer, floating-point, decimal, timestamp, `DateOnly`, `TimeOnly`, `Guid`, binary, and text
 columns. Unsupported CLR types are converted to invariant text by default; set
 `ConvertUnsupportedTypesToString` to `false` when the pipeline should reject them instead.
+CLR `DateTime` columns become timezone-less Arrow timestamps so spreadsheet and database
+wall-clock values retain their original meaning. `DateTimeOffset` columns become UTC-aware
+timestamps and preserve their instant.

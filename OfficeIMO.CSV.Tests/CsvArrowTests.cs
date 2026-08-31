@@ -97,6 +97,32 @@ public sealed class CsvArrowTests {
     }
 
     [Fact]
+    public void ArrowAdapterSeparatesTimezoneLessDateTimeFromUtcDateTimeOffset() {
+        DateTime wallClock = new(2026, 8, 31, 14, 35, 12, DateTimeKind.Unspecified);
+        DateTimeOffset instant = new(2026, 8, 31, 14, 35, 12, TimeSpan.FromHours(2));
+        var table = new System.Data.DataTable();
+        table.Columns.Add("WallClock", typeof(DateTime));
+        table.Columns.Add("Instant", typeof(DateTimeOffset));
+        table.Rows.Add(wallClock, instant);
+        using var reader = table.CreateDataReader();
+
+        RecordBatch batch = Assert.Single(reader.ReadArrowBatches());
+        try {
+            var wallClockType = Assert.IsType<TimestampType>(batch.Schema.GetFieldByIndex(0).DataType);
+            var instantType = Assert.IsType<TimestampType>(batch.Schema.GetFieldByIndex(1).DataType);
+            Assert.False(wallClockType.IsTimeZoneAware);
+            Assert.True(instantType.IsTimeZoneAware);
+
+            var wallClockValues = Assert.IsType<TimestampArray>(batch.Column(0));
+            var instantValues = Assert.IsType<TimestampArray>(batch.Column(1));
+            Assert.Equal(wallClock.Ticks, wallClockValues.GetTimestamp(0)!.Value.UtcTicks);
+            Assert.Equal(instant.UtcTicks, instantValues.GetTimestamp(0)!.Value.UtcTicks);
+        } finally {
+            batch.Dispose();
+        }
+    }
+
+    [Fact]
     public void SyncArrowAdapterRejectsPreCancelledEmptyReader() {
         var table = new System.Data.DataTable();
         table.Columns.Add("Value", typeof(int));

@@ -228,6 +228,12 @@ public sealed partial class CsvDocument
 
         for (; index < text.Length; index++)
         {
+            if (canCancel && ((index - dataStart) & 0xFFFF) == 0)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                options.CancellationToken.ThrowIfCancellationRequested();
+            }
+
             char value = text[index];
             if (value is not '"' and not '\r' and not '\n' || index <= skipThrough)
             {
@@ -242,6 +248,12 @@ public sealed partial class CsvDocument
             {
                 return false;
             }
+        }
+
+        if (canCancel)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            options.CancellationToken.ThrowIfCancellationRequested();
         }
 
         if (state.InQuotes || text.Length - state.RecordStart > ushort.MaxValue)

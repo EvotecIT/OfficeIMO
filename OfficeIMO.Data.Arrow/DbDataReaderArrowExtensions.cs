@@ -168,13 +168,23 @@ public static class DbDataReaderArrowExtensions {
                         () => builder.Build());
                 });
             }
-            if (type == typeof(DateTime) || type == typeof(DateTimeOffset)) {
+            if (type == typeof(DateTime)) {
+                var timestampType = new TimestampType(TimeUnit.Microsecond, (string)null!);
+                return new ArrowColumnFactory(timestampType, capacity => {
+                    var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
+                    return new ArrowColumnBuilder(
+                        () => builder.AppendNull(),
+                        (reader, ordinal) => builder.Append(ToTimezoneLessTimestamp(reader.GetDateTime(ordinal))),
+                        () => builder.Build());
+                });
+            }
+            if (type == typeof(DateTimeOffset)) {
                 var timestampType = new TimestampType(TimeUnit.Microsecond, TimeZoneInfo.Utc);
                 return new ArrowColumnFactory(timestampType, capacity => {
                     var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
                     return new ArrowColumnBuilder(
                         () => builder.AppendNull(),
-                        (reader, ordinal) => builder.Append(ToDateTimeOffset(reader.GetValue(ordinal))),
+                        (reader, ordinal) => builder.Append(reader.GetFieldValue<DateTimeOffset>(ordinal).ToUniversalTime()),
                         () => builder.Build());
                 });
             }
@@ -242,13 +252,8 @@ public static class DbDataReaderArrowExtensions {
             });
         }
 
-        private static DateTimeOffset ToDateTimeOffset(object value) => value switch {
-            DateTimeOffset offset => offset.ToUniversalTime(),
-            DateTime dateTime when dateTime.Kind == DateTimeKind.Utc => new DateTimeOffset(dateTime),
-            DateTime dateTime when dateTime.Kind == DateTimeKind.Local => new DateTimeOffset(dateTime).ToUniversalTime(),
-            DateTime dateTime => new DateTimeOffset(DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)),
-            _ => throw new InvalidCastException($"Value of type '{value.GetType().FullName}' is not a date and time.")
-        };
+        private static DateTimeOffset ToTimezoneLessTimestamp(DateTime value) =>
+            new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
     }
 
     private sealed class ArrowColumnBuilder {
