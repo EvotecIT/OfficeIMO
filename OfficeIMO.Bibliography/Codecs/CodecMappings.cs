@@ -179,6 +179,7 @@ internal static class CodecMappings {
     internal static string[] OutputKeys(IList<BibliographyItem> items, BibliographyFormat format, CancellationToken cancellationToken) {
         StringComparer comparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
         var used = new HashSet<string>(comparer);
+        var nextSuffixes = new Dictionary<string, int>(comparer);
         var keys = new string[items.Count];
         for (int index = 0; index < items.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -186,9 +187,17 @@ internal static class CodecMappings {
                 ? "item-" + (index + 1).ToString(CultureInfo.InvariantCulture)
                 : NormalizeOutputKey(items[index].Key, format);
             string candidate = stem;
-            for (int suffix = 2; !used.Add(candidate); suffix++) {
+            if (!used.Add(candidate)) {
+                int suffix = nextSuffixes.TryGetValue(stem, out int nextSuffix) ? nextSuffix : 2;
+                do {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    candidate = stem + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+                    suffix++;
+                } while (!used.Add(candidate));
+                nextSuffixes[stem] = suffix;
+            } else {
                 cancellationToken.ThrowIfCancellationRequested();
-                candidate = stem + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+                nextSuffixes[stem] = 2;
             }
             keys[index] = candidate;
         }

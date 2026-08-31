@@ -249,7 +249,7 @@ internal static class BibliographyConversionInspector {
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && !CanRoundTripDateRange(format, date.Role))
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);
-            if (format != BibliographyFormat.CslJson && date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal))
+            if (format != BibliographyFormat.CslJson && date.Year.HasValue && date.Literal != null)
                 Loss(report, item, "dates." + date.Role + ".literal", "BIBCONV221", $"The literal date value is not represented alongside numeric date parts in {format}.", BibliographyConversionAction.Omitted);
             if ((format == BibliographyFormat.BibLatex || format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) &&
                 !date.Year.HasValue && !string.IsNullOrWhiteSpace(date.Literal) && CodecMappings.IsStructuredDateText(date.Literal!))

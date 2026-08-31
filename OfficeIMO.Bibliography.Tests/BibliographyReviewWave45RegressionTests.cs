@@ -5,13 +5,18 @@ namespace OfficeIMO.Bibliography.Tests;
 public sealed class BibliographyReviewWave45RegressionTests {
     [Fact]
     public void Malformed_CSL_location_scans_observe_cancellation() {
-        string source = new string('a', 16 * 1024 * 1024);
+        string source = new string('a', 64 * 1024 * 1024);
         var exception = new JsonException("Malformed JSON.", "$", 0, source.Length - 1);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
+        var cancellationThread = new Thread(() => { Thread.Sleep(1); cancellation.Cancel(); });
+        cancellationThread.Start();
 
-        Assert.Throws<OperationCanceledException>(() =>
-            CslJsonCodec.GetJsonLocation(source, exception, cancellation.Token, out _, out _, out _));
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                CslJsonCodec.GetJsonLocation(source, exception, cancellation.Token, out _, out _, out _));
+        } finally {
+            cancellationThread.Join();
+        }
     }
 
     [Fact]

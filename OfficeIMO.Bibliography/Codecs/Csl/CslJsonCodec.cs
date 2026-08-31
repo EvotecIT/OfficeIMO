@@ -78,7 +78,10 @@ internal static class CslJsonCodec {
         }
         string text = Encoding.UTF8.GetString(stream.ToArray());
         if (document.CslJsonSingleObjectRoot && document.Items.Count != 1) report.Add("BIBCONV130", BibliographyDiagnosticSeverity.Warning, "The single-item CSL JSON object root cannot represent the current item count.", BibliographyConversionAction.Approximated, field: "root-shape");
-        foreach (BibliographyNativeEntry entry in document.NativeEntries) report.Add("BIBCONV121", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in CSL JSON.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
+        foreach (BibliographyNativeEntry entry in document.NativeEntries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            report.Add("BIBCONV121", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in CSL JSON.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
+        }
         return options.LineEnding == "\n" ? text + options.LineEnding : NormalizeLineEndings(text, options.LineEnding) + options.LineEnding;
     }
 

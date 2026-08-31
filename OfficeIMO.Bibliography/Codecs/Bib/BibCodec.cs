@@ -24,6 +24,7 @@ internal static class BibCodec {
             else report.Add("BIBCONV118", BibliographyDiagnosticSeverity.Warning, $"Native BibTeX document entry '{entry.Kind}' is not safe to write.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         }
         foreach (BibliographyNativeEntry entry in document.NativeEntries.Where(entry => !IsBibFamily(entry.Format))) {
+            cancellationToken.ThrowIfCancellationRequested();
             report.Add("BIBCONV110", BibliographyDiagnosticSeverity.Warning, $"Document-level {entry.Format} entry '{entry.Kind}' cannot be represented in {format}.", BibliographyConversionAction.Omitted, field: entry.Name ?? entry.Kind);
         }
 
@@ -143,7 +144,7 @@ internal static class BibCodec {
             case "date": case "year": return ContainsAny(emitted, "date", "year");
             case "month": return ContainsAny(emitted, "date", "month") || !CodecMappings.ParseMonth(field.Value).HasValue;
             case "urldate": return false;
-            case "author": case "editor": case "translator":
+            case "author": case "editor": case "translator": return false;
             case "doi": case "isbn": case "issn": case "pmid": case "pmcid": return string.IsNullOrWhiteSpace(field.Value);
             case "keywords": case "note": return false;
             default: return false;

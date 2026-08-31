@@ -34,19 +34,24 @@ public sealed class BibliographyReviewWave34RegressionTests {
 
     [Fact]
     public void Baseline_fingerprinting_observes_cancellation_within_a_large_value() {
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = new string('x', 16 * 1024 * 1024) };
+        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = new string('x', 64 * 1024 * 1024) };
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
+        var cancellationThread = new Thread(() => { Thread.Sleep(1); cancellation.Cancel(); });
+        cancellationThread.Start();
 
-        Assert.Throws<OperationCanceledException>(() =>
-            new BibliographyDocument(
-                BibliographyFormat.CslJson,
-                new List<BibliographyItem> { item },
-                new List<BibliographyNativeEntry>(),
-                "[]",
-                null,
-                Array.Empty<BibliographyDiagnostic>(),
-                cancellationToken: cancellation.Token));
+        try {
+            Assert.Throws<OperationCanceledException>(() =>
+                new BibliographyDocument(
+                    BibliographyFormat.CslJson,
+                    new List<BibliographyItem> { item },
+                    new List<BibliographyNativeEntry>(),
+                    "[]",
+                    null,
+                    Array.Empty<BibliographyDiagnostic>(),
+                    cancellationToken: cancellation.Token));
+        } finally {
+            cancellationThread.Join();
+        }
     }
 
     [Theory]

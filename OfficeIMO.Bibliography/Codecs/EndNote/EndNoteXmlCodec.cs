@@ -161,10 +161,12 @@ internal static class EndNoteXmlCodec {
         BibliographyItemType itemType = ParseEndNoteType(refType, type, out string nativeType);
         var item = new BibliographyItem { Key = Value(record, "rec-number", cancellationToken), NativeType = nativeType, Type = itemType };
         AddStructuralTextDiagnostic(record, diagnostics, cancellationToken, item.Key);
-        if (refType?.Attribute("name") != null &&
-            int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber) &&
-            nativeTypeNumber != ToEndNoteNumber(item.Type))
-            diagnostics.Add(new BibliographyDiagnostic("BIBEND004", BibliographyDiagnosticSeverity.Warning, $"EndNote XML ref-type name '{type}' conflicts with numeric code '{nativeTypeNumber}'.", GetOffset(refType), itemKey: item.Key, field: "ref-type"));
+        if (refType?.Attribute("name") != null) {
+            if (!int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber))
+                diagnostics.Add(new BibliographyDiagnostic("BIBEND004", BibliographyDiagnosticSeverity.Warning, $"EndNote XML ref-type name '{type}' has nonnumeric code '{refType.Value}'.", GetOffset(refType), itemKey: item.Key, field: "ref-type"));
+            else if (nativeTypeNumber != ToEndNoteNumber(item.Type))
+                diagnostics.Add(new BibliographyDiagnostic("BIBEND004", BibliographyDiagnosticSeverity.Warning, $"EndNote XML ref-type name '{type}' conflicts with numeric code '{nativeTypeNumber}'.", GetOffset(refType), itemKey: item.Key, field: "ref-type"));
+        }
         if (HasElementMetadata(record) || !string.Equals(record.Name.LocalName, "record", StringComparison.Ordinal)) {
             string recordMetadata = SerializeAttributes(record, cancellationToken);
             limits.AddValue(partial, recordMetadata, GetOffset(record));
@@ -202,7 +204,7 @@ internal static class EndNoteXmlCodec {
             if (!knownRecordElement) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
             else if (ReferenceEquals(element, periodical) && retainedAdditionalPeriodical) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "periodical", element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
             else if (IsRepeatableRecordElement(element.Name.LocalName) && string.IsNullOrWhiteSpace(element.Value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
-            else if (IsEmptyKnownRecordContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken)) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            else if (IsEmptyKnownRecordContainer(element, cancellationToken) || HasEmptyKnownNestedContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken)) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
             if (ReferenceEquals(element, urls)) foreach (XElement relatedUrl in Cancellable(relatedUrls.Skip(1), cancellationToken)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits, cancellationToken)));
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBEND003", BibliographyDiagnosticSeverity.Warning, "EndNote XML record has no rec-number."));
@@ -548,6 +550,13 @@ internal static class EndNoteXmlCodec {
             case "contributors": case "titles": case "periodical": case "dates": case "urls": case "keywords": return true;
             default: return false;
         }
+    }
+    private static bool HasEmptyKnownNestedContainer(XElement element, CancellationToken cancellationToken = default) {
+        foreach (XElement descendant in Cancellable(element.Descendants(), cancellationToken)) {
+            if (!IsKnownContainer(descendant.Name.LocalName) || descendant.HasAttributes) continue;
+            if (!Cancellable(descendant.Nodes(), cancellationToken).Any(static node => !(node is XText text) || !string.IsNullOrWhiteSpace(text.Value))) return true;
+        }
+        return false;
     }
     private static bool IsAdditionalUrlField(BibliographyNativeField field, string xmlNamespace) {
         if (!string.Equals(field.Name, "url", StringComparison.OrdinalIgnoreCase)) return false;
