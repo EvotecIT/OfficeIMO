@@ -373,13 +373,11 @@ internal static class EndNoteXmlCodec {
         foreach (XAttribute attribute in Cancellable(element.Attributes(), cancellationToken)) {
             if (attribute.IsNamespaceDeclaration) {
                 string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
-                writer.WriteAttributeString("xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value);
+                WriteAttributeCancellable(writer, "xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value, cancellationToken);
                 continue;
             }
             string? attributePrefix = attribute.Name.Namespace == XNamespace.None ? null : element.GetPrefixOfNamespace(attribute.Name.Namespace);
-            writer.WriteStartAttribute(attributePrefix, attribute.Name.LocalName, attribute.Name.NamespaceName);
-            WriteStringCancellable(writer, attribute.Value, cancellationToken);
-            writer.WriteEndAttribute();
+            WriteAttributeCancellable(writer, attributePrefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value, cancellationToken);
         }
         foreach (XNode node in Cancellable(element.Nodes(), cancellationToken)) {
             if (node is XElement child) WriteElementCancellable(writer, child, cancellationToken);
@@ -436,6 +434,28 @@ internal static class EndNoteXmlCodec {
         cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
+    internal static bool ContainsLiteralAttributeWhitespace(string serializedCarrier, CancellationToken cancellationToken = default) {
+        bool insideElement = false;
+        char quote = '\0';
+        for (int index = 0; index < serializedCarrier.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char character = serializedCarrier[index];
+            if (!insideElement) {
+                if (character == '<' && index + 1 < serializedCarrier.Length && serializedCarrier[index + 1] != '?' && serializedCarrier[index + 1] != '!' && serializedCarrier[index + 1] != '/') insideElement = true;
+                continue;
+            }
+            if (quote == '\0') {
+                if (character == '\'' || character == '"') quote = character;
+                else if (character == '>') break;
+            } else if (character == quote) {
+                quote = '\0';
+            } else if (character == '\t' || character == '\n' || character == '\r') {
+                return true;
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
+    }
     private static void CaptureAttributes(XElement element, IList<BibliographyNativeEntry> nativeEntries, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
         if (!HasElementMetadata(element)) return;
         string serialized = SerializeAttributes(element, cancellationToken);
@@ -464,36 +484,36 @@ internal static class EndNoteXmlCodec {
     private static bool HasElementMetadata(XElement element) => element.HasAttributes || element.Name.Namespace != XNamespace.None;
     private static string GetDocumentElementNamespace(BibliographyDocument document, string elementName, string fallback, CancellationToken cancellationToken) {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
-        return entry == null ? fallback : GetCarrierNamespace(entry.Value, fallback);
+        return entry == null ? fallback : GetCarrierNamespace(entry.Value, fallback, cancellationToken);
     }
     private static string? GetDocumentElementPrefix(BibliographyDocument document, string elementName, CancellationToken cancellationToken) {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
-        return entry == null ? null : GetCarrierPrefix(entry.Value);
+        return entry == null ? null : GetCarrierPrefix(entry.Value, cancellationToken);
     }
     private static string GetRecordNamespace(BibliographyItem item, string fallback, CancellationToken cancellationToken) {
         BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
-        return field == null ? fallback : GetCarrierNamespace(field.Value, fallback);
+        return field == null ? fallback : GetCarrierNamespace(field.Value, fallback, cancellationToken);
     }
     private static string? GetRecordPrefix(BibliographyItem item, CancellationToken cancellationToken) {
         BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
-        return field == null ? null : GetCarrierPrefix(field.Value);
+        return field == null ? null : GetCarrierPrefix(field.Value, cancellationToken);
     }
     private static string GetRecordElementName(BibliographyItem item, CancellationToken cancellationToken) {
         BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
         if (field == null) return "record";
         try {
-            string localName = XElement.Parse(field.Value, LoadOptions.PreserveWhitespace).Name.LocalName;
+            string localName = ParseElementCancellable(field.Value, cancellationToken).Name.LocalName;
             return string.Equals(localName, "record", StringComparison.OrdinalIgnoreCase) ? localName : "record";
         } catch (XmlException) {
             return "record";
         }
     }
-    private static string GetCarrierNamespace(string serializedCarrier, string fallback) {
-        try { return XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace).Name.NamespaceName; } catch (XmlException) { return fallback; }
+    private static string GetCarrierNamespace(string serializedCarrier, string fallback, CancellationToken cancellationToken) {
+        try { return ParseElementCancellable(serializedCarrier, cancellationToken).Name.NamespaceName; } catch (XmlException) { return fallback; }
     }
-    private static string? GetCarrierPrefix(string serializedCarrier) {
+    private static string? GetCarrierPrefix(string serializedCarrier, CancellationToken cancellationToken) {
         try {
-            XElement carrier = XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace);
+            XElement carrier = ParseElementCancellable(serializedCarrier, cancellationToken);
             string? prefix = carrier.GetPrefixOfNamespace(carrier.Name.Namespace);
             return string.IsNullOrEmpty(prefix) ? null : prefix;
         } catch (XmlException) {
@@ -503,7 +523,7 @@ internal static class EndNoteXmlCodec {
     private static void WriteDocumentAttributes(XmlWriter writer, BibliographyDocument document, string elementName, BibliographyConversionReport report, CancellationToken cancellationToken) {
         BibliographyNativeEntry? entry = Cancellable(document.NativeEntries, cancellationToken).FirstOrDefault(candidate => IsAttributesEntry(candidate, elementName));
         if (entry == null) return;
-        if (TryWriteAttributes(writer, entry.Value)) report.Add("BIBCONV018", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML attributes on '{elementName}'.", BibliographyConversionAction.PreservedExtension, field: elementName);
+        if (TryWriteAttributes(writer, entry.Value, cancellationToken)) report.Add("BIBCONV018", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML attributes on '{elementName}'.", BibliographyConversionAction.PreservedExtension, field: elementName);
         else report.Add("BIBCONV131", BibliographyDiagnosticSeverity.Warning, $"EndNote XML attributes on '{elementName}' are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, field: elementName);
     }
     internal static bool CoalescesRecordsContainerMetadata(BibliographyDocument document, CancellationToken cancellationToken) {
@@ -525,38 +545,43 @@ internal static class EndNoteXmlCodec {
                 continue;
             }
             wroteAttributes = true;
-            if (TryWriteAttributes(writer, field.Value)) report.Add("BIBCONV019", BibliographyDiagnosticSeverity.Information, "Preserved EndNote XML record attributes.", BibliographyConversionAction.PreservedExtension, item, field.Name);
+            if (TryWriteAttributes(writer, field.Value, cancellationToken)) report.Add("BIBCONV019", BibliographyDiagnosticSeverity.Information, "Preserved EndNote XML record attributes.", BibliographyConversionAction.PreservedExtension, item, field.Name);
             else report.Add("BIBCONV132", BibliographyDiagnosticSeverity.Warning, "EndNote XML record attributes are malformed or conflicting and were omitted.", BibliographyConversionAction.Omitted, item, field.Name);
         }
     }
-    private static bool TryWriteAttributes(XmlWriter writer, string serializedCarrier) {
+    private static bool TryWriteAttributes(XmlWriter writer, string serializedCarrier, CancellationToken cancellationToken) {
         try {
-            XElement carrier = XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace);
-            XAttribute[] attributes = carrier.Attributes().ToArray();
+            XElement carrier = ParseElementCancellable(serializedCarrier, cancellationToken);
+            XAttribute[] attributes = Cancellable(carrier.Attributes(), cancellationToken).ToArray();
             var names = new HashSet<XName>();
             var namespacePrefixes = new HashSet<string>(StringComparer.Ordinal);
-            foreach (XAttribute attribute in attributes) {
+            foreach (XAttribute attribute in Cancellable(attributes, cancellationToken)) {
                 if (attribute.IsNamespaceDeclaration) {
                     string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
                     if (!namespacePrefixes.Add(declaredPrefix)) return false;
                 } else if (!names.Add(attribute.Name)) return false;
             }
-            foreach (XAttribute attribute in attributes) {
+            foreach (XAttribute attribute in Cancellable(attributes, cancellationToken)) {
                 if (attribute.IsNamespaceDeclaration) {
                     string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
                     string? elementPrefix = carrier.GetPrefixOfNamespace(carrier.Name.Namespace);
                     if (string.Equals(attribute.Value, carrier.Name.NamespaceName, StringComparison.Ordinal) &&
                         string.Equals(declaredPrefix, elementPrefix ?? string.Empty, StringComparison.Ordinal)) continue;
-                    writer.WriteAttributeString("xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value);
+                    WriteAttributeCancellable(writer, "xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value, cancellationToken);
                 } else {
                     string? prefix = attribute.Name.Namespace == XNamespace.None ? null : carrier.GetPrefixOfNamespace(attribute.Name.Namespace);
-                    writer.WriteAttributeString(prefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
+                    WriteAttributeCancellable(writer, prefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value, cancellationToken);
                 }
             }
             return true;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
             return false;
         }
+    }
+    private static void WriteAttributeCancellable(XmlWriter writer, string? prefix, string localName, string xmlNamespace, string value, CancellationToken cancellationToken) {
+        writer.WriteStartAttribute(prefix, localName, xmlNamespace);
+        WriteStringCancellable(writer, value, cancellationToken);
+        writer.WriteEndAttribute();
     }
     private static bool IsAttributesEntry(BibliographyNativeEntry entry, string elementName) =>
         entry.Format == BibliographyFormat.EndNoteXml && string.Equals(entry.Kind, AttributesEntryKind, StringComparison.Ordinal) && string.Equals(entry.Name, elementName, StringComparison.OrdinalIgnoreCase);

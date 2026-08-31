@@ -33,12 +33,11 @@ public sealed class BibliographyReviewWave26RegressionTests {
     public void Tagged_collection_serialization_observes_cancellation(BibliographyFormat format, string collection) {
         var document = new BibliographyDocument(format);
         var item = new BibliographyItem { Key = "x", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book };
-        for (int index = 0; index < 200_000; index++) {
-            if (collection == "contributors") item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Family" + index }));
-            else if (collection == "identifiers") item.Identifiers.Add(new BibliographyIdentifier("custom", index.ToString(System.Globalization.CultureInfo.InvariantCulture)));
-            else if (collection == "keywords") item.Keywords.Add("keyword" + index);
-            else item.Notes.Add("note" + index);
-        }
+        string value = new string('x', 64 * 1024 * 1024);
+        if (collection == "contributors") item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = value }));
+        else if (collection == "identifiers") item.Identifiers.Add(new BibliographyIdentifier("custom", value));
+        else if (collection == "keywords") item.Keywords.Add(value);
+        else item.Notes.Add(value);
         if (format == BibliographyFormat.Nbib) item.Identifiers.Insert(0, new BibliographyIdentifier("PMID", "x"));
         document.Items.Add(item);
         BibliographyCancellationTest.AssertObserved(token => {
