@@ -119,11 +119,15 @@ internal static class IWorkPdfInfo {
             || size <= 0 || IndexOfDictionaryName(bytes, "/XRefStm", dictionaryStart, dictionaryEnd) >= 0) {
             return false;
         }
-        int rootName = IndexOfDictionaryName(bytes, "/Root", dictionaryStart, dictionaryEnd);
+        int rootName = FindDictionaryName(bytes, "/Root", dictionaryStart, dictionaryEnd,
+            out int rootCount);
+        if (rootCount > 1) return false;
         hasRoot = rootName >= 0;
         if (hasRoot && (!TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Root",
                 out rootObject, out rootGeneration) || rootObject <= 0 || rootObject >= size)) return false;
-        int previousName = IndexOfDictionaryName(bytes, "/Prev", dictionaryStart, dictionaryEnd);
+        int previousName = FindDictionaryName(bytes, "/Prev", dictionaryStart, dictionaryEnd,
+            out int previousCount);
+        if (previousCount > 1) return false;
         hasPrevious = previousName >= 0;
         if (hasPrevious && !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd,
                 "/Prev", out previousOffset)) return false;
@@ -144,8 +148,8 @@ internal static class IWorkPdfInfo {
     private static bool TryReadDictionaryInteger(byte[] bytes, int start, int end,
         string name, out long value) {
         value = 0;
-        int offset = IndexOfDictionaryName(bytes, name, start, end);
-        if (offset < 0) return false;
+        int offset = FindDictionaryName(bytes, name, start, end, out int count);
+        if (offset < 0 || count != 1) return false;
         offset += name.Length;
         SkipWhitespace(bytes, ref offset, end);
         if (!TryReadDecimal(bytes, ref offset, end, out value)) return false;
@@ -157,8 +161,8 @@ internal static class IWorkPdfInfo {
         string name, out long objectNumber, out long generation) {
         objectNumber = 0;
         generation = 0;
-        int offset = IndexOfDictionaryName(bytes, name, start, end);
-        if (offset < 0) return false;
+        int offset = FindDictionaryName(bytes, name, start, end, out int count);
+        if (offset < 0 || count != 1) return false;
         offset += name.Length;
         SkipWhitespace(bytes, ref offset, end);
         if (!TryReadDecimal(bytes, ref offset, end, out objectNumber)) return false;
@@ -224,8 +228,8 @@ internal static class IWorkPdfInfo {
         string name, out IReadOnlyList<(long Object, long Generation)> references) {
         var result = new List<(long Object, long Generation)>();
         references = result;
-        int offset = IndexOfDictionaryName(bytes, name, start, end);
-        if (offset < 0) return false;
+        int offset = FindDictionaryName(bytes, name, start, end, out int count);
+        if (offset < 0 || count != 1) return false;
         offset += name.Length;
         SkipWhitespace(bytes, ref offset, end);
         if (offset >= end || bytes[offset++] != (byte)'[') return false;
@@ -326,15 +330,21 @@ internal static class IWorkPdfInfo {
 
     private static bool HasDictionaryNameValue(byte[] bytes, int start, int end,
         string name, string value) {
-        int offset = IndexOfDictionaryName(bytes, name, start, end);
-        if (offset < 0) return false;
+        int offset = FindDictionaryName(bytes, name, start, end, out int count);
+        if (offset < 0 || count != 1) return false;
         offset += name.Length;
         SkipWhitespace(bytes, ref offset, end);
         return StartsWith(bytes, offset, value)
             && (offset + value.Length >= end || IsDelimiter(bytes[offset + value.Length]));
     }
 
-    private static int IndexOfDictionaryName(byte[] bytes, string name, int start, int end) {
+    private static int IndexOfDictionaryName(byte[] bytes, string name, int start, int end) =>
+        FindDictionaryName(bytes, name, start, end, out _);
+
+    private static int FindDictionaryName(byte[] bytes, string name, int start, int end,
+        out int matchCount) {
+        matchCount = 0;
+        int firstMatch = -1;
         int dictionaryDepth = 0;
         int arrayDepth = 0;
         int literalDepth = 0;
@@ -440,12 +450,15 @@ internal static class IWorkPdfInfo {
                     && StartsWith(bytes, offset, name);
                 expectingKey = false;
                 offset = tokenEnd - 1;
-                if (matches) return nameOffset;
+                if (matches) {
+                    matchCount++;
+                    if (firstMatch < 0) firstMatch = nameOffset;
+                }
                 continue;
             }
             if (!expectingKey) expectingKey = true;
         }
-        return -1;
+        return firstMatch;
     }
 
     private static bool IsDelimiter(byte value) => IsWhitespace(value)

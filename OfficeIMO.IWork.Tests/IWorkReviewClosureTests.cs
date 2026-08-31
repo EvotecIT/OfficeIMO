@@ -203,17 +203,13 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Archive_identifiers_use_the_last_wire_value() {
+    public void Repeated_ArchiveInfo_identifiers_are_rejected() {
         byte[] payload = Message(VarintField(1, 42));
         using MemoryStream package = CreatePackage(("Index/Document.iwa",
             FrameIwa(ArchiveRecordWithRepeatedIdentifier(1, 1, payload))));
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
-        IWorkArchiveRecord record = Assert.Single(source.Records);
-
-        Assert.Equal(1ul, record.Identifier);
-        Assert.Equal(1u, record.MessageType);
-        Assert.Equal(payload, record.GetPayload());
+        Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers));
     }
 
     [Fact]

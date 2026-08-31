@@ -120,7 +120,8 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream CreatePagesImagePackage(bool duplicateMetadata,
         int imageCount, byte[] imageBytes, bool malformedIdentifierWire = false,
-        bool malformedImageIdentifierWire = false, int? metadataEntryCount = null) {
+        bool malformedImageIdentifierWire = false, int? metadataEntryCount = null,
+        int metadataOuterFieldCount = 0) {
         var records = new List<byte[]> { ArchiveRecord(1, 10000, Message()) };
         var metadataEntries = new List<byte[]>();
         var packageEntries = new List<(string Path, byte[] Bytes)>();
@@ -142,6 +143,8 @@ public sealed partial class IWorkBoundaryTests {
                 StringField(3, name), StringField(4, name))));
             packageEntries.Add(($"Data/{name}", imageBytes));
         }
+        metadataEntries.AddRange(Enumerable.Range(0, metadataOuterFieldCount)
+            .Select(index => BytesField(100, new[] { checked((byte)index) })));
         records.Add(ArchiveRecord(50, 11006, Message(metadataEntries.ToArray())));
         if (duplicateMetadata) {
             records.Add(ArchiveRecord(51, 11006, Message(metadataEntries.ToArray())));

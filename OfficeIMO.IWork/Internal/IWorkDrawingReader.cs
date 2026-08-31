@@ -199,8 +199,9 @@ internal static class IWorkDrawingReader {
                 $"iWork image metadata exceeds the configured projection limit of {source.Options.MaximumProjectedImages} entries.");
         }
         var result = new Dictionary<ulong, DataEntry>();
-        IReadOnlyList<IWorkWireMessage> messages = IWorkObjectIndex.TryGetMessages(
-            source.Index.Message(metadata), 4, out bool malformedEntries);
+        IReadOnlyList<IWorkWireMessage> messages = IWorkProtobuf.ParseRepeatedMessages(
+            metadata.Payload, 4, source.Options.MaximumProjectedImages,
+            source.Options, out bool malformedEntries);
         metadataComplete = !malformedEntries;
         foreach (IWorkWireMessage message in messages) {
             ulong? identifier = message.GetUnsigned(1);

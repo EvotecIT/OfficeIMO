@@ -353,8 +353,11 @@ public sealed partial class PowerPointPresentation {
         && Math.Abs(points.Value - Math.Round(points.Value * 100d,
             MidpointRounding.AwayFromZero) / 100d) <= 0.00001d;
 
-    private static bool FitsRotation(double degrees) => IsFinite(degrees)
-        && Math.Abs(degrees) <= int.MaxValue / 60000d;
+    private static bool FitsRotation(double degrees) {
+        double scaled = degrees * 60000d;
+        return IsFinite(degrees) && Math.Abs(degrees) <= int.MaxValue / 60000d
+            && scaled == Math.Round(scaled);
+    }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 

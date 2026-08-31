@@ -222,6 +222,76 @@ internal static class IWorkProtobuf {
         return matchCount;
     }
 
+    internal static IReadOnlyList<IWorkWireMessage> ParseRepeatedMessages(
+        byte[] data, int targetField, int maximumMatches, IWorkReadOptions options,
+        out bool malformedTarget) {
+        if (targetField <= 0) throw new ArgumentOutOfRangeException(nameof(targetField));
+        if (maximumMatches <= 0) throw new ArgumentOutOfRangeException(nameof(maximumMatches));
+        var result = new List<IWorkWireMessage>();
+        malformedTarget = false;
+        int offset = 0;
+        int fieldCount = 0;
+        int matchCount = 0;
+        while (offset < data.Length) {
+            int keyOffset = offset;
+            ulong key = ReadVarint(data, ref offset);
+            if (key >> 3 == 0 || key >> 3 > int.MaxValue) {
+                throw new InvalidDataException($"Invalid protobuf field number at offset {keyOffset}.");
+            }
+            int field = (int)(key >> 3);
+            int wire = (int)(key & 7);
+            bool target = field == targetField;
+            switch (wire) {
+                case 0:
+                    ReadVarint(data, ref offset);
+                    if (target) malformedTarget = true;
+                    break;
+                case 1:
+                    EnsureAvailable(data, offset, 8, "fixed64");
+                    offset += 8;
+                    if (target) malformedTarget = true;
+                    break;
+                case 2:
+                    ulong rawLength = ReadVarint(data, ref offset);
+                    if (rawLength > int.MaxValue) {
+                        throw new InvalidDataException("A protobuf field exceeds the supported length.");
+                    }
+                    int length = (int)rawLength;
+                    EnsureAvailable(data, offset, length, "length-delimited field");
+                    if (target) {
+                        if (matchCount >= maximumMatches) {
+                            throw new InvalidDataException(
+                                $"A protobuf field exceeds the configured match limit of {maximumMatches}.");
+                        }
+                        matchCount++;
+                        var bytes = new byte[length];
+                        Buffer.BlockCopy(data, offset, bytes, 0, length);
+                        try {
+                            result.Add(Parse(bytes, options, depth: 1));
+                        } catch (InvalidDataException) {
+                            malformedTarget = true;
+                        }
+                    }
+                    offset += length;
+                    break;
+                case 5:
+                    EnsureAvailable(data, offset, 4, "fixed32");
+                    offset += 4;
+                    if (target) malformedTarget = true;
+                    break;
+                default:
+                    throw new InvalidDataException(
+                        $"Unsupported protobuf wire type {wire} at offset {keyOffset}.");
+            }
+            fieldCount++;
+            if (fieldCount > options.MaximumProtobufFieldCount) {
+                throw new InvalidDataException(
+                    $"A protobuf message exceeds the configured field limit of {options.MaximumProtobufFieldCount}.");
+            }
+        }
+        return result;
+    }
+
     internal static IWorkWireMessage Parse(byte[] data, IWorkReadOptions options, int depth = 0) {
         if (depth > options.MaximumProtobufDepth) {
             throw new InvalidDataException($"Protobuf nesting exceeds the configured depth of {options.MaximumProtobufDepth}.");

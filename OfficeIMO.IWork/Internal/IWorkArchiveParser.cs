@@ -164,7 +164,8 @@ internal static class IWorkArchiveParser {
             }
             IWorkWireMessage archiveInfo = IWorkProtobuf.Parse(infoBytes, options);
             ulong? identifier = archiveInfo.GetUnsigned(1);
-            if (!identifier.HasValue || archiveInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
+            if (archiveInfo.FieldCount(1) != 1 || !identifier.HasValue
+                || archiveInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
                 throw new InvalidDataException("ArchiveInfo does not declare a valid object identifier.");
             }
 

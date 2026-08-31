@@ -497,7 +497,8 @@ internal static class IWorkFormulaReader {
     }
 
     private static string FormatNumber(IWorkWireMessage node, ref bool complete) {
-        if (node.FieldCount(4) > 1 || node.FieldCount(7) > 1 || node.FieldCount(8) > 1
+        int numericFieldCount = node.FieldCount(4) + node.FieldCount(7) + node.FieldCount(8);
+        if (numericFieldCount != 1
             || node.HasUnexpectedWireKind(4, IWorkWireKind.Fixed64)
             || node.HasUnexpectedWireKind(7, IWorkWireKind.Fixed64)
             || node.HasUnexpectedWireKind(8, IWorkWireKind.Fixed64)) complete = false;
