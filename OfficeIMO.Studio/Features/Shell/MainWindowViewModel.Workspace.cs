@@ -37,6 +37,9 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     private double _cropMargin = 12D;
 
+    [ObservableProperty]
+    private int _splitPagesPerDocument = 1;
+
     public ObservableCollection<PdfSearchHit> SearchResults { get; } = new();
 
     public ObservableCollection<PdfBookmarkViewModel> Bookmarks { get; } = new();
@@ -47,9 +50,13 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanMutateSelection => HasOrganizerSelection && CanMutatePages;
 
+    public bool CanExtractSelection => HasOrganizerSelection && CanExtractPages;
+
+    public bool CanDeleteSelection => CanMutateSelection && _workspace is not null && _organizerSelection.Count < _workspace.Pages.Count;
+
     public string OrganizerSelectionLabel => _organizerSelection.Count == 0
         ? "Select pages"
-        : $"{_organizerSelection.Count} selected";
+        : $"{_organizerSelection.Count} of {OrganizerPages.Count} selected";
 
     partial void OnSelectedSearchResultChanged(PdfSearchHit? value) {
         if (value is not null) NavigateToPage(value.PageNumber);
@@ -62,10 +69,35 @@ public sealed partial class MainWindowViewModel {
     internal void SetOrganizerSelection(IEnumerable<PdfOrganizerPageViewModel> pages) {
         _organizerSelection.Clear();
         foreach (PdfOrganizerPageViewModel page in pages) _organizerSelection.Add(page.PageNumber);
+        foreach (PdfOrganizerPageViewModel page in OrganizerPages) {
+            page.IsSelected = _organizerSelection.Contains(page.PageNumber);
+        }
+        NotifyOrganizerSelectionChanged();
+    }
+
+    internal void UpdateOrganizerSelection(
+        IEnumerable<PdfOrganizerPageViewModel> addedPages,
+        IEnumerable<PdfOrganizerPageViewModel> removedPages) {
+        foreach (PdfOrganizerPageViewModel page in removedPages) {
+            _organizerSelection.Remove(page.PageNumber);
+            page.IsSelected = false;
+        }
+        foreach (PdfOrganizerPageViewModel page in addedPages) {
+            _organizerSelection.Add(page.PageNumber);
+            page.IsSelected = true;
+        }
+        NotifyOrganizerSelectionChanged();
+    }
+
+    private void NotifyOrganizerSelectionChanged() {
         OnPropertyChanged(nameof(HasOrganizerSelection));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanExtractSelection));
+        OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(OrganizerSelectionLabel));
     }
+
+    internal void NavigateToOrganizerPage(int pageNumber) => NavigateToPage(pageNumber);
 
     internal async Task ReorderByDropAsync(int draggedPageNumber, int targetPageNumber) {
         if (_workspace is null || !CanMutatePages || draggedPageNumber == targetPageNumber) return;
@@ -79,9 +111,11 @@ public sealed partial class MainWindowViewModel {
         int targetIndex = remaining.IndexOf(targetPageNumber);
         if (targetIndex < 0) targetIndex = remaining.Count;
         remaining.InsertRange(targetIndex, moved);
+        int[] selectionAfter = MapSelectedPagesToReorderedPositions(remaining, moved);
         await RunMutationAsync(
             token => _workspace.ReorderAsync(remaining, token, CreateProgress()),
-            CancellationToken.None).ConfigureAwait(true);
+            CancellationToken.None,
+            selectionAfter).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -128,21 +162,25 @@ public sealed partial class MainWindowViewModel {
     private async Task RotateLeftAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
-        await RunMutationAsync(token => _workspace.RotateAsync(pages, -90, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        await RunMutationAsync(token => _workspace.RotateAsync(pages, -90, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task RotateRightAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
-        await RunMutationAsync(token => _workspace.RotateAsync(pages, 90, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        await RunMutationAsync(token => _workspace.RotateAsync(pages, 90, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task DuplicateSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
-        await RunMutationAsync(token => _workspace.DuplicateAsync(pages, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        int[] duplicatePositions = pages.Select((pageNumber, index) => pageNumber + index + 1).ToArray();
+        await RunMutationAsync(
+            token => _workspace.DuplicateAsync(pages, token, CreateProgress()),
+            cancellationToken,
+            duplicatePositions).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -153,6 +191,10 @@ public sealed partial class MainWindowViewModel {
             ErrorMessage = "A PDF must keep at least one page.";
             return;
         }
+        if (!await _confirmPageDeletion(pages.Length).ConfigureAwait(true)) {
+            OperationStatus = "Delete cancelled";
+            return;
+        }
         await RunMutationAsync(token => _workspace.DeleteAsync(pages, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
     }
 
@@ -160,21 +202,23 @@ public sealed partial class MainWindowViewModel {
     private async Task MoveSelectedUpAsync(CancellationToken cancellationToken) {
         int[] order = BuildMovedOrder(moveUp: true);
         if (_workspace is null || order.Length == 0) return;
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
+        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task MoveSelectedDownAsync(CancellationToken cancellationToken) {
         int[] order = BuildMovedOrder(moveUp: false);
         if (_workspace is null || order.Length == 0) return;
-        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        int[] selectionAfter = MapSelectedPagesToReorderedPositions(order, GetSelectedPages());
+        await RunMutationAsync(token => _workspace.ReorderAsync(order, token, CreateProgress()), cancellationToken, selectionAfter).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task CropSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
         if (_workspace is null || pages.Length == 0) return;
-        await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken).ConfigureAwait(true);
+        await RunMutationAsync(token => _workspace.CropByMarginAsync(pages, CropMargin, token, CreateProgress()), cancellationToken, pages).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -188,26 +232,36 @@ public sealed partial class MainWindowViewModel {
             : _workspace.Pages[SelectedPage.PageNumber - 1];
         await RunMutationAsync(
             token => _workspace.InsertBlankAsync(insertBefore, reference.Width, reference.Height, token, CreateProgress()),
-            cancellationToken).ConfigureAwait(true);
+            cancellationToken,
+            new[] { insertBefore }).ConfigureAwait(true);
     }
 
     [RelayCommand]
     private async Task ImportPagesAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
-        string? path = await _pickImportPdf(cancellationToken).ConfigureAwait(true);
-        if (string.IsNullOrWhiteSpace(path)) return;
+        if (_workspace is null || !CanImportPages) return;
+        IReadOnlyList<string> paths = await _pickImportPdfs(cancellationToken).ConfigureAwait(true);
+        if (paths.Count == 0) return;
         int insertBefore = _organizerSelection.Count == 0
             ? _workspace.Pages.Count + 1
             : _organizerSelection.Min();
-        await RunMutationAsync(
-            token => _workspace.ImportAsync(path, insertBefore, token, CreateProgress()),
+        int importedPageCount = 0;
+        bool succeeded = await RunStandaloneAsync(
+            async token => importedPageCount = await _workspace
+                .ImportAsync(paths, insertBefore, token, CreateProgress())
+                .ConfigureAwait(true),
             cancellationToken).ConfigureAwait(true);
+        if (succeeded) {
+            RefreshWorkspacePresentation(Enumerable.Range(insertBefore, importedPageCount).ToArray());
+            OperationStatus = importedPageCount == 1
+                ? "Imported 1 page"
+                : $"Imported {importedPageCount} pages from {paths.Count} PDFs";
+        }
     }
 
     [RelayCommand]
     private async Task ExtractSelectedAsync(CancellationToken cancellationToken) {
         int[] pages = GetSelectedPages();
-        if (_workspace is null || pages.Length == 0) return;
+        if (_workspace is null || !CanExtractPages || pages.Length == 0) return;
         string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(path)) return;
         await RunStandaloneAsync(
@@ -217,13 +271,27 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private async Task SplitAsync(CancellationToken cancellationToken) {
-        if (_workspace is null) return;
+        if (_workspace is null || !CanExtractPages) return;
         string? folder = await _pickOutputFolder(cancellationToken).ConfigureAwait(true);
         if (string.IsNullOrWhiteSpace(folder)) return;
-        await RunStandaloneAsync(
-            token => _workspace.SplitAsync(folder, 1, token, CreateProgress()),
+        IReadOnlyList<string> outputs = Array.Empty<string>();
+        bool succeeded = await RunStandaloneAsync(
+            async token => outputs = await _workspace
+                .SplitAsync(folder, SplitPagesPerDocument, token, CreateProgress())
+                .ConfigureAwait(true),
             cancellationToken).ConfigureAwait(true);
+        if (succeeded) {
+            OperationStatus = outputs.Count == 1
+                ? "Created 1 split PDF"
+                : $"Created {outputs.Count} split PDFs";
+        }
     }
+
+    [RelayCommand]
+    private void SelectAllPages() => SetOrganizerSelection(OrganizerPages);
+
+    [RelayCommand]
+    private void ClearPageSelection() => SetOrganizerSelection(Array.Empty<PdfOrganizerPageViewModel>());
 
     [RelayCommand]
     private async Task SearchAsync(CancellationToken cancellationToken) {
@@ -257,9 +325,12 @@ public sealed partial class MainWindowViewModel {
         if (succeeded) NotifyWorkspaceStateChanged();
     }
 
-    private async Task<bool> RunMutationAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken) {
+    private async Task<bool> RunMutationAsync(
+        Func<CancellationToken, Task> operation,
+        CancellationToken cancellationToken,
+        IReadOnlyCollection<int>? organizerSelection = null) {
         bool succeeded = await RunStandaloneAsync(operation, cancellationToken).ConfigureAwait(true);
-        if (succeeded && _workspace is not null) RefreshWorkspacePresentation();
+        if (succeeded && _workspace is not null) RefreshWorkspacePresentation(organizerSelection);
         return succeeded;
     }
 
@@ -326,7 +397,16 @@ public sealed partial class MainWindowViewModel {
         return order;
     }
 
-    private void RefreshWorkspacePresentation() {
+    private static int[] MapSelectedPagesToReorderedPositions(IReadOnlyList<int> order, IReadOnlyCollection<int> selectedPages) {
+        var selected = new HashSet<int>(selectedPages);
+        return order
+            .Select((originalPageNumber, index) => new { originalPageNumber, position = index + 1 })
+            .Where(item => selected.Contains(item.originalPageNumber))
+            .Select(static item => item.position)
+            .ToArray();
+    }
+
+    private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;
         CancelPendingRedaction();
         ClearAnnotationSelection();
@@ -350,7 +430,7 @@ public sealed partial class MainWindowViewModel {
             sceneCoordinator,
             renderCoordinator)).ToArray();
 
-        ReplaceDocument(_workspace, session, sceneCoordinator, renderCoordinator, pages, organizerPages);
+        ReplaceDocument(_workspace, session, sceneCoordinator, renderCoordinator, pages, organizerPages, organizerSelection);
         SelectedPage = Pages[selectedPage - 1];
     }
 
@@ -360,7 +440,11 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanRedo));
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
+        OnPropertyChanged(nameof(CanExtractPages));
+        OnPropertyChanged(nameof(CanImportPages));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanExtractSelection));
+        OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));
         OnPropertyChanged(nameof(CanEditPageContent));
         OnPropertyChanged(nameof(CanRedact));

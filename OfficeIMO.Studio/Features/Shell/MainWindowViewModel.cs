@@ -11,11 +11,12 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable {
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
-    private readonly Func<CancellationToken, Task<string?>> _pickImportPdf;
+    private readonly Func<CancellationToken, Task<IReadOnlyList<string>>> _pickImportPdfs;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
     private readonly Func<CancellationToken, Task<string?>> _pickImage;
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
+    private readonly Func<int, Task<bool>> _confirmPageDeletion;
     private PdfWorkspace? _workspace;
     private PdfDocumentSession? _session;
     private PageSceneCoordinator? _sceneCoordinator;
@@ -58,18 +59,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     internal MainWindowViewModel(
         Func<CancellationToken, Task<string?>> pickPdf,
         Func<CancellationToken, Task<string?>>? pickSavePdf = null,
-        Func<CancellationToken, Task<string?>>? pickImportPdf = null,
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickImportPdfs = null,
         Func<CancellationToken, Task<string?>>? pickOutputFolder = null,
         Func<Uri, Task>? openUri = null,
         Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
-        Func<CancellationToken, Task<string?>>? pickImage = null) {
+        Func<CancellationToken, Task<string?>>? pickImage = null,
+        Func<int, Task<bool>>? confirmPageDeletion = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
-        _pickImportPdf = pickImportPdf ?? (_ => Task.FromResult<string?>(null));
+        _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
         _pickImage = pickImage ?? (_ => Task.FromResult<string?>(null));
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
+        _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
     }
 
     public ObservableCollection<PdfPageViewModel> Pages { get; } = new();
@@ -99,6 +102,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool HasRecovery => _workspace?.HasRecovery == true;
 
     public bool CanMutatePages => _workspace?.CanMutatePages == true;
+
+    public bool CanExtractPages => _workspace?.CanExtractPages == true;
+
+    public bool CanImportPages => _workspace?.CanImportPages == true;
 
     public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
 
@@ -314,7 +321,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         PageSceneCoordinator? sceneCoordinator,
         PageRenderCoordinator? renderCoordinator,
         IReadOnlyList<PdfPageViewModel> pages,
-        IReadOnlyList<PdfOrganizerPageViewModel> organizerPages) {
+        IReadOnlyList<PdfOrganizerPageViewModel> organizerPages,
+        IReadOnlyCollection<int>? organizerSelection = null) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         CancelPendingRedaction();
         ClearAnnotationSelection();
@@ -352,7 +360,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.EditorTool = ActiveEditorTool;
             Pages.Add(page);
         }
-        foreach (PdfOrganizerPageViewModel page in organizerPages) OrganizerPages.Add(page);
+        if (organizerSelection is not null) {
+            foreach (int pageNumber in organizerSelection.Where(pageNumber => pageNumber >= 1 && pageNumber <= organizerPages.Count)) {
+                _organizerSelection.Add(pageNumber);
+            }
+        }
+        foreach (PdfOrganizerPageViewModel page in organizerPages) {
+            page.IsSelected = _organizerSelection.Contains(page.PageNumber);
+            OrganizerPages.Add(page);
+        }
 
         HasDocument = session is not null;
         DocumentName = session?.FileName ?? "OfficeIMO Studio";
@@ -362,6 +378,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         SelectedPage = Pages.FirstOrDefault();
         OnPropertyChanged(nameof(SelectedPagePosition));
         OnPropertyChanged(nameof(HasOrganizerSelection));
+        OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(OrganizerSelectionLabel));
         NotifyWorkspaceStateChanged();
 

@@ -275,6 +275,174 @@ public sealed class MainWindowViewModelTests {
     }
 
     [Fact]
+    public async Task MultiplePickerImportsAsOneCommandAndSelectsImportedPages() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-shell-multi-import-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string target = Path.Combine(root, "target.pdf");
+        string first = Path.Combine(root, "first.pdf");
+        string second = Path.Combine(root, "second.pdf");
+        CreateTextSource(target, "Target");
+        CreateTextSource(first, "First");
+        CreateTextSource(second, "Second A", "Second B");
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                pickImportPdfs: _ => Task.FromResult<IReadOnlyList<string>>([first, second]));
+            await viewModel.OpenDocumentAsync(target);
+
+            await viewModel.ImportPagesCommand.ExecuteAsync(null);
+
+            Assert.Equal(4, viewModel.Pages.Count);
+            Assert.Equal([2, 3, 4], viewModel.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray());
+            Assert.Equal("Imported 3 pages from 2 PDFs", viewModel.OperationStatus);
+
+            await viewModel.UndoCommand.ExecuteAsync(null);
+            Assert.Single(viewModel.Pages);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PageDeletionRequiresConfirmationAndRemainsUndoable() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-delete-confirm-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "two-pages.pdf");
+        CreateTextSource(path, "One", "Two");
+        bool allowDeletion = false;
+        int confirmationCount = 0;
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                confirmPageDeletion: count => {
+                    confirmationCount += count;
+                    return Task.FromResult(allowDeletion);
+                });
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SetOrganizerSelection([viewModel.OrganizerPages[0]]);
+
+            await viewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+            Assert.Equal(2, viewModel.Pages.Count);
+            Assert.False(viewModel.IsDirty);
+            Assert.Equal("Delete cancelled", viewModel.OperationStatus);
+            Assert.Equal(1, confirmationCount);
+
+            allowDeletion = true;
+            await viewModel.DeleteSelectedCommand.ExecuteAsync(null);
+
+            Assert.Single(viewModel.Pages);
+            Assert.True(viewModel.IsDirty);
+            await viewModel.UndoCommand.ExecuteAsync(null);
+            Assert.Equal(2, viewModel.Pages.Count);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task OrganizerSelectionTracksMovedPagesAndSurvivesRotation() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-organizer-selection-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "three-pages.pdf");
+        CreateTextSource(path, "One", "Two", "Three");
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SetOrganizerSelection([viewModel.OrganizerPages[1], viewModel.OrganizerPages[2]]);
+
+            await viewModel.MoveSelectedUpCommand.ExecuteAsync(null);
+
+            Assert.Equal([1, 2], viewModel.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray());
+            await viewModel.RotateRightCommand.ExecuteAsync(null);
+            Assert.Equal([1, 2], viewModel.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray());
+            Assert.All(viewModel.OrganizerPages.Take(2), page => Assert.Equal(90, page.RotationDegrees));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SelectAllAndClearRemainStableAcrossVirtualizedSelectionEvents() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-organizer-virtualization-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "five-pages.pdf");
+        CreateTextSource(path, "One", "Two", "Three", "Four", "Five");
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+
+            viewModel.SelectAllPagesCommand.Execute(null);
+            viewModel.UpdateOrganizerSelection(viewModel.OrganizerPages.Take(2), []);
+
+            Assert.Equal("5 of 5 selected", viewModel.OrganizerSelectionLabel);
+            Assert.All(viewModel.OrganizerPages, page => Assert.True(page.IsSelected));
+
+            viewModel.ClearPageSelectionCommand.Execute(null);
+            viewModel.UpdateOrganizerSelection([], viewModel.OrganizerPages.Take(2));
+
+            Assert.Equal("Select pages", viewModel.OrganizerSelectionLabel);
+            Assert.All(viewModel.OrganizerPages, page => Assert.False(page.IsSelected));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task OrganizerActivationNavigatesWithoutChangingBulkSelection() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-organizer-navigation-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "three-pages.pdf");
+        CreateTextSource(path, "One", "Two", "Three");
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SetOrganizerSelection([viewModel.OrganizerPages[0], viewModel.OrganizerPages[2]]);
+            viewModel.NavigateToOrganizerPage(2);
+
+            Assert.Equal(2, viewModel.SelectedPage?.PageNumber);
+            Assert.Equal([1, 3], viewModel.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray());
+
+            viewModel.NavigateToOrganizerPage(1);
+
+            Assert.Equal(1, viewModel.SelectedPage?.PageNumber);
+            Assert.Equal([1, 3], viewModel.OrganizerPages.Where(page => page.IsSelected).Select(page => page.PageNumber).ToArray());
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SplitCommandUsesConfiguredPagesPerDocument() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-shell-split-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "three-pages.pdf");
+        string output = Path.Combine(root, "output");
+        CreateTextSource(path, "One", "Two", "Three");
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                pickOutputFolder: _ => Task.FromResult<string?>(output));
+            await viewModel.OpenDocumentAsync(path);
+            viewModel.SplitPagesPerDocument = 2;
+
+            await viewModel.SplitCommand.ExecuteAsync(null);
+
+            Assert.Equal(2, Directory.GetFiles(output, "*.pdf").Length);
+            Assert.Equal("Created 2 split PDFs", viewModel.OperationStatus);
+            Assert.False(viewModel.IsDirty);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task BlockedOrganizerMutationDoesNotReportSuccessOrRefreshTheDocument() {
         string fixture = GetFixturePath();
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
@@ -422,6 +590,14 @@ public sealed class MainWindowViewModelTests {
 
     private static string GetFixturePath() =>
         System.IO.Path.Combine(AppContext.BaseDirectory, "Fixtures", "openpreserve-pdfa1b-text.pdf");
+
+    private static void CreateTextSource(string path, params string[] pageTexts) =>
+        PdfDocument.Create(compose => {
+            foreach (string text in pageTexts) {
+                compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text(text)))));
+            }
+        }).Save(path);
 
     private static async Task WaitUntilAsync(Func<bool> condition) {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));

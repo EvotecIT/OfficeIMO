@@ -245,6 +245,139 @@ public sealed class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task MultiPdfImportIsOneUndoableMutationAndPreservesPickerOrder() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-multi-import-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string target = Path.Combine(root, "target.pdf");
+        string first = Path.Combine(root, "first.pdf");
+        string second = Path.Combine(root, "second.pdf");
+        CreateTextSource(target, "Target");
+        CreateTextSource(first, "First A", "First B");
+        CreateTextSource(second, "Second");
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(target, CancellationToken.None);
+
+            int importedPageCount = await workspace.ImportAsync([first, second], 1, CancellationToken.None);
+
+            Assert.Equal(3, importedPageCount);
+            Assert.Equal(4, workspace.Pages.Count);
+            Assert.Equal(
+                ["First A", "First B", "Second", "Target"],
+                PdfReadDocument.Open(workspace.CopyBytes()).Pages.Select(page => page.ExtractText().Trim()).ToArray());
+            Assert.Single(workspace.Journal);
+            Assert.Equal(PdfWorkspaceOperationKind.Import, workspace.Journal[0].Kind);
+
+            await workspace.UndoAsync(CancellationToken.None);
+
+            Assert.Single(workspace.Pages);
+            Assert.Contains("Target", PdfReadDocument.Open(workspace.CopyBytes()).ExtractText(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task MalformedLaterImportDoesNotCommitEarlierSources() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-multi-import-failure-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string target = Path.Combine(root, "target.pdf");
+        string valid = Path.Combine(root, "valid.pdf");
+        string malformed = Path.Combine(root, "malformed.pdf");
+        CreateTextSource(target, "Target");
+        CreateTextSource(valid, "Would have imported");
+        await File.WriteAllBytesAsync(malformed, "%PDF-1.7\nbroken"u8.ToArray());
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(target, CancellationToken.None);
+            byte[] original = workspace.CopyBytes();
+
+            await Assert.ThrowsAnyAsync<Exception>(
+                () => workspace.ImportAsync([valid, malformed], 1, CancellationToken.None));
+
+            Assert.Equal(original, workspace.CopyBytes());
+            Assert.False(workspace.IsDirty);
+            Assert.False(workspace.CanUndo);
+            Assert.Empty(workspace.Journal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SplitPublishesCompleteBatchUsingConfiguredPageCount() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-split-batch-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string output = Path.Combine(root, "split");
+        CreateTextSource(source, "One", "Two", "Three");
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+
+            IReadOnlyList<string> outputs = await workspace.SplitAsync(output, 2, CancellationToken.None);
+
+            Assert.Equal(2, outputs.Count);
+            Assert.Equal(2, PdfDocument.Open(outputs[0]).Inspect().PageCount);
+            Assert.Single(PdfDocument.Open(outputs[1]).Inspect().Pages);
+            Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SplitCollisionLeavesExistingOutputsAndBatchUntouched() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-split-collision-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string output = Path.Combine(root, "split");
+        Directory.CreateDirectory(output);
+        CreateTextSource(source, "One", "Two", "Three");
+        string collision = Path.Combine(output, "source-part-001.pdf");
+        byte[] existing = [1, 2, 3, 4];
+        await File.WriteAllBytesAsync(collision, existing);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+
+            IOException exception = await Assert.ThrowsAsync<IOException>(
+                () => workspace.SplitAsync(output, 2, CancellationToken.None));
+
+            Assert.Contains("already", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(existing, await File.ReadAllBytesAsync(collision));
+            Assert.False(File.Exists(Path.Combine(output, "source-part-002.pdf")));
+            Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task CancelledSplitRemovesItsStagingAndPublishesNoOutputs() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-split-cancel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string output = Path.Combine(root, "split");
+        CreateTextSource(source, "One", "Two", "Three");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<PdfWorkspaceProgress>(value => {
+            if (value.Stage == "Preparing part 2 of 3") cancellation.Cancel();
+        });
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => workspace.SplitAsync(output, 1, cancellation.Token, progress));
+
+            Assert.False(Directory.Exists(output));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task RecoveryCanBeDiscoveredRestoredAndDiscarded() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-recovery-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -279,8 +412,78 @@ public sealed class PdfWorkspaceTests {
         using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(fixture, CancellationToken.None);
 
         Assert.False(workspace.CanMutatePages);
+        Assert.False(workspace.CanExtractPages);
+        Assert.False(workspace.CanImportPages);
         Assert.NotNull(workspace.SecurityWarning);
         Assert.Contains("tagged", workspace.SecurityWarning, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task CancellationReturnsPromptlyWithoutStartingConcurrentCpuRewrites() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-cpu-cancel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string otherSource = Path.Combine(root, "other.pdf");
+        CreateEditableSource(source);
+        CreateEditableSource(otherSource);
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+        PdfWorkspace? firstWorkspace = null;
+
+        try {
+            firstWorkspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Task<int> operation = firstWorkspace.RunCancellableCpuWorkAsync(() => {
+                started.Set();
+                release.Wait();
+                return 42;
+            }, cancellation.Token);
+
+            Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+                () => operation.WaitAsync(TimeSpan.FromSeconds(2)));
+            firstWorkspace.Dispose();
+            firstWorkspace = null;
+
+            using PdfWorkspace nextWorkspace = await PdfWorkspace.OpenAsync(otherSource, CancellationToken.None);
+            int concurrentStarts = 0;
+            using var waitingCancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(250));
+            Task<int> waitingOperation = nextWorkspace.RunCancellableCpuWorkAsync(
+                () => Interlocked.Increment(ref concurrentStarts),
+                waitingCancellation.Token);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => waitingOperation);
+            Assert.Equal(0, Volatile.Read(ref concurrentStarts));
+
+            release.Set();
+            int followUp = await nextWorkspace.RunCancellableCpuWorkAsync(() => 7, CancellationToken.None)
+                .WaitAsync(TimeSpan.FromSeconds(2));
+            Assert.Equal(7, followUp);
+        } finally {
+            release.Set();
+            firstWorkspace?.Dispose();
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task PasswordProtectedPdfRequiresCredentialsBeforeWorkspaceCreation() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-encrypted-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "encrypted.pdf");
+        byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.Paragraph(paragraph => paragraph.Text("Protected content")))))).ToBytes();
+        var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" };
+        await File.WriteAllBytesAsync(source, PdfDocument.Open(plain).Security.Encrypt(encryption).Pdf);
+
+        try {
+            PdfPasswordRequiredException exception = await Assert.ThrowsAsync<PdfPasswordRequiredException>(
+                () => PdfWorkspace.OpenAsync(source, CancellationToken.None));
+
+            Assert.Contains("password", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
     }
 
     [Fact]
@@ -409,4 +612,16 @@ public sealed class PdfWorkspaceTests {
 
     private static void CreateEditableSource(string path) =>
         PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(path);
+
+    private static void CreateTextSource(string path, params string[] pageTexts) =>
+        PdfDocument.Create(compose => {
+            foreach (string text in pageTexts) {
+                compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text(text)))));
+            }
+        }).Save(path);
+
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T> {
+        public void Report(T value) => report(value);
+    }
 }

@@ -376,30 +376,56 @@
               <TextBlock Grid.Row="0" Text="{Binding OrganizerSelectionLabel}"
                          Margin="12,10,12,6"
                          FontWeight="SemiBold" />
-              <WrapPanel Grid.Row="1" Margin="8,0,8,8" Orientation="Horizontal">
-                <Button Classes="tool" Content="↑" Command="{Binding MoveSelectedUpCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages up" />
-                <Button Classes="tool" Content="↓" Command="{Binding MoveSelectedDownCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages down" />
-                <Button Classes="tool" Content="↶ 90°" Command="{Binding RotateLeftCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate left" />
-                <Button Classes="tool" Content="↷ 90°" Command="{Binding RotateRightCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate right" />
-                <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateSelectedCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" />
-                <Button Classes="tool" Content="Delete" Command="{Binding DeleteSelectedCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" />
-                <Button Classes="tool" Content="Extract" Command="{Binding ExtractSelectedCommand}"
-                        IsEnabled="{Binding HasOrganizerSelection}" />
-                <Button Classes="tool" Content="Import" Command="{Binding ImportPagesCommand}"
-                        IsEnabled="{Binding CanMutatePages}" />
-                <Button Classes="tool" Content="Blank" Command="{Binding InsertBlankCommand}"
-                        IsEnabled="{Binding CanMutatePages}" />
-                <Button Classes="tool" Content="Split" Command="{Binding SplitCommand}" />
-                <TextBox Width="54" Text="{Binding CropMargin}" PlaceholderText="pt" />
-                <Button Classes="tool" Content="Crop" Command="{Binding CropSelectedCommand}"
-                        IsEnabled="{Binding CanMutateSelection}" />
-              </WrapPanel>
+              <StackPanel Grid.Row="1" Margin="8,0,8,10" Spacing="5">
+                <WrapPanel Orientation="Horizontal">
+                  <Button Classes="tool" Content="Select all" Command="{Binding SelectAllPagesCommand}" />
+                  <Button Classes="tool" Content="Clear" Command="{Binding ClearPageSelectionCommand}"
+                          IsEnabled="{Binding HasOrganizerSelection}" />
+                </WrapPanel>
+                <WrapPanel Orientation="Horizontal">
+                  <Button Classes="tool" Content="↑" Command="{Binding MoveSelectedUpCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages up"
+                          AutomationProperties.Name="Move selected pages up" />
+                  <Button Classes="tool" Content="↓" Command="{Binding MoveSelectedDownCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages down"
+                          AutomationProperties.Name="Move selected pages down" />
+                  <Button Classes="tool" Content="↶ 90°" Command="{Binding RotateLeftCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate left" />
+                  <Button Classes="tool" Content="↷ 90°" Command="{Binding RotateRightCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate right" />
+                </WrapPanel>
+                <WrapPanel Orientation="Horizontal">
+                  <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateSelectedCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" />
+                  <Button Classes="tool" Content="Delete" Command="{Binding DeleteSelectedCommand}"
+                          IsEnabled="{Binding CanDeleteSelection}" />
+                  <Button Classes="tool" Content="Extract" Command="{Binding ExtractSelectedCommand}"
+                          IsEnabled="{Binding CanExtractSelection}" />
+                </WrapPanel>
+                <WrapPanel Orientation="Horizontal">
+                  <Button Classes="tool" Content="Add PDFs" Command="{Binding ImportPagesCommand}"
+                          IsEnabled="{Binding CanImportPages}"
+                          ToolTip.Tip="Insert one or more PDFs before the first selected page, or append them when nothing is selected" />
+                  <Button Classes="tool" Content="Blank" Command="{Binding InsertBlankCommand}"
+                          IsEnabled="{Binding CanMutatePages}" />
+                </WrapPanel>
+                <Grid ColumnDefinitions="Auto,58,Auto" ColumnSpacing="5">
+                  <TextBlock Text="Crop margin" VerticalAlignment="Center" FontSize="11" />
+                  <TextBox Grid.Column="1" Text="{Binding CropMargin}" PlaceholderText="pt" />
+                  <Button Grid.Column="2" Classes="tool" Content="Crop" Command="{Binding CropSelectedCommand}"
+                          IsEnabled="{Binding CanMutateSelection}" />
+                </Grid>
+                <TextBlock Text="Split into consecutive files" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0" />
+                <Grid ColumnDefinitions="Auto,105" ColumnSpacing="6">
+                  <TextBlock Text="Pages per file" VerticalAlignment="Center" FontSize="11" />
+                  <NumericUpDown Grid.Column="1" Minimum="1" Maximum="9999"
+                                 Value="{Binding SplitPagesPerDocument}" FormatString="0" />
+                </Grid>
+                <Button Classes="tool" Content="Split to folder" Command="{Binding SplitCommand}"
+                        IsEnabled="{Binding CanExtractPages}"
+                        HorizontalAlignment="Left"
+                        ToolTip.Tip="Create consecutive PDFs without partially publishing a cancelled batch" />
+              </StackPanel>
               <ListBox Grid.Row="2"
                        x:Name="OrganizerList"
                        DragDrop.AllowDrop="True"
@@ -408,6 +434,11 @@
                        Background="Transparent"
                        BorderThickness="0"
                        ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="IsSelected" Value="{ReflectionBinding IsSelected, Mode=TwoWay}" />
+                  </Style>
+                </ListBox.Styles>
                 <ListBox.ItemsPanel>
                   <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
                 </ListBox.ItemsPanel>

@@ -21,13 +21,14 @@ public sealed partial class MainWindow : Window {
     public MainWindow() {
         InitializeComponent();
         ViewModel = new MainWindowViewModel(
-            PickPdfAsync,
-            PickSavePdfAsync,
-            PickPdfAsync,
-            PickOutputFolderAsync,
-            OpenUriAsync,
-            ConfirmUnsavedChangesAsync,
-            PickImageAsync);
+            pickPdf: PickPdfAsync,
+            pickSavePdf: PickSavePdfAsync,
+            pickImportPdfs: PickPdfsAsync,
+            pickOutputFolder: PickOutputFolderAsync,
+            openUri: OpenUriAsync,
+            confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
+            pickImage: PickImageAsync,
+            confirmPageDeletion: ConfirmPageDeletionAsync);
         DataContext = ViewModel;
 
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -39,8 +40,12 @@ public sealed partial class MainWindow : Window {
                 PagesList.ScrollIntoView(ViewModel.SelectedPage);
             }
         };
-        OrganizerList.SelectionChanged += (_, _) => ViewModel.SetOrganizerSelection(
-            OrganizerList.SelectedItems?.OfType<PdfOrganizerPageViewModel>() ?? []);
+        OrganizerList.SelectionChanged += (_, eventArgs) => {
+            ViewModel.UpdateOrganizerSelection(
+                eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
+                eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
+        };
+        OrganizerList.KeyDown += OnOrganizerKeyDown;
         OrganizerList.AddHandler(PointerPressedEvent, OnOrganizerPointerPressed, handledEventsToo: true);
         OrganizerList.AddHandler(PointerMovedEvent, OnOrganizerPointerMoved, handledEventsToo: true);
         OrganizerList.AddHandler(PointerReleasedEvent, OnOrganizerPointerReleased, handledEventsToo: true);
@@ -89,6 +94,25 @@ public sealed partial class MainWindow : Window {
         return files.FirstOrDefault()?.Path.LocalPath;
     }
 
+    private async Task<IReadOnlyList<string>> PickPdfsAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanOpen) return Array.Empty<string>();
+
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+            Title = "Add PDF documents",
+            AllowMultiple = true,
+            FileTypeFilter = [
+                new FilePickerFileType("PDF documents") {
+                    Patterns = ["*.pdf"],
+                    MimeTypes = ["application/pdf"],
+                    AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
+                }
+            ]
+        });
+        cancellationToken.ThrowIfCancellationRequested();
+        return files.Select(static file => file.Path.LocalPath).ToArray();
+    }
+
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {
         if (_allowClose) return;
         if (ViewModel.CanCancelOperation) {
@@ -112,6 +136,11 @@ public sealed partial class MainWindow : Window {
     private async Task<UnsavedChangesDecision> ConfirmUnsavedChangesAsync() {
         var dialog = new UnsavedChangesDialog(ViewModel.DocumentName.TrimEnd(' ', '*'));
         return await dialog.ShowDialog<UnsavedChangesDecision>(this);
+    }
+
+    private async Task<bool> ConfirmPageDeletionAsync(int pageCount) {
+        var dialog = new PageDeletionDialog(pageCount);
+        return await dialog.ShowDialog<bool>(this);
     }
 
     private async Task<string?> PickSavePdfAsync(CancellationToken cancellationToken) {
@@ -171,6 +200,7 @@ public sealed partial class MainWindow : Window {
         if (!e.GetCurrentPoint(OrganizerList).Properties.IsLeftButtonPressed) return;
         _organizerDragPage = FindOrganizerPage(e.Source);
         if (_organizerDragPage is null) return;
+        ViewModel.NavigateToOrganizerPage(_organizerDragPage.PageNumber);
         _organizerDragPress = e;
         _organizerDragStart = e.GetPosition(OrganizerList);
         _organizerDragStarted = false;
@@ -193,6 +223,14 @@ public sealed partial class MainWindow : Window {
     }
 
     private void OnOrganizerPointerReleased(object? sender, PointerReleasedEventArgs e) => ClearOrganizerDrag();
+
+    private void OnOrganizerKeyDown(object? sender, KeyEventArgs e) {
+        if (e.Key is not (Key.Enter or Key.Space)) return;
+        PdfOrganizerPageViewModel? page = FindOrganizerPage(e.Source)
+            ?? OrganizerList.SelectedItem as PdfOrganizerPageViewModel;
+        if (page is null) return;
+        ViewModel.NavigateToOrganizerPage(page.PageNumber);
+    }
 
     private void OnOrganizerDragOver(object? sender, DragEventArgs e) {
         e.DragEffects = TryGetOrganizerPage(e, out _) && FindOrganizerPage(e.Source) is not null

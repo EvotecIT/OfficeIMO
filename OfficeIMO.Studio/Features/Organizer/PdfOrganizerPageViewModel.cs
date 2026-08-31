@@ -23,6 +23,9 @@ public sealed partial class PdfOrganizerPageViewModel : ObservableObject, IDispo
     private bool _isLoading;
 
     [ObservableProperty]
+    private bool _isSelected;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasError))]
     private string? _error;
 

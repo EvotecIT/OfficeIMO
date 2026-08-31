@@ -7,10 +7,12 @@ namespace OfficeIMO.Studio.Features.Workspace;
 /// Reusable non-visual editing workspace over immutable OfficeIMO.Pdf snapshots. It owns dirty state,
 /// bounded undo/redo, recovery, atomic saves, and operation progress; Avalonia only consumes this contract.
 /// </summary>
-internal sealed class PdfWorkspace : IDisposable {
+internal sealed partial class PdfWorkspace : IDisposable {
     private const int MaximumHistoryEntries = 24;
     private const long MaximumHistoryBytes = 256L * 1024L * 1024L;
+    private static readonly SemaphoreSlim ApplicationCpuWorkGate = new(1, 1);
     private readonly SemaphoreSlim _operationGate = new(1, 1);
+    private readonly object _cpuWorkSync = new();
     private readonly LinkedList<Snapshot> _undo = new();
     private readonly LinkedList<Snapshot> _redo = new();
     private readonly List<PdfWorkspaceOperation> _journal = new();
@@ -23,6 +25,7 @@ internal sealed class PdfWorkspace : IDisposable {
     private long _revision;
     private long _nextRevision;
     private long _savedRevision;
+    private Task? _activeCpuWorker;
     private bool _disposed;
 
     private PdfWorkspace(
@@ -69,6 +72,10 @@ internal sealed class PdfWorkspace : IDisposable {
     internal string? RecoveryPath { get; private set; }
 
     internal bool CanMutatePages => _preflight.CanManipulatePages;
+
+    internal bool CanExtractPages => CanPlan(PdfMutationOperation.ExtractPages);
+
+    internal bool CanImportPages => CanPlan(PdfMutationOperation.MergeDocuments);
 
     internal bool CanEditAnnotations => CanPlan(PdfMutationOperation.ModifyAnnotations);
 
@@ -148,9 +155,6 @@ internal sealed class PdfWorkspace : IDisposable {
 
     internal Task DuplicateAsync(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateAsync(PdfWorkspaceOperationKind.Duplicate, $"Duplicated {pageNumbers.Count} page(s)", pageNumbers, document => document.Pages.Duplicate(pageNumbers.ToArray()), cancellationToken, progress);
-
-    internal Task ImportAsync(string sourcePath, int insertBeforePageNumber, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateAsync(PdfWorkspaceOperationKind.Import, $"Imported pages from {System.IO.Path.GetFileName(sourcePath)}", Array.Empty<int>(), document => document.Pages.Insert(insertBeforePageNumber, sourcePath), cancellationToken, progress);
 
     internal Task CropAsync(IReadOnlyList<int> pageNumbers, double left, double bottom, double right, double top, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) =>
         MutateAsync(PdfWorkspaceOperationKind.Crop, $"Cropped {pageNumbers.Count} page(s)", pageNumbers, document => document.Pages.CropAndTranslate(left, bottom, right, top, pageNumbers.ToArray()), cancellationToken, progress);
@@ -382,37 +386,6 @@ internal sealed class PdfWorkspace : IDisposable {
             cancellationToken,
             progress);
 
-    internal async Task ExtractAsync(IReadOnlyList<int> pageNumbers, string outputPath, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
-        ThrowIfDisposed();
-        string destination = System.IO.Path.GetFullPath(outputPath);
-        if (PathsEqual(destination, Path)) {
-            throw new InvalidOperationException("Extracted pages must be saved to a different file than the open document.");
-        }
-        progress?.Report(new PdfWorkspaceProgress("Extracting pages", 0.1D));
-        PdfDocument extracted = await Task.Run(
-            () => CreateDocumentSnapshot().Pages.Extract(pageNumbers.ToArray()),
-            cancellationToken).ConfigureAwait(false);
-        progress?.Report(new PdfWorkspaceProgress("Saving extracted PDF", 0.7D));
-        await extracted.SaveAsync(destination, cancellationToken).ConfigureAwait(false);
-        progress?.Report(new PdfWorkspaceProgress("Extract complete", 1D));
-    }
-
-    internal async Task SplitAsync(string outputDirectory, int pagesPerDocument, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
-        ThrowIfDisposed();
-        Directory.CreateDirectory(outputDirectory);
-        IReadOnlyList<PdfDocument> outputs = await Task.Run(
-            () => CreateDocumentSnapshot().Pages.Split(pagesPerDocument),
-            cancellationToken).ConfigureAwait(false);
-        string stem = System.IO.Path.GetFileNameWithoutExtension(Path);
-        for (int index = 0; index < outputs.Count; index++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            progress?.Report(new PdfWorkspaceProgress($"Saving part {index + 1} of {outputs.Count}", (double)index / outputs.Count));
-            string outputPath = System.IO.Path.Combine(outputDirectory, $"{stem}-part-{index + 1:D3}.pdf");
-            await outputs[index].SaveAsync(outputPath, cancellationToken).ConfigureAwait(false);
-        }
-        progress?.Report(new PdfWorkspaceProgress("Split complete", 1D));
-    }
-
     internal async Task SaveAsync(string? path, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         ThrowIfDisposed();
         string destination = string.IsNullOrWhiteSpace(path) ? Path : System.IO.Path.GetFullPath(path);
@@ -513,11 +486,11 @@ internal sealed class PdfWorkspace : IDisposable {
         try {
             progress?.Report(new PdfWorkspaceProgress(description, 0.1D));
             byte[] previousBytes = _bytes;
-            byte[] candidateBytes = await Task.Run(
+            byte[] candidateBytes = await RunCancellableCpuWorkAsync(
                 () => mutation(previousBytes),
                 cancellationToken).ConfigureAwait(false);
             progress?.Report(new PdfWorkspaceProgress("Validating changed document", 0.75D));
-            (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await Task.Run(
+            (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await RunCancellableCpuWorkAsync(
                 () => Analyze(candidateBytes),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
@@ -636,11 +609,6 @@ internal sealed class PdfWorkspace : IDisposable {
         PdfDocument document = PdfDocument.Open(bytes);
         return (document.Read.DocumentInfo(), document.Preflight());
     }
-
-    private static bool PathsEqual(string left, string right) => string.Equals(
-        System.IO.Path.GetFullPath(left),
-        System.IO.Path.GetFullPath(right),
-        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 
     private sealed record Snapshot(byte[] Bytes, long Revision);
 }
