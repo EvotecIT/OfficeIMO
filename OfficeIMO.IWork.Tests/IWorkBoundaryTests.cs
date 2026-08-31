@@ -1183,7 +1183,11 @@ public sealed partial class IWorkBoundaryTests {
             }
         }
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
-        byte[] offsets = table.OddCurrentOffsets
+        byte[] offsets = table.TrailingEmptyOffsetCount > 0
+            ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) }
+                .Concat(Enumerable.Repeat(byte.MaxValue,
+                    checked(table.TrailingEmptyOffsetCount * 2))).ToArray()
+            : table.OddCurrentOffsets
             ? new[] { (byte)encodedOffset }
             : table.PopulatedOffsetBeyondColumns
                 ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
@@ -1511,7 +1515,8 @@ public sealed partial class IWorkBoundaryTests {
             bool mixedFormulaTypeWire = false, byte[]? formulaPayload = null,
             int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false,
             int unexpectedStringCatalogFieldCount = 0,
-            int unexpectedFormulaCatalogFieldCount = 0) {
+            int unexpectedFormulaCatalogFieldCount = 0,
+            int trailingEmptyOffsetCount = 0) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1555,6 +1560,7 @@ public sealed partial class IWorkBoundaryTests {
             MixedRowIndexWire = mixedRowIndexWire;
             UnexpectedStringCatalogFieldCount = unexpectedStringCatalogFieldCount;
             UnexpectedFormulaCatalogFieldCount = unexpectedFormulaCatalogFieldCount;
+            TrailingEmptyOffsetCount = trailingEmptyOffsetCount;
         }
 
         internal string Name { get; }
@@ -1600,5 +1606,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool MixedRowIndexWire { get; }
         internal int UnexpectedStringCatalogFieldCount { get; }
         internal int UnexpectedFormulaCatalogFieldCount { get; }
+        internal int TrailingEmptyOffsetCount { get; }
     }
 }

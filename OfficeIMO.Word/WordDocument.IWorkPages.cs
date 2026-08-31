@@ -67,28 +67,47 @@ public partial class WordDocument {
                 var nativeLists = new IWorkNativeListCatalog(document);
                 (double contentWidth, double contentHeight) = ContentBox(document.Sections[0]);
                 var semanticSections = new List<WordSection> { document.Sections[0] };
-                AddRichText(projection.Body, document.AddParagraph, nativeLists, document.AddPageBreak,
+                var pageHosts = new Dictionary<int, WordParagraph>();
+                int currentPageIndex = 1;
+                AddRichText(projection.Body, value => {
+                        WordParagraph paragraph = document.AddParagraph(value);
+                        if (!pageHosts.ContainsKey(currentPageIndex)) {
+                            pageHosts.Add(currentPageIndex, paragraph);
+                        }
+                        return paragraph;
+                    }, nativeLists, () => {
+                        WordParagraph pageBreak = document.AddPageBreak();
+                        currentPageIndex++;
+                        return pageBreak;
+                    },
                     breakKind => {
                         WordSection section = document.AddSection(breakKind == IWorkParagraphBreakKind.Layout
                             ? WordSectionBreakType.Continuous
                             : WordSectionBreakType.NextPage);
-                        if (breakKind == IWorkParagraphBreakKind.Section) semanticSections.Add(section);
+                        if (breakKind == IWorkParagraphBreakKind.Section) {
+                            semanticSections.Add(section);
+                            currentPageIndex++;
+                        }
                     });
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
                 for (int drawableIndex = 0; drawableIndex < projection.Drawables.Count; drawableIndex++) {
                     IWorkPagesDrawable sourceDrawable = projection.Drawables[drawableIndex];
+                    WordParagraph? pageHost = sourceDrawable.PageIndex.HasValue
+                        && pageHosts.TryGetValue(sourceDrawable.PageIndex.Value, out WordParagraph? host)
+                            ? host
+                            : null;
                     uint zOrder = checked(251658240U + (uint)drawableIndex);
                     switch (sourceDrawable.Kind) {
                         case IWorkPagesDrawableKind.TextBox:
-                            AddRichTextBox(document, sourceDrawable.TextBox!, nativeLists).ZOrder = zOrder;
+                            AddRichTextBox(document, sourceDrawable.TextBox!, nativeLists, pageHost).ZOrder = zOrder;
                             break;
                         case IWorkPagesDrawableKind.Image:
-                            AddImage(document, sourceDrawable.Image!, contentWidth, contentHeight).ZOrder = zOrder;
+                            AddImage(document, sourceDrawable.Image!, contentWidth, contentHeight, pageHost).ZOrder = zOrder;
                             break;
                         case IWorkPagesDrawableKind.Table:
-                            AddTable(document, sourceDrawable.Table!);
+                            AddTable(document, sourceDrawable.Table!, pageHost);
                             break;
                     }
                 }
@@ -149,7 +168,7 @@ public partial class WordDocument {
         preview.MediaType == "image/png" ? "pages-preview.png" : "pages-preview.jpg";
 
     private static WordImage AddImage(WordDocument document, IWorkImageAsset source,
-        double contentWidth, double contentHeight) {
+        double contentWidth, double contentHeight, WordParagraph? pageHost = null) {
         using var image = new MemoryStream(source.GetBytes(), writable: false);
         double width = source.Geometry?.WidthPoints
             ?? source.PixelWidth.GetValueOrDefault(640) * 72d / 96d;
@@ -158,7 +177,7 @@ public partial class WordDocument {
         if (source.Geometry == null) {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
-        WordImage target = document.AddParagraph().InsertImage(image, source.FileName,
+        WordImage target = (pageHost ?? document.AddParagraph()).InsertImage(image, source.FileName,
             width, height, WordImageTextWrapping.Square,
             source.AccessibilityDescription ?? "Image imported from Pages");
         if (source.Geometry is { } geometry) {
@@ -217,9 +236,12 @@ public partial class WordDocument {
         }
     }
 
-    private static void AddTable(WordDocument document, IWorkTable source) {
+    private static void AddTable(WordDocument document, IWorkTable source,
+        WordParagraph? pageHost = null) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
-        WordTable table = document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
+        WordTable table = pageHost == null
+            ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
+            : document.CreateTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
         table.Description = source.AccessibilityDescription;
         if (source.DefaultColumnWidth is > 0) {
             int width = ToSignedTwips(source.DefaultColumnWidth.Value);
@@ -245,11 +267,14 @@ public partial class WordDocument {
         for (int row = 0; row < Math.Min(source.HeaderRowCount, table.Rows.Count); row++) {
             table.Rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
         }
+        if (pageHost != null) document.InsertTableAfter(pageHost, table);
     }
 
     private static WordTextBox AddRichTextBox(WordDocument document, IWorkTextBox source,
-        IWorkNativeListCatalog nativeLists) {
-        WordTextBox textBox = document.AddTextBox(string.Empty);
+        IWorkNativeListCatalog nativeLists, WordParagraph? pageHost = null) {
+        WordTextBox textBox = pageHost == null
+            ? document.AddTextBox(string.Empty)
+            : pageHost.AddTextBox(string.Empty, WordImageTextWrapping.Square);
         if (source.Geometry is { } geometry) {
             textBox.HorizontalPositionRelativeFrom = WordHorizontalRelativePosition.Page;
             textBox.VerticalPositionRelativeFrom = WordVerticalRelativePosition.Page;
@@ -322,6 +347,17 @@ public partial class WordDocument {
         }
         if (projection.PageLayout is { } layout && !CanApplyPageLayout(layout)) {
             return "The Pages page layout exceeds the DOCX measurement range.";
+        }
+        var pagesWithBodyParagraphs = new HashSet<int>();
+        int bodyPageIndex = 1;
+        foreach (IWorkTextParagraph paragraph in projection.Body.Paragraphs) {
+            pagesWithBodyParagraphs.Add(bodyPageIndex);
+            if (paragraph.BreakKind is IWorkParagraphBreakKind.Page
+                or IWorkParagraphBreakKind.Section) bodyPageIndex++;
+        }
+        if (projection.Drawables.Any(drawable => drawable.PageIndex.HasValue
+                && !pagesWithBodyParagraphs.Contains(drawable.PageIndex.Value))) {
+            return "A Pages drawable belongs to a source page with no DOCX anchor paragraph.";
         }
         foreach (IWorkTable table in projection.Tables) {
             long tableCells = (long)table.RowCount * table.ColumnCount;

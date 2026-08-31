@@ -4,19 +4,22 @@ namespace OfficeIMO.IWork;
 
 /// <summary>One typed Pages drawable retained in source stacking order.</summary>
 public sealed class IWorkPagesDrawable {
-    internal IWorkPagesDrawable(IWorkTextBox textBox) {
+    internal IWorkPagesDrawable(IWorkTextBox textBox, int? pageIndex = null) {
         Kind = IWorkPagesDrawableKind.TextBox;
         TextBox = textBox;
+        PageIndex = pageIndex;
     }
 
-    internal IWorkPagesDrawable(IWorkImageAsset image) {
+    internal IWorkPagesDrawable(IWorkImageAsset image, int? pageIndex = null) {
         Kind = IWorkPagesDrawableKind.Image;
         Image = image;
+        PageIndex = pageIndex;
     }
 
-    internal IWorkPagesDrawable(IWorkTable table) {
+    internal IWorkPagesDrawable(IWorkTable table, int? pageIndex = null) {
         Kind = IWorkPagesDrawableKind.Table;
         Table = table;
+        PageIndex = pageIndex;
     }
 
     /// <summary>Gets the drawable kind.</summary>
@@ -27,6 +30,8 @@ public sealed class IWorkPagesDrawable {
     public IWorkImageAsset? Image { get; }
     /// <summary>Gets the table payload when <see cref="Kind"/> is <see cref="IWorkPagesDrawableKind.Table"/>.</summary>
     public IWorkTable? Table { get; }
+    /// <summary>Gets the one-based source page index when the floating-canvas graph identifies it.</summary>
+    public int? PageIndex { get; }
 }
 
 /// <summary>Read-only Pages structure recovered from a shared IWA object graph.</summary>
@@ -195,7 +200,8 @@ internal static class IWorkPagesReader {
         }
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
-            documentMessage, projectionBudget, out bool drawableGraphComplete);
+            documentMessage, projectionBudget, out IReadOnlyDictionary<ulong, int> drawablePageIndexes,
+            out bool drawableGraphComplete);
         if (!drawableGraphComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -333,12 +339,15 @@ internal static class IWorkPagesReader {
             }
         }
         foreach (IWorkArchiveRecord drawable in documentDrawables) {
+            int? pageIndex = drawablePageIndexes.TryGetValue(drawable.Identifier, out int sourcePageIndex)
+                ? sourcePageIndex
+                : null;
             if (projectedTextBoxes.TryGetValue(drawable.Identifier, out IWorkTextBox? textBox)) {
-                drawables.Add(new IWorkPagesDrawable(textBox));
+                drawables.Add(new IWorkPagesDrawable(textBox, pageIndex));
             } else if (projectedImages.TryGetValue(drawable.Identifier, out IWorkImageAsset? image)) {
-                drawables.Add(new IWorkPagesDrawable(image));
+                drawables.Add(new IWorkPagesDrawable(image, pageIndex));
             } else if (projectedTables.TryGetValue(drawable.Identifier, out IWorkTable? table)) {
-                drawables.Add(new IWorkPagesDrawable(table));
+                drawables.Add(new IWorkPagesDrawable(table, pageIndex));
             }
         }
         int bodySectionCount = bodyContent.Paragraphs.Count(paragraph =>
@@ -357,10 +366,12 @@ internal static class IWorkPagesReader {
 
     private static IReadOnlyList<IWorkArchiveRecord> CollectDocumentDrawables(IWorkObjectIndex index,
         IWorkArchiveRecord document, IWorkWireMessage documentMessage,
-        IWorkProjectionBudget projectionBudget, out bool complete) {
+        IWorkProjectionBudget projectionBudget,
+        out IReadOnlyDictionary<ulong, int> pageIndexes, out bool complete) {
         complete = true;
         var identifiers = new HashSet<ulong>();
         var ordered = new List<IWorkArchiveRecord>();
+        var pages = new Dictionary<ulong, int>();
         void Add(IWorkArchiveRecord record) {
             if (identifiers.Add(record.Identifier)) ordered.Add(record);
         }
@@ -384,12 +395,20 @@ internal static class IWorkPagesReader {
         if (documentMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
             || documentMessage.HasField(3) && floating == null) complete = false;
         if (floating != null) {
-            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
-                floating.Payload, 1, projectionBudget.MaximumProtobufFieldCount));
-            IReadOnlyList<IWorkWireMessage> pageGroups = IWorkObjectIndex.TryGetMessages(
-                index.Message(floating), 1, out bool malformedPageGroups);
-            if (malformedPageGroups) complete = false;
-            foreach (IWorkWireMessage pageGroup in pageGroups) {
+            int pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
+                projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
+            projectionBudget.AddDrawableReferences(pageGroupCount);
+            IReadOnlyList<IWorkWireMessage> pageGroups;
+            if (totalFieldCount != pageGroupCount) {
+                complete = false;
+                pageGroups = Array.Empty<IWorkWireMessage>();
+            } else {
+                pageGroups = IWorkObjectIndex.TryGetMessages(index.Message(floating), 1,
+                    out bool malformedPageGroups);
+                if (malformedPageGroups) complete = false;
+            }
+            for (int pageGroupIndex = 0; pageGroupIndex < pageGroups.Count; pageGroupIndex++) {
+                IWorkWireMessage pageGroup = pageGroups[pageGroupIndex];
                 foreach (int field in new[] { 2, 3, 4 }) {
                     projectionBudget.AddDrawableReferences(pageGroup.FieldCount(field));
                     var fieldOccurrences = new HashSet<ulong>();
@@ -402,6 +421,9 @@ internal static class IWorkPagesReader {
                             || entry.HasField(1) && record == null) complete = false;
                         else if (record != null) {
                             if (!fieldOccurrences.Add(record.Identifier)) complete = false;
+                            if (pages.TryGetValue(record.Identifier, out int existingPageIndex)
+                                && existingPageIndex != pageGroupIndex + 1) complete = false;
+                            else pages[record.Identifier] = pageGroupIndex + 1;
                             Add(record);
                         }
                     }
@@ -412,6 +434,7 @@ internal static class IWorkPagesReader {
         foreach (IWorkArchiveRecord record in index.PrimaryRecords.Where(record =>
                      reachable.Contains(record.Identifier)
                      && record.MessageType is ShapeInfoArchive or 3005 or 6000 or 6007)) Add(record);
+        pageIndexes = pages;
         return Array.AsReadOnly(ordered.ToArray());
     }
 
@@ -535,8 +558,12 @@ internal static class IWorkPagesReader {
                         defaultPageFooters = footers;
                         break;
                 }
-                IWorkArchiveRecord? archive = index.Dereference(sectionMessage, field);
-                if (sectionMessage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)
+                bool templateReferenceComplete = sectionMessage.FieldCount(field) == 1
+                    && !sectionMessage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
+                IWorkArchiveRecord? archive = templateReferenceComplete
+                    ? index.Dereference(sectionMessage, field)
+                    : null;
+                if (!templateReferenceComplete
                     || archive == null || archive.MessageType != HeadersFootersArchive) {
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED")) {

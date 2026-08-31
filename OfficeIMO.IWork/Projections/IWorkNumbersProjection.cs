@@ -558,19 +558,23 @@ internal static class IWorkNumbersReader {
                 byte[] buffer = currentBuffer ?? Array.Empty<byte>();
                 byte[] offsets = currentOffsets ?? Array.Empty<byte>();
                 bool hasWideOffsets = (rowInfo.GetUnsigned(8) ?? 0) != 0;
-                int availableColumns = Math.Min(columns, offsets.Length / 2);
+                int offsetColumnCount = offsets.Length / 2;
+                int availableColumns = Math.Min(columns, offsetColumnCount);
                 bool hasPopulatedTrailingOffset = false;
-                for (int column = columns; column < offsets.Length / 2; column++) {
-                    int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
-                    if (encodedOffset != ushort.MaxValue) {
-                        hasPopulatedTrailingOffset = true;
-                        break;
+                bool hasExcessiveTrailingOffsets = offsetColumnCount > TileRowStride;
+                if (!hasExcessiveTrailingOffsets) {
+                    for (int column = columns; column < offsetColumnCount; column++) {
+                        int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
+                        if (encodedOffset != ushort.MaxValue) {
+                            hasPopulatedTrailingOffset = true;
+                            break;
+                        }
                     }
                 }
-                if (hasPopulatedTrailingOffset) {
+                if (hasExcessiveTrailingOffsets || hasPopulatedTrailingOffset) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                 }
-                int[] populatedOffsets = Enumerable.Range(0, offsets.Length / 2)
+                int[] populatedOffsets = Enumerable.Range(0, availableColumns)
                     .Select(column => offsets[column * 2] | offsets[column * 2 + 1] << 8)
                     .Where(encodedOffset => encodedOffset != ushort.MaxValue)
                     .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
