@@ -31,8 +31,7 @@ namespace OfficeIMO.Excel {
             }
 
             WorkbookPart? workbookPart = _doc.WorkbookPart;
-            Workbook? workbook = workbookPart?.Workbook;
-            if (workbookPart == null || workbook == null) {
+            if (workbookPart == null) {
                 // A reader can wrap a newly-created workbook while its SDK root is still
                 // being assembled. Package metadata limits apply when package metadata
                 // exists; they must not make trusted in-memory authoring unreadable.
@@ -51,6 +50,14 @@ namespace OfficeIMO.Excel {
                     _opt);
             } else {
                 ValidateMetadataPartStream(workbookPart);
+            }
+
+            // The Workbook property materializes the SDK DOM. Keep that access after
+            // raw package validation so an oversized compressed workbook part is
+            // rejected before it can consume unbounded memory.
+            Workbook? workbook = workbookPart.Workbook;
+            if (workbook == null) {
+                return;
             }
 
             int sheetDefinitions = 0;

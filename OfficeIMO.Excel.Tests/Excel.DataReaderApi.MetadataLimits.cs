@@ -102,6 +102,36 @@ public partial class Excel {
         Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OpenDataReader_RejectsOversizedWorkbookPartBeforeSdkDomMaterialization() {
+        string xlsxPath = CreateCompactFastPathWorkbook();
+        string xlsmPath = Path.ChangeExtension(xlsxPath, ".xlsm");
+        try {
+            File.Move(xlsxPath, xlsmPath);
+            const string entryName = "xl/workbook.xml";
+            byte[] workbookXml = ReadZipEntry(xlsmPath, entryName);
+            int maxMetadataPartBytes = Math.Max(
+                ReadZipEntry(xlsmPath, "[Content_Types].xml").Length,
+                workbookXml.Length) + 256;
+            byte[] oversizedMalformedXml = new byte[maxMetadataPartBytes + 1];
+            Buffer.BlockCopy(workbookXml, 0, oversizedMalformedXml, 0, workbookXml.Length);
+            for (int index = workbookXml.Length; index < oversizedMalformedXml.Length; index++) {
+                oversizedMalformedXml[index] = (byte)'<';
+            }
+            ReplaceZipEntry(xlsmPath, entryName, oversizedMalformedXml);
+
+            var options = new ExcelReadOptions { MaxMetadataPartBytes = maxMetadataPartBytes };
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.OpenDataReader(xlsmPath, options));
+
+            Assert.Contains("xl/workbook.xml", exception.Message, StringComparison.Ordinal);
+            Assert.Contains($"{maxMetadataPartBytes} bytes", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(xlsxPath);
+            File.Delete(xlsmPath);
+        }
+    }
+
     private sealed class NonSeekableReadStream : Stream {
         private readonly MemoryStream _inner;
 
