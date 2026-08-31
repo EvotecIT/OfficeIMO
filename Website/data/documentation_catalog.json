@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 205,
-    "productionComponentCount": 107,
-    "testProjectCount": 38,
+    "projectCount": 207,
+    "productionComponentCount": 108,
+    "testProjectCount": 39,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41646
+    "conceptualWordCount": 41676
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 7
+      "componentCount": 8
     }
   ],
   "components": [
@@ -97,6 +97,19 @@
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.AsciiDoc.Pdf"
+    },
+    {
+      "name": "OfficeIMO.Bibliography",
+      "packageId": "OfficeIMO.Bibliography",
+      "category": "Specialized components",
+      "description": "Source-preserving citation data model and deterministic bibliography codecs for .NET.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
+      "sourceFileCount": 20,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Bibliography"
     },
     {
       "name": "OfficeIMO.ChartForgeX",

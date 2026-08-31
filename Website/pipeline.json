@@ -1206,6 +1206,7 @@
         "../OfficeIMO.AsciiDoc/OfficeIMO.AsciiDoc.csproj",
         "../OfficeIMO.AsciiDoc.Markdown/OfficeIMO.AsciiDoc.Markdown.csproj",
         "../OfficeIMO.AsciiDoc.Pdf/OfficeIMO.AsciiDoc.Pdf.csproj",
+        "../OfficeIMO.Bibliography/OfficeIMO.Bibliography.csproj",
         "../OfficeIMO.Confluence/OfficeIMO.Confluence.csproj",
         "../OfficeIMO.CSV/OfficeIMO.CSV.csproj",
         "../OfficeIMO.Core/OfficeIMO.Core.csproj",
