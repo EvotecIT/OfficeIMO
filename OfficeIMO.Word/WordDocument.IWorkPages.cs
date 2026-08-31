@@ -567,6 +567,11 @@ public partial class WordDocument {
             if (firstObservation && TryParseStart(label, levelKind, out int start) && start != 1) {
                 list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
+            if (firstObservation && levelKind != WordListLevelKind.Bullet
+                && IsParenthesized(label)) {
+                list.Numbering.Levels[level].LevelText = "(%"
+                    + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
+            }
             OpenXmlParagraphProperties properties = paragraph._paragraph.ParagraphProperties
                 ?? paragraph._paragraph.PrependChild(new OpenXmlParagraphProperties());
             properties.NumberingProperties = new OpenXmlNumberingProperties(
@@ -675,7 +680,21 @@ public partial class WordDocument {
             return kind == WordListLevelKind.Bullet || TryParseStart(label, kind, out _);
         }
 
-        private static string MarkerToken(string marker) => marker.TrimEnd('.', ')', '(', ' ');
+        private static bool IsParenthesized(string? marker) {
+            if (string.IsNullOrWhiteSpace(marker)) return false;
+            string trimmed = marker!.Trim();
+            return trimmed.Length >= 2 && trimmed[0] == '('
+                && trimmed[trimmed.Length - 1] == ')';
+        }
+
+        private static string MarkerToken(string marker) {
+            string trimmed = marker.Trim();
+            if (trimmed.Length >= 2 && trimmed[0] == '('
+                && trimmed[trimmed.Length - 1] == ')') {
+                return trimmed.Substring(1, trimmed.Length - 2).Trim();
+            }
+            return trimmed.TrimEnd('.', ')', ' ');
+        }
     }
 
     private static uint ToTwips(double points) {

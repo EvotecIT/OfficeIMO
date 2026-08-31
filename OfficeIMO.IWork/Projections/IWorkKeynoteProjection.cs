@@ -378,6 +378,7 @@ internal static class IWorkKeynoteReader {
                 }
                 if (text.PlainText.Length == 0 && hyperlink == null
                     && accessibilityDescription == null) continue;
+                if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
                 title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
@@ -403,6 +404,7 @@ internal static class IWorkKeynoteReader {
                 }
                 if (text.PlainText.Length == 0 && hyperlink == null
                     && accessibilityDescription == null) continue;
+                if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
                 var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 textBoxes.Add(textBox);
                 drawables.Add(new IWorkKeynoteDrawable(textBox, isTitlePlaceholder: false));

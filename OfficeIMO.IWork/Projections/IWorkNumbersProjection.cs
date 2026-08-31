@@ -163,6 +163,28 @@ internal static class IWorkNumbersReader {
                         ref materializedCellCount, ref supportsEditableReconstruction);
                     if (table != null) tables.Add(table);
                 } else if (drawable.MessageType == TextShapeArchive) {
+                    IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
+                        out bool drawableComplete);
+                    bool geometryComplete = true;
+                    if (drawableMessage != null) {
+                        IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete);
+                    }
+                    bool metadataComplete = true;
+                    string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,
+                        projectionBudget, ref metadataComplete);
+                    string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(
+                        drawableMessage, 8, projectionBudget, ref metadataComplete);
+                    if (!drawableComplete || !geometryComplete || !metadataComplete || hyperlink != null
+                        || accessibilityDescription != null) {
+                        supportsEditableReconstruction = false;
+                        if (!diagnostics.Any(diagnostic =>
+                                diagnostic.Code == "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED")) {
+                            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                                "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED",
+                                "A Numbers text shape contains malformed or unsupported drawable metadata; editable reconstruction is incomplete.",
+                                drawable.EntryPath, drawable.Identifier));
+                        }
+                    }
                     IWorkArchiveRecord? storage = index.Dereference(index.Message(drawable), 2);
                     if (storage != null && storage.MessageType == TextStorageArchive) {
                         string text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
@@ -442,6 +464,17 @@ internal static class IWorkNumbersReader {
                 byte[] offsets = currentOffsets ?? Array.Empty<byte>();
                 bool hasWideOffsets = (rowInfo.GetUnsigned(8) ?? 0) != 0;
                 int availableColumns = Math.Min(columns, offsets.Length / 2);
+                bool hasPopulatedTrailingOffset = false;
+                for (int column = columns; column < offsets.Length / 2; column++) {
+                    int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
+                    if (encodedOffset != ushort.MaxValue) {
+                        hasPopulatedTrailingOffset = true;
+                        break;
+                    }
+                }
+                if (hasPopulatedTrailingOffset) {
+                    MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
+                }
                 for (int column = 0; column < availableColumns; column++) {
                     int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
                     if (encodedOffset == ushort.MaxValue) continue;

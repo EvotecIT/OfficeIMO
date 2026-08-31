@@ -290,6 +290,7 @@ internal static class IWorkPagesReader {
             }
             if (text.PlainText.Length == 0 && hyperlink == null
                 && accessibilityDescription == null) continue;
+            if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
             var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
             textBoxes.Add(textBox);
             projectedTextBoxes.Add(shape.Identifier, textBox);

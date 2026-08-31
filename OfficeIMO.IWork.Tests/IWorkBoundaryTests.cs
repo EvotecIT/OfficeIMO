@@ -988,7 +988,8 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreateNumbersPackage(IReadOnlyList<TableSpec> tables, string? textBox = null,
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
-        byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false) {
+        byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false,
+        byte[]? textBoxDrawable = null) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -1076,7 +1077,11 @@ public sealed partial class IWorkBoundaryTests {
             const ulong shapeId = 1000;
             const ulong storageId = 1001;
             sheetFields.Add(ReferenceField(2, shapeId));
-            records.Add(ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))));
+            byte[] shape = textBoxDrawable == null
+                ? Message(ReferenceField(2, storageId))
+                : Message(BytesField(1, Message(BytesField(1, textBoxDrawable))),
+                    ReferenceField(2, storageId));
+            records.Add(ArchiveRecord(shapeId, 2011, shape, new[] { storageId }));
             records.Add(ArchiveRecord(storageId, 2001, Message(
                 textBoxBytes != null ? BytesField(3, textBoxBytes) : StringField(3, textBox!))));
         }
@@ -1125,7 +1130,13 @@ public sealed partial class IWorkBoundaryTests {
         ushort encodedOffset = checked((ushort)(table.WideOffsets ? cellOffset / 4 : cellOffset));
         byte[] offsets = table.OddCurrentOffsets
             ? new[] { (byte)encodedOffset }
-            : new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
+            : table.PopulatedOffsetBeyondColumns
+                ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
+                    (byte)encodedOffset, (byte)(encodedOffset >> 8) }
+                : table.EmptyOffsetBeyondColumns
+                    ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
+                        byte.MaxValue, byte.MaxValue }
+                    : new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8) };
         var fields = new List<byte[]> { VarintField(1, 0), BytesField(6, buffer) };
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
@@ -1406,7 +1417,8 @@ public sealed partial class IWorkBoundaryTests {
             bool formulaWithoutCachedValue = false, double? defaultColumnWidth = null,
             bool duplicateFormula = false, bool wrongWireDimensions = false,
             bool oddCurrentOffsets = false, double? defaultRowHeight = null,
-            int headerRows = 0, int footerRows = 0, bool error = false) {
+            int headerRows = 0, int footerRows = 0, bool error = false,
+            bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1434,6 +1446,8 @@ public sealed partial class IWorkBoundaryTests {
             HeaderRows = headerRows;
             FooterRows = footerRows;
             Error = error;
+            PopulatedOffsetBeyondColumns = populatedOffsetBeyondColumns;
+            EmptyOffsetBeyondColumns = emptyOffsetBeyondColumns;
         }
 
         internal string Name { get; }
@@ -1463,5 +1477,7 @@ public sealed partial class IWorkBoundaryTests {
         internal int HeaderRows { get; }
         internal int FooterRows { get; }
         internal bool Error { get; }
+        internal bool PopulatedOffsetBeyondColumns { get; }
+        internal bool EmptyOffsetBeyondColumns { get; }
     }
 }
