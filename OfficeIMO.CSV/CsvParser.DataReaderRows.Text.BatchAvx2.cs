@@ -63,6 +63,12 @@ internal static partial class CsvParser
 
         while (position <= end)
         {
+            if (((position - initialPosition) & 0x3fff) == 0)
+            {
+                ThrowIfCancellationRequested(options);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             Vector256<byte> packedBytes;
             if (Avx512BW.IsSupported)
             {
@@ -677,6 +683,12 @@ internal static partial class CsvParser
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Read() => MoveNext();
+
+        public bool Read(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return MoveNext();
+        }
 
         public bool IsNull(int ordinal, string? nullValue) =>
             !IsMissing(ordinal) &&

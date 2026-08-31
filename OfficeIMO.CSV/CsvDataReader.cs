@@ -211,7 +211,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
                 bool hasRow;
                 try
                 {
-                    hasRow = Read();
+                    hasRow = ReadCore(cancellationToken);
                 }
                 catch (Exception exception) when (!(exception is OperationCanceledException))
                 {
@@ -360,7 +360,8 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         DataMappingErrorValuePolicy mappingErrorValuePolicy = DataMappingErrorValuePolicy.Include,
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null,
-        CancellationToken processingCancellationToken = default)
+        CancellationToken processingCancellationToken = default,
+        CsvLoadOptions? operationCancellationOptions = null)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
@@ -369,7 +370,8 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         Delimiter = delimiter;
         _mappingErrorValuePolicy = mappingErrorValuePolicy;
         _rowOwner = rowOwner;
-        _processingCancellationToken = processingCancellationToken;
+        _stringRowOptions = operationCancellationOptions;
+        _processingCancellationToken = operationCancellationOptions?.CancellationToken ?? processingCancellationToken;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
         _rawRowsAreParsedStringsOnly = rawRowsAreParsedStringsOnly;
@@ -1087,15 +1089,29 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
     /// <inheritdoc />
     public override Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        _processingCancellationToken.ThrowIfCancellationRequested();
-        return Task.FromResult(Read());
+        try
+        {
+            return Task.FromResult(ReadCore(cancellationToken));
+        }
+        catch (OperationCanceledException exception) when (exception.CancellationToken.IsCancellationRequested)
+        {
+            return Task.FromCanceled<bool>(exception.CancellationToken);
+        }
+        catch (Exception exception)
+        {
+            return Task.FromException<bool>(exception);
+        }
     }
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override bool Read()
+    public override bool Read() => ReadCore(_processingCancellationToken);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool ReadCore(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed)
         {
             return false;
@@ -1105,13 +1121,15 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         {
 #if NET8_0_OR_GREATER
             _hasCurrentTextRow = _utf8StreamTextRowSource is not null
-                ? _utf8StreamTextRowSource.Read()
+                ? _utf8StreamTextRowSource.Read(cancellationToken)
                 : _streamTextRowSource is not null
-                    ? _streamTextRowSource.Read()
-                    : _textRowSource!.Read();
+                    ? _streamTextRowSource.Read(cancellationToken)
+                    : _textRowSource!.Read(cancellationToken);
 #else
-            _hasCurrentTextRow = _textRowSource!.Read();
+            _hasCurrentTextRow = _textRowSource!.Read(cancellationToken);
 #endif
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
             if (!_hasCurrentTextRow)
             {
                 _hasRows ??= false;
@@ -1124,23 +1142,40 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
             return true;
         }
 
-        return ReadSlow();
+        if (_textRowSource is null && _stringRowOptions is not null)
+        {
+            _stringRowOptions.OperationCancellationToken = cancellationToken;
+            try
+            {
+                return ReadSlow(cancellationToken);
+            }
+            finally
+            {
+                _stringRowOptions.OperationCancellationToken = default;
+            }
+        }
+
+        return ReadSlow(cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private bool ReadSlow()
+    private bool ReadSlow(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
         if (_textRowSource is not null && !_hasBufferedRow)
         {
 #if NET8_0_OR_GREATER
             _hasCurrentTextRow = _utf8StreamTextRowSource is not null
-                ? _utf8StreamTextRowSource.Read()
+                ? _utf8StreamTextRowSource.Read(cancellationToken)
                 : _streamTextRowSource is not null
-                    ? _streamTextRowSource.Read()
-                    : _textRowSource.Read();
+                    ? _streamTextRowSource.Read(cancellationToken)
+                    : _textRowSource.Read(cancellationToken);
 #else
-            _hasCurrentTextRow = _textRowSource.Read();
+            _hasCurrentTextRow = _textRowSource.Read(cancellationToken);
 #endif
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
             if (!_hasCurrentTextRow)
             {
                 _hasRows ??= false;
@@ -1178,6 +1213,9 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
                 ClearCurrentRow();
                 return false;
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
         }
 
         _hasRows ??= true;

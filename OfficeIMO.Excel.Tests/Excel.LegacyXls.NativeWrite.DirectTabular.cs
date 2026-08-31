@@ -300,6 +300,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LegacyXls_DirectTabularSave_ObservesCancellationBeforeSharedStringSerialization() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            for (int row = 2; row <= 4096; row++) {
+                sheet.CellValue(row, 1, "Unique value " + row);
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            document.Execution.OnTiming = (operation, _) => {
+                if (operation == "Save.Xls.Direct.ExtractCells") cancellation.Cancel();
+            };
+            using var destination = new MemoryStream();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                document.SaveAsync(destination, ExcelFileFormat.Xls, cancellationToken: cancellation.Token));
+            Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
         public void LegacyXls_GeneralWriter_OpensInDesktopExcelAndRoundTripsValues() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
             try {

@@ -84,13 +84,22 @@ internal static partial class CsvParser
             return _state.Position;
         }
 
-        public bool Read()
+        public bool Read() => Read(_options.CancellationToken);
+
+        public bool Read(CancellationToken cancellationToken)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfCancellationRequested(_options);
             if (_batch is not null)
             {
                 if (_batch.MoveNext() ||
-                    (TryFillTextDataReaderBatchAvx2(_text.AsSpan(0, _endPosition), _options, ref _state, _batch) && _batch.MoveNext()))
+                    (TryFillTextDataReaderBatchAvx2(
+                        _text.AsSpan(0, _endPosition),
+                        _options,
+                        ref _state,
+                        _batch,
+                        cancellationToken) && _batch.MoveNext()))
                 {
                     _usingBatchRow = true;
                     ValidateFieldCount(_batch.CurrentFieldCount);
@@ -99,7 +108,14 @@ internal static partial class CsvParser
             }
 
             _usingBatchRow = false;
-            if (!TryReadNextTextRecordFieldSpans(_text.AsSpan(0, _endPosition), _options, null, ref _state, ref _visitor, out var fieldCount))
+            if (!TryReadNextTextRecordFieldSpans(
+                    _text.AsSpan(0, _endPosition),
+                    _options,
+                    null,
+                    ref _state,
+                    ref _visitor,
+                    out var fieldCount,
+                    cancellationToken))
             {
                 return false;
             }
@@ -588,7 +604,8 @@ internal static partial class CsvParser
         ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref CsvTextFieldSpanReadState state,
         ref TVisitor fieldVisitor,
-        out int emittedFieldCount)
+        out int emittedFieldCount,
+        CancellationToken cancellationToken = default)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         var delimiter = GetDelimiterChar(options);
@@ -600,6 +617,7 @@ internal static partial class CsvParser
         while (state.Position < text.Length)
         {
             ThrowIfCancellationRequested(options);
+            cancellationToken.ThrowIfCancellationRequested();
             var recordStart = state.Position;
             if (TrySkipTextEmptyRecord(text, trim, allowEmpty, ref state.Position))
             {
@@ -678,6 +696,7 @@ internal static partial class CsvParser
             }
 
             var requiredFieldCapacity = GetTextDelimiterIndexCapacity(fieldCount);
+            cancellationToken.ThrowIfCancellationRequested();
             if (requiredFieldCapacity > state.UnquotedDelimiterIndexCapacity)
             {
                 state.UnquotedDelimiterIndexCapacity = requiredFieldCapacity;

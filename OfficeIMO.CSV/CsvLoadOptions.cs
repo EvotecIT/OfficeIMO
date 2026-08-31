@@ -175,6 +175,8 @@ public sealed class CsvLoadOptions
     /// </summary>
     public CancellationToken CancellationToken { get; set; }
 
+    internal CancellationToken OperationCancellationToken { get; set; }
+
     /// <summary>
     /// Gets or sets how often <see cref="ProgressCallback"/> is called, in emitted records.
     /// Default is <c>0</c>, which disables progress callbacks.
@@ -232,6 +234,7 @@ public sealed class CsvLoadOptions
     public CsvLoadOptions Clone()
     {
         var clone = (CsvLoadOptions)MemberwiseClone();
+        clone.OperationCancellationToken = default;
         clone.Header = Header is null ? null : (string[])Header.Clone();
         clone.DateTimeFormats = DateTimeFormats is null ? null : (string[])DateTimeFormats.Clone();
         clone.DelimiterCandidates = DelimiterCandidates is null ? null : (char[])DelimiterCandidates.Clone();

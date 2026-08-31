@@ -222,6 +222,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsSharedStringTable sharedStrings = plan.SharedStrings;
             ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream.CreateTables");
 
+            plan.CancellationToken.ThrowIfCancellationRequested();
             var stream = new DirectTabularWorkbookStream(plan.WorkbookStreamCapacity);
             try {
                 long boundSheetPosition = WriteDirectWorkbookGlobals(
@@ -231,7 +232,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     fontTable,
                     styleTable,
                     externSheetTable,
-                    sharedStrings);
+                    sharedStrings,
+                    plan.CancellationToken);
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream.WriteGlobals");
 
                 int worksheetOffset = checked((int)stream.Position);
@@ -256,7 +258,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             LegacyXlsFontTable fontTable,
             LegacyXlsStyleTable styleTable,
             LegacyXlsExternSheetTable externSheetTable,
-            LegacyXlsSharedStringTable sharedStrings) {
+            LegacyXlsSharedStringTable sharedStrings,
+            CancellationToken cancellationToken) {
             WriteRecord(stream, 0x0809, WorkbookGlobalsBof);
             WriteRecord(stream, 0x00e1, BuildUInt16Payload(1200));
             WriteRecord(stream, 0x00c1, BuildUInt16Payload(0));
@@ -301,7 +304,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 WriteRecord(stream, supportingLinkRecord.RecordType, supportingLinkRecord.Payload);
             }
             WriteRecord(stream, 0x0017, externSheetTable.Payload);
-            sharedStrings.WriteRecords(stream);
+            sharedStrings.WriteRecords(stream, cancellationToken);
             WriteRecord(stream, 0x000a, Array.Empty<byte>());
             return boundSheetPosition;
         }

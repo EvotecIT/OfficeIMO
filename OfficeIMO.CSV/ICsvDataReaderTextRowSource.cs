@@ -1,12 +1,15 @@
 #nullable enable
 
 using System;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
 internal interface ICsvDataReaderTextRowSource : IDisposable
 {
     bool Read();
+
+    bool Read(CancellationToken cancellationToken);
 
 #if NET8_0_OR_GREATER
     ReadOnlySpan<char> GetSpan(int ordinal);

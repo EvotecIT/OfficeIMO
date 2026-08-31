@@ -66,6 +66,42 @@ public sealed class CsvDataReaderApiTests {
         Assert.False(await reader.ReadAsync(CancellationToken.None));
         Assert.False(stream.IsDisposed);
     }
+
+    [Fact]
+    public async Task OpenDataReaderAsyncReadsFromCurrentSeekablePositionAndRestoresIt() {
+        byte[] prefix = Encoding.UTF8.GetBytes("ignored-prefix");
+        byte[] payload = Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n");
+        using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
+        stream.Position = prefix.Length;
+
+        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+            stream,
+            new CsvLoadOptions { MaxInputBytes = payload.Length },
+            new CsvDataReaderOptions { InferSchema = true });
+
+        Assert.Equal(prefix.Length, stream.Position);
+        Assert.Equal("Id", reader.GetName(0));
+        Assert.Equal("Name", reader.GetName(1));
+        Assert.True(await reader.ReadAsync(CancellationToken.None));
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Ada", reader.GetString(1));
+        Assert.False(await reader.ReadAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task OpenDataReaderAsyncDoesNotRetainOpeningCancellationInReturnedCursor() {
+        using var openingCancellation = new CancellationTokenSource();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
+
+        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+            stream,
+            new CsvLoadOptions { CancellationToken = openingCancellation.Token });
+        openingCancellation.Cancel();
+
+        Assert.True(await reader.ReadAsync(CancellationToken.None));
+        Assert.Equal("1", reader.GetString(0));
+        Assert.Equal("Ada", reader.GetString(1));
+    }
 #endif
 
     [Fact]
@@ -474,6 +510,115 @@ public sealed class CsvDataReaderApiTests {
         Assert.Throws<OperationCanceledException>(() => reader.Read());
         Assert.Equal(2, stream.ReadCount);
     }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public async Task OpenDataReader_ReadAsyncObservesPerCallCancellationWhileScanningLargeRecord() {
+        using var cancellation = new CancellationTokenSource();
+        byte[] bytes = Encoding.UTF8.GetBytes(
+            "Value\n" + new string('x', 600_000) + "\n");
+        using var stream = new CancelingSeekableReadStream(
+            bytes,
+            cancellation,
+            cancelOnReadCount: 2);
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        Assert.False(cancellation.IsCancellationRequested);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(cancellation.Token));
+        Assert.Equal(2, stream.ReadCount);
+    }
+
+    [Fact]
+    public async Task OpenDataReader_ReadAsyncObservesPerCallCancellationOnGeneralParserFallback() {
+        using var cancellation = new CancellationTokenSource();
+        byte[] bytes = Encoding.UTF8.GetBytes(
+            "Value\n" + new string('x', 600_000) + "\n");
+        using var stream = new CancelingSeekableReadStream(
+            bytes,
+            cancellation,
+            cancelOnReadCount: 2);
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions {
+                Mode = CsvLoadMode.Stream,
+                NormalizeQuotes = true
+            });
+
+        Assert.False(cancellation.IsCancellationRequested);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(cancellation.Token));
+        Assert.Equal(2, stream.ReadCount);
+    }
+
+    [Fact]
+    public async Task OpenDataReader_ParallelReadAsyncPropagatesPerCallCancellationToSource() {
+        using var cancellation = new CancellationTokenSource();
+        byte[] bytes = Encoding.UTF8.GetBytes(
+            "Id,Value\n1," + new string('x', 600_000) + "\n");
+        using var stream = new CancelingSeekableReadStream(
+            bytes,
+            cancellation,
+            cancelOnReadCount: 2);
+        CsvSchema schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Column("Value").AsString()
+            .Done()
+            .Build();
+        using DbDataReader reader = CsvDocument.OpenDataReader(
+            stream,
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+            new CsvDataReaderOptions {
+                Schema = schema,
+                ParallelProcessing = new CsvDataReaderParallelOptions {
+                    MaxDegreeOfParallelism = 2,
+                    BatchSize = 1
+                }
+            });
+
+        Assert.False(cancellation.IsCancellationRequested);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            reader.ReadAsync(cancellation.Token));
+        Assert.Equal(2, stream.ReadCount);
+    }
+
+    [Fact]
+    public void CreateDataReader_CancellationInterruptsSchemaInference() {
+        var csv = new StringBuilder("Id,Value\n");
+        const int rowCount = 250_000;
+        for (int row = 0; row < rowCount; row++) {
+            csv.Append(row).Append(',').Append("value-").Append(row).Append('\n');
+        }
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
+        CsvDocument document = CsvDocument.Load(
+            stream,
+            new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
+        using var cancellation = new CancellationTokenSource();
+        using var startCancellation = new ManualResetEventSlim();
+        var cancellationThread = new Thread(() => {
+            startCancellation.Wait();
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        });
+        cancellationThread.Start();
+        try {
+            Assert.False(cancellation.IsCancellationRequested);
+            startCancellation.Set();
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                document.CreateDataReader(
+                    new CsvDataReaderOptions {
+                        InferSchema = true,
+                        SchemaSampleSize = rowCount
+                    },
+                    cancellation.Token));
+        } finally {
+            cancellationThread.Join();
+        }
+    }
+
+#endif
 
     [Fact]
     public void OpenDataReader_NonSeekableFallbackObservesCancellationWhileBuffering() {
