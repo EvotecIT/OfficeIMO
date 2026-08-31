@@ -1,19 +1,29 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Workspace;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
 public sealed partial class MainWindowViewModel : ObservableObject, IDisposable {
     private readonly Func<CancellationToken, Task<string?>> _pickPdf;
+    private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
+    private readonly Func<CancellationToken, Task<string?>> _pickImportPdf;
+    private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
+    private readonly Func<Uri, Task> _openUri;
+    private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
+    private PdfWorkspace? _workspace;
     private PdfDocumentSession? _session;
+    private PageSceneCoordinator? _sceneCoordinator;
     private PageRenderCoordinator? _renderCoordinator;
     private CancellationTokenSource? _openCancellation;
     private double _viewportWidth = 1000D;
     private double _viewportHeight = 700D;
     private ViewerZoomMode _zoomMode = ViewerZoomMode.FitWidth;
     private bool _disposed;
+    private bool _discardOnNextTransition;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
@@ -43,11 +53,24 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     [NotifyPropertyChangedFor(nameof(ZoomLabel))]
     private double _zoom = 1D;
 
-    internal MainWindowViewModel(Func<CancellationToken, Task<string?>> pickPdf) {
+    internal MainWindowViewModel(
+        Func<CancellationToken, Task<string?>> pickPdf,
+        Func<CancellationToken, Task<string?>>? pickSavePdf = null,
+        Func<CancellationToken, Task<string?>>? pickImportPdf = null,
+        Func<CancellationToken, Task<string?>>? pickOutputFolder = null,
+        Func<Uri, Task>? openUri = null,
+        Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
+        _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
+        _pickImportPdf = pickImportPdf ?? (_ => Task.FromResult<string?>(null));
+        _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
+        _openUri = openUri ?? (_ => Task.CompletedTask);
+        _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
     }
 
     public ObservableCollection<PdfPageViewModel> Pages { get; } = new();
+
+    public ObservableCollection<PdfOrganizerPageViewModel> OrganizerPages { get; } = new();
 
     public bool IsEmpty => !HasDocument && !IsOpening;
 
@@ -62,6 +85,29 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public bool CanGoPrevious => SelectedPage is { PageNumber: > 1 };
 
     public bool CanGoNext => SelectedPage is not null && SelectedPage.PageNumber < Pages.Count;
+
+    public bool IsDirty => _workspace?.IsDirty == true;
+
+    public bool CanUndo => _workspace?.CanUndo == true;
+
+    public bool CanRedo => _workspace?.CanRedo == true;
+
+    public bool HasRecovery => _workspace?.HasRecovery == true;
+
+    public bool CanMutatePages => _workspace?.CanMutatePages == true;
+
+    public bool HasSecurityWarning => !string.IsNullOrWhiteSpace(SecurityWarning);
+
+    public string? SecurityWarning => _workspace?.SecurityWarning;
+
+    public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
+
+    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening;
+
+    partial void OnIsOpeningChanged(bool value) {
+        OnPropertyChanged(nameof(CanStartDocumentTransition));
+        OnPropertyChanged(nameof(CanCancelOperation));
+    }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
         if (value is not null && _zoomMode != ViewerZoomMode.Custom) {
@@ -79,6 +125,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     internal async Task OpenDocumentAsync(string path, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
+        if (!await PrepareDocumentTransitionAsync().ConfigureAwait(true)) return;
         _openCancellation?.Cancel();
         _openCancellation?.Dispose();
         _openCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -86,38 +133,69 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         IsOpening = true;
         ErrorMessage = null;
+        PdfWorkspace? candidateWorkspace = null;
+        PageSceneCoordinator? candidateSceneCoordinator = null;
+        PageRenderCoordinator? candidateRenderCoordinator = null;
+        PdfPageViewModel[] candidatePages = [];
+        PdfOrganizerPageViewModel[] candidateOrganizerPages = [];
+        bool installed = false;
 
         try {
-            PdfDocumentSession session = await PdfDocumentSession
+            candidateWorkspace = await PdfWorkspace
                 .OpenAsync(path, currentCancellation.Token)
                 .ConfigureAwait(true);
             currentCancellation.Token.ThrowIfCancellationRequested();
 
-            var coordinator = new PageRenderCoordinator(session.RenderPageAsync);
-            var pages = session.Pages
+            PdfDocumentSession session = PdfDocumentSession.FromWorkspace(candidateWorkspace);
+
+            candidateSceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
+            candidateRenderCoordinator = new PageRenderCoordinator(session.RenderPageAsync);
+            candidatePages = session.Pages
                 .Select(page => new PdfPageViewModel(
                     page.PageNumber,
                     page.Width,
                     page.Height,
                     page.RotationDegrees,
                     Zoom,
-                    coordinator))
+                    candidateSceneCoordinator,
+                    candidateRenderCoordinator))
+                .ToArray();
+            candidateOrganizerPages = session.Pages
+                .Select(page => new PdfOrganizerPageViewModel(
+                    page.PageNumber,
+                    page.Width,
+                    page.Height,
+                    page.RotationDegrees,
+                    candidateSceneCoordinator,
+                    candidateRenderCoordinator))
                 .ToArray();
 
-            if (!ReferenceEquals(currentCancellation, _openCancellation)) {
-                foreach (PdfPageViewModel page in pages) page.Dispose();
-                coordinator.Dispose();
-                return;
-            }
+            if (!ReferenceEquals(currentCancellation, _openCancellation)) return;
 
-            ReplaceDocument(session, coordinator, pages);
+            ReplaceDocument(
+                candidateWorkspace,
+                session,
+                candidateSceneCoordinator,
+                candidateRenderCoordinator,
+                candidatePages,
+                candidateOrganizerPages);
+            installed = true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             // A newer open request, document close, or application shutdown superseded this operation.
+            _discardOnNextTransition = false;
         } catch (Exception ex) {
+            _discardOnNextTransition = false;
             if (ReferenceEquals(currentCancellation, _openCancellation)) {
                 ErrorMessage = ex.Message;
             }
         } finally {
+            if (!installed) {
+                foreach (PdfPageViewModel page in candidatePages) page.Dispose();
+                foreach (PdfOrganizerPageViewModel page in candidateOrganizerPages) page.Dispose();
+                candidateSceneCoordinator?.Dispose();
+                candidateRenderCoordinator?.Dispose();
+                candidateWorkspace?.Dispose();
+            }
             if (ReferenceEquals(currentCancellation, _openCancellation)) {
                 IsOpening = false;
                 _openCancellation = null;
@@ -127,10 +205,16 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     [RelayCommand]
-    private void CloseDocument() {
+    private async Task CloseDocumentAsync() {
+        await RequestCloseDocumentAsync().ConfigureAwait(true);
+    }
+
+    internal async Task<bool> RequestCloseDocumentAsync() {
+        if (!await PrepareDocumentTransitionAsync().ConfigureAwait(true)) return false;
         _openCancellation?.Cancel();
-        ReplaceDocument(null, null, Array.Empty<PdfPageViewModel>());
+        ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
         ErrorMessage = null;
+        return true;
     }
 
     [RelayCommand]
@@ -190,24 +274,76 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        CancelCurrentOperation();
+        if (IsWorkspaceBusy) {
+            _disposeWhenIdle = true;
+            return;
+        }
         _openCancellation?.Cancel();
         _openCancellation?.Dispose();
         _openCancellation = null;
-        ReplaceDocument(null, null, Array.Empty<PdfPageViewModel>());
+        ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
+    }
+
+    private async Task<bool> PrepareDocumentTransitionAsync() {
+        if (IsWorkspaceBusy || IsOpening) {
+            OperationStatus = "Cancel or wait for the current operation before changing documents.";
+            return false;
+        }
+        if (!IsDirty) return true;
+
+        UnsavedChangesDecision decision = await _confirmUnsavedChanges().ConfigureAwait(true);
+        if (decision == UnsavedChangesDecision.Save) {
+            await RunSaveAsync(path: null, CancellationToken.None).ConfigureAwait(true);
+            return !IsDirty;
+        }
+        if (decision == UnsavedChangesDecision.Discard) {
+            _discardOnNextTransition = true;
+            return true;
+        }
+        return false;
     }
 
     private void ReplaceDocument(
+        PdfWorkspace? workspace,
         PdfDocumentSession? session,
-        PageRenderCoordinator? coordinator,
-        IReadOnlyList<PdfPageViewModel> pages) {
+        PageSceneCoordinator? sceneCoordinator,
+        PageRenderCoordinator? renderCoordinator,
+        IReadOnlyList<PdfPageViewModel> pages,
+        IReadOnlyList<PdfOrganizerPageViewModel> organizerPages) {
+        bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         foreach (PdfPageViewModel page in Pages) page.Dispose();
+        foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();
         Pages.Clear();
+        OrganizerPages.Clear();
+        _organizerSelection.Clear();
+        _sceneCoordinator?.Dispose();
         _renderCoordinator?.Dispose();
+        if (!ReferenceEquals(_workspace, workspace)) {
+            if (_discardOnNextTransition) _workspace?.DiscardRecovery();
+            _workspace?.Dispose();
+            _discardOnNextTransition = false;
+        }
 
+        _workspace = workspace;
         _session = session;
-        _renderCoordinator = coordinator;
+        _sceneCoordinator = sceneCoordinator;
+        _renderCoordinator = renderCoordinator;
 
-        foreach (PdfPageViewModel page in pages) Pages.Add(page);
+        if (isDocumentTransition) {
+            SearchQuery = string.Empty;
+            SearchResults.Clear();
+            SelectedSearchResult = null;
+            SelectedBookmark = null;
+            OperationStatus = null;
+            OperationProgressFraction = 0D;
+        }
+
+        foreach (PdfPageViewModel page in pages) {
+            page.LinkActivated += OnPageLinkActivated;
+            Pages.Add(page);
+        }
+        foreach (PdfOrganizerPageViewModel page in organizerPages) OrganizerPages.Add(page);
 
         HasDocument = session is not null;
         DocumentName = session?.FileName ?? "OfficeIMO Studio";
@@ -216,6 +352,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             : $"{session.Pages.Count:N0} {(session.Pages.Count == 1 ? "page" : "pages")} · {FormatByteSize(session.FileSize)}";
         SelectedPage = Pages.FirstOrDefault();
         OnPropertyChanged(nameof(SelectedPagePosition));
+        OnPropertyChanged(nameof(HasOrganizerSelection));
+        OnPropertyChanged(nameof(OrganizerSelectionLabel));
+        NotifyWorkspaceStateChanged();
 
         if (session is not null) ApplyFitZoom();
     }

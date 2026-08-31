@@ -12,9 +12,10 @@
             CornerRadius="2"
             BoxShadow="0 5 18 0 #30000000">
       <Grid>
-        <Image Source="{Binding PageImage}"
-               Stretch="Fill"
-               IsVisible="{Binding HasImage}" />
+        <reader:PdfPageCanvas x:Name="PageCanvas"
+                              Scene="{Binding Scene}"
+                              FallbackImage="{Binding PageImage}"
+                              IsVisible="{Binding HasScene}" />
 
         <StackPanel IsVisible="{Binding IsRendering}"
                     HorizontalAlignment="Center"
@@ -61,7 +62,10 @@
               Margin="8,0,0,0"
               HorizontalAlignment="Left">
         <TextBlock Text="{Binding DiagnosticsSummary}"
+                   ToolTip.Tip="{Binding DiagnosticsDetails}"
                    Foreground="{DynamicResource StudioAccentBrush}"
+                   MaxWidth="420"
+                   TextTrimming="CharacterEllipsis"
                    FontSize="11" />
       </Border>
     </Grid>

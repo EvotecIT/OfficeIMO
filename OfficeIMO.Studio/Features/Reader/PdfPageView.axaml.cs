@@ -8,6 +8,7 @@ public sealed partial class PdfPageView : UserControl {
 
     public PdfPageView() {
         InitializeComponent();
+        PageCanvas.LinkActivated += OnLinkActivated;
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;
@@ -18,6 +19,8 @@ public sealed partial class PdfPageView : UserControl {
             _viewModel?.DetachFromViewport();
         };
     }
+
+    private void OnLinkActivated(string target) => _viewModel?.ActivateLink(target);
 
     private void OnDataContextChanged(object? sender, EventArgs e) {
         UpdateViewModel();

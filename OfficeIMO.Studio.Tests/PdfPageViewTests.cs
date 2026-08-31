@@ -18,7 +18,9 @@ public sealed class PdfPageViewTests {
                 return Task.FromResult(
                     new PdfRenderedPage(page, scale, TinyPng, 1, 1, TimeSpan.Zero, Array.Empty<string>()));
             });
-            using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 1D, coordinator);
+            using var sceneCoordinator = new PageSceneCoordinator((page, _) =>
+                Task.FromResult(TestPdfPageScenes.Create(page, requiresRasterFallback: true)));
+            using var viewModel = new PdfPageViewModel(1, 612, 792, 0, 1D, sceneCoordinator, coordinator);
             var view = new PdfPageView { DataContext = viewModel };
             var window = new Window { Content = view };
 

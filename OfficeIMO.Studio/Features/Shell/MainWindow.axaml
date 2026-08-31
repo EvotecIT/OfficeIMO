@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
         xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
+        xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
@@ -13,7 +14,7 @@
         Background="{DynamicResource StudioWindowBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="54,Auto,*">
+  <Grid RowDefinitions="54,Auto,Auto,Auto,*">
     <Border Grid.Row="0"
             Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}"
@@ -45,12 +46,22 @@
           </StackPanel>
         </StackPanel>
 
-        <Button Grid.Column="1"
-                Classes="tool"
-                Command="{Binding OpenCommand}"
-                Content="Open PDF"
-                Margin="18,0,0,0"
-                VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    Margin="18,0,0,0"
+                    VerticalAlignment="Center">
+          <Button Classes="tool" Command="{Binding OpenCommand}" Content="Open"
+                  IsEnabled="{Binding CanStartDocumentTransition}" />
+          <Button Classes="tool" Command="{Binding SaveCommand}" Content="Save"
+                  IsVisible="{Binding HasDocument}" IsEnabled="{Binding IsDirty}" />
+          <Button Classes="tool" Command="{Binding SaveAsCommand}" Content="Save as"
+                  IsVisible="{Binding HasDocument}" />
+          <Button Classes="tool" Command="{Binding UndoCommand}" Content="↶"
+                  IsVisible="{Binding HasDocument}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Undo" />
+          <Button Classes="tool" Command="{Binding RedoCommand}" Content="↷"
+                  IsVisible="{Binding HasDocument}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Redo" />
+        </StackPanel>
 
         <StackPanel Grid.Column="2"
                     IsVisible="{Binding HasDocument}"
@@ -108,6 +119,7 @@
         <Button Grid.Column="3"
                 Classes="tool"
                 IsVisible="{Binding HasDocument}"
+                IsEnabled="{Binding CanStartDocumentTransition}"
                 Command="{Binding CloseDocumentCommand}"
                 Content="Close"
                 VerticalAlignment="Center" />
@@ -133,8 +145,41 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="2" x:Name="PageViewport">
+    <Border Grid.Row="2"
+            IsVisible="{Binding HasSecurityWarning}"
+            Background="#FFF8E7"
+            BorderBrush="#E9B949"
+            BorderThickness="0,0,0,1"
+            Padding="16,9">
+      <TextBlock Text="{Binding SecurityWarning}"
+                 Foreground="#7A4D00"
+                 TextWrapping="Wrap" />
+    </Border>
+
+    <Border Grid.Row="3"
+            IsVisible="{Binding HasOperationStatus}"
+            Background="{DynamicResource StudioAccentSoftBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,0,0,1"
+            Padding="16,7">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+        <TextBlock Text="{Binding OperationStatus}"
+                   Foreground="{DynamicResource StudioAccentBrush}" />
+        <Button Grid.Column="1" Classes="tool" Content="Restore recovered edits"
+                IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
+        <Button Grid.Column="2" Classes="tool" Content="Discard"
+                IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" Margin="6,0" />
+        <ProgressBar Grid.Column="3" IsVisible="{Binding IsWorkspaceBusy}"
+                     Width="100" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
+        <Button Grid.Column="4" Classes="tool" Content="Cancel"
+                IsVisible="{Binding CanCancelOperation}" Command="{Binding CancelOperationCommand}"
+                Margin="8,0,0,0" />
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="4" x:Name="PageViewport" ColumnDefinitions="250,*">
       <Border IsVisible="{Binding IsEmpty}"
+              Grid.ColumnSpan="2"
               Margin="28"
               Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}"
@@ -174,7 +219,95 @@
         </StackPanel>
       </Border>
 
+      <Border Grid.Column="0"
+              IsVisible="{Binding HasDocument}"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,1,0">
+        <TabControl>
+          <TabItem Header="Pages">
+            <Grid RowDefinitions="Auto,Auto,*">
+              <TextBlock Grid.Row="0" Text="{Binding OrganizerSelectionLabel}"
+                         Margin="12,10,12,6"
+                         FontWeight="SemiBold" />
+              <WrapPanel Grid.Row="1" Margin="8,0,8,8" Orientation="Horizontal">
+                <Button Classes="tool" Content="↑" Command="{Binding MoveSelectedUpCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages up" />
+                <Button Classes="tool" Content="↓" Command="{Binding MoveSelectedDownCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages down" />
+                <Button Classes="tool" Content="↶ 90°" Command="{Binding RotateLeftCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate left" />
+                <Button Classes="tool" Content="↷ 90°" Command="{Binding RotateRightCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate right" />
+                <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateSelectedCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" />
+                <Button Classes="tool" Content="Delete" Command="{Binding DeleteSelectedCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" />
+                <Button Classes="tool" Content="Extract" Command="{Binding ExtractSelectedCommand}"
+                        IsEnabled="{Binding HasOrganizerSelection}" />
+                <Button Classes="tool" Content="Import" Command="{Binding ImportPagesCommand}"
+                        IsEnabled="{Binding CanMutatePages}" />
+                <Button Classes="tool" Content="Blank" Command="{Binding InsertBlankCommand}"
+                        IsEnabled="{Binding CanMutatePages}" />
+                <Button Classes="tool" Content="Split" Command="{Binding SplitCommand}" />
+                <TextBox Width="54" Text="{Binding CropMargin}" PlaceholderText="pt" />
+                <Button Classes="tool" Content="Crop" Command="{Binding CropSelectedCommand}"
+                        IsEnabled="{Binding CanMutateSelection}" />
+              </WrapPanel>
+              <ListBox Grid.Row="2"
+                       x:Name="OrganizerList"
+                       DragDrop.AllowDrop="True"
+                       ItemsSource="{Binding OrganizerPages}"
+                       SelectionMode="Multiple,Toggle"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="organizer:PdfOrganizerPageViewModel">
+                    <organizer:PdfOrganizerPageView />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+          <TabItem Header="Bookmarks">
+            <ListBox ItemsSource="{Binding Bookmarks}"
+                     SelectedItem="{Binding SelectedBookmark, Mode=TwoWay}"
+                     BorderThickness="0"
+                     Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="reader:PdfBookmarkViewModel">
+                  <TextBlock Text="{Binding IndentedTitle}" Margin="8,5" TextTrimming="CharacterEllipsis" />
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </TabItem>
+          <TabItem Header="Search">
+            <Grid RowDefinitions="Auto,*" Margin="8">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Text="{Binding SearchQuery}" PlaceholderText="Find in PDF" />
+                <Button Grid.Column="1" Classes="tool" Content="Find" Command="{Binding SearchCommand}" Margin="6,0,0,0" />
+              </Grid>
+              <ListBox Grid.Row="1" Margin="0,8,0,0"
+                       ItemsSource="{Binding SearchResults}"
+                       SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}"
+                       BorderThickness="0" Background="Transparent">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="reader:PdfSearchHit">
+                    <TextBlock Text="{Binding Label}" Margin="6" TextWrapping="Wrap" FontSize="11" />
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </Grid>
+          </TabItem>
+        </TabControl>
+      </Border>
+
       <ListBox x:Name="PagesList"
+               Grid.Column="1"
                IsVisible="{Binding HasDocument}"
                ItemsSource="{Binding Pages}"
                SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
@@ -206,6 +339,7 @@
       </ListBox>
 
       <Border IsVisible="{Binding IsOpening}"
+              Grid.ColumnSpan="2"
               Background="#66000000">
         <Border Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}"

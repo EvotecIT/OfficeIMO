@@ -27,5 +27,8 @@
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Interoperability\openpreserve-pdfa1b-text.pdf"
           Link="Fixtures\openpreserve-pdfa1b-text.pdf"
           CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\SourceSansPro-Regular.otf"
+          Link="Fixtures\SourceSansPro-Regular.otf"
+          CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
