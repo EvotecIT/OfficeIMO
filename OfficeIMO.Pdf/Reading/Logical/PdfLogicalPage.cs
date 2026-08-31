@@ -245,6 +245,9 @@ public sealed partial class PdfLogicalPage {
         var structured = analysis is null
             ? page.ExtractStructured(options)
             : page.ExtractStructured(analysis.DecodedRuns, options, cancellationToken);
+        if (analysis is not null) {
+            ReplaceProjectionLines(structured, analysis.Lines, cancellationToken);
+        }
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
         var semanticByTextBlock = new Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement>();
@@ -255,8 +258,8 @@ public sealed partial class PdfLogicalPage {
         var listLines = new HashSet<string>(structured.ListItems.Select(NormalizeForKindComparison), StringComparer.Ordinal);
         PdfUnderstandingPageResult pageAnalysis = analysis ?? PdfUnderstandingPageResult.Empty(pageNumber);
         SemanticElementIndex semanticIndex = SemanticElementIndex.Create(pageAnalysis.Elements);
-        var headingLineKeys = new HashSet<(long BaselineY, long XStart, string Text)>(
-            structured.Headings.Select(static heading => CreateStructuredLineKey(heading.Line)));
+        var headingSourceRuns = new HashSet<PdfTextSpan>(
+            structured.Headings.SelectMany(static heading => heading.Line.Spans));
 
         foreach (var line in structured.LinesDetailed) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -265,9 +268,9 @@ public sealed partial class PdfLogicalPage {
                 continue;
             }
 
-            bool isStructuredHeading = headingLineKeys.Contains(CreateStructuredLineKey(line));
+            bool isStructuredHeading = line.Spans.Any(headingSourceRuns.Contains);
             bool isStructuredListItem = listLines.Contains(NormalizeForKindComparison(text)) || ContentStructureExtractor.IsListItemText(text);
-            PdfUnderstandingSemanticElement? semantic = semanticIndex.Find(line.Y, line.XStart, text);
+            PdfUnderstandingSemanticElement? semantic = semanticIndex.Find(line.Y, line.XStart, text, line.Spans);
             var kind = ToLogicalKind(semantic, line, isStructuredHeading)
                 ?? (isStructuredHeading
                     ? PdfLogicalElementKind.Heading
@@ -336,6 +339,7 @@ public sealed partial class PdfLogicalPage {
             page.GetVisibleVisualPrimitiveCounts(structured.TablesDetailed);
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup =
             CreateLogicalTextBlockLookup(textBlocks);
+        LogicalTextBlockSourceIndex textBlockSourceIndex = LogicalTextBlockSourceIndex.Create(textBlocks);
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
@@ -344,9 +348,9 @@ public sealed partial class PdfLogicalPage {
             geometry,
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
-            BuildHeadings(pageNumber, structured.Headings, textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup),
-            BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
-            BuildListItems(pageNumber, structured.ListNodes, textBlocks, semanticByTextBlock, textBlockLookup),
+            BuildHeadings(pageNumber, structured.Headings, textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup, textBlockSourceIndex),
+            BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks, textBlockSourceIndex),
+            BuildListItems(pageNumber, structured.ListNodes, textBlocks, semanticByTextBlock, textBlockLookup, textBlockSourceIndex),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,
@@ -359,6 +363,38 @@ public sealed partial class PdfLogicalPage {
             pageAnalysis);
     }
 
+    private static void ReplaceProjectionLines(
+        StructuredPage structured,
+        IReadOnlyList<PdfUnderstandingLine> sourceLines,
+        CancellationToken cancellationToken) {
+        if (sourceLines.Count == 0) return;
+        structured.Lines.Clear();
+        structured.LinesDetailed.Clear();
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfUnderstandingLine sourceLine = sourceLines[lineIndex];
+            var spans = new List<PdfTextSpan>();
+            var seenSpans = new HashSet<PdfTextSpan>();
+            for (int wordIndex = 0; wordIndex < sourceLine.Words.Count; wordIndex++) {
+                IReadOnlyList<PdfTextSpan> sourceRuns = sourceLine.Words[wordIndex].SourceRuns;
+                for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (seenSpans.Add(sourceRuns[runIndex])) spans.Add(sourceRuns[runIndex]);
+                }
+            }
+            string text = sourceLine.Text.Trim();
+            if (text.Length > 0) structured.Lines.Add(text);
+            structured.LinesDetailed.Add(new StructuredLine {
+                Y = sourceLine.BaselineY,
+                XStart = sourceLine.XStart,
+                XEnd = sourceLine.XEnd,
+                Text = sourceLine.Text,
+                FontSize = sourceLine.FontSize,
+                Spans = Array.AsReadOnly(spans.ToArray())
+            });
+        }
+    }
+
     private static PdfLinkAnnotation ResolveLinkDestinationPageNumber(PdfReadDocument document, PdfLinkAnnotation link) {
         if (link.DestinationPageNumber.HasValue || !link.DestinationPageObjectNumber.HasValue) {
             return link;
@@ -367,7 +403,11 @@ public sealed partial class PdfLogicalPage {
         return link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
     }
 
-    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, List<PdfLogicalTextBlock> textBlocks) {
+    private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(
+        int pageNumber,
+        List<StructuredParagraph> paragraphs,
+        List<PdfLogicalTextBlock> textBlocks,
+        LogicalTextBlockSourceIndex textBlockSourceIndex) {
         if (paragraphs.Count == 0) {
             return Array.Empty<PdfLogicalParagraph>();
         }
@@ -396,12 +436,14 @@ public sealed partial class PdfLogicalPage {
         for (int i = 0; i < paragraphs.Count; i++) {
             var paragraph = paragraphs[i];
             var lines = new List<PdfLogicalTextBlock>(paragraph.Lines.Count);
+            var representedLines = new HashSet<PdfLogicalTextBlock>();
             for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
                 var line = paragraph.Lines[lineIndex];
                 var key = CreateTextBlockLookupKey(line.Y, line.XStart, line.Text.Trim());
-                if (textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks) && blocks.Count > 0) {
-                    lines.Add(blocks.Dequeue());
-                }
+                PdfLogicalTextBlock? block = textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks) && blocks.Count > 0
+                    ? blocks.Dequeue()
+                    : textBlockSourceIndex.Find(line, PdfLogicalElementKind.TextBlock);
+                if (block is not null && representedLines.Add(block)) lines.Add(block);
             }
 
             if (lines.Count > 0) {
@@ -427,7 +469,8 @@ public sealed partial class PdfLogicalPage {
         List<StructuredListItem> listItems,
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
-        Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup) {
+        Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
+        LogicalTextBlockSourceIndex textBlockSourceIndex) {
         var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
@@ -446,7 +489,7 @@ public sealed partial class PdfLogicalPage {
         }
         for (int i = 0; i < listItems.Count; i++) {
             var item = listItems[i];
-            PdfLogicalTextBlock? block = FindTextBlock(item.Line, textBlockLookup, PdfLogicalElementKind.ListItem);
+            PdfLogicalTextBlock? block = FindTextBlock(item.Line, textBlockLookup, textBlockSourceIndex, PdfLogicalElementKind.ListItem);
             if (block is not null && !represented.Contains(block)) {
                 semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic);
                 IReadOnlyList<PdfLogicalTextBlock> lines = semantic is not null && semanticGroups.TryGetValue(semantic, out List<PdfLogicalTextBlock>? group)
@@ -514,16 +557,17 @@ public sealed partial class PdfLogicalPage {
         List<PdfLogicalTextBlock> textBlocks,
         Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         SemanticElementIndex semanticIndex,
-        Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup) {
+        Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
+        LogicalTextBlockSourceIndex textBlockSourceIndex) {
         var result = new List<PdfLogicalHeading>(Math.Max(headings.Count, 4));
         var represented = new HashSet<PdfLogicalTextBlock>();
         for (int i = 0; i < headings.Count; i++) {
             var heading = headings[i];
-            PdfLogicalTextBlock? block = FindTextBlock(heading.Line, textBlockLookup, PdfLogicalElementKind.Heading);
+            PdfLogicalTextBlock? block = FindTextBlock(heading.Line, textBlockLookup, textBlockSourceIndex, PdfLogicalElementKind.Heading);
             if (block is not null) {
                 PdfUnderstandingSemanticElement? semantic = semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? aligned)
                     ? aligned
-                    : semanticIndex.Find(block.BaselineY, block.XStart, block.Text);
+                    : semanticIndex.Find(block.BaselineY, block.XStart, block.Text, block.Spans);
                 result.Add(new PdfLogicalHeading(
                     pageNumber,
                     semantic?.Level ?? heading.Level,
@@ -541,7 +585,7 @@ public sealed partial class PdfLogicalPage {
             if (block.Kind != PdfLogicalElementKind.Heading || represented.Contains(block)) continue;
             PdfUnderstandingSemanticElement? semantic = semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? aligned)
                 ? aligned
-                : semanticIndex.Find(block.BaselineY, block.XStart, block.Text);
+                : semanticIndex.Find(block.BaselineY, block.XStart, block.Text, block.Spans);
             result.Add(new PdfLogicalHeading(
                 pageNumber,
                 semantic?.Level ?? 1,
@@ -606,11 +650,12 @@ public sealed partial class PdfLogicalPage {
     private static PdfLogicalTextBlock? FindTextBlock(
         StructuredLine line,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup,
+        LogicalTextBlockSourceIndex textBlockSourceIndex,
         PdfLogicalElementKind kind) {
         var key = (kind, BitConverter.DoubleToInt64Bits(line.Y), BitConverter.DoubleToInt64Bits(line.XStart), line.Text.Trim());
         return textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks) && blocks.Count > 0
             ? blocks.Dequeue()
-            : null;
+            : textBlockSourceIndex.Find(line, kind);
     }
 
     private static (long BaselineY, long XStart, string Text) CreateStructuredLineKey(StructuredLine line) =>
@@ -620,20 +665,24 @@ public sealed partial class PdfLogicalPage {
         private readonly Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>> _byGeometry;
         private readonly Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement> _byExactGeometry;
         private readonly Dictionary<string, HashSet<PdfUnderstandingSemanticElement>> _byText;
+        private readonly Dictionary<PdfTextSpan, HashSet<PdfUnderstandingSemanticElement>> _bySourceRun;
 
         private SemanticElementIndex(
             Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>> byGeometry,
             Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement> byExactGeometry,
-            Dictionary<string, HashSet<PdfUnderstandingSemanticElement>> byText) {
+            Dictionary<string, HashSet<PdfUnderstandingSemanticElement>> byText,
+            Dictionary<PdfTextSpan, HashSet<PdfUnderstandingSemanticElement>> bySourceRun) {
             _byGeometry = byGeometry;
             _byExactGeometry = byExactGeometry;
             _byText = byText;
+            _bySourceRun = bySourceRun;
         }
 
         internal static SemanticElementIndex Create(IReadOnlyList<PdfUnderstandingSemanticElement> elements) {
             var byGeometry = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<SemanticLineBinding>>();
             var byExactGeometry = new Dictionary<(long BaselineY, long XStart, string Text), PdfUnderstandingSemanticElement>();
             var byText = new Dictionary<string, HashSet<PdfUnderstandingSemanticElement>>(StringComparer.Ordinal);
+            var bySourceRun = new Dictionary<PdfTextSpan, HashSet<PdfUnderstandingSemanticElement>>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
                 PdfUnderstandingSemanticElement element = elements[elementIndex];
                 for (int lineIndex = 0; lineIndex < element.Region.Lines.Count; lineIndex++) {
@@ -655,12 +704,26 @@ public sealed partial class PdfLogicalPage {
                         byText.Add(text, textElements);
                     }
                     textElements.Add(element);
+                    for (int wordIndex = 0; wordIndex < line.Words.Count; wordIndex++) {
+                        IReadOnlyList<PdfTextSpan> sourceRuns = line.Words[wordIndex].SourceRuns;
+                        for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                            if (!bySourceRun.TryGetValue(sourceRuns[runIndex], out HashSet<PdfUnderstandingSemanticElement>? runElements)) {
+                                runElements = new HashSet<PdfUnderstandingSemanticElement>();
+                                bySourceRun.Add(sourceRuns[runIndex], runElements);
+                            }
+                            runElements.Add(element);
+                        }
+                    }
                 }
             }
-            return new SemanticElementIndex(byGeometry, byExactGeometry, byText);
+            return new SemanticElementIndex(byGeometry, byExactGeometry, byText, bySourceRun);
         }
 
-        internal PdfUnderstandingSemanticElement? Find(double baselineY, double xStart, string text) {
+        internal PdfUnderstandingSemanticElement? Find(
+            double baselineY,
+            double xStart,
+            string text,
+            IReadOnlyList<PdfTextSpan>? sourceRuns = null) {
             string normalized = NormalizeForKindComparison(text);
             var exactKey = (BitConverter.DoubleToInt64Bits(baselineY), BitConverter.DoubleToInt64Bits(xStart), normalized);
             if (_byExactGeometry.TryGetValue(exactKey, out PdfUnderstandingSemanticElement? exactElement)) return exactElement;
@@ -682,6 +745,15 @@ public sealed partial class PdfLogicalPage {
                 }
             }
             if (exact.Count > 0) return SelectBestSemanticElement(exact.ToArray());
+            if (sourceRuns is not null && sourceRuns.Count > 0) {
+                var sourceMatches = new HashSet<PdfUnderstandingSemanticElement>();
+                for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                    if (_bySourceRun.TryGetValue(sourceRuns[runIndex], out HashSet<PdfUnderstandingSemanticElement>? runElements)) {
+                        sourceMatches.UnionWith(runElements);
+                    }
+                }
+                if (sourceMatches.Count > 0) return SelectBestSemanticElement(sourceMatches.ToArray());
+            }
             return _byText.TryGetValue(normalized, out HashSet<PdfUnderstandingSemanticElement>? textMatches) && textMatches.Count == 1
                 ? textMatches.First()
                 : null;
@@ -702,6 +774,47 @@ public sealed partial class PdfLogicalPage {
             if (bucket <= long.MinValue) return long.MinValue + 1;
             if (bucket >= long.MaxValue) return long.MaxValue - 1;
             return (long)bucket;
+        }
+    }
+
+    private sealed class LogicalTextBlockSourceIndex {
+        private readonly Dictionary<PdfTextSpan, HashSet<PdfLogicalTextBlock>> _bySourceRun;
+
+        private LogicalTextBlockSourceIndex(Dictionary<PdfTextSpan, HashSet<PdfLogicalTextBlock>> bySourceRun) {
+            _bySourceRun = bySourceRun;
+        }
+
+        internal static LogicalTextBlockSourceIndex Create(List<PdfLogicalTextBlock> textBlocks) {
+            var bySourceRun = new Dictionary<PdfTextSpan, HashSet<PdfLogicalTextBlock>>();
+            for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
+                PdfLogicalTextBlock block = textBlocks[blockIndex];
+                for (int runIndex = 0; runIndex < block.Spans.Count; runIndex++) {
+                    PdfTextSpan sourceRun = block.Spans[runIndex];
+                    if (!bySourceRun.TryGetValue(sourceRun, out HashSet<PdfLogicalTextBlock>? blocks)) {
+                        blocks = new HashSet<PdfLogicalTextBlock>();
+                        bySourceRun.Add(sourceRun, blocks);
+                    }
+                    blocks.Add(block);
+                }
+            }
+            return new LogicalTextBlockSourceIndex(bySourceRun);
+        }
+
+        internal PdfLogicalTextBlock? Find(StructuredLine line, PdfLogicalElementKind kind) {
+            var matches = new Dictionary<PdfLogicalTextBlock, int>();
+            for (int runIndex = 0; runIndex < line.Spans.Count; runIndex++) {
+                if (!_bySourceRun.TryGetValue(line.Spans[runIndex], out HashSet<PdfLogicalTextBlock>? blocks)) continue;
+                foreach (PdfLogicalTextBlock block in blocks) {
+                    if (block.Kind != kind) continue;
+                    matches[block] = matches.TryGetValue(block, out int count) ? count + 1 : 1;
+                }
+            }
+            return matches
+                .OrderByDescending(static pair => pair.Value)
+                .ThenBy(pair => Math.Abs(pair.Key.BaselineY - line.Y))
+                .ThenBy(pair => Math.Abs(pair.Key.XStart - line.XStart))
+                .Select(static pair => pair.Key)
+                .FirstOrDefault();
         }
     }
 

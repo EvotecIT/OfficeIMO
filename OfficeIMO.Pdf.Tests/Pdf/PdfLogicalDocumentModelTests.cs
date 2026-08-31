@@ -22,6 +22,36 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public void DocumentHeadingTiers_ExcludeAuthoritativeSemanticLevelsFromFontRanking() {
+        var explicitBlock = new PdfLogicalTextBlock(
+            1, PdfLogicalElementKind.Heading, "Tagged heading", 50D, 250D, 700D, 30D, Array.Empty<PdfTextSpan>());
+        var heuristicBlock = new PdfLogicalTextBlock(
+            1, PdfLogicalElementKind.Heading, "Heuristic heading", 50D, 250D, 650D, 20D, Array.Empty<PdfTextSpan>());
+        var explicitHeading = new PdfLogicalHeading(
+            1,
+            1,
+            explicitBlock.Text,
+            explicitBlock.FontSize,
+            explicitBlock,
+            evidence: new[] {
+                new PdfInferenceEvidence("semantic.tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
+            });
+        var heuristicHeading = new PdfLogicalHeading(
+            1,
+            3,
+            heuristicBlock.Text,
+            heuristicBlock.FontSize,
+            heuristicBlock);
+
+        PdfDocumentReadResult.ApplyDocumentHeadingFontTiers(
+            new[] { explicitHeading, heuristicHeading },
+            System.Threading.CancellationToken.None);
+
+        Assert.Equal(1, explicitHeading.Level);
+        Assert.Equal(1, heuristicHeading.Level);
+    }
+
+    [Fact]
     public void Read_BuildsHeadingHierarchyAndDirectSectionOwnership() {
         byte[] pdf = PdfDocument.Create()
             .H1("Operations")

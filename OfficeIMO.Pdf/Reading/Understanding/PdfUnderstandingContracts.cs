@@ -100,11 +100,16 @@ public sealed class PdfUnderstandingWord {
 /// <summary>One grouped text line.</summary>
 public sealed class PdfUnderstandingLine {
     /// <summary>Creates a line from words in local reading order.</summary>
-    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null) {
+    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null)
+        : this(words, JoinWords(words), confidence, evidence) {
+    }
+
+    internal PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, string text, double? confidence, IEnumerable<PdfInferenceEvidence>? evidence) {
         Guard.NotNull(words, nameof(words));
+        Guard.NotNull(text, nameof(text));
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
         Words = words;
-        Text = string.Join(" ", words.Select(static word => word.Text));
+        Text = text;
         XStart = words.Min(static word => word.XStart);
         XEnd = words.Max(static word => word.XEnd);
         BaselineY = words.Average(static word => word.BaselineY);
@@ -112,6 +117,11 @@ public sealed class PdfUnderstandingLine {
         RotationDegrees = words.Average(static word => word.RotationDegrees);
         Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
         Evidence = PdfInference.Snapshot(evidence);
+    }
+
+    private static string JoinWords(IReadOnlyList<PdfUnderstandingWord> words) {
+        Guard.NotNull(words, nameof(words));
+        return string.Join(" ", words.Select(static word => word.Text));
     }
     /// <summary>Words in line order.</summary>
     public IReadOnlyList<PdfUnderstandingWord> Words { get; }

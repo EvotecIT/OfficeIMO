@@ -263,10 +263,12 @@ public sealed class PdfLogicalHeading {
     /// <summary>Evidence supporting the heading classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
 
+    internal bool CanApplyDocumentFontTier => !Evidence.Any(static item =>
+        string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
+        string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal));
+
     internal void ApplyDocumentFontTier(int level) {
-        if (Evidence.Any(static item =>
-                string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
-                string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) return;
+        if (!CanApplyDocumentFontTier) return;
         Level = Math.Min(6, Math.Max(1, level));
     }
 }

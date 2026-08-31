@@ -54,6 +54,9 @@ a second logical model.
 | `pdf.Read.TextByPage()` | project `result.Pages[*].TextBlocks` for the application's text shape |
 | `pdf.Read.Images(...)` | `pdf.Images.Extract(...)` |
 | `pdf.Read.ImagePlacements(...)` | `pdf.Images.Placements(...)` |
+| `pdf.Read.TryImages()` / `TryImagePlacements()` | `pdf.Images.TryExtract()` / `pdf.Images.TryPlacements()` for an all-page non-throwing result |
+| selected `pdf.Read.TryImages(selection)` / `TryImagePlacements(selection)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ExtractImages)`, then call `pdf.Images.Extract(selection)` / `Placements(selection)` inside the application's exception or result boundary |
+| `pdf.Read.SaveImages(...)` | Call `pdf.Images.Extract(...)`; for each result where `IsImageFile` is true, write `Bytes` using a caller-owned deterministic name and `FileExtension`. The caller now owns overwrite policy. |
 | `pdf.Read.Fonts(...)` / `pdf.Read.RawStructure(...)` | `pdf.Resources.Fonts(...)` / `pdf.Resources.RawStructure(...)` |
 | `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |

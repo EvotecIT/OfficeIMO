@@ -105,25 +105,107 @@ public static class PdfAdvancedUnderstandingStages {
                 double radians = group.Angle * Math.PI / 180D;
                 PdfUnderstandingWord[] ordered = group.Words.OrderBy(word => (Math.Cos(radians) * WordAnchorX(word)) + (Math.Sin(radians) * word.BaselineY)).ToArray();
                 var runs = new List<List<PdfUnderstandingWord>> { new List<PdfUnderstandingWord>() };
-                double previousAlong = double.NegativeInfinity;
+                double previousAlongEnd = double.NegativeInfinity;
                 for (int i = 0; i < ordered.Length; i++) {
                     double along = (Math.Cos(radians) * WordAnchorX(ordered[i])) + (Math.Sin(radians) * ordered[i].BaselineY);
+                    double projectedHalfExtent = GetProjectedAlongHalfExtent(ordered[i], radians);
+                    double alongStart = along - projectedHalfExtent;
+                    double alongEnd = along + projectedHalfExtent;
                     double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
-                    if (runs[runs.Count - 1].Count > 0 && along - previousAlong > splitGap) runs.Add(new List<PdfUnderstandingWord>());
+                    if (runs[runs.Count - 1].Count > 0 && alongStart - previousAlongEnd > splitGap) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
-                    previousAlong = along;
+                    previousAlongEnd = Math.Max(previousAlongEnd, alongEnd);
                 }
                 foreach (List<PdfUnderstandingWord> run in runs) {
                     PdfUnderstandingWord[] runWords = run.ToArray();
+                    string lineText = BuildLineText(context, runWords, group.Angle);
                     double normalSpread = runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Max() -
                         runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Min();
-                    lines.Add(new PdfUnderstandingLine(runWords, PdfInference.Clamp(runWords.Average(static word => word.Confidence) - Math.Min(0.25D, normalSpread / 20D)), new[] {
+                    lines.Add(new PdfUnderstandingLine(runWords, lineText, PdfInference.Clamp(runWords.Average(static word => word.Confidence) - Math.Min(0.25D, normalSpread / 20D)), new[] {
                         new PdfInferenceEvidence("line.arbitrary-baseline", "Words share a projected baseline at " + group.Angle.ToString("0.###", CultureInfo.InvariantCulture) + " degrees with " + normalSpread.ToString("0.###", CultureInfo.InvariantCulture) + " point spread.", normalSpread <= 2D ? 0.9D : 0.3D)
                     }));
                 }
             }
             lines.Sort(static (left, right) => { int top = right.BaselineY.CompareTo(left.BaselineY); return top != 0 ? top : left.XStart.CompareTo(right.XStart); });
             return lines.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : lines.AsReadOnly();
+        }
+
+        private static string BuildLineText(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingWord[] words,
+            double angle) {
+            context.ThrowIfCancellationRequested();
+            if (words.Length == 0) return string.Empty;
+            var text = new System.Text.StringBuilder(words.Sum(static word => word.Text.Length) + words.Length);
+            text.Append(words[0].Text);
+            for (int wordIndex = 1; wordIndex < words.Length; wordIndex++) {
+                PdfUnderstandingWord previous = words[wordIndex - 1];
+                PdfUnderstandingWord current = words[wordIndex];
+                if (NeedsSyntheticSpace(previous, current, angle)) text.Append(' ');
+                text.Append(current.Text);
+            }
+            return text.ToString();
+        }
+
+        private static bool NeedsSyntheticSpace(
+            PdfUnderstandingWord previous,
+            PdfUnderstandingWord current,
+            double angle) {
+            if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
+            if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns)) return true;
+            if (Math.Abs(angle) <= 2D) {
+                double gap = current.XStart - previous.XEnd;
+                double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
+                if (gap > threshold) return true;
+            }
+
+            string left = previous.Text;
+            string right = current.Text;
+            if (left.Length == 0 || right.Length == 0) return false;
+            char leftBoundary = left[left.Length - 1];
+            char rightBoundary = right[0];
+            if (IsOpeningPunctuation(leftBoundary) || IsClosingPunctuation(rightBoundary)) return false;
+            if (IsStandaloneSeparator(left) || IsStandaloneSeparator(right)) return true;
+            return left.Length > 1 && right.Length > 1;
+        }
+
+        private static bool SharesSourceRun(
+            IReadOnlyList<PdfTextSpan> left,
+            IReadOnlyList<PdfTextSpan> right) {
+            for (int leftIndex = 0; leftIndex < left.Count; leftIndex++) {
+                for (int rightIndex = 0; rightIndex < right.Count; rightIndex++) {
+                    if (ReferenceEquals(left[leftIndex], right[rightIndex])) return true;
+                }
+            }
+            return false;
+        }
+
+        private static bool HasExplicitBoundarySpace(
+            IReadOnlyList<PdfTextSpan> left,
+            IReadOnlyList<PdfTextSpan> right) {
+            if (left.Count == 0 || right.Count == 0) return false;
+            PdfTextSpan previous = left[left.Count - 1];
+            PdfTextSpan current = right[0];
+            return previous.LogicalTrailingSpace ||
+                   current.LogicalLeadingSpace ||
+                   (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
+                   (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
+        }
+
+        private static bool IsOpeningPunctuation(char value) =>
+            value == '(' || value == '[' || value == '{' || value == '\u201C' || value == '\u2018';
+
+        private static bool IsClosingPunctuation(char value) =>
+            value == ',' || value == '.' || value == ';' || value == ':' || value == '!' || value == '?' ||
+            value == ')' || value == ']' || value == '}' || value == '%' || value == '\u201D' || value == '\u2019';
+
+        private static bool IsStandaloneSeparator(string value) =>
+            value.Length == 1 && (value[0] == '&' || value[0] == '+' || value[0] == '|' || value[0] == '=');
+
+        private static double GetProjectedAlongHalfExtent(PdfUnderstandingWord word, double radians) {
+            double horizontalProjection = Math.Abs(Math.Cos(radians)) * Math.Max(0D, word.XEnd - word.XStart) / 2D;
+            if (horizontalProjection > 0.001D) return horizontalProjection;
+            return Math.Max(word.FontSize * 0.25D, word.FontSize * word.Text.Length * 0.2D);
         }
 
         private static BaselineGroup? FindIndexedGroup(

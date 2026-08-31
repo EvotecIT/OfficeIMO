@@ -46,7 +46,13 @@ public sealed class PdfReverseConversionScorecardTests {
             PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(source);
             Assert.NotEmpty(logical.Pages);
             HashSet<string> sourceTokens = GetTokens(string.Join(" ", logical.Pages.SelectMany(static page => page.TextBlocks).Select(static block => block.Text)));
-            Assert.NotEmpty(sourceTokens);
+            Assert.True(sourceTokens.Count > 0,
+                "No source tokens were extracted for scorecard producer '" + producerId + "'. Page artifacts: " +
+                string.Join(", ", logical.Pages.Select(static page =>
+                    page.PageNumber + ": runs=" + page.Analysis.DecodedRuns.Count +
+                    ", words=" + page.Analysis.Words.Count +
+                    ", lines=" + page.Analysis.Lines.Count +
+                    ", blocks=" + page.TextBlocks.Count)));
             bool expectedTables = producer.GetProperty("expectedTables").GetBoolean();
             if (expectedTables) Assert.NotEmpty(logical.Tables);
 

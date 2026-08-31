@@ -341,9 +341,7 @@ public sealed partial class PdfDocumentReadResult {
     /// <summary>Plain text in canonical page and reading order, with lines and pages separated by platform newlines.</summary>
     public string Text => _text ??= string.Join(
         Environment.NewLine + Environment.NewLine,
-        Pages.Select(static page => string.Join(
-            Environment.NewLine,
-            page.TextBlocks.Select(static block => block.Text))));
+        Pages.Select(static page => GetCanonicalPageText(page)));
 
     /// <summary>Top-level heading-owned sections reconstructed in canonical reading order.</summary>
     public IReadOnlyList<PdfLogicalSection> Sections {
@@ -1195,7 +1193,9 @@ public sealed partial class PdfDocumentReadResult {
                 cancellationToken));
         }
         if (profile == PdfReadProfile.Structured) {
-            ApplyDocumentHeadingFontTiers(pages, cancellationToken);
+            ApplyDocumentHeadingFontTiers(
+                pages.SelectMany(static page => page.Headings).ToArray(),
+                cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -1228,15 +1228,17 @@ public sealed partial class PdfDocumentReadResult {
             profile);
     }
 
-    private static void ApplyDocumentHeadingFontTiers(
-        IReadOnlyList<PdfLogicalPage> pages,
+    internal static void ApplyDocumentHeadingFontTiers(
+        IReadOnlyList<PdfLogicalHeading> headings,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        PdfLogicalHeading[] headings = pages.SelectMany(static page => page.Headings).ToArray();
-        if (headings.Length == 0) return;
+        if (headings.Count == 0) return;
 
         var tiers = new List<double>();
-        foreach (double fontSize in headings.Select(static heading => heading.FontSize).OrderByDescending(static size => size)) {
+        foreach (double fontSize in headings
+                     .Where(static heading => heading.CanApplyDocumentFontTier)
+                     .Select(static heading => heading.FontSize)
+                     .OrderByDescending(static size => size)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (tiers.Count == 0 || Math.Abs(tiers[tiers.Count - 1] - fontSize) > 0.5D) {
                 tiers.Add(fontSize);
@@ -1245,9 +1247,31 @@ public sealed partial class PdfDocumentReadResult {
 
         foreach (PdfLogicalHeading heading in headings) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (!heading.CanApplyDocumentFontTier) continue;
             int tier = tiers.FindIndex(size => Math.Abs(size - heading.FontSize) <= 0.5D) + 1;
             heading.ApplyDocumentFontTier(tier);
         }
+    }
+
+    private static string GetCanonicalPageText(PdfLogicalPage page) {
+        IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
+            PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
+        var lines = new List<string>(page.TextBlocks.Count);
+        for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
+            PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
+            IReadOnlyList<PdfLogicalTextBlock>? itemLines = item.Kind switch {
+                PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
+                PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+                PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
+                PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
+                _ => null
+            };
+            if (itemLines is null) continue;
+            for (int lineIndex = 0; lineIndex < itemLines.Count; lineIndex++) {
+                lines.Add(itemLines[lineIndex].Text);
+            }
+        }
+        return string.Join(Environment.NewLine, lines);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalFormWidget> CloneFormWidgetsForOccurrence(

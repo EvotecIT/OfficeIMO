@@ -94,12 +94,31 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+        PdfDocumentReadResult result = Read(pdf, options);
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
 
         Assert.Contains(page.Lines, line => Math.Abs(line.RotationDegrees - 90D) < 0.1D && line.Text.Contains("Vertical one Vertical two", StringComparison.Ordinal));
         string[] horizontalOrder = page.ReadingOrder.Select(region => region.Text).Where(text => text.StartsWith("Left", StringComparison.Ordinal) || text.StartsWith("Right", StringComparison.Ordinal)).ToArray();
         Assert.Equal(new[] { "Left top", "Left bottom", "Right top", "Right bottom" }, horizontalOrder);
+        Assert.True(result.Text.IndexOf("Left top", StringComparison.Ordinal) < result.Text.IndexOf("Left bottom", StringComparison.Ordinal));
+        Assert.True(result.Text.IndexOf("Left bottom", StringComparison.Ordinal) < result.Text.IndexOf("Right top", StringComparison.Ordinal));
+        Assert.True(result.Text.IndexOf("Right top", StringComparison.Ordinal) < result.Text.IndexOf("Right bottom", StringComparison.Ordinal));
         Assert.Equal(typeof(PdfAdvancedUnderstandingStages).Assembly, Assert.Single(page.Trace, trace => trace.Stage == "reading-order").ProviderType.Assembly);
+    }
+
+    [Fact]
+    public void AdvancedLineGrouping_PreservesLongWordsFromOneSourceRun() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        const string text = "Sensitive payroll token PAY-SECRET-2026";
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan(text, "F1", 12D, 50D, 700D, 300D)
+        });
+
+        PdfDocumentReadResult result = Read(pdf, options);
+
+        Assert.Equal(text, Assert.Single(Assert.Single(result.Pages).Analysis.Lines).Text);
+        Assert.Contains(text, result.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -380,6 +399,45 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextLayoutOptions(),
             analysis: analysis,
             cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void LogicalProjection_UsesConfiguredLineArtifactsForSemanticBlocks() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Source content must not define projection lines"))
+            .ToBytes();
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        var firstRun = new PdfTextSpan("Combined", "Helvetica", 20D, 72D, 700D, 90D);
+        var secondRun = new PdfTextSpan("heading", "Helvetica", 20D, 72D, 650D, 80D);
+        var line = new PdfUnderstandingLine(new[] {
+            new PdfUnderstandingWord("Combined", 72D, 162D, 700D, 20D, 0D, new[] { firstRun }),
+            new PdfUnderstandingWord("heading", 72D, 152D, 650D, 20D, 0D, new[] { secondRun })
+        });
+        var region = new PdfUnderstandingRegion(new[] { line });
+        var analysis = new PdfUnderstandingPageResult(
+            1,
+            new[] { firstRun, secondRun },
+            line.Words,
+            new[] { line },
+            new[] { region },
+            new[] { region },
+            Array.Empty<PdfReadingOrderEvidence>(),
+            new[] { new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, 0.95D, level: 2) },
+            Array.Empty<PdfUnderstandingStageTrace>());
+
+        PdfLogicalPage projected = PdfLogicalPage.From(
+            document,
+            document.Pages[0],
+            1,
+            new PdfTextLayoutOptions(),
+            analysis: analysis,
+            cancellationToken: CancellationToken.None);
+
+        PdfLogicalTextBlock block = Assert.Single(projected.TextBlocks);
+        Assert.Equal("Combined heading", block.Text);
+        PdfLogicalHeading heading = Assert.Single(projected.Headings);
+        Assert.Same(block, heading.Line);
+        Assert.Equal(2, heading.Level);
     }
 
     [Fact]
