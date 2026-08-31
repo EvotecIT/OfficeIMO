@@ -304,7 +304,8 @@ namespace OfficeIMO.Excel {
                 if ((cellKind == Utf8CellKind.String
                         || cellKind == Utf8CellKind.InlineString
                         || cellKind == Utf8CellKind.Error)
-                    && value.IndexOf((byte)'&') < 0) {
+                    && value.IndexOf((byte)'&') < 0
+                    && value.IndexOf((byte)'\r') < 0) {
                     result = new ArraySegment<byte>(_buffer!, start, length);
                     return true;
                 }

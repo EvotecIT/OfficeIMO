@@ -269,7 +269,11 @@ public static partial class DbDataReaderArrowExtensions {
                     var builder = new Decimal128Array.Builder(decimalType).Reserve(capacity);
                     return new ArrowColumnBuilder(
                         () => builder.AppendNull(),
-                        (reader, ordinal) => builder.Append(reader.GetDecimal(ordinal)),
+                        (reader, ordinal) => AppendDecimalExact(
+                            builder,
+                            reader.GetDecimal(ordinal),
+                            ordinal,
+                            options.DecimalScale),
                         () => builder.Build());
                 });
             }
@@ -365,6 +369,24 @@ public static partial class DbDataReaderArrowExtensions {
             }
 
             throw new NotSupportedException($"CLR type '{type.FullName}' does not have an Apache Arrow adapter.");
+        }
+
+        private static void AppendDecimalExact(
+            Decimal128Array.Builder builder,
+            decimal value,
+            int ordinal,
+            int scale) {
+            Span<int> bits = stackalloc int[4];
+            decimal.GetBits(value, bits);
+            int sourceScale = (bits[3] >> 16) & 0xff;
+            if (sourceScale > scale
+                && decimal.Round(value, scale, MidpointRounding.ToEven) != value) {
+                throw new InvalidDataException(
+                    $"Decimal value in column {ordinal} cannot be represented exactly with Arrow scale {scale}. "
+                    + "Increase ArrowReadOptions.DecimalScale to preserve the value.");
+            }
+
+            builder.Append(value);
         }
 
         private static ArrowColumnFactory Primitive<TBuilder, TArray, TValue>(

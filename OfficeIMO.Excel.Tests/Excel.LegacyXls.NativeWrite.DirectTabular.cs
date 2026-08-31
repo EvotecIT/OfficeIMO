@@ -3,6 +3,7 @@ using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Read;
 using OfficeIMO.Excel.LegacyXls.Write;
+using System.Buffers;
 using System.Data;
 using System.Text;
 using System.Threading;
@@ -327,6 +328,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_DirectTabularSave_ClearsPooledCellCachesBeforeReturningThem() {
+            var kindPool = new RetainingArrayPool<byte>();
+            var payloadPool = new RetainingArrayPool<ulong>();
+            byte[] kinds = kindPool.Rent(4);
+            ulong[] payloads = payloadPool.Rent(4);
+            for (int index = 0; index < kinds.Length; index++) kinds[index] = 0xa5;
+            for (int index = 0; index < payloads.Length; index++) payloads[index] = 0xa5a5a5a5a5a5a5a5UL;
+
+            LegacyXlsWriter.ClearAndReturnDirectCellCaches(kinds, payloads, kindPool, payloadPool);
+
+            Assert.All(kinds, value => Assert.Equal((byte)0, value));
+            Assert.All(payloads, value => Assert.Equal(0UL, value));
+            Assert.Same(kinds, kindPool.Returned.Single());
+            Assert.Same(payloads, payloadPool.Returned.Single());
+        }
+
+        [Fact]
+        public void LegacyXls_DirectTabularSave_ClearsReservedWritesBeyondLogicalLength() {
+            var pool = new RetainingArrayPool<byte>();
+            var stream = new LegacyXlsWriter.DirectTabularWorkbookStream(64, pool);
+            byte[] firstBuffer = stream.Buffer;
+            stream.WriteByte(0x11);
+            firstBuffer[32] = 0xa5;
+            stream.RegisterDirectWriteUpperBound(33);
+
+            stream.EnsureCapacity(128);
+            Assert.Equal((byte)0xa5, stream.Buffer[32]);
+            byte[] expandedBuffer = stream.Buffer;
+            stream.Dispose();
+
+            Assert.Equal((byte)0, firstBuffer[32]);
+            Assert.Equal((byte)0, expandedBuffer[32]);
+            Assert.Contains(firstBuffer, pool.Returned);
+            Assert.Contains(expandedBuffer, pool.Returned);
+        }
+
+        [Fact]
         public void LegacyXls_GeneralWriter_OpensInDesktopExcelAndRoundTripsValues() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
             try {
@@ -450,6 +488,17 @@ namespace OfficeIMO.Tests {
                 values = Array.Empty<object?>();
                 columnCount = 0;
                 return false;
+            }
+        }
+
+        private sealed class RetainingArrayPool<T> : ArrayPool<T> {
+            internal List<T[]> Returned { get; } = new();
+
+            public override T[] Rent(int minimumLength) => new T[minimumLength];
+
+            public override void Return(T[] array, bool clearArray = false) {
+                if (clearArray) Array.Clear(array, 0, array.Length);
+                Returned.Add(array);
             }
         }
     }

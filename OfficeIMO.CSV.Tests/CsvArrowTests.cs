@@ -10,6 +10,7 @@ using Apache.Arrow.C;
 using Apache.Arrow.Ipc;
 using Apache.Arrow.Types;
 using OfficeIMO.Data.Arrow;
+using System.IO;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
@@ -161,6 +162,27 @@ public sealed class CsvArrowTests {
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             reader.ReadArrowBatches(invalid).ToArray());
+    }
+
+    [Fact]
+    public void ArrowDecimalConversionRejectsInexactScaleAndPreservesAnExplicitExactScale() {
+        const decimal expected = 0.123456789012m;
+        var table = new System.Data.DataTable();
+        table.Columns.Add("Value", typeof(decimal));
+        table.Rows.Add(expected);
+
+        using (var inexactReader = table.CreateDataReader()) {
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                inexactReader.ReadArrowBatches().ToArray());
+            Assert.Contains("scale 10", exception.Message, StringComparison.Ordinal);
+        }
+
+        using var exactReader = table.CreateDataReader();
+        RecordBatch batch = Assert.Single(exactReader.ReadArrowBatches(
+            new ArrowReadOptions { DecimalScale = 12 }));
+        using (batch) {
+            Assert.Equal(expected, Assert.IsType<Decimal128Array>(batch.Column(0)).GetValue(0));
+        }
     }
 
     [Fact]

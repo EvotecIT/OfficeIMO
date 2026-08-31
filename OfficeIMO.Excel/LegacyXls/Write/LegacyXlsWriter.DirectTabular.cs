@@ -179,10 +179,20 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             } finally {
                 if (returnCellCache) {
-                    ArrayPool<byte>.Shared.Return(cellKinds);
-                    ArrayPool<ulong>.Shared.Return(cellPayloads);
+                    ClearAndReturnDirectCellCaches(cellKinds, cellPayloads);
                 }
             }
+        }
+
+        internal static void ClearAndReturnDirectCellCaches(
+            byte[] cellKinds,
+            ulong[] cellPayloads,
+            ArrayPool<byte>? cellKindPool = null,
+            ArrayPool<ulong>? cellPayloadPool = null) {
+            Array.Clear(cellKinds, 0, cellKinds.Length);
+            Array.Clear(cellPayloads, 0, cellPayloads.Length);
+            (cellKindPool ?? ArrayPool<byte>.Shared).Return(cellKinds);
+            (cellPayloadPool ?? ArrayPool<ulong>.Shared).Return(cellPayloads);
         }
 
         private static void IncludeDirectCell(
@@ -330,6 +340,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 throw new NotSupportedException("The direct XLS cell table exceeds the maximum in-memory workbook size.");
             }
             stream.EnsureCapacity(checked((int)requiredCapacity));
+            stream.RegisterDirectWriteUpperBound(checked((int)requiredCapacity));
 
             byte[] output = stream.Buffer;
             int cellTableStart = checked((int)stream.Position);
@@ -563,6 +574,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         ];
 
         private sealed class DirectTabularPlan : IDisposable {
+            private int _disposed;
+
             internal DirectTabularPlan(
                 int totalRows,
                 int columnCount,
@@ -635,9 +648,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             public void Dispose() {
-                if (CellSlotCount == 0) return;
-                ArrayPool<byte>.Shared.Return(CellKinds);
-                ArrayPool<ulong>.Shared.Return(CellPayloads);
+                if (CellSlotCount == 0 || Interlocked.Exchange(ref _disposed, 1) != 0) return;
+                ClearAndReturnDirectCellCaches(CellKinds, CellPayloads);
             }
         }
 
@@ -727,13 +739,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             PrepareUncachedDirectRow(plan, directRow, rowKinds, rowPayloads);
         }
 
-        private sealed class DirectTabularWorkbookStream : Stream {
+        internal sealed class DirectTabularWorkbookStream : Stream {
+            private readonly ArrayPool<byte> _pool;
             private byte[]? _buffer;
             private int _length;
             private int _position;
+            private int _clearLength;
 
-            internal DirectTabularWorkbookStream(int initialCapacity) {
-                _buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, initialCapacity));
+            internal DirectTabularWorkbookStream(int initialCapacity, ArrayPool<byte>? pool = null) {
+                _pool = pool ?? ArrayPool<byte>.Shared;
+                _buffer = _pool.Rent(Math.Max(1, initialCapacity));
             }
 
             internal byte[] Buffer => _buffer ?? throw new ObjectDisposedException(nameof(DirectTabularWorkbookStream));
@@ -771,11 +786,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     ? buffer.Length * 2
                     : int.MaxValue;
                 int newCapacity = Math.Max(requiredCapacity, doubledCapacity);
-                byte[] expanded = ArrayPool<byte>.Shared.Rent(newCapacity);
-                System.Buffer.BlockCopy(buffer, 0, expanded, 0, _length);
-                Array.Clear(buffer, 0, _length);
+                byte[] expanded = _pool.Rent(newCapacity);
+                System.Buffer.BlockCopy(buffer, 0, expanded, 0, _clearLength);
+                Array.Clear(buffer, 0, _clearLength);
                 _buffer = expanded;
-                ArrayPool<byte>.Shared.Return(buffer);
+                _pool.Return(buffer);
+            }
+
+            internal void RegisterDirectWriteUpperBound(int exclusiveEnd) {
+                byte[] buffer = Buffer;
+                if (exclusiveEnd < _position || exclusiveEnd > buffer.Length) {
+                    throw new ArgumentOutOfRangeException(nameof(exclusiveEnd));
+                }
+                if (exclusiveEnd > _clearLength) _clearLength = exclusiveEnd;
             }
 
             internal byte[] ToArray() {
@@ -812,6 +835,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     Array.Clear(Buffer, _length, newLength - _length);
                 }
                 _length = newLength;
+                if (newLength > _clearLength) _clearLength = newLength;
                 if (_position > newLength) _position = newLength;
             }
 
@@ -826,6 +850,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 System.Buffer.BlockCopy(buffer, offset, Buffer, _position, count);
                 _position = end;
                 if (end > _length) _length = end;
+                if (end > _clearLength) _clearLength = end;
             }
 
             public override void WriteByte(byte value) {
@@ -834,16 +859,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 Buffer[_position] = value;
                 _position = end;
                 if (end > _length) _length = end;
+                if (end > _clearLength) _clearLength = end;
             }
 
             protected override void Dispose(bool disposing) {
                 byte[]? buffer = _buffer;
                 if (buffer != null) {
                     _buffer = null;
-                    Array.Clear(buffer, 0, _length);
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    Array.Clear(buffer, 0, _clearLength);
+                    _pool.Return(buffer);
                     _length = 0;
                     _position = 0;
+                    _clearLength = 0;
                 }
                 base.Dispose(disposing);
             }

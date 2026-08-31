@@ -32,6 +32,9 @@ of its own buffering and memory policy. Native adapters cover Boolean,
 integer, floating-point, decimal, timestamp, `DateOnly`, `TimeOnly`, `Guid`, binary, and text
 columns. Unsupported CLR types are converted to invariant text by default; set
 `ConvertUnsupportedTypesToString` to `false` when the pipeline should reject them instead.
+Decimal values must be exactly representable at `ArrowReadOptions.DecimalScale`; conversion
+fails instead of silently rounding an inexact value. Increase the scale when the source contains
+more significant fractional digits.
 When the source schema is already known, set `ArrowReadOptions.ColumnTypes` in ordinal order and
 leave reader-side inference disabled. The adapter snapshots and validates the explicit types before
 reading, so the conversion does not pay a schema-sampling pass.
