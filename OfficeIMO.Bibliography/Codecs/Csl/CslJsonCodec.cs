@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Text.Json;
 
 namespace OfficeIMO.Bibliography;
@@ -452,11 +451,10 @@ internal static class CslJsonCodec {
 
     private static bool TryWriteRaw(Utf8JsonWriter writer, string raw, CancellationToken cancellationToken) {
         try {
-            cancellationToken.ThrowIfCancellationRequested();
-            using JsonDocument value = JsonDocument.Parse(raw, NativeJsonDocumentOptions);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (IsStrictNativeJson(raw, cancellationToken)) writer.WriteRawValue(raw, skipInputValidation: true);
-            else value.RootElement.WriteTo(writer);
+            byte[] utf8 = CslJsonInfrastructure.EncodeUtf8Cancellable(raw, cancellationToken);
+            using JsonDocument value = CslJsonInfrastructure.ParseCancellable(utf8, NativeJsonDocumentOptions, cancellationToken);
+            if (CslJsonInfrastructure.IsStrict(utf8, cancellationToken)) writer.WriteRawValue(utf8, skipInputValidation: true);
+            else CslJsonInfrastructure.WriteElementCancellable(writer, value.RootElement, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return true;
         } catch (JsonException) { return false; }
@@ -499,10 +497,7 @@ internal static class CslJsonCodec {
 
     private static JsonDocument? TryParseNativeJson(string raw, CancellationToken cancellationToken) {
         try {
-            cancellationToken.ThrowIfCancellationRequested();
-            JsonDocument result = JsonDocument.Parse(raw, NativeJsonDocumentOptions);
-            if (cancellationToken.IsCancellationRequested) { result.Dispose(); cancellationToken.ThrowIfCancellationRequested(); }
-            return result;
+            return CslJsonInfrastructure.ParseCancellable(raw, NativeJsonDocumentOptions, cancellationToken);
         }
         catch (JsonException) { return null; }
     }
@@ -612,7 +607,7 @@ internal static class CslJsonCodec {
         }
         ReadOnlySpan<byte> source = new ReadOnlySpan<byte>(sourceBytes, sourceOffset, sourceLength);
         var limits = new BibliographyLimitGuard(options);
-        using var cancellationAwareSource = new CancellationAwareJsonSequence(sourceBytes, sourceOffset, sourceLength, cancellationToken);
+        using var cancellationAwareSource = new CslJsonInfrastructure.CancellationAwareJsonSequence(sourceBytes, sourceOffset, sourceLength, cancellationToken);
         var reader = new Utf8JsonReader(cancellationAwareSource.Sequence, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
         var arrayContainers = new List<bool>();
         var containerOffsets = new List<int>();
@@ -745,65 +740,6 @@ internal static class CslJsonCodec {
         return length;
     }
 
-    private sealed class CancellationAwareJsonSequence : IDisposable {
-        private const int SegmentSize = 4096;
-        private readonly List<CancellationAwareMemoryManager> _managers = new List<CancellationAwareMemoryManager>();
-
-        internal CancellationAwareJsonSequence(byte[] source, int offset, int length, CancellationToken cancellationToken) {
-            if (length == 0) { Sequence = ReadOnlySequence<byte>.Empty; return; }
-            JsonSequenceSegment? first = null;
-            JsonSequenceSegment? last = null;
-            int end = checked(offset + length);
-            for (int position = offset; position < end;) {
-                cancellationToken.ThrowIfCancellationRequested();
-                int count = Math.Min(SegmentSize, end - position);
-                var manager = new CancellationAwareMemoryManager(source, position, count, cancellationToken);
-                _managers.Add(manager);
-                if (first == null) first = last = new JsonSequenceSegment(manager.Memory);
-                else last = last!.Append(manager.Memory);
-                position += count;
-            }
-            Sequence = new ReadOnlySequence<byte>(first!, 0, last!, last!.Memory.Length);
-        }
-
-        internal ReadOnlySequence<byte> Sequence { get; }
-
-        public void Dispose() {
-            foreach (CancellationAwareMemoryManager manager in _managers) ((IDisposable)manager).Dispose();
-        }
-    }
-
-    private sealed class JsonSequenceSegment : ReadOnlySequenceSegment<byte> {
-        internal JsonSequenceSegment(ReadOnlyMemory<byte> memory) => Memory = memory;
-        internal JsonSequenceSegment Append(ReadOnlyMemory<byte> memory) {
-            var segment = new JsonSequenceSegment(memory) { RunningIndex = RunningIndex + Memory.Length };
-            Next = segment;
-            return segment;
-        }
-    }
-
-    private sealed class CancellationAwareMemoryManager : MemoryManager<byte> {
-        private readonly byte[] _source;
-        private readonly int _offset;
-        private readonly int _length;
-        private readonly CancellationToken _cancellationToken;
-
-        internal CancellationAwareMemoryManager(byte[] source, int offset, int length, CancellationToken cancellationToken) {
-            _source = source;
-            _offset = offset;
-            _length = length;
-            _cancellationToken = cancellationToken;
-        }
-
-        public override Span<byte> GetSpan() {
-            _cancellationToken.ThrowIfCancellationRequested();
-            return new Span<byte>(_source, _offset, _length);
-        }
-
-        public override MemoryHandle Pin(int elementIndex = 0) => throw new NotSupportedException();
-        public override void Unpin() { }
-        protected override void Dispose(bool disposing) { }
-    }
     private static bool WriteNativeValue(Utf8JsonWriter writer, BibliographyNativeField field, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string? raw = field.UnmodifiedRawValue;
@@ -824,29 +760,17 @@ internal static class CslJsonCodec {
 
     private static JsonValueKind? GetRawJsonKind(string? raw, CancellationToken cancellationToken) {
         if (raw == null) return null;
-        try { cancellationToken.ThrowIfCancellationRequested(); using JsonDocument value = JsonDocument.Parse(raw, NativeJsonDocumentOptions); cancellationToken.ThrowIfCancellationRequested(); return value.RootElement.ValueKind; }
+        try { using JsonDocument value = CslJsonInfrastructure.ParseCancellable(raw, NativeJsonDocumentOptions, cancellationToken); return value.RootElement.ValueKind; }
         catch (JsonException) { return null; }
     }
 
     private static bool TryWriteEditedRaw(Utf8JsonWriter writer, string value, CancellationToken cancellationToken) {
         try {
-            cancellationToken.ThrowIfCancellationRequested();
-            using JsonDocument parsed = JsonDocument.Parse(value, NativeJsonDocumentOptions);
-            cancellationToken.ThrowIfCancellationRequested();
+            byte[] utf8 = CslJsonInfrastructure.EncodeUtf8Cancellable(value, cancellationToken);
+            using JsonDocument parsed = CslJsonInfrastructure.ParseCancellable(utf8, NativeJsonDocumentOptions, cancellationToken);
             if (parsed.RootElement.ValueKind == JsonValueKind.String || parsed.RootElement.ValueKind == JsonValueKind.Null || parsed.RootElement.ValueKind == JsonValueKind.Undefined) return false;
-            if (IsStrictNativeJson(value, cancellationToken)) writer.WriteRawValue(value, skipInputValidation: true);
-            else parsed.RootElement.WriteTo(writer);
-            cancellationToken.ThrowIfCancellationRequested();
-            return true;
-        } catch (JsonException) {
-            return false;
-        }
-    }
-
-    private static bool IsStrictNativeJson(string value, CancellationToken cancellationToken) {
-        try {
-            cancellationToken.ThrowIfCancellationRequested();
-            using JsonDocument parsed = JsonDocument.Parse(value, new JsonDocumentOptions { MaxDepth = NativeJsonMaximumDepth });
+            if (CslJsonInfrastructure.IsStrict(utf8, cancellationToken)) writer.WriteRawValue(utf8, skipInputValidation: true);
+            else CslJsonInfrastructure.WriteElementCancellable(writer, parsed.RootElement, cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return true;
         } catch (JsonException) {
