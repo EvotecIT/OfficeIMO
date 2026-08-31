@@ -279,7 +279,7 @@ internal static class IWorkKeynoteReader {
         var candidateIdentifiers = new HashSet<ulong>();
         bool hasUnresolvedDrawable = false;
         bool hasDuplicateDrawableOccurrence = false;
-        foreach (int field in new[] { 5, 6, 7, 42 }) {
+        foreach (int field in new[] { 7, 42, 5, 6 }) {
             var fieldIdentifiers = new HashSet<ulong>();
             IReadOnlyList<IWorkArchiveRecord> fieldCandidates = index.DereferenceAll(
                 message, field, out int unresolvedDrawableCount);
@@ -568,16 +568,34 @@ internal static class IWorkKeynoteReader {
         out bool complete) {
         complete = true;
         IWorkWireMessage message = index.Message(drawable);
-        IWorkArchiveRecord? field4 = index.Dereference(message, 4);
-        IWorkArchiveRecord? field2 = index.Dereference(message, 2);
-        IWorkArchiveRecord? direct = field4 ?? field2;
-        if ((message.HasBytes(4) && field4 == null) || (message.HasBytes(2) && field2 == null)) complete = false;
-        if (direct != null && direct.MessageType == TextStorageArchive) return direct;
+        if (drawable.MessageType == TextShapeArchive) {
+            IWorkArchiveRecord? field4 = index.Dereference(message, 4);
+            IWorkArchiveRecord? field2 = index.Dereference(message, 2);
+            bool directAmbiguous = message.FieldCount(4) > 1
+                || message.FieldCount(2) > 1
+                || field4 != null && field2 != null && field4.Identifier != field2.Identifier;
+            if (directAmbiguous
+                || message.HasUnexpectedWireKind(4, IWorkWireKind.Bytes)
+                || message.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
+                || message.HasField(4) && (field4 == null || field4.MessageType != TextStorageArchive)
+                || message.HasField(2) && (field2 == null || field2.MessageType != TextStorageArchive)) {
+                complete = false;
+            }
+            IWorkArchiveRecord? direct = field4?.MessageType == TextStorageArchive ? field4
+                : field2?.MessageType == TextStorageArchive ? field2
+                : null;
+            if (direct != null) return direct;
+        }
         IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
-        if (malformedSuper) complete = false;
+        if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) complete = false;
         if (super == null) return null;
         IWorkArchiveRecord? nested = index.Dereference(super, 2);
-        if (super.HasBytes(2) && nested == null) complete = false;
-        return nested != null && nested.MessageType == TextStorageArchive ? nested : null;
+        if (super.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
+            || super.FieldCount(2) > 1
+            || super.HasField(2) && (nested == null || nested.MessageType != TextStorageArchive)) {
+            complete = false;
+        }
+        IWorkArchiveRecord? nestedStorage = nested?.MessageType == TextStorageArchive ? nested : null;
+        return nestedStorage;
     }
 }

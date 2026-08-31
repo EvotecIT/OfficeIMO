@@ -70,12 +70,15 @@ public partial class ExcelDocument {
                         ExcelSheet sheet = document.AddWorksheet(tableSheetName,
                             ExcelSheetNameValidationMode.Strict);
                         foreach (IWorkTableCell cell in table.Cells) {
+                            bool isDuration = cell.Kind == IWorkCellKind.Duration
+                                || cell.Kind == IWorkCellKind.Formula
+                                    && cell.ValueKind == IWorkCellKind.Duration;
                             object? value = cell.Kind switch {
                                 IWorkCellKind.Formula when cell.ValueKind == IWorkCellKind.Duration
-                                    && cell.Value is double formulaSeconds => TimeSpan.FromSeconds(formulaSeconds),
+                                    && cell.Value is double formulaSeconds => formulaSeconds / 86_400d,
                                 IWorkCellKind.Formula when cell.Value != null => cell.Value,
                                 IWorkCellKind.Formula => cell.DisplayText,
-                                IWorkCellKind.Duration when cell.Value is double seconds => TimeSpan.FromSeconds(seconds),
+                                IWorkCellKind.Duration when cell.Value is double seconds => seconds / 86_400d,
                                 _ => cell.Value
                             };
                             ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
@@ -95,6 +98,7 @@ public partial class ExcelDocument {
                                 && !string.IsNullOrEmpty(cell.Formula)) {
                                 targetCell.SetFormula(cell.Formula!);
                             }
+                            if (isDuration && cell.Value is double) targetCell.DurationHours();
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
@@ -183,12 +187,6 @@ public partial class ExcelDocument {
                     }
                     if (cell.FormulaIsComplete && cell.Formula?.Length > 8192) {
                         return $"Numbers table '{table.Name}' contains a formula longer than the XLSX limit of 8,192 characters.";
-                    }
-                    if ((cell.Kind == IWorkCellKind.Duration
-                            || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.Duration)
-                        && cell.Value is double seconds
-                        && (seconds < TimeSpan.MinValue.TotalSeconds || seconds > TimeSpan.MaxValue.TotalSeconds)) {
-                        return $"Numbers table '{table.Name}' contains a duration outside the XLSX-supported range.";
                     }
                     if ((cell.Kind == IWorkCellKind.DateTime
                             || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.DateTime)

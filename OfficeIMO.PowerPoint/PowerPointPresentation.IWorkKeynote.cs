@@ -251,7 +251,8 @@ public sealed partial class PowerPointPresentation {
                     if (paragraph.ListLevel > 8) {
                         return $"Keynote slide {slide.Index} contains a list nesting level outside the PPTX range.";
                     }
-                    if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 1 } label
+                    if (paragraph.ListLevel >= 0 && paragraph.ListLabel is { Length: > 0 } label
+                        && (label.Length > 1 || label[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
                         && !TryParseNumbering(label, out _, out _)) {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
