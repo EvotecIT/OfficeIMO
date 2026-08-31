@@ -156,7 +156,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5,
-                Message(ReferenceField(5, firstShapeId), ReferenceField(5, secondShapeId))),
+                Message(ReferenceField(5, firstShapeId), ReferenceField(7, secondShapeId))),
             ArchiveRecord(firstShapeId, 2011, firstShape, new[] { emptyStorageId }),
             ArchiveRecord(secondShapeId, 2011, secondShape, new[] { emptyStorageId }),
             ArchiveRecord(emptyStorageId, 2001, Message(StringField(3, string.Empty))));

@@ -1284,11 +1284,11 @@ public sealed partial class IWorkBoundaryTests {
         return Message(Varint(checked((ulong)archiveInfo.Length)), archiveInfo, payload);
     }
 
-    private static byte[] ArchiveRecordWithRepeatedSingularFields(ulong identifier, uint type,
+    private static byte[] ArchiveRecordWithRepeatedIdentifier(ulong identifier, uint type,
         byte[] payload) {
         byte[] messageInfo = Message(
-            VarintField(1, 9999), VarintField(1, type),
-            VarintField(3, 0), VarintField(3, checked((ulong)payload.Length)));
+            VarintField(1, type),
+            VarintField(3, checked((ulong)payload.Length)));
         byte[] archiveInfo = Message(
             VarintField(1, 999), VarintField(1, identifier), BytesField(2, messageInfo));
         return Message(Varint(checked((ulong)archiveInfo.Length)), archiveInfo, payload);

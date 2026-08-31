@@ -26,14 +26,17 @@ internal static class IWorkImageInfo {
         out long decodedBytes) {
         decodedBytes = 0;
         (int? width, int? height) = ReadJpegMetadata(bytes);
-        if (!width.HasValue || !height.HasValue
-            || (long)width.Value * height.Value * 4 > maximumDecodedBytes
-            || bytes.Length < 2 || bytes[bytes.Length - 2] != 0xff || bytes[bytes.Length - 1] != 0xd9
-            || !OfficeJpegCodec.TryDecode(bytes, out OfficeRasterImage? decoded)
+        if (!width.HasValue || !height.HasValue) return (null, null);
+        long expectedDecodedBytes = checked((long)width.Value * height.Value * 4);
+        if (expectedDecodedBytes > maximumDecodedBytes
+            || bytes.Length < 2 || bytes[bytes.Length - 2] != 0xff || bytes[bytes.Length - 1] != 0xd9) {
+            return (null, null);
+        }
+        decodedBytes = expectedDecodedBytes;
+        if (!OfficeJpegCodec.TryDecode(bytes, out OfficeRasterImage? decoded)
             || decoded == null || decoded.Width != width.Value || decoded.Height != height.Value) {
             return (null, null);
         }
-        decodedBytes = checked((long)decoded.Width * decoded.Height * 4);
         return (decoded.Width, decoded.Height);
     }
 
@@ -164,7 +167,6 @@ internal static class IWorkImageInfo {
                     && ValidatePngImageData(imageData.ToArray(), width, height,
                         bitDepth, colorType, interlace, paletteEntryCount,
                         maximumDecodedBytes, out decodedBytes);
-                if (!valid) decodedBytes = 0;
                 return valid;
             }
         }
@@ -201,11 +203,11 @@ internal static class IWorkImageInfo {
 
         uint expectedAdler = ReadBigEndianUInt32(data, data.Length - 4);
         using var compressed = new MemoryStream(data, 2, data.Length - 6, writable: false);
+        long decoded = 0;
         try {
             using var inflater = new DeflateStream(compressed, CompressionMode.Decompress, leaveOpen: true);
             uint first = 1;
             uint second = 0;
-            long decoded = 0;
             var buffer = new byte[8192];
             foreach ((int passWidth, int passHeight) in PngPasses(width, height, interlace)) {
                 int channels = colorType switch { 0 or 3 => 1, 2 => 3, 4 => 2, 6 => 4, _ => 0 };
@@ -233,11 +235,11 @@ internal static class IWorkImageInfo {
                 }
             }
             if (decoded != decodedLength || inflater.ReadByte() != -1) return false;
-            bool valid = ((second << 16) | first) == expectedAdler;
-            if (valid) decodedBytes = decodedLength;
-            return valid;
+            return ((second << 16) | first) == expectedAdler;
         } catch (Exception exception) when (exception is InvalidDataException or IOException) {
             return false;
+        } finally {
+            decodedBytes = decoded;
         }
     }
 

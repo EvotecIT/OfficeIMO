@@ -177,7 +177,8 @@ internal static class IWorkArchiveParser {
             }
             for (int payloadIndex = 0; payloadIndex < messages.Count; payloadIndex++) {
                 IWorkWireMessage messageInfo = messages[payloadIndex];
-                if (messageInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                if (messageInfo.FieldCount(1) != 1 || messageInfo.FieldCount(3) != 1
+                    || messageInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                     || messageInfo.HasUnexpectedWireKind(2, IWorkWireKind.Varint, IWorkWireKind.Bytes)
                     || messageInfo.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
                     || messageInfo.HasUnexpectedWireKind(5, IWorkWireKind.Varint, IWorkWireKind.Bytes)

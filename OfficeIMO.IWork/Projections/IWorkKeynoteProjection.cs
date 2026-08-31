@@ -292,6 +292,13 @@ internal static class IWorkKeynoteReader {
                 slide.Payload, field, projectionBudget.MaximumProtobufFieldCount));
         }
         IWorkWireMessage message = index.Message(slide);
+        if (message.FieldCount(5) > 1) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                "A Keynote slide declares more than one title placeholder; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
+        }
         IWorkArchiveRecord? titlePlaceholder = index.Dereference(message, 5);
         var candidates = new List<IWorkArchiveRecord>();
         var candidateIdentifiers = new HashSet<ulong>();

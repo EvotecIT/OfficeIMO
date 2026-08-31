@@ -341,8 +341,12 @@ public sealed partial class PowerPointPresentation {
         yield return slide.PresenterNoteContent;
     }
 
-    private static bool FitsTextCoordinate(double? points) => !points.HasValue
-        || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint;
+    private static bool FitsTextCoordinate(double? points) {
+        if (!points.HasValue) return true;
+        double scaled = points.Value * PowerPointUnits.EmusPerPoint;
+        return IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / PowerPointUnits.EmusPerPoint
+            && scaled == Math.Round(scaled);
+    }
 
     private static bool FitsSpacing(double? points) => !points.HasValue
         || IsFinite(points.Value) && points.Value >= 0 && points.Value <= int.MaxValue / 100d

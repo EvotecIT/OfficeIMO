@@ -203,10 +203,10 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Singular_protobuf_fields_use_the_last_wire_value() {
+    public void Archive_identifiers_use_the_last_wire_value() {
         byte[] payload = Message(VarintField(1, 42));
         using MemoryStream package = CreatePackage(("Index/Document.iwa",
-            FrameIwa(ArchiveRecordWithRepeatedSingularFields(1, 1, payload))));
+            FrameIwa(ArchiveRecordWithRepeatedIdentifier(1, 1, payload))));
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
         IWorkArchiveRecord record = Assert.Single(source.Records);

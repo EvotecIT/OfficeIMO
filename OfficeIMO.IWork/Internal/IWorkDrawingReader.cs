@@ -130,7 +130,7 @@ internal static class IWorkDrawingReader {
             return null;
         }
         (DataEntry Data, IWorkPackageEntry Entry, string MediaType,
-            int PixelWidth, int PixelHeight, long DecodedBytes)? resolved = null;
+            int PixelWidth, int PixelHeight)? resolved = null;
         foreach (ulong dataIdentifier in dataIdentifiers) {
             if (lookup.DuplicateDataIdentifiers.Contains(dataIdentifier)
                 || !lookup.DataEntries.TryGetValue(dataIdentifier, out DataEntry? candidateData)) continue;
@@ -142,9 +142,10 @@ internal static class IWorkDrawingReader {
             (int? candidateWidth, int? candidateHeight) = IWorkImageInfo.Read(
                 candidateEntry.Bytes, candidateMediaType,
                 projectionBudget.RemainingDecodedImageBytes, out long candidateDecodedBytes);
+            projectionBudget.AddDecodedImageBytes(candidateDecodedBytes);
             if (!candidateWidth.HasValue || !candidateHeight.HasValue) continue;
             resolved = (candidateData, candidateEntry, candidateMediaType,
-                candidateWidth.Value, candidateHeight.Value, candidateDecodedBytes);
+                candidateWidth.Value, candidateHeight.Value);
             break;
         }
         if (!resolved.HasValue) {
@@ -152,8 +153,7 @@ internal static class IWorkDrawingReader {
             return null;
         }
         (DataEntry data, IWorkPackageEntry entry, string mediaType,
-            int pixelWidth, int pixelHeight, long decodedBytes) = resolved.Value;
-        projectionBudget.AddDecodedImageBytes(decodedBytes);
+            int pixelWidth, int pixelHeight) = resolved.Value;
         IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
         if (!geometryComplete) complete = false;
         bool hasMask = message.HasBytes(5);
