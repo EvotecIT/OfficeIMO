@@ -18,7 +18,7 @@ internal static partial class CsvParser
     private const int DefaultTextDataReaderBatchRowCapacity = 128;
     private const int MaximumTextDataReaderBatchRowCapacity = 4096;
 
-    internal static int GetPreferredTextParallelBatchSize() => 2048;
+    internal static int GetPreferredTextParallelBatchSize() => 4096;
 
     private static bool CanUseTextDataReaderBatchAvx2(CsvLoadOptions options, int sourceColumnCount) =>
         Avx2.IsSupported &&
@@ -63,6 +63,12 @@ internal static partial class CsvParser
 
         while (position <= end)
         {
+            if (((position - initialPosition) & 0x3fff) == 0)
+            {
+                ThrowIfCancellationRequested(options);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             Vector256<byte> packedBytes;
             if (Avx512BW.IsSupported)
             {
@@ -678,6 +684,12 @@ internal static partial class CsvParser
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Read() => MoveNext();
 
+        public bool Read(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return MoveNext();
+        }
+
         public bool IsNull(int ordinal, string? nullValue) =>
             !IsMissing(ordinal) &&
             nullValue is not null &&
@@ -831,18 +843,23 @@ internal static partial class CsvParser
                 static (destination, sourceState) =>
                 {
                     var source = sourceState.Text.AsSpan(sourceState.Start, sourceState.Length);
-                    var sourceIndex = 0;
                     var destinationIndex = 0;
-                    while (sourceIndex < source.Length)
+                    while (!source.IsEmpty)
                     {
-                        var value = source[sourceIndex++];
-                        destination[destinationIndex++] = value;
-                        if (value == '"' &&
-                            sourceIndex < source.Length &&
-                            source[sourceIndex] == '"')
+                        int escapedQuote = source.IndexOf("\"\"".AsSpan());
+                        if (escapedQuote < 0)
                         {
-                            sourceIndex++;
+                            source.CopyTo(destination.Slice(destinationIndex));
+                            break;
                         }
+
+                        // Copy through the first quote and skip its escaped twin. IndexOf and
+                        // CopyTo use the runtime's vectorized implementations, avoiding a branch
+                        // for every character in the common short-text mapping path.
+                        int copyLength = escapedQuote + 1;
+                        source.Slice(0, copyLength).CopyTo(destination.Slice(destinationIndex));
+                        destinationIndex += copyLength;
+                        source = source.Slice(escapedQuote + 2);
                     }
                 });
         }

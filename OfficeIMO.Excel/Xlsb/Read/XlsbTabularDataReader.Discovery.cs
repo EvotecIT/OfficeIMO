@@ -14,8 +14,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             XlsbImportOptions limits,
             XlsbRecordReadBudget recordBudget,
             XlsbCellReadBudget cellBudget,
-            int styleCount,
+            bool[] dateStyles,
             int sharedStringCount,
+            bool treatDatesUsingNumberFormat,
             bool useCachedFormulaResult,
             CancellationToken cancellationToken,
             out int firstColumn,
@@ -23,6 +24,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             out int firstDataRow,
             out int lastDataRow,
             out XlsbValidatedRowPlan? validatedRowPlan) {
+            if (dateStyles == null) {
+                throw new ArgumentNullException(nameof(dateStyles));
+            }
+            int styleCount = dateStyles.Length;
             firstColumn = int.MaxValue;
             lastColumn = -1;
             firstDataRow = -1;
@@ -216,6 +221,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         EnsureFormulaModeSupported(recordType, useCachedFormulaResult);
                     }
                     int column;
+                    bool isDate = false;
                     if (recordSize >= sizeof(int) + sizeof(uint)
                         && recordType is >= BrtCellBlank and <= BrtCellIsst) {
                         ref byte payload = ref Unsafe.Add(ref data, payloadOffset);
@@ -227,6 +233,9 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                                 $"The XLSB cell record at offset {recordOffset} refers to missing cell format " +
                                 $"{styleIndex}; the styles part exposes {styleCount} format(s).");
                         }
+                        isDate = treatDatesUsingNumberFormat
+                            && recordType is BrtCellRk or BrtCellReal
+                            && dateStyles[styleIndex];
 
                         int valueBytes = recordSize - sizeof(int) - sizeof(uint);
                         bool validFixedPayload = recordType switch {
@@ -284,7 +293,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         recordType,
                         payloadOffset,
                         recordSize,
-                        column);
+                        column,
+                        isDate);
                     bool covered = currentRowSpanCount == 1
                         ? currentRowSpanBounds[0] <= column && column <= currentRowSpanBounds[1]
                         : IsCoveredByRowSpan(currentRowSpanBounds, currentRowSpanCount, column);

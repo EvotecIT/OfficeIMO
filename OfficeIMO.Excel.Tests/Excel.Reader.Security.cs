@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Threading.Tasks;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -79,6 +80,51 @@ namespace OfficeIMO.Tests {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public void Reader_SharedStringUtf8Cache_BoundsEntriesAndLargeValues() {
+            var xml = new StringBuilder(
+                "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">");
+            for (int index = 0; index <= SharedStringCache.Utf8CacheSlotCount; index++) {
+                xml.Append("<si><t>value-").Append(index).Append("</t></si>");
+            }
+            string largeValue = new string('x', SharedStringCache.MaximumCachedUtf8ItemBytes + 1);
+            xml.Append("<si><t>").Append(largeValue).Append("</t></si></sst>");
+            byte[] payload = Encoding.UTF8.GetBytes(xml.ToString());
+            var cache = SharedStringCache.Build(
+                () => new MemoryStream(payload, writable: false),
+                new ExcelReadOptions {
+                    MaxSharedStringItems = SharedStringCache.Utf8CacheSlotCount + 2,
+                    MaxSharedStringItemCharacters = largeValue.Length
+                });
+
+            Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> first));
+            Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> repeated));
+            Assert.Same(first.Array, repeated.Array);
+
+            Assert.True(cache.TryGetUtf8(
+                SharedStringCache.Utf8CacheSlotCount,
+                out ArraySegment<byte> collision));
+            Assert.NotSame(first.Array, collision.Array);
+            Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> afterEviction));
+            Assert.NotSame(first.Array, afterEviction.Array);
+
+            Parallel.For(0, 10_000, iteration => {
+                int index = (iteration & 1) == 0
+                    ? 0
+                    : SharedStringCache.Utf8CacheSlotCount;
+                Assert.True(cache.TryGetUtf8(index, out ArraySegment<byte> concurrent));
+                Assert.Equal(
+                    $"value-{index}",
+                    Encoding.UTF8.GetString(concurrent.Array!, concurrent.Offset, concurrent.Count));
+            });
+
+            int largeIndex = SharedStringCache.Utf8CacheSlotCount + 1;
+            Assert.True(cache.TryGetUtf8(largeIndex, out ArraySegment<byte> largeFirst));
+            Assert.True(cache.TryGetUtf8(largeIndex, out ArraySegment<byte> largeSecond));
+            Assert.NotSame(largeFirst.Array, largeSecond.Array);
+            Assert.Equal(largeValue, Encoding.UTF8.GetString(largeSecond.Array!, largeSecond.Offset, largeSecond.Count));
         }
 
         private static void CreateSharedStringWorkbook(string filePath, string sharedStringItemsXml, string count, string uniqueCount) {

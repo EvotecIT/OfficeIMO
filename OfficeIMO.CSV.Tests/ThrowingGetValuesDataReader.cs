@@ -11,6 +11,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     private readonly object?[][] _rows;
     private readonly Type[] _fieldTypes;
     private readonly Action<int>? _afterRead;
+    private readonly Action? _afterEnd;
+    private readonly Action<int>? _afterValueRead;
     private readonly bool _throwOnGetDataTypeName;
     private readonly bool _throwOnTypedGetters;
     private int _rowIndex = -1;
@@ -24,6 +26,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         string[] headers,
         object?[][] rows,
         Action<int>? afterRead = null,
+        Action? afterEnd = null,
+        Action<int>? afterValueRead = null,
         bool throwOnGetDataTypeName = false,
         bool throwOnTypedGetters = false)
     {
@@ -31,6 +35,8 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         _rows = rows ?? throw new ArgumentNullException(nameof(rows));
         _fieldTypes = CreateFieldTypes(headers, rows);
         _afterRead = afterRead;
+        _afterEnd = afterEnd;
+        _afterValueRead = afterValueRead;
         _throwOnGetDataTypeName = throwOnGetDataTypeName;
         _throwOnTypedGetters = throwOnTypedGetters;
     }
@@ -114,6 +120,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
     {
         GetValueCallCount++;
         var value = CurrentRow[ordinal];
+        _afterValueRead?.Invoke(ordinal);
         return value ?? DBNull.Value;
     }
 
@@ -137,6 +144,7 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
         var next = _rowIndex + 1;
         if (next >= _rows.Length)
         {
+            _afterEnd?.Invoke();
             return false;
         }
 
@@ -183,7 +191,9 @@ internal sealed class ThrowingGetValuesDataReader : DbDataReader
             throw new NotSupportedException();
         }
 
-        return GetRequiredValue<T>(ordinal);
+        T value = GetRequiredValue<T>(ordinal);
+        _afterValueRead?.Invoke(ordinal);
+        return value;
     }
 
     private static Type[] CreateFieldTypes(string[] headers, object?[][] rows)

@@ -1,28 +1,36 @@
 using BenchmarkDotNet.Attributes;
+using System.Diagnostics;
+using ExcelReader.Core.Reader;
+using ExcelReader.Core.ValueObjects;
 using ExcelReader.Core.Writer;
+using OfficeIMO.Excel.LegacyXls.Model;
+using ExcelReaderApi = ExcelReader.Core.Reader.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>
 /// Provides a diagnostic scenario for OfficeIMO's native binary workbook
-/// formats and ExcelReader.NET. The competitor output is not exposed as a
-/// BenchmarkDotNet result because it fails the required XLS/XLSB structures.
+/// formats and ExcelReader.NET. Structurally invalid competitor output remains
+/// visible as a conformance probe, but is not timed or ranked as equivalent.
 /// </summary>
 internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private BinaryWriteRow[] _rows = null!;
+    private int _validatedOfficeOutputBytes;
 
     public int RowCount { get; set; }
 
-    // ExcelReader.NET 2.1.2 omits the required BrtWsDim record from XLSB.
-    // Its XLS writer also omits the BIFF8 Index/Row/DBCell cell-table structure,
-    // so this XLS comparison is a diagnostic throughput lane rather than a
-    // format-conformance-equivalent result.
+    // The conformance observation is deliberately evaluated at runtime. A new
+    // competitor release can move from diagnostic to equivalent without hiding
+    // the structural risk from the comparison runner.
     public ExcelFileFormat Format { get; set; }
 
-    public void Setup() {
+    internal BinaryWriteConformanceObservation SetupComparison() {
         SetupOfficeIMOOnly();
         byte[] excelReaderWorkbook = WriteExcelReaderWorkbook();
-        Validate(excelReaderWorkbook);
+        return InspectExcelReaderWorkbook(excelReaderWorkbook) with {
+            OfficeOutputBytes = _validatedOfficeOutputBytes,
+            CompetitorOutputBytes = excelReaderWorkbook.Length
+        };
     }
 
     internal void SetupOfficeIMOOnly() {
@@ -38,14 +46,33 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
 
         byte[] workbook = WriteWorkbook();
         Validate(workbook);
+        if (Format == ExcelFileFormat.Xls) {
+            (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook);
+            if (actualDbCellBlocks != expectedDbCellBlocks) {
+                throw new InvalidDataException(
+                    $"OfficeIMO XLS emitted {actualDbCellBlocks} BIFF8 DBCell blocks instead of {expectedDbCellBlocks}.");
+            }
+        }
+        _validatedOfficeOutputBytes = workbook.Length;
     }
 
     public int OfficeIMO_PublicTabularWrite() => WriteWorkbook().Length;
 
     public int ExcelReaderNet_DiagnosticWrite() => WriteExcelReaderWorkbook().Length;
 
-    private byte[] WriteWorkbook() {
+    internal IReadOnlyList<(string Name, double Milliseconds)> ProfileOfficeIMOWriteStages() {
+        var stages = new List<(string Name, double Milliseconds)>();
+        _ = WriteWorkbook((name, elapsed) => stages.Add((name, elapsed.TotalMilliseconds)));
+        return stages;
+    }
+
+    private byte[] WriteWorkbook(Action<string, TimeSpan>? reportStage = null) {
+        Stopwatch? stageWatch = reportStage is null ? null : Stopwatch.StartNew();
         using ExcelDocument document = ExcelDocument.Create();
+        ReportProfileStage(reportStage, stageWatch, "CreateDocument");
+        if (reportStage is not null) {
+            document.Execution.OnTiming = reportStage;
+        }
         ExcelSheet sheet = document.AddWorksheet("Data");
         sheet.InsertObjects(
             _rows,
@@ -54,8 +81,10 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
             ("Owner", static row => row.Owner),
             ("Amount", static row => row.Amount),
             ("Active", static row => row.Active));
+        ReportProfileStage(reportStage, stageWatch, "AddSheetAndInsertObjects");
 
         byte[] workbook = document.ToBytes(Format);
+        ReportProfileStage(reportStage, stageWatch, "ToBytes");
         if (document.LastSaveDiagnostics.Writer != ExcelSavePackageWriter.NativeBinaryDirectPackage) {
             throw new InvalidOperationException(
                 $"OfficeIMO {Format} benchmark did not use the native direct tabular writer: "
@@ -63,6 +92,15 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         }
 
         return workbook;
+    }
+
+    private static void ReportProfileStage(
+        Action<string, TimeSpan>? reportStage,
+        Stopwatch? stopwatch,
+        string name) {
+        if (reportStage is null || stopwatch is null) return;
+        reportStage(name, stopwatch.Elapsed);
+        stopwatch.Restart();
     }
 
     private byte[] WriteExcelReaderWorkbook() => Format switch {
@@ -165,7 +203,149 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
         }
     }
 
+    private BinaryWriteConformanceObservation InspectExcelReaderWorkbook(byte[] workbook) {
+        bool semanticRoundTrip = TryValidateExcelReaderWorkbook(workbook, out string? semanticFailure);
+        bool structurallyConformant;
+        string structureDetail;
+
+        if (Format == ExcelFileFormat.Xls) {
+            try {
+                (int actualDbCellBlocks, int expectedDbCellBlocks) = InspectLegacyXlsDbCellBlocks(workbook);
+                structurallyConformant = actualDbCellBlocks == expectedDbCellBlocks;
+                structureDetail = structurallyConformant
+                    ? $"BIFF8 Index/DBCell structure present ({actualDbCellBlocks} blocks)."
+                    : $"BIFF8 Index/DBCell structure missing or incomplete ({actualDbCellBlocks} of {expectedDbCellBlocks} blocks).";
+            }
+            catch (Exception exception) {
+                structurallyConformant = false;
+                structureDetail = "BIFF8 structural inspection failed: " + exception.Message;
+            }
+        } else {
+            try {
+                Validate(workbook);
+                structurallyConformant = true;
+                structureDetail = "Strict OfficeIMO XLSB validation passed, including BrtWsDim.";
+            }
+            catch (Exception exception) {
+                structurallyConformant = false;
+                structureDetail = "Strict OfficeIMO XLSB validation failed: " + exception.Message;
+            }
+        }
+
+        string semanticDetail = semanticRoundTrip
+            ? "ExcelReader.NET round-tripped the exact single-sheet row set with its own reader."
+            : "ExcelReader.NET semantic round-trip failed: " + semanticFailure;
+        return new BinaryWriteConformanceObservation(
+            semanticRoundTrip,
+            structurallyConformant,
+            semanticDetail + " " + structureDetail);
+    }
+
+    private (int Actual, int Expected) InspectLegacyXlsDbCellBlocks(byte[] workbook) {
+        LegacyXlsWorkbook parsed = LegacyXlsWorkbook.Load(workbook);
+        LegacyXlsWorksheet? sheet = parsed.Worksheets.FirstOrDefault();
+        return (sheet?.RowBlockIndex?.DbCellBlockCount ?? 0, (RowCount + 1 + 31) / 32);
+    }
+
+    private bool TryValidateExcelReaderWorkbook(byte[] workbook, out string? failure) {
+        try {
+            if (Format == ExcelFileFormat.Xls) {
+                using XlsReader reader = ExcelReaderApi.FromXls(workbook);
+                ValidateExcelReaderRows(reader);
+            } else {
+                using XlsbReader reader = ExcelReaderApi.FromXlsb(workbook);
+                ValidateExcelReaderRows(reader);
+            }
+
+            failure = null;
+            return true;
+        }
+        catch (Exception exception) {
+            failure = exception.Message;
+            return false;
+        }
+    }
+
+    private void ValidateExcelReaderRows(XlsReader reader) {
+        int rowIndex = -1;
+        foreach (Row row in reader) {
+            ValidateExcelReaderRow(row, ref rowIndex);
+        }
+        ValidateExcelReaderRowCount(rowIndex);
+    }
+
+    private void ValidateExcelReaderRows(XlsbReader reader) {
+        int rowIndex = -1;
+        foreach (Row row in reader) {
+            ValidateExcelReaderRow(row, ref rowIndex);
+        }
+        ValidateExcelReaderRowCount(rowIndex);
+    }
+
+    private void ValidateExcelReaderRow(Row row, ref int rowIndex) {
+        string[] headers = ["Id", "Region", "Owner", "Amount", "Active"];
+        if (rowIndex < 0) {
+            if (row.ColumnCount < headers.Length) {
+                throw new InvalidDataException(
+                    $"{Format} exposed {row.ColumnCount} header fields instead of {headers.Length}.");
+            }
+            for (int column = 0; column < headers.Length; column++) {
+                if (!string.Equals(row[column].GetString(), headers[column], StringComparison.Ordinal)) {
+                    throw new InvalidDataException($"{Format} header {column + 1} did not round-trip.");
+                }
+            }
+            rowIndex = 0;
+            return;
+        }
+
+        if (rowIndex >= _rows.Length) {
+            throw new InvalidDataException($"{Format} emitted extra rows.");
+        }
+
+        BinaryWriteRow expected = _rows[rowIndex];
+        if (!row[0].TryParse(System.Globalization.CultureInfo.InvariantCulture, out int id)
+            || id != expected.Id
+            || !string.Equals(row[1].GetString(), expected.Region, StringComparison.Ordinal)
+            || !string.Equals(row[2].GetString(), expected.Owner, StringComparison.Ordinal)
+            || !row[3].TryGetDouble(out double amount)
+            || amount != expected.Amount
+            || !TryReadExcelReaderBoolean(row[4], out bool active)
+            || active != expected.Active) {
+            throw new InvalidDataException($"{Format} row {rowIndex + 2} did not round-trip.");
+        }
+
+        rowIndex++;
+    }
+
+    private static bool TryReadExcelReaderBoolean(Cell cell, out bool value) {
+        if (bool.TryParse(cell.GetString(), out value)) {
+            return true;
+        }
+        if (cell.TryGetDouble(out double numeric) && (numeric == 0d || numeric == 1d)) {
+            value = numeric == 1d;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private void ValidateExcelReaderRowCount(int rowIndex) {
+        if (rowIndex != _rows.Length) {
+            throw new InvalidDataException($"{Format} emitted {Math.Max(rowIndex, 0)} rows instead of {_rows.Length}.");
+        }
+    }
+
     private readonly record struct BinaryWriteRow(int Id, string Region, string Owner, double Amount, bool Active);
+}
+
+internal readonly record struct BinaryWriteConformanceObservation(
+    bool SemanticRoundTrip,
+    bool StructurallyConformant,
+    string Detail,
+    int OfficeOutputBytes = 0,
+    int CompetitorOutputBytes = 0) {
+    internal bool IsEquivalent => SemanticRoundTrip && StructurallyConformant;
 }
 
 /// <summary>

@@ -69,7 +69,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             ZipArchive archive,
             string workbookPartName,
             ExcelReadOptions readOptions,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            bool metadataOnly = false) {
             _packageStream = packageStream ?? throw new ArgumentNullException(nameof(packageStream));
             _archive = archive ?? throw new ArgumentNullException(nameof(archive));
             _cancellationToken = cancellationToken;
@@ -77,11 +78,16 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _maxSharedStringCharacters = readOptions.MaxSharedStringCharacters;
             _limits = new XlsbImportOptions {
                 MaxPackageBytes = readOptions.MaxInputBytes,
+                MaxWorksheets = readOptions.MaxWorksheets,
                 MaxSharedStrings = readOptions.MaxSharedStringItems,
                 MaxCells = readOptions.MaxXlsbCells,
                 MaxLogicalRows = readOptions.MaxXlsbLogicalRows,
-                ReportPreservedRecords = false
+                ReportPreservedRecords = false,
+                CancellationToken = cancellationToken
             };
+            if (metadataOnly) {
+                _limits.MaxRecordBytes = readOptions.MaxMetadataPartBytes;
+            }
             _limits.Validate();
             _parts = new XlsbPackagePartReader(_archive, _limits);
             _recordBudget = new XlsbRecordReadBudget(_limits.MaxRecordCount);
@@ -89,21 +95,38 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _logicalRowBudget = new XlsbLogicalRowReadBudget(_limits.MaxLogicalRows);
 
             IReadOnlyDictionary<string, XlsbPackageRelationship> relationships =
-                _parts.ReadRelationships(workbookPartName, cancellationToken);
+                metadataOnly
+                    ? _parts.ReadRelationships(
+                        workbookPartName,
+                        readOptions.MaxMetadataPartBytes,
+                        cancellationToken)
+                    : _parts.ReadRelationships(workbookPartName, cancellationToken);
             var bundleSheets = new List<XlsbBundleSheet>();
             bool uses1904DateSystem = false;
             ParseWorkbookPart(
-                _parts.ReadPart(workbookPartName, cancellationToken),
+                metadataOnly
+                    ? _parts.ReadPart(
+                        workbookPartName,
+                        readOptions.MaxMetadataPartBytes,
+                        cancellationToken)
+                    : _parts.ReadPart(workbookPartName, cancellationToken),
                 bundleSheets,
                 ref uses1904DateSystem);
             Uses1904DateSystem = uses1904DateSystem;
-            _sharedStrings = ReadSharedStrings(workbookPartName, relationships);
-            _dateStyles = ReadDateStyles(workbookPartName, relationships);
             _sheets = ResolveWorksheets(workbookPartName, relationships, bundleSheets);
             if (_sheets.Count == 0) {
                 throw new InvalidDataException("The XLSB workbook contains no readable worksheets.");
             }
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
+            if (metadataOnly) {
+                _sharedStrings = Array.Empty<string>();
+                _dateStyles = Array.Empty<bool>();
+                cancellationToken.ThrowIfCancellationRequested();
+                return;
+            }
+
+            _sharedStrings = ReadSharedStrings(workbookPartName, relationships);
+            _dateStyles = ReadDateStyles(workbookPartName, relationships);
         }
 
         internal bool Uses1904DateSystem { get; }
@@ -134,6 +157,38 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             } catch {
                 stream.Dispose();
                 throw;
+            }
+        }
+
+        internal static IReadOnlyList<string> ReadSheetNames(
+            string path,
+            ExcelReadOptions readOptions,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("File path cannot be empty.", nameof(path));
+            }
+            if (readOptions == null) {
+                throw new ArgumentNullException(nameof(readOptions));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var stream = File.OpenRead(path);
+            try {
+                if (stream.Length > readOptions.MaxInputBytes) {
+                    throw new InvalidDataException(
+                        $"The XLSB package contains {stream.Length} bytes, exceeding the configured limit of {readOptions.MaxInputBytes} bytes.");
+                }
+
+                using XlsbTabularWorkbook workbook = OpenOwnedStream(
+                    stream,
+                    readOptions,
+                    cancellationToken,
+                    metadataOnly: true);
+                stream = null!;
+                cancellationToken.ThrowIfCancellationRequested();
+                return workbook._tableNames.ToArray();
+            } finally {
+                stream?.Dispose();
             }
         }
 
@@ -282,6 +337,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                         $"The BrtBundleSh record at offset {record.RecordOffset} does not contain a worksheet name and relationship id.");
                 }
 
+                if (sheets.Count >= _limits.MaxWorksheets) {
+                    throw new InvalidDataException(
+                        $"The XLSB workbook contains more than the configured {_limits.MaxWorksheets} worksheet definitions.");
+                }
                 sheets.Add(new XlsbBundleSheet(name, relationshipId));
             }
 
@@ -859,6 +918,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             var sheets = new List<XlsbTabularSheet>(bundleSheets.Count);
             var worksheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XlsbBundleSheet bundle in bundleSheets) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (!relationships.TryGetValue(
                         bundle.RelationshipId,
                         out XlsbPackageRelationship? relationship)) {
@@ -883,9 +943,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 }
 
                 string partName = XlsbPackagePartReader.ResolveTarget(workbookPartName, relationship.Target);
+                if (!_parts.ContainsPart(partName)) {
+                    throw new InvalidDataException(
+                        $"The XLSB worksheet '{bundle.Name}' relationship target '{partName}' is missing.");
+                }
                 sheets.Add(new XlsbTabularSheet(bundle.Name, partName));
             }
 
+            _cancellationToken.ThrowIfCancellationRequested();
             return sheets;
         }
 
@@ -903,11 +968,19 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private static XlsbTabularWorkbook OpenOwnedStream(
             Stream packageStream,
             ExcelReadOptions readOptions,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken,
+            bool metadataOnly = false) {
             ZipArchive? archive = null;
             try {
                 archive = new ZipArchive(packageStream, ZipArchiveMode.Read, leaveOpen: true);
-                if (!XlsbPackageDetector.TryFindWorkbookPart(archive, out string? workbookPartName)
+                bool foundWorkbook = metadataOnly
+                    ? XlsbPackageDetector.TryFindWorkbookPart(
+                        archive,
+                        readOptions.MaxMetadataPartBytes,
+                        readOptions.MaxMetadataPartBytes,
+                        out string? workbookPartName)
+                    : XlsbPackageDetector.TryFindWorkbookPart(archive, out workbookPartName);
+                if (!foundWorkbook
                     || string.IsNullOrWhiteSpace(workbookPartName)) {
                     throw new InvalidDataException("The package does not contain a canonical XLSB workbook part.");
                 }
@@ -917,7 +990,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     archive,
                     workbookPartName!,
                     readOptions,
-                    cancellationToken);
+                    cancellationToken,
+                    metadataOnly);
             } catch {
                 archive?.Dispose();
                 packageStream.Dispose();

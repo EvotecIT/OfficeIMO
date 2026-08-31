@@ -24,6 +24,41 @@ Windows, Linux, and macOS results independently.
 | Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
+## Dated four-reader CSV snapshot (2026-08-31)
+
+This lane reads the same hash-pinned 65K fixture through OfficeIMO.CSV,
+ExcelReader.NET 2.3.0, Sep 0.17.0, and Sylvan.Data.Csv 1.4.4. Every method
+decodes and observes every field as text, then setup rejects any row, cell,
+ordering, character-count, or payload-checksum mismatch before timing. The run used
+.NET 10, `High` priority, eight fixed invocations, twelve warmups, twenty
+retained-outlier iterations, and separate jobs for both 16-logical-processor
+L3 domains on the AMD Ryzen 9 9950X3D2.
+
+| Cache domain | OfficeIMO | ExcelReader.NET | Sep | Sylvan | Allocation: OfficeIMO / ExcelReader.NET / Sep / Sylvan |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `0xFFFF` | 17.11 ms | 22.20 ms | 18.91 ms | 22.29 ms | 34.24 / 35.72 / 34.23 / 35.75 MB |
+| `0xFFFF0000` | 17.16 ms | 24.99 ms | 17.49 ms | 19.38 ms | 34.24 / 35.72 / 34.23 / 35.75 MB |
+
+OfficeIMO has the lowest observed mean on both domains. OfficeIMO and Sep are
+in BenchmarkDotNet's top statistical rank on both; Sylvan joins that rank on
+`0xFFFF`. The observed OfficeIMO means are 23-31% below ExcelReader.NET,
+2-10% below Sep, and 11-23% below Sylvan. OfficeIMO and Sep allocate nearly
+the same managed memory, while ExcelReader.NET and Sylvan allocate about
+1.5 MB more per read. These results apply to this fully observed decoded-text
+reader contract, not every CSV API or file shape.
+
+Reproduce both topology domains with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -- --filter "*MarkPflug65KCsvBenchmarks.OfficeIMO" "*MarkPflug65KCsvBenchmarks.ExcelReaderNet" "*MarkPflug65KCsvBenchmarks.Sep" "*MarkPflug65KCsvBenchmarks.Sylvan" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+```
+
+The final measurements used SHA-256
+`58505CF743EEF1F7008D5A98E69B5851BB96A66F1B0F73804467F184DF2381E1`
+for `OfficeIMO.CSV.Benchmarks.dll` and
+`C256B61D5F1C3622E70E9039F9BC81D490407A30433521E0F6D0233A97E7EC55`
+for `OfficeIMO.CSV.dll`.
+
 ## Run
 
 ```powershell
@@ -269,11 +304,13 @@ For processors with multiple cache or performance domains, pass explicit
 machine-specific affinity masks as separate BenchmarkDotNet jobs:
 
 ```powershell
-dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvTypedSequentialBenchmarks*" --affinityMasks "0x1,0x10000" --invocationCount 5 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --filter "*CsvTypedSequentialBenchmarks*" --affinityMasks "0xFFFF,0xFFFF0000" --invocationCount 5 --unrollFactor 1 --warmupCount 5 --iterationCount 15 --launchCount 1
 ```
 
-Masks must be derived from the current machine's CPU-set/cache topology and
-recorded with the result; the sample values are not portable. Run parallel
+The sample masks cover the two full 16-logical-processor cache domains of an
+AMD Ryzen 9 9950X3D2. Masks must be derived from the current machine's
+CPU-set/cache topology and recorded with the result; these values are not
+portable. Run parallel
 lanes again with one whole cache domain and with all intended processors.
 Record the active power plan, runtime, GC mode, logical processor count, and
 whether a hypervisor is present. Treat rankings that change across cache
@@ -300,7 +337,52 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net10.0 -- --compare-typed-parallel-paired 60 0xFFFF0000 adaptive 16 16 100000 High
 ```
 
-## Dated Sep feature snapshots (2026-08-08 and 2026-08-10)
+## Dated ordered-parallel snapshot (2026-08-31)
+
+The current implementation partitions eligible decoded text into ordered waves,
+uses an AVX2 quote/record-boundary scan when available, and gives each worker a
+small reusable row cursor over its assigned text range. It does not materialize
+detached 4,096-row parser batches. The public `BatchSize` still controls the
+amount of source work scheduled per partition; the boundary scanner caps its
+internal record-counting chunk at 256 rows to keep worker cache footprints
+bounded.
+
+The final sustained 100,000-row run used the two complete
+16-logical-processor cache domains of the AMD Ryzen 9 9950X3D2, High performance
+power mode, .NET 10.0.11, workstation GC, three independent launches, five
+warmups, ten measured iterations, five fixed invocations per iteration, and
+`OutlierMode=DontRemove`. Both implementations resolved identical headers,
+parsed the same typed fields, created the same objects, retained source order,
+and passed a property-by-property preflight before timing.
+
+| DOP | L3 domain | OfficeIMO mean (99.9% CI) | Sep mean (99.9% CI) | OfficeIMO allocation | Sep allocation | Result |
+| ---: | --- | ---: | ---: | ---: | ---: | --- |
+| 8 | `0xFFFF` | 49.71 ms (48.16-51.26) | 50.83 ms (49.69-51.97) | 39.73 MB | 39.56 MB | equal; OfficeIMO mean 2.2% lower |
+| 8 | `0xFFFF0000` | 44.17 ms (40.62-47.72) | 42.32 ms (37.92-46.73) | 39.68 MB | 39.66 MB | equal; Sep mean 4.4% lower |
+| 16 | `0xFFFF` | 39.07 ms (32.83-45.31) | 28.28 ms (24.35-32.22) | 39.90 MB | 39.57 MB | Sep mean 27.6% lower; intervals separated by 0.6 ms |
+| 16 | `0xFFFF0000` | 24.73 ms (22.85-26.61) | 29.21 ms (25.46-32.96) | 39.32 MB | 39.68 MB | equal; OfficeIMO mean 15.3% lower |
+
+At eight workers the confidence intervals overlap on both domains and managed
+allocation is effectively equal, so the defensible result is parity rather
+than a universal parser win. At sixteen workers the mean winner changes by
+domain: Sep is statistically separated on `0xFFFF`, while OfficeIMO has the
+lower mean but an overlapping interval on `0xFFFF0000`. OfficeIMO's first-domain
+distribution was multimodal. Full-SMT scaling on this topology is therefore a
+scheduling-sensitive diagnostic, not a safe default or universal ranking. A separate
+30-sample loaded-host ABBA/BAAB diagnostic also favored Sep by wall time:
+OfficeIMO/Sep raw medians were 59.56/44.22 ms and 57.72/44.38 ms on the two
+domains, while process CPU was equal or lower for OfficeIMO. That disagreement
+is retained as scheduling-pressure evidence and is not substituted for the
+isolated-process BenchmarkDotNet result.
+
+The measured assemblies were SHA-256
+`354A91EC7425A8904325EF7D63E7E7FE84E9EB63D6A95FB4B0B8B9EA4B3E3815`
+for `OfficeIMO.CSV.Benchmarks.dll` and
+`6DA083B72BBD88C1ED36A96B28AADD467CAFA6863B0FEA904D520A86E0022562`
+for `OfficeIMO.CSV.dll`. These hashes bind the table to this candidate; rebuilding
+or changing runtime inputs requires a new dated snapshot.
+
+## Earlier Sep feature snapshots (2026-08-08 and 2026-08-10)
 
 The current focused runs used .NET 10, BenchmarkDotNet 0.15.8, workstation GC, the
 Windows High performance power plan, and an AMD Ryzen 9 9950X3D2 with 32

@@ -6,8 +6,10 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
   </ItemGroup>
 </Project>

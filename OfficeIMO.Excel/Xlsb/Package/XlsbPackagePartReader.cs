@@ -24,15 +24,23 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         internal byte[] ReadPart(string partName) =>
             ReadPart(partName, CancellationToken.None);
 
-        internal byte[] ReadPart(string partName, CancellationToken cancellationToken) {
+        internal byte[] ReadPart(string partName, CancellationToken cancellationToken) =>
+            ReadPart(partName, _options.MaxPartBytes, cancellationToken);
+
+        internal byte[] ReadPart(
+            string partName,
+            int maximumBytes,
+            CancellationToken cancellationToken) {
+            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
             cancellationToken.ThrowIfCancellationRequested();
             string normalized = NormalizePartName(partName);
             if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {
                 throw new InvalidDataException($"The XLSB package part '{normalized}' is missing.");
             }
 
-            if (entry.Length > _options.MaxPartBytes) {
-                throw new InvalidDataException($"The XLSB package part '{normalized}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {_options.MaxPartBytes} bytes.");
+            int effectiveMaximumBytes = Math.Min(maximumBytes, _options.MaxPartBytes);
+            if (entry.Length > effectiveMaximumBytes) {
+                throw new InvalidDataException($"The XLSB package part '{normalized}' declares {entry.Length} decompressed bytes, exceeding the configured limit of {effectiveMaximumBytes} bytes.");
             }
 
             int length = checked((int)entry.Length);
@@ -140,19 +148,26 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         internal IReadOnlyDictionary<string, XlsbPackageRelationship> ReadRelationships(
             string sourcePartName,
             CancellationToken cancellationToken = default) {
+            return ReadRelationships(sourcePartName, _options.MaxPartBytes, cancellationToken);
+        }
+
+        internal IReadOnlyDictionary<string, XlsbPackageRelationship> ReadRelationships(
+            string sourcePartName,
+            int maximumBytes,
+            CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             string relationshipPart = GetRelationshipPartName(sourcePartName);
             if (!ContainsPart(relationshipPart)) {
                 return new Dictionary<string, XlsbPackageRelationship>(StringComparer.Ordinal);
             }
 
-            byte[] xml = ReadPart(relationshipPart, cancellationToken);
+            byte[] xml = ReadPart(relationshipPart, maximumBytes, cancellationToken);
             using var stream = new MemoryStream(xml, writable: false);
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
                 CloseInput = false,
-                MaxCharactersInDocument = _options.MaxPartBytes
+                MaxCharactersInDocument = Math.Min(maximumBytes, _options.MaxPartBytes)
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             var relationships = new Dictionary<string, XlsbPackageRelationship>(StringComparer.Ordinal);

@@ -21,6 +21,10 @@
     <ProjectReference Include="..\OfficeIMO.Confluence\OfficeIMO.Confluence.csproj" />
     <ProjectReference Include="..\OfficeIMO.CSV\OfficeIMO.CSV.csproj" />
     <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Arrow\OfficeIMO.Data.Arrow.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Data.Generators\OfficeIMO.Data.Generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\OfficeIMO.DocBook\OfficeIMO.DocBook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj" />
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
@@ -128,6 +132,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Confluence" />
     <TrimmerRootAssembly Include="OfficeIMO.CSV" />
     <TrimmerRootAssembly Include="OfficeIMO.Core" />
+    <TrimmerRootAssembly Include="OfficeIMO.Data.Arrow" />
     <TrimmerRootAssembly Include="OfficeIMO.DocBook" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.CodeGlyphX" />
     <TrimmerRootAssembly Include="OfficeIMO.Drawing.HarfBuzz" />

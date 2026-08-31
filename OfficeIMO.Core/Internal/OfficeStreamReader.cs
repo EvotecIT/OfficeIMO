@@ -63,72 +63,91 @@ namespace OfficeIMO.Core.Internal {
             long originalPosition = source.CanSeek ? source.Position : 0;
             try {
                 if (source.CanSeek) source.Seek(0, SeekOrigin.Begin);
-                if (source.CanSeek) {
-                    long remaining = source.Length - source.Position;
-                    EnsureWithinLimit(remaining, maxBytes);
-                    if (remaining > int.MaxValue) {
-                        throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
-                    }
-
-                    byte[] result = remaining == 0
-                        ? Array.Empty<byte>()
-                        : new byte[checked((int)remaining)];
-                    int offset = 0;
-                    while (offset < result.Length) {
-                        cancellationToken.ThrowIfCancellationRequested();
-                        int exactRead = await source.ReadAsync(
-                            result,
-                            offset,
-                            result.Length - offset,
-                            cancellationToken).ConfigureAwait(false);
-                        if (exactRead == 0) {
-                            Array.Resize(ref result, offset);
-                            return result;
-                        }
-
-                        offset += exactRead;
-                    }
-
-                    var trailingByte = new byte[1];
-                    int trailingRead = await source.ReadAsync(
-                        trailingByte,
-                        0,
-                        1,
-                        cancellationToken).ConfigureAwait(false);
-                    if (trailingRead == 0) return result;
-
-                    using var expanded = new MemoryStream(checked(result.Length + 1));
-                    expanded.Write(result, 0, result.Length);
-                    expanded.WriteByte(trailingByte[0]);
-                    long expandedTotal = checked((long)result.Length + 1);
-                    EnsureWithinLimit(expandedTotal, maxBytes);
-                    var expandedBuffer = new byte[BufferSize];
-                    int expandedRead;
-                    while ((expandedRead = await source.ReadAsync(
-                        expandedBuffer,
-                        0,
-                        expandedBuffer.Length,
-                        cancellationToken).ConfigureAwait(false)) > 0) {
-                        expandedTotal = checked(expandedTotal + expandedRead);
-                        EnsureWithinLimit(expandedTotal, maxBytes);
-                        expanded.Write(expandedBuffer, 0, expandedRead);
-                    }
-                    return expanded.ToArray();
-                }
-
-                using var output = new MemoryStream();
-                var buffer = new byte[BufferSize];
-                long total = 0;
-                int read;
-                while ((read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0) {
-                    total = checked(total + read);
-                    EnsureWithinLimit(total, maxBytes);
-                    await output.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
-                }
-                return output.ToArray();
+                return await ReadToEndAsync(source, cancellationToken, maxBytes).ConfigureAwait(false);
             } finally {
                 if (source.CanSeek) source.Seek(originalPosition, SeekOrigin.Begin);
             }
+        }
+
+        /// <summary>
+        /// Asynchronously reads from the caller's current position through the end of the stream without rewinding.
+        /// </summary>
+        public static Task<byte[]> ReadRemainingBytesAsync(
+            Stream source,
+            CancellationToken cancellationToken = default,
+            long? maxBytes = null) {
+            ValidateRemainingSource(source, maxBytes);
+            return ReadToEndAsync(source, cancellationToken, maxBytes);
+        }
+
+        private static async Task<byte[]> ReadToEndAsync(
+            Stream source,
+            CancellationToken cancellationToken,
+            long? maxBytes) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (source.CanSeek) {
+                long remaining = Math.Max(0, source.Length - source.Position);
+                EnsureWithinLimit(remaining, maxBytes);
+                if (remaining > int.MaxValue) {
+                    throw new InvalidDataException($"Stream length {remaining} exceeds the supported in-memory size.");
+                }
+
+                byte[] result = remaining == 0
+                    ? Array.Empty<byte>()
+                    : new byte[checked((int)remaining)];
+                int offset = 0;
+                while (offset < result.Length) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int exactRead = await source.ReadAsync(
+                        result,
+                        offset,
+                        result.Length - offset,
+                        cancellationToken).ConfigureAwait(false);
+                    if (exactRead == 0) {
+                        Array.Resize(ref result, offset);
+                        return result;
+                    }
+
+                    offset += exactRead;
+                }
+
+                var trailingByte = new byte[1];
+                int trailingRead = await source.ReadAsync(
+                    trailingByte,
+                    0,
+                    1,
+                    cancellationToken).ConfigureAwait(false);
+                if (trailingRead == 0) return result;
+
+                using var expanded = new MemoryStream(checked(result.Length + 1));
+                expanded.Write(result, 0, result.Length);
+                expanded.WriteByte(trailingByte[0]);
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
+                var expandedBuffer = new byte[BufferSize];
+                int expandedRead;
+                while ((expandedRead = await source.ReadAsync(
+                    expandedBuffer,
+                    0,
+                    expandedBuffer.Length,
+                    cancellationToken).ConfigureAwait(false)) > 0) {
+                    expandedTotal = checked(expandedTotal + expandedRead);
+                    EnsureWithinLimit(expandedTotal, maxBytes);
+                    expanded.Write(expandedBuffer, 0, expandedRead);
+                }
+                return expanded.ToArray();
+            }
+
+            using var output = new MemoryStream();
+            var buffer = new byte[BufferSize];
+            long total = 0;
+            int read;
+            while ((read = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0) {
+                total = checked(total + read);
+                EnsureWithinLimit(total, maxBytes);
+                await output.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+            }
+            return output.ToArray();
         }
 
         private static byte[] ReadToEnd(Stream source, CancellationToken cancellationToken, long? maxBytes) {

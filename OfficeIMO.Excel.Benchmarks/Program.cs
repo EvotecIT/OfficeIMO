@@ -36,6 +36,8 @@ bool compareExcelReaderPairedXls = args.Length > 0 &&
     string.Equals(args[0], "--compare-excelreader-xls-paired", StringComparison.OrdinalIgnoreCase);
 bool compareExcelReaderWritePaired = args.Length > 0 &&
     string.Equals(args[0], "--compare-excelreader-write-paired", StringComparison.OrdinalIgnoreCase);
+bool compareExcelReaderArrowPaired = args.Length > 0 &&
+    string.Equals(args[0], "--compare-excelreader-arrow-paired", StringComparison.OrdinalIgnoreCase);
 bool validateExcelReaderWrite = args.Length > 0 &&
     string.Equals(args[0], "--validate-excelreader-write", StringComparison.OrdinalIgnoreCase);
 bool profileOfficeIMODataReaderWrite = args.Length > 0 &&
@@ -69,6 +71,11 @@ if (compareExcelReaderPairedXlsx || compareExcelReaderPairedXlsb || compareExcel
 
 if (compareExcelReaderWritePaired) {
     ExcelReaderWriteComparisonPairedRunner.Run(args);
+    return;
+}
+
+if (compareExcelReaderArrowPaired) {
+    ExcelArrowComparisonPairedRunner.Run(args);
     return;
 }
 
@@ -610,6 +617,7 @@ static void WriteUsage() {
     Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-excelreader-write-xlsx-officeimo [iterations] [row-count] [affinity-mask] [priority]");
     Console.WriteLine("  --profile-excelreader-write-xlsx-competitor [iterations] [row-count] [affinity-mask] [priority]");
+    Console.WriteLine("  --compare-excelreader-arrow-paired [explicit|inferred] [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-datareader-write-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-datatable-execution-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");

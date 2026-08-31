@@ -7,10 +7,12 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
     /// <summary>
-    /// Read-only BIFF8 workbook metadata used by the tabular XLS fast path. The workbook
-    /// stream is extracted once and worksheet cells are decoded directly from record slices.
+    /// Read-only BIFF5/BIFF8 workbook metadata and BIFF8 worksheet data used by the tabular
+    /// XLS fast path. The workbook stream is extracted once and worksheet cells are decoded
+    /// directly from record slices.
     /// </summary>
     internal sealed class LegacyXlsTabularWorkbook : IDisposable {
+        private const ushort Biff5Version = 0x0500;
         private const ushort Biff8Version = 0x0600;
         private readonly LegacyBiffSource _workbookStream;
         private readonly IReadOnlyList<SheetInfo> _sheets;
@@ -62,6 +64,35 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return Open(stream, options, cancellationToken);
         }
 
+        internal static IReadOnlyList<string> ReadSheetNames(
+            string path,
+            ExcelReadOptions options,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("File path cannot be empty.", nameof(path));
+            }
+            if (options == null) throw new ArgumentNullException(nameof(options));
+
+            cancellationToken.ThrowIfCancellationRequested();
+            using var source = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                1,
+                FileOptions.RandomAccess);
+            if (source.Length > options.MaxInputBytes) {
+                throw new InvalidDataException(
+                    $"Workbook input contains {source.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
+            }
+
+            using Stream workbookStream = OpenWorkbookStream(source, options, cancellationToken);
+            using var biffSource = new LegacyBiffSource(workbookStream, cancellationToken);
+            IReadOnlyList<SheetInfo> sheets = ParseSheetNames(biffSource, options, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return sheets.Select(static sheet => sheet.Name).ToArray();
+        }
+
         private static LegacyXlsTabularWorkbook Open(
             Stream source,
             ExcelReadOptions options,
@@ -108,6 +139,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return new LegacyXlsTabularDataReader(
                 _workbookStream,
                 sheet.StreamOffset,
+                sheet.StreamEndOffset,
                 _sharedStrings,
                 _dateStyles,
                 _uses1904DateSystem,
@@ -194,6 +226,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 switch ((BiffRecordType)record.Type) {
                     case BiffRecordType.BoundSheet8:
+                        if (parsedSheets.Count >= options.MaxWorksheets) {
+                            throw new InvalidDataException(
+                                $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
+                        }
                         parsedSheets.Add(ReadBoundSheet(bytes, record));
                         break;
                     case BiffRecordType.Date1904:
@@ -234,21 +270,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw new InvalidDataException("The XLS workbook-globals substream is truncated before EOF.");
             }
 
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            SheetInfo[] worksheets = parsedSheets
-                .Where(static sheet => sheet.SheetType == 0)
-                .ToArray();
-            foreach (SheetInfo sheet in worksheets) {
-                if (sheet.StreamOffset < 0 || sheet.StreamOffset >= bytes.Length) {
-                    throw new InvalidDataException($"Worksheet '{sheet.Name}' has an invalid BIFF stream offset.");
-                }
-                if (!names.Add(sheet.Name)) {
-                    throw new InvalidDataException($"The workbook contains duplicate worksheet name '{sheet.Name}' under case-insensitive matching.");
-                }
-            }
-            if (worksheets.Length == 0) {
-                throw new InvalidDataException("The workbook contains no readable worksheets.");
-            }
+            SheetInfo[] worksheets = ValidateWorksheets(parsedSheets, bytes.Length);
 
             var styles = new bool[cellFormats.Count];
             for (int index = 0; index < styles.Length; index++) {
@@ -263,6 +285,119 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 ? parsedSharedStrings
                 : Array.Empty<string>();
             dateStyles = styles;
+        }
+
+        private static IReadOnlyList<SheetInfo> ParseSheetNames(
+            LegacyBiffSource bytes,
+            ExcelReadOptions options,
+            CancellationToken cancellationToken) {
+            var boundSheetRecords = new List<RecordSlice>();
+            int offset = 0;
+            int sheetDefinitionCount = 0;
+            ushort workbookVersion = 0;
+            var workbookCodePage = new BiffCodePageState();
+            bool sawBof = false;
+            bool sawEof = false;
+            while (TryReadRecord(bytes, ref offset, out RecordSlice record)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!sawBof) {
+                    if (record.Type != (ushort)BiffRecordType.Bof || record.Length < 4) {
+                        throw new InvalidDataException(
+                            "The XLS workbook stream is missing a valid workbook-globals BOF record.");
+                    }
+                    workbookVersion = bytes.ReadUInt16(record.PayloadOffset);
+                    ushort substreamType = bytes.ReadUInt16(record.PayloadOffset + 2);
+                    if ((workbookVersion != Biff5Version && workbookVersion != Biff8Version)
+                        || substreamType != 0x0005) {
+                        throw new LegacyXlsFastPathNotSupportedException(
+                            "Metadata-only sheet discovery supports BIFF5 and BIFF8 workbook streams.");
+                    }
+                    sawBof = true;
+                    continue;
+                }
+
+                switch ((BiffRecordType)record.Type) {
+                    case BiffRecordType.BoundSheet8:
+                        if (sheetDefinitionCount >= options.MaxWorksheets) {
+                            throw new InvalidDataException(
+                                $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
+                        }
+                        sheetDefinitionCount++;
+                        boundSheetRecords.Add(record);
+                        break;
+                    case BiffRecordType.CodePage:
+                        if (record.Length < 2) {
+                            workbookCodePage.ObserveMalformed(record.Offset);
+                        } else {
+                            workbookCodePage.Observe(
+                                bytes.ReadUInt16(record.PayloadOffset),
+                                record.Offset);
+                        }
+                        break;
+                    case BiffRecordType.FilePass:
+                        throw new LegacyXlsFastPathNotSupportedException(
+                            "Encrypted XLS workbooks are not supported by metadata-only sheet discovery.");
+                    case BiffRecordType.Eof:
+                        sawEof = true;
+                        offset = bytes.Length;
+                        break;
+                }
+            }
+
+            if (!sawBof || !sawEof) {
+                throw new InvalidDataException("The XLS workbook-globals substream is truncated before EOF.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            Encoding? sheetNameEncoding = workbookVersion == Biff5Version
+                ? BiffCodePageEncoding.Resolve(workbookCodePage)
+                : null;
+            var parsedSheets = new List<SheetInfo>(boundSheetRecords.Count);
+            foreach (RecordSlice record in boundSheetRecords) {
+                cancellationToken.ThrowIfCancellationRequested();
+                parsedSheets.Add(ReadBoundSheet(bytes, record, workbookVersion, sheetNameEncoding));
+            }
+            return ValidateWorksheets(parsedSheets, bytes.Length);
+        }
+
+        private static SheetInfo[] ValidateWorksheets(
+            IReadOnlyList<SheetInfo> parsedSheets,
+            int streamLength) {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var streamOffsets = new HashSet<int>();
+            var worksheets = new List<SheetInfo>();
+            foreach (SheetInfo sheet in parsedSheets.Where(static sheet => sheet.SheetType == 0)) {
+                if (sheet.StreamOffset < 0 || sheet.StreamOffset >= streamLength) {
+                    throw new InvalidDataException($"Worksheet '{sheet.Name}' has an invalid BIFF stream offset.");
+                }
+                if (!names.Add(sheet.Name)) {
+                    throw new InvalidDataException(
+                        $"The workbook contains duplicate worksheet name '{sheet.Name}' under case-insensitive matching.");
+                }
+                if (!streamOffsets.Add(sheet.StreamOffset)) {
+                    throw new InvalidDataException(
+                        $"Worksheet '{sheet.Name}' shares a BIFF stream offset with another worksheet.");
+                }
+
+                int streamEndOffset = streamLength;
+                foreach (SheetInfo candidate in parsedSheets) {
+                    if (candidate.StreamOffset > sheet.StreamOffset
+                        && candidate.StreamOffset < streamEndOffset
+                        && candidate.StreamOffset < streamLength) {
+                        streamEndOffset = candidate.StreamOffset;
+                    }
+                }
+                worksheets.Add(new SheetInfo(
+                    sheet.Name,
+                    sheet.StreamOffset,
+                    sheet.SheetType,
+                    streamEndOffset));
+            }
+            if (worksheets.Count == 0) {
+                throw new InvalidDataException("The workbook contains no readable worksheets.");
+            }
+
+            return worksheets.ToArray();
         }
 
         private static ushort ResolveEffectiveNumberFormat(IReadOnlyList<XfInfo> cellFormats, int index) {
@@ -320,18 +455,29 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return values;
         }
 
-        private static SheetInfo ReadBoundSheet(LegacyBiffSource bytes, RecordSlice record) {
-            if (record.Length < 8) throw Truncated(record, "BoundSheet8");
+        private static SheetInfo ReadBoundSheet(
+            LegacyBiffSource bytes,
+            RecordSlice record,
+            ushort workbookVersion = Biff8Version,
+            Encoding? byteStringEncoding = null) {
+            int minimumLength = workbookVersion == Biff5Version ? 7 : 8;
+            if (record.Length < minimumLength) throw Truncated(record, "BoundSheet");
             byte[] payload = CopyPayload(bytes, record);
             int nameOffset = 6;
-            string name = BiffStringReader.ReadShortUnicodeString(payload, ref nameOffset);
+            string name = workbookVersion == Biff5Version
+                ? BiffStringReader.ReadShortByteString(
+                    payload,
+                    ref nameOffset,
+                    byteStringEncoding ?? BiffCodePageEncoding.Resolve((ushort?)null))
+                : BiffStringReader.ReadShortUnicodeString(payload, ref nameOffset);
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new InvalidDataException("An XLS worksheet has an empty name.");
             }
             return new SheetInfo(
                 name,
                 checked((int)bytes.ReadUInt32(record.PayloadOffset)),
-                bytes.ReadByte(record.PayloadOffset + 5));
+                bytes.ReadByte(record.PayloadOffset + 5),
+                streamEndOffset: -1);
         }
 
         private static void ReadNumberFormat(
@@ -415,15 +561,17 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private readonly struct SheetInfo {
-            internal SheetInfo(string name, int streamOffset, byte sheetType) {
+            internal SheetInfo(string name, int streamOffset, byte sheetType, int streamEndOffset) {
                 Name = name;
                 StreamOffset = streamOffset;
                 SheetType = sheetType;
+                StreamEndOffset = streamEndOffset;
             }
 
             internal string Name { get; }
             internal int StreamOffset { get; }
             internal byte SheetType { get; }
+            internal int StreamEndOffset { get; }
         }
     }
 

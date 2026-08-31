@@ -283,7 +283,7 @@ public class CsvAutomaticMappingBenchmarks {
 public class CsvParallelScalingBenchmarks {
     private CsvTypedMaterializationFixture _fixture = null!;
 
-    [Params(16)]
+    [Params(8, 16)]
     public int DegreeOfParallelism { get; set; }
 
     [GlobalSetup]
@@ -333,10 +333,10 @@ public class CsvParallelCrossoverBenchmarks {
 public class CsvParallelOfficeTuningBenchmarks {
     private CsvTypedMaterializationFixture _fixture = null!;
 
-    [Params(1024, 2048, 3072, 3584, 4096)]
+    [Params(1024, 2048, 4096, 8192)]
     public int BatchSize { get; set; }
 
-    [Params(16)]
+    [Params(8, 16)]
     public int DegreeOfParallelism { get; set; }
 
     [GlobalSetup]

@@ -169,6 +169,22 @@ and DOC/XLS/XLSB loss policies, see the
 
 ### Stream workbook rows
 
+List worksheet names without decoding worksheet cells, shared strings, or styles:
+
+```csharp
+IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
+    "input.xlsx",
+    new ExcelReadOptions {
+        MaxWorksheets = 256,
+        MaxMetadataPartBytes = 4 * 1024 * 1024
+    });
+```
+
+`GetSheetNames` supports XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF5/BIFF8
+XLS. It returns readable worksheets in workbook order and applies
+`MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
+cancellation token before worksheet data is opened.
+
 ```csharp
 using OfficeIMO.Excel;
 
@@ -182,6 +198,21 @@ while (reader.Read()) {
     string name = reader.GetString(reader.GetOrdinal("Full Name"));
     decimal value = reader.GetDecimal(reader.GetOrdinal("Value"));
     Console.WriteLine($"{name}: {value}");
+}
+```
+
+On .NET 8 and later, `ReadAsync`, `NextResultAsync`, and `RowsAsAsync<T>` propagate
+cancellation through the native workbook reader:
+
+```csharp
+using OfficeIMO.Data;
+
+await using var reader = ExcelDocument.OpenDataReader("input.xlsx", new ExcelReadOptions {
+    SheetName = "Data"
+});
+
+await foreach (InvoiceRow row in reader.RowsAsAsync<InvoiceRow>(cancellationToken)) {
+    await ProcessAsync(row, cancellationToken);
 }
 ```
 
@@ -203,6 +234,11 @@ reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
 `DataMappingErrorValuePolicy.Redact` when typed mapping failures must omit
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
+
+`ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
+decompression with workbook metadata parsing on a spare worker. It is disabled by default,
+retains the existing package-part limits, and can be slower for small or simple workbooks.
+Enable it only after measuring a representative workbook on the target CPU.
 
 ### Choose automatic or ordered parallel reads
 
