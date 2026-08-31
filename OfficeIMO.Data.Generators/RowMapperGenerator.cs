@@ -137,12 +137,13 @@ public sealed class RowMapperGenerator : IIncrementalGenerator {
              current is not null && current.SpecialType != SpecialType.System_Object;
              current = current.BaseType) {
             foreach (IPropertySymbol property in current.GetMembers().OfType<IPropertySymbol>()) {
+                if (!propertyNames.Add(property.Name)) continue;
+
                 if (!property.IsStatic &&
                     property.DeclaredAccessibility == Accessibility.Public &&
                     property.SetMethod?.DeclaredAccessibility == Accessibility.Public &&
                     !property.SetMethod.IsInitOnly &&
-                    property.Parameters.Length == 0 &&
-                    propertyNames.Add(property.Name)) {
+                    property.Parameters.Length == 0) {
                     builder.Add(property);
                 }
             }

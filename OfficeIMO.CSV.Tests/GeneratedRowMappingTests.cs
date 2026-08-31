@@ -62,6 +62,35 @@ public sealed class GeneratedRowMappingTests {
         Assert.Equal(42, row.Id);
     }
 
+    [Fact]
+    public void GeneratedMapperDoesNotFallBackToBasePropertiesHiddenByIneligibleDerivedMembers() {
+        CsvDocument document = CsvDocument.Parse("Value,Included\n99,5\n");
+
+        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+            GeneratedReadOnlyHiddenRow row = reader
+                .RowsAs<GeneratedReadOnlyHiddenRow>(GeneratedReadOnlyHiddenRowRowMapping.Configure)
+                .Single();
+            Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
+            Assert.Equal(5, row.Included);
+        }
+
+        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+            GeneratedInitOnlyHiddenRow row = reader
+                .RowsAs<GeneratedInitOnlyHiddenRow>(GeneratedInitOnlyHiddenRowRowMapping.Configure)
+                .Single();
+            Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
+            Assert.Equal(5, row.Included);
+        }
+
+        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+            GeneratedStaticHiddenRow row = reader
+                .RowsAs<GeneratedStaticHiddenRow>(GeneratedStaticHiddenRowRowMapping.Configure)
+                .Single();
+            Assert.Equal(7, ((GeneratedHiddenBase)row).Value);
+            Assert.Equal(5, row.Included);
+        }
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public async Task GeneratedMapperProjectsAsyncReaderRowsWithoutRuntimeDiscovery() {
@@ -107,4 +136,25 @@ public class GeneratedAttributedBase {
 [GenerateRowMapper]
 public sealed class GeneratedOverrideRow : GeneratedAttributedBase {
     public override int Id { get; set; }
+}
+
+public class GeneratedHiddenBase {
+    public int Value { get; set; } = 7;
+
+    public int Included { get; set; }
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedReadOnlyHiddenRow : GeneratedHiddenBase {
+    public new int Value => 42;
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedInitOnlyHiddenRow : GeneratedHiddenBase {
+    public new int Value { get; init; } = 42;
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedStaticHiddenRow : GeneratedHiddenBase {
+    public new static int Value { get; set; } = 42;
 }
