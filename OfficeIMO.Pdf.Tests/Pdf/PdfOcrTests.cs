@@ -321,6 +321,24 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task EnrichedDocument_DoesNotRemoveOcrDecimalParagraphsAsListItems() {
+        byte[] pdf = PdfDocument.Create().Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120).ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "1037.25", 30, 140, 48, 12), At(request, "total", 84, 140, 30, 12),
+            At(request, "1.2.", 30, 170, 24, 12), At(request, "Nested", 60, 170, 42, 12)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Open(pdf).Read.OcrAsync(provider);
+
+        Assert.DoesNotContain(result.EnrichedDocument.ListItems,
+            item => item.Text.Contains("1037.25", StringComparison.Ordinal));
+        Assert.Contains(result.EnrichedDocument.Paragraphs,
+            paragraph => paragraph.Text.Contains("1037.25 total", StringComparison.Ordinal));
+        Assert.Contains(result.EnrichedDocument.ListItems,
+            item => item.Marker == "1.2" && item.Text == "Nested");
+    }
+
+    [Fact]
     public async Task EnrichedDocument_CanDisableSemanticProjectionWithoutChangingMergeEvidence() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Native anchor")).ToBytes();
         var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] { At(request, "OCR", 30, 250, 30, 12) }));

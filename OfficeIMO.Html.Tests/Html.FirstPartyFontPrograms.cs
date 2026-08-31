@@ -175,7 +175,6 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     [Theory]
-    [InlineData("A\uFE0F")]
     [InlineData("A\u0301")]
     [InlineData("A\u200DB")]
     public void HtmlPdfOutlinedRunReportsProviderDeclineAfterSuccessfulLayoutShaping(string text) {

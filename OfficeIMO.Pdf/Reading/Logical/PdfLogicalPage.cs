@@ -222,7 +222,7 @@ public sealed partial class PdfLogicalPage {
 
             var kind = IsStructuredHeadingLine(line, structured.Headings)
                 ? PdfLogicalElementKind.Heading
-                : listLines.Contains(NormalizeForKindComparison(text)) || LooksLikeListItem(text)
+                : listLines.Contains(NormalizeForKindComparison(text)) || ContentStructureExtractor.IsListItemText(text)
                 ? PdfLogicalElementKind.ListItem
                 : PdfLogicalElementKind.TextBlock;
             var block = new PdfLogicalTextBlock(pageNumber, kind, text, line.XStart, line.XEnd, line.Y, line.FontSize, line.Spans);
@@ -432,27 +432,6 @@ public sealed partial class PdfLogicalPage {
         }
 
         return builder.ToString();
-    }
-
-    private static bool LooksLikeListItem(string text) {
-        string trimmed = text.TrimStart();
-        if (trimmed.Length == 0) {
-            return false;
-        }
-
-        char marker = trimmed[0];
-        if (marker == '\u2022' || marker == '-' || marker == '*' || marker == '\u25CF') {
-            return true;
-        }
-
-        int index = 0;
-        while (index < trimmed.Length && char.IsDigit(trimmed[index])) {
-            index++;
-        }
-
-        return index > 0 &&
-            index < trimmed.Length &&
-            (trimmed[index] == '.' || trimmed[index] == ')');
     }
 
     private static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {

@@ -264,14 +264,15 @@ public partial class Word {
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
 
-        PdfWordConversionResult conversion = LoadSemanticPdf(rotated).ToWordDocumentResult(new PdfWordImportOptions());
+        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(rotated);
+        Assert.Single(logical.Pages[0].Tables);
+        PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfWordImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
 
-        Assert.Contains(conversion.Report.Warnings, warning =>
-            warning.Code == "PdfVectorGraphicsReconstructedSemantically" &&
-            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
-            warning.Details.TryGetValue("UnrepresentedVectorPrimitiveCount", out string? count) &&
-            count == "0");
+        PdfCore.PdfConversionWarning warning = Assert.Single(conversion.Report.Warnings, warning =>
+            warning.Code == "PdfVectorGraphicsReconstructedSemantically");
+        Assert.Equal("0", warning.Details["UnrepresentedVectorPrimitiveCount"]);
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, warning.Severity);
     }
 
     [Fact]

@@ -68,4 +68,22 @@ if ($unrelated.Count -ne 1 -or $unrelated[0].Workload -ne 'csv') {
     throw 'An unrelated comparison workload still depends on HtmlTinkerX discovery.'
 }
 
-Write-Host 'Library comparison runner policy verified for standalone diagnostics, HTML-to-PDF route health, and mixed comparison selection.'
+$pdfUnderstanding = @(
+    & $runner -Workload pdfunderstanding -RunMode quick -PlanOnly
+)
+$pdfLogicalStructure = @(
+    & $runner -Workload pdflogicalstructure -RunMode quick -PlanOnly
+)
+if ($pdfUnderstanding.Count -ne 1 -or
+    $pdfLogicalStructure.Count -ne 1 -or
+    $pdfUnderstanding[0].ComparisonId -eq $pdfLogicalStructure[0].ComparisonId -or
+    $pdfUnderstanding[0].Filter -ne '*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*' -or
+    $pdfLogicalStructure[0].Filter -ne '*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*' -or
+    $pdfUnderstanding[0].ExpectedCaseCount -ne 3 -or
+    $pdfLogicalStructure[0].ExpectedCaseCount -ne 3 -or
+    $pdfUnderstanding[0].CatalogEligible -or
+    $pdfLogicalStructure[0].CatalogEligible) {
+    throw 'The PDF understanding and logical structure contracts are not isolated benchmark lanes.'
+}
+
+Write-Host 'Library comparison runner policy verified for standalone diagnostics, separated PDF structure contracts, HTML-to-PDF route health, and mixed comparison selection.'

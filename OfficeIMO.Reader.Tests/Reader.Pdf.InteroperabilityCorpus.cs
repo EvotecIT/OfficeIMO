@@ -89,7 +89,17 @@ public sealed class ReaderPdfInteroperabilityCorpusTests {
             new ReaderOptions { ComputeHashes = true, MaxChars = 8_000, MaxInputBytes = new FileInfo(path).Length });
 
         Assert.Equal(expectedPages, result.Pages.Count);
-        Assert.True(result.Tables.Count >= minimumTables);
+        Assert.True(
+            result.Tables.Count >= minimumTables,
+            $"{fileName} reconstructed {result.Tables.Count} tables; expected at least {minimumTables}.");
+        if (fileName == "microsoft-word-windows-word-business-delivery-summary.pdf") {
+            Assert.Equal(11, result.Tables.Count(table =>
+                table.Columns.Count >= 2 &&
+                NormalizeTableLabel(table.Columns[0]) == "deliveryworksheet" &&
+                NormalizeTableLabel(table.Columns[1]) == "response"));
+            Assert.Contains(result.Tables, table =>
+                table.Columns.Select(NormalizeTableLabel).SequenceEqual(new[] { "role", "name", "decision", "date", "notes" }));
+        }
         Assert.True(result.Assets.Count >= minimumAssets);
         Assert.Equal(result.Assets.Count, result.Visuals.Count);
         Assert.All(result.Tables, table => {
@@ -106,6 +116,9 @@ public sealed class ReaderPdfInteroperabilityCorpusTests {
             Assert.InRange(asset.Location.Page ?? 0, 1, expectedPages);
         });
     }
+
+    private static string NormalizeTableLabel(string value) =>
+        new string(value.Where(static character => !char.IsWhiteSpace(character)).ToArray()).ToLowerInvariant();
 
     [Fact]
     public void ReaderPdf_RejectsCorpusInputBeyondBudgetAndHonorsPreCancellation() {

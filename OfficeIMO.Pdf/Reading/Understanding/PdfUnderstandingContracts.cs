@@ -50,6 +50,7 @@ public sealed class PdfUnderstandingPageContext {
     public int MaxTextCharactersPerPage { get; }
     /// <summary>Maximum word artifacts accepted for this page.</summary>
     public int MaxWordsPerPage { get; }
+    internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
 }
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>
