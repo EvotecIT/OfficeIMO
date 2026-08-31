@@ -189,18 +189,25 @@ internal static partial class DocBookReaderAdapter {
             }
             if (node.Kind == "list-item" && listMarker != null && !listMarker.Applied &&
                 BeginsWithNestedList(node)) {
-                yield return new ReaderChunk {
-                    Id = "docbook-" + currentSource,
-                    Kind = ReaderInputKind.DocBook,
-                    Text = string.Empty,
-                    Markdown = listMarker.TakePrefix().TrimEnd(),
-                    Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
-                        HeadingPath = node.Location.HeadingPath,
-                        SourceBlockKind = admonitionContext ?? "list-item",
-                        BlockAnchor = "docbook-node-" + currentSource },
-                    Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" },
-                    Warnings = TakeWarnings()
-                };
+                IReadOnlyList<ProjectionPart> markerParts = SplitProjection(
+                    string.Empty, listMarker.TakePrefix().TrimEnd(), string.Empty, false, reader.MaxChars);
+                for (int part = 0; part < markerParts.Count; part++) {
+                    yield return new ReaderChunk {
+                        Id = markerParts.Count == 1
+                            ? "docbook-" + currentSource
+                            : "docbook-" + currentSource + "-part-" + (part + 1),
+                        Kind = ReaderInputKind.DocBook,
+                        Text = markerParts[part].Text,
+                        Markdown = markerParts[part].Markdown,
+                        ContinuesPreviousChunk = part > 0,
+                        Location = new ReaderLocation { Path = sourceName, BlockIndex = emittedIndex++, SourceBlockIndex = currentSource,
+                            HeadingPath = node.Location.HeadingPath,
+                            SourceBlockKind = admonitionContext ?? "list-item",
+                            BlockAnchor = "docbook-node-" + currentSource },
+                        Diagnostics = new ReaderChunkDiagnostics { SourceKind = "docbook" },
+                        Warnings = TakeWarnings()
+                    };
+                }
             }
             if (!ownsInlineText) {
                 OfficeDocumentModelNode? childSuppressedTitle = structuralTitle ?? suppressedTitle;

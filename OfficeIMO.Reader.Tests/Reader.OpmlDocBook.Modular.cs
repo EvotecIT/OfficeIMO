@@ -176,6 +176,28 @@ public sealed class ReaderOpmlDocBookModularTests {
     }
 
     [Fact]
+    public void DocBookAdapterBoundsDeepLeadingListMarkers() {
+        const string start = "9223372036854775807";
+        var source = new StringBuilder("<article xmlns=\"http://docbook.org/ns/docbook\" version=\"5.2\">");
+        for (int depth = 0; depth < 14; depth++) {
+            source.Append("<orderedlist startingnumber=\"").Append(start).Append("\"><listitem>");
+        }
+        source.Append("<para>Nested</para>");
+        for (int depth = 0; depth < 14; depth++) source.Append("</listitem></orderedlist>");
+        source.Append("</article>");
+
+        ReaderChunk[] chunks = DocBookReaderAdapter.Read(
+            DocBookDocument.Parse(source.ToString()), readerOptions: new ReaderOptions { MaxChars = 256 }).ToArray();
+
+        Assert.All(chunks, chunk => Assert.True(chunk.Markdown.Length <= 256));
+        var splitMarker = Assert.Single(chunks.GroupBy(chunk => chunk.Location.SourceBlockIndex), group =>
+            group.Count() > 1 && group.All(chunk => chunk.Text.Length == 0) &&
+            group.Skip(1).All(chunk => chunk.ContinuesPreviousChunk));
+        Assert.Equal(new string(' ', 12 * (start.Length + 2)) + start + ".",
+            string.Concat(splitMarker.Select(chunk => chunk.Markdown)));
+    }
+
+    [Fact]
     public void DocBookAdapterRendersInlineLinkAndCrossReferenceTargets() {
         const string source = "<article xmlns=\"http://docbook.org/ns/docbook\" xmlns:xl=\"http://www.w3.org/1999/xlink\" version=\"5.2\"><para>See <link xl:href=\"https://example.test/a_(b)\">site</link> and <xref linkend=\"target\"/>.</para></article>";
 
