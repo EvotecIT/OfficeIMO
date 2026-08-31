@@ -47,19 +47,61 @@ internal static partial class DocumentReaderEngine {
 
     internal static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return options.MaxInputBytes ?? ResolveHandlerDefaultMaxInputBytes(sourceName);
+        if (options.DetectionMode == ReaderDetectionMode.PreferContent) return options.MaxInputBytes;
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            !handler.SupportsPathInput) return options.MaxInputBytes;
+        long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
+        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
     }
 
     internal static long? ResolveStreamMaxInputBytes(string? sourceName, ReaderOptions options, bool streamCanSeek) {
-        if (options.MaxInputBytes.HasValue) return options.MaxInputBytes;
-        if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
-            handler.SupportsStreamInput) return handler.DefaultMaxInputBytes;
-        return streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
+        if (options.DetectionMode == ReaderDetectionMode.PreferContent) {
+            return options.MaxInputBytes ?? (streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes);
+        }
+        long? configured;
+        if (options.MaxInputBytes.HasValue) configured = options.MaxInputBytes;
+        else if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
+            handler.SupportsStreamInput) configured = handler.ResolveDefaultMaxInputBytes(sourceName);
+        else configured = streamCanSeek ? null : DefaultUnidentifiedStreamMaxInputBytes;
+        return CombineHandlerInputCeiling(sourceName, configured, requireStreamInput: true);
     }
+
+    private static long? CombineHandlerInputCeiling(string? sourceName, long? configured, bool requireStreamInput) {
+        if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
+            (!requireStreamInput || handler.SupportsStreamInput) && handler.MaxInputBytesCeiling.HasValue) {
+            return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
+        }
+        return configured;
+    }
+
+    internal static ReaderInputLimitProbe? ResolveStreamInputLimitProbe(string? sourceName, ReaderOptions options) {
+        if (options.DetectionMode == ReaderDetectionMode.PreferContent) return null;
+        if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) ||
+            !handler.SupportsStreamInput) return null;
+        return ResolveSelectedHandlerInputLimitProbe(handler);
+    }
+
+    internal static ReaderInputLimitProbe? ResolveSelectedHandlerInputLimitProbe(ReaderHandlerDescriptor handler) =>
+        handler.ResolveMaxInputBytesFromPrefix == null
+            ? null
+            : new ReaderInputLimitProbe(handler.InputLimitProbeBytes, handler.ResolveMaxInputBytesFromPrefix);
+
+    internal static long? ResolveSelectedHandlerMaxInputBytes(
+        ReaderHandlerDescriptor handler,
+        string? sourceName,
+        ReaderOptions options) {
+        long? configured = options.MaxInputBytes ?? handler.ResolveDefaultMaxInputBytes(sourceName);
+        return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
+    }
+
+    private static long? CombineMaxInputBytes(long? configured, long? ceiling) =>
+        configured.HasValue && ceiling.HasValue
+            ? Math.Min(configured.Value, ceiling.Value)
+            : configured ?? ceiling;
 
     internal static long? ResolveHandlerDefaultMaxInputBytes(string? sourceName) {
         return TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)
-            ? handler.DefaultMaxInputBytes
+            ? handler.ResolveDefaultMaxInputBytes(sourceName)
             : null;
     }
 
@@ -136,4 +178,14 @@ internal static partial class DocumentReaderEngine {
             throw;
         }
     }
+}
+
+internal sealed class ReaderInputLimitProbe {
+    internal ReaderInputLimitProbe(int prefixLength, Func<ReadOnlyMemory<byte>, long?> resolveMaxInputBytes) {
+        PrefixLength = prefixLength;
+        ResolveMaxInputBytes = resolveMaxInputBytes;
+    }
+
+    internal int PrefixLength { get; }
+    internal Func<ReadOnlyMemory<byte>, long?> ResolveMaxInputBytes { get; }
 }

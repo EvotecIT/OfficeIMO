@@ -5,8 +5,10 @@ using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Reader.PowerPoint;
+using OfficeIMO.Reader.Excel;
 using OfficeIMO.Word;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -92,6 +94,12 @@ public sealed partial class ReaderRegistryTests {
         Assert.Equal(
             ExcelFormatCatalog.All.Select(format => format.Extension).OrderBy(extension => extension, StringComparer.Ordinal).ToArray(),
             excel.Extensions);
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes, word.DefaultMaxInputBytes);
+        Assert.DoesNotContain(".doc", word.DefaultMaxInputBytesByExtension.Keys);
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.docx"));
+        Assert.Equal(WordLoadOptions.DefaultMaxInputBytes,
+            OfficeIMO.Reader.Tests.ReaderTestReaders.All.GetHandlerDefaultMaxInputBytes("document.doc"));
     }
 
     [Fact]
@@ -128,6 +136,7 @@ public sealed partial class ReaderRegistryTests {
         Assert.Contains("\"origin\":\"OfficeIMO\"", first, StringComparison.Ordinal);
         Assert.DoesNotContain("isBuiltIn", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsDocumentPath\":", first, StringComparison.Ordinal);
+        Assert.Contains("\"defaultMaxInputBytesByExtension\":", first, StringComparison.Ordinal);
         Assert.Contains("\"supportsAsyncStream\":", first, StringComparison.Ordinal);
     }
 
@@ -175,5 +184,293 @@ public sealed partial class ReaderRegistryTests {
 
         Assert.Contains(manifest.Handlers, capability => capability.Id == handlerId && capability.SupportsStream && capability.Origin == ReaderHandlerOrigin.Custom);
         Assert.Contains(handlerId, reader.GetCapabilityManifestJson(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDocumentReader_InputLimitProbeRequiresACompleteBoundedRegistration() {
+        var missingResolver = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-length-only",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            InputLimitProbeBytes = 8
+        };
+        var missingLength = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-resolver-only",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            ResolveMaxInputBytesFromPrefix = prefix => 1024
+        };
+        var oversized = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.probe-oversized",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            InputLimitProbeBytes = (64 * 1024) + 1,
+            ResolveMaxInputBytesFromPrefix = prefix => 1024
+        };
+        var invalidCeiling = new ReaderHandlerRegistration {
+            Id = "officeimo.tests.invalid-ceiling",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".probeix" },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>(),
+            MaxInputBytesCeiling = 0
+        };
+
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingResolver));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(missingLength));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(oversized));
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(invalidCeiling));
+    }
+
+    [Fact]
+    public void PreferContentKeepsValidatedMultiplanOnLegacySpreadsheetHandler() {
+        byte[] source = new byte[] { 0x08, 0xE7 }
+            .Concat(Encoding.ASCII.GetBytes("# Heading\tValue\nA\t1\n"))
+            .ToArray();
+        using var stream = new MemoryStream(source, writable: false);
+
+        OfficeDocumentReadResult result = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(
+            stream,
+            "archive.mp",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Contains(OfficeDocumentReaderBuilderExcelExtensions.LegacyHandlerId, result.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public async Task PreferContentEnforcesResolvedHandlerCeilingBeforeEveryDispatch() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.extension-unbounded",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".wrong" },
+                ReadPath = (path, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.detected-bounded",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".boundedpdf" },
+                MaxInputBytesCeiling = 8,
+                ReadPath = (path, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, options, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.Read(stream, "sample.wrong", options).ToArray());
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.ReadDocument(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.wrong", options));
+            }
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        Assert.Equal(0, dispatchCount);
+
+        int permissiveDispatchCount = 0;
+        OfficeDocumentReader permissiveReader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.extension-bounded",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".wrong" },
+                MaxInputBytesCeiling = 8,
+                ReadPath = (path, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>(),
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>()
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.detected-permissive",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".permissivepdf" },
+                MaxInputBytesCeiling = 1_024,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    permissiveDispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
+                    permissiveDispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Empty(permissiveReader.Read(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                _ = permissiveReader.ReadDocument(stream, "sample.wrong", options);
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Empty(await permissiveReader.ReadAsync(stream, "sample.wrong", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                _ = await permissiveReader.ReadDocumentAsync(stream, "sample.wrong", options);
+            }
+        }
+
+        string permissivePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(permissivePath, source);
+            Assert.Empty(permissiveReader.Read(permissivePath, options));
+            _ = permissiveReader.ReadDocument(permissivePath, options);
+            Assert.Empty(await permissiveReader.ReadAsync(permissivePath, options));
+            _ = await permissiveReader.ReadDocumentAsync(permissivePath, options);
+        } finally {
+            if (File.Exists(permissivePath)) File.Delete(permissivePath);
+        }
+
+        Assert.Equal(12, permissiveDispatchCount);
+    }
+
+    [Fact]
+    public async Task PreferContentAppliesSelectedHandlerPrefixLimitBeforeEveryDispatch() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.prefix-bounded",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".probedpdf" },
+                DefaultMaxInputBytes = 1_024,
+                InputLimitProbeBytes = 8,
+                ResolveMaxInputBytesFromPrefix = prefix => 8,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                },
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+
+        foreach (bool nonSeekable in new[] { false, true }) {
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.Read(stream, "sample.probedpdf", options).ToArray());
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                Assert.Throws<IOException>(() => reader.ReadDocument(stream, "sample.probedpdf", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(stream, "sample.probedpdf", options));
+            }
+            using (Stream stream = nonSeekable
+                       ? new NonSeekableReadStream(source)
+                       : new MemoryStream(source, writable: false)) {
+                await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(stream, "sample.probedpdf", options));
+            }
+        }
+
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".probedpdf");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Throws<IOException>(() => reader.Read(path, options).ToArray());
+            Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadAsync(path, options));
+            await Assert.ThrowsAsync<IOException>(() => reader.ReadDocumentAsync(path, options));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        Assert.Equal(0, dispatchCount);
+    }
+
+    [Fact]
+    public async Task PathDispatchIgnoresLimitsFromStreamOnlyExtensionOwners() {
+        byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.stream-only-extension-owner",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".wrong" },
+                DefaultMaxInputBytes = 8,
+                MaxInputBytesCeiling = 8,
+                ReadStream = (stream, sourceName, readerOptions, cancellationToken) => Array.Empty<ReaderChunk>()
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.path-kind-fallback",
+                Kind = ReaderInputKind.Pdf,
+                Extensions = new[] { ".pathpdf" },
+                DefaultMaxInputBytes = 1_024,
+                MaxInputBytesCeiling = 1_024,
+                ReadPath = (path, readerOptions, cancellationToken) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            })
+            .Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.ContentWhenUnknown };
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
+        try {
+            File.WriteAllBytes(path, source);
+            Assert.Empty(reader.Read(path, options));
+            _ = reader.ReadDocument(path, options);
+            Assert.Empty(await reader.ReadAsync(path, options));
+            _ = await reader.ReadDocumentAsync(path, options);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+
+        Assert.Equal(4, dispatchCount);
     }
 }
