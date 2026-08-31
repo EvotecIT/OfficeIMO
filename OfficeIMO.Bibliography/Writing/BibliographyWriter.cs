@@ -246,7 +246,9 @@ internal static class BibliographyConversionInspector {
                  date.Day.HasValue && !date.Month.HasValue ||
                  !date.EndYear.HasValue && (date.EndMonth.HasValue || date.EndDay.HasValue) ||
                  date.EndDay.HasValue && !date.EndMonth.HasValue);
-            if (cslOmitsNumericParts || format != BibliographyFormat.CslJson && ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue))
+            bool cslHasOutOfRangeParts = format == BibliographyFormat.CslJson &&
+                (date.Month is < 1 or > 12 || date.Day is < 1 or > 31 || date.EndMonth is < 1 or > 12 || date.EndDay is < 1 or > 31);
+            if (cslOmitsNumericParts || cslHasOutOfRangeParts || format != BibliographyFormat.CslJson && ((!classicBibMonthOnly && !IsValidDate(date.Year, date.Month, date.Day)) || !IsValidDate(date.EndYear, date.EndMonth, date.EndDay) || date.EndYear.HasValue && !date.Year.HasValue))
                 Loss(report, item, "dates." + date.Role, "BIBCONV218", "A date contains an invalid or incomplete numeric component sequence.", BibliographyConversionAction.Approximated);
             if (date.EndYear.HasValue && !CanRoundTripDateRange(format, date.Role))
                 Loss(report, item, "dates." + date.Role + ".end", "BIBCONV219", $"Date ranges are not represented exactly in {format}.", BibliographyConversionAction.Approximated);

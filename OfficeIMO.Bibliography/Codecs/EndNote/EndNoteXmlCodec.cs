@@ -117,7 +117,7 @@ internal static class EndNoteXmlCodec {
                 WriteContributors(writer, item, recordNamespace, cancellationToken); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
                 WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace, cancellationToken);
-                foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteIdentifier(writer, identifier, recordNamespace);
+                foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteIdentifier(writer, identifier, recordNamespace, cancellationToken);
                 bool hasAdditionalUrls = Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace));
                 bool wroteUrls = false;
                 if (!hasAdditionalUrls) {
@@ -315,14 +315,14 @@ internal static class EndNoteXmlCodec {
         writer.WriteEndElement(); writer.WriteEndElement();
     }
 
-    private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier, string xmlNamespace) {
+    private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier, string xmlNamespace, CancellationToken cancellationToken) {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) {
             writer.WriteStartElement(null, "isbn", xmlNamespace);
-            if (!string.Equals(CodecMappings.InferSerialScheme(identifier.Value), identifier.Scheme, StringComparison.Ordinal)) writer.WriteAttributeString("type", identifier.Scheme);
-            writer.WriteString(identifier.Value); writer.WriteEndElement();
+            if (!string.Equals(CodecMappings.InferSerialScheme(identifier.Value), identifier.Scheme, StringComparison.Ordinal)) writer.WriteAttributeString("type", SanitizeXml(identifier.Scheme, cancellationToken));
+            writer.WriteString(SanitizeXml(identifier.Value, cancellationToken)); writer.WriteEndElement();
         }
-        else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value, xmlNamespace);
-        else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value, xmlNamespace);
+        else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value, xmlNamespace, cancellationToken);
+        else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value, xmlNamespace, cancellationToken);
     }
 
     private static bool TryWriteElement(XmlWriter writer, string xml, CancellationToken cancellationToken = default) {
@@ -448,14 +448,17 @@ internal static class EndNoteXmlCodec {
                     if (!namespacePrefixes.Add(declaredPrefix)) return false;
                 } else if (!names.Add(attribute.Name)) return false;
             }
-            foreach (XAttribute attribute in attributes.Where(static attribute => attribute.IsNamespaceDeclaration)) {
-                if (attribute.Name.LocalName == "xmlns") continue;
-                if (string.Equals(writer.LookupPrefix(attribute.Value), attribute.Name.LocalName, StringComparison.Ordinal)) continue;
-                writer.WriteAttributeString("xmlns", attribute.Name.LocalName, "http://www.w3.org/2000/xmlns/", attribute.Value);
-            }
-            foreach (XAttribute attribute in attributes.Where(static attribute => !attribute.IsNamespaceDeclaration)) {
-                string? prefix = attribute.Name.Namespace == XNamespace.None ? null : carrier.GetPrefixOfNamespace(attribute.Name.Namespace);
-                writer.WriteAttributeString(prefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
+            foreach (XAttribute attribute in attributes) {
+                if (attribute.IsNamespaceDeclaration) {
+                    string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
+                    string? elementPrefix = carrier.GetPrefixOfNamespace(carrier.Name.Namespace);
+                    if (string.Equals(attribute.Value, carrier.Name.NamespaceName, StringComparison.Ordinal) &&
+                        string.Equals(declaredPrefix, elementPrefix ?? string.Empty, StringComparison.Ordinal)) continue;
+                    writer.WriteAttributeString("xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value);
+                } else {
+                    string? prefix = attribute.Name.Namespace == XNamespace.None ? null : carrier.GetPrefixOfNamespace(attribute.Name.Namespace);
+                    writer.WriteAttributeString(prefix, attribute.Name.LocalName, attribute.Name.NamespaceName, attribute.Value);
+                }
             }
             return true;
         } catch (Exception exception) when (exception is XmlException || exception is InvalidOperationException || exception is ArgumentException) {
@@ -618,7 +621,7 @@ internal static class EndNoteXmlCodec {
         if (string.Equals(element.Parent?.Name.LocalName, "record", StringComparison.OrdinalIgnoreCase) && HasUnsupportedNestedContent(element, cancellationToken)) return true;
         return !IsKnownContainer(element.Name.LocalName);
     }
-    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value)); }
+    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace, CancellationToken cancellationToken = default) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value, cancellationToken)); }
     internal static string SanitizeXml(string value, CancellationToken cancellationToken = default) {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {

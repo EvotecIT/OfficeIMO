@@ -90,7 +90,12 @@ internal static class BibliographyEncoding {
         }
         if (valueEnd <= quote || valueEnd >= declarationEnd) return fallback;
         cancellationToken.ThrowIfCancellationRequested();
-        return ResolveEncodingName(source.Substring(quote, valueEnd - quote), fallback);
+        string encodingName = source.Substring(quote, valueEnd - quote);
+        try {
+            return ResolveEncodingName(encodingName, fallback, allowFallback: false);
+        } catch (ArgumentException exception) {
+            throw new InvalidDataException($"The XML declaration names unsupported encoding '{encodingName}'.", exception);
+        }
     }
 
     internal static string DecodeBounded(byte[] bytes, Encoding encoding, int maximumCharacters, CancellationToken cancellationToken) {
@@ -246,11 +251,11 @@ internal static class BibliographyEncoding {
 
     private static bool IsAsciiXmlWhitespace(byte value) => value == (byte)' ' || value == (byte)'\t' || value == (byte)'\r' || value == (byte)'\n';
 
-    private static Encoding ResolveEncodingName(string name, Encoding fallback) {
+    private static Encoding ResolveEncodingName(string name, Encoding fallback, bool allowFallback = true) {
         try {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             return Encoding.GetEncoding(name, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-        } catch (ArgumentException) {
+        } catch (ArgumentException) when (allowFallback) {
             return fallback;
         }
     }
