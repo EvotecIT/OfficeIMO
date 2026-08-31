@@ -451,8 +451,10 @@ internal static class IWorkPagesReader {
         double bottom = document.GetFloat(35) ?? 0;
         double header = document.GetFloat(36) ?? 0;
         double footer = document.GetFloat(37) ?? 0;
-        if (fields.Any(field => document.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
+        if (fields.Any(field => document.FieldCount(field) > 1
+                || document.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
                 || document.HasField(field) && !document.GetFloat(field).HasValue)
+            || document.FieldCount(42) > 1
             || document.HasUnexpectedWireKind(42, IWorkWireKind.Varint)
             || width <= 0 || height <= 0 || new[] { width, height, left, right, top, bottom, header, footer }
                 .Any(value => double.IsNaN(value) || double.IsInfinity(value) || value < 0)) {

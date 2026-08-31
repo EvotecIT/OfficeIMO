@@ -540,6 +540,7 @@ internal static class IWorkKeynoteReader {
         double width = declaredSize.GetFloat(1) ?? 0;
         double height = declaredSize.GetFloat(2) ?? 0;
         if (!declaredSize.HasField(1) || !declaredSize.HasField(2)
+            || declaredSize.FieldCount(1) > 1 || declaredSize.FieldCount(2) > 1
             || declaredSize.HasUnexpectedWireKind(1, IWorkWireKind.Fixed32)
             || declaredSize.HasUnexpectedWireKind(2, IWorkWireKind.Fixed32)
             || !declaredSize.GetFloat(1).HasValue || !declaredSize.GetFloat(2).HasValue

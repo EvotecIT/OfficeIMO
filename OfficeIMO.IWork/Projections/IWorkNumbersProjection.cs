@@ -864,9 +864,10 @@ internal static class IWorkNumbersReader {
         : null;
 
     private static bool HasInvalidDeclaredDimension(IWorkWireMessage message, int field,
-        double? value) => message.HasField(field)
-        && !message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed64)
-        && (!value.HasValue || !IsFinite(value.Value) || value.Value <= 0);
+        double? value) => message.FieldCount(field) > 1
+        || message.HasField(field)
+            && (message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed64)
+                || !value.HasValue || !IsFinite(value.Value) || value.Value <= 0);
 
     private static int CheckedDimension(ulong? value, int maximum, string label, IWorkArchiveRecord record) {
         ulong resolved = value ?? 0;

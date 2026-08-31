@@ -82,11 +82,16 @@ public partial class ExcelDocument {
                                 _ => cell.Value
                             };
                             ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
-                            bool hasNativeError = cell.Kind == IWorkCellKind.Error
+                            bool hasErrorValue = cell.Kind == IWorkCellKind.Error
                                 || cell.Kind == IWorkCellKind.Formula
                                     && cell.ValueKind == IWorkCellKind.Error;
-                            if (hasNativeError) {
-                                sheet.CellError(cell.Row, cell.Column, ExcelErrorLiteral(cell));
+                            if (hasErrorValue) {
+                                string errorText = ErrorText(cell);
+                                if (IsNativeExcelError(errorText)) {
+                                    sheet.CellError(cell.Row, cell.Column, errorText);
+                                } else {
+                                    targetCell.SetValue(errorText);
+                                }
                             } else if (cell.Kind != IWorkCellKind.Formula || cell.Value != null) {
                                 targetCell.SetValue(value);
                             }
@@ -131,16 +136,13 @@ public partial class ExcelDocument {
         }
     }
 
-    private static string ExcelErrorLiteral(IWorkTableCell cell) {
-        string value = cell.Kind == IWorkCellKind.Formula
+    private static string ErrorText(IWorkTableCell cell) => cell.Kind == IWorkCellKind.Formula
             ? cell.CachedDisplayText
             : cell.DisplayText;
-        return value switch {
+
+    private static bool IsNativeExcelError(string value) => value is
             "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"
-                or "#NUM!" or "#N/A" or "#GETTING_DATA" => value,
-            _ => "#VALUE!"
-        };
-    }
+                or "#NUM!" or "#N/A" or "#GETTING_DATA";
 
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

@@ -254,7 +254,8 @@ internal static class IWorkDrawingReader {
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool InvalidFloat(IWorkWireMessage message, int field) =>
-        message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
+        message.FieldCount(field) > 1
+        || message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
         || message.HasField(field) && !message.GetFloat(field).HasValue;
 
     private sealed class DataEntry {

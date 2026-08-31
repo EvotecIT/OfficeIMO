@@ -307,7 +307,8 @@ internal static class IWorkTextReader {
         OverlayFlag(message, 11, value => data.Underline = value, ref complete);
         OverlayFlag(message, 12, value => data.Strikethrough = value, ref complete);
         float? size = message.GetFloat(3);
-        if (message.HasUnexpectedWireKind(3, IWorkWireKind.Fixed32)) complete = false;
+        if (message.FieldCount(3) > 1
+            || message.HasUnexpectedWireKind(3, IWorkWireKind.Fixed32)) complete = false;
         else if (size.HasValue && IsFinitePositive(size.Value)) data.FontSizePoints = size.Value;
         else if (message.HasField(3)) complete = false;
         ulong? clearFont = ReadUnsigned(message, 4, ref complete);
@@ -476,7 +477,8 @@ internal static class IWorkTextReader {
         float blue = white ?? message.GetFloat(5) ?? 0;
         float alpha = message.GetFloat(6) ?? 1;
         if (new[] { 3, 4, 5, 6, 11 }.Any(component =>
-                message.HasUnexpectedWireKind(component, IWorkWireKind.Fixed32)
+                message.FieldCount(component) > 1
+                || message.HasUnexpectedWireKind(component, IWorkWireKind.Fixed32)
                 || message.HasField(component) && !message.GetFloat(component).HasValue)
             || !new[] { red, green, blue, alpha }.All(IsNormalizedColorComponent)) {
             complete = false;
@@ -489,7 +491,8 @@ internal static class IWorkTextReader {
     private static void OverlayFinite(IWorkWireMessage message, int field, Action<double> apply,
         ref bool complete) {
         float? value = message.GetFloat(field);
-        if (message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)) complete = false;
+        if (message.FieldCount(field) > 1
+            || message.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)) complete = false;
         else if (value.HasValue && IsFinite(value.Value)) apply(value.Value);
         else if (message.HasField(field)) complete = false;
     }

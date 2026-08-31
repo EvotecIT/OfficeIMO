@@ -68,6 +68,7 @@ public partial class WordDocument {
                 (double contentWidth, double contentHeight) = ContentBox(document.Sections[0]);
                 var semanticSections = new List<WordSection> { document.Sections[0] };
                 var pageHosts = new Dictionary<int, WordParagraph>();
+                var pageTableAnchors = new Dictionary<int, WordTable>();
                 int currentPageIndex = 1;
                 AddRichText(projection.Body, value => {
                         WordParagraph paragraph = document.AddParagraph(value);
@@ -107,7 +108,16 @@ public partial class WordDocument {
                             AddImage(document, sourceDrawable.Image!, contentWidth, contentHeight, pageHost).ZOrder = zOrder;
                             break;
                         case IWorkPagesDrawableKind.Table:
-                            AddTable(document, sourceDrawable.Table!, pageHost);
+                            WordTable? priorTable = sourceDrawable.PageIndex.HasValue
+                                && pageTableAnchors.TryGetValue(sourceDrawable.PageIndex.Value,
+                                    out WordTable? anchor)
+                                    ? anchor
+                                    : null;
+                            WordTable? insertedTable = AddTable(document,
+                                sourceDrawable.Table!, pageHost, priorTable);
+                            if (sourceDrawable.PageIndex.HasValue && insertedTable != null) {
+                                pageTableAnchors[sourceDrawable.PageIndex.Value] = insertedTable;
+                            }
                             break;
                     }
                 }
@@ -236,9 +246,9 @@ public partial class WordDocument {
         }
     }
 
-    private static void AddTable(WordDocument document, IWorkTable source,
-        WordParagraph? pageHost = null) {
-        if (source.RowCount == 0 || source.ColumnCount == 0) return;
+    private static WordTable? AddTable(WordDocument document, IWorkTable source,
+        WordParagraph? pageHost = null, WordTable? tableHost = null) {
+        if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         WordTable table = pageHost == null
             ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
             : document.CreateTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
@@ -267,7 +277,9 @@ public partial class WordDocument {
         for (int row = 0; row < Math.Min(source.HeaderRowCount, table.Rows.Count); row++) {
             table.Rows[row].RepeatHeaderRowAtTheTopOfEachPage = true;
         }
-        if (pageHost != null) document.InsertTableAfter(pageHost, table);
+        if (tableHost != null) tableHost._table.InsertAfterSelf(table._table);
+        else if (pageHost != null) document.InsertTableAfter(pageHost, table);
+        return table;
     }
 
     private static WordTextBox AddRichTextBox(WordDocument document, IWorkTextBox source,

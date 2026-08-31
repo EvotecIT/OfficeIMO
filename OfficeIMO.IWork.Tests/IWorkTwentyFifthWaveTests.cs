@@ -58,11 +58,15 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = ExcelDocument.LoadNumbersWithReport(package);
         ExcelSheet sheet = Assert.Single(result.Document.Sheets);
+        IWorkTableCell sourceCell = Assert.Single(Assert.Single(
+            Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.False(result.IsVisualFallback);
+        Assert.Equal(IWorkCellKind.Error, cachedFormula ? sourceCell.ValueKind : sourceCell.Kind);
+        Assert.Equal("#ERROR", cachedFormula ? sourceCell.CachedDisplayText : sourceCell.DisplayText);
         Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? snapshot));
-        Assert.Equal(ExcelCellValueKind.Error, snapshot!.Kind);
-        Assert.Equal("#VALUE!", snapshot.RawValue);
+        Assert.Equal(ExcelCellValueKind.Text, snapshot!.Kind);
+        Assert.Equal("#ERROR", snapshot.Text);
 
         using var saved = new MemoryStream();
         result.Document.Save(saved);
@@ -70,7 +74,8 @@ public sealed partial class IWorkBoundaryTests {
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.True(Assert.Single(reopened.Sheets).TryGetCellValueSnapshot(
             1, 1, out ExcelCellValueSnapshot? persisted));
-        Assert.Equal(ExcelCellValueKind.Error, persisted!.Kind);
+        Assert.Equal(ExcelCellValueKind.Text, persisted!.Kind);
+        Assert.Equal("#ERROR", persisted.Text);
     }
 
     [Fact]
