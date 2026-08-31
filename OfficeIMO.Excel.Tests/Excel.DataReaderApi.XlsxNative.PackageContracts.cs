@@ -175,6 +175,65 @@ public partial class Excel {
         }
     }
 
+    [Fact]
+    public void XlsxNativePackage_PreservesPercentEncodedWorksheetPartNames() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            const string originalEntryName = "xl/worksheets/sheet1.xml";
+            const string encodedEntryName = "xl/worksheets/sheet%201.xml";
+            byte[] worksheet = ReadZipEntry(path, originalEntryName);
+            using (ZipArchive archive = ZipFile.Open(path, ZipArchiveMode.Update)) {
+                archive.GetEntry(originalEntryName)!.Delete();
+                ZipArchiveEntry replacement = archive.CreateEntry(
+                    encodedEntryName,
+                    CompressionLevel.Optimal);
+                using Stream output = replacement.Open();
+                output.Write(worksheet, 0, worksheet.Length);
+            }
+
+            const string relationshipsEntry = "xl/_rels/workbook.xml.rels";
+            XDocument relationships = LoadZipXml(path, relationshipsEntry);
+            XNamespace packageRelationships = PackageRelationshipsNamespace;
+            XElement worksheetRelationship = relationships.Root!
+                .Elements(packageRelationships + "Relationship")
+                .Single(element => ((string?)element.Attribute("Type"))?.EndsWith(
+                    "/worksheet",
+                    StringComparison.Ordinal) == true);
+            worksheetRelationship.SetAttributeValue("Target", "worksheets/sheet%201.xml");
+            ReplaceZipXml(path, relationshipsEntry, relationships);
+
+            const string contentTypesEntry = "[Content_Types].xml";
+            XDocument contentTypes = LoadZipXml(path, contentTypesEntry);
+            XNamespace contentTypeNamespace =
+                "http://schemas.openxmlformats.org/package/2006/content-types";
+            XElement worksheetOverride = contentTypes.Root!
+                .Elements(contentTypeNamespace + "Override")
+                .Single(element => string.Equals(
+                    (string?)element.Attribute("PartName"),
+                    "/" + originalEntryName,
+                    StringComparison.Ordinal));
+            worksheetOverride.SetAttributeValue("PartName", "/" + encodedEntryName);
+            ReplaceZipXml(path, contentTypesEntry, contentTypes);
+
+            using (var workbook = XlsxTabularWorkbook.Open(path, new ExcelReadOptions())) {
+                Assert.Equal(new[] { "Data" }, workbook.TableNames);
+                using var reader = workbook.OpenTable(
+                    "Data",
+                    hasHeaderRow: true,
+                    CancellationToken.None);
+                Assert.True(reader.Read());
+                Assert.Equal(42, reader.GetInt32(0));
+                Assert.True(reader.Read());
+                Assert.Equal(43, reader.GetInt32(0));
+                Assert.False(reader.Read());
+            }
+
+            Assert.Equal(new[] { "Data" }, ExcelDocument.GetSheetNames(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
 #if !NETFRAMEWORK
     [Fact]
     public void XlsxNativePackage_FallsBackForWorksheetLargerThanNativeBuffer() {

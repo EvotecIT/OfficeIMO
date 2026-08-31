@@ -73,6 +73,63 @@ namespace OfficeIMO.Tests {
             Assert.Empty(report.UnsupportedBiffVersionsByVersionAndSubstream);
         }
 
+        [Fact]
+        public void LegacyXls_GetSheetNames_ReadsBiff5WorkbookGlobalsOnly() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithMalformedWorksheetBody();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5SheetNames.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Equal(
+                    new[] { "OldSheet" },
+                    OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_GetSheetNames_CountsAllBiff5SheetDefinitionsBeforeBodies() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithChartDefinition();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5SheetLimit.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                    OfficeIMO.Excel.ExcelDocument.GetSheetNames(
+                        path,
+                        new OfficeIMO.Excel.ExcelReadOptions { MaxWorksheets = 1 }));
+                Assert.Contains("more than the configured 1 worksheet definitions", exception.Message);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyXls_GetSheetNames_RejectsMalformedBiff5SheetDefinitions(bool emptyName) {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithMalformedBoundSheet(emptyName);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5MalformedSheet.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Throws<InvalidDataException>(() =>
+                    OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+            } finally {
+                File.Delete(path);
+            }
+        }
+
         [Theory]
         [InlineData(0x0200, "BIFF2")]
         [InlineData(0x0300, "BIFF3")]
@@ -160,6 +217,63 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
                 return bytes;
+            }
+
+            internal static byte[] CreateBiff5WorkbookWithMalformedWorksheetBody() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x05, 0x00 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBiff5BoundSheetPayload(0, "OldSheet"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x10, 0x00 });
+                stream.WriteByte(0x04);
+                stream.WriteByte(0x02);
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(
+                    BitConverter.GetBytes(sheetOffset),
+                    0,
+                    bytes,
+                    checked((int)boundSheetPosition + 4),
+                    4);
+                return bytes;
+            }
+
+            internal static byte[] CreateBiff5WorkbookWithChartDefinition() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x05, 0x00 });
+                WriteRecord(stream, 0x0085, BuildBiff5BoundSheetPayload(0, "OldSheet"));
+                WriteRecord(stream, 0x0085, BuildBiff5BoundSheetPayload(0, "Chart", sheetType: 2));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                return stream.ToArray();
+            }
+
+            internal static byte[] CreateBiff5WorkbookWithMalformedBoundSheet(bool emptyName) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x05, 0x00 });
+                WriteRecord(
+                    stream,
+                    0x0085,
+                    emptyName
+                        ? BuildBiff5BoundSheetPayload(0, string.Empty)
+                        : new byte[6]);
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildBiff5BoundSheetPayload(
+                int streamOffset,
+                string name,
+                byte sheetType = 0) {
+                byte[] nameBytes = System.Text.Encoding.ASCII.GetBytes(name);
+                byte[] payload = new byte[7 + nameBytes.Length];
+                Buffer.BlockCopy(BitConverter.GetBytes(streamOffset), 0, payload, 0, 4);
+                payload[5] = sheetType;
+                payload[6] = (byte)nameBytes.Length;
+                Buffer.BlockCopy(nameBytes, 0, payload, 7, nameBytes.Length);
+                return payload;
             }
         }
     }

@@ -7,10 +7,12 @@ using System.Threading;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
     /// <summary>
-    /// Read-only BIFF8 workbook metadata used by the tabular XLS fast path. The workbook
-    /// stream is extracted once and worksheet cells are decoded directly from record slices.
+    /// Read-only BIFF5/BIFF8 workbook metadata and BIFF8 worksheet data used by the tabular
+    /// XLS fast path. The workbook stream is extracted once and worksheet cells are decoded
+    /// directly from record slices.
     /// </summary>
     internal sealed class LegacyXlsTabularWorkbook : IDisposable {
+        private const ushort Biff5Version = 0x0500;
         private const ushort Biff8Version = 0x0600;
         private readonly LegacyBiffSource _workbookStream;
         private readonly IReadOnlyList<SheetInfo> _sheets;
@@ -290,6 +292,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             CancellationToken cancellationToken) {
             var parsedSheets = new List<SheetInfo>();
             int offset = 0;
+            int sheetDefinitionCount = 0;
+            ushort workbookVersion = 0;
             bool sawBof = false;
             bool sawEof = false;
             while (TryReadRecord(bytes, ref offset, out RecordSlice record)) {
@@ -299,11 +303,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                         throw new InvalidDataException(
                             "The XLS workbook stream is missing a valid workbook-globals BOF record.");
                     }
-                    ushort version = bytes.ReadUInt16(record.PayloadOffset);
+                    workbookVersion = bytes.ReadUInt16(record.PayloadOffset);
                     ushort substreamType = bytes.ReadUInt16(record.PayloadOffset + 2);
-                    if (version != Biff8Version || substreamType != 0x0005) {
+                    if ((workbookVersion != Biff5Version && workbookVersion != Biff8Version)
+                        || substreamType != 0x0005) {
                         throw new LegacyXlsFastPathNotSupportedException(
-                            "The direct XLS reader supports BIFF8 workbook streams.");
+                            "Metadata-only sheet discovery supports BIFF5 and BIFF8 workbook streams.");
                     }
                     sawBof = true;
                     continue;
@@ -311,11 +316,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 switch ((BiffRecordType)record.Type) {
                     case BiffRecordType.BoundSheet8:
-                        if (parsedSheets.Count >= options.MaxWorksheets) {
+                        if (sheetDefinitionCount >= options.MaxWorksheets) {
                             throw new InvalidDataException(
                                 $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
                         }
-                        parsedSheets.Add(ReadBoundSheet(bytes, record));
+                        sheetDefinitionCount++;
+                        parsedSheets.Add(ReadBoundSheet(bytes, record, workbookVersion));
                         break;
                     case BiffRecordType.FilePass:
                         throw new LegacyXlsFastPathNotSupportedException(
@@ -413,11 +419,17 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return values;
         }
 
-        private static SheetInfo ReadBoundSheet(LegacyBiffSource bytes, RecordSlice record) {
-            if (record.Length < 8) throw Truncated(record, "BoundSheet8");
+        private static SheetInfo ReadBoundSheet(
+            LegacyBiffSource bytes,
+            RecordSlice record,
+            ushort workbookVersion = Biff8Version) {
+            int minimumLength = workbookVersion == Biff5Version ? 7 : 8;
+            if (record.Length < minimumLength) throw Truncated(record, "BoundSheet");
             byte[] payload = CopyPayload(bytes, record);
             int nameOffset = 6;
-            string name = BiffStringReader.ReadShortUnicodeString(payload, ref nameOffset);
+            string name = workbookVersion == Biff5Version
+                ? BiffStringReader.ReadShortByteString(payload, ref nameOffset)
+                : BiffStringReader.ReadShortUnicodeString(payload, ref nameOffset);
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new InvalidDataException("An XLS worksheet has an empty name.");
             }

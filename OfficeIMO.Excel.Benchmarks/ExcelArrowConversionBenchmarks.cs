@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// <summary>
 /// Equivalent one-batch Arrow conversion over the hash-pinned 65K workbook.
 /// The explicit-schema lane makes both adapters produce the same Arrow schema;
-/// the inferred lane retains each library's public inference path.
+/// inferred methods retain each library's public inference path for the guarded paired runner,
+/// but are intentionally not BenchmarkDotNet lanes because their resulting schemas differ.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
@@ -105,13 +106,9 @@ public class ExcelArrowConversionBenchmarks {
     public ArrowConversionObservation ExcelReaderNet_ExplicitSchema() =>
         ConvertExcelReader(_explicitExcelReaderSchema);
 
-    [Benchmark]
-    [BenchmarkCategory("Arrow", "InferredSchema")]
     public ArrowConversionObservation OfficeIMO_InferredSchema() =>
         ConvertOfficeIMO(inferSchema: true, batchSize: MarkPflug65KFixture.ExpectedRows);
 
-    [Benchmark]
-    [BenchmarkCategory("Arrow", "InferredSchema")]
     public ArrowConversionObservation ExcelReaderNet_InferredSchema() {
         using IExcelRowReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
         ExcelColumnSchema[] schema = ExcelReaderApi.InferSchema(reader, headerRow: 1, SchemaSampleRows);

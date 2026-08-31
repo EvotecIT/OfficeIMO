@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Reads worksheet names from XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS
+        /// Reads worksheet names from XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF5/BIFF8 XLS
         /// workbook metadata without opening a worksheet data stream.
         /// </summary>
         /// <param name="path">Workbook path.</param>
