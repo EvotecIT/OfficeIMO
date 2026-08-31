@@ -56,7 +56,10 @@ public sealed class PdfLogicalSection {
     /// <summary>Direct tables owned by this section.</summary>
     public IReadOnlyList<PdfLogicalTable> Tables => _tables;
 
-    /// <summary>Direct placed images owned by this section.</summary>
+    /// <summary>
+    /// Direct placement-local images owned by this section.
+    /// Repeated uses of one page image resource are represented separately with one placement each.
+    /// </summary>
     public IReadOnlyList<PdfLogicalImage> Images => _images;
 
     /// <summary>Direct links owned by this section.</summary>

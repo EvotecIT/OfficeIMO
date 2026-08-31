@@ -140,6 +140,78 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public void Read_TracksRepeatedImagePlacementsWithSectionLocalOwnership() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 80, 160);
+        byte[] source = PdfDocument.Create()
+            .H1("First image section")
+            .Paragraph(paragraph => paragraph.Text("First section body"))
+            .Image(image, 24, 24)
+            .H1("Second image section")
+            .Paragraph(paragraph => paragraph.Text("Second section body"))
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Equal(2, result.Sections.Count);
+
+        PdfLogicalImage firstPlacement = Assert.Single(result.Sections[0].Images);
+        PdfLogicalImage secondPlacement = Assert.Single(result.Sections[1].Images);
+        Assert.NotSame(firstPlacement, secondPlacement);
+        Assert.Same(resource.SourceImage, firstPlacement.SourceImage);
+        Assert.Same(resource.SourceImage, secondPlacement.SourceImage);
+        Assert.Single(firstPlacement.Placements);
+        Assert.Single(secondPlacement.Placements);
+        Assert.NotSame(firstPlacement.PrimaryPlacement, secondPlacement.PrimaryPlacement);
+        Assert.Same(result.Sections[0], result.GetOwningSection(firstPlacement));
+        Assert.Same(result.Sections[1], result.GetOwningSection(secondPlacement));
+        Assert.Null(result.GetOwningSection(resource));
+        Assert.Equal(result.Sections, result.GetOwningSections(resource));
+    }
+
+    [Fact]
+    public void Read_DoesNotAssignAggregateImageToASectionWhenAnotherPlacementIsUnsectioned() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(160, 80, 20);
+        byte[] source = PdfDocument.Create()
+            .Image(image, 24, 24)
+            .H1("Owned image section")
+            .Paragraph(paragraph => paragraph.Text("Owned section body"))
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        PdfLogicalSection section = Assert.Single(result.Sections);
+        PdfLogicalImage placement = Assert.Single(section.Images);
+
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Same(section, result.GetOwningSection(placement));
+        Assert.Null(result.GetOwningSection(resource));
+        Assert.Equal(new[] { section }, result.GetOwningSections(resource));
+    }
+
+    [Fact]
+    public void Read_AssignsAggregateImageWhenEveryPlacementSharesOneSection() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(80, 160, 20);
+        byte[] source = PdfDocument.Create()
+            .H1("Shared image section")
+            .Paragraph(paragraph => paragraph.Text("Shared section body"))
+            .Image(image, 24, 24)
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        PdfLogicalSection section = Assert.Single(result.Sections);
+
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Equal(2, section.Images.Count);
+        Assert.Same(section, result.GetOwningSection(resource));
+        Assert.Equal(new[] { section }, result.GetOwningSections(resource));
+    }
+
+    [Fact]
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph

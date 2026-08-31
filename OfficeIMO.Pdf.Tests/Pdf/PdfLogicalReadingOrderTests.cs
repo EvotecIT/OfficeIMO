@@ -117,6 +117,24 @@ public sealed class PdfLogicalReadingOrderTests {
     }
 
     [Fact]
+    public void Analyze_RetainsVisualOrderWhenRotationDiffersFromRawCanonicalOrder() {
+        byte[] source = BuildPositionedTextPdf(
+            "BT /F1 12 Tf\n" +
+            "1 0 0 1 30 180 Tm (Raw left) Tj\n" +
+            "1 0 0 1 230 180 Tm (Raw right) Tj ET");
+        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(90, "1").ToBytes();
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(rotated);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+
+        PdfLogicalReadingOrderItem[] ordered = PdfLogicalReadingOrderAnalysis.Analyze(page)
+            .Where(static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.ListItem)
+            .ToArray();
+
+        Assert.Equal(new[] { "Raw right", "Raw left" }, ordered.Select(item => GetText(page, item)));
+        AssertInOrder(logical.Text, "Raw right", "Raw left");
+    }
+
+    [Fact]
     public void WordAndHtml_ConsumeTheSameColumnReadingOrder() {
         byte[] pdf = BuildPositionedTextPdf(
             "BT /F1 11 Tf\n" +

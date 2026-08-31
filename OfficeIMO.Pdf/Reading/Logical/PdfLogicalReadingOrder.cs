@@ -223,7 +223,9 @@ public static class PdfLogicalReadingOrderAnalysis {
     private static IReadOnlyList<PdfLogicalReadingOrderItem> ApplyCanonicalOrder(
         PdfLogicalPage page,
         PdfLogicalReadingOrderItem[] items) {
-        if (page.Analysis.ReadingOrder.Count == 0 || items.Length < 2) return items;
+        if (page.RotationDegrees != 0 ||
+            page.Analysis.ReadingOrder.Count == 0 ||
+            items.Length < 2) return items;
 
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
             IndexCanonicalLines(page.Analysis.ReadingOrder);

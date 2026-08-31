@@ -74,6 +74,8 @@ public sealed partial class PdfDocumentReadResult {
     private Dictionary<PdfLogicalListItem, PdfLogicalSection>? _listItemSections;
     private Dictionary<PdfLogicalTable, PdfLogicalSection>? _tableSections;
     private Dictionary<PdfLogicalImage, PdfLogicalSection>? _imageSections;
+    private Dictionary<PdfLogicalImage, List<PdfLogicalSection>>? _imageResourceSections;
+    private Dictionary<PdfLogicalImage, int>? _imageResourceOwnedPlacementCounts;
     private Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>? _linkSections;
     private Dictionary<PdfLogicalFormWidget, PdfLogicalSection>? _formWidgetSections;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
@@ -381,11 +383,36 @@ public sealed partial class PdfDocumentReadResult {
         return _tableSections!.TryGetValue(table, out PdfLogicalSection? section) ? section : null;
     }
 
-    /// <summary>Returns the section directly owning an image, or null for unsectioned content.</summary>
+    /// <summary>
+    /// Returns the section directly owning a placement-local image projection.
+    /// For an aggregate page image resource, returns the owner only when all placements belong to one section.
+    /// </summary>
     public PdfLogicalSection? GetOwningSection(PdfLogicalImage image) {
         Guard.NotNull(image, nameof(image));
         EnsureSections();
-        return _imageSections!.TryGetValue(image, out PdfLogicalSection? section) ? section : null;
+        if (_imageSections!.TryGetValue(image, out PdfLogicalSection? section)) return section;
+        int expectedPlacements = Math.Max(1, image.PlacementCount);
+        return _imageResourceSections!.TryGetValue(image, out List<PdfLogicalSection>? owners) &&
+               owners.Count == 1 &&
+               _imageResourceOwnedPlacementCounts!.TryGetValue(image, out int ownedPlacements) &&
+               ownedPlacements == expectedPlacements
+            ? owners[0]
+            : null;
+    }
+
+    /// <summary>
+    /// Returns every section containing a placement of the supplied aggregate image resource.
+    /// Placement-local images return their single direct owner.
+    /// </summary>
+    public IReadOnlyList<PdfLogicalSection> GetOwningSections(PdfLogicalImage image) {
+        Guard.NotNull(image, nameof(image));
+        EnsureSections();
+        if (_imageSections!.TryGetValue(image, out PdfLogicalSection? section)) {
+            return new[] { section };
+        }
+        return _imageResourceSections!.TryGetValue(image, out List<PdfLogicalSection>? owners)
+            ? owners.AsReadOnly()
+            : Array.Empty<PdfLogicalSection>();
     }
 
     /// <summary>Returns the section directly owning a link, or null for unsectioned content.</summary>
@@ -931,6 +958,8 @@ public sealed partial class PdfDocumentReadResult {
         _listItemSections = new Dictionary<PdfLogicalListItem, PdfLogicalSection>();
         _tableSections = new Dictionary<PdfLogicalTable, PdfLogicalSection>();
         _imageSections = new Dictionary<PdfLogicalImage, PdfLogicalSection>();
+        _imageResourceSections = new Dictionary<PdfLogicalImage, List<PdfLogicalSection>>();
+        _imageResourceOwnedPlacementCounts = new Dictionary<PdfLogicalImage, int>();
         _linkSections = new Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>();
         _formWidgetSections = new Dictionary<PdfLogicalFormWidget, PdfLogicalSection>();
         PdfLogicalSection? current = null;
@@ -986,8 +1015,18 @@ public sealed partial class PdfDocumentReadResult {
                         break;
                     }
                     case PdfLogicalReadingOrderKind.Image: {
-                        PdfLogicalImage value = page.Images[item.SourceIndex];
+                        PdfLogicalImage resource = page.Images[item.SourceIndex];
+                        PdfLogicalImage value = item.PlacementIndex >= 0
+                            ? resource.ForPlacement(item.PlacementIndex)
+                            : resource;
                         if (current.Add(value)) _imageSections[value] = current;
+                        if (!_imageResourceSections.TryGetValue(resource, out List<PdfLogicalSection>? owners)) {
+                            owners = new List<PdfLogicalSection>();
+                            _imageResourceSections.Add(resource, owners);
+                        }
+                        if (!owners.Contains(current)) owners.Add(current);
+                        _imageResourceOwnedPlacementCounts.TryGetValue(resource, out int ownedPlacements);
+                        _imageResourceOwnedPlacementCounts[resource] = ownedPlacements + 1;
                         break;
                     }
                     case PdfLogicalReadingOrderKind.Link: {

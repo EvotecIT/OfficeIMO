@@ -122,26 +122,49 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         WhitespaceCut? vertical) {
         if (!vertical.HasValue) return horizontal;
         if (!horizontal.HasValue) return vertical;
-        return HasVerticalOverlapAcrossCut(context, boxes, vertical.Value) || HasRepeatedColumnBandOverlap(context, boxes, vertical.Value)
+        return HasVerticalOverlapAcrossCut(context, boxes, vertical.Value) ||
+               HasRepeatedRowAlignmentAcrossCut(context, boxes, vertical.Value)
             ? vertical
             : horizontal;
     }
 
-    private static bool HasRepeatedColumnBandOverlap(PdfUnderstandingPageContext context, IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+    private static bool HasRepeatedRowAlignmentAcrossCut(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<RegionBox> boxes,
+        WhitespaceCut verticalCut) {
         context.ConsumeWork(boxes.Count);
-        RegionBox[] first = boxes
+        double rowTolerance = Math.Max(18D, Median(boxes.Select(static box => box.FontSize)) * 3D);
+        double[] firstSide = boxes
             .Where(box => (box.Left + box.Right) / 2D < verticalCut.Midpoint)
+            .Select(static box => (box.Bottom + box.Top) / 2D)
+            .OrderBy(static center => center)
             .ToArray();
-        RegionBox[] second = boxes
+        double[] secondSide = boxes
             .Where(box => (box.Left + box.Right) / 2D >= verticalCut.Midpoint)
+            .Select(static box => (box.Bottom + box.Top) / 2D)
+            .OrderBy(static center => center)
             .ToArray();
-        if (first.Length < 2 || second.Length < 2) return false;
+        if (firstSide.Length < 2 || secondSide.Length < 2) return false;
 
-        double firstTop = first.Max(static box => box.Top);
-        double firstBottom = first.Min(static box => box.Bottom);
-        double secondTop = second.Max(static box => box.Top);
-        double secondBottom = second.Min(static box => box.Bottom);
-        return Math.Min(firstTop, secondTop) > Math.Max(firstBottom, secondBottom);
+        int firstIndex = 0;
+        int secondIndex = 0;
+        int alignedRows = 0;
+        while (firstIndex < firstSide.Length && secondIndex < secondSide.Length) {
+            context.ConsumeWork();
+            double difference = firstSide[firstIndex] - secondSide[secondIndex];
+            if (Math.Abs(difference) <= rowTolerance) {
+                alignedRows++;
+                if (alignedRows >= 2) return true;
+                firstIndex++;
+                secondIndex++;
+            } else if (difference < 0D) {
+                firstIndex++;
+            } else {
+                secondIndex++;
+            }
+        }
+
+        return false;
     }
 
     private static bool HasVerticalOverlapAcrossCut(PdfUnderstandingPageContext context, IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {

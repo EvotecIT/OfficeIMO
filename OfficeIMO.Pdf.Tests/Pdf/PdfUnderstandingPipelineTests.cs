@@ -202,6 +202,25 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedPipeline_RequiresActualBandOverlapBeforeSelectingColumns() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Upper left", "F1", 12, 50, 700, 110),
+            new PdfTextSpan("Upper middle right", "F1", 12, 320, 600, 130),
+            new PdfTextSpan("Lower middle left", "F1", 12, 50, 500, 130),
+            new PdfTextSpan("Lower right", "F1", 12, 320, 400, 110)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = glyphs;
+
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+
+        Assert.Equal(new[] {
+            "Upper left", "Upper middle right", "Lower middle left", "Lower right"
+        }, page.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
     public void AdvancedPipeline_LeavesUniqueEdgesAndUnvalidatedColumnsAsContent() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
