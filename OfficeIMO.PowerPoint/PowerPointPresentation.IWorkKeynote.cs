@@ -97,7 +97,8 @@ public sealed partial class PowerPointPresentation {
                     : OfficeImageFormat.Jpeg;
                 (double left, double top, double width, double height) = PreviewLayout(preview,
                     canvasWidth / 72d, canvasHeight / 72d);
-                slide.AddPictureInches(image, format, left, top, width, height);
+                PowerPointPicture picture = slide.AddPictureInches(image, format, left, top, width, height);
+                picture.AltText = "Visual fallback from the source Keynote package";
             }
 
             IWorkProjectionKind kind = editable

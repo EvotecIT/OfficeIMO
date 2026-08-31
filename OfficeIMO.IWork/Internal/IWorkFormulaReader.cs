@@ -51,13 +51,8 @@ internal static class IWorkFormulaReader {
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
         int maximumNodes, int maximumCharacters) {
-        IWorkWireMessage? nodeArray = IWorkObjectIndex.TryGetMessage(formula, 1, out bool malformed);
-        if (malformed || nodeArray == null) return new IWorkFormulaResult(string.Empty, false);
-        IReadOnlyList<IWorkWireMessage> nodes = IWorkObjectIndex.TryGetMessages(nodeArray, 1, out malformed);
-        if (malformed || nodes.Count == 0) return new IWorkFormulaResult(string.Empty, false);
-        if (nodes.Count > maximumNodes) {
-            throw new InvalidDataException($"An iWork formula exceeds the configured syntax-node limit of {maximumNodes}.");
-        }
+        if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes))
+            return new IWorkFormulaResult(string.Empty, false);
 
         var stack = new List<Operand>();
         bool complete = true;
@@ -201,15 +196,10 @@ internal static class IWorkFormulaReader {
         return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0);
     }
 
-    internal static bool TryReadAbsoluteRange(IWorkWireMessage formula,
+    internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,
         out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
         firstRow = firstColumn = lastRow = lastColumn = 0;
-        IWorkWireMessage? nodeArray = IWorkObjectIndex.TryGetMessage(formula, 1);
-        bool malformed = false;
-        IReadOnlyList<IWorkWireMessage> nodes = nodeArray == null
-            ? Array.Empty<IWorkWireMessage>()
-            : IWorkObjectIndex.TryGetMessages(nodeArray, 1, out malformed);
-        if (nodeArray == null || malformed || nodes.Count == 0) return false;
+        if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes)) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
             if (tract == null
@@ -223,6 +213,33 @@ internal static class IWorkFormulaReader {
             || !TryAbsoluteCell(nodes[1], out lastRow, out lastColumn)) return false;
         if (lastRow < firstRow) (firstRow, lastRow) = (lastRow, firstRow);
         if (lastColumn < firstColumn) (firstColumn, lastColumn) = (lastColumn, firstColumn);
+        return true;
+    }
+
+    private static bool TryReadNodes(IWorkWireMessage formula, int maximumNodes,
+        out IReadOnlyList<IWorkWireMessage> nodes) {
+        nodes = Array.Empty<IWorkWireMessage>();
+        byte[]? nodeArrayBytes = formula.GetBytes(1);
+        if (nodeArrayBytes == null || formula.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) return false;
+        int nodeCount;
+        try {
+            nodeCount = formula.CountNestedFields(nodeArrayBytes, 1);
+        } catch (InvalidDataException) {
+            return false;
+        }
+        if (nodeCount > maximumNodes) {
+            throw new InvalidDataException($"An iWork formula exceeds the configured syntax-node limit of {maximumNodes}.");
+        }
+        IWorkWireMessage nodeArray;
+        try {
+            nodeArray = formula.ParseNestedMessage(nodeArrayBytes);
+        } catch (InvalidDataException) {
+            return false;
+        }
+        IReadOnlyList<IWorkWireMessage> parsed = IWorkObjectIndex.TryGetMessages(
+            nodeArray, 1, out bool malformed);
+        if (malformed || parsed.Count == 0 || parsed.Count != nodeCount) return false;
+        nodes = parsed;
         return true;
     }
 

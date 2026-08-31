@@ -101,6 +101,11 @@ internal static class IWorkNumbersReader {
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         var projectedDrawableIdentifiers = new HashSet<ulong>();
         bool supportsEditableReconstruction = true;
+        int declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
+            source.Options.MaximumProtobufFieldCount);
+        if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
+            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
+        }
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = index.DereferenceAll(
             index.Message(document), 1, out int unresolvedSheetCount);
         if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
@@ -357,7 +362,8 @@ internal static class IWorkNumbersReader {
         double? defaultRowHeight = ValidDimension(declaredRowHeight);
         double? defaultColumnWidth = ValidDimension(declaredColumnWidth);
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
-            source.Options.MaximumTableMergedRanges, model, diagnostics, ref supportsEditableReconstruction);
+            source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
+            model, diagnostics, ref supportsEditableReconstruction);
         var cells = new List<IWorkTableCell>();
         var coordinates = new HashSet<long>();
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
@@ -662,7 +668,8 @@ internal static class IWorkNumbersReader {
         || message.LacksWireKind(17, IWorkWireKind.Fixed64);
 
     private static IReadOnlyList<IWorkTableMergeRange> ReadMergedRanges(IWorkWireMessage table,
-        int rowCount, int columnCount, int maximumRanges, IWorkArchiveRecord model,
+        int rowCount, int columnCount, int maximumRanges, int maximumFormulaNodes,
+        IWorkArchiveRecord model,
         List<IWorkDiagnostic> diagnostics,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage? mergeOwner = IWorkObjectIndex.TryGetMessage(table, 47, out bool malformedOwner);
@@ -671,8 +678,27 @@ internal static class IWorkNumbersReader {
             return Array.Empty<IWorkTableMergeRange>();
         }
         if (mergeOwner == null) return Array.Empty<IWorkTableMergeRange>();
-        IWorkWireMessage? formulaStore = IWorkObjectIndex.TryGetMessage(mergeOwner, 2, out bool malformedStore);
-        if (malformedStore || formulaStore == null) {
+        byte[]? formulaStoreBytes = mergeOwner.GetBytes(2);
+        int pairCount;
+        try {
+            pairCount = formulaStoreBytes == null
+                || mergeOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
+                    ? -1
+                    : mergeOwner.CountNestedFields(formulaStoreBytes, 3);
+        } catch (InvalidDataException) {
+            pairCount = -1;
+        }
+        if (pairCount > maximumRanges) {
+            throw new InvalidDataException($"iWork table merged-range count exceeds the configured limit of {maximumRanges} in object {model.Identifier}.");
+        }
+        if (pairCount < 0) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+            return Array.Empty<IWorkTableMergeRange>();
+        }
+        IWorkWireMessage formulaStore;
+        try {
+            formulaStore = mergeOwner.ParseNestedMessage(formulaStoreBytes!);
+        } catch (InvalidDataException) {
             MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return Array.Empty<IWorkTableMergeRange>();
         }
@@ -681,15 +707,16 @@ internal static class IWorkNumbersReader {
             MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return Array.Empty<IWorkTableMergeRange>();
         }
-        if (pairs.Count > maximumRanges) {
-            throw new InvalidDataException($"iWork table merged-range count {pairs.Count} in object {model.Identifier} exceeds the configured limit of {maximumRanges}.");
+        if (pairs.Count != pairCount) {
+            MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
+            return Array.Empty<IWorkTableMergeRange>();
         }
         var result = new List<IWorkTableMergeRange>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (IWorkWireMessage pair in pairs) {
             IWorkWireMessage? formula = IWorkObjectIndex.TryGetMessage(pair, 2, out bool malformedFormula);
             if (malformedFormula || formula == null
-                || !IWorkFormulaReader.TryReadAbsoluteRange(formula,
+                || !IWorkFormulaReader.TryReadAbsoluteRange(formula, maximumFormulaNodes,
                     out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
                 || firstRow >= rowCount || lastRow >= rowCount
                 || firstColumn >= columnCount || lastColumn >= columnCount) {

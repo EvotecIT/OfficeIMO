@@ -568,6 +568,10 @@ public partial class WordDocument {
             if (firstObservation && TryParseStart(label, levelKind, out int start) && start != 1) {
                 list.Numbering.Levels[level].SetStartNumberingValue(start);
             }
+            if (firstObservation && levelKind == WordListLevelKind.Bullet
+                && !string.IsNullOrWhiteSpace(label)) {
+                list.Numbering.Levels[level].LevelText = label!.Trim();
+            }
             if (firstObservation && levelKind != WordListLevelKind.Bullet
                 && IsParenthesized(label)) {
                 list.Numbering.Levels[level].LevelText = "(%"

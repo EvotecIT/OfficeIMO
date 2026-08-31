@@ -165,15 +165,37 @@ internal static class IWorkKeynoteReader {
                 "The Keynote document root does not reference a supported show object.", document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
-        IWorkWireMessage? slideTree = IWorkObjectIndex.TryGetMessage(index.Message(show), 3);
-        if (slideTree == null) {
+        IWorkWireMessage showMessage = index.Message(show);
+        byte[]? slideTreeBytes = showMessage.GetBytes(3);
+        int slideReferenceCount;
+        try {
+            slideReferenceCount = slideTreeBytes == null
+                || showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
+                    ? -1
+                    : IWorkProtobuf.CountFields(slideTreeBytes, 2,
+                        source.Options.MaximumProtobufFieldCount);
+        } catch (InvalidDataException) {
+            slideReferenceCount = -1;
+        }
+        if (slideReferenceCount < 0) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
+                "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
+        }
+        if (slideReferenceCount > source.Options.MaximumProjectedSlides) {
+            throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
+        }
+        IWorkWireMessage slideTree;
+        try {
+            slideTree = showMessage.ParseNestedMessage(slideTreeBytes!);
+        } catch (InvalidDataException) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
 
         bool supportsEditableReconstruction = true;
-        IWorkCanvasSize? slideSize = ReadSlideSize(index.Message(show), out bool slideSizeComplete);
+        IWorkCanvasSize? slideSize = ReadSlideSize(showMessage, out bool slideSizeComplete);
         if (!slideSizeComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

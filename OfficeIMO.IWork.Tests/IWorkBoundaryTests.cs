@@ -989,17 +989,21 @@ public sealed partial class IWorkBoundaryTests {
         bool includePreview = false, bool includeMalformedDrawableReference = false, byte[]? previewBytes = null,
         byte[]? textBoxBytes = null, int sheetReferenceCount = 1, bool duplicateFirstDrawable = false,
         byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false,
-        byte[]? textBoxDrawable = null, byte[]? tableDrawable = null) {
+        byte[]? textBoxDrawable = null, byte[]? tableDrawable = null,
+        bool includeMalformedSecondSheetReference = false) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
         var sheetFields = new List<byte[]> {
             sheetNameBytes == null ? StringField(1, "Sheet") : BytesField(1, sheetNameBytes)
         };
-        byte[][] documentFields = Enumerable.Range(0, sheetReferenceCount)
+        var documentFields = Enumerable.Range(0, sheetReferenceCount)
             .Select(_ => ReferenceField(1, sheetId))
-            .ToArray();
-        records.Add(ArchiveRecord(documentId, 1, Message(documentFields)));
+            .ToList();
+        if (includeMalformedSecondSheetReference) {
+            documentFields.Add(BytesField(1, new byte[] { 0x80 }));
+        }
+        records.Add(ArchiveRecord(documentId, 1, Message(documentFields.ToArray())));
 
         for (int index = 0; index < tables.Count; index++) {
             TableSpec table = tables[index];
@@ -1058,6 +1062,12 @@ public sealed partial class IWorkBoundaryTests {
             }
             if (table.HeaderRows > 0) modelFields.Add(VarintField(9, checked((ulong)table.HeaderRows)));
             if (table.FooterRows > 0) modelFields.Add(VarintField(11, checked((ulong)table.FooterRows)));
+            if (table.MalformedSecondMergePair) {
+                byte[] formulaStore = Message(
+                    BytesField(3, Message()),
+                    BytesField(3, new byte[] { 0x80 }));
+                modelFields.Add(BytesField(47, Message(BytesField(2, formulaStore))));
+            }
             byte[] model = Message(modelFields.ToArray());
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
@@ -1437,7 +1447,7 @@ public sealed partial class IWorkBoundaryTests {
             bool oddCurrentOffsets = false, double? defaultRowHeight = null,
             int headerRows = 0, int footerRows = 0, bool error = false,
             bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
-            bool cellCrossesNextOffset = false) {
+            bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1468,6 +1478,7 @@ public sealed partial class IWorkBoundaryTests {
             PopulatedOffsetBeyondColumns = populatedOffsetBeyondColumns;
             EmptyOffsetBeyondColumns = emptyOffsetBeyondColumns;
             CellCrossesNextOffset = cellCrossesNextOffset;
+            MalformedSecondMergePair = malformedSecondMergePair;
         }
 
         internal string Name { get; }
@@ -1500,5 +1511,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool PopulatedOffsetBeyondColumns { get; }
         internal bool EmptyOffsetBeyondColumns { get; }
         internal bool CellCrossesNextOffset { get; }
+        internal bool MalformedSecondMergePair { get; }
     }
 }
