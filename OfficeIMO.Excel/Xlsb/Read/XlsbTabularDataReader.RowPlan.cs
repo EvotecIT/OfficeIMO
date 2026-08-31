@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 return false;
             }
 
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             byte[] bytes = _records.Buffer;
             XlsbValidatedCellPlan[] cells = plan.Cells;
             for (int index = 0; index < cells.Length; index++) {

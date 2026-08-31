@@ -78,5 +78,63 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public async Task NextResultAsyncDoesNotRetainCompletedPerCallTokenForLaterReads() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.AsyncNextResultLifetime.{Guid.NewGuid():N}.xlsx");
+        using var perCallCancellation = new CancellationTokenSource();
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet first = document.AddWorksheet("First");
+                first.CellValue(1, 1, "Value");
+                first.CellValue(2, 1, "Alpha");
+                ExcelSheet second = document.AddWorksheet("Second");
+                second.CellValue(1, 1, "Value");
+                second.CellValue(2, 1, "Beta");
+                document.Save();
+            }
+
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(path);
+            Assert.True(await reader.NextResultAsync(perCallCancellation.Token));
+            perCallCancellation.Cancel();
+
+            Assert.True(await reader.ReadAsync(CancellationToken.None));
+            Assert.Equal("Beta", reader.GetString(0));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    public async Task ReadAsyncThreadsThePerCallTokenIntoBinaryWorksheetReads(ExcelFileFormat format) {
+        byte[] workbook;
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            for (int column = 1; column <= 256; column++) {
+                sheet.CellValue(1, column, "Column" + column);
+                sheet.CellValue(2, column, column);
+            }
+            workbook = document.ToBytes(format);
+        }
+
+        using var cancellation = new CancellationTokenSource();
+        bool cancelDuringRead = false;
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            workbook,
+            new ExcelReadOptions {
+                InferSchema = false,
+                CellValueConverter = _ => {
+                    if (Volatile.Read(ref cancelDuringRead)) cancellation.Cancel();
+                    return ExcelCellValue.NotHandled;
+                }
+            });
+
+        Volatile.Write(ref cancelDuringRead, true);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => reader.ReadAsync(cancellation.Token));
+    }
 }
 #endif

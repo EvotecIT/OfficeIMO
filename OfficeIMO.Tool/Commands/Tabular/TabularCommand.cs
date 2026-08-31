@@ -82,7 +82,9 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
         TextWriter output,
         CancellationToken cancellationToken) {
         EnsureExcelPath(options.InputPath, "sheets");
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(options.InputPath);
+        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+            options.InputPath,
+            new ExcelReadOptions { CancellationToken = cancellationToken });
         foreach (string sheetName in reader.SheetNames) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(sheetName).ConfigureAwait(false);

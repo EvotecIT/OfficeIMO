@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -424,6 +425,7 @@ namespace OfficeIMO.Excel {
             private readonly int _lastRow;
             private readonly int _fieldCount;
             private readonly CancellationToken _ct;
+            private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
@@ -452,6 +454,7 @@ namespace OfficeIMO.Excel {
                 _lastRow = lastRow;
                 _fieldCount = fieldCount;
                 _ct = ct;
+                _activeReadCancellationToken = ct;
                 _culture = options.Culture;
                 _blankRow = new object?[fieldCount];
 
@@ -626,23 +629,36 @@ namespace OfficeIMO.Excel {
             public override bool NextResult() => false;
 
             /// <inheritdoc />
-            public override bool Read() {
-                if (_closed) {
+            public override bool Read() => ReadCore(_ct);
+
+            /// <inheritdoc />
+            public override Task<bool> ReadAsync(CancellationToken cancellationToken) =>
+                Task.Run(() => ReadCore(cancellationToken), cancellationToken);
+
+            private bool ReadCore(CancellationToken cancellationToken) {
+                _ct.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
+                _activeReadCancellationToken = cancellationToken;
+                try {
+                    if (_closed) {
+                        return false;
+                    }
+
+                    if (_prefetchedIndex < _prefetchedRows.Count) {
+                        _currentRow = _prefetchedRows[_prefetchedIndex++];
+                        return true;
+                    }
+
+                    if (TryReadLogicalRow(out var row)) {
+                        _currentRow = row;
+                        return true;
+                    }
+
+                    _currentRow = null;
                     return false;
+                } finally {
+                    _activeReadCancellationToken = _ct;
                 }
-
-                if (_prefetchedIndex < _prefetchedRows.Count) {
-                    _currentRow = _prefetchedRows[_prefetchedIndex++];
-                    return true;
-                }
-
-                if (TryReadLogicalRow(out var row)) {
-                    _currentRow = row;
-                    return true;
-                }
-
-                _currentRow = null;
-                return false;
             }
 
             /// <inheritdoc />
@@ -684,7 +700,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                _ct.ThrowIfCancellationRequested();
+                ThrowIfReadCancellationRequested();
                 EnsureCurrentChunk();
                 if (_currentChunk == null || _nextRow < _currentChunk.StartRow) {
                     row = _blankRow;
@@ -706,6 +722,7 @@ namespace OfficeIMO.Excel {
 
             private void EnsureCurrentChunk() {
                 while (true) {
+                    ThrowIfReadCancellationRequested();
                     if (_currentChunk != null && _nextRow < _currentChunk.StartRow + _currentChunk.RowCount) {
                         return;
                     }
@@ -715,6 +732,8 @@ namespace OfficeIMO.Excel {
                         return;
                     }
 
+                    ThrowIfReadCancellationRequested();
+
                     RangeChunk chunk = _chunks.Current;
                     if (chunk.RowCount <= 0 || chunk.StartRow + chunk.RowCount <= _nextRow) {
                         continue;
@@ -722,6 +741,13 @@ namespace OfficeIMO.Excel {
 
                     _currentChunk = chunk;
                     return;
+                }
+            }
+
+            private void ThrowIfReadCancellationRequested() {
+                _ct.ThrowIfCancellationRequested();
+                if (_activeReadCancellationToken != _ct) {
+                    _activeReadCancellationToken.ThrowIfCancellationRequested();
                 }
             }
 

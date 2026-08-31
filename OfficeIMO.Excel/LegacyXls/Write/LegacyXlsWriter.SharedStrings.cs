@@ -85,6 +85,15 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 throw new InvalidOperationException("The native XLS shared-string table is missing a direct worksheet text cell.");
             }
 
+            internal bool TryGetDirectIndex(string text, out uint index) {
+                if (_directIndexesByValue != null) {
+                    return _directIndexesByValue.TryGetValue(text, out index);
+                }
+
+                index = 0;
+                return false;
+            }
+
             internal void WriteRecords(Stream stream) {
                 if (_entries.Count == 0) {
                     return;

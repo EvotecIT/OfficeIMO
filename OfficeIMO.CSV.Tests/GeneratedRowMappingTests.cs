@@ -48,6 +48,20 @@ public sealed class GeneratedRowMappingTests {
         Assert.NotNull(second);
     }
 
+    [Theory]
+    [InlineData("Inherited Id")]
+    [InlineData("Legacy Id")]
+    public void GeneratedMapperHonorsInheritedDataColumnAttributeOnOverride(string columnName) {
+        CsvDocument document = CsvDocument.Parse(columnName + "\n42\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+
+        GeneratedOverrideRow row = reader
+            .RowsAs<GeneratedOverrideRow>(GeneratedOverrideRowRowMapping.Configure)
+            .Single();
+
+        Assert.Equal(42, row.Id);
+    }
+
 #if NET8_0_OR_GREATER
     [Fact]
     public async Task GeneratedMapperProjectsAsyncReaderRowsWithoutRuntimeDiscovery() {
@@ -83,4 +97,14 @@ public sealed class GeneratedInvoiceRow : GeneratedRowBase {
     public string Name { get; set; } = string.Empty;
 
     public decimal Total { get; set; }
+}
+
+public class GeneratedAttributedBase {
+    [DataColumn("Inherited Id", "Legacy Id")]
+    public virtual int Id { get; set; }
+}
+
+[GenerateRowMapper]
+public sealed class GeneratedOverrideRow : GeneratedAttributedBase {
+    public override int Id { get; set; }
 }

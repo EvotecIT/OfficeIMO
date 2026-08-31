@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
     internal static partial class LegacyXlsWriter {
         private const ushort DirectDefaultCellStyleIndex = 15;
         private const int DirectRowsPerDbCellBlock = 32;
+        private const int DirectMaximumCachedCellSlots = 1_048_576;
 
         private static bool TryCreateDirectTabularPlan(
             ExcelDirectTabularSource source,
@@ -24,15 +25,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 firstColumns[row] = ushort.MaxValue;
             }
             var lastColumns = new ushort[totalRows];
+            var nonEmptyCellCounts = new ushort[totalRows];
             var sharedStrings = new LegacyXlsDirectSharedStringBuilder();
             int cellSlotCount = checked(totalRows * columnCount);
-            byte[] cellKinds = cellSlotCount == 0
+            int cachedCellSlotCount = cellSlotCount <= DirectMaximumCachedCellSlots
+                ? cellSlotCount
+                : 0;
+            ulong[] rowFingerprints = cachedCellSlotCount == 0
+                ? new ulong[totalRows]
+                : Array.Empty<ulong>();
+            byte[] cellKinds = cachedCellSlotCount == 0
                 ? Array.Empty<byte>()
-                : ArrayPool<byte>.Shared.Rent(cellSlotCount);
-            ulong[] cellPayloads = cellSlotCount == 0
+                : ArrayPool<byte>.Shared.Rent(cachedCellSlotCount);
+            ulong[] cellPayloads = cachedCellSlotCount == 0
                 ? Array.Empty<ulong>()
-                : ArrayPool<ulong>.Shared.Rent(cellSlotCount);
-            bool returnCellCache = cellSlotCount != 0;
+                : ArrayPool<ulong>.Shared.Rent(cachedCellSlotCount);
+            bool returnCellCache = cachedCellSlotCount != 0;
             object?[]? flatValues = rows.TryGetFlatValues(out object?[] candidateValues, out int flatColumnCount)
                 && flatColumnCount == columnCount
                 && candidateValues.Length == checked(rows.RowCount * columnCount)
@@ -44,13 +52,23 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             try {
                 if (source.IncludeHeaders) {
+                    ulong rowFingerprint = DirectRowFingerprintOffset;
                     for (int column = 0; column < columnCount; column++) {
                         int cellSlot = column;
-                        cellKinds[cellSlot] = (byte)ExcelDirectTabularValueKind.Text;
-                        cellPayloads[cellSlot] = sharedStrings.Add(rows.GetColumnName(column));
+                        uint sharedStringIndex = sharedStrings.Add(rows.GetColumnName(column));
+                        if (cachedCellSlotCount != 0) {
+                            cellKinds[cellSlot] = (byte)ExcelDirectTabularValueKind.Text;
+                            cellPayloads[cellSlot] = sharedStringIndex;
+                        }
+                        AddDirectCellFingerprint(
+                            ref rowFingerprint,
+                            ExcelDirectTabularValueKind.Text,
+                            sharedStringIndex);
                         IncludeDirectCell(firstColumns, lastColumns, 0, checked((ushort)column));
+                        nonEmptyCellCounts[0]++;
                         nonEmptyCellCount++;
                     }
+                    if (cachedCellSlotCount == 0) rowFingerprints[0] = rowFingerprint;
                     if (columnCount != 0) {
                         firstDataRow = 0;
                         lastDataRow = 0;
@@ -64,6 +82,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     }
 
                     int directRow = row + rowOffset;
+                    ulong rowFingerprint = DirectRowFingerprintOffset;
                     object?[]? bufferedRow = flatValues == null
                         && rows.TryGetBufferedRow(row, out object?[]? candidateRow)
                         && candidateRow?.Length == columnCount
@@ -82,23 +101,31 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                         }
 
                         int cellSlot = checked((directRow * columnCount) + column);
-                        cellKinds[cellSlot] = (byte)value.Kind;
-                        cellPayloads[cellSlot] = value.Kind switch {
+                        ulong payload = value.Kind switch {
                             ExcelDirectTabularValueKind.Text => sharedStrings.Add(value.Text ?? string.Empty),
                             ExcelDirectTabularValueKind.Boolean => value.Boolean ? 1UL : 0UL,
                             ExcelDirectTabularValueKind.Number => unchecked((ulong)BitConverter.DoubleToInt64Bits(value.Number)),
                             _ => 0UL
                         };
+                        if (cachedCellSlotCount != 0) {
+                            cellKinds[cellSlot] = (byte)value.Kind;
+                            cellPayloads[cellSlot] = payload;
+                        }
+                        if (cachedCellSlotCount == 0) {
+                            AddDirectCellFingerprint(ref rowFingerprint, value.Kind, payload);
+                        }
                         if (value.Kind == ExcelDirectTabularValueKind.Empty) {
                             continue;
                         }
 
                         nonEmptyCellCount++;
+                        nonEmptyCellCounts[directRow]++;
                         IncludeDirectCell(firstColumns, lastColumns, directRow, checked((ushort)column));
                         uint dataRow = checked((uint)directRow);
                         firstDataRow = firstDataRow.HasValue ? Math.Min(firstDataRow.Value, dataRow) : dataRow;
                         lastDataRow = lastDataRow.HasValue ? Math.Max(lastDataRow.Value, dataRow) : dataRow;
                     }
+                    if (cachedCellSlotCount == 0) rowFingerprints[directRow] = rowFingerprint;
                 }
 
                 LegacyXlsDimensions dimensions = totalRows == 0 || columnCount == 0
@@ -130,18 +157,24 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 plan = new DirectTabularPlan(
                     totalRows,
                     columnCount,
-                    cellSlotCount,
+                    cachedCellSlotCount,
                     cellKinds,
                     cellPayloads,
                     firstColumns,
                     lastColumns,
+                    nonEmptyCellCounts,
+                    rowFingerprints,
                     dimensions,
                     firstDataRow,
                     lastDataRow,
                     nonEmptyCellCount,
                     populatedRowCount,
                     workbookStreamCapacity,
-                    sharedStrings.Build());
+                    sharedStrings.Build(),
+                    rows,
+                    flatValues,
+                    rowOffset,
+                    cancellationToken);
                 returnCellCache = false;
                 return true;
             } finally {
@@ -165,6 +198,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
             if (column < firstColumns[row]) firstColumns[row] = column;
             if (column > lastColumns[row]) lastColumns[row] = column;
+        }
+
+        private const ulong DirectRowFingerprintOffset = 14695981039346656037UL;
+        private const ulong DirectRowFingerprintPrime = 1099511628211UL;
+
+        private static void AddDirectCellFingerprint(
+            ref ulong fingerprint,
+            ExcelDirectTabularValueKind kind,
+            ulong payload) {
+            fingerprint = unchecked((fingerprint ^ (byte)kind) * DirectRowFingerprintPrime);
+            fingerprint = unchecked((fingerprint ^ payload) * DirectRowFingerprintPrime);
         }
 
         private static DirectTabularWorkbookStream BuildDirectTabularWorkbookStream(
@@ -290,6 +334,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             var dbCellPositions = new uint[rowBlockCount];
             Span<int> firstCellPositions = stackalloc int[DirectRowsPerDbCellBlock];
             for (int blockIndex = 0; blockIndex < dimensions.RowBlockCount; blockIndex++) {
+                plan.ThrowIfCancellationRequested(blockIndex * DirectRowsPerDbCellBlock);
                 int blockFirstRow = checked((int)dimensions.FirstRow + (blockIndex * DirectRowsPerDbCellBlock));
                 int blockRowAfterLast = Math.Min(
                     checked(blockFirstRow + DirectRowsPerDbCellBlock),
@@ -313,7 +358,10 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
                 int cellRowIndex = 0;
                 for (int row = blockFirstRow; row < blockRowAfterLast; row++) {
-                    if (plan.FirstColumns[row] == ushort.MaxValue) continue;
+                    if (plan.FirstColumns[row] == ushort.MaxValue) {
+                        if (!plan.HasCachedCells) ValidateUncachedDirectRow(plan, row);
+                        continue;
+                    }
                     firstCellPositions[cellRowIndex++] = writePosition;
                     WriteDirectRowCells(output, ref writePosition, plan, row);
                 }
@@ -406,10 +454,23 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ref int position,
             DirectTabularPlan plan,
             int directRow) {
+            Span<byte> rowKinds = stackalloc byte[256];
+            Span<ulong> rowPayloads = stackalloc ulong[256];
+            if (!plan.HasCachedCells) {
+                PrepareUncachedDirectRow(plan, directRow, rowKinds, rowPayloads);
+            }
+
             for (int column = 0; column < plan.ColumnCount; column++) {
-                int cellSlot = checked((directRow * plan.ColumnCount) + column);
-                ExcelDirectTabularValueKind kind = (ExcelDirectTabularValueKind)plan.CellKinds[cellSlot];
-                ulong payload = plan.CellPayloads[cellSlot];
+                ExcelDirectTabularValueKind kind;
+                ulong payload;
+                if (plan.HasCachedCells) {
+                    int cellSlot = checked((directRow * plan.ColumnCount) + column);
+                    kind = (ExcelDirectTabularValueKind)plan.CellKinds[cellSlot];
+                    payload = plan.CellPayloads[cellSlot];
+                } else {
+                    kind = (ExcelDirectTabularValueKind)rowKinds[column];
+                    payload = rowPayloads[column];
+                }
                 ushort legacyColumn = checked((ushort)column);
                 switch (kind) {
                     case ExcelDirectTabularValueKind.Empty:
@@ -507,13 +568,19 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ulong[] cellPayloads,
                 ushort[] firstColumns,
                 ushort[] lastColumns,
+                ushort[] nonEmptyCellCounts,
+                ulong[] rowFingerprints,
                 LegacyXlsDimensions dimensions,
                 uint? firstDataRow,
                 uint? lastDataRow,
                 int nonEmptyCellCount,
                 int populatedRowCount,
                 int workbookStreamCapacity,
-                LegacyXlsSharedStringTable sharedStrings) {
+                LegacyXlsSharedStringTable sharedStrings,
+                IExcelSheetTabularRowSource rows,
+                object?[]? flatValues,
+                int rowOffset,
+                CancellationToken cancellationToken) {
                 TotalRows = totalRows;
                 ColumnCount = columnCount;
                 CellSlotCount = cellSlotCount;
@@ -521,6 +588,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 CellPayloads = cellPayloads;
                 FirstColumns = firstColumns;
                 LastColumns = lastColumns;
+                NonEmptyCellCounts = nonEmptyCellCounts;
+                RowFingerprints = rowFingerprints;
                 Dimensions = dimensions;
                 FirstDataRow = firstDataRow;
                 LastDataRow = lastDataRow;
@@ -528,15 +597,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 PopulatedRowCount = populatedRowCount;
                 WorkbookStreamCapacity = workbookStreamCapacity;
                 SharedStrings = sharedStrings;
+                Rows = rows;
+                FlatValues = flatValues;
+                RowOffset = rowOffset;
+                CancellationToken = cancellationToken;
             }
 
             internal int TotalRows { get; }
             internal int ColumnCount { get; }
             internal int CellSlotCount { get; }
+            internal bool HasCachedCells => CellSlotCount != 0;
             internal byte[] CellKinds { get; }
             internal ulong[] CellPayloads { get; }
             internal ushort[] FirstColumns { get; }
             internal ushort[] LastColumns { get; }
+            internal ushort[] NonEmptyCellCounts { get; }
+            internal ulong[] RowFingerprints { get; }
             internal LegacyXlsDimensions Dimensions { get; }
             internal uint? FirstDataRow { get; }
             internal uint? LastDataRow { get; }
@@ -544,12 +620,108 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal int PopulatedRowCount { get; }
             internal int WorkbookStreamCapacity { get; }
             internal LegacyXlsSharedStringTable SharedStrings { get; }
+            internal IExcelSheetTabularRowSource Rows { get; }
+            internal object?[]? FlatValues { get; }
+            internal int RowOffset { get; }
+            internal CancellationToken CancellationToken { get; }
+
+            internal void ThrowIfCancellationRequested(int row) {
+                if (CancellationToken.CanBeCanceled && (row & 1023) == 0) {
+                    CancellationToken.ThrowIfCancellationRequested();
+                }
+            }
 
             public void Dispose() {
                 if (CellSlotCount == 0) return;
                 ArrayPool<byte>.Shared.Return(CellKinds);
                 ArrayPool<ulong>.Shared.Return(CellPayloads);
             }
+        }
+
+        private static void PrepareUncachedDirectRow(
+            DirectTabularPlan plan,
+            int directRow,
+            Span<byte> rowKinds,
+            Span<ulong> rowPayloads) {
+            plan.ThrowIfCancellationRequested(directRow);
+            int firstColumn = int.MaxValue;
+            int lastColumn = -1;
+            int nonEmptyCellCount = 0;
+            ulong rowFingerprint = DirectRowFingerprintOffset;
+            int sourceRow = directRow - plan.RowOffset;
+            object?[]? bufferedRow = sourceRow >= 0
+                && plan.FlatValues == null
+                && plan.Rows.TryGetBufferedRow(sourceRow, out object?[]? candidateRow)
+                && candidateRow?.Length == plan.ColumnCount
+                    ? candidateRow
+                    : null;
+
+            for (int column = 0; column < plan.ColumnCount; column++) {
+                ExcelDirectTabularValue value;
+                if (sourceRow < 0) {
+                    value = ExcelDirectTabularValue.Normalize(plan.Rows.GetColumnName(column));
+                } else {
+                    object? rawValue = plan.FlatValues != null
+                        ? plan.FlatValues[checked((sourceRow * plan.ColumnCount) + column)]
+                        : bufferedRow != null
+                            ? bufferedRow[column]
+                            : plan.Rows.GetValue(sourceRow, column);
+                    value = ExcelDirectTabularValue.Normalize(rawValue);
+                }
+
+                if (value.Kind == ExcelDirectTabularValueKind.Unsupported) {
+                    throw new InvalidOperationException("The direct XLS tabular source changed after validation.");
+                }
+
+                rowKinds[column] = (byte)value.Kind;
+                rowPayloads[column] = value.Kind switch {
+                    ExcelDirectTabularValueKind.Text => GetValidatedDirectSharedStringIndex(
+                        plan.SharedStrings,
+                        value.Text ?? string.Empty),
+                    ExcelDirectTabularValueKind.Boolean => value.Boolean ? 1UL : 0UL,
+                    ExcelDirectTabularValueKind.Number => unchecked((ulong)BitConverter.DoubleToInt64Bits(value.Number)),
+                    _ => 0UL
+                };
+                AddDirectCellFingerprint(ref rowFingerprint, value.Kind, rowPayloads[column]);
+                if (value.Kind == ExcelDirectTabularValueKind.Empty) continue;
+
+                nonEmptyCellCount++;
+                if (firstColumn == int.MaxValue) firstColumn = column;
+                lastColumn = column;
+            }
+
+            if (directRow == 0 && plan.ColumnCount != 0) {
+                firstColumn = Math.Min(firstColumn, 0);
+                lastColumn = Math.Max(lastColumn, 0);
+            }
+            if (directRow == plan.TotalRows - 1 && plan.ColumnCount != 0) {
+                firstColumn = Math.Min(firstColumn, plan.ColumnCount - 1);
+                lastColumn = Math.Max(lastColumn, plan.ColumnCount - 1);
+            }
+
+            ushort expectedFirstColumn = firstColumn == int.MaxValue
+                ? ushort.MaxValue
+                : checked((ushort)firstColumn);
+            ushort expectedLastColumn = lastColumn < 0 ? (ushort)0 : checked((ushort)lastColumn);
+            if (nonEmptyCellCount != plan.NonEmptyCellCounts[directRow]
+                || expectedFirstColumn != plan.FirstColumns[directRow]
+                || expectedLastColumn != plan.LastColumns[directRow]
+                || rowFingerprint != plan.RowFingerprints[directRow]) {
+                throw new InvalidOperationException("The direct XLS tabular source changed after validation.");
+            }
+        }
+
+        private static uint GetValidatedDirectSharedStringIndex(
+            LegacyXlsSharedStringTable sharedStrings,
+            string text) {
+            if (sharedStrings.TryGetDirectIndex(text, out uint index)) return index;
+            throw new InvalidOperationException("The direct XLS tabular source changed after validation.");
+        }
+
+        private static void ValidateUncachedDirectRow(DirectTabularPlan plan, int directRow) {
+            Span<byte> rowKinds = stackalloc byte[256];
+            Span<ulong> rowPayloads = stackalloc ulong[256];
+            PrepareUncachedDirectRow(plan, directRow, rowKinds, rowPayloads);
         }
 
         private sealed class DirectTabularWorkbookStream : Stream {

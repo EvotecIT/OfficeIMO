@@ -43,6 +43,24 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
         }
 
         ComparisonOperations operations = CreateOperations(format, rowCount);
+        if (operations.Conformance is { IsEquivalent: false } nonEquivalent) {
+            Console.WriteLine(
+                $"ExcelReader.NET {format.ToString().ToUpperInvariant()} conformance probe: " +
+                $"semantic={nonEquivalent.SemanticRoundTrip}, structural={nonEquivalent.StructurallyConformant}. " +
+                $"{nonEquivalent.Detail} Artifact bytes: OfficeIMO={nonEquivalent.OfficeOutputBytes:N0}, " +
+                $"ExcelReader.NET={nonEquivalent.CompetitorOutputBytes:N0}.");
+            Console.WriteLine(
+                "Paired timing withheld because the generated workbooks are not equivalent. " +
+                "This conformance probe remains active and will automatically enter the timed lane when a future competitor release produces an equivalent workbook.");
+            if (operations.ProfileOfficeIMO is not null) {
+                Console.WriteLine(
+                    "OfficeIMO one-pass stage profile (diagnostic, outside comparison timing): " +
+                    string.Join(", ", operations.ProfileOfficeIMO()
+                        .Select(static stage => FormattableString.Invariant($"{stage.Name}={stage.Milliseconds:F3} ms"))));
+            }
+            return;
+        }
+
         (Func<int> RunOfficeIMO, Func<int> RunExcelReader) = operations;
         for (int index = 0; index < WarmupIterations; index++) {
             ValidateResult(format, rowCount, $"OfficeIMO warmup {index}", RunOfficeIMO());
@@ -80,11 +98,8 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
 
         double officeMedian = Median(officeSamples);
         double excelReaderMedian = Median(excelReaderSamples);
-        string lane = operations.Conformance is { IsEquivalent: false }
-            ? "diagnostic non-equivalent threat lane"
-            : "validated equivalent lane";
         Console.WriteLine(FormattableString.Invariant(
-            $"Paired {format.ToString().ToUpperInvariant()} write comparison, {lane} ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
+            $"Paired {format.ToString().ToUpperInvariant()} write comparison, validated equivalent lane ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
         if (operations.Conformance is { } conformance) {
             Console.WriteLine(
                 $"ExcelReader.NET conformance: semantic={conformance.SemanticRoundTrip}, " +

@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 /// <summary>
 /// Provides a diagnostic scenario for OfficeIMO's native binary workbook
 /// formats and ExcelReader.NET. Structurally invalid competitor output remains
-/// measurable as a diagnostic threat lane, but is never ranked as equivalent.
+/// visible as a conformance probe, but is not timed or ranked as equivalent.
 /// </summary>
 internal sealed class ExcelNativeBinaryWriteBenchmarks {
     private BinaryWriteRow[] _rows = null!;
@@ -21,7 +21,7 @@ internal sealed class ExcelNativeBinaryWriteBenchmarks {
 
     // The conformance observation is deliberately evaluated at runtime. A new
     // competitor release can move from diagnostic to equivalent without hiding
-    // its historical throughput from the comparison runner.
+    // the structural risk from the comparison runner.
     public ExcelFileFormat Format { get; set; }
 
     internal BinaryWriteConformanceObservation SetupComparison() {

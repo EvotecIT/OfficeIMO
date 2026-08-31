@@ -151,8 +151,7 @@ public sealed class RowMapperGenerator : IIncrementalGenerator {
     }
 
     private static IEnumerable<string> GetColumnNames(IPropertySymbol property) {
-        AttributeData? attribute = property.GetAttributes().FirstOrDefault(static candidate =>
-            candidate.AttributeClass?.ToDisplayString() == ColumnAttributeName);
+        AttributeData? attribute = GetInheritedColumnAttribute(property);
         if (attribute == null || attribute.ConstructorArguments.Length == 0 ||
             attribute.ConstructorArguments[0].Value is not string primary ||
             string.IsNullOrWhiteSpace(primary)) {
@@ -167,6 +166,16 @@ public sealed class RowMapperGenerator : IIncrementalGenerator {
         foreach (TypedConstant alias in aliases.Values) {
             if (alias.Value is string text && !string.IsNullOrWhiteSpace(text)) yield return text;
         }
+    }
+
+    private static AttributeData? GetInheritedColumnAttribute(IPropertySymbol property) {
+        for (IPropertySymbol? current = property; current != null; current = current.OverriddenProperty) {
+            AttributeData? attribute = current.GetAttributes().FirstOrDefault(static candidate =>
+                candidate.AttributeClass?.ToDisplayString() == ColumnAttributeName);
+            if (attribute != null) return attribute;
+        }
+
+        return null;
     }
 
     private static string GetMappingTypeName(INamedTypeSymbol model) {

@@ -37,6 +37,7 @@ namespace OfficeIMO.Excel {
         private readonly DataMappingErrorValuePolicy _mappingErrorValuePolicy;
         private readonly CancellationToken _cancellationToken;
         private DbDataReader _current;
+        private CancellationTokenSource? _currentSheetCancellationSource;
         private int _resultIndex;
         private bool _closed;
 
@@ -488,14 +489,19 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            _current.Dispose();
             int nextResultIndex = _resultIndex + 1;
+            DbDataReader nextReader;
             try {
-                _current = _openSheet(nextResultIndex, cancellationToken);
+                nextReader = _openSheet(nextResultIndex, cancellationToken);
             } catch {
                 CloseAfterSheetOpenFailure();
                 throw;
             }
+
+            _current.Dispose();
+            _currentSheetCancellationSource?.Dispose();
+            _currentSheetCancellationSource = null;
+            _current = nextReader;
             _resultIndex = nextResultIndex;
             return true;
         }
@@ -505,18 +511,54 @@ namespace OfficeIMO.Excel {
             NextResultAsyncCore(cancellationToken);
 
         private async Task<bool> NextResultAsyncCore(CancellationToken cancellationToken) {
-            CancellationTokenSource? linkedSource = CreateEffectiveCancellationToken(
-                cancellationToken,
-                out CancellationToken effectiveToken);
+            ThrowIfClosed();
+            cancellationToken.ThrowIfCancellationRequested();
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_resultIndex + 1 >= _sheetNames.Count) {
+                return false;
+            }
+
+            if (!cancellationToken.CanBeCanceled || cancellationToken == _cancellationToken) {
+                return await Task.Run(
+                        () => MoveNextResult(_cancellationToken),
+                        _cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
+            CancellationTokenSource sheetCancellationSource = _cancellationToken.CanBeCanceled
+                ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
+                : new CancellationTokenSource();
+            CancellationTokenRegistration callerRegistration = cancellationToken.Register(
+                static state => ((CancellationTokenSource)state!).Cancel(),
+                sheetCancellationSource);
+            DbDataReader? nextReader = null;
 
             try {
-                effectiveToken.ThrowIfCancellationRequested();
-                return await Task.Run(
-                        () => MoveNextResult(effectiveToken),
-                        effectiveToken)
+                int nextResultIndex = _resultIndex + 1;
+                nextReader = await Task.Run(
+                        () => _openSheet(nextResultIndex, sheetCancellationSource.Token),
+                        sheetCancellationSource.Token)
                     .ConfigureAwait(false);
+
+                callerRegistration.Dispose();
+                cancellationToken.ThrowIfCancellationRequested();
+                _cancellationToken.ThrowIfCancellationRequested();
+
+                _current.Dispose();
+                _currentSheetCancellationSource?.Dispose();
+                _current = nextReader;
+                _currentSheetCancellationSource = sheetCancellationSource;
+                nextReader = null;
+                _resultIndex = nextResultIndex;
+                return true;
+            } catch {
+                callerRegistration.Dispose();
+                nextReader?.Dispose();
+                sheetCancellationSource.Dispose();
+                CloseAfterSheetOpenFailure();
+                throw;
             } finally {
-                linkedSource?.Dispose();
+                callerRegistration.Dispose();
             }
         }
 
@@ -549,6 +591,8 @@ namespace OfficeIMO.Excel {
             } catch {
                 // Preserve the worksheet-open failure while attempting complete cleanup.
             }
+            _currentSheetCancellationSource?.Dispose();
+            _currentSheetCancellationSource = null;
             try {
                 _owner.Dispose();
             } catch {
@@ -567,7 +611,12 @@ namespace OfficeIMO.Excel {
             try {
                 _current.Dispose();
             } finally {
-                _owner.Dispose();
+                try {
+                    _currentSheetCancellationSource?.Dispose();
+                    _currentSheetCancellationSource = null;
+                } finally {
+                    _owner.Dispose();
+                }
             }
         }
 

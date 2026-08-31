@@ -457,16 +457,16 @@ domains:
 | `0xFFFF` | 4.676 ms | 7.447 ms | 0.6279 |
 | `0xFFFF0000` | 4.482 ms | 7.341 ms | 0.6105 |
 
-The native binary write lanes deliberately keep faster, non-equivalent output
-in the report instead of dropping it. ExcelReader.NET's XLS round-tripped its
+The native binary write probes deliberately keep non-equivalent competitor
+output visible instead of dropping it. ExcelReader.NET's XLS round-tripped its
 own values but contained none of the required BIFF8 `DBCell` blocks; its XLSB
-round-tripped its own values but omitted the required `BrtWsDim` record. At
-25,000 rows the invalid XLS output was about 2.0-2.1 times faster than OfficeIMO,
-and the invalid XLSB output was about 2.1 times faster. Those ratios are
-diagnostic threat signals, not claims that the implementations perform the same
-work. OfficeIMO setup fails unless every expected BIFF8 `Index`/`DBCell` block is
-present, so an OfficeIMO regression cannot make this lane look faster by
-silently weakening the artifact.
+round-tripped its own values but omitted the required `BrtWsDim` record. The
+runner records those semantic and structural observations and artifact sizes,
+but withholds paired timings and ratios until both implementations perform
+equivalent work. A future conforming competitor release automatically enters
+the timed lane. OfficeIMO setup fails unless every expected BIFF8
+`Index`/`DBCell` block is present, so an OfficeIMO regression cannot make this
+lane look faster by silently weakening the artifact.
 
 The equivalent 65K read lanes found XLSX parity with prefetch disabled and an
 OfficeIMO median about 2% lower on both domains. OfficeIMO's XLSB median was

@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using static OfficeIMO.Excel.LegacyXls.Read.LegacyXlsTabularWorkbook;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
@@ -21,6 +22,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly CancellationToken _cancellationToken;
+        private CancellationToken _activeReadCancellationToken;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _ordinals;
         private readonly ValueKind[] _kinds;
@@ -57,6 +59,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _cancellationToken = cancellationToken;
+            _activeReadCancellationToken = cancellationToken;
 
             int[]? bufferedRowOffsets = _bufferedBytes != null
                 ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
@@ -124,17 +127,30 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         public override bool IsClosed => _closed;
         public override int RecordsAffected => -1;
 
-        public override bool Read() {
+        public override bool Read() => ReadCore(_cancellationToken);
+
+        public override Task<bool> ReadAsync(CancellationToken cancellationToken) =>
+            Task.Run(() => ReadCore(cancellationToken), cancellationToken);
+
+        private bool ReadCore(CancellationToken cancellationToken) {
             ThrowIfClosed();
             _cancellationToken.ThrowIfCancellationRequested();
-            _hasCurrentRow = false;
-            if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
-                LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
-                _hasCurrentRow = true;
-                return true;
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            _activeReadCancellationToken = cancellationToken;
+            try {
+                _hasCurrentRow = false;
+                if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                    LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                    _hasCurrentRow = true;
+                    return true;
+                }
 
-            return ReadSourceRow();
+                bool result = ReadSourceRow();
+                ThrowIfReadCancellationRequested();
+                return result;
+            } finally {
+                _activeReadCancellationToken = _cancellationToken;
+            }
         }
 
         private bool ReadSourceRow() {
@@ -216,7 +232,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int rowEnd,
             ref int pendingFormulaOrdinal,
             ref ushort pendingFormulaStyle) {
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             _position = rowStart;
             while (_position < rowEnd) {
                 int recordOffset = _position;
@@ -291,7 +307,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bool sawEof = false;
             int pendingHeaderColumn = -1;
             int previousCellRow = -1;
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             bufferedWorksheetEndOffset = -1;
             headerValues = null;
 
@@ -779,9 +795,19 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private void CheckCancellation() {
-            if (!_cancellationToken.CanBeCanceled) return;
+            if (!CanCancelCurrentRead) return;
             if ((++_recordsSinceCancellationCheck & 1023) == 0) {
-                _cancellationToken.ThrowIfCancellationRequested();
+                ThrowIfReadCancellationRequested();
+            }
+        }
+
+        private bool CanCancelCurrentRead =>
+            _cancellationToken.CanBeCanceled || _activeReadCancellationToken.CanBeCanceled;
+
+        private void ThrowIfReadCancellationRequested() {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_activeReadCancellationToken != _cancellationToken) {
+                _activeReadCancellationToken.ThrowIfCancellationRequested();
             }
         }
 

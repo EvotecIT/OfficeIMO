@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -27,6 +28,7 @@ namespace OfficeIMO.Excel {
             private readonly int _fieldCount;
             private readonly long _maximumBufferedCells;
             private readonly CancellationToken _ct;
+            private CancellationToken _activeReadCancellationToken;
             private readonly CultureInfo _culture;
             private readonly string[] _columnNames;
             private readonly Type[] _columnTypes;
@@ -74,6 +76,7 @@ namespace OfficeIMO.Excel {
                 _fieldCount = fieldCount;
                 _maximumBufferedCells = options.MaxDataReaderBufferedCells;
                 _ct = ct;
+                _activeReadCancellationToken = ct;
                 _culture = options.Culture;
                 _nextLogicalRow = firstRow;
                 _currentValues = new object?[fieldCount];
@@ -282,18 +285,31 @@ namespace OfficeIMO.Excel {
             public override bool NextResult() => false;
 
             /// <inheritdoc />
-            public override bool Read() {
-                if (_closed) {
+            public override bool Read() => ReadCore(_ct);
+
+            /// <inheritdoc />
+            public override Task<bool> ReadAsync(CancellationToken cancellationToken) =>
+                Task.Run(() => ReadCore(cancellationToken), cancellationToken);
+
+            private bool ReadCore(CancellationToken cancellationToken) {
+                _ct.ThrowIfCancellationRequested();
+                cancellationToken.ThrowIfCancellationRequested();
+                _activeReadCancellationToken = cancellationToken;
+                try {
+                    if (_closed) {
+                        return false;
+                    }
+
+                    if (TryReadLogicalRow(out var row)) {
+                        _currentRow = row;
+                        return true;
+                    }
+
+                    _currentRow = null;
                     return false;
+                } finally {
+                    _activeReadCancellationToken = _ct;
                 }
-
-                if (TryReadLogicalRow(out var row)) {
-                    _currentRow = row;
-                    return true;
-                }
-
-                _currentRow = null;
-                return false;
             }
 
             /// <inheritdoc />
@@ -339,7 +355,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                _ct.ThrowIfCancellationRequested();
+                ThrowIfReadCancellationRequested();
                 if (_utf8Source != null) {
                     Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
                     bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow);
@@ -363,7 +379,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
-                    _rowsAreSorted ??= _owner.RowsAreSortedWithinRangeXmlFast(_firstRow, _lastRow, _ct);
+                    _rowsAreSorted ??= _owner.RowsAreSortedWithinRangeXmlFast(
+                        _firstRow,
+                        _lastRow,
+                        _activeReadCancellationToken);
                     if (_rowsAreSorted.Value) {
                         row = _blankRow;
                         _currentRow = row;
@@ -393,9 +412,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 while (_reader.Read()) {
-                    if (_ct.CanBeCanceled) {
-                        _ct.ThrowIfCancellationRequested();
-                    }
+                    ThrowIfReadCancellationRequested();
 
                     if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
                         continue;
@@ -509,9 +526,7 @@ namespace OfficeIMO.Excel {
 
                 int targetColumn = _firstColumn + ordinal;
                 while (_reader.Read()) {
-                    if (_ct.CanBeCanceled) {
-                        _ct.ThrowIfCancellationRequested();
-                    }
+                    ThrowIfReadCancellationRequested();
 
                     if (_reader.NodeType == XmlNodeType.EndElement && _reader.Depth == _currentRowDepth && _reader.LocalName == "row") {
                         _currentRowActive = false;
@@ -588,9 +603,7 @@ namespace OfficeIMO.Excel {
 
                 if (_currentRowActive && !_currentRowFinished) {
                     while (_reader.Read()) {
-                        if (_ct.CanBeCanceled) {
-                            _ct.ThrowIfCancellationRequested();
-                        }
+                        ThrowIfReadCancellationRequested();
 
                         if (_reader.NodeType == XmlNodeType.EndElement && _reader.Depth == _currentRowDepth && _reader.LocalName == "row") {
                             _currentRowActive = false;
@@ -646,9 +659,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 while (_reader.Read()) {
-                    if (_ct.CanBeCanceled) {
-                        _ct.ThrowIfCancellationRequested();
-                    }
+                    ThrowIfReadCancellationRequested();
 
                     if (_reader.NodeType != XmlNodeType.Element || _reader.LocalName != "row") {
                         continue;
@@ -672,7 +683,14 @@ namespace OfficeIMO.Excel {
 
                     var values = new object?[_fieldCount];
                     var rowSlot = new[] { values };
-                    _owner.ReadXmlRowIntoChunk(_reader, rowSlot, rowIndex, rowIndex, _firstColumn, _lastColumn, _ct);
+                    _owner.ReadXmlRowIntoChunk(
+                        _reader,
+                        rowSlot,
+                        rowIndex,
+                        rowIndex,
+                        _firstColumn,
+                        _lastColumn,
+                        _activeReadCancellationToken);
                     StoreBufferedRow(rowIndex, values);
                 }
             }
@@ -680,7 +698,14 @@ namespace OfficeIMO.Excel {
             private object?[] ReadPendingRowValues() {
                 var values = new object?[_fieldCount];
                 var rowSlot = new[] { values };
-                _owner.ReadXmlRowIntoChunk(_reader, rowSlot, _pendingRowIndex, _pendingRowIndex, _firstColumn, _lastColumn, _ct);
+                _owner.ReadXmlRowIntoChunk(
+                    _reader,
+                    rowSlot,
+                    _pendingRowIndex,
+                    _pendingRowIndex,
+                    _firstColumn,
+                    _lastColumn,
+                    _activeReadCancellationToken);
                 return values;
             }
 
@@ -760,6 +785,13 @@ namespace OfficeIMO.Excel {
 
                 if (_currentRow == null) {
                     throw new InvalidOperationException("The reader is not positioned on a row.");
+                }
+            }
+
+            private void ThrowIfReadCancellationRequested() {
+                _ct.ThrowIfCancellationRequested();
+                if (_activeReadCancellationToken != _ct) {
+                    _activeReadCancellationToken.ThrowIfCancellationRequested();
                 }
             }
 
