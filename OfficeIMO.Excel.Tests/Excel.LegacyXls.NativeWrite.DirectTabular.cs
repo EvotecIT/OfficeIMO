@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Read;
 using OfficeIMO.Excel.LegacyXls.Write;
 using System.Data;
 using System.Text;
@@ -35,6 +36,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            var readOptions = new ExcelReadOptions();
+            using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))
+            using (var indexedReader = Assert.IsType<LegacyXlsTabularDataReader>(
+                       indexedWorkbook.OpenTable("Data", hasHeaderRow: true, readOptions))) {
+                Assert.True(indexedReader.UsedIndexedDiscovery);
+            }
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
             Assert.Equal(4, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));

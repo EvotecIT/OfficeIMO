@@ -34,6 +34,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 rows.Add(new LegacyXlsBufferedRow(
                     (ValueKind[])_kinds.Clone(),
                     (double[])_numbers.Clone(),
+                    (DateTime[])_dates.Clone(),
                     (bool[])_booleans.Clone(),
                     (string?[])_strings.Clone()));
                 for (int ordinal = 0; ordinal < FieldCount; ordinal++) {
@@ -61,6 +62,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private void LoadBufferedRow(LegacyXlsBufferedRow row) {
             Array.Copy(row.Kinds, _kinds, FieldCount);
             Array.Copy(row.Numbers, _numbers, FieldCount);
+            Array.Copy(row.Dates, _dates, FieldCount);
             Array.Copy(row.Booleans, _booleans, FieldCount);
             Array.Copy(row.Strings, _strings, FieldCount);
         }
@@ -85,16 +87,19 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             internal LegacyXlsBufferedRow(
                 ValueKind[] kinds,
                 double[] numbers,
+                DateTime[] dates,
                 bool[] booleans,
                 string?[] strings) {
                 Kinds = kinds;
                 Numbers = numbers;
+                Dates = dates;
                 Booleans = booleans;
                 Strings = strings;
             }
 
             internal ValueKind[] Kinds { get; }
             internal double[] Numbers { get; }
+            internal DateTime[] Dates { get; }
             internal bool[] Booleans { get; }
             internal string?[] Strings { get; }
         }

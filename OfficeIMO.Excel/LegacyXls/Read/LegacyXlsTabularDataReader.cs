@@ -27,6 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly Dictionary<string, int> _ordinals;
         private readonly ValueKind[] _kinds;
         private readonly double[] _numbers;
+        private readonly DateTime[] _dates;
         private readonly bool[] _booleans;
         private readonly string?[] _strings;
         private readonly Type[] _columnTypes;
@@ -36,6 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _lastDataRow;
         private int[]? _bufferedRowOffsets;
         private readonly int _bufferedWorksheetEndOffset;
+        private readonly bool _usedIndexedDiscovery;
         private int _position;
         private int _nextRow;
         private int _schemaRowIndex;
@@ -64,17 +66,35 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int[]? bufferedRowOffsets = _bufferedBytes != null
                 ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
                 : null;
-            int bufferedWorksheetEndOffset;
+            int bufferedWorksheetEndOffset = -1;
+            int firstRow = -1;
+            int lastRow = -1;
+            int firstColumn = 0;
+            int lastColumn = -1;
+            Dictionary<int, string?>? headerValues = null;
             try {
-                Discover(
-                    sheetOffset,
-                    bufferedRowOffsets,
-                    out bufferedWorksheetEndOffset,
-                    out int firstRow,
-                    out int lastRow,
-                    out int firstColumn,
-                    out int lastColumn,
-                    out Dictionary<int, string?>? headerValues);
+                bool indexed = bufferedRowOffsets != null
+                    && TryDiscoverIndexed(
+                        sheetOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                if (!indexed) {
+                    Discover(
+                        sheetOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                }
+                _usedIndexedDiscovery = indexed;
                 _bufferedRowOffsets = bufferedRowOffsets;
                 _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
                 _firstColumn = firstColumn;
@@ -105,6 +125,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 _kinds = new ValueKind[fieldCount];
                 _numbers = new double[fieldCount];
+                _dates = new DateTime[fieldCount];
                 _booleans = new bool[fieldCount];
                 _strings = new string?[fieldCount];
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
@@ -121,6 +142,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         public override object this[int ordinal] => GetValue(ordinal);
         public override object this[string name] => GetValue(GetOrdinal(name));
+        internal bool UsedIndexedDiscovery => _usedIndexedDiscovery;
         public override int Depth => 0;
         public override int FieldCount => _headers.Length;
         public override bool HasRows => _firstDataRow >= 0 && _firstDataRow <= _lastDataRow;
@@ -614,6 +636,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
             int column = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
             int ordinal = column - _firstColumn;
+            if ((uint)ordinal >= (uint)FieldCount) {
+                throw new InvalidDataException(
+                    $"The XLS row contains column {column} outside its discovered schema.");
+            }
             ushort style = (ushort)(bytes[payloadOffset + 4] | bytes[payloadOffset + 5] << 8);
             switch ((BiffRecordType)type) {
                 case BiffRecordType.Blank:
@@ -671,8 +697,13 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int count = checked(lastColumn - firstColumn + 1);
             int expectedLength = checked(4 + count * 6 + 2);
             if (record.Length != expectedLength) throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            int firstOrdinal = firstColumn - _firstColumn;
+            if (firstOrdinal < 0 || firstOrdinal > FieldCount - count) {
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
+            }
             for (int index = 0; index < count; index++) {
-                int ordinal = firstColumn + index - _firstColumn;
+                int ordinal = firstOrdinal + index;
                 int cellOffset = payload + 4 + index * 6;
                 StoreNumber(
                     ordinal,
@@ -682,9 +713,22 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private void StoreBufferedMulRk(byte[] bytes, int payloadOffset, int length) {
+            if (length < 6) {
+                throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            }
             int firstColumn = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
-            int count = (length - 6) / 6;
+            int lastColumn = bytes[payloadOffset + length - 2]
+                | bytes[payloadOffset + length - 1] << 8;
+            int count = checked(lastColumn - firstColumn + 1);
+            int expectedLength = checked(4 + count * 6 + 2);
+            if (length != expectedLength) {
+                throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            }
             int ordinal = firstColumn - _firstColumn;
+            if (ordinal < 0 || ordinal > FieldCount - count) {
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
+            }
             int cellOffset = payloadOffset + 4;
             for (int index = 0; index < count; index++, ordinal++, cellOffset += 6) {
                 StoreNumber(
@@ -763,12 +807,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, ushort style) {
+            DateTime date = default;
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
                 && _dateStyles[style]
-                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out _);
+                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date);
             _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
             _numbers[ordinal] = number;
+            if (isDate) {
+                _dates[ordinal] = date;
+            }
         }
 
         private string ReadLabel(RecordSlice record) {
