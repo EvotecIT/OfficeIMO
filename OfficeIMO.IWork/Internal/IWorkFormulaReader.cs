@@ -236,6 +236,7 @@ internal static class IWorkFormulaReader {
     private static bool TryReadNodes(IWorkWireMessage formula, int maximumNodes,
         out IReadOnlyList<IWorkWireMessage> nodes) {
         nodes = Array.Empty<IWorkWireMessage>();
+        if (formula.FieldCount(1) != 1) return false;
         byte[]? nodeArrayBytes = formula.GetBytes(1);
         if (nodeArrayBytes == null || formula.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) return false;
         int nodeCount;

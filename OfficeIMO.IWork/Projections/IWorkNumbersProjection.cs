@@ -408,6 +408,7 @@ internal static class IWorkNumbersReader {
         int declaredTileCount;
         try {
             declaredTileCount = tileStorageBytes == null
+                || store.FieldCount(3) != 1
                 || store.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                     ? -1
                     : IWorkProtobuf.CountFields(tileStorageBytes, 1,
@@ -514,6 +515,10 @@ internal static class IWorkNumbersReader {
                     || rowInfo.HasUnexpectedWireKind(6, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(7, IWorkWireKind.Bytes)
                     || rowInfo.HasUnexpectedWireKind(8, IWorkWireKind.Varint)
+                    || rowInfo.FieldCount(3) > 1
+                    || rowInfo.FieldCount(4) > 1
+                    || rowInfo.FieldCount(6) > 1
+                    || rowInfo.FieldCount(7) > 1
                     || (currentBuffer == null) != (currentOffsets == null)
                     || currentOffsets != null && currentOffsets.Length % 2 != 0) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
@@ -779,6 +784,7 @@ internal static class IWorkNumbersReader {
         int pairCount;
         try {
             pairCount = formulaStoreBytes == null
+                || mergeOwner.FieldCount(2) != 1
                 || mergeOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                     ? -1
                     : mergeOwner.CountNestedFields(formulaStoreBytes, 3);

@@ -130,7 +130,8 @@ internal sealed class IWorkWireMessage {
     internal string? GetString(int field, out bool complete) {
         complete = true;
         if (!HasField(field)) return null;
-        if (HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
+        if (FieldCount(field) != 1
+            || HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
             return null;
         }

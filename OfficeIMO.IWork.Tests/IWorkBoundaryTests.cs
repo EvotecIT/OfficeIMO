@@ -1064,6 +1064,7 @@ public sealed partial class IWorkBoundaryTests {
             byte[] store = Message(storeFields.ToArray());
             var modelFields = new List<byte[]> {
                 BytesField(4, store),
+                table.DuplicateTableStore ? BytesField(4, store) : Array.Empty<byte>(),
                 table.WrongWireDimensions
                     ? BytesField(6, new byte[] { checked((byte)table.Rows) })
                     : VarintField(6, checked((ulong)table.Rows)),
@@ -1516,7 +1517,7 @@ public sealed partial class IWorkBoundaryTests {
             int unexpectedTileFieldCount = 0, bool mixedRowIndexWire = false,
             int unexpectedStringCatalogFieldCount = 0,
             int unexpectedFormulaCatalogFieldCount = 0,
-            int trailingEmptyOffsetCount = 0) {
+            int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1561,6 +1562,7 @@ public sealed partial class IWorkBoundaryTests {
             UnexpectedStringCatalogFieldCount = unexpectedStringCatalogFieldCount;
             UnexpectedFormulaCatalogFieldCount = unexpectedFormulaCatalogFieldCount;
             TrailingEmptyOffsetCount = trailingEmptyOffsetCount;
+            DuplicateTableStore = duplicateTableStore;
         }
 
         internal string Name { get; }
@@ -1607,5 +1609,6 @@ public sealed partial class IWorkBoundaryTests {
         internal int UnexpectedStringCatalogFieldCount { get; }
         internal int UnexpectedFormulaCatalogFieldCount { get; }
         internal int TrailingEmptyOffsetCount { get; }
+        internal bool DuplicateTableStore { get; }
     }
 }

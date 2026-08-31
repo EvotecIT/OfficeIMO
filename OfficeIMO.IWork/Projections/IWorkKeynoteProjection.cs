@@ -171,7 +171,9 @@ internal static class IWorkKeynoteReader {
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
         IWorkWireMessage showMessage = index.Message(show);
-        byte[]? slideTreeBytes = showMessage.GetBytes(3);
+        byte[]? slideTreeBytes = showMessage.FieldCount(3) == 1
+            ? showMessage.GetBytes(3)
+            : null;
         int slideReferenceCount;
         int slideTreeFieldCount = 0;
         try {

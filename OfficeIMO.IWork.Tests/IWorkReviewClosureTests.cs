@@ -159,8 +159,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Pages_owner_maps_unlabeled_lists_to_native_word_numbering() {
-        using MemoryStream package = CreatePagesPackageWithUnlabeledList();
+    public void Pages_owner_falls_back_when_numbered_list_labels_are_missing() {
+        using MemoryStream package = CreatePagesPackageWithUnlabeledList(includePreview: true);
 
         IWorkPagesProjection projection = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages).ReadPages();
@@ -171,10 +171,7 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = WordDocument.LoadPagesWithReport(package);
 
-        WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
-            candidate => candidate.Text == "Item");
-        Assert.True(paragraph.IsListItem);
-        Assert.Equal(0, paragraph.ListItemLevel);
+        Assert.True(result.IsVisualFallback);
     }
 
     [Fact]

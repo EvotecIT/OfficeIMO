@@ -294,7 +294,8 @@ internal static class IWorkTextReader {
             return;
         }
         if (super == null || !super.HasField(1)) return;
-        if (super.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
+        if (super.FieldCount(1) != 1
+            || super.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || !TryDecodeUtf8(super.GetBytes(1)!, projectionBudget, out string name)) complete = false;
         else apply(name);
     }
@@ -312,7 +313,8 @@ internal static class IWorkTextReader {
         ulong? clearFont = ReadUnsigned(message, 4, ref complete);
         if (clearFont == 1) data.FontName = null;
         else if (message.HasField(5)) {
-            if (message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
+            if (message.FieldCount(5) != 1
+                || message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
                 || !TryDecodeUtf8(message.GetBytes(5)!, projectionBudget, out string fontName)) complete = false;
             else data.FontName = fontName;
         }
@@ -397,6 +399,7 @@ internal static class IWorkTextReader {
         string? selectedLabel = level >= 0 && level < data.Labels.Count
             ? data.Labels[level]
             : null;
+        if (labelType != 0 && selectedLabel == null) resolvedCompletely = false;
         (int Level, string? Label) result = labelType == 0
             || string.Equals(data.Name, "None", StringComparison.OrdinalIgnoreCase)
             ? (-1, null)
@@ -443,7 +446,8 @@ internal static class IWorkTextReader {
             resolvedCompletely = false;
         } else {
             IWorkWireMessage message = index.Message(record);
-            if (!message.HasField(2) || message.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
+            if (message.FieldCount(2) != 1
+                || message.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                 || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
                 resolvedCompletely = false;
             } else {
@@ -491,7 +495,8 @@ internal static class IWorkTextReader {
     }
 
     private static ulong? ReadUnsigned(IWorkWireMessage message, int field, ref bool complete) {
-        if (message.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) complete = false;
+        if (message.FieldCount(field) > 1
+            || message.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) complete = false;
         return message.GetUnsigned(field);
     }
 
