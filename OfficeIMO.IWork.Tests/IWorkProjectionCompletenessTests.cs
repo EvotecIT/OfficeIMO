@@ -304,7 +304,8 @@ public sealed partial class IWorkBoundaryTests {
         string text = "Title", string? slideName = null, string? listLabel = null,
         bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null,
         float? slideWidth = null, float? slideHeight = null,
-        bool naturalAlignment = false) {
+        bool naturalAlignment = false, bool duplicateDrawableInField = false,
+        bool aliasDrawableAcrossFields = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -355,14 +356,16 @@ public sealed partial class IWorkBoundaryTests {
         byte[] showPayload = wrongWireSlideSize
             ? Message(BytesField(3, slideTree), VarintField(4, 1))
             : Message(BytesField(3, slideTree), slideSize);
+        var slideFields = new List<byte[]> { ReferenceField(5, shapeId) };
+        if (duplicateDrawableInField) slideFields.Add(ReferenceField(5, shapeId));
+        if (aliasDrawableAcrossFields) slideFields.Add(ReferenceField(6, shapeId));
+        if (slideName != null) slideFields.Add(StringField(10, slideName));
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
             ArchiveRecord(showId, showType, showPayload),
             ArchiveRecord(nodeId, nodeType, Message(ReferenceField(2, slideId),
                 wrongWireSkippedFlag ? BytesField(4, new byte[] { 1 }) : Array.Empty<byte>())),
-            ArchiveRecord(slideId, slideType, Message(
-                ReferenceField(5, shapeId),
-                slideName == null ? Array.Empty<byte>() : StringField(10, slideName))),
+            ArchiveRecord(slideId, slideType, Message(slideFields.ToArray())),
             ArchiveRecord(shapeId, 2011, Message(shapeFields.ToArray())),
             ArchiveRecord(storageId, 2001, Message(storageFields.ToArray()))
         };

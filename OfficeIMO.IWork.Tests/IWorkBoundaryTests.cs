@@ -619,7 +619,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Duplicate_numbers_tile_indexes_disable_editable_reconstruction_before_replay() {
         using MemoryStream package = CreateNumbersPackage(new[] {
-            new TableSpec("Duplicate", 1, 1, 1d, duplicateCell: true)
+            new TableSpec("Duplicate", 257, 1, 1d, duplicateCell: true)
         }, includePreview: true);
 
         using var result = ExcelDocument.LoadNumbersWithReport(package);
@@ -647,7 +647,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Duplicate_numbers_rows_within_a_tile_disable_editable_reconstruction() {
         using MemoryStream package = CreateNumbersPackage(new[] {
-            new TableSpec("Duplicate row", 1, 1, 1d, duplicateTileRow: true)
+            new TableSpec("Duplicate row", 2, 1, 1d, duplicateTileRow: true)
         }, includePreview: true);
 
         using var result = ExcelDocument.LoadNumbersWithReport(package);
@@ -1023,14 +1023,18 @@ public sealed partial class IWorkBoundaryTests {
             byte[] rowInfo = table.LegacyStorage
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
                 : CreateBncRow(table);
-            byte[] tilePayload = table.DuplicateTileRow
-                ? Message(BytesField(5, rowInfo), BytesField(5, rowInfo))
-                : Message(BytesField(5, rowInfo));
+            byte[] tilePayload = table.MalformedSecondTileRow
+                ? Message(BytesField(5, rowInfo), BytesField(5, new byte[] { 0x80 }))
+                : table.DuplicateTileRow
+                    ? Message(BytesField(5, rowInfo), BytesField(5, rowInfo))
+                    : Message(BytesField(5, rowInfo));
             if (!table.MissingTile) records.Add(ArchiveRecord(tileId, 6002, tilePayload));
 
             byte[] tileEntry = Message(VarintField(1, 0), ReferenceField(2, tileId));
             byte[] tileStorage;
-            if (table.DuplicateCell) {
+            if (table.MalformedSecondTileEntry) {
+                tileStorage = Message(BytesField(1, tileEntry), BytesField(1, new byte[] { 0x80 }));
+            } else if (table.DuplicateCell) {
                 ulong duplicateTileId = tileId + 100_000;
                 records.Add(ArchiveRecord(duplicateTileId, 6002, tilePayload));
                 byte[] duplicateEntry = Message(VarintField(1, 0), ReferenceField(2, duplicateTileId));
@@ -1447,7 +1451,8 @@ public sealed partial class IWorkBoundaryTests {
             bool oddCurrentOffsets = false, double? defaultRowHeight = null,
             int headerRows = 0, int footerRows = 0, bool error = false,
             bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
-            bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false) {
+            bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
+            bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1479,6 +1484,8 @@ public sealed partial class IWorkBoundaryTests {
             EmptyOffsetBeyondColumns = emptyOffsetBeyondColumns;
             CellCrossesNextOffset = cellCrossesNextOffset;
             MalformedSecondMergePair = malformedSecondMergePair;
+            MalformedSecondTileRow = malformedSecondTileRow;
+            MalformedSecondTileEntry = malformedSecondTileEntry;
         }
 
         internal string Name { get; }
@@ -1512,5 +1519,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool EmptyOffsetBeyondColumns { get; }
         internal bool CellCrossesNextOffset { get; }
         internal bool MalformedSecondMergePair { get; }
+        internal bool MalformedSecondTileRow { get; }
+        internal bool MalformedSecondTileEntry { get; }
     }
 }

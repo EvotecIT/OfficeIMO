@@ -52,11 +52,17 @@ public sealed partial class PowerPointPresentation {
 
         PowerPointPresentation presentation = Create();
         try {
-            double canvasWidth = projection.SlideSize?.WidthPoints ?? 960d;
-            double canvasHeight = projection.SlideSize?.HeightPoints ?? 540d;
-            if (projection.SlideSize != null) {
-                presentation.SlideSize.SetSizePoints(projection.SlideSize.WidthPoints,
-                    projection.SlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
+            IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
+            bool useSourceSlideSize = sourceSlideSize != null
+                && FitsPresentationSlideMeasurement(sourceSlideSize.WidthPoints)
+                && FitsPresentationSlideMeasurement(sourceSlideSize.HeightPoints);
+            double canvasWidth = 960d;
+            double canvasHeight = 540d;
+            if (useSourceSlideSize && sourceSlideSize != null) {
+                canvasWidth = sourceSlideSize.WidthPoints;
+                canvasHeight = sourceSlideSize.HeightPoints;
+                presentation.SlideSize.SetSizePoints(sourceSlideSize.WidthPoints,
+                    sourceSlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
             }
             if (editable) {
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
@@ -193,8 +199,8 @@ public sealed partial class PowerPointPresentation {
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
         if (projection.SlideSize is { } slideSize
-            && (!FitsPositiveMeasurement(slideSize.WidthPoints, MaximumPointMeasurement)
-                || !FitsPositiveMeasurement(slideSize.HeightPoints, MaximumPointMeasurement))) {
+            && (!FitsPresentationSlideMeasurement(slideSize.WidthPoints)
+                || !FitsPresentationSlideMeasurement(slideSize.HeightPoints))) {
             return "The Keynote slide canvas has invalid dimensions.";
         }
         foreach (IWorkKeynoteSlide slide in projection.Slides) {
@@ -307,6 +313,11 @@ public sealed partial class PowerPointPresentation {
     private static bool FitsPositiveMeasurement(double value, double maximum, bool allowZero = false) =>
         !double.IsNaN(value) && !double.IsInfinity(value)
         && (allowZero ? value >= 0 : value > 0) && value <= maximum;
+
+    private static bool FitsPresentationSlideMeasurement(double value) =>
+        !double.IsNaN(value) && !double.IsInfinity(value)
+        && value >= 914400d / 12700d
+        && value <= 51206400d / 12700d;
 
     private static IEnumerable<IWorkTextContent> SlideText(IWorkKeynoteSlide slide) {
         if (slide.TitleBox != null) yield return slide.TitleBox.Content;

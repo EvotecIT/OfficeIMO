@@ -389,7 +389,34 @@ internal static class IWorkNumbersReader {
                 "An iWork formula table contains malformed or duplicate entries; affected formulas retain cached values only.",
                 model.EntryPath, model.Identifier));
         }
-        IWorkWireMessage? tileStorage = IWorkObjectIndex.TryGetMessage(store, 3);
+        byte[]? tileStorageBytes = store.GetBytes(3);
+        int declaredTileCount;
+        try {
+            declaredTileCount = tileStorageBytes == null
+                || store.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
+                    ? -1
+                    : IWorkProtobuf.CountFields(tileStorageBytes, 1,
+                        source.Options.MaximumProtobufFieldCount);
+        } catch (InvalidDataException) {
+            declaredTileCount = -1;
+        }
+        int maximumTileCount = checked((rows + TileRowStride - 1) / TileRowStride);
+        if (declaredTileCount > maximumTileCount) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_TILE_COUNT_UNSUPPORTED",
+                "An iWork table declares more tiles than can fit in its logical row range; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+            return CreateTable();
+        }
+        IWorkWireMessage? tileStorage;
+        try {
+            tileStorage = declaredTileCount < 0
+                ? null
+                : store.ParseNestedMessage(tileStorageBytes!);
+        } catch (InvalidDataException) {
+            tileStorage = null;
+        }
         if (tileStorage == null) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return CreateTable();
@@ -428,6 +455,21 @@ internal static class IWorkNumbersReader {
             }
             if (!tileIdentifiers.Add(tile.Identifier)) {
                 MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
+                continue;
+            }
+            long tileStartRow = checked((long)rawTileId * TileRowStride);
+            long remainingRows = rows - tileStartRow;
+            int maximumRowsInTile = remainingRows <= 0
+                ? 0
+                : (int)Math.Min(TileRowStride, remainingRows);
+            int declaredRowsInTile = IWorkProtobuf.CountFields(tile.Payload, 5,
+                source.Options.MaximumProtobufFieldCount);
+            if (declaredRowsInTile > maximumRowsInTile) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_TABLE_TILE_ROW_COUNT_UNSUPPORTED",
+                    "An iWork table tile declares more row messages than can fit in its logical table range; editable reconstruction is incomplete.",
+                    tile.EntryPath, tile.Identifier));
                 continue;
             }
             IReadOnlyList<IWorkWireMessage> rowsInTile = IWorkObjectIndex.TryGetMessages(

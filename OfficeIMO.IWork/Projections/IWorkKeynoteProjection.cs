@@ -278,11 +278,17 @@ internal static class IWorkKeynoteReader {
         var candidates = new List<IWorkArchiveRecord>();
         var candidateIdentifiers = new HashSet<ulong>();
         bool hasUnresolvedDrawable = false;
+        bool hasDuplicateDrawableOccurrence = false;
         foreach (int field in new[] { 5, 6, 7, 42 }) {
+            var fieldIdentifiers = new HashSet<ulong>();
             IReadOnlyList<IWorkArchiveRecord> fieldCandidates = index.DereferenceAll(
                 message, field, out int unresolvedDrawableCount);
             hasUnresolvedDrawable |= unresolvedDrawableCount > 0;
             foreach (IWorkArchiveRecord candidate in fieldCandidates) {
+                if (!fieldIdentifiers.Add(candidate.Identifier)) {
+                    hasDuplicateDrawableOccurrence = true;
+                    continue;
+                }
                 if (candidateIdentifiers.Add(candidate.Identifier)) candidates.Add(candidate);
             }
         }
@@ -291,6 +297,13 @@ internal static class IWorkKeynoteReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
                 "A Keynote slide contains an unresolved drawable reference; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
+        }
+        if (hasDuplicateDrawableOccurrence) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DUPLICATE_DRAWABLE",
+                "A Keynote slide repeats a drawable within the same ordered drawable field; editable reconstruction is incomplete.",
                 slide.EntryPath, slide.Identifier));
         }
 
