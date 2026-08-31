@@ -655,6 +655,9 @@ public partial class Excel {
         PdfCore.StructuredTable recovered = Assert.Single(tables, table => table.Kind == "positioned-cells-bounded");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
+        Assert.DoesNotContain(tables, table =>
+            table.Kind == "band-group" &&
+            table.Rows.SelectMany(static row => row).Contains("Name", StringComparer.Ordinal));
     }
 
     [Fact]
@@ -715,6 +718,9 @@ public partial class Excel {
             table => table.Kind == "positioned-cells-bounded");
         Assert.Equal(new[] { "Name", "Qty" }, recovered.Rows[0]);
         Assert.Equal(new[] { "Beta", "14" }, recovered.Rows[2]);
+        Assert.DoesNotContain(tables, table =>
+            table.Kind == "band-group" &&
+            table.Rows.SelectMany(static row => row).Contains("Name", StringComparer.Ordinal));
     }
 
     [Fact]
