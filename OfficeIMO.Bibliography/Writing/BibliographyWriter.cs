@@ -236,7 +236,9 @@ internal static class BibliographyConversionInspector {
                 (string.Equals(entry.Name, rootElementName, StringComparison.OrdinalIgnoreCase) || string.Equals(entry.Name, recordsElementName, StringComparison.OrdinalIgnoreCase));
             if (isAttributesCarrier && EndNoteXmlCodec.ContainsLiteralAttributeWhitespace(entry.Value, cancellationToken))
                 report.Add("BIBCONV251", BibliographyDiagnosticSeverity.Warning, $"Literal whitespace in EndNote XML attributes on '{entry.Name}' normalizes to spaces.", BibliographyConversionAction.Approximated, field: entry.Name ?? entry.Kind);
-            else if (isWrittenElement && EndNoteXmlCodec.ContainsCarriageReturn(entry.Value, cancellationToken))
+            if (isWrittenElement && EndNoteXmlCodec.ContainsLiteralAttributeWhitespace(entry.Value, cancellationToken))
+                report.Add("BIBCONV251", BibliographyDiagnosticSeverity.Warning, $"Literal whitespace in attributes on document-level EndNote XML element '{entry.Name}' normalizes to spaces.", BibliographyConversionAction.Approximated, field: entry.Name ?? entry.Kind);
+            if (isWrittenElement && EndNoteXmlCodec.ContainsCarriageReturn(entry.Value, cancellationToken))
                 report.Add("BIBCONV235", BibliographyDiagnosticSeverity.Warning, $"Carriage returns in document-level EndNote XML element '{entry.Name}' normalize to line feeds.", BibliographyConversionAction.Approximated, field: entry.Name ?? entry.Kind);
         }
     }
@@ -390,8 +392,12 @@ internal static class BibliographyConversionInspector {
         foreach (BibliographyDate date in Cancellable(item.Dates, cancellationToken))
             foreach (BibliographyNativeField field in Cancellable(date.NativeFields, cancellationToken)) InspectRaw(field, "dates." + field.Name);
         if (format == BibliographyFormat.EndNoteXml) {
-            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken).Where(EndNoteXmlCodec.EditedNativeFieldFlattensStructure))
-                Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
+            foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
+                if (EndNoteXmlCodec.EditedNativeFieldFlattensStructure(field, cancellationToken))
+                    Loss(report, item, "native." + field.Name, "BIBCONV234", $"Editing native EndNote field '{field.Name}' flattens its retained XML child structure.", BibliographyConversionAction.Approximated);
+                if (field.RawValue != null && field.RawValueRepresentedOriginalValue && EndNoteXmlCodec.ContainsLiteralAttributeWhitespace(field.RawValue, cancellationToken))
+                    Loss(report, item, "native." + field.Name, "BIBCONV251", $"Literal whitespace in attributes on native EndNote field '{field.Name}' normalizes to spaces.", BibliographyConversionAction.Approximated);
+            }
         }
 
         void InspectRaw(BibliographyNativeField field, string path) {
