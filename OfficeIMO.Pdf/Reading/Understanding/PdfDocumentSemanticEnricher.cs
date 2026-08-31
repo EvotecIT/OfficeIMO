@@ -134,7 +134,7 @@ internal static class PdfDocumentSemanticEnricher {
             var lineElements = new List<PdfUnderstandingSemanticElement>();
             foreach (PdfOutlineItem outline in pageOutlines) {
                 if (elements[pageIndex].Count > 0) workBudget.Consume(elements[pageIndex].Count);
-                string outlineText = PdfTextSimilarity.NormalizeSignature(outline.Title);
+                string outlineText = PdfTextSimilarity.NormalizeSignaturePreservingDigits(outline.Title);
                 if (outlineText.Length == 0) continue;
                 var candidates = elements[pageIndex]
                     .SelectMany((element, elementIndex) => element.Region.Lines.Select(line => new {
@@ -143,7 +143,7 @@ internal static class PdfDocumentSemanticEnricher {
                         Line = line,
                         Key = CreateLineKey(line),
                         Score = PdfTextSimilarity.NormalizedSimilarity(
-                            PdfTextSimilarity.NormalizeSignature(line.Text),
+                            PdfTextSimilarity.NormalizeSignaturePreservingDigits(line.Text),
                             outlineText)
                     }))
                     .Where(candidate => candidate.Score >= 0.9D && !usedLines.Contains(candidate.Key))
@@ -198,7 +198,7 @@ internal static class PdfDocumentSemanticEnricher {
         if (tagged is null || tagged.StructureElements.Count == 0) return;
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             int pageNumber = pageNumbers[pageIndex];
-            var rolesByMcid = new Dictionary<int, List<string>>();
+            var rolesByMarkedContent = new Dictionary<MarkedContentKey, List<string>>();
             foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
                 if (string.IsNullOrWhiteSpace(structureElement.StructureType)) continue;
                 string role = ResolveRole(tagged, structureElement.StructureType!);
@@ -206,14 +206,15 @@ internal static class PdfDocumentSemanticEnricher {
                     workBudget.Consume();
                     int? pageObjectNumber = reference.PageObjectNumber ?? structureElement.PageObjectNumber;
                     if (!pageObjectNumber.HasValue || document.GetPageNumberForObject(pageObjectNumber.Value) != pageNumber) continue;
-                    if (!rolesByMcid.TryGetValue(reference.MarkedContentId, out List<string>? roles)) {
+                    var key = new MarkedContentKey(reference.ContentStreamObjectNumber, reference.MarkedContentId);
+                    if (!rolesByMarkedContent.TryGetValue(key, out List<string>? roles)) {
                         roles = new List<string>();
-                        rolesByMcid.Add(reference.MarkedContentId, roles);
+                        rolesByMarkedContent.Add(key, roles);
                     }
                     if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase)) roles.Add(role);
                 }
             }
-            if (rolesByMcid.Count == 0) continue;
+            if (rolesByMarkedContent.Count == 0) continue;
             var lineElements = new List<PdfUnderstandingSemanticElement>();
             for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
                 workBudget.Consume();
@@ -221,24 +222,24 @@ internal static class PdfDocumentSemanticEnricher {
                 var matches = new List<TaggedLineMatch>();
                 for (int lineIndex = 0; lineIndex < current.Region.Lines.Count; lineIndex++) {
                     PdfUnderstandingLine line = current.Region.Lines[lineIndex];
-                    int[] mcids = line.Words
+                    MarkedContentKey[] markedContent = line.Words
                         .SelectMany(static word => word.SourceRuns)
                         .Where(static run => run.MarkedContentId.HasValue)
-                        .Select(static run => run.MarkedContentId!.Value)
+                        .Select(static run => new MarkedContentKey(run.ContentStreamObjectNumber, run.MarkedContentId!.Value))
                         .Distinct()
                         .ToArray();
-                    if (mcids.Length == 0) continue;
-                    workBudget.Consume(mcids.Length);
-                    TaggedRole? bestRole = mcids
-                        .Where(rolesByMcid.ContainsKey)
-                        .SelectMany(mcid => rolesByMcid[mcid])
+                    if (markedContent.Length == 0) continue;
+                    workBudget.Consume(markedContent.Length);
+                    TaggedRole? bestRole = markedContent
+                        .Where(rolesByMarkedContent.ContainsKey)
+                        .SelectMany(key => rolesByMarkedContent[key])
                         .Select(TryMapTaggedRole)
                         .Where(static role => role.HasValue)
                         .OrderBy(static role => role!.Value.Priority)
                         .ThenBy(static role => role!.Value.Level ?? int.MaxValue)
                         .FirstOrDefault();
                     if (!bestRole.HasValue) continue;
-                    matches.Add(new TaggedLineMatch(line, mcids, bestRole.Value));
+                    matches.Add(new TaggedLineMatch(line, markedContent, bestRole.Value));
                 }
                 if (matches.Count == 0) continue;
 
@@ -330,7 +331,8 @@ internal static class PdfDocumentSemanticEnricher {
             Math.Max(current.Confidence, 0.96D),
             new PdfInferenceEvidence(
                 "semantic.tagged-pdf-role",
-                "Tagged-PDF role " + match.Role.Name + " owns marked content " + string.Join(", ", match.MarkedContentIds) + ".",
+                "Tagged-PDF role " + match.Role.Name + " owns marked content " +
+                    string.Join(", ", match.MarkedContent.Select(static item => item.Format())) + ".",
                 0.98D),
             match.Role.Level ?? current.Level);
 
@@ -403,8 +405,15 @@ internal static class PdfDocumentSemanticEnricher {
         int? Level,
         int Priority);
 
+    private readonly record struct MarkedContentKey(int? ContentStreamObjectNumber, int MarkedContentId) {
+        internal string Format() => ContentStreamObjectNumber.HasValue
+            ? MarkedContentId.ToString(System.Globalization.CultureInfo.InvariantCulture) + " in stream " +
+                ContentStreamObjectNumber.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            : MarkedContentId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+    }
+
     private readonly record struct TaggedLineMatch(
         PdfUnderstandingLine Line,
-        IReadOnlyList<int> MarkedContentIds,
+        IReadOnlyList<MarkedContentKey> MarkedContent,
         TaggedRole Role);
 }

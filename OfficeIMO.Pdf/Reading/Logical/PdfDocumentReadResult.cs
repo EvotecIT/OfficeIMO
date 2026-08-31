@@ -1133,10 +1133,10 @@ public sealed partial class PdfDocumentReadResult {
         PdfReadDocument document,
         PdfTextLayoutOptions? options,
         int[] pageNumbers,
-        IReadOnlyList<PdfUnderstandingPageResult>? analyses = null,
-        PdfReadProfile profile = PdfReadProfile.Fast) {
+        IReadOnlyList<PdfUnderstandingPageResult> analyses,
+        PdfReadProfile profile) {
         document.DemandContentExtraction("logical object");
-        if (analyses is not null && analyses.Count != pageNumbers.Length) {
+        if (analyses.Count != pageNumbers.Length) {
             throw new ArgumentException("Semantic analysis count must match the selected page count.", nameof(analyses));
         }
         bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
@@ -1186,9 +1186,11 @@ public sealed partial class PdfDocumentReadResult {
                 pageNumber,
                 options,
                 pageFormWidgets,
-                analyses?[i]));
+                analyses[i]));
         }
-        ApplyDocumentHeadingFontTiers(pages);
+        if (profile == PdfReadProfile.Structured) {
+            ApplyDocumentHeadingFontTiers(pages);
+        }
 
         return new PdfDocumentReadResult(
             document.Metadata,

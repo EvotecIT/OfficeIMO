@@ -6,7 +6,11 @@ namespace OfficeIMO.Pdf;
 internal static class PdfTextSimilarity {
     private const int MaximumSignatureLength = 256;
 
-    internal static string NormalizeSignature(string? text) {
+    internal static string NormalizeSignature(string? text) => NormalizeSignature(text, collapseDigitRuns: true);
+
+    internal static string NormalizeSignaturePreservingDigits(string? text) => NormalizeSignature(text, collapseDigitRuns: false);
+
+    private static string NormalizeSignature(string? text, bool collapseDigitRuns) {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
         string input = text!;
         var result = new StringBuilder(Math.Min(input.Length, MaximumSignatureLength));
@@ -24,8 +28,12 @@ internal static class PdfTextSimilarity {
                 pendingSpace = false;
             }
             if (char.IsDigit(value)) {
-                if (!digitRun) result.Append('#');
-                digitRun = true;
+                if (collapseDigitRuns) {
+                    if (!digitRun) result.Append('#');
+                    digitRun = true;
+                } else {
+                    result.Append(value);
+                }
                 continue;
             }
             digitRun = false;

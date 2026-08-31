@@ -299,7 +299,8 @@ internal static class TextContentParser {
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<string, int>? inlineImageComponentCount = null,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        int? contentStreamObjectNumber = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -988,7 +989,8 @@ internal static class TextContentParser {
                     restampFontSize,
                     paintedText,
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
-                    GetActiveMcid()));
+                    GetActiveMcid(),
+                    contentStreamObjectNumber));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

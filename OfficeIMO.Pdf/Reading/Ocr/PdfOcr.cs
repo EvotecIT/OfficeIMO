@@ -23,7 +23,13 @@ internal static class PdfOcr {
         if (selectedPages.Length > effectiveOptions.MaxPages) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
         }
-        PdfDocumentReadResult logical = PdfDocumentReadResult.FromPageNumbers(readDocument, null, selectedPages);
+        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(
+            readDocument,
+            new PdfReadOptions {
+                Profile = PdfReadProfile.Structured,
+                PageSelection = effectiveOptions.Selection
+            },
+            cancellationToken);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Dpi = effectiveOptions.Dpi,

@@ -60,6 +60,8 @@ a second logical model.
 | `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
 | `pdf.Read.ParagraphContinuations(...)` | `result.GetParagraphContinuationGroups(...)` |
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
+| `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
+| `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
 
 Page-local `page.Tables`, `page.Paragraphs`, `page.Headings`, and the other
 logical collections remain available. `Analyze()` continues to report PDF

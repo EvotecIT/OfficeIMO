@@ -152,10 +152,11 @@ public sealed partial class PdfReadDocument {
         string? type = TryReadName(dictionary, "Type");
         if (string.Equals(type, "MCR", StringComparison.Ordinal)) {
             int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
+            int? contentStreamObjectNumber = ReadReferenceObjectNumber(dictionary, "Stm");
             if (dictionary.Items.TryGetValue("MCID", out PdfObject? mcidObject) &&
                 ResolveObject(mcidObject) is PdfNumber mcidNumber &&
                 TryGetNonNegativeInteger(mcidNumber, out int referencedMcid)) {
-                markedContentReferences.Add(new PdfMarkedContentReference(pageObjectNumber, referencedMcid));
+                markedContentReferences.Add(new PdfMarkedContentReference(pageObjectNumber, referencedMcid, contentStreamObjectNumber));
             }
             return;
         }

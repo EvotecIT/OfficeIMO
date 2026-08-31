@@ -74,6 +74,24 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task RecognizeAndMergeAsync_UsesCanonicalStructuredReadForNativeEvidence() {
+        byte[] pdf = PdfDocument.Create()
+            .TaggedPdfCatalogMarkers()
+            .H1("Native structured heading")
+            .ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(Array.Empty<PdfOcrWord>()));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
+        PdfUnderstandingPageResult analysis = Assert.Single(result.NativeDocument.Pages).Analysis;
+
+        Assert.Equal(PdfReadProfile.Structured, result.NativeDocument.Profile);
+        Assert.Contains(analysis.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Heading &&
+            element.Region.Text.Contains("Native structured heading", StringComparison.Ordinal) &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+    }
+
+    [Fact]
     public async Task RecognizeAndMergeAsync_PreservesDuplicateCallerOrderedPages() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)

@@ -609,7 +609,8 @@ public sealed partial class PdfReadPage {
         int contentOrderOffset = 0,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
-        PdfPaintColorSelection? initialStrokeColorSelection = null) {
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        int? contentStreamObjectNumber = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textOutputBudget ??= new TextContentParser.TextOutputBudget(
@@ -675,7 +676,8 @@ public sealed partial class PdfReadPage {
             initialStrokeColorSelection: initialStrokeColorSelection,
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array)));
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            contentStreamObjectNumber: contentStreamObjectNumber));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -706,7 +708,7 @@ public sealed partial class PdfReadPage {
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array))) {
-            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+            if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
 
@@ -756,7 +758,8 @@ public sealed partial class PdfReadPage {
                     -formContentOffset,
                     invocation.RenderingIntent,
                     invocation.FillColorSelection,
-                    invocation.StrokeColorSelection);
+                    invocation.StrokeColorSelection,
+                    formObjectNumber);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -940,6 +943,11 @@ public sealed partial class PdfReadPage {
     }
 
     private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream) {
+        return TryGetFormStream(resources, name, out _, out formStream);
+    }
+
+    private bool TryGetFormStream(PdfDictionary? resources, string name, out int? objectNumber, out PdfStream formStream) {
+        objectNumber = null;
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             formStream = null!;
             return false;
@@ -955,6 +963,7 @@ public sealed partial class PdfReadPage {
             PdfObjectLookup.TryGet(_objects, formRef, out var indirectForm) &&
             indirectForm.Value is PdfStream stream &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal)) {
+            objectNumber = formRef.ObjectNumber;
             formStream = stream;
             return true;
         }

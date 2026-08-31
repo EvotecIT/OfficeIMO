@@ -2,16 +2,20 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>One marked-content reference owned by a tagged-PDF structure element.</summary>
 public sealed class PdfMarkedContentReference {
-    internal PdfMarkedContentReference(int? pageObjectNumber, int markedContentId) {
+    internal PdfMarkedContentReference(int? pageObjectNumber, int markedContentId, int? contentStreamObjectNumber = null) {
         PageObjectNumber = pageObjectNumber;
         MarkedContentId = markedContentId;
+        ContentStreamObjectNumber = contentStreamObjectNumber;
     }
 
     /// <summary>Page object containing the marked content, when declared or inherited.</summary>
     public int? PageObjectNumber { get; }
 
-    /// <summary>Page-scoped marked-content identifier.</summary>
+    /// <summary>Content-stream-scoped marked-content identifier.</summary>
     public int MarkedContentId { get; }
+
+    /// <summary>Form XObject or other content-stream object owning the MCID, or null for page content.</summary>
+    public int? ContentStreamObjectNumber { get; }
 }
 
 /// <summary>

@@ -229,6 +229,62 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void FastRead_LeavesDocumentWideHeadingTiersToStructuredProfile() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Larger page heading")
+            .PageBreak()
+            .H2("Smaller page heading")
+            .ToBytes();
+        var pipeline = new PdfUnderstandingPipelineOptions {
+            SemanticClassification = new HeadingClassificationStage()
+        };
+
+        PdfDocumentReadResult fast = Read(pdf, pipeline, PdfReadProfile.Fast);
+        PdfDocumentReadResult structured = Read(pdf, pipeline, PdfReadProfile.Structured);
+
+        Assert.Equal(new[] { 1, 1 }, fast.Pages.SelectMany(static page => page.Headings).Select(static heading => heading.Level));
+        Assert.Equal(new[] { 1, 2 }, structured.Pages.SelectMany(static page => page.Headings).Select(static heading => heading.Level));
+    }
+
+    [Fact]
+    public void StructuredRead_PreservesDigitsWhenMatchingOutlineTitles() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateNumberedOutlinePdf()).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        PdfUnderstandingSemanticElement matched = Assert.Single(page.Elements, element =>
+            element.Region.Text == "Section 2" &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.outline-heading"));
+        Assert.Equal(PdfUnderstandingSemanticKind.Heading, matched.Kind);
+        Assert.DoesNotContain(page.Elements, element =>
+            element.Region.Text == "Section 1" &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.outline-heading"));
+    }
+
+    [Fact]
+    public void StructuredRead_ScopesTaggedMcidsToTheirContentStreams() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateScopedTaggedMcidPdf()).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        AssertTaggedHeading(page, "Page heading", 1);
+        Assert.Contains(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+            element.Region.Text == "Form paragraph" &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+        Assert.DoesNotContain(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Heading &&
+            element.Region.Text == "Form paragraph");
+
+        PdfTextSpan pageRun = Assert.Single(page.DecodedRuns, static run => run.Text == "Page heading");
+        PdfTextSpan formRun = Assert.Single(page.DecodedRuns, static run => run.Text == "Form paragraph");
+        Assert.Null(pageRun.ContentStreamObjectNumber);
+        Assert.Equal(6, formRun.ContentStreamObjectNumber);
+        PdfMarkedContentReference formReference = Assert.Single(
+            result.TaggedContent!.StructureElements,
+            static element => element.StructureType == "P").MarkedContentReferences.Single();
+        Assert.Equal(6, formReference.ContentStreamObjectNumber);
+    }
+
+    [Fact]
     public void Pipeline_WorkBudgetAcceptsExactLimitAndRejectsNextUnit() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10));
@@ -595,6 +651,76 @@ public class PdfUnderstandingPipelineTests {
         }, cancellationToken);
     }
 
+    private static byte[] CreateNumberedOutlinePdf() {
+        string content = "BT /F1 24 Tf 72 700 Td (Section 1) Tj ET\n" +
+            "BT /F1 14 Tf 72 650 Td (Section 2) Tj ET\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 6 0 R /PageMode /UseOutlines >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /Outlines /First 7 0 R /Last 7 0 R /Count 1 >>",
+            "<< /Title (Section 2) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
+    }
+
+    private static byte[] CreateScopedTaggedMcidPdf() {
+        string pageContent = "/H1 << /MCID 0 >> BDC\n" +
+            "BT /F1 24 Tf 72 700 Td (Page heading) Tj ET\nEMC\n/Fx1 Do\n";
+        string formContent = "/P << /MCID 0 >> BDC\n" +
+            "BT /F1 12 Tf 72 500 Td (Form paragraph) Tj ET\nEMC\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> /XObject << /Fx1 6 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, pageContent),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            BuildStreamBody("/Type /XObject /Subtype /Form /BBox [0 0 612 792] /StructParent 1 " +
+                "/Resources << /Font << /F1 5 0 R >> >>", formContent),
+            "<< /Type /StructTreeRoot /K [8 0 R 9 0 R] /ParentTree 10 0 R /ParentTreeNextKey 2 >>",
+            "<< /Type /StructElem /S /H1 /P 7 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R " +
+                "/K << /Type /MCR /Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
+            "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
+    }
+
+    private static string BuildStreamBody(string dictionaryEntries, string content) {
+        int length = System.Text.Encoding.ASCII.GetByteCount(content);
+        return "<< " + dictionaryEntries + " /Length " +
+            length.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " >>\nstream\n" + content + "endstream";
+    }
+
+    private static byte[] BuildClassicPdf(params string[] objectBodies) {
+        using var output = new MemoryStream();
+        var offsets = new long[objectBodies.Length + 1];
+        WriteAscii(output, "%PDF-1.7\n");
+        for (int index = 0; index < objectBodies.Length; index++) {
+            int objectNumber = index + 1;
+            offsets[objectNumber] = output.Position;
+            WriteAscii(output, objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                " 0 obj\n" + objectBodies[index] + "\nendobj\n");
+        }
+
+        long xrefOffset = output.Position;
+        WriteAscii(output, "xref\n0 " + (objectBodies.Length + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "\n0000000000 65535 f \n");
+        for (int objectNumber = 1; objectNumber <= objectBodies.Length; objectNumber++) {
+            WriteAscii(output, offsets[objectNumber].ToString("D10", System.Globalization.CultureInfo.InvariantCulture) +
+                " 00000 n \n");
+        }
+        WriteAscii(output, "trailer\n<< /Size " + (objectBodies.Length + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /Root 1 0 R >>\nstartxref\n" + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "\n%%EOF\n");
+        return output.ToArray();
+    }
+
+    private static void WriteAscii(Stream stream, string value) {
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
+        stream.Write(bytes, 0, bytes.Length);
+    }
+
     private static PdfUnderstandingPipelineOptions CreatePassThroughPipeline(IPdfGlyphDecodingStage glyphStage, long maxWorkUnits) =>
         new PdfUnderstandingPipelineOptions {
             GlyphDecoding = glyphStage,
@@ -688,5 +814,10 @@ public class PdfUnderstandingPipelineTests {
     private sealed class ParagraphClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
             orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
+    }
+
+    private sealed class HeadingClassificationStage : IPdfSemanticClassificationStage {
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
+            orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 1)).ToArray();
     }
 }
