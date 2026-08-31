@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 207,
-    "productionComponentCount": 108,
-    "testProjectCount": 39,
+    "projectCount": 210,
+    "productionComponentCount": 110,
+    "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41676
+    "conceptualWordCount": 41703
   },
   "categories": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "name": "Office documents",
-      "componentCount": 18
+      "componentCount": 20
     },
     {
       "name": "Publishing and conversion",
@@ -144,7 +144,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 490,
+      "sourceFileCount": 493,
       "referencingTestProjectCount": 11,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -288,7 +288,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Csv/OfficeIMO.Excel.Csv.csproj",
       "sourceFileCount": 4,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Csv"
@@ -314,10 +314,23 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Html/OfficeIMO.Excel.Html.csproj",
       "sourceFileCount": 17,
-      "referencingTestProjectCount": 3,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
+    },
+    {
+      "name": "OfficeIMO.Excel.Legacy",
+      "packageId": "OfficeIMO.Excel.Legacy",
+      "category": "Office documents",
+      "description": "Safe read-only import of selected legacy spreadsheet formats into the OfficeIMO.Excel model.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Excel.Legacy/OfficeIMO.Excel.Legacy.csproj",
+      "sourceFileCount": 11,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/excel/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Legacy"
     },
     {
       "name": "OfficeIMO.Excel.OpenDocument",
@@ -327,7 +340,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.OpenDocument/OfficeIMO.Excel.OpenDocument.csproj",
       "sourceFileCount": 8,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.OpenDocument"
@@ -340,7 +353,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
       "sourceFileCount": 23,
-      "referencingTestProjectCount": 3,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/excel/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf"
@@ -976,8 +989,8 @@
       "description": "Excel workbook adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj",
-      "sourceFileCount": 4,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Excel"
@@ -1210,8 +1223,8 @@
       "description": "Word document adapter for OfficeIMO.Reader.Core.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Word/OfficeIMO.Reader.Word.csproj",
-      "sourceFileCount": 5,
-      "referencingTestProjectCount": 2,
+      "sourceFileCount": 6,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Word"
@@ -1380,10 +1393,23 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj",
       "sourceFileCount": 73,
-      "referencingTestProjectCount": 3,
+      "referencingTestProjectCount": 4,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html"
+    },
+    {
+      "name": "OfficeIMO.Word.Legacy",
+      "packageId": "OfficeIMO.Word.Legacy",
+      "category": "Office documents",
+      "description": "Safe read-only import of selected legacy word-processing formats into the OfficeIMO.Word model.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Word.Legacy/OfficeIMO.Word.Legacy.csproj",
+      "sourceFileCount": 13,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/word/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Legacy"
     },
     {
       "name": "OfficeIMO.Word.Markdown",
@@ -1393,7 +1419,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
       "sourceFileCount": 28,
-      "referencingTestProjectCount": 5,
+      "referencingTestProjectCount": 6,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Markdown"
@@ -1406,7 +1432,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.OpenDocument/OfficeIMO.Word.OpenDocument.csproj",
       "sourceFileCount": 6,
-      "referencingTestProjectCount": 2,
+      "referencingTestProjectCount": 3,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.OpenDocument"
@@ -1419,7 +1445,7 @@
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
       "sourceFileCount": 36,
-      "referencingTestProjectCount": 4,
+      "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Pdf"

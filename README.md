@@ -533,6 +533,14 @@ _Dependency footprint:_ only OfficeIMO ADF and Markdown plus platform HTTP and `
 
 _Dependency footprint:_ OfficeIMO Word, HTML, and Drawing plus the Open XML SDK already used by Word; no separate conversion engine.
 
+#### [OfficeIMO.Word.Legacy](OfficeIMO.Word.Legacy/README.md)
+
+- [x] Read-only bounded adapters for WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Microsoft Works/Write, and selected Word for DOS profiles
+- [x] Structured or salvage quality, explicit loss reports, inert active content, and normal editable `WordDocument` output
+- [x] DOCX and plain-text output directly, with ODT, HTML, Markdown, and PDF through the existing Word converter packages
+
+_Dependency footprint:_ only OfficeIMO Core and Word; no native office application, process execution, or third-party parser runtime.
+
 #### [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown/README.md)
 
 - [x] Word to GitHub-friendly Markdown with headings, lists, tasks, tables, images, links, code, and footnotes
@@ -581,6 +589,14 @@ _Dependency footprint:_ OfficeIMO Word and GoogleWorkspace plus `System.Text.Jso
 - [x] Canonical CSV parsing, schema, compression, and writing options with no duplicate parser
 
 _Dependency footprint:_ only OfficeIMO Excel and CSV packages.
+
+#### [OfficeIMO.Excel.Legacy](OfficeIMO.Excel.Legacy/README.md)
+
+- [x] Read-only bounded adapters for Lotus 1-2-3, Quattro Pro, Multiplan, and selected Microsoft Works spreadsheet profiles
+- [x] Structured WK record recovery plus explicit salvage, cached-formula, name, chart-metadata, and loss reporting
+- [x] XLSX output through the normal workbook, with ODS, CSV, HTML, and PDF through the existing Excel converter packages
+
+_Dependency footprint:_ only OfficeIMO Core and Excel; macros, embedded objects, and external connections stay inert.
 
 #### [OfficeIMO.Excel.Html](OfficeIMO.Excel.Html/README.md)
 
@@ -848,16 +864,18 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.M
 #### [OfficeIMO.Reader.Word](OfficeIMO.Reader.Word/README.md)
 
 - [x] DOCX/DOCM and legacy DOC extraction through the owning Word engine
+- [x] Optional legacy-word handler over `OfficeIMO.Word.Legacy`, without duplicating parsing or conversion
 - [x] Rich headings, tables, images, metadata, diagnostics, and password-aware detection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Word`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Word`, and `OfficeIMO.Word.Legacy`.
 
 #### [OfficeIMO.Reader.Excel](OfficeIMO.Reader.Excel/README.md)
 
 - [x] XLSX/XLSM/XLSB and legacy XLS extraction through the owning Excel engine
+- [x] Optional legacy-spreadsheet handler over `OfficeIMO.Excel.Legacy`, without duplicating parsing or conversion
 - [x] Rich workbook, table, image, metadata, diagnostic, and password-aware projection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Core`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, `OfficeIMO.Excel.Legacy`, and `OfficeIMO.Core`.
 
 #### [OfficeIMO.Reader.PowerPoint](OfficeIMO.Reader.PowerPoint/README.md)
 

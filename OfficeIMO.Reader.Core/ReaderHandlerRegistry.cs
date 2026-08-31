@@ -163,6 +163,8 @@ internal sealed class ReaderHandlerRegistrySnapshot {
 }
 
 internal sealed class ReaderHandlerDescriptor {
+    private const int MaximumInputLimitProbeBytes = 64 * 1024;
+
     private ReaderHandlerDescriptor(
         string id,
         string displayName,
@@ -172,6 +174,10 @@ internal sealed class ReaderHandlerDescriptor {
         bool useDetectedKindFallback,
         IReadOnlyList<string> extensions,
         long? defaultMaxInputBytes,
+        IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension,
+        long? maxInputBytesCeiling,
+        int inputLimitProbeBytes,
+        Func<ReadOnlyMemory<byte>, long?>? resolveMaxInputBytesFromPrefix,
         ReaderSourceHashBehavior sourceHashBehavior,
         ReaderWarningBehavior warningBehavior,
         bool deterministicOutput,
@@ -181,7 +187,8 @@ internal sealed class ReaderHandlerDescriptor {
         Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream,
         Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync,
-        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream) {
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? probeStream,
+        Func<Stream, string?, ReaderOptions, CancellationToken, bool>? extensionValidationProbeStream) {
         Id = id;
         DisplayName = displayName;
         Description = description;
@@ -190,6 +197,10 @@ internal sealed class ReaderHandlerDescriptor {
         UseDetectedKindFallback = useDetectedKindFallback;
         Extensions = extensions;
         DefaultMaxInputBytes = defaultMaxInputBytes;
+        DefaultMaxInputBytesByExtension = defaultMaxInputBytesByExtension;
+        MaxInputBytesCeiling = maxInputBytesCeiling;
+        InputLimitProbeBytes = inputLimitProbeBytes;
+        ResolveMaxInputBytesFromPrefix = resolveMaxInputBytesFromPrefix;
         SourceHashBehavior = sourceHashBehavior;
         WarningBehavior = warningBehavior;
         DeterministicOutput = deterministicOutput;
@@ -200,6 +211,7 @@ internal sealed class ReaderHandlerDescriptor {
         ReadDocumentPathAsync = readDocumentPathAsync;
         ReadDocumentStreamAsync = readDocumentStreamAsync;
         ProbeStream = probeStream;
+        ExtensionValidationProbeStream = extensionValidationProbeStream;
     }
 
     public string Id { get; }
@@ -210,6 +222,10 @@ internal sealed class ReaderHandlerDescriptor {
     public bool UseDetectedKindFallback { get; }
     public IReadOnlyList<string> Extensions { get; }
     public long? DefaultMaxInputBytes { get; }
+    public IReadOnlyDictionary<string, long> DefaultMaxInputBytesByExtension { get; }
+    public long? MaxInputBytesCeiling { get; }
+    public int InputLimitProbeBytes { get; }
+    public Func<ReadOnlyMemory<byte>, long?>? ResolveMaxInputBytesFromPrefix { get; }
     public ReaderSourceHashBehavior SourceHashBehavior { get; }
     public ReaderWarningBehavior WarningBehavior { get; }
     public bool DeterministicOutput { get; }
@@ -220,6 +236,7 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ProbeStream { get; }
+    public Func<Stream, string?, ReaderOptions, CancellationToken, bool>? ExtensionValidationProbeStream { get; }
     public bool SupportsPathInput => ReadPath != null || ReadDocumentPath != null || ReadDocumentPathAsync != null;
     public bool SupportsStreamInput => ReadStream != null || ReadDocumentStream != null || ReadDocumentStreamAsync != null;
 
@@ -247,6 +264,17 @@ internal sealed class ReaderHandlerDescriptor {
         if (extensions.Count == 0 && !registration.UseDetectedKindFallback) {
             throw new ArgumentException("Handler must define at least one extension unless it is a detected-kind fallback.", nameof(registration));
         }
+        IReadOnlyDictionary<string, long> defaultMaxInputBytesByExtension = NormalizeExtensionLimits(
+            registration.DefaultMaxInputBytesByExtension, extensions);
+        if (registration.MaxInputBytesCeiling.HasValue && registration.MaxInputBytesCeiling.Value < 1) {
+            throw new ArgumentException("MaxInputBytesCeiling must be greater than zero when configured.", nameof(registration));
+        }
+        if ((registration.InputLimitProbeBytes == 0) != (registration.ResolveMaxInputBytesFromPrefix == null)) {
+            throw new ArgumentException("InputLimitProbeBytes and ResolveMaxInputBytesFromPrefix must be configured together.", nameof(registration));
+        }
+        if (registration.InputLimitProbeBytes < 0 || registration.InputLimitProbeBytes > MaximumInputLimitProbeBytes) {
+            throw new ArgumentException($"InputLimitProbeBytes must be between 1 and {MaximumInputLimitProbeBytes} when configured.", nameof(registration));
+        }
 
         return new ReaderHandlerDescriptor(
             id,
@@ -257,6 +285,10 @@ internal sealed class ReaderHandlerDescriptor {
             registration.UseDetectedKindFallback,
             extensions,
             registration.DefaultMaxInputBytes,
+            defaultMaxInputBytesByExtension,
+            registration.MaxInputBytesCeiling,
+            registration.InputLimitProbeBytes,
+            registration.ResolveMaxInputBytesFromPrefix,
             registration.SourceHashBehavior,
             registration.WarningBehavior,
             registration.DeterministicOutput,
@@ -266,7 +298,8 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadDocumentStream,
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
-            registration.ProbeStream);
+            registration.ProbeStream,
+            registration.ExtensionValidationProbeStream);
     }
 
     public ReaderHandlerCapability ToCapability() {
@@ -286,9 +319,42 @@ internal sealed class ReaderHandlerDescriptor {
             SchemaId = ReaderCapabilitySchema.Id,
             SchemaVersion = ReaderCapabilitySchema.Version,
             DefaultMaxInputBytes = DefaultMaxInputBytes,
+            DefaultMaxInputBytesByExtension = DefaultMaxInputBytesByExtension.ToDictionary(
+                static entry => entry.Key, static entry => entry.Value, StringComparer.OrdinalIgnoreCase),
             WarningBehavior = WarningBehavior,
             DeterministicOutput = DeterministicOutput
         };
+    }
+
+    public long? ResolveDefaultMaxInputBytes(string? sourceName) {
+        string extension;
+        try {
+            extension = DocumentReaderEngine.NormalizeExtension(Path.GetExtension(sourceName ?? string.Empty));
+        } catch (ArgumentException) {
+            extension = string.Empty;
+        } catch (NotSupportedException) {
+            extension = string.Empty;
+        }
+        return extension.Length > 0 && DefaultMaxInputBytesByExtension.TryGetValue(extension, out long value)
+            ? value
+            : DefaultMaxInputBytes;
+    }
+
+    private static IReadOnlyDictionary<string, long> NormalizeExtensionLimits(
+        IReadOnlyDictionary<string, long>? limits,
+        IReadOnlyList<string> extensions) {
+        var normalized = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        if (limits == null) return normalized;
+        var claimed = new HashSet<string>(extensions, StringComparer.OrdinalIgnoreCase);
+        foreach (KeyValuePair<string, long> entry in limits) {
+            string extension = DocumentReaderEngine.NormalizeExtension(entry.Key);
+            if (extension.Length == 0 || !claimed.Contains(extension)) {
+                throw new ArgumentException($"Per-extension input limit '{entry.Key}' is not claimed by the handler.", nameof(limits));
+            }
+            if (entry.Value < 1) throw new ArgumentException("Per-extension input limits must be greater than 0.", nameof(limits));
+            normalized[extension] = entry.Value;
+        }
+        return normalized;
     }
 
     private static IReadOnlyList<string> NormalizeExtensions(IReadOnlyList<string>? extensions) {

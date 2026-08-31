@@ -18,6 +18,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.email.store",
         "officeimo.reader.epub",
         "officeimo.reader.excel",
+        "officeimo.reader.excel.legacy",
         "officeimo.reader.html",
         "officeimo.reader.image",
         "officeimo.reader.json",
@@ -38,6 +39,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.vcard",
         "officeimo.reader.visio",
         "officeimo.reader.word",
+        "officeimo.reader.word.legacy",
         "officeimo.reader.xml",
         "officeimo.reader.yaml",
         "officeimo.reader.zip"
@@ -124,6 +126,35 @@ public sealed class ReaderAllPresetTests {
             "data.csv");
         Assert.Equal(2, document.Chunks.Count);
     }
+
+    [Fact]
+    public void PresetCanOmitLegacyHandlersForApplicationOwnedRegistrations() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+                IncludeLegacyWord = false,
+                IncludeLegacySpreadsheet = false
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "application.legacy-word",
+                Kind = ReaderInputKind.Word,
+                Extensions = new[] { ".wpd" },
+                ReadStream = static (_, _, _, _) => Array.Empty<ReaderChunk>()
+            })
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "application.legacy-sheet",
+                Kind = ReaderInputKind.Excel,
+                Extensions = new[] { ".wk1" },
+                ReadStream = static (_, _, _, _) => Array.Empty<ReaderChunk>()
+            })
+            .Build();
+
+        string[] ids = reader.GetCapabilities().Select(static capability => capability.Id).ToArray();
+        Assert.DoesNotContain("officeimo.reader.word.legacy", ids);
+        Assert.DoesNotContain("officeimo.reader.excel.legacy", ids);
+        Assert.Contains("application.legacy-word", ids);
+        Assert.Contains("application.legacy-sheet", ids);
+    }
+
     [Fact]
     public void PresetPreservesOpenDocumentRoutingWhenContentIsPreferred() {
         OdtDocument text = OdtDocument.Create();

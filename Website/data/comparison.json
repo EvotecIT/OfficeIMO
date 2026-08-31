@@ -46,7 +46,7 @@
     {
       "feature": "AOT and trimming reality",
       "values": [
-        "105 of 108 production projects have Windows and Linux NativeAOT evidence, including 103 fully rooted libraries; the Chromium browser-PDF bridge, HTML/PDF workbench, and WPF/WebView2 renderer use managed deployment",
+        "107 of 110 production projects have Windows and Linux NativeAOT evidence, including 105 fully rooted libraries; the Chromium browser-PDF bridge, HTML/PDF workbench, and WPF/WebView2 renderer use managed deployment",
         "Varies by vendor, package, and feature set",
         "Real publish profiles, linker settings, and the exact package mix you plan to ship"
       ]

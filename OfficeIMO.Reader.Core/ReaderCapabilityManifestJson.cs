@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 
 namespace OfficeIMO.Reader;
 
@@ -65,6 +66,7 @@ internal static class ReaderCapabilityManifestJson {
             WriteString("schemaId", handler.SchemaId ?? ReaderCapabilitySchema.Id, trailingComma: true);
             WriteNumber("schemaVersion", handler.SchemaVersion, trailingComma: true);
             WriteNullableNumber("defaultMaxInputBytes", handler.DefaultMaxInputBytes, trailingComma: true);
+            WriteNumberDictionary("defaultMaxInputBytesByExtension", handler.DefaultMaxInputBytesByExtension, trailingComma: true);
             WriteString("warningBehavior", handler.WarningBehavior.ToString(), trailingComma: true);
             WriteBoolean("deterministicOutput", handler.DeterministicOutput, trailingComma: false);
             depth--;
@@ -152,6 +154,24 @@ internal static class ReaderCapabilityManifestJson {
             } else {
                 sb.Append("null");
             }
+            if (trailingComma) sb.Append(',');
+            AppendNewLine();
+        }
+
+        void WriteNumberDictionary(string name, IReadOnlyDictionary<string, long>? values, bool trailingComma) {
+            WritePropertyName(name);
+            sb.Append('{');
+            if (values != null) {
+                int index = 0;
+                foreach (KeyValuePair<string, long> entry in values.OrderBy(static entry => entry.Key, StringComparer.Ordinal)) {
+                    if (index++ > 0) sb.Append(',');
+                    sb.Append('"');
+                    sb.Append(Escape(entry.Key));
+                    sb.Append("\":");
+                    sb.Append(entry.Value.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+            sb.Append('}');
             if (trailingComma) sb.Append(',');
             AppendNewLine();
         }

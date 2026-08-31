@@ -37,6 +37,33 @@ public sealed partial class ReaderRegistryTests {
     }
 
     [Fact]
+    public void OfficeDocumentReader_HandlerDefaultLimit_UsesValidatedPerExtensionOverrides() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.extension-limits",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".wide", ".tiny" },
+                DefaultMaxInputBytes = 1_024,
+                DefaultMaxInputBytesByExtension = new Dictionary<string, long> { ["tiny"] = 16 },
+                ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>()
+            })
+            .Build();
+
+        Assert.Equal(1_024, reader.GetHandlerDefaultMaxInputBytes("sample.wide"));
+        Assert.Equal(16, reader.GetHandlerDefaultMaxInputBytes("sample.tiny"));
+        ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities());
+        Assert.Equal(16, capability.DefaultMaxInputBytesByExtension[".tiny"]);
+
+        Assert.Throws<ArgumentException>(() => new OfficeDocumentReaderBuilder().AddHandler(new ReaderHandlerRegistration {
+            Id = "officeimo.tests.invalid-extension-limit",
+            Kind = ReaderInputKind.Text,
+            Extensions = new[] { ".wide" },
+            DefaultMaxInputBytesByExtension = new Dictionary<string, long> { [".other"] = 16 },
+            ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>()
+        }));
+    }
+
+    [Fact]
     public void OfficeDocumentReader_RichDocumentHandler_ProjectsChunksAndPreservesEnvelope() {
         const string handlerId = "officeimo.tests.custom.rich";
         const string extension = ".richix";

@@ -33,6 +33,7 @@
     <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Legacy\OfficeIMO.Excel.Legacy.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
@@ -109,6 +110,7 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Legacy\OfficeIMO.Word.Legacy.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
@@ -138,6 +140,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Csv" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.GoogleSheets" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.Legacy" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.OpenDocument" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace" />
@@ -213,6 +216,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Word" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.GoogleDocs" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Html" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.Legacy" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.OpenDocument" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Pdf" />
