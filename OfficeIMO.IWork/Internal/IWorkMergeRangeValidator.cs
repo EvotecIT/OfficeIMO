@@ -3,23 +3,45 @@ namespace OfficeIMO.IWork.Internal;
 internal static class IWorkMergeRangeValidator {
     internal static bool HasOverlaps(IReadOnlyList<IWorkTableMergeRange> ranges, int columnCount) {
         if (ranges.Count < 2 || columnCount == 0) return false;
+        return HasOverlapsOrCoveredCells(ranges, Array.Empty<IWorkTableCell>(), columnCount);
+    }
+
+    internal static bool HasOverlapsOrCoveredCells(IReadOnlyList<IWorkTableMergeRange> ranges,
+        IReadOnlyList<IWorkTableCell> orderedCells, int columnCount) {
+        if (ranges.Count == 0 || columnCount == 0) return false;
         IWorkTableMergeRange[] ordered = ranges.OrderBy(range => range.FirstRow)
             .ThenBy(range => range.FirstColumn).ToArray();
+        var anchors = new HashSet<long>(ordered.Select(range => Key(range.FirstRow, range.FirstColumn)));
         var active = new SortedSet<ActiveMerge>(ActiveMergeComparer.Instance);
         var columns = new RangeMaximumCounter(columnCount);
         int identifier = 0;
-        foreach (IWorkTableMergeRange range in ordered) {
-            while (active.Count > 0 && active.Min!.LastRow < range.FirstRow) {
+        int rangeIndex = 0;
+        int cellIndex = 0;
+        while (rangeIndex < ordered.Length || cellIndex < orderedCells.Count) {
+            int row = Math.Min(
+                rangeIndex < ordered.Length ? ordered[rangeIndex].FirstRow : int.MaxValue,
+                cellIndex < orderedCells.Count ? orderedCells[cellIndex].Row : int.MaxValue);
+            while (active.Count > 0 && active.Min!.LastRow < row) {
                 ActiveMerge expired = active.Min!;
                 active.Remove(expired);
                 columns.Add(expired.FirstColumn - 1, expired.LastColumn - 1, -1);
             }
-            if (columns.Maximum(range.FirstColumn - 1, range.LastColumn - 1) > 0) return true;
-            columns.Add(range.FirstColumn - 1, range.LastColumn - 1, 1);
-            active.Add(new ActiveMerge(range.LastRow, identifier++, range.FirstColumn, range.LastColumn));
+            while (rangeIndex < ordered.Length && ordered[rangeIndex].FirstRow == row) {
+                IWorkTableMergeRange range = ordered[rangeIndex++];
+                if (columns.Maximum(range.FirstColumn - 1, range.LastColumn - 1) > 0) return true;
+                columns.Add(range.FirstColumn - 1, range.LastColumn - 1, 1);
+                active.Add(new ActiveMerge(range.LastRow, identifier++, range.FirstColumn, range.LastColumn));
+            }
+            while (cellIndex < orderedCells.Count && orderedCells[cellIndex].Row == row) {
+                IWorkTableCell cell = orderedCells[cellIndex++];
+                if (columns.Maximum(cell.Column - 1, cell.Column - 1) > 0
+                    && !anchors.Contains(Key(cell.Row, cell.Column))) return true;
+            }
         }
         return false;
     }
+
+    private static long Key(int row, int column) => ((long)row << 32) | (uint)column;
 
     private sealed class ActiveMerge {
         internal ActiveMerge(int lastRow, int identifier, int firstColumn, int lastColumn) {

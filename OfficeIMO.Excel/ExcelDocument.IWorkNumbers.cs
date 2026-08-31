@@ -199,8 +199,8 @@ public partial class ExcelDocument {
                     if ((cell.Kind == IWorkCellKind.DateTime
                             || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.DateTime)
                         && cell.Value is DateTime date
-                        && date < DateTime.FromOADate(2d)) {
-                        return $"Numbers table '{table.Name}' contains a date outside the XLSX-supported range.";
+                        && !CanPreserveExcelDate(date)) {
+                        return $"Numbers table '{table.Name}' contains a date outside the XLSX-supported range or precision.";
                     }
                 }
             }
@@ -210,6 +210,17 @@ public partial class ExcelDocument {
 
     internal static bool FitsTextBoxesInWorksheet(int textBoxCount) =>
         textBoxCount >= 0 && textBoxCount <= 1_048_576;
+
+    private static bool CanPreserveExcelDate(DateTime value) {
+        if (value < DateTime.FromOADate(2d)) return false;
+        try {
+            double serial = ExcelDateSystemConverter.ToSerial(value, ExcelDateSystem.NineteenHundred);
+            DateTime reconstructed = ExcelDateSystemConverter.FromSerial(serial, ExcelDateSystem.NineteenHundred);
+            return reconstructed.Ticks == value.Ticks;
+        } catch (ArgumentException) {
+            return false;
+        }
+    }
 
     private static bool TryAddExactSheetName(string name, HashSet<string> existing) {
         if (string.IsNullOrEmpty(name) || name.Length > 31
