@@ -9,6 +9,7 @@ internal sealed class IWorkProjectionBudget {
     private int _textBoundaryCount;
     private long _textCharacterCount;
     private long _decodedImageByteCount;
+    private long _projectedImageByteCount;
 
     internal IWorkProjectionBudget(IWorkReadOptions options) {
         _options = options;
@@ -51,6 +52,14 @@ internal sealed class IWorkProjectionBudget {
                 $"Decoded image data exceeds the configured package limit of {_options.MaximumPackageBytes} bytes.");
         }
         _decodedImageByteCount += count;
+    }
+
+    internal void AddProjectedImageBytes(long count) {
+        if (count < 0 || _projectedImageByteCount > _options.MaximumProjectedImageBytes - count) {
+            throw new InvalidDataException(
+                $"Projected destination image data exceeds the configured limit of {_options.MaximumProjectedImageBytes} bytes.");
+        }
+        _projectedImageByteCount += count;
     }
 
     internal void AddTextItem() {

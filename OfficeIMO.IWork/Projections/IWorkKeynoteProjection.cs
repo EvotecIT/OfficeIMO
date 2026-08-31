@@ -368,6 +368,7 @@ internal static class IWorkKeynoteReader {
                         "A Keynote slide image could not be resolved completely; editable reconstruction is incomplete.",
                         drawable.EntryPath, drawable.Identifier));
                 } else {
+                    projectionBudget.AddProjectedImageBytes(image.Length);
                     images.Add(image);
                     drawables.Add(new IWorkKeynoteDrawable(image));
                 }

@@ -323,6 +323,7 @@ internal static class IWorkPagesReader {
                         drawable.EntryPath, drawable.Identifier));
                     continue;
                 }
+                projectionBudget.AddProjectedImageBytes(image.Length);
                 images.Add(image);
                 projectedImages.Add(drawable.Identifier, image);
             }

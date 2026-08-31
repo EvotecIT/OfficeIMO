@@ -150,7 +150,8 @@ public sealed partial class IWorkSourceDocument {
                      record.IsPrimary && record.MessageType == 1)) {
             int declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
                 options.MaximumProtobufFieldCount);
-            if (declaredSheetCount > options.MaximumProjectedSheets) {
+            if (options.ImportMode != IWorkImportMode.VisualOnly
+                && declaredSheetCount > options.MaximumProjectedSheets) {
                 throw new InvalidDataException(
                     $"Numbers sheet count exceeds the configured projection limit of {options.MaximumProjectedSheets}.");
             }
@@ -161,6 +162,10 @@ public sealed partial class IWorkSourceDocument {
                 continue;
             }
             if (message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) continue;
+            if (options.ImportMode == IWorkImportMode.VisualOnly) {
+                if (declaredSheetCount > 0 && message.HasBytes(1)) return true;
+                continue;
+            }
             IReadOnlyList<IWorkArchiveRecord> sheets = index.DereferenceAll(
                 message, 1, out int unresolved);
             if (unresolved == 0 && sheets.Count > 0
