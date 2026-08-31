@@ -17,6 +17,16 @@ public sealed class MainWindowSmokeTests {
                 Assert.IsType<MainWindowViewModel>(window.DataContext);
                 Assert.False(window.ViewModel.HasDocument);
                 Assert.True(window.ViewModel.IsEmpty);
+
+                window.ViewModel.ShowConversionWorkbenchCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1280, 820));
+                window.Arrange(new Avalonia.Rect(0, 0, 1280, 820));
+                Assert.True(window.ViewModel.IsConversionMode);
+
+                window.ViewModel.ShowDocumentHealthCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1280, 820));
+                window.Arrange(new Avalonia.Rect(0, 0, 1280, 820));
+                Assert.True(window.ViewModel.IsDocumentHealthMode);
             } finally {
                 window.Close();
             }

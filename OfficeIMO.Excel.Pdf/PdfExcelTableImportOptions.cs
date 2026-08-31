@@ -1,10 +1,14 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options for extracting logical PDF tables into an Excel workbook.
     /// </summary>
 public sealed class PdfExcelTableImportOptions {
+        /// <summary>Cancellation observed at table, row, and column-analysis boundaries.</summary>
+        public CancellationToken CancellationToken { get; set; }
+
         /// <summary>
         /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.
         /// </summary>

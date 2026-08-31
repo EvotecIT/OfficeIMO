@@ -27,7 +27,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordPdfSaveOptions operation = (options ?? new WordPdfSaveOptions()).CloneForConversion();
+            operation.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfDocument pdf = CreateOfficeIMOPdfDocument(document, operation);
+            operation.CancellationToken.ThrowIfCancellationRequested();
             return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
         }
 

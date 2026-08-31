@@ -9,6 +9,9 @@ namespace OfficeIMO.Html.Pdf;
 /// Options for exporting parser-supported PDFs to HTML through the first-party OfficeIMO logical PDF model.
 /// </summary>
 public sealed class PdfHtmlSaveOptions {
+    /// <summary>Cancellation observed at page and export-summary boundaries.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     private OfficeHtmlDocumentOptions _documentOutput = new() {
         Title = "OfficeIMO PDF Export",
         Language = null,
@@ -128,6 +131,7 @@ public sealed class PdfHtmlSaveOptions {
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
+        CancellationToken = CancellationToken,
         Profile = Profile,
         DocumentOutput = DocumentOutput.Clone(),
         PageRanges = PageRanges?.ToArray(),

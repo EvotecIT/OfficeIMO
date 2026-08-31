@@ -5,6 +5,7 @@ using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
+using OfficeIMO.Studio.Features.Workflows;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -30,6 +31,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEmpty))]
+    [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private bool _hasDocument;
 
     [ObservableProperty]
@@ -64,7 +66,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<Uri, Task>? openUri = null,
         Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
         Func<CancellationToken, Task<string?>>? pickImage = null,
-        Func<int, Task<bool>>? confirmPageDeletion = null) {
+        Func<int, Task<bool>>? confirmPageDeletion = null,
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -73,6 +76,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
+        ConversionWorkbench = new ConversionWorkbenchViewModel(
+            pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
+            _pickOutputFolder);
+        DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder);
+        ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
     }
 
     public ObservableCollection<PdfPageViewModel> Pages { get; } = new();
@@ -113,7 +122,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
-    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening;
+    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || DocumentHealth.IsBusy;
 
     partial void OnIsOpeningChanged(bool value) {
         OnPropertyChanged(nameof(CanStartDocumentTransition));
@@ -285,6 +294,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     public void Dispose() {
         if (_disposed) return;
         _disposed = true;
+        ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
+        ConversionWorkbench.Dispose();
+        DocumentHealth.Dispose();
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {
             _disposeWhenIdle = true;

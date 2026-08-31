@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Controls fail-closed creation of normalized PDF repair artifacts.</summary>
 public sealed class PdfRepairArtifactOptions {
+    /// <summary>Cancellation observed between parsing, planning, rewriting, and verification stages.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Rejects a clean source that has no recovered structural defects.</summary>
     public bool RequireRecoveredDefects { get; set; } = true;
 
@@ -59,10 +62,13 @@ public static class PdfRepairArtifact {
         PdfReadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfRepairArtifactOptions effective = options ?? new PdfRepairArtifactOptions();
+        System.Threading.CancellationToken cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (effective.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum repair-artifact bytes must be positive.");
 
         PdfReadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient);
         PdfReadDocument source = PdfReadDocument.Open(pdf, lenientOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfRepairReport sourceRepairs = source.RepairReport;
         if (effective.RequireRecoveredDefects && sourceRepairs.RepairCount == 0) {
             throw new InvalidOperationException("The source PDF has no recovered structural defects to persist.");
@@ -74,6 +80,7 @@ public static class PdfRepairArtifact {
         // Optimize is the existing full-rewrite authorization for normalized object graphs. The
         // repair artifact does not apply optimizer transforms; it only serializes the recovered graph.
         _ = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.Optimize, lenientOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (source.Security.HasEncryption) throw new NotSupportedException("Repair artifacts do not silently remove or replace source encryption.");
         if (source.Security.HasSignatures || source.Security.HasDocMDPPermissions || source.Security.HasUsageRights) {
             throw new NotSupportedException("Repair artifacts cannot preserve signatures, certification permissions, or usage rights through a full rewrite.");
@@ -85,10 +92,12 @@ public static class PdfRepairArtifact {
             outputEncryption: null,
             mutateObjectGraph: null,
             maximumOutputBytes: effective.MaximumOutputBytes);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadOptions strictOptions = CreateReadOptions(
             PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output),
             PdfParsingMode.Strict);
         PdfReadDocument strictOutput = PdfReadDocument.Open(output, strictOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (strictOutput.RepairReport.HasRepairs) throw new InvalidOperationException("The repaired artifact still requires parser recovery.");
 
         PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(
@@ -97,6 +106,7 @@ public static class PdfRepairArtifact {
             options: null,
             originalReadOptions: lenientOptions,
             rewrittenReadOptions: strictOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         preservation.ThrowIfFailed();
         return new PdfRepairArtifactResult(
             output,

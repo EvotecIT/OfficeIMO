@@ -28,7 +28,8 @@ public sealed partial class MainWindow : Window {
             openUri: OpenUriAsync,
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
             pickImage: PickImageAsync,
-            confirmPageDeletion: ConfirmPageDeletionAsync);
+            confirmPageDeletion: ConfirmPageDeletionAsync,
+            pickWorkflowFiles: PickWorkflowFilesAsync);
         DataContext = ViewModel;
 
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -106,6 +107,23 @@ public sealed partial class MainWindow : Window {
                     Patterns = ["*.pdf"],
                     MimeTypes = ["application/pdf"],
                     AppleUniformTypeIdentifiers = ["com.adobe.pdf"]
+                }
+            ]
+        });
+        cancellationToken.ThrowIfCancellationRequested();
+        return files.Select(static file => file.Path.LocalPath).ToArray();
+    }
+
+    private async Task<IReadOnlyList<string>> PickWorkflowFilesAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanOpen) return Array.Empty<string>();
+
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+            Title = "Add documents to conversion queue",
+            AllowMultiple = true,
+            FileTypeFilter = [
+                new FilePickerFileType("Office, PDF, and HTML documents") {
+                    Patterns = ["*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm"]
                 }
             ]
         });

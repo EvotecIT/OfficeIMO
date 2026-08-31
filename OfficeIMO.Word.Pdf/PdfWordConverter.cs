@@ -14,6 +14,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfWordImportOptions readOptions = options ?? new PdfWordImportOptions();
+            readOptions.CancellationToken.ThrowIfCancellationRequested();
             WordDocument document = WordDocument.Create();
             ImportInto(source, document, readOptions);
             return document;
@@ -43,6 +44,7 @@ namespace OfficeIMO.Word.Pdf {
             ImportNavigationMap navigation = BuildNavigationMap(source, options);
 
             for (int pageIndex = 0; pageIndex < source.Pages.Count; pageIndex++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalPage page = source.Pages[pageIndex];
                 ReportPageReconstructionBoundaries(page, options);
                 List<ImportItem> items = BuildImportItems(page, options, navigation);
@@ -66,6 +68,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 items.Sort(CompareImportItems);
                 for (int itemIndex = 0; itemIndex < items.Count; itemIndex++) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     ImportItem item = items[itemIndex];
                     switch (item.Kind) {
                         case ImportItemKind.Heading:
@@ -96,6 +99,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ReportNonReconstructedLinks(source, options, navigation);
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!emittedContent) {
                 target.AddParagraph(string.IsNullOrWhiteSpace(options.EmptyDocumentMessage)
                     ? "No supported PDF content detected."

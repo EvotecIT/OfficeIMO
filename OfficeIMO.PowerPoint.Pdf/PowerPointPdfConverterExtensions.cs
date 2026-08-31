@@ -28,6 +28,8 @@ public static partial class PowerPointPdfConverterExtensions {
             throw new ArgumentNullException(nameof(presentation));
         }
 
+        CancellationToken cancellationToken = options.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfOptions pdfOptions = CreatePdfOptions(presentation, options);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
 
@@ -43,6 +45,7 @@ public static partial class PowerPointPdfConverterExtensions {
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         int renderedSlides = 0;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointSlide slide = slides[slideIndex];
             if (!options.IncludeHiddenSlides && slide.Hidden) {
                 continue;
@@ -60,6 +63,7 @@ public static partial class PowerPointPdfConverterExtensions {
             RenderEmptySlide(pdf, presentation.SlideSize.WidthPoints, presentation.SlideSize.HeightPoints);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return pdf;
     }
 
@@ -191,6 +195,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
         for (int index = 0; index < slides.Count; index++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (index > 0) pdf.PageBreak();
             var item = slides[index];
             pdf.Canvas(canvas => {
@@ -222,6 +227,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         int perPage = options.HandoutSlidesPerPage;
         for (int pageStart = 0, pageIndex = 0; pageStart < slides.Count; pageStart += perPage, pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (pageIndex > 0) pdf.PageBreak();
             List<(PptCore.PowerPointSlide Slide, int Number)> pageSlides = slides.Skip(pageStart)
                 .Take(perPage).ToList();
@@ -239,6 +245,7 @@ public static partial class PowerPointPdfConverterExtensions {
             double rowHeight = (pageHeight - margin * 2D - gutter * 2D) / 3D;
             double thumbWidth = (pageWidth - margin * 2D - gutter) * 0.46D;
             for (int index = 0; index < slides.Count; index++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 double top = margin + index * (rowHeight + gutter);
                 double thumbHeight = Math.Min(rowHeight - 18D, thumbWidth *
                     presentation.SlideSize.HeightPoints / presentation.SlideSize.WidthPoints);
@@ -263,6 +270,7 @@ public static partial class PowerPointPdfConverterExtensions {
         double cellWidth = (pageWidth - margin * 2D - gutter * (columns - 1)) / columns;
         double cellHeight = (pageHeight - margin * 2D - gutter * (rows - 1)) / rows;
         for (int index = 0; index < slides.Count; index++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             int row = index / columns;
             int column = index % columns;
             double left = margin + column * (cellWidth + gutter);

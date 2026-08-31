@@ -146,6 +146,7 @@ namespace OfficeIMO.Excel.Pdf {
             PdfCore.PdfLogicalDocument document,
             ExcelDocument workbook,
             PdfExcelTableImportOptions options) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> tables = PdfCore.PdfLogicalTableContinuations.Group(
                 document,
                 options.MaxRows,
@@ -160,6 +161,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             var results = new List<PdfExcelTableImportEntry>(tables.Count);
             for (int i = 0; i < tables.Count; i++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalTableContinuationGroup group = tables[i];
                 PdfCore.PdfLogicalTableExtraction extraction = group.Primary;
                 string requestedTableName = BuildTableName(options.TableNamePrefix, extraction, i);
@@ -233,12 +235,14 @@ namespace OfficeIMO.Excel.Pdf {
             PdfExcelTableColumnKind[] columnKinds = DetectColumnKinds(columns, rows, options);
             var usedColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             for (int i = 0; i < columns.Count; i++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 AddTypedColumn(table, GetUniqueColumnName(columns[i], i, usedColumns), columnKinds[i]);
             }
 
             table.BeginLoadData();
             try {
                 for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     DataRow row = table.NewRow();
                     IReadOnlyList<string> sourceRow = rows[rowIndex];
                     for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {

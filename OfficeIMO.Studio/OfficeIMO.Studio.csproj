@@ -27,6 +27,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

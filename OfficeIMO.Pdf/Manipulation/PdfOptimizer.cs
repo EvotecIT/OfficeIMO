@@ -16,6 +16,8 @@ internal static partial class PdfOptimizer {
         PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfOptimizationOptions effectiveOptions = (options ?? new PdfOptimizationOptions()).Clone();
+        System.Threading.CancellationToken cancellationToken = effectiveOptions.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (effectiveOptions.MinimumStreamCompressionBytes < 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Minimum stream compression size cannot be negative.");
         }
@@ -28,6 +30,7 @@ internal static partial class PdfOptimizer {
         }
 
         PdfDocumentProbe probe = PdfInspector.Probe(pdf, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (probe.Security.HasEncryption) {
             throw new NotSupportedException("Encrypted PDF files are not supported for lossless optimization by OfficeIMO.Pdf yet.");
         }
@@ -36,6 +39,7 @@ internal static partial class PdfOptimizer {
 
         PdfOptimizationReport reportBefore = PdfDiagnostics.AnalyzeOptimization(pdf, readOptions);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber <= 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
@@ -50,16 +54,17 @@ internal static partial class PdfOptimizer {
         }
 
         if (effectiveOptions.DeduplicateIdenticalStreams) {
-            DeduplicateIdenticalStreams(optimizedObjects, actions);
+            DeduplicateIdenticalStreams(optimizedObjects, actions, cancellationToken);
         }
 
         if (effectiveOptions.DeduplicateImages) DeduplicateImages(optimizedObjects, effectiveOptions, actions, skippedActions);
-        if (effectiveOptions.DeduplicateFonts) DeduplicateTypedDictionaries(optimizedObjects, "Font", "DeduplicateFont", actions);
-        if (effectiveOptions.DeduplicateResources) DeduplicateResourceDictionaries(optimizedObjects, actions);
+        if (effectiveOptions.DeduplicateFonts) DeduplicateTypedDictionaries(optimizedObjects, "Font", "DeduplicateFont", actions, cancellationToken);
+        if (effectiveOptions.DeduplicateResources) DeduplicateResourceDictionaries(optimizedObjects, actions, cancellationToken);
 
         if (effectiveOptions.RemoveUnreferencedObjects) {
-            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
+            RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions, cancellationToken);
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         byte[] candidate = RewriteAllObjects(
             optimizedObjects,
@@ -73,6 +78,7 @@ internal static partial class PdfOptimizer {
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
         PdfReadOptions candidateReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, candidate.LongLength);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,
             RewrittenReadOptions = candidateReadOptions,
@@ -80,6 +86,7 @@ internal static partial class PdfOptimizer {
             PreserveDocumentVersionState = !effectiveOptions.UseObjectStreams && effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.ClassicTable
         };
         PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(pdf, candidate, preservationOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (!effectiveOptions.Linearize && effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, preservationOptions);
             return new PdfOptimizationActionResult(
@@ -166,6 +173,7 @@ internal static partial class PdfOptimizer {
         List<PdfOptimizationAction> actions,
         List<PdfOptimizationSkippedAction> skippedActions) {
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfIndirectObject indirect = objects[objectNumber];
             if (indirect.Value is not PdfStream stream) {
                 continue;
@@ -262,11 +270,13 @@ internal static partial class PdfOptimizer {
 
     private static void DeduplicateIdenticalStreams(
         Dictionary<int, PdfIndirectObject> objects,
-        List<PdfOptimizationAction> actions) {
+        List<PdfOptimizationAction> actions,
+        System.Threading.CancellationToken cancellationToken) {
         var numberMap = objects.Keys.ToDictionary(static id => id, static id => id);
         var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
         var streamGroups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfStream) {
                 continue;
             }
@@ -283,6 +293,7 @@ internal static partial class PdfOptimizer {
 
         var replacements = new Dictionary<int, PdfReference>();
         foreach (List<int> group in streamGroups.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (group.Count < 2) {
                 continue;
             }
@@ -299,6 +310,7 @@ internal static partial class PdfOptimizer {
         }
 
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfIndirectObject indirect = objects[objectNumber];
             PdfObject rewritten = ReplaceReferences(indirect.Value, replacements);
             if (!ReferenceEquals(rewritten, indirect.Value)) {
@@ -307,6 +319,7 @@ internal static partial class PdfOptimizer {
         }
 
         foreach (KeyValuePair<int, PdfReference> replacement in replacements.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!objects.TryGetValue(replacement.Key, out PdfIndirectObject? duplicate)) {
                 continue;
             }
@@ -384,6 +397,7 @@ internal static partial class PdfOptimizer {
         var bodies = new List<byte[]>(sourceIds.Length + 1);
         var objectStreamEligibility = new List<bool>(sourceIds.Length + 1);
         foreach (int sourceId in sourceIds) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             bodies.Add(PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
             objectStreamEligibility.Add(sourceId != catalogObjectNumber && objects[sourceId].Value is not PdfStream);
         }
@@ -399,10 +413,13 @@ internal static partial class PdfOptimizer {
     private static void RemoveUnreferencedObjects(
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
-        List<PdfOptimizationAction> actions) {
+        List<PdfOptimizationAction> actions,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var reachable = new HashSet<int>();
         CollectReachableObjectNumbers(objects, new PdfReference(catalogObjectNumber, objects[catalogObjectNumber].Generation), reachable);
         foreach (int objectNumber in objects.Keys.OrderBy(static key => key).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (reachable.Contains(objectNumber)) {
                 continue;
             }

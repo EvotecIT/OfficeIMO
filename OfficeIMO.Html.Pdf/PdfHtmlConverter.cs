@@ -123,6 +123,7 @@ public static partial class PdfHtmlConverterExtensions {
         AppendAcroFormXfaNotice(builder, document, options);
 
         for (int i = 0; i < pages.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalPage page = pages[i];
             if (options.IncludePageContainers) {
                 builder.Append("<section class=\"pdf-page\" id=\"");
@@ -160,6 +161,7 @@ public static partial class PdfHtmlConverterExtensions {
         AppendAcroFormXfaNotice(builder, document, options);
 
         for (int i = 0; i < pages.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             AppendPositionedPage(builder, pages, i, options);
         }
 

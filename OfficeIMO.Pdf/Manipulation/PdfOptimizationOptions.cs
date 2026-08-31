@@ -24,6 +24,9 @@ public enum PdfOptimizationXrefFormat {
 
 /// <summary>Options for lossless PDF optimization actions.</summary>
 public sealed class PdfOptimizationOptions {
+    /// <summary>Cancellation observed between lossless analysis, object, stream, and validation stages.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Named profile used to create this option set.</summary>
     public PdfOptimizationProfile Profile { get; set; } = PdfOptimizationProfile.Balanced;
     /// <summary>Compress unfiltered stream objects with FlateDecode when the compressed form is smaller.</summary>
@@ -85,6 +88,7 @@ public sealed class PdfOptimizationOptions {
 
     internal PdfOptimizationOptions Clone() {
         return new PdfOptimizationOptions {
+            CancellationToken = CancellationToken,
             CompressUnfilteredStreams = CompressUnfilteredStreams,
             RemoveUnreferencedObjects = RemoveUnreferencedObjects,
             DeduplicateIdenticalStreams = DeduplicateIdenticalStreams,

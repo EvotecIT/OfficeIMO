@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using PdfCore = OfficeIMO.Pdf;
 using DrawingCore = OfficeIMO.Drawing;
 
@@ -7,6 +8,9 @@ namespace OfficeIMO.Word.Pdf {
     /// Options controlling first-party OfficeIMO PDF export.
     /// </summary>
     public class WordPdfSaveOptions {
+        /// <summary>Cancellation observed at document-section and element boundaries during conversion.</summary>
+        public CancellationToken CancellationToken { get; set; }
+
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
@@ -223,6 +227,7 @@ namespace OfficeIMO.Word.Pdf {
 
         internal WordPdfSaveOptions CloneForConversion() {
             var clone = new WordPdfSaveOptions {
+                CancellationToken = CancellationToken,
                 PdfOptions = PdfOptions,
                 FontFamily = FontFamily,
                 ResourcePolicy = ResourcePolicy.Clone(),

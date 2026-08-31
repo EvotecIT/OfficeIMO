@@ -373,6 +373,8 @@ public sealed partial class MainWindowViewModel {
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();
         _openCancellation?.Cancel();
+        if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
+        if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (CanCancelOperation) OperationStatus = "Cancelling operation";
     }
 

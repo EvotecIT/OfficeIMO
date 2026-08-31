@@ -4,6 +4,7 @@
         xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
         xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
         xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+        xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
@@ -15,7 +16,7 @@
         Background="{DynamicResource StudioWindowBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="54,Auto,Auto,Auto,*">
+  <Grid RowDefinitions="54,48,Auto,Auto,Auto,*">
     <Border Grid.Row="0"
             Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}"
@@ -48,6 +49,7 @@
         </StackPanel>
 
         <StackPanel Grid.Column="1"
+                    IsVisible="{Binding IsPdfWorkspaceMode}"
                     Orientation="Horizontal"
                     Spacing="6"
                     Margin="18,0,0,0"
@@ -65,7 +67,7 @@
         </StackPanel>
 
         <StackPanel Grid.Column="2"
-                    IsVisible="{Binding HasDocument}"
+                    IsVisible="{Binding ShowPdfDocumentControls}"
                     Orientation="Horizontal"
                     Spacing="6"
                     HorizontalAlignment="Center"
@@ -119,7 +121,7 @@
 
         <Button Grid.Column="3"
                 Classes="tool"
-                IsVisible="{Binding HasDocument}"
+                IsVisible="{Binding ShowPdfDocumentControls}"
                 IsEnabled="{Binding CanStartDocumentTransition}"
                 Command="{Binding CloseDocumentCommand}"
                 Content="Close"
@@ -128,6 +130,32 @@
     </Border>
 
     <Border Grid.Row="1"
+            Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}"
+            BorderThickness="0,0,0,1">
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Center"
+                  VerticalAlignment="Center"
+                  Spacing="4">
+        <RadioButton GroupName="StudioWorkspace"
+                     IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}"
+                     Command="{Binding ShowPdfWorkspaceCommand}"
+                     Content="PDF Workspace"
+                     Padding="18,8" />
+        <RadioButton GroupName="StudioWorkspace"
+                     IsChecked="{Binding IsConversionMode, Mode=OneWay}"
+                     Command="{Binding ShowConversionWorkbenchCommand}"
+                     Content="Convert"
+                     Padding="18,8" />
+        <RadioButton GroupName="StudioWorkspace"
+                     IsChecked="{Binding IsDocumentHealthMode, Mode=OneWay}"
+                     Command="{Binding ShowDocumentHealthCommand}"
+                     Content="Document Health"
+                     Padding="18,8" />
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2"
             IsVisible="{Binding HasError}"
             Background="{DynamicResource StudioErrorSoftBrush}"
             BorderBrush="{DynamicResource StudioErrorBrush}"
@@ -146,7 +174,7 @@
       </Grid>
     </Border>
 
-    <Border Grid.Row="2"
+    <Border Grid.Row="3"
             IsVisible="{Binding HasSecurityWarning}"
             Background="#FFF8E7"
             BorderBrush="#E9B949"
@@ -157,7 +185,7 @@
                  TextWrapping="Wrap" />
     </Border>
 
-    <Border Grid.Row="3"
+    <Border Grid.Row="4"
             IsVisible="{Binding HasOperationStatus}"
             Background="{DynamicResource StudioAccentSoftBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}"
@@ -178,7 +206,8 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="4" x:Name="PageViewport" ColumnDefinitions="250,*,292">
+    <Grid Grid.Row="5" x:Name="PageViewport" ColumnDefinitions="250,*,292"
+          IsVisible="{Binding IsPdfWorkspaceMode}">
       <Border IsVisible="{Binding IsEmpty}"
               Grid.ColumnSpan="3"
               Margin="28"
@@ -532,6 +561,334 @@
                        HorizontalAlignment="Center" />
           </StackPanel>
         </Border>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="5"
+          IsVisible="{Binding IsConversionMode}"
+          ColumnDefinitions="286,*,320"
+          RowDefinitions="*,58"
+          Background="{DynamicResource StudioCanvasBrush}">
+      <Border Grid.Column="0"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="0,0,1,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="18" Spacing="10">
+            <TextBlock Text="Route" FontSize="16" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}"
+                      SelectedItem="{Binding ConversionWorkbench.SelectedRoute, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:ConversionRouteChoice">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedRoute.Description}"
+                       Foreground="{DynamicResource StudioMutedTextBrush}"
+                       FontSize="11" TextWrapping="Wrap" />
+
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,6" />
+            <TextBlock Text="Output profile" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding ConversionWorkbench.Profiles}"
+                      SelectedItem="{Binding ConversionWorkbench.SelectedProfile, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:WorkflowProfileChoice">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedProfile.Description}"
+                       Foreground="{DynamicResource StudioMutedTextBrush}"
+                       FontSize="11" TextWrapping="Wrap" />
+
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,6" />
+            <TextBlock Text="If a file exists" FontWeight="SemiBold" />
+            <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}"
+                      SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:WorkflowConflictChoice">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedConflict.Description}"
+                       Foreground="{DynamicResource StudioMutedTextBrush}"
+                       FontSize="11" TextWrapping="Wrap" />
+
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,6" />
+            <TextBlock Text="Output folder" FontWeight="SemiBold" />
+            <TextBox Text="{Binding ConversionWorkbench.OutputFolder, Mode=TwoWay}"
+                     PlaceholderText="Blank uses each source folder" />
+            <Button Classes="tool"
+                    Content="Choose folder"
+                    Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
+                    HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+
+      <Grid Grid.Column="1" RowDefinitions="58,Auto,*" Margin="18,0">
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+          <StackPanel>
+            <TextBlock Text="Conversion queue" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.QueueSummary}"
+                       FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+          </StackPanel>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+            <Button Classes="primary" Content="Add files"
+                    Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+            <Button Classes="tool" Content="Remove"
+                    Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
+            <Button Classes="tool" Content="Clear"
+                    Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
+          </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1" ColumnDefinitions="2.2*,1.1*,1.3*,1.2*"
+              Background="{DynamicResource StudioPanelBrush}"
+              Margin="12,8,12,9">
+          <TextBlock Text="File" FontWeight="SemiBold" FontSize="11" />
+          <TextBlock Grid.Column="1" Text="Route" FontWeight="SemiBold" FontSize="11" />
+          <TextBlock Grid.Column="2" Text="Status" FontWeight="SemiBold" FontSize="11" />
+          <TextBlock Grid.Column="3" Text="Progress" FontWeight="SemiBold" FontSize="11" />
+        </Grid>
+
+        <Border Grid.Row="2" Background="{DynamicResource StudioPanelBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1">
+          <ListBox ItemsSource="{Binding ConversionWorkbench.Jobs}"
+                   SelectedItem="{Binding ConversionWorkbench.SelectedJob, Mode=TwoWay}"
+                   BorderThickness="0" Background="Transparent">
+            <ListBox.ItemContainerTheme>
+              <ControlTheme TargetType="ListBoxItem">
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="Padding" Value="0" />
+              </ControlTheme>
+            </ListBox.ItemContainerTheme>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="workflow:ConversionJobViewModel">
+                <Grid ColumnDefinitions="2.2*,1.1*,1.3*,1.2*" Margin="12,11">
+                  <StackPanel>
+                    <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding InputPath}" FontSize="10"
+                               Foreground="{DynamicResource StudioMutedTextBrush}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Text="{Binding RouteLabel}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                  <ProgressBar Grid.Column="3" Minimum="0" Maximum="1"
+                               Value="{Binding ProgressFraction}" Height="6" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Border>
+      </Grid>
+
+      <Border Grid.Column="2"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="1,0,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="18" Spacing="10">
+            <TextBlock Text="Fidelity notes" FontSize="16" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Route.Description}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Fidelity}"
+                       Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" />
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,4" />
+            <TextBlock Text="First-party engine" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Engine}"
+                       FontFamily="Consolas,Menlo,monospace" />
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,4" />
+            <TextBlock Text="Known limitations" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.KnownLimitations}"
+                       Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+            <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,4" />
+            <TextBlock Text="Result" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}"
+                       TextWrapping="Wrap" />
+            <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
+                       FontSize="10" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+            <TextBlock Text="Structured diagnostics" FontWeight="SemiBold" Margin="0,5,0,0" />
+            <ItemsControl ItemsSource="{Binding ConversionWorkbench.SelectedJob.Diagnostics}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="5" Padding="8" Margin="0,2">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Code}" FontWeight="SemiBold" FontSize="11" />
+                      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="11" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+
+      <Border Grid.Row="1" Grid.ColumnSpan="3"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="*,240,Auto,Auto" Margin="18,10">
+          <TextBlock Text="{Binding ConversionWorkbench.Status}" VerticalAlignment="Center" />
+          <ProgressBar Grid.Column="1" Minimum="0" Maximum="1"
+                       Value="{Binding ConversionWorkbench.ProgressFraction}" Height="7" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Classes="primary" Content="Run queue"
+                  Command="{Binding ConversionWorkbench.RunQueueCommand}" Margin="14,0,0,0" />
+          <Button Grid.Column="3" Classes="tool" Content="Cancel"
+                  Command="{Binding ConversionWorkbench.CancelCommand}"
+                  IsEnabled="{Binding ConversionWorkbench.CanCancel}" Margin="6,0,0,0" />
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Grid Grid.Row="5"
+          IsVisible="{Binding IsDocumentHealthMode}"
+          ColumnDefinitions="310,*,340"
+          RowDefinitions="*,58"
+          Background="{DynamicResource StudioCanvasBrush}">
+      <Border Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="18" Spacing="9">
+            <TextBlock Text="Document Health" FontSize="18" FontWeight="SemiBold" />
+            <TextBlock Text="Inspect first, then run only the operation you choose. Reports always show explicit before and after evidence."
+                       TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+
+            <TextBlock Text="Operation" FontWeight="SemiBold" Margin="0,8,0,0" />
+            <ComboBox ItemsSource="{Binding DocumentHealth.Operations}"
+                      SelectedItem="{Binding DocumentHealth.SelectedOperation, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:HealthOperationChoice">
+                  <TextBlock Text="{Binding Label}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Text="{Binding DocumentHealth.SelectedOperation.Description}"
+                       TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+
+            <TextBlock Text="PDF" FontWeight="SemiBold" Margin="0,7,0,0" />
+            <TextBox Text="{Binding DocumentHealth.InputPath, Mode=TwoWay}"
+                     PlaceholderText="Choose a PDF" />
+            <Button Classes="tool" Content="Choose PDF"
+                    Command="{Binding DocumentHealth.ChooseInputCommand}" HorizontalAlignment="Left" />
+
+            <StackPanel IsVisible="{Binding DocumentHealth.NeedsComparison}" Spacing="7">
+              <TextBlock Text="Compare with" FontWeight="SemiBold" Margin="0,7,0,0" />
+              <TextBox Text="{Binding DocumentHealth.ComparisonPath, Mode=TwoWay}" PlaceholderText="Choose the second PDF" />
+              <Button Classes="tool" Content="Choose comparison PDF"
+                      Command="{Binding DocumentHealth.ChooseComparisonCommand}" HorizontalAlignment="Left" />
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding DocumentHealth.ShowsOptimizationProfile}" Spacing="7">
+              <TextBlock Text="Optimization profile" FontWeight="SemiBold" Margin="0,7,0,0" />
+              <ComboBox ItemsSource="{Binding DocumentHealth.Profiles}"
+                        SelectedItem="{Binding DocumentHealth.SelectedProfile, Mode=TwoWay}">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate x:DataType="workflow:WorkflowProfileChoice">
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Text="{Binding DocumentHealth.SelectedProfile.Description}"
+                         TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+            </StackPanel>
+
+            <TextBlock Text="Password (if required)" FontWeight="SemiBold" Margin="0,7,0,0" />
+            <TextBox Text="{Binding DocumentHealth.PdfPassword, Mode=TwoWay}" PasswordChar="●" />
+            <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,7,0,0" />
+            <TextBox Text="{Binding DocumentHealth.OutputFolder, Mode=TwoWay}"
+                     PlaceholderText="Blank uses the source folder" />
+            <Button Classes="tool" Content="Choose folder"
+                    Command="{Binding DocumentHealth.ChooseOutputFolderCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="22" Spacing="14">
+          <TextBlock Text="Report" FontSize="20" FontWeight="SemiBold" />
+          <TextBlock Text="{Binding DocumentHealth.Summary}" FontSize="14" TextWrapping="Wrap" />
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Background="{DynamicResource StudioPanelBrush}"
+                    BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Before" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Text="{Binding DocumentHealth.BeforeSummary}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="{DynamicResource StudioPanelBrush}"
+                    BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                    CornerRadius="8" Padding="16">
+              <StackPanel Spacing="8">
+                <TextBlock Text="After" FontWeight="SemiBold" FontSize="15" />
+                <TextBlock Text="{Binding DocumentHealth.AfterSummary}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Border Background="{DynamicResource StudioPanelBrush}"
+                  BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                  CornerRadius="8" Padding="16">
+            <StackPanel Spacing="7">
+              <TextBlock Text="Operation evidence" FontWeight="SemiBold" FontSize="15" />
+              <ItemsControl ItemsSource="{Binding DocumentHealth.Metrics}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate><TextBlock Text="{Binding}" Margin="0,3" /></DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+              <TextBlock Text="The saved artifact is published only after format-specific reopen validation succeeds."
+                         FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+
+          <Border IsVisible="{Binding DocumentHealth.HasOutput}"
+                  Background="{DynamicResource StudioAccentSoftBrush}"
+                  BorderBrush="{DynamicResource StudioAccentBrush}" BorderThickness="1"
+                  CornerRadius="8" Padding="14">
+            <StackPanel Spacing="5">
+              <TextBlock Text="Published artifact" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding DocumentHealth.OutputPath}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <Border Grid.Column="2" Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="18" Spacing="10">
+            <TextBlock Text="Diagnostics" FontSize="16" FontWeight="SemiBold" />
+            <ItemsControl ItemsSource="{Binding DocumentHealth.Diagnostics}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="5" Padding="9" Margin="0,2">
+                    <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" />
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="No document content or password is retained in the report."
+                       FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" Margin="0,8,0,0" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+
+      <Border Grid.Row="1" Grid.ColumnSpan="3"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
+        <Grid ColumnDefinitions="*,240,Auto,Auto" Margin="18,10">
+          <TextBlock Text="{Binding DocumentHealth.Status}" VerticalAlignment="Center" />
+          <ProgressBar Grid.Column="1" Minimum="0" Maximum="1"
+                       Value="{Binding DocumentHealth.ProgressFraction}" Height="7" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Classes="primary" Content="Run operation"
+                  Command="{Binding DocumentHealth.RunCommand}" Margin="14,0,0,0" />
+          <Button Grid.Column="3" Classes="tool" Content="Cancel"
+                  Command="{Binding DocumentHealth.CancelCommand}"
+                  IsEnabled="{Binding DocumentHealth.CanCancel}" Margin="6,0,0,0" />
+        </Grid>
       </Border>
     </Grid>
   </Grid>
