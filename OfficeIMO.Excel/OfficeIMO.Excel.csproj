@@ -89,6 +89,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Csv" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />

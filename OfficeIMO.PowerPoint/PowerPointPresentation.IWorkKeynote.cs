@@ -376,8 +376,14 @@ public sealed partial class PowerPointPresentation {
     private static void ApplyParagraphStyle(PowerPointParagraph paragraph,
         IWorkTextParagraph source, bool startsAtSourceLabel) {
         IWorkParagraphStyle style = source.Style;
+        bool rightToLeft = OfficeTextElements.ResolveBaseDirection(source.Text)
+            == OfficeTextDirection.RightToLeft;
+        paragraph.RightToLeft = rightToLeft;
         if (style.Alignment.HasValue) {
             paragraph.Alignment = style.Alignment.Value switch {
+                IWorkTextAlignment.Natural => rightToLeft
+                    ? PowerPointTextAlignment.Right
+                    : PowerPointTextAlignment.Left,
                 IWorkTextAlignment.Center => PowerPointTextAlignment.Center,
                 IWorkTextAlignment.Right => PowerPointTextAlignment.Right,
                 IWorkTextAlignment.Justified => PowerPointTextAlignment.Justified,
@@ -467,7 +473,8 @@ public sealed partial class PowerPointPresentation {
 
         bool roman = token.All(character => "ivxlcdmIVXLCDM".IndexOf(character) >= 0)
             && (token.Length > 1 || "ivxIVX".IndexOf(token[0]) >= 0);
-        if (roman && TryParseRoman(token, out start) && start <= MaximumStart) {
+        if (roman) {
+            if (!TryParseRoman(token, out start) || start > MaximumStart) return false;
             bool upper = token.All(character => character is >= 'A' and <= 'Z');
             if (!parenthesized && !rightParenthesis && !period) return false;
             scheme = upper
@@ -514,11 +521,31 @@ public sealed partial class PowerPointPresentation {
             };
             if (current == 0) return false;
             int delta = current < previous ? -current : current;
-            if (delta > 0 && value > int.MaxValue - delta) return false;
+            if (delta > 0 && value > int.MaxValue - delta
+                || delta < 0 && value < int.MinValue - delta) return false;
             value += delta;
             if (current > previous) previous = current;
         }
-        return value > 0;
+        if (value <= 0) return false;
+        bool upper = token.All(character => character is >= 'A' and <= 'Z');
+        string canonical = FormatRoman(value);
+        return string.Equals(token, upper ? canonical : canonical.ToLowerInvariant(),
+            StringComparison.Ordinal);
+    }
+
+    private static string FormatRoman(int value) {
+        var builder = new System.Text.StringBuilder();
+        foreach ((int Number, string Token) part in new[] {
+                     (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+                     (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+                     (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+                 }) {
+            while (value >= part.Number) {
+                builder.Append(part.Token);
+                value -= part.Number;
+            }
+        }
+        return builder.ToString();
     }
 
     private static void AppendStyledText(PowerPointParagraph paragraph, string text,

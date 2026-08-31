@@ -303,7 +303,8 @@ public sealed partial class IWorkBoundaryTests {
         uint showType = 2, uint nodeType = 4, uint slideType = 5,
         string text = "Title", string? slideName = null, string? listLabel = null,
         bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null,
-        float? slideWidth = null, float? slideHeight = null) {
+        float? slideWidth = null, float? slideHeight = null,
+        bool naturalAlignment = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -339,6 +340,14 @@ public sealed partial class IWorkBoundaryTests {
             storageFields.Add(BytesField(8, Message(BytesField(1, styleEntry))));
             extraRecords.Add(ArchiveRecord(characterStyleId, 2021,
                 Message(BytesField(11, Message(FloatField(3, fontSize.Value))))));
+        }
+        if (naturalAlignment) {
+            const ulong paragraphStyleId = 9;
+            byte[] styleEntry = Message(VarintField(1, 0),
+                ReferenceField(2, paragraphStyleId));
+            storageFields.Add(BytesField(5, Message(BytesField(1, styleEntry))));
+            extraRecords.Add(ArchiveRecord(paragraphStyleId, 2022,
+                Message(BytesField(12, Message(VarintField(1, 4))))));
         }
         byte[] slideSize = slideWidth.HasValue && slideHeight.HasValue
             ? BytesField(4, Message(FloatField(1, slideWidth.Value), FloatField(2, slideHeight.Value)))

@@ -141,6 +141,9 @@ public partial class ExcelDocument {
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
+            if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
+                return $"Numbers sheet '{sheet.Name}' contains more text boxes than the XLSX row limit of 1,048,576.";
+            }
             if (sheet.TextBoxes.Count > 0 || sheet.Tables.Count == 0) {
                 if (!TryAddExactSheetName(sheet.Name, destinationSheetNames)) {
                     return $"Numbers sheet '{sheet.Name}' cannot be preserved as an exact XLSX worksheet name.";
@@ -198,6 +201,9 @@ public partial class ExcelDocument {
         }
         return null;
     }
+
+    internal static bool FitsTextBoxesInWorksheet(int textBoxCount) =>
+        textBoxCount >= 0 && textBoxCount <= 1_048_576;
 
     private static bool TryAddExactSheetName(string name, HashSet<string> existing) {
         if (string.IsNullOrEmpty(name) || name.Length > 31

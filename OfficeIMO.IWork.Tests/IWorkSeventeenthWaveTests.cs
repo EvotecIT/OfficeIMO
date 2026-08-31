@@ -190,7 +190,8 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
     }
 
-    private static MemoryStream CreatePagesPackageWithListLabel(string label) {
+    private static MemoryStream CreatePagesPackageWithListLabel(string label,
+        bool includePreview = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong listId = 3;
@@ -201,7 +202,10 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(bodyId, 2001,
                 Message(StringField(3, "Item"), BytesField(7, listTable)), new[] { listId }),
             ArchiveRecord(listId, 2023, Message(VarintField(11, 1), StringField(16, label))));
-        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+        return includePreview
+            ? CreatePackage(("Index/Document.iwa", FrameIwa(records)),
+                ("preview.png", ValidPreviewPng()))
+            : CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
     private static MemoryStream CreatePagesPackageWithTransparentText() {

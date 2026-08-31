@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
 using OpenXmlParagraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
@@ -456,7 +457,7 @@ public partial class WordDocument {
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
-            ApplyParagraphStyle(paragraph, sourceParagraph.Style);
+            ApplyParagraphStyle(paragraph, sourceParagraph);
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
@@ -495,7 +496,10 @@ public partial class WordDocument {
         }
     }
 
-    private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkParagraphStyle style) {
+    private static void ApplyParagraphStyle(WordParagraph paragraph, IWorkTextParagraph source) {
+        IWorkParagraphStyle style = source.Style;
+        paragraph.BiDi = OfficeTextElements.ResolveBaseDirection(source.Text)
+            == OfficeTextDirection.RightToLeft;
         if (style.Alignment.HasValue) {
             paragraph.ParagraphAlignment = style.Alignment.Value switch {
                 IWorkTextAlignment.Natural => WordParagraphAlignment.Start,
@@ -673,11 +677,31 @@ public partial class WordDocument {
                 };
                 if (current == 0) return false;
                 int delta = current < previous ? -current : current;
-                if (delta > 0 && value > int.MaxValue - delta) return false;
+                if (delta > 0 && value > int.MaxValue - delta
+                    || delta < 0 && value < int.MinValue - delta) return false;
                 value += delta;
                 if (current > previous) previous = current;
             }
-            return value > 0;
+            if (value <= 0) return false;
+            bool upper = token.All(character => character is >= 'A' and <= 'Z');
+            string canonical = FormatRoman(value);
+            return string.Equals(token, upper ? canonical : canonical.ToLowerInvariant(),
+                StringComparison.Ordinal);
+        }
+
+        private static string FormatRoman(int value) {
+            var builder = new System.Text.StringBuilder();
+            foreach ((int Number, string Token) part in new[] {
+                         (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+                         (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+                         (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+                     }) {
+                while (value >= part.Number) {
+                    builder.Append(part.Token);
+                    value -= part.Number;
+                }
+            }
+            return builder.ToString();
         }
 
         internal static bool CanPreserveStart(string? label) {

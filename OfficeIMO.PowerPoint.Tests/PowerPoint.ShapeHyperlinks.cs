@@ -8,6 +8,37 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointShapeHyperlinkTests {
     [Fact]
+    public void Shape_internal_slide_hyperlink_can_be_assigned_from_its_getter() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide source = presentation.AddSlide();
+        PowerPointTextBox shape = source.AddTextBox("Open target");
+        PowerPointSlide target = presentation.AddSlide();
+
+        shape.SetHyperlink(target, "Target slide");
+        Uri fragment = Assert.IsType<Uri>(shape.Hyperlink);
+        shape.Hyperlink = fragment;
+
+        Assert.Equal("#slide-2", shape.Hyperlink!.OriginalString);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
+    public void Text_run_internal_slide_hyperlink_can_be_assigned_from_its_getter() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide source = presentation.AddSlide();
+        PowerPointTextRun run = source.AddTextBox("Open target")
+            .Paragraphs.Single().Runs.Single();
+        PowerPointSlide target = presentation.AddSlide();
+
+        run.SetHyperlink(target, "Target slide");
+        Uri fragment = Assert.IsType<Uri>(run.Hyperlink);
+        run.Hyperlink = fragment;
+
+        Assert.Equal("#slide-2", run.Hyperlink!.OriginalString);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
     public void Replacing_or_clearing_click_link_preserves_relationship_used_by_hover_link() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         PowerPointSlide slide = presentation.AddSlide();

@@ -316,6 +316,12 @@ namespace OfficeIMO.PowerPoint {
             if (uri == null) {
                 throw new ArgumentNullException(nameof(uri));
             }
+            if (!uri.IsAbsoluteUri && _slidePart != null
+                && PowerPointHyperlinkResolver.TryResolveSlideFragment(
+                    _slidePart, uri, out SlidePart? targetSlidePart)) {
+                SetInternalHyperlink(targetSlidePart!, tooltip);
+                return;
+            }
             OpenXmlPart? ownerPart = _ownerPart as OpenXmlPart ?? _slidePart;
             if (ownerPart == null) {
                 throw new InvalidOperationException("Hyperlinks require an owning presentation part.");
@@ -338,6 +344,11 @@ namespace OfficeIMO.PowerPoint {
             if (targetSlide == null) {
                 throw new ArgumentNullException(nameof(targetSlide));
             }
+            SetInternalHyperlink(targetSlide.SlidePart, tooltip);
+        }
+
+        private void SetInternalHyperlink(SlidePart targetSlidePart,
+            string? tooltip) {
             if (_slidePart == null) {
                 throw new InvalidOperationException(
                     "Hyperlinks require a slide context.");
@@ -346,20 +357,20 @@ namespace OfficeIMO.PowerPoint {
 
             PresentationPart? sourcePresentation = _slidePart.GetParentParts()
                 .OfType<PresentationPart>().FirstOrDefault();
-            PresentationPart? targetPresentation = targetSlide.SlidePart
+            PresentationPart? targetPresentation = targetSlidePart
                 .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
             if (sourcePresentation == null
                 || !ReferenceEquals(sourcePresentation, targetPresentation)) {
                 throw new ArgumentException(
                     "The hyperlink target must belong to the same presentation.",
-                    nameof(targetSlide));
+                    "targetSlide");
             }
 
             string relationshipId;
             if (ownerPart is NotesSlidePart
-                && !ReferenceEquals(_slidePart, targetSlide.SlidePart)) {
+                && !ReferenceEquals(_slidePart, targetSlidePart)) {
                 Uri targetUri = PowerPointHyperlinkResolver.CreatePartRelativeUri(
-                    ownerPart, targetSlide.SlidePart);
+                    ownerPart, targetSlidePart);
                 HyperlinkRelationship relationship = ownerPart.HyperlinkRelationships
                     .FirstOrDefault(candidate => !candidate.IsExternal
                         && candidate.Uri == targetUri)
@@ -367,10 +378,10 @@ namespace OfficeIMO.PowerPoint {
                 relationshipId = relationship.Id;
             } else {
                 if (!ownerPart.Parts.Any(pair => ReferenceEquals(
-                        pair.OpenXmlPart, targetSlide.SlidePart))) {
-                    ownerPart.AddPart(targetSlide.SlidePart);
+                        pair.OpenXmlPart, targetSlidePart))) {
+                    ownerPart.AddPart(targetSlidePart);
                 }
-                relationshipId = ownerPart.GetIdOfPart(targetSlide.SlidePart);
+                relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
             }
 
             A.RunProperties props = EnsureRunProperties();
