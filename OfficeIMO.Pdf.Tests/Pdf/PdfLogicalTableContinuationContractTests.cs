@@ -85,6 +85,11 @@ public sealed class PdfLogicalTableContinuationContractTests {
     [InlineData("Amount page 1/2", "Amount page 2/2")]
     [InlineData("Amount pg. 1", "Amount pg. 2")]
     [InlineData("Amount p 1", "Amount p 2")]
+    [InlineData("Page 1", "Page 2")]
+    [InlineData("Page 1 of 2", "Page 2 of 2")]
+    [InlineData("Page 1/2", "Page 2/2")]
+    [InlineData("Pg. 1", "Pg. 2")]
+    [InlineData("P 1", "P 2")]
     public void TableContinuations_RecognizeBoundedPaginationSuffixes(string previous, string current) {
         Assert.True(PdfLogicalTableContinuations.HeadersEqual(
             new[] { "Transaction description", previous },

@@ -778,6 +778,36 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_ReclassifiesRepeatedLargeFontPageEdgesAsHeaders() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("first placeholder"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("second placeholder"))
+            .ToBytes();
+        var pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Large running header", "F1", 18D, 36D, 780D, 180D),
+            new PdfTextSpan("First body line", "F1", 10D, 36D, 400D, 100D),
+            new PdfTextSpan("Second body line", "F1", 10D, 36D, 350D, 110D),
+            new PdfTextSpan("Third body line", "F1", 10D, 36D, 300D, 100D)
+        });
+
+        PdfDocumentReadResult result = Read(pdf, pipeline);
+
+        Assert.Equal(2, result.Pages.Count);
+        Assert.All(result.Pages, page => {
+            Assert.Contains(page.Headers, block => block.Text == "Large running header");
+            Assert.DoesNotContain(page.Headings, heading => heading.Text == "Large running header");
+            PdfUnderstandingSemanticElement runningHeader = Assert.Single(page.Analysis.Elements, element =>
+                element.Kind == PdfUnderstandingSemanticKind.Header &&
+                element.Region.Text == "Large running header");
+            Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic.large-font");
+            Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic.repeated-header");
+        });
+        Assert.DoesNotContain(result.Sections, section => section.Title == "Large running header");
+    }
+
+    [Fact]
     public void StructuredRead_ClassifiesRepeatedEdgesInRotatedCropCoordinates() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("first placeholder"))

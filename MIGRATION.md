@@ -51,6 +51,7 @@ a second logical model.
 | `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
 | `PdfLogicalDocument` | `PdfDocumentReadResult` |
 | `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
+| `pdf.Read.ExportStructured(format)` | `pdf.Read().ExportStructured(format)`; pass semantic options to `Read(...)` and load/security options to `Load(...)` |
 | `pdf.Read.TextByPage()` | project `result.Pages[*].TextBlocks` for the application's text shape |
 | `pdf.Read.Images(...)` | `pdf.Images.Extract(...)` |
 | `pdf.Read.ImagePlacements(...)` | `pdf.Images.Placements(...)` |
@@ -72,6 +73,10 @@ a second logical model.
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
 | `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
 | `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
+
+`ExportStructured(PdfStructuredExportFormat.PageXml)` remains page scoped. For
+a multi-page read result, call `result.ToPageXmlDocuments()` to produce one
+schema-valid PAGE XML document per logical page.
 
 Page-local `page.Tables`, `page.Paragraphs`, `page.Headings`, and the other
 logical collections remain available. `Analyze()` continues to report PDF

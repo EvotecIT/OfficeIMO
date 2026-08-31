@@ -75,6 +75,7 @@ internal static class PdfDocumentSemanticEnricher {
                 workBudget.Consume();
                 PdfUnderstandingSemanticElement element = elements[pageIndex][elementIndex];
                 if (element.Kind is not (PdfUnderstandingSemanticKind.Paragraph or
+                    PdfUnderstandingSemanticKind.Heading or
                     PdfUnderstandingSemanticKind.Unknown or
                     PdfUnderstandingSemanticKind.Header or
                     PdfUnderstandingSemanticKind.Footer or
@@ -98,6 +99,7 @@ internal static class PdfDocumentSemanticEnricher {
                     pageNumbers[pageIndex],
                     edge,
                     signature,
+                    element.Kind == PdfUnderstandingSemanticKind.Heading,
                     visual.Left / width,
                     Math.Max(0D, visual.Width) / width));
             }
@@ -113,7 +115,11 @@ internal static class PdfDocumentSemanticEnricher {
                 if (left.PageNumber == right.PageNumber || left.Edge != right.Edge) continue;
                 if (Math.Abs(left.NormalizedLeft - right.NormalizedLeft) > 0.08D ||
                     Math.Abs(left.NormalizedWidth - right.NormalizedWidth) > 0.12D) continue;
-                if (PdfTextSimilarity.NormalizedSimilarity(left.Signature, right.Signature) < 0.8D) continue;
+                if (left.RequiresExactSignature || right.RequiresExactSignature) {
+                    if (!string.Equals(left.Signature, right.Signature, StringComparison.Ordinal)) continue;
+                } else if (PdfTextSimilarity.NormalizedSimilarity(left.Signature, right.Signature) < 0.8D) {
+                    continue;
+                }
                 Union(parent, leftIndex, rightIndex);
             }
         }
@@ -473,12 +479,13 @@ internal static class PdfDocumentSemanticEnricher {
     private enum PageEdge { None, Header, Footer }
 
     private readonly struct PageEdgeCandidate {
-        internal PageEdgeCandidate(int pageIndex, int elementIndex, int pageNumber, PageEdge edge, string signature, double normalizedLeft, double normalizedWidth) {
+        internal PageEdgeCandidate(int pageIndex, int elementIndex, int pageNumber, PageEdge edge, string signature, bool requiresExactSignature, double normalizedLeft, double normalizedWidth) {
             PageIndex = pageIndex;
             ElementIndex = elementIndex;
             PageNumber = pageNumber;
             Edge = edge;
             Signature = signature;
+            RequiresExactSignature = requiresExactSignature;
             NormalizedLeft = normalizedLeft;
             NormalizedWidth = normalizedWidth;
         }
@@ -487,6 +494,7 @@ internal static class PdfDocumentSemanticEnricher {
         internal int PageNumber { get; }
         internal PageEdge Edge { get; }
         internal string Signature { get; }
+        internal bool RequiresExactSignature { get; }
         internal double NormalizedLeft { get; }
         internal double NormalizedWidth { get; }
     }
