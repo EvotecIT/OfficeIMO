@@ -466,7 +466,7 @@ $definitions = [ordered]@{
     }
     pdfunderstanding = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfUnderstandingBenchmarks.AdvancedUnderstanding*'
+        Filter = '*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*'
         ComparisonId = "officeimo-pdf-advanced-understanding-$Framework"
         Suite = 'OfficeIMO.Pdf.AdvancedUnderstanding'
         CatalogEligible = $false
@@ -479,7 +479,7 @@ $definitions = [ordered]@{
     }
     pdflogicalstructure = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfUnderstandingBenchmarks.LogicalStructureAndTables*'
+        Filter = '*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*'
         ComparisonId = "officeimo-pdf-logical-structure-tables-$Framework"
         Suite = 'OfficeIMO.Pdf.LogicalStructureAndTables'
         CatalogEligible = $false
@@ -690,6 +690,7 @@ $executionPlan = @(
         $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
         [pscustomobject]@{
             Workload = $name
+            Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog

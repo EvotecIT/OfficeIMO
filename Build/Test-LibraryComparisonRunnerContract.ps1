@@ -77,6 +77,8 @@ $pdfLogicalStructure = @(
 if ($pdfUnderstanding.Count -ne 1 -or
     $pdfLogicalStructure.Count -ne 1 -or
     $pdfUnderstanding[0].ComparisonId -eq $pdfLogicalStructure[0].ComparisonId -or
+    $pdfUnderstanding[0].Filter -ne '*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*' -or
+    $pdfLogicalStructure[0].Filter -ne '*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*' -or
     $pdfUnderstanding[0].ExpectedCaseCount -ne 3 -or
     $pdfLogicalStructure[0].ExpectedCaseCount -ne 3 -or
     $pdfUnderstanding[0].CatalogEligible -or
