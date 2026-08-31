@@ -119,10 +119,8 @@ public static class PdfAdvancedUnderstandingStages {
                 var runs = new List<List<PdfUnderstandingWord>> { new List<PdfUnderstandingWord>() };
                 double previousAlongEnd = double.NegativeInfinity;
                 for (int i = 0; i < ordered.Length; i++) {
-                    double along = (Math.Cos(radians) * WordAnchorX(ordered[i])) + (Math.Sin(radians) * ordered[i].BaselineY);
-                    double projectedHalfExtent = GetProjectedAlongHalfExtent(ordered[i], radians);
-                    double alongStart = along - projectedHalfExtent;
-                    double alongEnd = along + projectedHalfExtent;
+                    double alongStart = GetProjectedAlongStart(ordered[i], radians);
+                    double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
                     double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth, ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
                     if (runs[runs.Count - 1].Count > 0 && alongStart - previousAlongEnd > splitGap) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
@@ -211,20 +209,11 @@ public static class PdfAdvancedUnderstandingStages {
             double angle) {
             if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
             if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns)) return true;
-            if (Math.Abs(angle) <= 2D) {
-                double gap = current.XStart - previous.XEnd;
-                double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
-                if (gap > threshold) return true;
-            }
-
-            string left = previous.Text;
-            string right = current.Text;
-            if (left.Length == 0 || right.Length == 0) return false;
-            char leftBoundary = left[left.Length - 1];
-            char rightBoundary = right[0];
-            if (IsOpeningPunctuation(leftBoundary) || IsClosingPunctuation(rightBoundary)) return false;
-            if (IsStandaloneSeparator(left) || IsStandaloneSeparator(right)) return true;
-            return left.Length > 1 && right.Length > 1;
+            double radians = angle * Math.PI / 180D;
+            double previousEnd = GetProjectedAlongEnd(previous, radians);
+            double currentStart = GetProjectedAlongStart(current, radians);
+            double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
+            return currentStart - previousEnd > threshold;
         }
 
         private static bool SharesSourceRun(
@@ -250,17 +239,33 @@ public static class PdfAdvancedUnderstandingStages {
                    (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
         }
 
-        private static bool IsOpeningPunctuation(char value) =>
-            value == '(' || value == '[' || value == '{' || value == '\u201C' || value == '\u2018';
+        private static double GetProjectedAlongStart(PdfUnderstandingWord word, double radians) {
+            if (TryGetProjectedAdvance(word, out _)) {
+                double startX = Math.Cos(radians) >= 0D ? word.XStart : word.XEnd;
+                return (Math.Cos(radians) * startX) + (Math.Sin(radians) * word.BaselineY);
+            }
+            double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
+            return ProjectAlong(word, radians) - projectedHalfExtent;
+        }
 
-        private static bool IsClosingPunctuation(char value) =>
-            value == ',' || value == '.' || value == ';' || value == ':' || value == '!' || value == '?' ||
-            value == ')' || value == ']' || value == '}' || value == '%' || value == '\u201D' || value == '\u2019';
+        private static double GetProjectedAlongEnd(PdfUnderstandingWord word, double radians) {
+            if (TryGetProjectedAdvance(word, out double advance)) return GetProjectedAlongStart(word, radians) + advance;
+            double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
+            return ProjectAlong(word, radians) + projectedHalfExtent;
+        }
 
-        private static bool IsStandaloneSeparator(string value) =>
-            value.Length == 1 && (value[0] == '&' || value[0] == '+' || value[0] == '|' || value[0] == '=');
+        private static bool TryGetProjectedAdvance(PdfUnderstandingWord word, out double advance) {
+            advance = 0D;
+            if (word.SourceRuns.Count != 1 || word.Text.Length == 0) return false;
+            PdfTextSpan source = word.SourceRuns[0];
+            string sourceText = source.Text ?? string.Empty;
+            if (sourceText.Length == 0) return false;
+            double perCharacter = source.Advance > 0D ? source.Advance / sourceText.Length : word.FontSize * 0.55D;
+            advance = perCharacter * word.Text.Length;
+            return advance > 0.001D;
+        }
 
-        private static double GetProjectedAlongHalfExtent(PdfUnderstandingWord word, double radians) {
+        private static double GetFallbackProjectedHalfExtent(PdfUnderstandingWord word, double radians) {
             double horizontalProjection = Math.Abs(Math.Cos(radians)) * Math.Max(0D, word.XEnd - word.XStart) / 2D;
             if (horizontalProjection > 0.001D) return horizontalProjection;
             return Math.Max(word.FontSize * 0.25D, word.FontSize * word.Text.Length * 0.2D);
@@ -432,11 +437,19 @@ public static class PdfAdvancedUnderstandingStages {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
-            if (region.YBottom <= context.Height * 0.08D && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
+            if (IsAtVisualPageBottom(context, region) && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
+        }
+
+        private static bool IsAtVisualPageBottom(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {
+            double bottom = region.Lines.Min(static line => line.BaselineY - Math.Max(1D, line.FontSize * 0.25D));
+            double top = region.Lines.Max(static line => line.BaselineY + Math.Max(1D, line.FontSize));
+            PdfVisualBounds visual = context.Page.TransformBoundsToVisual(region.XStart, bottom, region.XEnd, top);
+            double visualHeight = context.Page.GetVisualPageSize().Height;
+            return visual.Bottom >= visualHeight * 0.92D;
         }
 
     }

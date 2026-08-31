@@ -122,6 +122,23 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedLineGrouping_JoinsAdjacentRunFragmentsAndSpacesPositiveGaps() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Hel", "F1", 12D, 50D, 700D, 18D),
+            new PdfTextSpan("lo", "F1", 12D, 68D, 700D, 12D),
+            new PdfTextSpan("world", "F1", 12D, 90D, 700D, 30D)
+        });
+
+        PdfDocumentReadResult result = Read(pdf, options);
+
+        Assert.Equal("Hello world", Assert.Single(Assert.Single(result.Pages).Analysis.Lines).Text);
+        Assert.Contains("Hello world", result.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hel lo", result.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AdvancedPipeline_UsesRecursiveWhitespaceCutsForIndentedColumnContent() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
@@ -242,6 +259,52 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text.Contains("Item Amount", StringComparison.Ordinal));
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
+    }
+
+    [Fact]
+    public void AdvancedSemanticClassification_UsesVisualCoordinatesForRotatedFootnotes() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        pdf = PdfPageEditor.SetCropBox(pdf, 100D, 0D, 500D, 600D);
+        pdf = PdfPageEditor.RotatePages(pdf, 90);
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10_000, 10_000);
+        PdfUnderstandingRegion[] regions = {
+            CreateUnderstandingRegion("Body one", 300D, 300D, 12D),
+            CreateUnderstandingRegion("Body two", 300D, 250D, 12D),
+            CreateUnderstandingRegion("Body three", 300D, 200D, 12D),
+            CreateUnderstandingRegion("Visual footnote", 130D, 300D, 8D),
+            CreateUnderstandingRegion("Raw bottom only", 300D, 20D, 8D)
+        };
+
+        IReadOnlyList<PdfUnderstandingSemanticElement> elements =
+            PdfAdvancedUnderstandingStages.SemanticClassification.Classify(context, regions);
+
+        Assert.Equal(PdfUnderstandingSemanticKind.Footnote,
+            Assert.Single(elements, static element => element.Region.Text == "Visual footnote").Kind);
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
+            Assert.Single(elements, static element => element.Region.Text == "Raw bottom only").Kind);
+    }
+
+    [Fact]
+    public void Sections_KeepTableLinesOutOfUngroupedTextBlocks() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Table section")
+            .Paragraph(paragraph => paragraph.Text("Section introduction."))
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Quality", "Premium" }
+            })
+            .ToBytes();
+
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.SemanticClassification = new TableSectionClassificationStage();
+        PdfDocumentReadResult result = Read(pdf, options);
+        PdfLogicalSection section = Assert.Single(result.Sections);
+
+        Assert.Single(section.Tables);
+        Assert.DoesNotContain(section.TextBlocks, block =>
+            block.Text.Contains("Metric", StringComparison.Ordinal) ||
+            block.Text.Contains("Quality", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1490,6 +1553,12 @@ public class PdfUnderstandingPipelineTests {
         return new PdfUnderstandingWord(text, xStart, xStart + 40D, baselineY, 11D, 0D, new[] { run });
     }
 
+    private static PdfUnderstandingRegion CreateUnderstandingRegion(string text, double xStart, double baselineY, double fontSize) {
+        var run = new PdfTextSpan(text, "Helvetica", fontSize, xStart, baselineY, 40D);
+        var word = new PdfUnderstandingWord(text, xStart, xStart + 40D, baselineY, fontSize, 0D, new[] { run });
+        return new PdfUnderstandingRegion(new[] { new PdfUnderstandingLine(new[] { word }) });
+    }
+
     private sealed class FixedGlyphStage : IPdfGlyphDecodingStage {
         private readonly IReadOnlyList<PdfTextSpan> _spans;
         internal FixedGlyphStage(IReadOnlyList<PdfTextSpan> spans) { _spans = spans; }
@@ -1590,6 +1659,17 @@ public class PdfUnderstandingPipelineTests {
             orderedRegions.Select(static region => region.Lines.Max(static line => line.FontSize) >= 15D
                 ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 2)
                 : new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
+    }
+
+    private sealed class TableSectionClassificationStage : IPdfSemanticClassificationStage {
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
+            orderedRegions.Select(static region => region.Text.StartsWith("Table section", StringComparison.Ordinal)
+                ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 1)
+                : region.Evidence.Any(static evidence => evidence.Code == "region.canonical-table")
+                    ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Table)
+                    : new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
     }
 
     private sealed class UnmarkedListClassificationStage : IPdfSemanticClassificationStage {

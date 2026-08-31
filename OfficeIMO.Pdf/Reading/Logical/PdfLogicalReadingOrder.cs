@@ -400,20 +400,24 @@ public static class PdfLogicalReadingOrderAnalysis {
 
     private static List<Candidate> BuildCandidates(PdfLogicalPage page, PdfLogicalReadingOrderScope scope) {
         var result = new List<Candidate>();
-        var semanticTextBlocks = new HashSet<PdfLogicalTextBlock>();
-        for (int index = 0; index < page.Headings.Count; index++) semanticTextBlocks.Add(page.Headings[index].Line);
+        var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
+        for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
-            foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) semanticTextBlocks.Add(line);
+            foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) representedTextBlocks.Add(line);
         }
         for (int index = 0; index < page.ListItems.Count; index++) {
-            foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) semanticTextBlocks.Add(line);
+            foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) representedTextBlocks.Add(line);
+        }
+        for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
+            PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
+            if (page.Tables.Any(table => IsOwnedByTable(page, block, table))) representedTextBlocks.Add(block);
         }
         int sequence = 0;
         for (int index = 0; index < page.TextBlocks.Count; index++) {
             PdfLogicalTextBlock block = page.TextBlocks[index];
             if (scope == PdfLogicalReadingOrderScope.SemanticBody &&
                 block.Kind is (PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer)) continue;
-            if (!semanticTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
+            if (!representedTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
         for (int index = 0; index < page.Paragraphs.Count; index++) AddText(PdfLogicalReadingOrderKind.Paragraph, index, page.Paragraphs[index].Lines);
@@ -509,6 +513,45 @@ public static class PdfLogicalReadingOrderAnalysis {
 
         void AddMissing(PdfLogicalReadingOrderKind kind, int sourceIndex, int placementIndex) =>
             result.Add(new Candidate(kind, sourceIndex, placementIndex, sequence++, 0D, 0D, 0D, 0D, hasGeometry: false, isClipped: false));
+    }
+
+    private static bool IsOwnedByTable(PdfLogicalPage page, PdfLogicalTextBlock block, PdfLogicalTable table) {
+        if (!TryGetVisualBounds(page, block, out PdfVisualBounds blockBounds) ||
+            !TryGetVisualBounds(page, table, out PdfVisualBounds tableBounds)) return false;
+        double blockWidth = blockBounds.Right - blockBounds.Left;
+        if (blockWidth <= 0.001D) return false;
+        double horizontalOverlap = Math.Max(0D, Math.Min(blockBounds.Right, tableBounds.Right) - Math.Max(blockBounds.Left, tableBounds.Left));
+        if (horizontalOverlap + 0.001D < blockWidth * 0.5D) return false;
+        double verticalPadding = Math.Max(1D, block.FontSize);
+        double blockCenter = (blockBounds.Top + blockBounds.Bottom) / 2D;
+        return blockCenter >= tableBounds.Top - verticalPadding && blockCenter <= tableBounds.Bottom + verticalPadding;
+    }
+
+    private static bool TryGetVisualBounds(PdfLogicalPage page, PdfLogicalTextBlock block, out PdfVisualBounds bounds) {
+        if (block.VisualBounds is PdfLogicalVisualBounds visual) {
+            bounds = new PdfVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            return visual.Right > visual.Left && visual.Bottom > visual.Top;
+        }
+        if (block.XEnd <= block.XStart) { bounds = default; return false; }
+        double bottom = block.BaselineY - Math.Max(1D, block.FontSize * 0.25D);
+        double top = block.BaselineY + Math.Max(1D, block.FontSize);
+        bounds = page.TransformBoundsToVisual(block.XStart, bottom, block.XEnd, top);
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+    }
+
+    private static bool TryGetVisualBounds(PdfLogicalPage page, PdfLogicalTable table, out PdfVisualBounds bounds) {
+        if (table.VisualBounds is PdfLogicalVisualBounds visual) {
+            bounds = new PdfVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            return visual.Right > visual.Left && visual.Bottom > visual.Top;
+        }
+        if (table.Columns.Count == 0) { bounds = default; return false; }
+        double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
+        double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+        double bottom = Math.Min(table.YBottom, table.YTop);
+        double top = Math.Max(table.YBottom, table.YTop);
+        if (right <= left || top <= bottom) { bounds = default; return false; }
+        bounds = page.TransformBoundsToVisual(left, bottom, right, top);
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
     }
 
     private static double[] FindRepeatedColumnAnchors(IEnumerable<Candidate> source, double pageWidth) {
