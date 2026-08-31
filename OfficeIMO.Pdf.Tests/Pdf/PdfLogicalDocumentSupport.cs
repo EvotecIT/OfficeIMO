@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     private static string Normalize(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
     }

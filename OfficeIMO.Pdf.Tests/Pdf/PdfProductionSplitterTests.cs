@@ -96,7 +96,7 @@ public class PdfProductionSplitterTests {
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
         int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxIndirectObjects = sourceObjectCount,
                 MaxObjectCharacters = 100,
@@ -110,6 +110,6 @@ public class PdfProductionSplitterTests {
             readOptions);
 
         Assert.Single(result.Parts);
-        Assert.All(result.Parts, static part => Assert.Single(part.ToDocument().Read.Pages()));
+        Assert.All(result.Parts, static part => Assert.Single(part.ToDocument().Reader.Pages()));
     }
 }

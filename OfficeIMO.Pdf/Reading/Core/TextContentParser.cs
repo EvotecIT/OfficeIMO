@@ -124,16 +124,17 @@ internal static class TextContentParser {
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
         public bool IsHidden { get; }
-        public bool HasMcid { get; }
+        public int? Mcid { get; }
+        public bool HasMcid => Mcid.HasValue;
         public bool IsOptionalContent { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, bool hasMcid = false, bool isOptionalContent = false) {
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden, int? mcid = null, bool isOptionalContent = false) {
             _actualText = actualText;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
             IsHidden = isHidden;
-            HasMcid = hasMcid;
+            Mcid = mcid;
             IsOptionalContent = isOptionalContent;
         }
 
@@ -262,7 +263,7 @@ internal static class TextContentParser {
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
         System.Func<string, byte[]?>? actualTextForProperty = null,
-        System.Func<string, bool>? hasMcidForProperty = null,
+        System.Func<string, int?>? mcidForProperty = null,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
@@ -680,7 +681,7 @@ internal static class TextContentParser {
                         IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null),
                         operation.HasInvalidOperands ||
                         IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null),
-                        HasMcid(args.Count > 0 ? args[args.Count - 1] : null),
+                        GetMcid(args.Count > 0 ? args[args.Count - 1] : null),
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null)));
                     args.Clear();
                     break;
@@ -986,7 +987,8 @@ internal static class TextContentParser {
                     canRestamp && visibleGlyphsMatchLogicalText,
                     restampFontSize,
                     paintedText,
-                    Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D));
+                    Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
+                    GetActiveMcid()));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;
@@ -1058,9 +1060,15 @@ internal static class TextContentParser {
             return false;
         }
 
-        bool HasMcid(object? propertyObject) {
-            if (propertyObject is string propertyName) return hasMcidForProperty?.Invoke(propertyName) == true;
-            return propertyObject is PdfContentDictionary dictionary && dictionary.Items.ContainsKey("MCID");
+        int? GetActiveMcid() {
+            foreach (var state in markedContentStack) if (state.Mcid.HasValue) return state.Mcid;
+            return null;
+        }
+
+        int? GetMcid(object? propertyObject) {
+            if (propertyObject is string propertyName) return mcidForProperty?.Invoke(propertyName);
+            if (propertyObject is not PdfContentDictionary dictionary || !dictionary.Items.TryGetValue("MCID", out object? value)) return null;
+            return TryGetMcid(value);
         }
 
         static bool IsOptionalContentTag(object? tag) =>
@@ -1272,7 +1280,7 @@ internal static class TextContentParser {
         int initialTextRenderingMode = 0,
         PdfPageClipPath? initialClipPath = null,
         bool initialUnsupportedEffect = false,
-        System.Func<string, bool>? hasMcidForProperty = null,
+        System.Func<string, int?>? mcidForProperty = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
         int maxNestingDepth = PdfReadLimits.DefaultMaxContentNestingDepth,
         int maxOperands = PdfReadLimits.DefaultMaxContentOperands,
@@ -1617,7 +1625,7 @@ internal static class TextContentParser {
                     unsupportedRestampContentStack.Push(
                         operation.HasInvalidOperands ||
                         IsOptionalContentTag(args.Count > 1 ? args[args.Count - 2] : null) ||
-                        HasMcid(args.Count > 0 ? args[args.Count - 1] : null));
+                        GetMcid(args.Count > 0 ? args[args.Count - 1] : null).HasValue);
                     args.Clear();
                     break;
                 case "BMC":
@@ -1658,9 +1666,10 @@ internal static class TextContentParser {
             return false;
         }
 
-        bool HasMcid(object? propertyObject) {
-            if (propertyObject is string propertyName) return hasMcidForProperty?.Invoke(propertyName) == true;
-            return propertyObject is PdfContentDictionary dictionary && dictionary.Items.ContainsKey("MCID");
+        int? GetMcid(object? propertyObject) {
+            if (propertyObject is string propertyName) return mcidForProperty?.Invoke(propertyName);
+            if (propertyObject is not PdfContentDictionary dictionary || !dictionary.Items.TryGetValue("MCID", out object? value)) return null;
+            return TryGetMcid(value);
         }
 
         static bool IsOptionalContentTag(object? tag) =>
@@ -1757,5 +1766,18 @@ internal static class TextContentParser {
 
         static double ToDouble(object o) => o is double d ? d : 0.0;
         static string ToName(object o) => o as string ?? string.Empty;
+    }
+
+    private static int? TryGetMcid(object? value) {
+        switch (value) {
+            case int integer when integer >= 0:
+                return integer;
+            case long integer when integer >= 0 && integer <= int.MaxValue:
+                return (int)integer;
+            case double number when number >= 0D && number <= int.MaxValue && Math.Truncate(number) == number:
+                return (int)number;
+            default:
+                return null;
+        }
     }
 }

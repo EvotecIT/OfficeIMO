@@ -34,7 +34,7 @@ OfficeIMO optimization works on PDF structure and streams without rasterizing pa
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("report.pdf");
+PdfDocument source = PdfDocument.Load("report.pdf");
 PdfOptimizationActionResult result =
     source.Optimization.Apply(PdfOptimizationProfile.Web);
 

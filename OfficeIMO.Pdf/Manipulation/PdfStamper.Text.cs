@@ -4,7 +4,7 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds a simple text stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static byte[] StampText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
@@ -29,6 +29,7 @@ internal static partial class PdfStamper {
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
+        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
@@ -37,6 +38,7 @@ internal static partial class PdfStamper {
             }
 
             var page = document.Pages[i];
+            if (!effectiveOptions.BehindContent) IsolateExistingContents(objects, pageObjectNumbers[i], ref nextObjectNumber);
             int stampPseudoId = -1000 - pageNumber;
             var stampStream = BuildStampStream(
                 text,
@@ -118,7 +120,7 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds a large diagonal text watermark to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static byte[] WatermarkText(byte[] pdf, string text, PdfTextStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageContent, readOptions);
@@ -141,6 +143,7 @@ internal static partial class PdfStamper {
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
+        int nextObjectNumber = objects.Count == 0 ? 1 : objects.Keys.Max() + 1;
 
         for (int i = 0; i < document.Pages.Count; i++) {
             int pageNumber = i + 1;
@@ -149,6 +152,7 @@ internal static partial class PdfStamper {
             }
 
             var page = document.Pages[i];
+            if (!effectiveOptions.BehindContent) IsolateExistingContents(objects, pageObjectNumbers[i], ref nextObjectNumber);
             var size = page.GetPageSize();
             int stampPseudoId = -1000 - pageNumber;
             var stampStream = BuildStampStream(

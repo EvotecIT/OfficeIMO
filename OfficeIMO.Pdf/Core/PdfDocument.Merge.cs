@@ -19,7 +19,7 @@ public sealed partial class PdfDocument {
         }
 
         byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
-        PdfReadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
+        PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
         return PdfMerger.MergeWithReport(options, bytes, readOptions);
     }
 

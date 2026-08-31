@@ -225,21 +225,30 @@ public sealed class PdfLogicalTextRun {
 /// Heuristic heading line inferred from text size and geometry.
 /// </summary>
 public sealed class PdfLogicalHeading {
-    internal PdfLogicalHeading(int pageNumber, int level, string text, double fontSize, PdfLogicalTextBlock line) {
+    internal PdfLogicalHeading(
+        int pageNumber,
+        int level,
+        string text,
+        double fontSize,
+        PdfLogicalTextBlock line,
+        double confidence = 0.82D,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) {
         PageNumber = pageNumber;
         Level = level;
         Text = text;
         FontSize = fontSize;
         Line = line;
-        Confidence = 0.82D;
-        Evidence = new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) };
+        Confidence = PdfInference.Clamp(confidence);
+        Evidence = evidence is null
+            ? new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
+            : PdfInference.Snapshot(evidence);
     }
 
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
 
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
-    public int Level { get; }
+    public int Level { get; private set; }
 
     /// <summary>Heading text.</summary>
     public string Text { get; }
@@ -253,6 +262,13 @@ public sealed class PdfLogicalHeading {
     public double Confidence { get; }
     /// <summary>Evidence supporting the heading classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+
+    internal void ApplyDocumentFontTier(int level) {
+        if (Evidence.Any(static item =>
+                string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
+                string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) return;
+        Level = Math.Max(Level, Math.Min(6, Math.Max(1, level)));
+    }
 }
 
 /// <summary>
@@ -379,6 +395,19 @@ public sealed class PdfLogicalParagraph {
             paragraph.XEnd,
             paragraph.YTop,
             paragraph.YBottom);
+    }
+
+    internal static PdfLogicalParagraph From(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
+        Guard.NotNull(lines, nameof(lines));
+        if (lines.Count == 0) throw new ArgumentException("At least one logical line is required.", nameof(lines));
+        return new PdfLogicalParagraph(
+            pageNumber,
+            string.Join(" ", lines.Select(static line => line.Text)),
+            lines.ToArray(),
+            lines.Min(static line => line.XStart),
+            lines.Max(static line => line.XEnd),
+            lines.Max(static line => line.BaselineY),
+            lines.Min(static line => line.BaselineY));
     }
 
     internal static PdfLogicalParagraph FromOcr(int pageNumber, PdfLogicalTextBlock line) {

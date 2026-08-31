@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf.Tests;
 public sealed class PdfLogicalTableContinuationContractTests {
     [Fact]
     public void TableContinuations_ExposeTypedEvidenceConfidenceAndPageScope() {
-        PdfLogicalDocument document = PdfLogicalDocument.Load(BuildMultiPageTablePdf());
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(BuildMultiPageTablePdf());
 
         PdfLogicalTableContinuationGroup group = Assert.Single(document.GetTableContinuationGroups());
 
@@ -29,7 +29,7 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     [Fact]
     public void TableContinuations_CanDisableCrossPageInference() {
-        PdfLogicalDocument document = PdfLogicalDocument.Load(BuildMultiPageTablePdf());
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(BuildMultiPageTablePdf());
 
         IReadOnlyList<PdfLogicalTableContinuationGroup> groups = document.GetTableContinuationGroups(
             new PdfLogicalTableContinuationOptions { MergePageContinuations = false });
@@ -44,10 +44,10 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     [Fact]
     public void TableContinuations_PublicReaderSupportsSelectorsAndPreflight() {
-        PdfDocument source = PdfDocument.Open(BuildMultiPageTablePdf());
+        PdfDocument source = PdfDocument.Load(BuildMultiPageTablePdf());
 
-        PdfLogicalTableContinuationGroup group = Assert.Single(source.Read.TableContinuations(PdfPageSelector.Parse("all")));
-        PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> attempt = source.Read.TryTableContinuations();
+        PdfLogicalTableContinuationGroup group = Assert.Single(source.Reader.TableContinuations(PdfPageSelector.Parse("all")));
+        PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> attempt = source.Reader.TryTableContinuations();
 
         Assert.True(group.SpansPages);
         Assert.True(attempt.Succeeded);
@@ -57,10 +57,23 @@ public sealed class PdfLogicalTableContinuationContractTests {
 
     [Fact]
     public void TableContinuations_RejectInvalidConfidence() {
-        PdfLogicalDocument document = PdfLogicalDocument.Load(BuildMultiPageTablePdf());
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(BuildMultiPageTablePdf());
 
         Assert.Throws<ArgumentOutOfRangeException>(() => document.GetTableContinuationGroups(
             new PdfLogicalTableContinuationOptions { MinimumConfidence = double.NaN }));
+    }
+
+    [Fact]
+    public void TableContinuations_UseBoundedFuzzyHeaderSignatures() {
+        Assert.True(PdfLogicalTableContinuations.HeadersEqual(
+            new[] { "Transaction description", "Amount page 1" },
+            new[] { "Transaction descripton", "Amount page 2" }));
+        Assert.False(PdfLogicalTableContinuations.HeadersEqual(
+            new[] { "Transaction description", "Amount" },
+            new[] { "Customer identifier", "Status" }));
+        Assert.False(PdfLogicalTableContinuations.HeadersEqual(
+            new[] { "ID", "Amount" },
+            new[] { "IP", "Amount" }));
     }
 
     private static byte[] BuildMultiPageTablePdf() {

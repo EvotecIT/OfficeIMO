@@ -42,20 +42,20 @@ public class PdfReverseConversionBenchmarks {
 
     [Benchmark]
     public int PdfToDocx() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         using OfficeIMO.Word.WordDocument document = logical.ToWordDocument();
         return document.ToBytes().Length;
     }
 
     [Benchmark]
     public int PdfToHtml() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         return logical.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic }).Length;
     }
 
     [Benchmark]
     public int PdfToXlsx() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         using var stream = new MemoryStream();
         logical.SaveTablesAsExcel(stream);
         return checked((int)stream.Length);
@@ -63,7 +63,7 @@ public class PdfReverseConversionBenchmarks {
 
     [Benchmark]
     public int PdfToPptx() {
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(_source)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
             .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
@@ -74,31 +74,31 @@ public class PdfReverseConversionBenchmarks {
 
     [Benchmark]
     public int PdfToOdt() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         return logical.ToOdtDocumentResult().Value.ToBytes().Length;
     }
 
     [Benchmark]
     public int PdfToOds() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         return logical.ToOdsDocumentResult().Value.ToBytes().Length;
     }
 
     [Benchmark]
     public int PdfToOdp() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         return logical.ToOdpPresentationResult(PdfPowerPointImportOptions.CreateEditableContent()).Value.ToBytes().Length;
     }
 
     [Benchmark]
     public int PdfToPng() {
-        IReadOnlyList<PdfCore.PdfPageRenderResult> pages = PdfCore.PdfDocument.Open(_source).Read.RenderPages(
+        IReadOnlyList<PdfCore.PdfPageRenderResult> pages = PdfCore.PdfDocument.Load(_source).Render.Pages(
             options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
         return checked(pages.Sum(static page => page.Bytes?.Length ?? 0));
     }
 
     private void ValidateOutputs() {
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(_source);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(_source).Read();
         using (OfficeIMO.Word.WordDocument document = logical.ToWordDocument()) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToBytes()), false);
             W.Body body = package.MainDocumentPart?.Document?.Body ?? throw new InvalidOperationException("DOCX reverse conversion did not produce a document body.");
@@ -116,7 +116,7 @@ public class PdfReverseConversionBenchmarks {
             if (!package.WorkbookPart.WorksheetParts.SelectMany(static worksheet => worksheet.TableDefinitionParts).Any()) throw new InvalidOperationException("XLSX reverse conversion did not produce editable table definitions.");
             PdfBenchmarkValidation.ValidateTableScenarioContent(GetSpreadsheetText(package), _scenario, Producer + " " + Scale + " XLSX");
         }
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(_source)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(_source)
             .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
         using (result.Value) {
             using var stream = new MemoryStream();
@@ -137,7 +137,7 @@ public class PdfReverseConversionBenchmarks {
         OdpPresentation odpDocument = OdpPresentation.Load(new MemoryStream(odp));
         if (odpDocument.Slides.Count != _scenario.PageCount) throw new InvalidOperationException($"ODP reverse conversion produced {odpDocument.Slides.Count} of {_scenario.PageCount} slides.");
         ValidateContent(ReadOpenDocumentText(odp), "ODP");
-        IReadOnlyList<PdfCore.PdfPageRenderResult> pngPages = PdfCore.PdfDocument.Open(_source).Read.RenderPages(
+        IReadOnlyList<PdfCore.PdfPageRenderResult> pngPages = PdfCore.PdfDocument.Load(_source).Render.Pages(
             options: new PdfCore.PdfPageRenderOptions { Format = PdfCore.PdfPageRenderFormat.Png, Dpi = 72D });
         if (pngPages.Count != _scenario.PageCount || pngPages.Any(static page => !page.Succeeded || page.Bytes is null || page.Bytes.Length <= 24)) {
             throw new InvalidOperationException("PNG reverse conversion did not produce one valid visual artifact per source page.");

@@ -8,7 +8,7 @@ internal static partial class PdfPageEditor {
         return RotatePagesWithReadOptions(pdf, rotationDegrees, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] RotatePagesWithReadOptions(byte[] pdf, int rotationDegrees, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);

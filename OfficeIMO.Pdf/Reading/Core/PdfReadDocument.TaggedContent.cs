@@ -76,21 +76,22 @@ public sealed partial class PdfReadDocument {
                 continue;
             }
 
-            int markedContentReferenceCount = 0;
+            int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg");
             int objectReferenceCount = 0;
+            var markedContentReferences = new List<PdfMarkedContentReference>();
             IReadOnlyList<int> childElementObjectNumbers = dictionary.Items.TryGetValue("K", out PdfObject? kids)
-                ? ReadStructureChildren(kids, ref markedContentReferenceCount, ref objectReferenceCount)
+                ? ReadStructureChildren(kids, pageObjectNumber, markedContentReferences, ref objectReferenceCount)
                 : Array.Empty<int>();
 
             elements.Add(new PdfStructureElementInfo(
                 item.Key,
                 TryReadName(dictionary, "S"),
                 ReadReferenceObjectNumber(dictionary, "P"),
-                ReadReferenceObjectNumber(dictionary, "Pg"),
+                pageObjectNumber,
                 TryReadText(dictionary, "Lang"),
                 TryReadText(dictionary, "Alt"),
                 childElementObjectNumbers,
-                markedContentReferenceCount,
+                markedContentReferences.Count == 0 ? Array.Empty<PdfMarkedContentReference>() : markedContentReferences.AsReadOnly(),
                 objectReferenceCount));
         }
 
@@ -98,18 +99,29 @@ public sealed partial class PdfReadDocument {
     }
 
     private IReadOnlyList<int> ReadStructureElementReferences(PdfObject? obj) {
-        int markedContentReferenceCount = 0;
+        var markedContentReferences = new List<PdfMarkedContentReference>();
         int objectReferenceCount = 0;
-        return ReadStructureChildren(obj, ref markedContentReferenceCount, ref objectReferenceCount, onlyStructureReferences: true);
+        return ReadStructureChildren(obj, null, markedContentReferences, ref objectReferenceCount, onlyStructureReferences: true);
     }
 
-    private IReadOnlyList<int> ReadStructureChildren(PdfObject? obj, ref int markedContentReferenceCount, ref int objectReferenceCount, bool onlyStructureReferences = false) {
+    private IReadOnlyList<int> ReadStructureChildren(
+        PdfObject? obj,
+        int? inheritedPageObjectNumber,
+        List<PdfMarkedContentReference> markedContentReferences,
+        ref int objectReferenceCount,
+        bool onlyStructureReferences = false) {
         var childObjectNumbers = new List<int>();
-        AddStructureChildData(obj, childObjectNumbers, ref markedContentReferenceCount, ref objectReferenceCount, onlyStructureReferences);
+        AddStructureChildData(obj, inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences);
         return childObjectNumbers.Count == 0 ? Array.Empty<int>() : childObjectNumbers.AsReadOnly();
     }
 
-    private void AddStructureChildData(PdfObject? obj, List<int> childObjectNumbers, ref int markedContentReferenceCount, ref int objectReferenceCount, bool onlyStructureReferences) {
+    private void AddStructureChildData(
+        PdfObject? obj,
+        int? inheritedPageObjectNumber,
+        List<int> childObjectNumbers,
+        List<PdfMarkedContentReference> markedContentReferences,
+        ref int objectReferenceCount,
+        bool onlyStructureReferences) {
         PdfObject? resolved = ResolveObject(obj);
         if (obj is PdfReference reference && IsStructElementReference(reference)) {
             AddUnique(childObjectNumbers, reference.ObjectNumber);
@@ -118,7 +130,7 @@ public sealed partial class PdfReadDocument {
 
         if (resolved is PdfArray array) {
             for (int i = 0; i < array.Items.Count; i++) {
-                AddStructureChildData(array.Items[i], childObjectNumbers, ref markedContentReferenceCount, ref objectReferenceCount, onlyStructureReferences);
+                AddStructureChildData(array.Items[i], inheritedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences);
             }
 
             return;
@@ -128,8 +140,8 @@ public sealed partial class PdfReadDocument {
             return;
         }
 
-        if (resolved is PdfNumber number && TryGetNonNegativeInteger(number, out _)) {
-            markedContentReferenceCount++;
+        if (resolved is PdfNumber number && TryGetNonNegativeInteger(number, out int markedContentId)) {
+            markedContentReferences.Add(new PdfMarkedContentReference(inheritedPageObjectNumber, markedContentId));
             return;
         }
 
@@ -139,7 +151,12 @@ public sealed partial class PdfReadDocument {
 
         string? type = TryReadName(dictionary, "Type");
         if (string.Equals(type, "MCR", StringComparison.Ordinal)) {
-            markedContentReferenceCount++;
+            int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
+            if (dictionary.Items.TryGetValue("MCID", out PdfObject? mcidObject) &&
+                ResolveObject(mcidObject) is PdfNumber mcidNumber &&
+                TryGetNonNegativeInteger(mcidNumber, out int referencedMcid)) {
+                markedContentReferences.Add(new PdfMarkedContentReference(pageObjectNumber, referencedMcid));
+            }
             return;
         }
 
@@ -149,7 +166,8 @@ public sealed partial class PdfReadDocument {
         }
 
         if (dictionary.Items.TryGetValue("K", out PdfObject? nestedKids)) {
-            AddStructureChildData(nestedKids, childObjectNumbers, ref markedContentReferenceCount, ref objectReferenceCount, onlyStructureReferences);
+            int? nestedPageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
+            AddStructureChildData(nestedKids, nestedPageObjectNumber, childObjectNumbers, markedContentReferences, ref objectReferenceCount, onlyStructureReferences);
         }
     }
 

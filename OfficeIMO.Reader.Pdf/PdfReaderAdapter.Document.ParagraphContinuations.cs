@@ -5,11 +5,11 @@ namespace OfficeIMO.Reader.Pdf;
 internal static partial class PdfReaderAdapter {
     private static void AddParagraphContinuationMetadata(
         List<OfficeDocumentMetadataEntry> entries,
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         SourceMetadata source,
         IReadOnlyList<PdfLogicalPage>? selectedPages,
         PdfLogicalParagraphContinuationOptions? options) {
-        PdfLogicalDocument continuationDocument = selectedPages is null
+        PdfDocumentReadResult continuationDocument = selectedPages is null
             ? document
             : document.WithPages(selectedPages);
         PdfLogicalParagraphContinuationGroup[] groups = continuationDocument

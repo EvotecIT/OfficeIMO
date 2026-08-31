@@ -35,21 +35,21 @@ internal static partial class PdfMerger {
         return MergeCore(pdfs, primarySourceIndex: 0, options: null).ToBytes();
     }
 
-    internal static byte[] Merge(IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfReadOptions> readOptions) {
+    internal static byte[] Merge(IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
         return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions).ToBytes();
     }
 
     internal static PdfMergeResult MergeOwned(
         IReadOnlyList<byte[]> pdfs,
-        IReadOnlyList<PdfReadOptions> readOptions) {
+        IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
         return MergeCore(pdfs, primarySourceIndex: 0, options: null, readOptions);
     }
 
     internal static PdfMergeResult MergeOwned(
         IReadOnlyList<byte[]> pdfs,
-        IReadOnlyList<PdfReadOptions> readOptions,
+        IReadOnlyList<PdfLoadOptions> readOptions,
         IReadOnlyList<Func<PdfReadDocument>?> readDocumentFactories) {
         Guard.NotNull(readOptions, nameof(readOptions));
         Guard.NotNull(readDocumentFactories, nameof(readDocumentFactories));
@@ -61,7 +61,7 @@ internal static partial class PdfMerger {
             readDocumentFactories);
     }
 
-    internal static PdfMergeResult MergeWithReport(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfReadOptions> readOptions) {
+    internal static PdfMergeResult MergeWithReport(PdfMergeOptions options, IReadOnlyList<byte[]> pdfs, IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(readOptions, nameof(readOptions));
         return MergeCore(pdfs, primarySourceIndex: 0, options, readOptions);
@@ -93,7 +93,7 @@ internal static partial class PdfMerger {
     internal static byte[] MergeWithPrimarySource(
         int primarySourceIndex,
         IReadOnlyList<byte[]> pdfs,
-        IReadOnlyList<PdfReadOptions> readOptions) {
+        IReadOnlyList<PdfLoadOptions> readOptions) {
         Guard.NotNull(readOptions, nameof(readOptions));
         return MergeCore(pdfs, primarySourceIndex, options: null, readOptions).ToBytes();
     }
@@ -106,7 +106,7 @@ internal static partial class PdfMerger {
         byte[] primaryPdf,
         byte[] insertedPdf,
         int insertBeforePageNumber,
-        PdfReadOptions? primaryReadOptions) {
+        PdfLoadOptions? primaryReadOptions) {
         Guard.NotNull(primaryPdf, nameof(primaryPdf));
         Guard.NotNull(insertedPdf, nameof(insertedPdf));
 
@@ -163,7 +163,7 @@ internal static partial class PdfMerger {
         IEnumerable<byte[]> pdfs,
         int primarySourceIndex,
         PdfMergeOptions? options,
-        IReadOnlyList<PdfReadOptions>? readOptions = null,
+        IReadOnlyList<PdfLoadOptions>? readOptions = null,
         IReadOnlyList<Func<PdfReadDocument>?>? readDocumentFactories = null) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
@@ -190,7 +190,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF input " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(pdfs));
             }
 
-            PdfReadOptions? sourceReadOptions = readOptions?[i];
+            PdfLoadOptions? sourceReadOptions = readOptions?[i];
             Func<PdfReadDocument>? readDocumentFactory = readDocumentFactories?[i];
             (PdfMutationPlan sourceMergePlan, PdfReadDocument plannedDocument) = readDocumentFactory is null
                 ? PdfMutationPlanner.RequireFullRewriteDocument(
@@ -225,7 +225,7 @@ internal static partial class PdfMerger {
         }
 
         byte[] merged = WriteMerged(importedSources, primarySourceIndex, outputOrder: null, out int mergedObjectCount);
-        PdfReadOptions outputReadOptions = PdfReadOptions.ForComposedOutput(
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             importedSources[primarySourceIndex].Document.ReadOptions,
             importedSources.Select(static source => source.Document.ReadOptions),
             merged.LongLength,
@@ -443,9 +443,9 @@ internal static partial class PdfMerger {
     private static byte[] PrepareMergeSource(
         byte[] source,
         PdfMergeOptions? options,
-        PdfReadOptions? readOptions,
-        out PdfReadOptions preparedReadOptions) {
-        preparedReadOptions = PdfReadOptions.Resolve(readOptions);
+        PdfLoadOptions? readOptions,
+        out PdfLoadOptions preparedReadOptions) {
+        preparedReadOptions = PdfLoadOptions.Resolve(readOptions);
         if (options is null) {
             return source;
         }
@@ -453,13 +453,13 @@ internal static partial class PdfMerger {
         if (options.FlattenVisualAnnotations) {
             byte[] input = source;
             source = PdfAnnotationFlattener.FlattenVisualAnnotations(input, options: null, preparedReadOptions, out PdfGeneratedOutputGrowth growth);
-            preparedReadOptions = PdfReadOptions.ForGeneratedOutput(preparedReadOptions, input, source, growth);
+            preparedReadOptions = PdfLoadOptions.ForGeneratedOutput(preparedReadOptions, input, source, growth);
         }
 
         if (options.ResizePages is not null) {
             byte[] input = source;
             source = PdfPageEditor.ResizePages(input, options.ResizePages, preparedReadOptions);
-            preparedReadOptions = PdfReadOptions.ForGeneratedOutput(preparedReadOptions, input, source);
+            preparedReadOptions = PdfLoadOptions.ForGeneratedOutput(preparedReadOptions, input, source);
         }
 
         return source;
@@ -509,7 +509,7 @@ internal static partial class PdfMerger {
         int[]? knownPageObjectNumbers,
         int mergedPageOffset,
         IReadOnlyDictionary<int, int>? outputPageIndexByPageObjectNumber,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         PdfReadDocument? plannedDocument = null,
         PdfDocumentSecurityInfo? sourceSecurity = null,
         PdfPermissionPolicy? sourcePermissionPolicy = null) {

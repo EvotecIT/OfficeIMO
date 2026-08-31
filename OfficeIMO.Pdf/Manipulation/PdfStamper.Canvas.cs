@@ -5,7 +5,7 @@ internal static partial class PdfStamper {
         byte[] pdf,
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return StampCanvas(pdf, build, out _, options, readOptions);
     }
 
@@ -14,7 +14,7 @@ internal static partial class PdfStamper {
         Action<PdfPageCanvas, PdfStampPageContext> build,
         out PdfGeneratedOutputGrowth generatedGrowth,
         PdfCanvasStampOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(build, nameof(build));
         PdfCanvasStampOptions effective = options ?? new PdfCanvasStampOptions();

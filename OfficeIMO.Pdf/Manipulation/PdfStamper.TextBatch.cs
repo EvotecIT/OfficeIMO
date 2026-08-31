@@ -6,7 +6,7 @@ internal static partial class PdfStamper {
     internal static byte[] StampTextBatch(
         byte[] pdf,
         IReadOnlyList<TextStampRequest> requests,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(requests, nameof(requests));
         if (requests.Count == 0) return pdf;

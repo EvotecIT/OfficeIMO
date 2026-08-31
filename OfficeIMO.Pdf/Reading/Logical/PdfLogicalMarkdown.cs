@@ -32,7 +32,7 @@ public static class PdfLogicalMarkdownExtensions {
     /// <summary>
     /// Renders the logical PDF document as Markdown using headings, paragraphs, lists, tables, and optional annotations from the existing logical model.
     /// </summary>
-    public static string ToMarkdown(this PdfLogicalDocument document, PdfLogicalMarkdownOptions? options = null) {
+    public static string ToMarkdown(this PdfDocumentReadResult document, PdfLogicalMarkdownOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         options ??= new PdfLogicalMarkdownOptions();
 

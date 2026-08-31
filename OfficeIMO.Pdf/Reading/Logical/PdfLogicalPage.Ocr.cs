@@ -30,6 +30,7 @@ public sealed partial class PdfLogicalPage {
             Annotations,
             LinkAnnotations,
             FormWidgets,
-            PageActions);
+            PageActions,
+            Analysis);
     }
 }

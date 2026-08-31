@@ -35,7 +35,7 @@ OfficeIMO exposes two explicit PDF-to-HTML profiles. Semantic output is useful f
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("policy.pdf");
+PdfDocument pdf = PdfDocument.Load("policy.pdf");
 PdfHtmlConversionResult semantic = pdf.ToHtmlResult();
 PdfHtmlConversionResult review = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,

@@ -16,7 +16,7 @@ internal static partial class PdfFormFiller {
         return FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions: null);
     }
 
-    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FillFields(pdf, ToFormFieldValues(fieldValues), options, readOptions);
 
     /// <summary>
@@ -33,14 +33,14 @@ internal static partial class PdfFormFiller {
         return FillFields(pdf, fieldValues, options, readOptions: null);
     }
 
-    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+    internal static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+    internal static byte[] FillFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null) {
         return FillFieldsCore(pdf, fieldValues, options, readOptions, requireMutationPlan: false);
     }
 
-    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
+    private static byte[] FillFieldsCore(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
         RejectPushButtonFillValues(pdf, fieldValues.Keys, readOptions);
@@ -74,7 +74,7 @@ internal static partial class PdfFormFiller {
         return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
     }
 
-    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfReadOptions? readOptions) {
+    private static void RejectPushButtonFillValues(byte[] pdf, IEnumerable<string> fieldNames, PdfLoadOptions? readOptions) {
         IReadOnlyDictionary<string, PdfFormField> fields = PdfInspector.Inspect(pdf, readOptions).FormFieldsByName;
         foreach (string fieldName in fieldNames) {
             if (fields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
@@ -285,7 +285,7 @@ internal static partial class PdfFormFiller {
         return FlattenFields(pdf, options, readOptions: null);
     }
 
-    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfReadOptions? readOptions) {
+    internal static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions);
 
@@ -339,14 +339,14 @@ internal static partial class PdfFormFiller {
         return FlattenFieldsCore(pdf, fieldNames, options, readOptions: null, requireMutationPlan: true);
     }
 
-    internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+    internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfReadOptions? readOptions = null) {
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null) {
         return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false);
     }
 
-    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfReadOptions? readOptions, bool requireMutationPlan) {
+    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenFieldNames(fieldNames);
         if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames);
@@ -518,7 +518,7 @@ internal static partial class PdfFormFiller {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
 
     /// <summary>
@@ -535,7 +535,7 @@ internal static partial class PdfFormFiller {
         return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
-    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfReadOptions? readOptions) =>
+    internal static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FlattenFields(FillFields(pdf, fieldValues, options, readOptions), options);
 
     /// <summary>

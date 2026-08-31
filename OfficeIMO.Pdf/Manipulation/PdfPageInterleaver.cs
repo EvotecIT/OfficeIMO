@@ -25,7 +25,7 @@ public sealed class PdfInterleaveSource {
     /// <summary>Optional source name carried into the output-page mapping.</summary>
     public string? Name { get; }
     /// <summary>Optional parser, password, permission, and resource-budget settings.</summary>
-    public PdfReadOptions? ReadOptions { get; set; }
+    public PdfLoadOptions? ReadOptions { get; set; }
     /// <summary>Optional ordered page selector. All pages are used when omitted.</summary>
     public PdfPageSelector? Pages { get; set; }
     /// <summary>Reverses the selected page order before interleaving.</summary>
@@ -66,9 +66,9 @@ public sealed class PdfInterleavePageMapping {
 /// <summary>Interleaved PDF output with page provenance and document-structure decisions.</summary>
 public sealed class PdfInterleaveResult {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
-    internal PdfInterleaveResult(byte[] pdf, IReadOnlyList<PdfInterleavePageMapping> pages, PdfMergeReport mergeReport, PdfReadOptions readOptions) {
+    internal PdfInterleaveResult(byte[] pdf, IReadOnlyList<PdfInterleavePageMapping> pages, PdfMergeReport mergeReport, PdfLoadOptions readOptions) {
         _pdf = (byte[])pdf.Clone();
         Pages = pages;
         MergeReport = mergeReport;
@@ -82,7 +82,7 @@ public sealed class PdfInterleaveResult {
     /// <summary>Returns an independent copy of the composed PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the composed PDF through the public document API.</summary>
-    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Creates alternating or round-robin page compositions from multiple PDFs.</summary>
@@ -115,7 +115,7 @@ internal static partial class PdfMerger {
 
         var sourceBytes = new byte[sources.Count][];
         var sourceDocuments = new PdfReadDocument[sources.Count];
-        var sourceReadOptions = new PdfReadOptions[sources.Count];
+        var sourceReadOptions = new PdfLoadOptions[sources.Count];
         var selectedPageNumbers = new int[sources.Count][];
         var selectedPageObjectNumbers = new int[sources.Count][];
         var sourceNames = new string[sources.Count];
@@ -141,7 +141,7 @@ internal static partial class PdfMerger {
             if (pageNumbers.Distinct().Count() != pageNumbers.Length) throw new ArgumentException("Interleave page selections cannot contain duplicate pages.", nameof(sources));
             if (input.Reverse) Array.Reverse(pageNumbers);
 
-            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions, out PdfReadOptions preparedReadOptions);
+            byte[] prepared = PrepareMergeSource(original, options.MergeOptions, input.ReadOptions, out PdfLoadOptions preparedReadOptions);
             PdfReadDocument preparedDocument = ReferenceEquals(prepared, original)
                 ? plannedDocument
                 : PdfReadDocument.Open(prepared, preparedReadOptions);
@@ -199,7 +199,7 @@ internal static partial class PdfMerger {
             options.PrimarySourceIndex,
             order.Select(static page => new OutputPageReference(page.SourceIndex, page.PageObjectNumber)).ToArray(),
             out int composedObjectCount);
-        PdfReadOptions outputReadOptions = PdfReadOptions.ForComposedOutput(
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForComposedOutput(
             sourceDocuments[options.PrimarySourceIndex].ReadOptions,
             sourceDocuments.Select(static document => document.ReadOptions),
             composed.LongLength,
@@ -212,7 +212,7 @@ internal static partial class PdfMerger {
             outputReadOptions,
             order.Select(static page => page.SourceIndex).ToArray());
         byte[] output = mergeResult.ToBytes();
-        PdfReadDocument reopened = PdfReadDocument.Open(output, PdfReadOptions.WithMinimumInputBytes(outputReadOptions, output.LongLength));
+        PdfReadDocument reopened = PdfReadDocument.Open(output, PdfLoadOptions.WithMinimumInputBytes(outputReadOptions, output.LongLength));
         if (reopened.Pages.Count != mappings.Count) throw new InvalidOperationException("Interleaved PDF page count does not match its provenance report.");
         return new PdfInterleaveResult(
             output,

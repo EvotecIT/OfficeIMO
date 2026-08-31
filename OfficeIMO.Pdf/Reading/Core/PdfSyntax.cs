@@ -13,20 +13,20 @@ internal static partial class PdfSyntax {
         return ParseObjects(pdf, null, out _, out _);
     }
 
-    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfReadOptions? options) {
+    internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(byte[] pdf, PdfLoadOptions? options) {
         return ParseObjects(pdf, options, out _, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         out PdfRepairReport repairReport) {
         return ParseObjects(pdf, options, out repairReport, out _);
     }
 
     internal static (Dictionary<int, PdfIndirectObject> Map, string TrailerRaw) ParseObjects(
         byte[] pdf,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         out PdfRepairReport repairReport,
         out long decodedStreamBytes) {
         decodedStreamBytes = 0;

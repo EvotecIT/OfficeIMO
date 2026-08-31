@@ -24,7 +24,7 @@ public sealed partial class PdfProvenanceTests {
     public void ProvenanceAggregateAttachmentLimitCanExceedTheGenericDefault() {
         const long provenanceLimit = 300L * 1024L * 1024L;
 
-        PdfReadOptions adjusted = PdfReadOptions.WithMaximumContainerEntries(
+        PdfLoadOptions adjusted = PdfLoadOptions.WithMaximumContainerEntries(
             options: null,
             maximumContainerEntries: 64,
             maximumDecodedStreamBytes: 16L * 1024L * 1024L,

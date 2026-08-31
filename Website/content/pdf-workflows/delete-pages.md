@@ -34,7 +34,7 @@ Deletion is an output transformation, not an in-place edit. The browser requires
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("packet.pdf");
+PdfDocument source = PdfDocument.Load("packet.pdf");
 PdfPageSelector pagesToRemove = PdfPageSelector.Parse("2,4-6");
 PdfDocument result = source.Pages.Delete(pagesToRemove);
 

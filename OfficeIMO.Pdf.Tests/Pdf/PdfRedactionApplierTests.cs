@@ -74,14 +74,14 @@ public class PdfRedactionApplierTests {
     public void ApplyRedactions_FacadeReturnsRedactedDocumentAndTryResult() {
         byte[] source = BuildRedactionSource();
         PdfRedactionArea area = FindAreaForText(source, "Secret account 123-45");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         PdfDocument redacted = document.ApplyRedactions(new[] { area });
         PdfOperationResult<PdfDocument> result = document.TryApplyRedactions(new[] { area });
 
-        Assert.DoesNotContain("Secret account", redacted.Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret account", redacted.Reader.Text(), StringComparison.Ordinal);
         Assert.True(result.Succeeded);
-        Assert.DoesNotContain("Secret account", result.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Secret account", result.RequireValue().Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -823,7 +823,7 @@ public class PdfRedactionApplierTests {
     }
 
     private static PdfRedactionArea[] FindAreasForText(byte[] pdf, string text) {
-        return PdfLogicalDocument.Load(pdf)
+        return PdfDocumentReadResult.Load(pdf)
             .TextBlocks
             .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
             .Select(static block => {
@@ -846,7 +846,7 @@ public class PdfRedactionApplierTests {
     }
 
     private static PdfRedactionArea FindAreaForTextOccurrence(byte[] pdf, string text, int occurrenceFromTop) {
-        PdfLogicalTextBlock block = PdfLogicalDocument.Load(pdf)
+        PdfLogicalTextBlock block = PdfDocumentReadResult.Load(pdf)
             .TextBlocks
             .Where(item => item.Text.Contains(text, StringComparison.Ordinal))
             .OrderByDescending(item => item.BaselineY)
@@ -946,6 +946,6 @@ public class PdfRedactionApplierTests {
     private static string ExtractLogicalText(byte[] pdf) {
         return string.Join(
             Environment.NewLine,
-            PdfLogicalDocument.Load(pdf).TextBlocks.Select(item => item.Text));
+            PdfDocumentReadResult.Load(pdf).TextBlocks.Select(item => item.Text));
     }
 }

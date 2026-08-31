@@ -11,7 +11,7 @@ public class PdfAnalysisReportTests {
             .Paragraph(paragraph => paragraph.Text("Readable analysis content"))
             .ToBytes();
 
-        PdfAnalysisReport report = PdfDocument.Open(bytes).Analyze();
+        PdfAnalysisReport report = PdfDocument.Load(bytes).Analyze();
 
         Assert.True(report.IsHealthy);
         Assert.True(report.CanRead);
@@ -29,7 +29,7 @@ public class PdfAnalysisReportTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Compliance analysis source"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(bytes);
+        PdfDocument document = PdfDocument.Load(bytes);
 
         PdfAnalysisReport report = document.Analyze(PdfComplianceProfile.PdfA2B);
         PdfComplianceProofReport proof = document.AssessComplianceProof(PdfComplianceProfile.PdfA2B);

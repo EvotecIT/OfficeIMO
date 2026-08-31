@@ -571,7 +571,7 @@ internal static partial class PdfPageImporter {
             : PdfMerger.MergeWithPrimarySource(1, importedPages, targetPdf);
     }
 
-    private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers, PdfReadOptions? sourceReadOptions = null) {
+    private static int[] NormalizeSourcePageNumbers(byte[] sourcePdf, int[] sourcePageNumbers, PdfLoadOptions? sourceReadOptions = null) {
         if (sourcePageNumbers.Length > 0) {
             return sourcePageNumbers;
         }

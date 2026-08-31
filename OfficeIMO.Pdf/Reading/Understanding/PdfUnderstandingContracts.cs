@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Semantic classifications produced by a PDF understanding pipeline.</summary>
@@ -24,8 +26,12 @@ public enum PdfUnderstandingSemanticKind {
 
 /// <summary>Page and option context shared by understanding stages.</summary>
 public sealed class PdfUnderstandingPageContext {
+    private readonly PdfUnderstandingWorkBudget _workBudget;
+
     internal PdfUnderstandingPageContext(PdfReadPage page, int pageNumber, PdfTextLayoutOptions options,
-        int maxTextCharactersPerPage, int maxWordsPerPage) {
+        int maxTextCharactersPerPage, int maxWordsPerPage,
+        long maxWorkUnitsPerPage = 10_000_000,
+        CancellationToken cancellationToken = default) {
         Page = page;
         PageNumber = pageNumber;
         LayoutOptions = options;
@@ -34,6 +40,7 @@ public sealed class PdfUnderstandingPageContext {
         Height = height;
         MaxTextCharactersPerPage = maxTextCharactersPerPage;
         MaxWordsPerPage = maxWordsPerPage;
+        _workBudget = new PdfUnderstandingWorkBudget(maxWorkUnitsPerPage, cancellationToken);
     }
 
     /// <summary>Parsed source page.</summary>
@@ -50,6 +57,16 @@ public sealed class PdfUnderstandingPageContext {
     public int MaxTextCharactersPerPage { get; }
     /// <summary>Maximum word artifacts accepted for this page.</summary>
     public int MaxWordsPerPage { get; }
+    /// <summary>Cancellation token observed by built-in and cooperative custom stages.</summary>
+    public CancellationToken CancellationToken => _workBudget.CancellationToken;
+    /// <summary>Maximum comparison and traversal work units available to this page.</summary>
+    public long MaxWorkUnitsPerPage => _workBudget.Maximum;
+    /// <summary>Work units consumed so far by semantic reconstruction for this page.</summary>
+    public long WorkUnitsConsumed => _workBudget.Consumed;
+    /// <summary>Charges comparison or traversal work and observes cancellation.</summary>
+    public void ConsumeWork(long units = 1) => _workBudget.Consume(units);
+    /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
+    public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
 }
 
@@ -152,7 +169,7 @@ public sealed class PdfUnderstandingRegion {
 /// <summary>Semantic classification of one ordered region.</summary>
 public sealed class PdfUnderstandingSemanticElement {
     /// <summary>Creates a semantic classification for a region.</summary>
-    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null) { Guard.NotNull(region, nameof(region)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); }
+    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null, int? level = null) { Guard.NotNull(region, nameof(region)); if (level <= 0) throw new ArgumentOutOfRangeException(nameof(level)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); Level = level; }
     /// <summary>Classified region.</summary>
     public PdfUnderstandingRegion Region { get; }
     /// <summary>Semantic kind selected by the active stage.</summary>
@@ -161,6 +178,8 @@ public sealed class PdfUnderstandingSemanticElement {
     public double Confidence { get; }
     /// <summary>Evidence supporting the semantic classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    /// <summary>Best-evidence hierarchy level for headings or list items, when known.</summary>
+    public int? Level { get; }
 }
 
 /// <summary>Trace record proving which stage implementation produced an artifact set.</summary>
@@ -199,13 +218,17 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
-}
 
-/// <summary>Document-wide understanding result.</summary>
-public sealed class PdfUnderstandingResult {
-    internal PdfUnderstandingResult(IReadOnlyList<PdfUnderstandingPageResult> pages) { Pages = pages; }
-    /// <summary>Page results in caller-selected order.</summary>
-    public IReadOnlyList<PdfUnderstandingPageResult> Pages { get; }
+    internal static PdfUnderstandingPageResult Empty(int pageNumber) => new PdfUnderstandingPageResult(
+        pageNumber,
+        Array.Empty<PdfTextSpan>(),
+        Array.Empty<PdfUnderstandingWord>(),
+        Array.Empty<PdfUnderstandingLine>(),
+        Array.Empty<PdfUnderstandingRegion>(),
+        Array.Empty<PdfUnderstandingRegion>(),
+        Array.Empty<PdfReadingOrderEvidence>(),
+        Array.Empty<PdfUnderstandingSemanticElement>(),
+        Array.Empty<PdfUnderstandingStageTrace>());
 }
 
 /// <summary>Decodes page glyph/text content into positioned runs.</summary>

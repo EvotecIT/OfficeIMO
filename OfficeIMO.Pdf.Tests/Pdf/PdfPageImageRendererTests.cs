@@ -622,7 +622,7 @@ public partial class PdfPageImageRendererTests {
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 /Fm1 Do");
         string form = BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << >>", new string(' ', 128) + "0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, form);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
         });
 
@@ -664,7 +664,7 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (AA) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
         });
 
@@ -995,7 +995,7 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "5 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 6 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(6, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td [(A) 20 (A)] TJ ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
         });
 
@@ -1367,7 +1367,7 @@ public partial class PdfPageImageRendererTests {
         string nestedMask = BuildStreamObject(12, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency >> /Resources << >>", nestedMaskContent);
         byte[] pdf = BuildSingleStreamPdf(pageContent, "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, outerState, outerMask, nestedFont, nestedGlyph, nestedState, nestedMask);
         int aggregateContentBytes = pageContent.Length + outerGlyphContent.Length + outerMaskContent.Length + nestedGlyphContent.Length + nestedMaskContent.Length;
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = aggregateContentBytes - 1 }
         });
 
@@ -1388,7 +1388,7 @@ public partial class PdfPageImageRendererTests {
         string mask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceGray >> /Resources << >>", maskContent);
         byte[] pdf = BuildSingleStreamPdf(pageContent, "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, graphicsState, mask);
         int aggregateContentBytes = pageContent.Length + glyphContent.Length + maskContent.Length;
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = aggregateContentBytes - 1 }
         });
 
@@ -1407,7 +1407,7 @@ public partial class PdfPageImageRendererTests {
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, outerState, outerMask, nestedFont, nestedGlyph);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
         });
 
@@ -1427,7 +1427,7 @@ public partial class PdfPageImageRendererTests {
         string graphicsState = "9 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 10 0 R >> >>\nendobj";
         string softMask = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency >> /Resources << >>", "0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, firstForm, secondForm, graphicsState, softMask);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 3 }
         });
 
@@ -1462,7 +1462,7 @@ public partial class PdfPageImageRendererTests {
         string clearSoftMask = "11 0 obj\n<< /Type /ExtGState /SMask /None >>\nendobj";
         string nestedForm = BuildStreamObject(12, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Resources << /ExtGState << /GS1 7 0 R >> >>", "/GS1 gs 250 0 250 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, graphicsState, softMask, nestedFont, nestedGlyph, clearSoftMask, nestedForm);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 3 }
         });
 
@@ -1494,7 +1494,7 @@ public partial class PdfPageImageRendererTests {
         string nestedState = "9 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 10 0 R >> >>\nendobj";
         string nestedMask = BuildStreamObject(10, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency >> /Resources << >>", new string(' ', 128) + "0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, nestedState, nestedMask);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
         });
 
@@ -1536,7 +1536,7 @@ public partial class PdfPageImageRendererTests {
         string graphicsState = "7 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 8 0 R >> >>\nendobj";
         string softMask = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency >> /Resources << >>", new string(' ', 128) + "0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, graphicsState, softMask);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
         });
 
@@ -1738,7 +1738,7 @@ public partial class PdfPageImageRendererTests {
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f");
         string form = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700]", "/Pattern cs /P1 scn 250 0 250 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, pattern, form);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 2 }
         });
 
@@ -1874,7 +1874,7 @@ public partial class PdfPageImageRendererTests {
         string thirdPattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /Pattern << /P4 10 0 R >> >>", "/Pattern cs /P4 scn 0 0 10 10 re f");
         string fourthPattern = BuildStreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, firstPattern, secondPattern, thirdPattern, fourthPattern);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 2 }
         });
 
@@ -1891,7 +1891,7 @@ public partial class PdfPageImageRendererTests {
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << /XObject << /Unused 8 0 R >> >>", "1 0 0 rg 0 0 10 10 re f");
         string unusedForm = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>", "0 0 10 10 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, pattern, unusedForm);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 2 }
         };
 
@@ -1909,7 +1909,7 @@ public partial class PdfPageImageRendererTests {
         string form = BuildStreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Pattern << /P2 9 0 R >> >>", "/Pattern cs /P2 scn 0 0 10 10 re f");
         string nestedPattern = BuildStreamObject(9, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", "1 0 0 rg 0 0 10 10 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerPattern, form, nestedPattern);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 3 }
         });
 
@@ -1998,7 +1998,7 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("0 0 20 20 re f", "<< /Pattern << /P1 5 0 R >> >>", pattern, type3Font, glyphA);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
         });
 
@@ -4854,7 +4854,7 @@ public partial class PdfPageImageRendererTests {
         byte[] pdf = BuildSingleStreamPdf(
             "/Cs1 cs 0.5 sc 0 0 10 10 re f",
             "<< /ColorSpace << /Cs1 /DeviceGray /Cs2 /DeviceRGB >> >>");
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxColorSpaceResourcesPerPage = 1 }
         });
 

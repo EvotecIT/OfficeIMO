@@ -58,7 +58,7 @@ public class PdfInlineElementTests {
             .Paragraph(paragraph => paragraph.Text("Following flow marker"))
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         PdfLogicalTextBlock prior = Assert.Single(blocks, block => block.Text.Contains("Prior flow marker", StringComparison.Ordinal));
         PdfLogicalTextBlock first = Assert.Single(blocks, block => block.Text.Contains("Tall inline start", StringComparison.Ordinal));
         PdfLogicalTextBlock following = Assert.Single(blocks, block => block.Text.Contains("Following flow marker", StringComparison.Ordinal));
@@ -160,9 +160,9 @@ public class PdfInlineElementTests {
             .ToBytes();
 
         string raw = PdfEncoding.Latin1GetString(bytes);
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);

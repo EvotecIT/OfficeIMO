@@ -19,7 +19,7 @@ public sealed class PdfTableDetectionValidationTests {
                 new[] { "ACC-02", "Owner 02", "1074.50", "Review" }
             }, 36D, 300D, 510D, 150D, style: new PdfTableStyle { HeaderRowCount = 1 })))).ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         PdfLogicalTable table = Assert.Single(logical.Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
@@ -40,7 +40,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("North region coordinator", data.Rows.SelectMany(static row => row));
         Assert.Contains("Approve completed requests", data.Rows.SelectMany(static row => row));
@@ -60,7 +60,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Phase 2026", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
         Assert.Contains("Complete", data.Rows.SelectMany(static row => row));
@@ -80,7 +80,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("2025", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
         Assert.Contains("Complete", data.Rows.SelectMany(static row => row));
@@ -100,7 +100,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Forecast", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
         Assert.Contains("Pending", data.Rows.SelectMany(static row => row));
@@ -116,7 +116,7 @@ public sealed class PdfTableDetectionValidationTests {
             }, style: new PdfTableStyle { HeaderRowCount = 1 })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("SECTION-A", data.Rows.SelectMany(static row => row));
         Assert.Contains("1037.25", data.Rows.SelectMany(static row => row));
@@ -192,7 +192,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.Equal(2, logical.Tables.Count);
         Assert.Contains(logical.Paragraphs,
@@ -208,7 +208,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Quality", data.Rows.SelectMany(static row => row));
         Assert.Contains("Premium", data.Rows.SelectMany(static row => row));
@@ -223,7 +223,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("Phase 2026", data.Columns.Concat(data.Rows.SelectMany(static row => row)));
         Assert.Contains("20", data.Rows.SelectMany(static row => row));
@@ -251,7 +251,7 @@ public sealed class PdfTableDetectionValidationTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf).Tables);
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Contains("North region coordinator", data.Rows.SelectMany(static row => row));
         Assert.Contains("Approve all completed requests", data.Rows.SelectMany(static row => row));
@@ -344,6 +344,22 @@ public sealed class PdfTableDetectionValidationTests {
 
         Assert.Contains(table.Rows.SelectMany(static row => row),
             cell => cell.Contains("Amounts exclude tax.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableDetector_DoesNotSwallowWideNarrativeProseBetweenAlignedBands() {
+        List<List<TextLayoutEngine.TextLine>> bands = new() {
+            new() { CreateLine(520D, ("Account", 50D, 55D, "Helvetica"), ("Amount", 220D, 48D, "Helvetica")) },
+            new() { CreateLine(500D, ("A-1", 50D, 24D, "Helvetica"), ("100", 220D, 24D, "Helvetica")) },
+            new() { CreateLine(480D, ("This narrative sentence explains the surrounding report without qualifying the table.", 50D, 360D, "Helvetica")) },
+            new() { CreateLine(460D, ("A-2", 50D, 24D, "Helvetica"), ("200", 220D, 24D, "Helvetica")) }
+        };
+
+        IReadOnlyList<StructuredTable> tables = TableDetector.DetectTablesFromBands(bands);
+
+        Assert.DoesNotContain(
+            tables.SelectMany(static table => table.Rows).SelectMany(static row => row),
+            cell => cell.Contains("narrative sentence", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

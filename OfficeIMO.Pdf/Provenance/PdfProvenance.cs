@@ -11,14 +11,14 @@ public static partial class PdfProvenance {
     public static OfficeProvenanceReport Inspect(
         byte[] pdf,
         OfficeProvenanceOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
         long maximumManifestBytes = GetMaximumManifestBytes(options);
-        PdfReadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
+        PdfLoadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
             _ = outputIntent.DestinationOutputProfileSizeBytes;
@@ -67,7 +67,7 @@ public static partial class PdfProvenance {
     public static OfficeProvenanceReport InspectFile(
         string filePath,
         OfficeProvenanceOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         options ??= new OfficeProvenanceOptions();
         byte[] pdf = ReadBounded(filePath, options.MaxAssetBytes);
@@ -78,14 +78,14 @@ public static partial class PdfProvenance {
     public static OfficeProvenanceRemovalResult Remove(
         byte[] pdf,
         OfficeProvenanceRemovalOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         long maximumManifestBytes = Math.Min(
             options.Limits.MaxExpandedContainerBytes,
             MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers));
-        PdfReadOptions effectiveReadOptions = CreateReadOptions(
+        PdfLoadOptions effectiveReadOptions = CreateReadOptions(
             options.Limits.MaxAssetBytes,
             options.Limits.MaxContainerEntries,
             options.Limits.MaxExpandedContainerBytes,
@@ -150,7 +150,7 @@ public static partial class PdfProvenance {
             removeFileSpecifications,
             effectiveReadOptions,
             options.Limits.MaxExpandedContainerBytes);
-        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
         OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(options.Limits, output.LongLength);
         OfficeProvenanceReport after = Inspect(output, outputLimits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
@@ -161,7 +161,7 @@ public static partial class PdfProvenance {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();

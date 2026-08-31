@@ -39,7 +39,7 @@ public class PdfPageImageRendererBatchTests {
     public void RenderPages_RendersCallerOrderedSvgRangeWithPerPageReports() {
         byte[] pdf = BuildTwoPagePdf();
 
-        IReadOnlyList<PdfPageRenderResult> results = PdfDocument.Open(pdf).Read.RenderPages(
+        IReadOnlyList<PdfPageRenderResult> results = PdfDocument.Load(pdf).Reader.RenderPages(
             PdfPageSelection.From(2, 1),
             new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg, Scale = 2D });
 
@@ -121,7 +121,7 @@ public class PdfPageImageRendererBatchTests {
         OfficeImageExportTimeoutException rangeTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
             PdfPageImageRenderer.RenderPages(pdf, "2,1", options));
         OfficeImageExportTimeoutException selectorTimeout = Assert.Throws<OfficeImageExportTimeoutException>(() =>
-            PdfDocument.Open(pdf).Read.RenderPages(PdfPageSelector.Parse("last..1"), options));
+            PdfDocument.Load(pdf).Reader.RenderPages(PdfPageSelector.Parse("last..1"), options));
 
         Assert.Equal(timeout, rangeTimeout.Timeout);
         Assert.Equal(timeout, selectorTimeout.Timeout);

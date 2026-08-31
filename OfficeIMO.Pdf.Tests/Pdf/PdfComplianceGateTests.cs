@@ -220,7 +220,7 @@ public class PdfComplianceGateTests {
         Assert.Contains("TH", tagged.StructureTypes);
         Assert.Contains("TD", tagged.StructureTypes);
 
-        PdfComplianceProofReport proof = PdfDocument.Open(bytes)
+        PdfComplianceProofReport proof = PdfDocument.Load(bytes)
             .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
         Assert.True(proof.IsInternallyReady);
         Assert.True(proof.ReadyForExternalValidation);

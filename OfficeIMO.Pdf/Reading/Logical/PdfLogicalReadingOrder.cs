@@ -163,7 +163,7 @@ public static class PdfLogicalReadingOrderAnalysis {
                 item.HasGeometry, item.IsClipped, item.Left, item.Top, item.Right, item.Bottom,
                 confidence, evidence.AsReadOnly());
         }
-        return Array.AsReadOnly(result);
+        return ApplyCanonicalOrder(page, result);
 
         void AddBand(IEnumerable<Candidate> source, List<Candidate> destination, HashSet<Candidate> seen) {
             Candidate[] band = source.OrderBy(static item => item.Left).ThenBy(static item => item.Top).ToArray();
@@ -199,6 +199,130 @@ public static class PdfLogicalReadingOrderAnalysis {
         }
     }
 
+    private static IReadOnlyList<PdfLogicalReadingOrderItem> ApplyCanonicalOrder(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderItem[] items) {
+        if (page.Analysis.ReadingOrder.Count == 0 || items.Length < 2) return items;
+
+        var ranked = new CanonicalRank[items.Length];
+        var matchedIndexes = new List<int>();
+        for (int index = 0; index < items.Length; index++) {
+            bool matched = TryGetCanonicalPosition(page, items[index], out long position);
+            ranked[index] = new CanonicalRank(items[index], index, matched, matched ? position : 0D);
+            if (matched) matchedIndexes.Add(index);
+        }
+        if (matchedIndexes.Count == 0) return items;
+
+        for (int index = 0; index < ranked.Length; index++) {
+            if (ranked[index].Matched) continue;
+            int previous = -1;
+            int next = -1;
+            for (int matchIndex = 0; matchIndex < matchedIndexes.Count; matchIndex++) {
+                int candidate = matchedIndexes[matchIndex];
+                if (candidate < index) previous = candidate;
+                else if (candidate > index) { next = candidate; break; }
+            }
+
+            double position;
+            if (previous >= 0 && next >= 0 && ranked[previous].Position < ranked[next].Position) {
+                double fraction = (double)(index - previous) / (next - previous);
+                position = ranked[previous].Position + ((ranked[next].Position - ranked[previous].Position) * fraction);
+            } else if (previous >= 0) {
+                position = ranked[previous].Position + 50_000D + (index - previous);
+            } else if (next >= 0) {
+                position = ranked[next].Position - 50_000D - (next - index);
+            } else {
+                position = items[index].OrderIndex;
+            }
+            ranked[index] = ranked[index].WithPosition(position);
+        }
+
+        CanonicalRank[] ordered = ranked
+            .OrderBy(static value => value.Position)
+            .ThenBy(static value => value.OriginalIndex)
+            .ToArray();
+        var result = new PdfLogicalReadingOrderItem[ordered.Length];
+        for (int index = 0; index < ordered.Length; index++) {
+            PdfLogicalReadingOrderItem item = ordered[index].Item;
+            IReadOnlyList<PdfInferenceEvidence> evidence = item.Evidence;
+            if (ordered[index].Matched) {
+                evidence = item.Evidence.Concat(new[] {
+                    new PdfInferenceEvidence(
+                        "reading-order.canonical-understanding",
+                        "The item's position is owned by the canonical PDF understanding pipeline.",
+                        0.9D)
+                }).ToArray();
+            }
+            result[index] = new PdfLogicalReadingOrderItem(
+                item.Kind,
+                item.SourceIndex,
+                item.PlacementIndex,
+                index,
+                item.ColumnIndex,
+                item.SpansColumns,
+                item.HasGeometry,
+                item.IsClipped,
+                item.Left,
+                item.Top,
+                item.Right,
+                item.Bottom,
+                item.Confidence,
+                evidence);
+        }
+        return Array.AsReadOnly(result);
+    }
+
+    private static bool TryGetCanonicalPosition(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderItem item,
+        out long position) {
+        position = 0L;
+        IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
+            PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
+            PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+            PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
+            PdfLogicalReadingOrderKind.ListItem => new[] { page.ListItems[item.SourceIndex].Line },
+            _ => null
+        };
+        if (lines is null || lines.Count == 0) return false;
+
+        long best = long.MaxValue;
+        for (int logicalLineIndex = 0; logicalLineIndex < lines.Count; logicalLineIndex++) {
+            PdfLogicalTextBlock block = lines[logicalLineIndex];
+            for (int regionIndex = 0; regionIndex < page.Analysis.ReadingOrder.Count; regionIndex++) {
+                PdfUnderstandingRegion region = page.Analysis.ReadingOrder[regionIndex];
+                for (int lineIndex = 0; lineIndex < region.Lines.Count; lineIndex++) {
+                    PdfUnderstandingLine candidate = region.Lines[lineIndex];
+                    if (Math.Abs(candidate.BaselineY - block.BaselineY) > 0.25D ||
+                        Math.Abs(candidate.XStart - block.XStart) > 0.5D ||
+                        !string.Equals(
+                            PdfTextSimilarity.NormalizeSignature(candidate.Text),
+                            PdfTextSimilarity.NormalizeSignature(block.Text),
+                            StringComparison.Ordinal)) continue;
+                    best = Math.Min(best, checked((long)regionIndex * 100_000L + lineIndex));
+                }
+            }
+        }
+        if (best == long.MaxValue) return false;
+        position = best;
+        return true;
+    }
+
+    private readonly struct CanonicalRank {
+        internal CanonicalRank(PdfLogicalReadingOrderItem item, int originalIndex, bool matched, double position) {
+            Item = item;
+            OriginalIndex = originalIndex;
+            Matched = matched;
+            Position = position;
+        }
+
+        internal PdfLogicalReadingOrderItem Item { get; }
+        internal int OriginalIndex { get; }
+        internal bool Matched { get; }
+        internal double Position { get; }
+        internal CanonicalRank WithPosition(double position) => new CanonicalRank(Item, OriginalIndex, Matched, position);
+    }
+
     private static List<Candidate> BuildCandidates(PdfLogicalPage page) {
         var result = new List<Candidate>();
         var semanticTextBlocks = new HashSet<PdfLogicalTextBlock>();
@@ -209,7 +333,9 @@ public static class PdfLogicalReadingOrderAnalysis {
         for (int index = 0; index < page.ListItems.Count; index++) semanticTextBlocks.Add(page.ListItems[index].Line);
         int sequence = 0;
         for (int index = 0; index < page.TextBlocks.Count; index++) {
-            if (!semanticTextBlocks.Contains(page.TextBlocks[index])) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { page.TextBlocks[index] });
+            PdfLogicalTextBlock block = page.TextBlocks[index];
+            if (block.Kind is PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer) continue;
+            if (!semanticTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
         for (int index = 0; index < page.Paragraphs.Count; index++) AddText(PdfLogicalReadingOrderKind.Paragraph, index, page.Paragraphs[index].Lines);

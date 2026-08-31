@@ -15,11 +15,11 @@ public static class HtmlBrowserPdfOfficeExtensions {
     /// </summary>
     public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(
         this HtmlBrowserPdfResult captureResult,
-        PdfCore.PdfReadOptions? readOptions = null) {
+        PdfCore.PdfLoadOptions? readOptions = null) {
         if (captureResult == null) throw new ArgumentNullException(nameof(captureResult));
 
         using Stream stream = captureResult.OpenRead();
-        PdfCore.PdfDocument document = PdfCore.PdfDocument.Open(stream, readOptions);
+        PdfCore.PdfDocument document = PdfCore.PdfDocument.Load(stream, readOptions);
         return CreateResult(captureResult, document);
     }
 
@@ -29,13 +29,13 @@ public static class HtmlBrowserPdfOfficeExtensions {
     /// </summary>
     public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultAsync(
         this HtmlBrowserPdfResult captureResult,
-        PdfCore.PdfReadOptions? readOptions = null,
+        PdfCore.PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (captureResult == null) throw new ArgumentNullException(nameof(captureResult));
 
         using Stream stream = captureResult.OpenRead();
         PdfCore.PdfDocument document = await PdfCore.PdfDocument
-            .OpenAsync(stream, readOptions, cancellationToken)
+            .LoadAsync(stream, readOptions, cancellationToken)
             .ConfigureAwait(false);
         return CreateResult(captureResult, document);
     }
@@ -46,7 +46,7 @@ public static class HtmlBrowserPdfOfficeExtensions {
     public static async Task<PdfCore.PdfDocument> CapturePdfDocumentAsync(
         this HtmlBrowserPdfRenderer renderer,
         HtmlBrowserPdfRequest request,
-        PdfCore.PdfReadOptions? readOptions = null,
+        PdfCore.PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) =>
         (await renderer.CapturePdfDocumentResultAsync(request, readOptions, cancellationToken).ConfigureAwait(false)).Value;
 
@@ -57,7 +57,7 @@ public static class HtmlBrowserPdfOfficeExtensions {
     public static async Task<PdfCore.PdfDocumentConversionResult> CapturePdfDocumentResultAsync(
         this HtmlBrowserPdfRenderer renderer,
         HtmlBrowserPdfRequest request,
-        PdfCore.PdfReadOptions? readOptions = null,
+        PdfCore.PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         if (renderer == null) throw new ArgumentNullException(nameof(renderer));
         if (request == null) throw new ArgumentNullException(nameof(request));

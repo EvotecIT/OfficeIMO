@@ -10,7 +10,7 @@ internal static class PdfOcr {
         byte[] pdf,
         IPdfOcrProvider provider,
         PdfOcrMergeOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(provider, nameof(provider));
@@ -23,7 +23,7 @@ internal static class PdfOcr {
         if (selectedPages.Length > effectiveOptions.MaxPages) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
         }
-        PdfLogicalDocument logical = PdfLogicalDocument.FromPageNumbers(readDocument, null, selectedPages);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.FromPageNumbers(readDocument, null, selectedPages);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Dpi = effectiveOptions.Dpi,
@@ -47,7 +47,7 @@ internal static class PdfOcr {
         }
 
         IReadOnlyList<PdfOcrPageMergeResult> mergedPages = pages.AsReadOnly();
-        PdfLogicalDocument enriched = PdfOcrLogicalDocumentBuilder.Build(
+        PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
             logical,
             mergedPages,
             effectiveOptions,

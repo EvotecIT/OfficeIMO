@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(allText.IndexOf("Native TOC second heading", StringComparison.Ordinal) < allText.LastIndexOf("Native TOC second heading", StringComparison.Ordinal));
             }
 
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
             const string firstDestination = "officeimo-heading-native-toc-first-heading";
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
 

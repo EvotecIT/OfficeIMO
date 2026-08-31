@@ -641,7 +641,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<image", svg, StringComparison.Ordinal);
         Assert.Contains("Before", pdfText, StringComparison.Ordinal);
         Assert.Contains("After", pdfText, StringComparison.Ordinal);
-        Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri("https://example.com/image"));
+        Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri("https://example.com/image"));
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), extracted => extracted.IsImageFile && extracted.MimeType == "image/png");
         Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }

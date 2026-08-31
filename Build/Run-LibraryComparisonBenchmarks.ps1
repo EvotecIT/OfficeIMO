@@ -39,8 +39,7 @@ param(
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
-        'pdfunderstanding',
-        'pdflogicalstructure',
+        'pdfstructuredread',
         'pdfsplit',
         'pdfmerge',
         'pdfselect')]
@@ -464,29 +463,17 @@ $definitions = [ordered]@{
             }
         )
     }
-    pdfunderstanding = [pscustomobject]@{
+    pdfstructuredread = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*'
-        ComparisonId = "officeimo-pdf-advanced-understanding-$Framework"
-        Suite = 'OfficeIMO.Pdf.AdvancedUnderstanding'
+        Filter = '*PdfStructuredReadBenchmarks*'
+        ComparisonId = "officeimo-pdf-structured-read-$Framework"
+        Suite = 'OfficeIMO.Pdf.StructuredRead'
         CatalogEligible = $false
         IdentityVariables = @('scale')
         ExpectedCases = @(
             foreach ($scale in @('Easy', 'Medium', 'High')) {
-                "AdvancedUnderstanding|Scale=$scale"
-            }
-        )
-    }
-    pdflogicalstructure = [pscustomobject]@{
-        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*'
-        ComparisonId = "officeimo-pdf-logical-structure-tables-$Framework"
-        Suite = 'OfficeIMO.Pdf.LogicalStructureAndTables'
-        CatalogEligible = $false
-        IdentityVariables = @('scale')
-        ExpectedCases = @(
-            foreach ($scale in @('Easy', 'Medium', 'High')) {
-                "LogicalStructureAndTables|Scale=$scale"
+                "FastLoadAndRead|Scale=$scale"
+                "StructuredLoadAndRead|Scale=$scale"
             }
         )
     }

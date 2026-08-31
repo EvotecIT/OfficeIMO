@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 /// Built-in dependency-free understanding stages for rotated baselines, spatial regions, multi-column reading order, and richer business-document semantics.
 /// </summary>
 public static class PdfAdvancedUnderstandingStages {
+    /// <summary>Parser-backed positioned text decoding.</summary>
+    public static IPdfGlyphDecodingStage GlyphDecoding { get; } = new AdvancedGlyphDecodingStage();
     /// <summary>Rotation-aware word grouping.</summary>
     public static IPdfWordGroupingStage WordGrouping { get; } = new AdvancedWordGroupingStage();
     /// <summary>Arbitrary-baseline line grouping.</summary>
@@ -17,22 +19,41 @@ public static class PdfAdvancedUnderstandingStages {
     /// <summary>Business-document semantic classification.</summary>
     public static IPdfSemanticClassificationStage SemanticClassification { get; } = new AdvancedSemanticClassificationStage();
 
+    private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
+        public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
+            context.ThrowIfCancellationRequested();
+            return context.Page.GetTextSpans();
+        }
+    }
+
     private sealed class AdvancedWordGroupingStage : IPdfWordGroupingStage {
         public IReadOnlyList<PdfUnderstandingWord> GroupWords(PdfUnderstandingPageContext context, IReadOnlyList<PdfTextSpan> runs) {
             var result = new List<PdfUnderstandingWord>();
             for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                context.ConsumeWork();
                 PdfTextSpan run = runs[runIndex];
                 string text = run.Text ?? string.Empty;
+                if (text.Length > 0) context.ConsumeWork(text.Length);
                 double radians = run.RotationDegrees * Math.PI / 180D;
                 double alongX = Math.Cos(radians);
                 double alongY = Math.Sin(radians);
                 double perCharacter = text.Length > 0 && run.Advance > 0D ? run.Advance / text.Length : run.FontSize * 0.55D;
                 int cursor = 0;
                 while (cursor < text.Length) {
-                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) cursor++;
+                    while (cursor < text.Length && char.IsWhiteSpace(text[cursor])) {
+                        if ((cursor & 1023) == 0) context.ThrowIfCancellationRequested();
+                        cursor++;
+                    }
                     int start = cursor;
-                    while (cursor < text.Length && !char.IsWhiteSpace(text[cursor])) cursor++;
+                    while (cursor < text.Length && !char.IsWhiteSpace(text[cursor])) {
+                        if ((cursor & 1023) == 0) context.ThrowIfCancellationRequested();
+                        cursor++;
+                    }
                     if (cursor == start) continue;
+                    context.ConsumeWork();
+                    if (result.Count >= context.MaxWordsPerPage) {
+                        throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, context.MaxWordsPerPage, result.Count + 1L);
+                    }
                     double startDistance = start * perCharacter;
                     double endDistance = cursor * perCharacter;
                     double startX = run.X + alongX * startDistance;
@@ -58,15 +79,25 @@ public static class PdfAdvancedUnderstandingStages {
     private sealed class AdvancedLineGroupingStage : IPdfLineGroupingStage {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) {
             var groups = new List<BaselineGroup>();
+            var spatialIndex = new Dictionary<(int Angle, int Normal), List<BaselineGroup>>();
             foreach (PdfUnderstandingWord word in words.OrderBy(static word => NormalizeAngle(word.RotationDegrees)).ThenByDescending(static word => word.BaselineY).ThenBy(static word => word.XStart)) {
+                context.ConsumeWork();
                 double angle = NormalizeAngle(word.RotationDegrees);
                 double radians = angle * Math.PI / 180D;
                 double normal = (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY);
                 double tolerance = Math.Max(0.75D, Math.Min(context.LayoutOptions.LineMergeMaxPoints, word.FontSize * context.LayoutOptions.LineMergeToleranceEm));
-                BaselineGroup? group = groups.FirstOrDefault(candidate => AngularDistance(candidate.Angle, angle) <= 2D && Math.Abs(candidate.Normal - normal) <= tolerance);
-                if (group is null) { group = new BaselineGroup(angle, normal); groups.Add(group); }
+                BaselineGroup? group = FindIndexedGroup(context, spatialIndex, angle, normal, tolerance);
+                (int Angle, int Normal) previousKey = default;
+                if (group is null) {
+                    group = new BaselineGroup(angle, normal);
+                    groups.Add(group);
+                    AddToIndex(spatialIndex, group);
+                } else {
+                    previousKey = IndexKey(group.Angle, group.Normal);
+                }
                 group.Words.Add(word);
                 group.Normal = ((group.Normal * (group.Words.Count - 1)) + normal) / group.Words.Count;
+                if (group.Words.Count > 1) MoveInIndex(spatialIndex, group, previousKey);
             }
 
             var lines = new List<PdfUnderstandingLine>(groups.Count);
@@ -94,6 +125,57 @@ public static class PdfAdvancedUnderstandingStages {
             lines.Sort(static (left, right) => { int top = right.BaselineY.CompareTo(left.BaselineY); return top != 0 ? top : left.XStart.CompareTo(right.XStart); });
             return lines.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : lines.AsReadOnly();
         }
+
+        private static BaselineGroup? FindIndexedGroup(
+            PdfUnderstandingPageContext context,
+            Dictionary<(int Angle, int Normal), List<BaselineGroup>> index,
+            double angle,
+            double normal,
+            double tolerance) {
+            (int angleBucket, int normalBucket) = IndexKey(angle, normal);
+            int normalRadius = (int)Math.Ceiling(tolerance / 0.75D) + 1;
+            for (int angleOffset = -2; angleOffset <= 2; angleOffset++) {
+                int candidateAngle = (angleBucket + angleOffset + 180) % 180;
+                for (int normalOffset = -normalRadius; normalOffset <= normalRadius; normalOffset++) {
+                    context.ConsumeWork();
+                    if (!index.TryGetValue((candidateAngle, normalBucket + normalOffset), out List<BaselineGroup>? candidates)) continue;
+                    for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                        context.ConsumeWork();
+                        BaselineGroup candidate = candidates[candidateIndex];
+                        if (AngularDistance(candidate.Angle, angle) <= 2D && Math.Abs(candidate.Normal - normal) <= tolerance) return candidate;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static void AddToIndex(Dictionary<(int Angle, int Normal), List<BaselineGroup>> index, BaselineGroup group) {
+            (int Angle, int Normal) key = IndexKey(group.Angle, group.Normal);
+            if (!index.TryGetValue(key, out List<BaselineGroup>? values)) {
+                values = new List<BaselineGroup>();
+                index.Add(key, values);
+            }
+            values.Add(group);
+        }
+
+        private static void MoveInIndex(
+            Dictionary<(int Angle, int Normal), List<BaselineGroup>> index,
+            BaselineGroup group,
+            (int Angle, int Normal) previousKey) {
+            (int Angle, int Normal) nextKey = IndexKey(group.Angle, group.Normal);
+            if (nextKey == previousKey) return;
+            if (index.TryGetValue(previousKey, out List<BaselineGroup>? previous)) {
+                previous.Remove(group);
+                if (previous.Count == 0) index.Remove(previousKey);
+            }
+            AddToIndex(index, group);
+        }
+
+        private static (int Angle, int Normal) IndexKey(double angle, double normal) {
+            int angleBucket = ((int)Math.Floor((NormalizeAngle(angle) + 180D) / 2D)) % 180;
+            if (angleBucket < 0) angleBucket += 180;
+            return (angleBucket, (int)Math.Floor(normal / 0.75D));
+        }
     }
 
     private sealed class AdvancedPageSegmentationStage : IPdfPageSegmentationStage {
@@ -101,18 +183,20 @@ public static class PdfAdvancedUnderstandingStages {
             var remaining = new HashSet<int>(Enumerable.Range(0, lines.Count));
             var regions = new List<PdfUnderstandingRegion>();
             AddCanonicalTableRegions(context, lines, remaining, regions);
-            while (remaining.Count > 0) {
-                int seed = remaining.First();
-                remaining.Remove(seed);
-                var component = new List<int> { seed };
-                var queue = new Queue<int>(); queue.Enqueue(seed);
-                while (queue.Count > 0) {
-                    int current = queue.Dequeue();
-                    foreach (int candidate in remaining.ToArray()) {
-                        if (!AreSpatialNeighbors(lines[current], lines[candidate])) continue;
-                        remaining.Remove(candidate); component.Add(candidate); queue.Enqueue(candidate);
-                    }
+            int[] parent = Enumerable.Range(0, lines.Count).ToArray();
+            double maximumVerticalGap = lines.Count == 0 ? 0D : lines.Max(static line => line.FontSize) * 2.2D;
+            int[] candidates = remaining.OrderBy(static index => index).ToArray();
+            for (int leftPosition = 0; leftPosition < candidates.Length; leftPosition++) {
+                int leftIndex = candidates[leftPosition];
+                for (int rightPosition = leftPosition + 1; rightPosition < candidates.Length; rightPosition++) {
+                    int rightIndex = candidates[rightPosition];
+                    double verticalGap = lines[leftIndex].BaselineY - lines[rightIndex].BaselineY;
+                    if (verticalGap > maximumVerticalGap) break;
+                    context.ConsumeWork();
+                    if (AreSpatialNeighbors(lines[leftIndex], lines[rightIndex])) Union(parent, leftIndex, rightIndex);
                 }
+            }
+            foreach (IGrouping<int, int> component in candidates.GroupBy(index => Find(parent, index))) {
                 PdfUnderstandingLine[] ordered = component.Select(index => lines[index]).OrderByDescending(static line => line.BaselineY).ThenBy(static line => line.XStart).ToArray();
                 double confidence = PdfInference.Clamp(ordered.Average(static line => line.Confidence) - Math.Min(0.2D, Math.Max(0, ordered.Length - 12) * 0.01D));
                 regions.Add(new PdfUnderstandingRegion(ordered, confidence, new[] {
@@ -134,6 +218,7 @@ public static class PdfAdvancedUnderstandingStages {
                 context.LayoutOptions.ToEngineOptions(),
                 context.Height);
             foreach (StructuredTable table in structure.TablesDetailed) {
+                context.ConsumeWork();
                 if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase) || table.Columns.Count < 2) continue;
 
                 double top = Math.Max(table.YTop, table.YBottom);
@@ -159,6 +244,20 @@ public static class PdfAdvancedUnderstandingStages {
             }
         }
 
+        private static int Find(int[] parent, int value) {
+            while (parent[value] != value) {
+                parent[value] = parent[parent[value]];
+                value = parent[value];
+            }
+            return value;
+        }
+
+        private static void Union(int[] parent, int left, int right) {
+            int leftRoot = Find(parent, left);
+            int rightRoot = Find(parent, right);
+            if (leftRoot != rightRoot) parent[rightRoot] = leftRoot;
+        }
+
         private static bool AreSpatialNeighbors(PdfUnderstandingLine left, PdfUnderstandingLine right) {
             if (AngularDistance(left.RotationDegrees, right.RotationDegrees) > 4D) return false;
             double verticalGap = Math.Abs(left.BaselineY - right.BaselineY);
@@ -176,6 +275,7 @@ public static class PdfAdvancedUnderstandingStages {
             double median = sizes.Length == 0 ? 0D : sizes[sizes.Length / 2];
             var result = new List<PdfUnderstandingSemanticElement>(orderedRegions.Count);
             foreach (PdfUnderstandingRegion region in orderedRegions) {
+                context.ConsumeWork();
                 (PdfUnderstandingSemanticKind kind, double confidence, string code, string message) = Classify(context, region, median);
                 result.Add(new PdfUnderstandingSemanticElement(region, kind, confidence, new[] { new PdfInferenceEvidence(code, message, confidence - 0.5D) }));
             }
@@ -186,26 +286,11 @@ public static class PdfAdvancedUnderstandingStages {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
-            if (region.YTop >= context.Height * 0.94D) return (PdfUnderstandingSemanticKind.Header, 0.82D, "semantic.page-edge-header", "The region occupies the top six percent of the page.");
             if (region.YBottom <= context.Height * 0.08D && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
-            if (region.YBottom <= context.Height * 0.05D) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "The region occupies the bottom five percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
-            if (LooksLikeTable(region)) return (PdfUnderstandingSemanticKind.Table, 0.83D, "semantic.column-alignment", "Several lines share aligned word columns with large horizontal gaps.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
-        }
-
-        private static bool LooksLikeTable(PdfUnderstandingRegion region) {
-            if (region.Lines.Count < 2) return false;
-            int alignedRows = 0;
-            foreach (PdfUnderstandingLine line in region.Lines) {
-                if (line.Words.Count < 2) continue;
-                int largeGaps = 0;
-                for (int i = 1; i < line.Words.Count; i++) if (line.Words[i].XStart - line.Words[i - 1].XEnd >= Math.Max(12D, line.FontSize)) largeGaps++;
-                if (largeGaps > 0) alignedRows++;
-            }
-            return alignedRows >= 2;
         }
 
     }

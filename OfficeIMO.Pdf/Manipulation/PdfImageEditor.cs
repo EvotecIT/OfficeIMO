@@ -7,7 +7,7 @@ internal static partial class PdfImageEditor {
     private const double CoordinateTolerance = 0.01D;
     private const double TransformTolerance = 0.0001D;
 
-    internal static IReadOnlyList<PdfImagePlacement> Placements(byte[] pdf, PdfReadOptions? readOptions) {
+    internal static IReadOnlyList<PdfImagePlacement> Placements(byte[] pdf, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         return BindSourceIdentity(
@@ -17,7 +17,7 @@ internal static partial class PdfImageEditor {
             pdf);
     }
 
-    internal static IReadOnlyList<PdfImagePlacement> Find(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    internal static IReadOnlyList<PdfImagePlacement> Find(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
@@ -33,7 +33,7 @@ internal static partial class PdfImageEditor {
             .ToArray(), pdf);
     }
 
-    internal static ImageMutationResult Add(byte[] pdf, PdfPageRegion target, byte[] imageBytes, PdfImageEditOptions? options, PdfReadOptions? readOptions) {
+    internal static ImageMutationResult Add(byte[] pdf, PdfPageRegion target, byte[] imageBytes, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(target, nameof(target));
         Guard.NotNull(imageBytes, nameof(imageBytes));
@@ -45,17 +45,17 @@ internal static partial class PdfImageEditor {
         return new ImageMutationResult(output, 1);
     }
 
-    internal static ImageMutationResult Remove(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
+    internal static ImageMutationResult Remove(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
         EnsureRemovablePlacement(current);
         EnsureSafeDestructiveContext(pdf, current, requirePortableSourceSemantics: false, readOptions);
         byte[] output = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
-        EnsurePlacementRemoved(output, current, PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength));
+        EnsurePlacementRemoved(output, current, PdfLoadOptions.WithMinimumInputBytes(readOptions, output.LongLength));
         return new ImageMutationResult(output, 1);
     }
 
-    internal static ImageMutationResult Replace(byte[] pdf, PdfImagePlacement placement, byte[] imageBytes, PdfImageEditOptions? options, PdfReadOptions? readOptions) {
+    internal static ImageMutationResult Replace(byte[] pdf, PdfImagePlacement placement, byte[] imageBytes, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImagePlacement current = ResolveUniquePlacement(pdf, placement, readOptions);
@@ -65,7 +65,7 @@ internal static partial class PdfImageEditor {
         ImageTransform transform = ResolvePortableTransform(current);
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
         byte[] removed = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
-        PdfReadOptions afterRemovalOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
+        PdfLoadOptions afterRemovalOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
         EnsurePlacementRemoved(removed, current, afterRemovalOptions);
         byte[] output = PdfStamper.StampImage(
             removed,
@@ -75,7 +75,7 @@ internal static partial class PdfImageEditor {
         return new ImageMutationResult(output, 1);
     }
 
-    internal static ImageMutationResult Move(byte[] pdf, PdfImagePlacement placement, double deltaX, double deltaY, PdfImageEditOptions? options, PdfReadOptions? readOptions) {
+    internal static ImageMutationResult Move(byte[] pdf, PdfImagePlacement placement, double deltaX, double deltaY, PdfImageEditOptions? options, PdfLoadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
         Guard.NotNull(pdf, nameof(pdf));
@@ -86,7 +86,7 @@ internal static partial class PdfImageEditor {
         PdfExtractedImage image = ResolveMovableImage(pdf, current, readOptions);
         PdfImageEditOptions snapshot = (options ?? new PdfImageEditOptions()).Snapshot();
         byte[] removed = PdfRedactionApplier.RemoveImagePlacements(pdf, new[] { current }, readOptions);
-        PdfReadOptions afterRemovalOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
+        PdfLoadOptions afterRemovalOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
         EnsurePlacementRemoved(removed, current, afterRemovalOptions);
         byte[] output = PdfStamper.StampImage(
             removed,
@@ -96,7 +96,7 @@ internal static partial class PdfImageEditor {
         return new ImageMutationResult(output, 1);
     }
 
-    private static PdfImagePlacement ResolveUniquePlacement(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
+    private static PdfImagePlacement ResolveUniquePlacement(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
         Guard.NotNull(placement, nameof(placement));
         string sourceIdentity = ComputeSourceIdentity(pdf);
         if (!string.Equals(placement.SourceDocumentIdentity, sourceIdentity, StringComparison.Ordinal)) {
@@ -115,7 +115,7 @@ internal static partial class PdfImageEditor {
         return matches[0];
     }
 
-    private static PdfExtractedImage ResolveMovableImage(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
+    private static PdfExtractedImage ResolveMovableImage(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         PdfReadPage page = document.Pages[placement.PageNumber - 1];
         if (page.HasEffectiveOutputIntentColorTransform) {
@@ -207,7 +207,7 @@ internal static partial class PdfImageEditor {
         }
     }
 
-    private static void EnsurePlacementRemoved(byte[] pdf, PdfImagePlacement placement, PdfReadOptions? readOptions) {
+    private static void EnsurePlacementRemoved(byte[] pdf, PdfImagePlacement placement, PdfLoadOptions? readOptions) {
         if (PdfImageExtractor.ExtractImagePlacements(PdfReadDocument.Open(pdf, readOptions))
             .Any(candidate => SamePlacementIdentity(candidate, placement))) {
             throw new InvalidOperationException("The selected image placement could not be removed safely; no successful edit result was produced.");

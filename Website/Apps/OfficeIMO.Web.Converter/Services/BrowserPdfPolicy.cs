@@ -12,9 +12,9 @@ internal static class BrowserPdfPolicy {
     internal const long MaxSplitSerializedBytes = 64L * 1024L * 1024L;
 
     internal static PdfDocument Open(SelectedDocument file, string? password = null) =>
-        PdfDocument.Open(file.Bytes, CreateReadOptions(password));
+        PdfDocument.Load(file.Bytes, CreateReadOptions(password));
 
-    internal static PdfReadOptions CreateReadOptions(string? password = null) => new() {
+    internal static PdfLoadOptions CreateReadOptions(string? password = null) => new() {
         Password = password,
         AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default,
         Limits = new PdfReadLimits {

@@ -11,7 +11,7 @@ public class PdfJavaScriptEditorTests {
             .Paragraph(paragraph => paragraph.Text("Document JavaScript preservation marker"))
             .ToBytes();
 
-        PdfJavaScriptEditResult created = PdfDocument.Open(source).JavaScript.Edit(scripts => scripts
+        PdfJavaScriptEditResult created = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
             .AddOrReplace("Initialize", "this.zoom = 100;")
             .AddOrReplace("Calculate", "var total = 40 + 2;"));
 
@@ -29,7 +29,7 @@ public class PdfJavaScriptEditorTests {
         PdfDocument opened = created.ToDocument();
         Assert.Equal(created.JavaScripts.Select(static script => script.Script), opened.JavaScript.List().Select(static script => script.Script));
         Assert.True(opened.Inspect().HasActiveContent);
-        Assert.Contains("Document JavaScript preservation marker", opened.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Document JavaScript preservation marker", opened.Reader.Text(), StringComparison.Ordinal);
 
         PdfJavaScriptEditResult replaced = opened.JavaScript.AddOrReplace("Initialize", "this.zoom = 125;");
         Assert.Equal(2, replaced.JavaScripts.Count);
@@ -42,7 +42,7 @@ public class PdfJavaScriptEditorTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("JavaScript cleanup"))
             .ToBytes();
-        PdfJavaScriptEditResult authored = PdfDocument.Open(source).JavaScript.Edit(scripts => scripts
+        PdfJavaScriptEditResult authored = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
             .AddOrReplace("One", "app.alert('one');")
             .AddOrReplace("Two", "app.alert('two');"));
 
@@ -54,7 +54,7 @@ public class PdfJavaScriptEditorTests {
 
         PdfJavaScriptEditResult cleared = removed.ToDocument().JavaScript.Clear();
         Assert.Empty(cleared.JavaScripts);
-        Assert.Empty(cleared.ToDocument().Read.JavaScripts());
+        Assert.Empty(cleared.ToDocument().Reader.JavaScripts());
         Assert.False(PdfInspector.Inspect(cleared.ToBytes()).HasActiveContent);
         Assert.DoesNotContain("app.alert", PdfEncoding.Latin1GetString(cleared.ToBytes()), StringComparison.Ordinal);
 
@@ -75,15 +75,15 @@ public class PdfJavaScriptEditorTests {
         const string script = "app.alert('Zażółć');";
         byte[] source = BuildJavaScriptStreamPdf("Startup", script);
 
-        PdfJavaScript saved = Assert.Single(PdfDocument.Open(source).Read.JavaScripts());
+        PdfJavaScript saved = Assert.Single(PdfDocument.Load(source).Reader.JavaScripts());
         Assert.Equal("Startup", saved.Name);
         Assert.Equal(script, saved.Script);
 
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 }
         };
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source, options).Read.JavaScripts());
+            PdfDocument.Load(source, options).Reader.JavaScripts());
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
         Assert.Equal(8, exception.Limit);
     }
@@ -93,7 +93,7 @@ public class PdfJavaScriptEditorTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("JavaScript validation"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         Assert.Throws<ArgumentException>(() => document.JavaScript.Edit(static _ => { }));
         Assert.Throws<ArgumentException>(() => document.JavaScript.AddOrReplace("Startup", string.Empty));
@@ -119,7 +119,7 @@ public class PdfJavaScriptEditorTests {
             string.Empty
         }));
 
-        Assert.Throws<InvalidDataException>(() => PdfDocument.Open(source).JavaScript.AddOrReplace("Startup", "app.alert('x');"));
+        Assert.Throws<InvalidDataException>(() => PdfDocument.Load(source).JavaScript.AddOrReplace("Startup", "app.alert('x');"));
     }
 
     [Fact]
@@ -127,7 +127,7 @@ public class PdfJavaScriptEditorTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Exact key matching"))
             .ToBytes();
-        PdfJavaScriptEditResult authored = PdfDocument.Open(source).JavaScript.Edit(scripts => scripts
+        PdfJavaScriptEditResult authored = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
             .AddOrReplace("Startup", "app.alert('plain');")
             .AddOrReplace(" Startup ", "app.alert('spaced');"));
 
@@ -142,7 +142,7 @@ public class PdfJavaScriptEditorTests {
     public void Edit_ReplacesSourceWithoutDroppingNextActionsOrExtensionFields() {
         byte[] source = BuildJavaScriptActionChainPdf();
 
-        PdfJavaScriptEditResult result = PdfDocument.Open(source).JavaScript
+        PdfJavaScriptEditResult result = PdfDocument.Load(source).JavaScript
             .AddOrReplace("Startup", "app.alert('updated');");
         byte[] output = result.ToBytes();
         PdfReadDocument saved = PdfReadDocument.Open(output);
@@ -164,14 +164,14 @@ public class PdfJavaScriptEditorTests {
         PdfJavaScript controls = Assert.Single(PdfReadDocument.Open(BuildPdfDocControlEncodedJavaScriptPdf()).JavaScripts);
         Assert.Equal("\0\f\u0017", controls.Script);
 
-        var countOptions = new PdfReadOptions {
+        var countOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = 1 }
         };
         PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() =>
             PdfReadDocument.Open(BuildTwoScriptPdf(), countOptions));
         Assert.Equal(PdfReadLimitKind.JavaScripts, countException.Kind);
 
-        var totalOptions = new PdfReadOptions {
+        var totalOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalJavaScriptBytes = 1 }
         };
         PdfReadLimitException totalException = Assert.Throws<PdfReadLimitException>(() =>
@@ -188,7 +188,7 @@ public class PdfJavaScriptEditorTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Unicode JavaScript keys"))
             .ToBytes();
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxJavaScriptBytes = 5_000_000,
                 MaxTotalJavaScriptBytes = 6_000_000,
@@ -197,7 +197,7 @@ public class PdfJavaScriptEditorTests {
         };
         string largeScript = new string('x', 2_100_000);
 
-        PdfJavaScriptEditResult result = PdfDocument.Open(source, options).JavaScript.Edit(scripts => scripts
+        PdfJavaScriptEditResult result = PdfDocument.Load(source, options).JavaScript.Edit(scripts => scripts
             .AddOrReplace("Ā", largeScript)
             .AddOrReplace("ÿ", "app.alert('small');"));
 
@@ -211,7 +211,7 @@ public class PdfJavaScriptEditorTests {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted JavaScript edit"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(source, new PdfReadOptions { Password = "owner" });
+        PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             document.JavaScript.AddOrReplace("Startup", "app.alert('x');"));
@@ -220,7 +220,7 @@ public class PdfJavaScriptEditorTests {
         Assert.Contains(exception.Plan.BlockerCodes, static blocker => blocker.Contains("Encryption", StringComparison.Ordinal));
 
         PdfMutationBlockedException signedException = Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
+            PdfDocument.Load(PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf())
                 .JavaScript.AddOrReplace("Startup", "app.alert('x');"));
         Assert.Contains("FullRewrite.AppendOnlyRequired", signedException.Plan.BlockerCodes);
     }
@@ -229,7 +229,7 @@ public class PdfJavaScriptEditorTests {
     public void Edit_PreservesUntouchedOpaqueActionsAndFailsClosedForAmbiguousReplacement() {
         byte[] opaqueSource = BuildOpaqueJavaScriptPdf();
 
-        byte[] output = PdfDocument.Open(opaqueSource).JavaScript
+        byte[] output = PdfDocument.Load(opaqueSource).JavaScript
             .AddOrReplace("New", "app.alert('new');")
             .ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(output);
@@ -238,7 +238,7 @@ public class PdfJavaScriptEditorTests {
             item.Value is PdfStream stream && Encoding.ASCII.GetString(stream.Data) == "OPAQUE-JAVASCRIPT-BYTES");
         Assert.Equal("app.alert('new');", Assert.Single(PdfReadDocument.Open(output).JavaScripts).Script);
 
-        Assert.Throws<InvalidDataException>(() => PdfDocument.Open(BuildDuplicateJavaScriptNamePdf())
+        Assert.Throws<InvalidDataException>(() => PdfDocument.Load(BuildDuplicateJavaScriptNamePdf())
             .JavaScript.AddOrReplace("Duplicate", "app.alert('replacement');"));
     }
 
@@ -249,7 +249,7 @@ public class PdfJavaScriptEditorTests {
             .ToBytes();
         PdfJavaScriptEditSession? retained = null;
 
-        PdfJavaScriptEditResult result = PdfDocument.Open(source).JavaScript.Edit(session => {
+        PdfJavaScriptEditResult result = PdfDocument.Load(source).JavaScript.Edit(session => {
             retained = session;
             session.AddOrReplace("Startup", "app.alert('saved');");
         });
@@ -263,7 +263,7 @@ public class PdfJavaScriptEditorTests {
 
     [Fact]
     public void Edit_PreservesDuplicateRawKeyOrderWhenAddingAnUnrelatedScript() {
-        byte[] output = PdfDocument.Open(BuildDuplicateJavaScriptNamePdf()).JavaScript
+        byte[] output = PdfDocument.Load(BuildDuplicateJavaScriptNamePdf()).JavaScript
             .AddOrReplace("Unrelated", "app.alert('new');")
             .ToBytes();
         var (objects, _) = PdfSyntax.ParseObjects(output);
@@ -280,13 +280,13 @@ public class PdfJavaScriptEditorTests {
 
     [Fact]
     public void Edit_UsesReaderNodeCountingForDirectRootAndIndirectLeaf() {
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
         byte[] source = BuildIndirectJavaScriptLeafPdf();
 
-        Assert.Equal("Existing", Assert.Single(PdfDocument.Open(source, options).Read.JavaScripts()).Name);
-        PdfJavaScriptEditResult result = PdfDocument.Open(source, options).JavaScript
+        Assert.Equal("Existing", Assert.Single(PdfDocument.Load(source, options).Reader.JavaScripts()).Name);
+        PdfJavaScriptEditResult result = PdfDocument.Load(source, options).JavaScript
             .AddOrReplace("Added", "app.alert('added');");
 
         Assert.Equal(new[] { "Added", "Existing" }, result.JavaScripts.Select(static script => script.Name));
@@ -483,7 +483,7 @@ public class PdfJavaScriptEditorTests {
         string.Empty
     }));
 
-    private static void AssertNameTreeKeysAreByteSorted(byte[] pdf, PdfReadOptions? options = null) {
+    private static void AssertNameTreeKeysAreByteSorted(byte[] pdf, PdfLoadOptions? options = null) {
         var (objects, _) = PdfSyntax.ParseObjects(pdf, options);
         PdfDictionary catalog = FindCatalog(objects);
         PdfDictionary names = Assert.IsType<PdfDictionary>(PdfObjectLookup.Resolve(objects, catalog.Items["Names"]));

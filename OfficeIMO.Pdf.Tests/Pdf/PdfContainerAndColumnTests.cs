@@ -16,7 +16,7 @@ public class PdfContainerAndColumnTests {
             }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 24, BalanceLastPage = false })
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         Assert.Single(blocks, block => block.Text.Contains("Left one", StringComparison.Ordinal));
         Assert.Single(blocks, block => block.Text.Contains("Right one", StringComparison.Ordinal));
         string raw = PdfEncoding.Latin1GetString(bytes);

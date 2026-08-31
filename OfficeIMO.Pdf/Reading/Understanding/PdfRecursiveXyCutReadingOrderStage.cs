@@ -13,33 +13,43 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         Guard.NotNull(context, nameof(context));
         Guard.NotNull(regions, nameof(regions));
         if (regions.Count <= 1) {
+            context.ThrowIfCancellationRequested();
             return regions.ToArray();
         }
 
-        RegionBox[] boxes = regions.Select(static region => RegionBox.From(region)).ToArray();
+        var boxes = new RegionBox[regions.Count];
+        for (int index = 0; index < regions.Count; index++) {
+            context.ConsumeWork();
+            boxes[index] = RegionBox.From(regions[index]);
+        }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
         double minimumVerticalGap = Math.Max(context.LayoutOptions.MinGutterWidth, medianFontSize * 1.5D);
         var ordered = new List<PdfUnderstandingRegion>(regions.Count);
 
         AppendPartition(
+            context,
             boxes,
             ordered,
             minimumHorizontalGap,
             minimumVerticalGap,
             context.LayoutOptions.ForceSingleColumn,
+            context.Width,
             depth: 0);
 
         return ordered.ToArray();
     }
 
     private static void AppendPartition(
+        PdfUnderstandingPageContext context,
         IReadOnlyList<RegionBox> boxes,
         List<PdfUnderstandingRegion> ordered,
         double minimumHorizontalGap,
         double minimumVerticalGap,
         bool forceSingleColumn,
+        double pageWidth,
         int depth) {
+        context.ConsumeWork();
         if (boxes.Count == 0) {
             return;
         }
@@ -54,21 +64,22 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             return;
         }
 
-        WhitespaceCut? horizontal = FindBestCut(boxes, horizontal: true, minimumHorizontalGap);
+        WhitespaceCut? horizontal = FindBestCut(context, boxes, horizontal: true, minimumHorizontalGap);
         WhitespaceCut? vertical = forceSingleColumn
             ? null
-            : FindBestCut(boxes, horizontal: false, minimumVerticalGap);
+            : FindBestCut(context, boxes, horizontal: false, minimumVerticalGap);
         if (!forceSingleColumn &&
-            !vertical.HasValue &&
             TryAppendSpanningEdgeRegion(
+                context,
                 boxes,
                 ordered,
                 minimumHorizontalGap,
                 minimumVerticalGap,
+                pageWidth,
                 depth)) {
             return;
         }
-        WhitespaceCut? selected = SelectCut(boxes, horizontal, vertical);
+        WhitespaceCut? selected = SelectCut(context, boxes, horizontal, vertical);
         if (!selected.HasValue) {
             AppendFallback(boxes, ordered);
             return;
@@ -78,6 +89,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         var first = new List<RegionBox>();
         var second = new List<RegionBox>();
         for (int index = 0; index < boxes.Count; index++) {
+            context.ConsumeWork();
             RegionBox box = boxes[index];
             double center = cut.Horizontal
                 ? (box.Bottom + box.Top) / 2D
@@ -95,27 +107,48 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         }
 
         if (cut.Horizontal) {
-            AppendPartition(second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
-            AppendPartition(first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+            AppendPartition(context, second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
+            AppendPartition(context, first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
         } else {
-            AppendPartition(first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
-            AppendPartition(second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, depth + 1);
+            AppendPartition(context, first, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
+            AppendPartition(context, second, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn, pageWidth, depth + 1);
         }
     }
 
     private static WhitespaceCut? SelectCut(
+        PdfUnderstandingPageContext context,
         IReadOnlyList<RegionBox> boxes,
         WhitespaceCut? horizontal,
         WhitespaceCut? vertical) {
         if (!vertical.HasValue) return horizontal;
         if (!horizontal.HasValue) return vertical;
-        return HasVerticalOverlapAcrossCut(boxes, vertical.Value) ? vertical : horizontal;
+        return HasVerticalOverlapAcrossCut(context, boxes, vertical.Value) || HasRepeatedColumnBandOverlap(context, boxes, vertical.Value)
+            ? vertical
+            : horizontal;
     }
 
-    private static bool HasVerticalOverlapAcrossCut(IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+    private static bool HasRepeatedColumnBandOverlap(PdfUnderstandingPageContext context, IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
+        context.ConsumeWork(boxes.Count);
+        RegionBox[] first = boxes
+            .Where(box => (box.Left + box.Right) / 2D < verticalCut.Midpoint)
+            .ToArray();
+        RegionBox[] second = boxes
+            .Where(box => (box.Left + box.Right) / 2D >= verticalCut.Midpoint)
+            .ToArray();
+        if (first.Length < 2 || second.Length < 2) return false;
+
+        double firstTop = first.Max(static box => box.Top);
+        double firstBottom = first.Min(static box => box.Bottom);
+        double secondTop = second.Max(static box => box.Top);
+        double secondBottom = second.Min(static box => box.Bottom);
+        return Math.Min(firstTop, secondTop) > Math.Max(firstBottom, secondBottom);
+    }
+
+    private static bool HasVerticalOverlapAcrossCut(PdfUnderstandingPageContext context, IReadOnlyList<RegionBox> boxes, WhitespaceCut verticalCut) {
         var firstSide = new List<Interval>();
         var secondSide = new List<Interval>();
         for (int index = 0; index < boxes.Count; index++) {
+            context.ConsumeWork();
             RegionBox box = boxes[index];
             var interval = new Interval(box.Bottom, box.Top);
             if ((box.Left + box.Right) / 2D < verticalCut.Midpoint) {
@@ -130,6 +163,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         int firstIndex = 0;
         int secondIndex = 0;
         while (firstIndex < firstSide.Count && secondIndex < secondSide.Count) {
+            context.ConsumeWork();
             Interval first = firstSide[firstIndex];
             Interval second = secondSide[secondIndex];
             if (Math.Min(first.End, second.End) > Math.Max(first.Start, second.Start)) {
@@ -147,9 +181,11 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
     }
 
     private static WhitespaceCut? FindBestCut(
+        PdfUnderstandingPageContext context,
         IReadOnlyList<RegionBox> boxes,
         bool horizontal,
         double minimumGap) {
+        context.ConsumeWork(boxes.Count);
         Interval[] intervals = boxes
             .Select(box => horizontal
                 ? new Interval(box.Bottom, box.Top)
@@ -164,6 +200,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         double occupiedEnd = intervals[0].End;
         WhitespaceCut? best = null;
         for (int index = 1; index < intervals.Length; index++) {
+            context.ConsumeWork();
             Interval interval = intervals[index];
             double gap = interval.Start - occupiedEnd;
             if (gap >= minimumGap && (!best.HasValue || gap > best.Value.Size)) {
@@ -176,12 +213,15 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
     }
 
     private static bool TryAppendSpanningEdgeRegion(
+        PdfUnderstandingPageContext context,
         IReadOnlyList<RegionBox> boxes,
         List<PdfUnderstandingRegion> ordered,
         double minimumHorizontalGap,
         double minimumVerticalGap,
+        double pageWidth,
         int depth) {
         foreach (RegionBox candidate in boxes.OrderByDescending(static box => box.Top)) {
+            context.ConsumeWork(boxes.Count);
             RegionBox[] remaining = boxes.Where(box => !ReferenceEquals(box.Region, candidate.Region)).ToArray();
             if (remaining.Length < 2) continue;
 
@@ -190,15 +230,19 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             bool afterRemaining = remaining.All(box => (box.Bottom + box.Top) / 2D > candidateCenter);
             if (!beforeRemaining && !afterRemaining) continue;
 
-            WhitespaceCut? columnCut = FindBestCut(remaining, horizontal: false, minimumVerticalGap);
-            if (!columnCut.HasValue ||
-                candidate.Left > columnCut.Value.Start ||
-                candidate.Right < columnCut.Value.End) {
+            WhitespaceCut? columnCut = FindBestCut(context, remaining, horizontal: false, minimumVerticalGap);
+            bool spansColumnGap = columnCut.HasValue &&
+                                  candidate.Left <= columnCut.Value.Start &&
+                                  candidate.Right >= columnCut.Value.End;
+            double candidateHorizontalCenter = (candidate.Left + candidate.Right) / 2D;
+            bool isCenteredEdgeBand = columnCut.HasValue &&
+                                      Math.Abs(candidateHorizontalCenter - (pageWidth / 2D)) <= Math.Max(12D, pageWidth * 0.12D);
+            if (!spansColumnGap && !isCenteredEdgeBand) {
                 continue;
             }
 
             if (beforeRemaining) ordered.Add(candidate.Region);
-            AppendPartition(remaining, ordered, minimumHorizontalGap, minimumVerticalGap, forceSingleColumn: false, depth + 1);
+            AppendPartition(context, remaining, ordered, minimumHorizontalGap, minimumVerticalGap, false, pageWidth, depth + 1);
             if (afterRemaining) ordered.Add(candidate.Region);
             return true;
         }

@@ -3,7 +3,7 @@
     <Description>Bounded, source-preserving DocBook 4.5 and 5.2 common-structure parser, editor, writer, validator, and converter.</Description>
     <AssemblyName>OfficeIMO.DocBook</AssemblyName>
     <AssemblyTitle>OfficeIMO.DocBook</AssemblyTitle>
-    <VersionPrefix>3.2.7</VersionPrefix>
+    <VersionPrefix>3.3.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>

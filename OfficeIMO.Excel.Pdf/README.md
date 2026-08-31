@@ -96,7 +96,7 @@ result.Report.RequireNoErrorWarnings();
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("statement.pdf");
+PdfDocument pdf = PdfDocument.Load("statement.pdf");
 PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx");
 
 foreach (var table in report.Entries) {
@@ -112,9 +112,10 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("bank-statement.pdf");
-PdfLogicalDocument source = pdf.Read.Logical(
-    PdfPageSelection.Parse("1-3"));
+PdfDocument pdf = PdfDocument.Load("bank-statement.pdf");
+PdfDocumentReadResult source = pdf.Read(new PdfReadOptions {
+    PageSelection = PdfPageSelection.Parse("1-3")
+});
 
 PdfExcelTableImportReport report = source.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",

@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -13,12 +14,15 @@ public class PdfUnderstandingPipelineTests {
             .Paragraph(p => p.Text("Second page body"))
             .ToBytes();
 
-        PdfUnderstandingResult result = new PdfUnderstandingPipeline().Run(
-            PdfReadDocument.Open(pdf),
+        PdfDocumentReadResult result = Read(
+            pdf,
+            new PdfUnderstandingPipelineOptions(),
+            PdfReadProfile.Fast,
             PdfPageSelection.From(2, 1));
+        PdfUnderstandingPageResult[] pages = result.Pages.Select(static page => page.Analysis).ToArray();
 
         Assert.Equal(new[] { 2, 1 }, result.Pages.Select(static page => page.PageNumber));
-        Assert.All(result.Pages, page => {
+        Assert.All(pages, page => {
             Assert.NotEmpty(page.DecodedRuns);
             Assert.NotEmpty(page.Words);
             Assert.NotEmpty(page.Lines);
@@ -32,7 +36,8 @@ public class PdfUnderstandingPipelineTests {
             Assert.All(page.Elements, element => { Assert.InRange(element.Confidence, 0D, 1D); Assert.NotEmpty(element.Evidence); });
             Assert.Equal(new[] { "glyph-decoding", "word-grouping", "line-grouping", "page-segmentation", "reading-order", "semantic-classification" }, page.Trace.Select(static trace => trace.Stage));
         });
-        Assert.Contains(result.Pages[1].Elements, static element => element.Kind == PdfUnderstandingSemanticKind.Heading);
+        Assert.All(pages.SelectMany(static page => page.Trace), trace =>
+            Assert.Equal(typeof(PdfAdvancedUnderstandingStages).Assembly, trace.ProviderType.Assembly));
     }
 
     [Fact]
@@ -44,10 +49,16 @@ public class PdfUnderstandingPipelineTests {
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
 
-        PdfUnderstandingPageResult page = Assert.Single(PdfDocument.Open(pdf).Read.Understand(options).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+        PdfUnderstandingPageResult baseline = Assert.Single(Read(pdf, new PdfUnderstandingPipelineOptions()).Pages).Analysis;
 
         Assert.Equal(typeof(ReverseReadingOrderStage), Assert.Single(page.Trace, static trace => trace.Stage == "reading-order").ProviderType);
         Assert.Equal(page.Regions.Reverse().Select(static region => region.Text), page.ReadingOrder.Select(static region => region.Text));
+        foreach (PdfUnderstandingStageTrace trace in page.Trace.Where(static trace => trace.Stage != "reading-order")) {
+            Assert.Equal(
+                Assert.Single(baseline.Trace, baselineTrace => baselineTrace.Stage == trace.Stage).ProviderType,
+                trace.ProviderType);
+        }
     }
 
     [Fact]
@@ -61,8 +72,7 @@ public class PdfUnderstandingPipelineTests {
             MaxRunsPerPage = 1
         };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)));
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(pdf, options));
 
         Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
         Assert.Equal(1, exception.Limit);
@@ -79,10 +89,10 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Vertical one", "F1", 12, 520, 300, 66, rotationDegrees: 90),
             new PdfTextSpan("Vertical two", "F1", 12, 520, 370, 66, rotationDegrees: 90)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Contains(page.Lines, line => Math.Abs(line.RotationDegrees - 90D) < 0.1D && line.Text.Contains("Vertical one Vertical two", StringComparison.Ordinal));
         string[] horizontalOrder = page.ReadingOrder.Select(region => region.Text).Where(text => text.StartsWith("Left", StringComparison.Ordinal) || text.StartsWith("Right", StringComparison.Ordinal)).ToArray();
@@ -101,10 +111,10 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Right two", "F1", 12, 320, 650, 110),
             new PdfTextSpan("Right three", "F1", 12, 320, 600, 110)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(new[] {
             "Left one", "Left two", "Left three",
@@ -121,12 +131,13 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Left bottom", "F1", 12, 50, 640, 90),
             new PdfTextSpan("Right bottom", "F1", 12, 320, 640, 90)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced(new PdfTextLayoutOptions {
-            ForceSingleColumn = true
-        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions { ForceSingleColumn = true }).Pages).Analysis;
 
         Assert.Equal(new[] { "Left top", "Right top", "Left bottom", "Right bottom" },
             page.ReadingOrder.Select(static region => region.Text));
@@ -139,10 +150,10 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Upper right heading", "F1", 16, 320, 700, 150),
             new PdfTextSpan("Lower left body", "F1", 11, 50, 500, 120)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(new[] { "Upper right heading", "Lower left body" },
             page.ReadingOrder.Select(static region => region.Text));
@@ -160,17 +171,17 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Middle inner", "F1", 12, middleColumn, 600, 110),
             new PdfTextSpan("Lower outer", "F1", 12, outerColumn, 500, 110)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(new[] { "Upper outer", "Middle inner", "Lower outer" },
             page.ReadingOrder.Select(static region => region.Text));
     }
 
     [Fact]
-    public void AdvancedPipeline_ClassifiesTablesCaptionsHeadersAndFootnotes() {
+    public void AdvancedPipeline_LeavesUniqueEdgesAndUnvalidatedColumnsAsContent() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Quarterly report", "F1", 12, 50, 800, 90),
@@ -179,15 +190,155 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("Figure 1. Revenue by region", "F1", 10, 50, 400, 150),
             new PdfTextSpan("1 Audited values exclude pending adjustments.", "F1", 8, 50, 20, 190)
         });
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header);
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
+        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header);
+        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footer);
+        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text == "Quarterly report");
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text.Contains("Item Amount", StringComparison.Ordinal));
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
+    }
+
+    [Fact]
+    public void FastAndStructured_UseTheSameCanonicalPageStagesAndArtifacts() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Shared page pipeline")
+            .Paragraph(paragraph => paragraph.Text("Body content before the table."))
+            .Table(new[] {
+                new[] { "Account", "Amount" },
+                new[] { "North", "42" }
+            })
+            .ToBytes();
+
+        PdfDocumentReadResult fast = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
+        PdfDocumentReadResult structured = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfUnderstandingPageResult fastPage = Assert.Single(fast.Pages).Analysis;
+        PdfUnderstandingPageResult structuredPage = Assert.Single(structured.Pages).Analysis;
+
+        Assert.Equal(fastPage.Trace.Select(static trace => trace.ProviderType), structuredPage.Trace.Select(static trace => trace.ProviderType));
+        Assert.Equal(fastPage.DecodedRuns.Select(static run => run.Text), structuredPage.DecodedRuns.Select(static run => run.Text));
+        Assert.Equal(fastPage.Words.Select(static word => word.Text), structuredPage.Words.Select(static word => word.Text));
+        Assert.Equal(fastPage.Lines.Select(static line => line.Text), structuredPage.Lines.Select(static line => line.Text));
+        Assert.Equal(fastPage.Regions.Select(static region => region.Text), structuredPage.Regions.Select(static region => region.Text));
+        Assert.Equal(fastPage.ReadingOrder.Select(static region => region.Text), structuredPage.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
+    public void Pipeline_WorkBudgetAcceptsExactLimitAndRejectsNextUnit() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10));
+        Assert.Single(accepted.Pages);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(11), 10)));
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(10, exception.Limit);
+        Assert.Equal(11, exception.Actual);
+    }
+
+    [Fact]
+    public void Pipeline_ObservesCancellationInsideAStage() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        PdfUnderstandingPipelineOptions options = CreatePassThroughPipeline(
+            new CancellingGlyphStage(cancellation, cancelAfterWorkUnit: 4),
+            100);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            Read(pdf, options, cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void StructuredRead_BoundsDocumentWideComparisonWork() {
+        byte[] pdf = PdfDocument.Create()
+            .Header(header => header.Text("Repeated document header"))
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        var options = new PdfUnderstandingPipelineOptions { MaxDocumentWorkUnits = 1 };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(pdf, options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void StructuredRead_BindsMixedTaggedHeadingLevelsToTheirOwnMarkedContent() {
+        byte[] pdf = PdfDocument.Create()
+            .TaggedPdfCatalogMarkers()
+            .H1("Tagged first level")
+            .H2("Tagged second level")
+            .H3("Tagged third level")
+            .Paragraph(paragraph => paragraph.Text("Tagged body paragraph."))
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        AssertTaggedHeading(page, "Tagged first level", 1);
+        AssertTaggedHeading(page, "Tagged second level", 2);
+        AssertTaggedHeading(page, "Tagged third level", 3);
+        Assert.Contains(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+            element.Region.Text.Contains("Tagged body paragraph", StringComparison.Ordinal) &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+        Assert.All(
+            page.DecodedRuns.Where(static run => run.Text.Contains("Tagged", StringComparison.Ordinal)),
+            static run => Assert.True(run.MarkedContentId.HasValue));
+        Assert.Contains(result.TaggedContent!.StructureElements, element =>
+            element.StructureType == "H2" && element.MarkedContentReferences.Count > 0);
+    }
+
+    [Fact]
+    public void SemanticClassifier_DoesNotCreateASecondTableFromUnrelatedGaps() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(sourcePage, 1, new PdfTextLayoutOptions(), 10_000, 10_000);
+        var region = new PdfUnderstandingRegion(new[] {
+            CreateGappedUnderstandingLine("Customer", "Pending", 500D),
+            CreateGappedUnderstandingLine("Reference", "Complete", 480D)
+        });
+
+        PdfUnderstandingSemanticElement result = Assert.Single(
+            PdfAdvancedUnderstandingStages.SemanticClassification.Classify(context, new[] { region }));
+
+        Assert.Equal(PdfUnderstandingSemanticKind.Paragraph, result.Kind);
+    }
+
+    [Fact]
+    public void StructuredRead_ProjectsRepeatedPageEdgesIntoTheLogicalModel() {
+        byte[] pdf = PdfDocument.Create()
+            .Header(header => header.AlignLeft().Text("Quarterly operations {page}/{pages}"))
+            .Footer(footer => footer.AlignCenter().Text("Confidential page {page}"))
+            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third page body."))
+            .ToBytes();
+
+        PdfDocumentReadResult result = Read(pdf, PdfUnderstandingPipelineOptions.Structured());
+
+        Assert.Equal(3, result.Pages.Count);
+        Assert.All(result.Pages, page => {
+            Assert.Contains(page.Headers, block => block.Text.Contains("Quarterly operations", StringComparison.Ordinal));
+            Assert.Contains(page.Footers, block => block.Text.Contains("Confidential page", StringComparison.Ordinal));
+            Assert.DoesNotContain(page.Paragraphs, paragraph => paragraph.Text.Contains("Quarterly operations", StringComparison.Ordinal));
+            Assert.DoesNotContain(page.Paragraphs, paragraph => paragraph.Text.Contains("Confidential page", StringComparison.Ordinal));
+        });
+        Assert.All(
+            result.Pages.SelectMany(static page => page.Headers),
+            block => Assert.Equal(PdfLogicalElementKind.Header, block.Kind));
+        Assert.All(
+            result.Pages.SelectMany(static page => page.Footers),
+            block => Assert.Equal(PdfLogicalElementKind.Footer, block.Kind));
     }
 
     [Fact]
@@ -199,10 +350,9 @@ public class PdfUnderstandingPipelineTests {
             })
             .ToBytes();
 
-        PdfUnderstandingPageResult page = Assert.Single(
-            new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced())
-                .Run(PdfReadDocument.Open(pdf))
-                .Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(
+            pdf,
+            PdfUnderstandingPipelineOptions.Structured()).Pages).Analysis;
 
         PdfUnderstandingSemanticElement table = Assert.Single(
             page.Elements,
@@ -230,10 +380,9 @@ public class PdfUnderstandingPipelineTests {
             })
             .ToBytes();
 
-        PdfUnderstandingPageResult page = Assert.Single(
-            new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced())
-                .Run(PdfReadDocument.Open(pdf))
-                .Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(
+            pdf,
+            PdfUnderstandingPipelineOptions.Structured()).Pages).Analysis;
 
         PdfUnderstandingSemanticElement table = Assert.Single(
             page.Elements,
@@ -245,7 +394,7 @@ public class PdfUnderstandingPipelineTests {
     [Fact]
     public void AdvancedPipeline_PrioritizesCanonicalTablesAtPageEdges() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
-        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Advanced();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Item", "Helvetica-Bold", 11D, 50D, 820D, 40D),
             new PdfTextSpan("Amount", "Helvetica-Bold", 11D, 220D, 820D, 55D),
@@ -253,8 +402,7 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("42", "Helvetica", 11D, 220D, 802D, 16D)
         });
 
-        PdfUnderstandingPageResult page = Assert.Single(
-            new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(
             PdfUnderstandingSemanticKind.Table,
@@ -360,11 +508,11 @@ public class PdfUnderstandingPipelineTests {
             new PdfTextSpan("-42", "F1", 11, 50, 360, 24)
         });
         PdfUnderstandingPipelineOptions options = advanced
-            ? PdfUnderstandingPipelineOptions.Advanced()
+            ? PdfUnderstandingPipelineOptions.Structured()
             : new PdfUnderstandingPipelineOptions();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(PdfUnderstandingSemanticKind.Paragraph,
             Assert.Single(page.Elements, element => element.Region.Text == "1037.25").Kind);
@@ -392,13 +540,13 @@ public class PdfUnderstandingPipelineTests {
     public void Pipeline_ClassifiesHierarchicalAndCompactListItems(bool advanced, string text) {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         PdfUnderstandingPipelineOptions options = advanced
-            ? PdfUnderstandingPipelineOptions.Advanced()
+            ? PdfUnderstandingPipelineOptions.Structured()
             : new PdfUnderstandingPipelineOptions();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan(text, "F1", 11, 50, 500, 180)
         });
 
-        PdfUnderstandingPageResult page = Assert.Single(new PdfUnderstandingPipeline(options).Run(PdfReadDocument.Open(pdf)).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
         Assert.Equal(PdfUnderstandingSemanticKind.ListItem,
             Assert.Single(page.Elements, element => element.Region.Text == text).Kind);
@@ -432,6 +580,49 @@ public class PdfUnderstandingPipelineTests {
         public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) => regions.Reverse().ToArray();
     }
 
+    private static PdfDocumentReadResult Read(
+        byte[] pdf,
+        PdfUnderstandingPipelineOptions pipeline,
+        PdfReadProfile profile = PdfReadProfile.Structured,
+        PdfPageSelection? selection = null,
+        PdfTextLayoutOptions? layoutOptions = null,
+        CancellationToken cancellationToken = default) {
+        return PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            Profile = profile,
+            PageSelection = selection,
+            LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions(),
+            Pipeline = pipeline
+        }, cancellationToken);
+    }
+
+    private static PdfUnderstandingPipelineOptions CreatePassThroughPipeline(IPdfGlyphDecodingStage glyphStage, long maxWorkUnits) =>
+        new PdfUnderstandingPipelineOptions {
+            GlyphDecoding = glyphStage,
+            WordGrouping = new SingleWordGroupingStage(),
+            LineGrouping = new SingleLineGroupingStage(),
+            PageSegmentation = new SingleRegionStage(),
+            ReadingOrder = new IdentityReadingOrderStage(),
+            SemanticClassification = new ParagraphClassificationStage(),
+            MaxWorkUnitsPerPage = maxWorkUnits
+        };
+
+    private static void AssertTaggedHeading(PdfUnderstandingPageResult page, string text, int level) {
+        Assert.Contains(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Heading &&
+            element.Level == level &&
+            element.Region.Text.Contains(text, StringComparison.Ordinal) &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+    }
+
+    private static PdfUnderstandingLine CreateGappedUnderstandingLine(string left, string right, double baselineY) {
+        var leftRun = new PdfTextSpan(left, "Helvetica", 11D, 50D, baselineY, 60D);
+        var rightRun = new PdfTextSpan(right, "Helvetica", 11D, 250D, baselineY, 60D);
+        return new PdfUnderstandingLine(new[] {
+            new PdfUnderstandingWord(left, 50D, 110D, baselineY, 11D, 0D, new[] { leftRun }),
+            new PdfUnderstandingWord(right, 250D, 310D, baselineY, 11D, 0D, new[] { rightRun })
+        });
+    }
+
     private static PdfUnderstandingLine CreateUnderstandingLine(
         string text,
         double xStart,
@@ -446,5 +637,56 @@ public class PdfUnderstandingPipelineTests {
         private readonly IReadOnlyList<PdfTextSpan> _spans;
         internal FixedGlyphStage(IReadOnlyList<PdfTextSpan> spans) { _spans = spans; }
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) => _spans;
+    }
+
+    private sealed class BudgetChargingGlyphStage : IPdfGlyphDecodingStage {
+        private readonly long _workUnits;
+        internal BudgetChargingGlyphStage(long workUnits) { _workUnits = workUnits; }
+        public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
+            context.ConsumeWork(_workUnits);
+            return new[] { new PdfTextSpan("word", "F1", 12D, 10D, 10D, 24D) };
+        }
+    }
+
+    private sealed class CancellingGlyphStage : IPdfGlyphDecodingStage {
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _cancelAfterWorkUnit;
+        internal CancellingGlyphStage(CancellationTokenSource cancellation, int cancelAfterWorkUnit) {
+            _cancellation = cancellation;
+            _cancelAfterWorkUnit = cancelAfterWorkUnit;
+        }
+        public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
+            for (int index = 0; index < 20; index++) {
+                if (index == _cancelAfterWorkUnit) _cancellation.Cancel();
+                context.ConsumeWork();
+            }
+            return Array.Empty<PdfTextSpan>();
+        }
+    }
+
+    private sealed class SingleWordGroupingStage : IPdfWordGroupingStage {
+        public IReadOnlyList<PdfUnderstandingWord> GroupWords(PdfUnderstandingPageContext context, IReadOnlyList<PdfTextSpan> runs) {
+            PdfTextSpan run = Assert.Single(runs);
+            return new[] { new PdfUnderstandingWord(run.Text, run.X, run.X + run.Advance, run.Y, run.FontSize, run.RotationDegrees, new[] { run }) };
+        }
+    }
+
+    private sealed class SingleLineGroupingStage : IPdfLineGroupingStage {
+        public IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words) =>
+            new[] { new PdfUnderstandingLine(new[] { Assert.Single(words) }) };
+    }
+
+    private sealed class SingleRegionStage : IPdfPageSegmentationStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) =>
+            new[] { new PdfUnderstandingRegion(new[] { Assert.Single(lines) }) };
+    }
+
+    private sealed class IdentityReadingOrderStage : IPdfReadingOrderStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) => regions;
+    }
+
+    private sealed class ParagraphClassificationStage : IPdfSemanticClassificationStage {
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
+            orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
     }
 }

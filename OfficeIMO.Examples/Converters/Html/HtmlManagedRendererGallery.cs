@@ -292,7 +292,7 @@ namespace OfficeIMO.Examples.Html {
                 .Save(svgPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
-            int formFieldCount = global::OfficeIMO.Pdf.PdfDocument.Open(pdf).Inspect().FormFieldCount;
+            int formFieldCount = global::OfficeIMO.Pdf.PdfDocument.Load(pdf).Inspect().FormFieldCount;
             if (formFieldCount < 4) {
                 throw new InvalidOperationException($"Managed renderer gallery expected at least four PDF fields but found {formFieldCount}.");
             }

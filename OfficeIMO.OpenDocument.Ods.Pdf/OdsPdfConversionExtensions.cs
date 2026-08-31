@@ -89,11 +89,11 @@ public static class OdsPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs an ODS workbook from an already loaded logical PDF model.</summary>
-    public static OdsDocument ToOdsDocument(this PdfCore.PdfLogicalDocument source, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) =>
+    public static OdsDocument ToOdsDocument(this PdfCore.PdfDocumentReadResult source, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) =>
         source.ToOdsDocumentResult(pdfOptions, openDocumentOptions).Value;
 
     /// <summary>Reconstructs an ODS workbook from a logical PDF model and preserves both stage reports.</summary>
-    public static PdfOdsConversionResult ToOdsDocumentResult(this PdfCore.PdfLogicalDocument source, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdsConversionResult ToOdsDocumentResult(this PdfCore.PdfDocumentReadResult source, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelPdf.PdfExcelTableImportResult pdf = ExcelPdf.PdfExcelTableConverterExtensions.ImportTablesToExcelDocumentResult(source, pdfOptions);
         using (pdf.Value) {
@@ -119,14 +119,14 @@ public static class OdsPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs and saves an ODS workbook from a logical PDF model.</summary>
-    public static PdfOdsConversionReport SaveAsOds(this PdfCore.PdfLogicalDocument source, string path, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdsConversionReport SaveAsOds(this PdfCore.PdfDocumentReadResult source, string path, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions);
         result.Value.Save(path);
         return result.Report;
     }
 
     /// <summary>Reconstructs and writes an ODS workbook from a logical PDF model.</summary>
-    public static PdfOdsConversionReport SaveAsOds(this PdfCore.PdfLogicalDocument source, Stream stream, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdsConversionReport SaveAsOds(this PdfCore.PdfDocumentReadResult source, Stream stream, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions);
         result.Value.Save(stream);
         return result.Report;
@@ -149,7 +149,7 @@ public static class OdsPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously saves an ODS workbook from a logical PDF model.</summary>
-    public static async Task<PdfOdsConversionReport> SaveAsOdsAsync(this PdfCore.PdfLogicalDocument source, string path, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdsConversionReport> SaveAsOdsAsync(this PdfCore.PdfDocumentReadResult source, string path, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -157,7 +157,7 @@ public static class OdsPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously writes an ODS workbook from a logical PDF model.</summary>
-    public static async Task<PdfOdsConversionReport> SaveAsOdsAsync(this PdfCore.PdfLogicalDocument source, Stream stream, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdsConversionReport> SaveAsOdsAsync(this PdfCore.PdfDocumentReadResult source, Stream stream, ExcelPdf.PdfExcelTableImportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdsConversionResult result = source.ToOdsDocumentResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);

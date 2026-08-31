@@ -14,7 +14,7 @@ public sealed class PdfObjectTokenizerProgressTests {
             "1 0 obj\n" + delimiter + "\nendobj\n" +
             "trailer\n<< /Root 1 0 R >>\n" +
             "%%EOF\n");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTokensPerObject = 8 }
         };
 

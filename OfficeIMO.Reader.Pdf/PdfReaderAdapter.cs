@@ -21,8 +21,8 @@ internal static partial class PdfReaderAdapter {
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
-        PdfDocument pdf = PdfDocument.Open(pdfPath, CreatePdfReadOptions(effectiveReaderOptions));
-        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions));
+        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
@@ -46,7 +46,7 @@ internal static partial class PdfReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
-        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         foreach (var chunk in Read(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
@@ -67,7 +67,7 @@ internal static partial class PdfReaderAdapter {
     /// <summary>
     /// Converts an already loaded logical PDF model into normalized Reader chunks.
     /// </summary>
-    public static IEnumerable<ReaderChunk> Read(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
@@ -84,7 +84,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IEnumerable<ReaderChunk> Read(PdfLogicalDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> Read(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
         int maxChars = readerOptions.MaxChars > 0 ? readerOptions.MaxChars : 8_000;
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
@@ -173,7 +173,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<PdfLogicalPage> GetReaderPages(PdfLogicalDocument document, ReaderPdfOptions options) {
+    private static IReadOnlyList<PdfLogicalPage> GetReaderPages(PdfDocumentReadResult document, ReaderPdfOptions options) {
         IReadOnlyList<PdfPageRange>? ranges = options.PageRanges;
         if (ranges == null || ranges.Count == 0) {
             return document.Pages;
@@ -254,7 +254,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions, IReadOnlyList<ReaderActionSummary>? actions) {
+    private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfDocumentReadResult document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions, IReadOnlyList<ReaderActionSummary>? actions) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
         bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
@@ -628,7 +628,7 @@ internal static partial class PdfReaderAdapter {
         return count;
     }
 
-    private static IReadOnlyList<ReaderFormField>? BuildFormFields(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
+    private static IReadOnlyList<ReaderFormField>? BuildFormFields(PdfDocumentReadResult document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
         if (document.FormFields.Count == 0) return null;
 
         int[] pageNumbers = GetSelectedPageNumbers(selectedPages, page);
@@ -902,17 +902,20 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static PdfLogicalDocument LoadDocument(PdfDocument document, ReaderPdfOptions options) {
+    private static PdfDocumentReadResult LoadDocument(PdfDocument document, ReaderPdfOptions options, CancellationToken cancellationToken) {
         if (document is null) throw new ArgumentNullException(nameof(document));
         var ranges = options.PageRanges?.ToArray();
-        return ranges is { Length: > 0 }
-            ? document.Read.Logical(PdfPageSelection.FromRanges(ranges), options.LayoutOptions)
-            : document.Read.Logical(options.LayoutOptions);
+        return document.Read(new PdfReadOptions {
+            PageSelection = ranges is { Length: > 0 }
+                ? PdfPageSelection.FromRanges(ranges)
+                : null,
+            LayoutOptions = options.LayoutOptions ?? new PdfTextLayoutOptions()
+        }, cancellationToken);
     }
 
-    private static PdfReadOptions? CreatePdfReadOptions(ReaderOptions options) {
+    private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options) {
         return options.MaxInputBytes.HasValue
-            ? new PdfReadOptions {
+            ? new PdfLoadOptions {
                 Limits = new PdfReadLimits {
                     MaxInputBytes = options.MaxInputBytes.Value
                 }
@@ -922,10 +925,10 @@ internal static partial class PdfReaderAdapter {
 
     private static PdfDocument OpenReaderPdf(Stream stream, ReaderOptions options) {
         try {
-            PdfReadOptions? readOptions = CreatePdfReadOptions(options);
+            PdfLoadOptions? readOptions = CreatePdfLoadOptions(options);
             return ReaderInputLimits.TryGetOwnedSnapshotBytes(stream, out byte[] ownedBytes)
-                ? PdfDocument.OpenOwned(ownedBytes, readOptions)
-                : PdfDocument.Open(stream, readOptions);
+                ? PdfDocument.LoadOwned(ownedBytes, readOptions)
+                : PdfDocument.Load(stream, readOptions);
         } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.InputBytes) {
             throw new IOException(
                 "Input exceeds MaxInputBytes (" +

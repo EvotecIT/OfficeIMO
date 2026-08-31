@@ -72,7 +72,7 @@ public static class PdfLogicalTableTextExportExtensions {
     /// <param name="document">Logical PDF document to inspect.</param>
     /// <param name="options">Optional table export settings.</param>
     /// <returns>Markdown containing only detected PDF tables and optional source captions.</returns>
-    public static string ToMarkdownTables(this PdfLogicalDocument document, PdfLogicalTableTextExportOptions? options = null) {
+    public static string ToMarkdownTables(this PdfDocumentReadResult document, PdfLogicalTableTextExportOptions? options = null) {
         Guard.NotNull(document, nameof(document));
 
         options ??= new PdfLogicalTableTextExportOptions();
@@ -116,7 +116,7 @@ public static class PdfLogicalTableTextExportExtensions {
     /// <param name="document">Logical PDF document to inspect.</param>
     /// <param name="options">Optional table export settings.</param>
     /// <returns>HTML containing only detected PDF tables and optional source captions.</returns>
-    public static string ToHtmlTables(this PdfLogicalDocument document, PdfLogicalTableTextExportOptions? options = null) {
+    public static string ToHtmlTables(this PdfDocumentReadResult document, PdfLogicalTableTextExportOptions? options = null) {
         Guard.NotNull(document, nameof(document));
 
         options ??= new PdfLogicalTableTextExportOptions();
@@ -226,25 +226,25 @@ public static class PdfLogicalTableTextExportExtensions {
         return LoadPdf(pdfPath, options).ToHtmlTables(options);
     }
 
-    private static PdfLogicalDocument LoadPdf(string path, PdfLogicalTableTextExportOptions options) {
+    private static PdfDocumentReadResult LoadPdf(string path, PdfLogicalTableTextExportOptions options) {
         PdfPageRange[] ranges = GetPageRanges(options);
         return ranges.Length == 0
-            ? PdfLogicalDocument.Load(path, options.LayoutOptions)
-            : PdfLogicalDocument.LoadPageRanges(path, options.LayoutOptions, ranges);
+            ? PdfDocumentReadResult.Load(path, options.LayoutOptions)
+            : PdfDocumentReadResult.LoadPageRanges(path, options.LayoutOptions, ranges);
     }
 
-    private static PdfLogicalDocument LoadPdf(byte[] pdfBytes, PdfLogicalTableTextExportOptions options) {
+    private static PdfDocumentReadResult LoadPdf(byte[] pdfBytes, PdfLogicalTableTextExportOptions options) {
         PdfPageRange[] ranges = GetPageRanges(options);
         return ranges.Length == 0
-            ? PdfLogicalDocument.Load(pdfBytes, options.LayoutOptions)
-            : PdfLogicalDocument.LoadPageRanges(pdfBytes, options.LayoutOptions, ranges);
+            ? PdfDocumentReadResult.Load(pdfBytes, options.LayoutOptions)
+            : PdfDocumentReadResult.LoadPageRanges(pdfBytes, options.LayoutOptions, ranges);
     }
 
-    private static PdfLogicalDocument LoadPdf(Stream stream, PdfLogicalTableTextExportOptions options) {
+    private static PdfDocumentReadResult LoadPdf(Stream stream, PdfLogicalTableTextExportOptions options) {
         PdfPageRange[] ranges = GetPageRanges(options);
         return ranges.Length == 0
-            ? PdfLogicalDocument.Load(stream, options.LayoutOptions)
-            : PdfLogicalDocument.LoadPageRanges(stream, options.LayoutOptions, ranges);
+            ? PdfDocumentReadResult.Load(stream, options.LayoutOptions)
+            : PdfDocumentReadResult.LoadPageRanges(stream, options.LayoutOptions, ranges);
     }
 
     private static PdfPageRange[] GetPageRanges(PdfLogicalTableTextExportOptions options) {

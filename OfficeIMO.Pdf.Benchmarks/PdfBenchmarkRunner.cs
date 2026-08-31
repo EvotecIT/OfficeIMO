@@ -82,14 +82,14 @@ internal static class PdfBenchmarkRunner {
         long output = 0L;
         PdfDocumentInfo? last = null;
         for (int operation = 0; operation < 4; operation++) {
-            last = PdfDocument.Open(corpus).Inspect();
+            last = PdfDocument.Load(corpus).Inspect();
             output += last.PageCount;
         }
         return CombineInspectionOutput(output, last!);
     }
 
     private static long RunCachedAnalysis(byte[] corpus) {
-        PdfDocument document = PdfDocument.Open(corpus);
+        PdfDocument document = PdfDocument.Load(corpus);
         long output = 0L;
         PdfDocumentInfo? last = null;
         for (int operation = 0; operation < 4; operation++) {
@@ -139,9 +139,9 @@ internal static class PdfBenchmarkRunner {
         int expectedPages,
         PdfPageRenderOptions options) {
         IReadOnlyList<PdfPageRenderResult> results = PdfDocument
-            .Open(corpus)
-            .Read
-            .RenderPages(pageRanges, options);
+            .Load(corpus)
+            .Render
+            .Pages(pageRanges, options);
         if (results.Count != expectedPages ||
             results.Any(result => !result.Succeeded || result.Bytes is null || result.Bytes.Length == 0)) {
             throw new InvalidOperationException(
@@ -185,7 +185,7 @@ internal static class PdfBenchmarkRunner {
         PdfSerializationReport serialization = save.Serialization
             ?? throw new InvalidOperationException("PDF serialization benchmark did not return runtime evidence.");
         byte[] bytes = output.ToArray();
-        if (PdfDocument.Open(bytes).Inspect().PageCount != PdfBenchmarkCorpus.PageCount) {
+        if (PdfDocument.Load(bytes).Inspect().PageCount != PdfBenchmarkCorpus.PageCount) {
             throw new InvalidOperationException("PDF serialization benchmark produced an invalid page count.");
         }
         if (serialization.IsForwardOnlyObjectSerialization != (mode == PdfObjectSerializationMode.ForwardOnly)) {

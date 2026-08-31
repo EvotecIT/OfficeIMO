@@ -58,7 +58,7 @@ public partial class Word {
                 .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
         Assert.Equal("Bold red italic blue", logicalItem.Text);
         Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
@@ -264,7 +264,7 @@ public partial class Word {
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
 
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(rotated);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(rotated);
         Assert.Single(logical.Pages[0].Tables);
         PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfWordImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -359,7 +359,7 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Only selected page body."))
             .ToBytes();
         var options = new PdfWordImportOptions();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.LoadPageRanges(
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.LoadPageRanges(
             pdf,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
@@ -392,7 +392,7 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Loaded selected page body."))
             .ToBytes();
         PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Open(pdf);
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.FromPageRanges(
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.FromPageRanges(
             readDocument,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
@@ -765,8 +765,8 @@ public partial class Word {
         Assert.DoesNotContain(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
     }
 
-    private static PdfCore.PdfLogicalDocument LoadSemanticPdf(byte[] pdf) =>
-        PdfCore.PdfLogicalDocument.Load(pdf, CreateSemanticLayoutOptions());
+    private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
+        PdfCore.PdfDocumentReadResult.Load(pdf, CreateSemanticLayoutOptions());
 
     private static PdfCore.PdfTextLayoutOptions CreateSemanticLayoutOptions() => new PdfCore.PdfTextLayoutOptions {
         ForceSingleColumn = true

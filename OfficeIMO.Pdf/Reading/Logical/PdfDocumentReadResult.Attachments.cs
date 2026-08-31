@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Embedded and associated file attachment metadata discovered from the document catalog.</summary>
     public IReadOnlyList<PdfAttachmentInfo> Attachments { get; }
 

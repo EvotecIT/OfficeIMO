@@ -34,6 +34,6 @@ public enum PdfPreflightCapability {
     /// <summary>Simple AcroForm value updates followed by simple widget flattening.</summary>
     FillAndFlattenSimpleFormFields = 4,
 
-    /// <summary>Logical object readback through <see cref="PdfLogicalDocument"/>.</summary>
+    /// <summary>Logical object readback through <see cref="PdfDocumentReadResult"/>.</summary>
     ReadLogicalObjects = 6
 }

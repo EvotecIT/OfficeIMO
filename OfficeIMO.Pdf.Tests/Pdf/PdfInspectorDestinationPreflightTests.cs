@@ -67,10 +67,10 @@ public partial class PdfInspectorTests {
     [Fact]
     public void Preflight_HonorsConfiguredNamedDestinationRewriteTraversalLimits() {
         byte[] pdf = BuildDeepNamedDestinationNameTreePdf();
-        var nodeLimitedOptions = new PdfReadOptions {
+        var nodeLimitedOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 2 }
         };
-        var depthLimitedOptions = new PdfReadOptions {
+        var depthLimitedOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeDepth = 1 }
         };
 

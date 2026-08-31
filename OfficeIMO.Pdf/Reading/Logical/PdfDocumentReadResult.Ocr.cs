@@ -1,8 +1,8 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
-    internal PdfLogicalDocument WithPages(IReadOnlyList<PdfLogicalPage> pages) {
-        return new PdfLogicalDocument(
+public sealed partial class PdfDocumentReadResult {
+    internal PdfDocumentReadResult WithPages(IReadOnlyList<PdfLogicalPage> pages) {
+        return new PdfDocumentReadResult(
             Metadata,
             pages,
             Outlines,
@@ -26,6 +26,7 @@ public sealed partial class PdfLogicalDocument {
             CatalogPageMode,
             CatalogPageLayout,
             CatalogVersion,
-            CatalogLanguage);
+            CatalogLanguage,
+            Profile);
     }
 }

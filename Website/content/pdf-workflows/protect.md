@@ -34,7 +34,7 @@ Password protection uses the PDF Standard security handler. The user password op
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("statement.pdf");
+PdfDocument source = PdfDocument.Load("statement.pdf");
 var encryption = new PdfStandardEncryptionOptions("reader-password") {
     OwnerPassword = "owner-password",
     Algorithm = PdfStandardEncryptionAlgorithm.Aes256

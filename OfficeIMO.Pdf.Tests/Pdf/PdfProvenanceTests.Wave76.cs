@@ -32,7 +32,7 @@ public sealed partial class PdfProvenanceTests {
             MaxExpandedContainerBytes = 600L * 1024L * 1024L
         };
 
-        PdfReadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, readOptions: null);
+        PdfLoadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, readOptions: null);
 
         Assert.Equal(manifestLimit, effective.Limits.MaxRawStreamBytes);
     }
@@ -45,11 +45,11 @@ public sealed partial class PdfProvenanceTests {
             MaxManifestBytes = 300L * 1024L * 1024L,
             MaxExpandedContainerBytes = 600L * 1024L * 1024L
         };
-        var requested = new PdfReadOptions {
+        var requested = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxRawStreamBytes = explicitLimit }
         };
 
-        PdfReadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
+        PdfLoadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
 
         Assert.Equal(explicitLimit, effective.Limits.MaxRawStreamBytes);
     }

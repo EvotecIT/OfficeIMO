@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Sanitized PDF bytes plus before/after proof and optional quarantined attachments.</summary>
 public sealed class PdfSanitizationResult {
     private readonly byte[] _pdfBytes;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
     internal PdfSanitizationResult(
         byte[] pdfBytes,
@@ -12,7 +12,7 @@ public sealed class PdfSanitizationResult {
         IReadOnlyList<PdfSanitizationFinding> removedFindings,
         IReadOnlyList<PdfSanitizationFinding> remainingFindings,
         IReadOnlyList<PdfExtractedAttachment> quarantinedAttachments,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         _pdfBytes = (byte[])pdfBytes.Clone();
         _readOptions = readOptions;
         MutationPlan = mutationPlan;
@@ -44,5 +44,5 @@ public sealed class PdfSanitizationResult {
     public byte[] ToBytes() => (byte[])_pdfBytes.Clone();
 
     /// <summary>Opens the sanitized artifact as a fluent PDF document.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdfBytes, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdfBytes, _readOptions);
 }

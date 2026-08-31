@@ -19,7 +19,7 @@ internal static class PdfCompatibilityRunner {
                     File.WriteAllBytes(Path.Combine(outputDirectory, producer + ".pdf"), pdf);
                     File.WriteAllText(
                         Path.Combine(outputDirectory, producer + ".debug.txt"),
-                        OfficeIMO.Pdf.PdfDocument.Open(pdf).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
+                        OfficeIMO.Pdf.PdfDocument.Load(pdf).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
                             IncludeDecodedStreamPreviews = true,
                             MaxDecodedStreamPreviewBytes = 32 * 1024
                         }).ToText());

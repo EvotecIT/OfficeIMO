@@ -8,7 +8,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
-        PdfReadOptions readOptions,
+        PdfLoadOptions readOptions,
         int[]? outputSourceIndexes) {
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.NamedDestinationCount);
         switch (mode) {
@@ -49,7 +49,7 @@ internal static partial class PdfMerger {
         int primarySourceIndex,
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.PageLabelCount);
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
@@ -233,7 +233,7 @@ internal static partial class PdfMerger {
         byte[] merged,
         IReadOnlyList<MergedNamedDestination>? destinations,
         IReadOnlyList<MergedPageLabel>? labels,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
@@ -249,7 +249,7 @@ internal static partial class PdfMerger {
         Dictionary<int, Dictionary<string, string>>? renamesByPage,
         Dictionary<int, HashSet<string>>? droppedByPage,
         bool removeNamedDestinationLinks,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
             PdfDictionary catalog = RequireCatalog(objects, security);
@@ -259,7 +259,7 @@ internal static partial class PdfMerger {
         });
     }
 
-    private static byte[] RewriteNamedDestinationLinksOnly(byte[] merged, HashSet<int> removeAllOnPages, PdfReadOptions readOptions) {
+    private static byte[] RewriteNamedDestinationLinksOnly(byte[] merged, HashSet<int> removeAllOnPages, PdfLoadOptions readOptions) {
         if (removeAllOnPages.Count == 0) return merged;
         PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
         return PdfDocumentObjectGraphRewriter.Rewrite(merged, readOptions, null, (objects, security) => {
@@ -406,7 +406,7 @@ internal static partial class PdfMerger {
 
     private static PdfDictionary? ResolveDictionary(Dictionary<int, PdfIndirectObject> objects, PdfObject? value) => ResolveObject(objects, value) as PdfDictionary;
 
-    private static void ValidateNamedDestinations(byte[] merged, IReadOnlyList<MergedNamedDestination> expected, PdfReadOptions readOptions) {
+    private static void ValidateNamedDestinations(byte[] merged, IReadOnlyList<MergedNamedDestination> expected, PdfLoadOptions readOptions) {
         IReadOnlyList<PdfNamedDestination> actual = PdfReadDocument.Open(merged, readOptions).NamedDestinations;
         if (actual.Count != expected.Count) throw new InvalidOperationException("PDF named-destination merge validation failed; the artifact was not returned.");
         foreach (MergedNamedDestination destination in expected) {
@@ -415,7 +415,7 @@ internal static partial class PdfMerger {
         }
     }
 
-    private static void ValidatePageLabels(byte[] merged, IReadOnlyList<MergedPageLabel> expected, PdfReadOptions readOptions) {
+    private static void ValidatePageLabels(byte[] merged, IReadOnlyList<MergedPageLabel> expected, PdfLoadOptions readOptions) {
         IReadOnlyList<PdfPageLabel> actual = PdfReadDocument.Open(merged, readOptions).PageLabels;
         if (actual.Count != expected.Count) throw new InvalidOperationException("PDF page-label merge validation failed; the artifact was not returned.");
         for (int i = 0; i < expected.Count; i++) {

@@ -91,12 +91,12 @@ public static class OdpPdfConversionExtensions {
 
     /// <summary>Reconstructs an ODP presentation from an already loaded logical PDF model.</summary>
     /// <remarks>A logical PDF model resolves Auto to editable tables and also supports explicit editable-content reconstruction. Visual and hybrid projections require an opened PDF.</remarks>
-    public static OdpPresentation ToOdpPresentation(this PdfCore.PdfLogicalDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) =>
+    public static OdpPresentation ToOdpPresentation(this PdfCore.PdfDocumentReadResult source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) =>
         source.ToOdpPresentationResult(pdfOptions, openDocumentOptions).Value;
 
     /// <summary>Reconstructs an ODP presentation from a logical PDF model and preserves both stage reports.</summary>
     /// <remarks>A logical PDF model resolves Auto to editable tables and also supports explicit editable-content reconstruction. Visual and hybrid projections require an opened PDF.</remarks>
-    public static PdfOdpConversionResult ToOdpPresentationResult(this PdfCore.PdfLogicalDocument source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdpConversionResult ToOdpPresentationResult(this PdfCore.PdfDocumentReadResult source, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointPdf.PdfPowerPointConversionResult pdf =
             PowerPointPdf.PowerPointPdfConverterExtensions.ToPowerPointPresentationResult(source, pdfOptions);
@@ -123,14 +123,14 @@ public static class OdpPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs and saves an ODP presentation from a logical PDF model.</summary>
-    public static PdfOdpConversionReport SaveAsOdp(this PdfCore.PdfLogicalDocument source, string path, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdpConversionReport SaveAsOdp(this PdfCore.PdfDocumentReadResult source, string path, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions);
         result.Value.Save(path);
         return result.Report;
     }
 
     /// <summary>Reconstructs and writes an ODP presentation from a logical PDF model.</summary>
-    public static PdfOdpConversionReport SaveAsOdp(this PdfCore.PdfLogicalDocument source, Stream stream, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdpConversionReport SaveAsOdp(this PdfCore.PdfDocumentReadResult source, Stream stream, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions);
         result.Value.Save(stream);
         return result.Report;
@@ -153,7 +153,7 @@ public static class OdpPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously saves an ODP presentation from a logical PDF model.</summary>
-    public static async Task<PdfOdpConversionReport> SaveAsOdpAsync(this PdfCore.PdfLogicalDocument source, string path, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdpConversionReport> SaveAsOdpAsync(this PdfCore.PdfDocumentReadResult source, string path, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -161,7 +161,7 @@ public static class OdpPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously writes an ODP presentation from a logical PDF model.</summary>
-    public static async Task<PdfOdpConversionReport> SaveAsOdpAsync(this PdfCore.PdfLogicalDocument source, Stream stream, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdpConversionReport> SaveAsOdpAsync(this PdfCore.PdfDocumentReadResult source, Stream stream, PowerPointPdf.PdfPowerPointImportOptions? pdfOptions = null, PowerPointOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdpConversionResult result = source.ToOdpPresentationResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);

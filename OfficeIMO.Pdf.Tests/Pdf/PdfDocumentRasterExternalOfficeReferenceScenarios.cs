@@ -31,7 +31,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Equal(scenario.ReferencePdfSha256, ComputeSha256(referencePdfPath));
 
         byte[] referencePdf = File.ReadAllBytes(referencePdfPath);
-        Assert.Equal(scenario.Pages.Count, PdfCore.PdfLogicalDocument.Load(referencePdf).Pages.Count);
+        Assert.Equal(scenario.Pages.Count, PdfCore.PdfDocumentReadResult.Load(referencePdf).Pages.Count);
 
         string workDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfExternalReference", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workDirectory);
@@ -39,7 +39,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             byte[] actualPdf = CreateOfficeImoReferenceCandidate(scenario, sourcePath, actualPdfPath);
-            Assert.Equal(scenario.Pages.Count, PdfCore.PdfLogicalDocument.Load(actualPdf).Pages.Count);
+            Assert.Equal(scenario.Pages.Count, PdfCore.PdfDocumentReadResult.Load(actualPdf).Pages.Count);
             WriteReviewPdfArtifact("external-reference-" + scenario.Id + ".microsoft-office", referencePdf);
             WriteReviewPdfArtifact("external-reference-" + scenario.Id + ".officeimo", actualPdf);
 

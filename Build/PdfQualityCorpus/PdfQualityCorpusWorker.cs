@@ -28,11 +28,11 @@ internal static class PdfQualityCorpusWorker {
         var metrics = result.Metrics;
         PdfDocument? document = null;
         PdfDocumentInfo? info = null;
-        PdfLogicalDocument? logical = null;
+        PdfDocumentReadResult? logical = null;
 
         Run(checks, "open-and-inspect", () => {
-            document = PdfDocument.Open(bytes);
-            info = document.Read.DocumentInfo();
+            document = PdfDocument.Load(bytes);
+            info = document.Inspect();
             metrics.PageCount = info.Pages.Count;
             metrics.AttachmentCount = info.AttachmentCount;
             metrics.LinkCount = info.LinkAnnotationCount;
@@ -41,9 +41,9 @@ internal static class PdfQualityCorpusWorker {
             metrics.RepairCodes = document.Analyze().Repair.Diagnostics.Select(diagnostic => diagnostic.Code).ToArray();
             metrics.AnnotationActionTypes = info.AnnotationActionTypes.ToArray();
         });
-        Run(checks, "text", () => metrics.TextCharacters = Require(document).Read.Text().Length);
+        Run(checks, "text", () => metrics.TextCharacters = Require(document).Read().Text.Length);
         Run(checks, "logical-semantics", () => {
-            logical = Require(document).Read.Logical();
+            logical = Require(document).Read();
             IReadOnlyList<PdfLogicalParagraphContinuationGroup> paragraphs = logical.GetParagraphContinuationGroups();
             IReadOnlyList<PdfLogicalTableContinuationGroup> tables = logical.GetTableContinuationGroups(
                 new PdfLogicalTableContinuationOptions { MaxRows = 100_000 });
@@ -53,7 +53,7 @@ internal static class PdfQualityCorpusWorker {
             metrics.CrossPageTableCount = tables.Count(table => table.SpansPages);
         });
         Run(checks, "font-inspection", () => {
-            PdfFontInventory fonts = Require(document).Read.Fonts();
+            PdfFontInventory fonts = Require(document).Resources.Fonts();
             metrics.FontCount = fonts.FontCount;
             metrics.EmbeddedFontCount = fonts.EmbeddedFontCount;
             metrics.SubsetFontCount = fonts.SubsetFontCount;
@@ -63,13 +63,13 @@ internal static class PdfQualityCorpusWorker {
         });
         Run(checks, "image-inspection", () => {
             PdfDocument source = Require(document);
-            metrics.ImageCount = source.Read.Images().Count;
-            metrics.ImagePlacementCount = source.Read.ImagePlacements().Count;
+            metrics.ImageCount = source.Images.Extract().Count;
+            metrics.ImagePlacementCount = source.Images.Placements().Count;
         });
         Run(checks, "managed-svg-render", () => {
             int renderPages = Math.Min(metrics.PageCount, options.MaxRenderPages);
             if (renderPages == 0) return;
-            IReadOnlyList<PdfPageRenderResult> renders = Require(document).Read.RenderPages(
+            IReadOnlyList<PdfPageRenderResult> renders = Require(document).Render.Pages(
                 PdfPageSelection.From(new PdfPageRange(1, renderPages)),
                 new PdfPageRenderOptions {
                     Format = PdfPageRenderFormat.Svg,

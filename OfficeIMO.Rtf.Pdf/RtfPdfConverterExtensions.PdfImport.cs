@@ -15,7 +15,7 @@ public static partial class RtfPdfConverterExtensions {
         this PdfCore.PdfDocument document,
         PdfRtfImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read.Logical().ToRtfDocumentResult(options);
+        return document.Read().ToRtfDocumentResult(options);
     }
 
     /// <summary>Converts an opened PDF and saves the editable RTF document to a file.</summary>
@@ -24,7 +24,7 @@ public static partial class RtfPdfConverterExtensions {
         string path,
         PdfRtfImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read.Logical().SaveAsRtf(path, options);
+        return document.Read().SaveAsRtf(path, options);
     }
 
     /// <summary>Converts an opened PDF and saves the editable RTF document to a caller-owned stream.</summary>
@@ -33,7 +33,7 @@ public static partial class RtfPdfConverterExtensions {
         Stream stream,
         PdfRtfImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read.Logical().SaveAsRtf(stream, options);
+        return document.Read().SaveAsRtf(stream, options);
     }
 
     /// <summary>Converts an opened PDF and asynchronously saves the editable RTF document to a file.</summary>
@@ -43,7 +43,7 @@ public static partial class RtfPdfConverterExtensions {
         PdfRtfImportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read.Logical().SaveAsRtfAsync(path, options, cancellationToken);
+        return document.Read().SaveAsRtfAsync(path, options, cancellationToken);
     }
 
     /// <summary>Converts an opened PDF and asynchronously saves the editable RTF document to a caller-owned stream.</summary>
@@ -53,18 +53,18 @@ public static partial class RtfPdfConverterExtensions {
         PdfRtfImportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read.Logical().SaveAsRtfAsync(stream, options, cancellationToken);
+        return document.Read().SaveAsRtfAsync(stream, options, cancellationToken);
     }
 
     /// <summary>Converts a logical PDF model into an editable RTF document.</summary>
     public static RtfDocument ToRtfDocument(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         PdfRtfImportOptions? options = null) =>
         document.ToRtfDocumentResult(options).Value;
 
     /// <summary>Converts a logical PDF model into an editable RTF document with conversion diagnostics.</summary>
     public static PdfRtfConversionResult ToRtfDocumentResult(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         PdfRtfImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfRtfImportOptions operation = (options ?? new PdfRtfImportOptions()).CloneForConversion();
@@ -74,7 +74,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts a logical PDF model and saves the editable RTF document to a file.</summary>
     public static PdfRtfConversionReport SaveAsRtf(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         string path,
         PdfRtfImportOptions? options = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
@@ -85,7 +85,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts a logical PDF model and saves the editable RTF document to a caller-owned stream.</summary>
     public static PdfRtfConversionReport SaveAsRtf(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         Stream stream,
         PdfRtfImportOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -97,7 +97,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts a logical PDF model and asynchronously saves the editable RTF document to a file.</summary>
     public static async Task<PdfRtfConversionReport> SaveAsRtfAsync(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         string path,
         PdfRtfImportOptions? options = null,
         CancellationToken cancellationToken = default) {
@@ -110,7 +110,7 @@ public static partial class RtfPdfConverterExtensions {
 
     /// <summary>Converts a logical PDF model and asynchronously saves the editable RTF document to a caller-owned stream.</summary>
     public static async Task<PdfRtfConversionReport> SaveAsRtfAsync(
-        this PdfCore.PdfLogicalDocument document,
+        this PdfCore.PdfDocumentReadResult document,
         Stream stream,
         PdfRtfImportOptions? options = null,
         CancellationToken cancellationToken = default) {

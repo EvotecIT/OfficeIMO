@@ -24,7 +24,7 @@ internal static partial class PdfImageEditor {
     private static void EnsureReplaceableSourceImage(
         byte[] pdf,
         PdfImagePlacement placement,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         if (placement.ObjectNumber <= 0) {
             throw new NotSupportedException("Replacing a direct image XObject is not supported because its source semantics cannot be verified safely.");
         }
@@ -43,7 +43,7 @@ internal static partial class PdfImageEditor {
         byte[] pdf,
         PdfImagePlacement placement,
         bool requirePortableSourceSemantics,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(pdf, readOptions).Map;
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumDecodedStreamBytes = limits.MaxDecodedStreamBytes;

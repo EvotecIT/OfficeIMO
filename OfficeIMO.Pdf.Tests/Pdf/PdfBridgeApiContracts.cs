@@ -30,7 +30,7 @@ public sealed class PdfBridgeApiContracts {
         Assert.Equal(2, methodNames.Count(name => name == importName));
         Assert.Equal(2, methodNames.Count(name => name == resultName));
 
-        foreach (Type receiverType in new[] { typeof(PdfDocument), typeof(PdfLogicalDocument) }) {
+        foreach (Type receiverType in new[] { typeof(PdfDocument), typeof(PdfDocumentReadResult) }) {
             MethodInfo[] receiverMethods = methods
                 .Where(method => method.GetParameters()[0].ParameterType == receiverType)
                 .ToArray();
@@ -61,7 +61,7 @@ public sealed class PdfBridgeApiContracts {
         Assert.Equal(2, methodNames.Count(static name => name == "ImportTablesToExcelDocument"));
         Assert.Equal(2, methodNames.Count(static name => name == "ImportTablesToExcelDocumentResult"));
 
-        foreach (Type receiverType in new[] { typeof(PdfDocument), typeof(PdfLogicalDocument) }) {
+        foreach (Type receiverType in new[] { typeof(PdfDocument), typeof(PdfDocumentReadResult) }) {
             MethodInfo[] receiverMethods = methods
                 .Where(method => method.GetParameters()[0].ParameterType == receiverType)
                 .ToArray();

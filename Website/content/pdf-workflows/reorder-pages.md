@@ -34,7 +34,7 @@ Reordering writes pages in the sequence supplied by the caller. That sequence mu
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("scan.pdf");
+PdfDocument source = PdfDocument.Load("scan.pdf");
 PdfPageSelector order = PdfPageSelector.Parse("3,1,2,4-last");
 PdfDocument reordered = source.Pages.Reorder(order);
 

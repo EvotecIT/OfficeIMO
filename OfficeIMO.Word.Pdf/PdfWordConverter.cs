@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.Pdf {
     internal static partial class PdfWordConverter {
         private const string ConverterName = "OfficeIMO.Word.Pdf";
 
-        public static WordDocument Convert(PdfCore.PdfLogicalDocument source, PdfWordImportOptions? options) {
+        public static WordDocument Convert(PdfCore.PdfDocumentReadResult source, PdfWordImportOptions? options) {
             if (source == null) {
                 throw new ArgumentNullException(nameof(source));
             }
@@ -19,7 +19,7 @@ namespace OfficeIMO.Word.Pdf {
             return document;
         }
 
-        public static void ImportInto(PdfCore.PdfLogicalDocument source, WordDocument target, PdfWordImportOptions options) {
+        public static void ImportInto(PdfCore.PdfDocumentReadResult source, WordDocument target, PdfWordImportOptions options) {
             if (source == null) {
                 throw new ArgumentNullException(nameof(source));
             }
@@ -795,7 +795,7 @@ namespace OfficeIMO.Word.Pdf {
             document.AddParagraph("[PDF form " + type + ": " + name + value + "]").SetItalic();
         }
 
-        private static void ReportNonReconstructedLinks(PdfCore.PdfLogicalDocument source, PdfWordImportOptions options, ImportNavigationMap navigation) {
+        private static void ReportNonReconstructedLinks(PdfCore.PdfDocumentReadResult source, PdfWordImportOptions options, ImportNavigationMap navigation) {
             int linkCount = source.Links.Count(link => !TryResolveWordLinkTarget(link, options, navigation, out _));
             if (linkCount == 0) {
                 return;
@@ -812,7 +812,7 @@ namespace OfficeIMO.Word.Pdf {
                 });
         }
 
-        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfLogicalDocument source, PdfWordImportOptions options) {
+        private static void ReportDocumentReconstructionBoundaries(PdfCore.PdfDocumentReadResult source, PdfWordImportOptions options) {
             if (source.Outlines.Count > 0) {
                 AddWarning(
                     options,

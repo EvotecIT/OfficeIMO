@@ -16,7 +16,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 230 240 Tm (Right top) Tj\n" +
             "1 0 0 1 30 180 Tm (Left bottom) Tj\n" +
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf).Pages);
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
 
         PdfLogicalReadingOrderItem[] ordered = PdfLogicalReadingOrderAnalysis.Analyze(page)
             .Where(static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.ListItem)
@@ -42,7 +42,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 60 210 Tm (Indented left) Tj\n" +
             "1 0 0 1 30 180 Tm (Left bottom) Tj\n" +
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf).Pages);
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
 
         PdfLogicalReadingOrderItem[] ordered = PdfLogicalReadingOrderAnalysis.Analyze(page)
             .Where(static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.ListItem)
@@ -69,7 +69,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 30 250 Tm (Left bottom) Tj\n" +
             "1 0 0 1 230 220 Tm (Right bottom) Tj ET",
             height: 620);
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf).Pages);
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
 
         PdfLogicalReadingOrderItem[] ordered = PdfLogicalReadingOrderAnalysis.Analyze(page)
             .Where(static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.ListItem)
@@ -96,11 +96,11 @@ public sealed class PdfLogicalReadingOrderTests {
             "BT /F1 12 Tf 12 160 Td (Partially clipped reading-order marker) Tj ET",
             width: 300,
             height: 240);
-        byte[] croppedAndRotated = PdfDocument.Open(source)
+        byte[] croppedAndRotated = PdfDocument.Load(source)
             .Pages.SetCropBox(40, 0, 280, 240)
             .Pages.Rotate(90, "1")
             .ToBytes();
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(croppedAndRotated).Pages);
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(croppedAndRotated).Pages);
 
         PdfLogicalReadingOrderItem item = Assert.Single(
             PdfLogicalReadingOrderAnalysis.Analyze(page),
@@ -121,7 +121,7 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 230 240 Tm (Right top) Tj\n" +
             "1 0 0 1 30 180 Tm (Left bottom) Tj\n" +
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         using (OfficeIMO.Word.WordDocument word = logical.ToWordDocument(new PdfWordImportOptions { UseSharedPageReadingOrder = true })) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);

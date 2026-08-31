@@ -1,0 +1,410 @@
+using System.Threading;
+
+namespace OfficeIMO.Pdf;
+
+/// <summary>Document-wide evidence fusion for the canonical semantic page analyses.</summary>
+internal static class PdfDocumentSemanticEnricher {
+    internal static IReadOnlyList<PdfUnderstandingPageResult> Enrich(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        IReadOnlyList<PdfUnderstandingPageResult> pages,
+        long maxWorkUnits,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        Guard.NotNull(pages, nameof(pages));
+        if (pageNumbers.Length != pages.Count) {
+            throw new ArgumentException("Semantic page count must match the selected page count.", nameof(pages));
+        }
+        if (pages.Count == 0) return pages;
+        var workBudget = new PdfUnderstandingWorkBudget(maxWorkUnits, cancellationToken);
+
+        List<PdfUnderstandingSemanticElement>[] elements = pages
+            .Select(static page => page.Elements.ToList())
+            .ToArray();
+        ApplyRepeatedPageEdgeEvidence(document, pageNumbers, pages, elements, workBudget);
+        ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
+        ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, workBudget);
+        ApplyHeadingFontTierEvidence(elements, workBudget);
+
+        var result = new PdfUnderstandingPageResult[pages.Count];
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            workBudget.Consume();
+            PdfUnderstandingPageResult page = pages[pageIndex];
+            result[pageIndex] = new PdfUnderstandingPageResult(
+                page.PageNumber,
+                page.DecodedRuns,
+                page.Words,
+                page.Lines,
+                page.Regions,
+                page.ReadingOrder,
+                page.ReadingOrderEvidence,
+                elements[pageIndex].AsReadOnly(),
+                page.Trace);
+        }
+        return Array.AsReadOnly(result);
+    }
+
+    private static void ApplyRepeatedPageEdgeEvidence(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        IReadOnlyList<PdfUnderstandingPageResult> pages,
+        List<PdfUnderstandingSemanticElement>[] elements,
+        PdfUnderstandingWorkBudget workBudget) {
+        var candidates = new List<PageEdgeCandidate>();
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            (double width, double height) = document.Pages[pageNumbers[pageIndex] - 1].GetPageSize();
+            if (width <= 0D || height <= 0D) continue;
+            for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
+                workBudget.Consume();
+                PdfUnderstandingSemanticElement element = elements[pageIndex][elementIndex];
+                if (element.Kind is not (PdfUnderstandingSemanticKind.Paragraph or
+                    PdfUnderstandingSemanticKind.Unknown or
+                    PdfUnderstandingSemanticKind.Header or
+                    PdfUnderstandingSemanticKind.Footer or
+                    PdfUnderstandingSemanticKind.Footnote)) continue;
+                PdfUnderstandingRegion region = element.Region;
+                PageEdge edge = region.YTop >= height * 0.85D
+                    ? PageEdge.Header
+                    : region.YBottom <= height * 0.15D
+                        ? PageEdge.Footer
+                        : PageEdge.None;
+                string signature = PdfTextSimilarity.NormalizeSignature(region.Text);
+                if (edge == PageEdge.None || signature.Length == 0) continue;
+                candidates.Add(new PageEdgeCandidate(
+                    pageIndex,
+                    elementIndex,
+                    pageNumbers[pageIndex],
+                    edge,
+                    signature,
+                    region.XStart / width,
+                    Math.Max(0D, region.XEnd - region.XStart) / width));
+            }
+        }
+        if (candidates.Count < 2) return;
+
+        int[] parent = Enumerable.Range(0, candidates.Count).ToArray();
+        for (int leftIndex = 0; leftIndex < candidates.Count; leftIndex++) {
+            PageEdgeCandidate left = candidates[leftIndex];
+            for (int rightIndex = leftIndex + 1; rightIndex < candidates.Count; rightIndex++) {
+                workBudget.Consume();
+                PageEdgeCandidate right = candidates[rightIndex];
+                if (left.PageNumber == right.PageNumber || left.Edge != right.Edge) continue;
+                if (Math.Abs(left.NormalizedLeft - right.NormalizedLeft) > 0.08D ||
+                    Math.Abs(left.NormalizedWidth - right.NormalizedWidth) > 0.12D) continue;
+                if (PdfTextSimilarity.NormalizedSimilarity(left.Signature, right.Signature) < 0.8D) continue;
+                Union(parent, leftIndex, rightIndex);
+            }
+        }
+
+        int uniquePageCount = pageNumbers.Distinct().Count();
+        int minimumPages = Math.Max(2, (int)Math.Ceiling(uniquePageCount * 0.5D));
+        foreach (IGrouping<int, int> cluster in Enumerable.Range(0, candidates.Count).GroupBy(index => Find(parent, index))) {
+            int[] indexes = cluster.ToArray();
+            if (indexes.Select(index => candidates[index].PageNumber).Distinct().Count() < minimumPages) continue;
+            foreach (int candidateIndex in indexes) {
+                PageEdgeCandidate candidate = candidates[candidateIndex];
+                PdfUnderstandingSemanticElement current = elements[candidate.PageIndex][candidate.ElementIndex];
+                PdfUnderstandingSemanticKind kind = candidate.Edge == PageEdge.Header
+                    ? PdfUnderstandingSemanticKind.Header
+                    : PdfUnderstandingSemanticKind.Footer;
+                elements[candidate.PageIndex][candidate.ElementIndex] = WithEvidence(
+                    current,
+                    kind,
+                    Math.Max(current.Confidence, 0.94D),
+                    new PdfInferenceEvidence(
+                        candidate.Edge == PageEdge.Header ? "semantic.repeated-header" : "semantic.repeated-footer",
+                        "Normalized geometry and fuzzy text signatures repeat across document pages.",
+                        0.95D));
+            }
+        }
+    }
+
+    private static void ApplyOutlineEvidence(
+        IReadOnlyList<PdfOutlineItem> outlines,
+        IReadOnlyList<PdfUnderstandingPageResult> pages,
+        List<PdfUnderstandingSemanticElement>[] elements,
+        PdfUnderstandingWorkBudget workBudget) {
+        PdfOutlineItem[] flattened = FlattenOutlines(outlines).Where(static outline => outline.PageNumber.HasValue).ToArray();
+        if (flattened.Length == 0) return;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            PdfOutlineItem[] pageOutlines = flattened.Where(outline => outline.PageNumber == pages[pageIndex].PageNumber).ToArray();
+            if (pageOutlines.Length == 0) continue;
+            var usedLines = new HashSet<(long BaselineY, long XStart, string Text)>();
+            var lineElements = new List<PdfUnderstandingSemanticElement>();
+            foreach (PdfOutlineItem outline in pageOutlines) {
+                if (elements[pageIndex].Count > 0) workBudget.Consume(elements[pageIndex].Count);
+                string outlineText = PdfTextSimilarity.NormalizeSignature(outline.Title);
+                if (outlineText.Length == 0) continue;
+                var candidates = elements[pageIndex]
+                    .SelectMany((element, elementIndex) => element.Region.Lines.Select(line => new {
+                        Element = element,
+                        ElementIndex = elementIndex,
+                        Line = line,
+                        Key = CreateLineKey(line),
+                        Score = PdfTextSimilarity.NormalizedSimilarity(
+                            PdfTextSimilarity.NormalizeSignature(line.Text),
+                            outlineText)
+                    }))
+                    .Where(candidate => candidate.Score >= 0.9D && !usedLines.Contains(candidate.Key))
+                    .OrderBy(candidate => outline.DestinationTop.HasValue
+                        ? Math.Abs(candidate.Line.BaselineY - outline.DestinationTop.Value)
+                        : 0D)
+                    .ThenByDescending(static candidate => candidate.Line.FontSize)
+                    .ThenByDescending(static candidate => candidate.Score)
+                    .ThenBy(static candidate => candidate.Element.Region.Lines.Count)
+                    .FirstOrDefault();
+                if (candidates is null) continue;
+
+                usedLines.Add(candidates.Key);
+                var evidence = new PdfInferenceEvidence(
+                    "semantic.outline-heading",
+                    "A page-targeted outline title matches this line at outline level " + outline.Level + ".",
+                    0.98D);
+                if (candidates.Element.Region.Lines.Count == 1) {
+                    elements[pageIndex][candidates.ElementIndex] = WithEvidence(
+                        candidates.Element,
+                        PdfUnderstandingSemanticKind.Heading,
+                        Math.Max(candidates.Element.Confidence, 0.96D),
+                        evidence,
+                        outline.Level);
+                } else {
+                    var lineRegion = new PdfUnderstandingRegion(
+                        new[] { candidates.Line },
+                        candidates.Line.Confidence,
+                        candidates.Element.Region.Evidence);
+                    lineElements.Add(new PdfUnderstandingSemanticElement(
+                        lineRegion,
+                        PdfUnderstandingSemanticKind.Heading,
+                        Math.Max(candidates.Element.Confidence, 0.96D),
+                        candidates.Element.Evidence.Concat(new[] { evidence }),
+                        outline.Level));
+                }
+            }
+            if (lineElements.Count > 0) elements[pageIndex].InsertRange(0, lineElements);
+        }
+    }
+
+    private static (long BaselineY, long XStart, string Text) CreateLineKey(PdfUnderstandingLine line) =>
+        (BitConverter.DoubleToInt64Bits(line.BaselineY), BitConverter.DoubleToInt64Bits(line.XStart), line.Text);
+
+    private static void ApplyTaggedStructureEvidence(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        IReadOnlyList<PdfUnderstandingPageResult> pages,
+        List<PdfUnderstandingSemanticElement>[] elements,
+        PdfUnderstandingWorkBudget workBudget) {
+        PdfTaggedContentInfo? tagged = document.TaggedContent;
+        if (tagged is null || tagged.StructureElements.Count == 0) return;
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            int pageNumber = pageNumbers[pageIndex];
+            var rolesByMcid = new Dictionary<int, List<string>>();
+            foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
+                if (string.IsNullOrWhiteSpace(structureElement.StructureType)) continue;
+                string role = ResolveRole(tagged, structureElement.StructureType!);
+                foreach (PdfMarkedContentReference reference in structureElement.MarkedContentReferences) {
+                    workBudget.Consume();
+                    int? pageObjectNumber = reference.PageObjectNumber ?? structureElement.PageObjectNumber;
+                    if (!pageObjectNumber.HasValue || document.GetPageNumberForObject(pageObjectNumber.Value) != pageNumber) continue;
+                    if (!rolesByMcid.TryGetValue(reference.MarkedContentId, out List<string>? roles)) {
+                        roles = new List<string>();
+                        rolesByMcid.Add(reference.MarkedContentId, roles);
+                    }
+                    if (!roles.Contains(role, StringComparer.OrdinalIgnoreCase)) roles.Add(role);
+                }
+            }
+            if (rolesByMcid.Count == 0) continue;
+            var lineElements = new List<PdfUnderstandingSemanticElement>();
+            for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
+                workBudget.Consume();
+                PdfUnderstandingSemanticElement current = elements[pageIndex][elementIndex];
+                var matches = new List<TaggedLineMatch>();
+                for (int lineIndex = 0; lineIndex < current.Region.Lines.Count; lineIndex++) {
+                    PdfUnderstandingLine line = current.Region.Lines[lineIndex];
+                    int[] mcids = line.Words
+                        .SelectMany(static word => word.SourceRuns)
+                        .Where(static run => run.MarkedContentId.HasValue)
+                        .Select(static run => run.MarkedContentId!.Value)
+                        .Distinct()
+                        .ToArray();
+                    if (mcids.Length == 0) continue;
+                    workBudget.Consume(mcids.Length);
+                    TaggedRole? bestRole = mcids
+                        .Where(rolesByMcid.ContainsKey)
+                        .SelectMany(mcid => rolesByMcid[mcid])
+                        .Select(TryMapTaggedRole)
+                        .Where(static role => role.HasValue)
+                        .OrderBy(static role => role!.Value.Priority)
+                        .ThenBy(static role => role!.Value.Level ?? int.MaxValue)
+                        .FirstOrDefault();
+                    if (!bestRole.HasValue) continue;
+                    matches.Add(new TaggedLineMatch(line, mcids, bestRole.Value));
+                }
+                if (matches.Count == 0) continue;
+
+                bool coversWholeRegion = matches.Count == current.Region.Lines.Count &&
+                    matches.All(match => match.Role.Kind == matches[0].Role.Kind && match.Role.Level == matches[0].Role.Level);
+                if (coversWholeRegion) {
+                    elements[pageIndex][elementIndex] = WithTaggedEvidence(current, matches[0]);
+                    continue;
+                }
+                for (int matchIndex = 0; matchIndex < matches.Count; matchIndex++) {
+                    TaggedLineMatch match = matches[matchIndex];
+                    var lineRegion = new PdfUnderstandingRegion(
+                        new[] { match.Line },
+                        match.Line.Confidence,
+                        current.Region.Evidence);
+                    var lineElement = new PdfUnderstandingSemanticElement(
+                        lineRegion,
+                        current.Kind,
+                        current.Confidence,
+                        current.Evidence,
+                        current.Level);
+                    lineElements.Add(WithTaggedEvidence(lineElement, match));
+                }
+            }
+            if (lineElements.Count > 0) elements[pageIndex].InsertRange(0, lineElements);
+        }
+    }
+
+    private static void ApplyHeadingFontTierEvidence(List<PdfUnderstandingSemanticElement>[] elements, PdfUnderstandingWorkBudget workBudget) {
+        var candidates = new List<(int PageIndex, int ElementIndex, double FontSize)>();
+        for (int pageIndex = 0; pageIndex < elements.Length; pageIndex++) {
+            for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
+                workBudget.Consume();
+                PdfUnderstandingSemanticElement element = elements[pageIndex][elementIndex];
+                if (element.Kind != PdfUnderstandingSemanticKind.Heading ||
+                    element.Level.HasValue ||
+                    element.Region.Lines.Count == 0) continue;
+                candidates.Add((
+                    pageIndex,
+                    elementIndex,
+                    element.Region.Lines.Max(static line => line.FontSize)));
+            }
+        }
+        if (candidates.Count == 0) return;
+
+        var tiers = new List<double>();
+        foreach (double fontSize in candidates.Select(static candidate => candidate.FontSize).OrderByDescending(static size => size)) {
+            if (tiers.Count == 0 || Math.Abs(tiers[tiers.Count - 1] - fontSize) > 0.5D) {
+                tiers.Add(fontSize);
+            }
+        }
+
+        foreach ((int pageIndex, int elementIndex, double fontSize) in candidates) {
+            int level = Math.Min(6, tiers.FindIndex(tier => Math.Abs(tier - fontSize) <= 0.5D) + 1);
+            PdfUnderstandingSemanticElement current = elements[pageIndex][elementIndex];
+            elements[pageIndex][elementIndex] = WithEvidence(
+                current,
+                current.Kind,
+                current.Confidence,
+                new PdfInferenceEvidence(
+                    "semantic.document-heading-font-tier",
+                    "The heading level was ranked from document-wide heading font tiers.",
+                    0.8D),
+                level);
+        }
+    }
+
+    private static string ResolveRole(PdfTaggedContentInfo tagged, string role) =>
+        tagged.RoleMap.TryGetValue(role, out string? mapped) ? mapped : role;
+
+    private static TaggedRole? TryMapTaggedRole(string role) {
+        int? headingLevel = HeadingLevel(role);
+        if (headingLevel.HasValue) return new TaggedRole(role, PdfUnderstandingSemanticKind.Heading, headingLevel, 0);
+        if (string.Equals(role, "H", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Heading, null, 0);
+        if (string.Equals(role, "P", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Paragraph, null, 1);
+        if (string.Equals(role, "LI", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.ListItem, null, 2);
+        if (string.Equals(role, "Table", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Table, null, 3);
+        if (string.Equals(role, "Caption", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Caption, null, 4);
+        if (string.Equals(role, "Header", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Header, null, 5);
+        if (string.Equals(role, "Footer", StringComparison.OrdinalIgnoreCase)) return new TaggedRole(role, PdfUnderstandingSemanticKind.Footer, null, 5);
+        return null;
+    }
+
+    private static PdfUnderstandingSemanticElement WithTaggedEvidence(
+        PdfUnderstandingSemanticElement current,
+        TaggedLineMatch match) => WithEvidence(
+            current,
+            match.Role.Kind,
+            Math.Max(current.Confidence, 0.96D),
+            new PdfInferenceEvidence(
+                "semantic.tagged-pdf-role",
+                "Tagged-PDF role " + match.Role.Name + " owns marked content " + string.Join(", ", match.MarkedContentIds) + ".",
+                0.98D),
+            match.Role.Level ?? current.Level);
+
+    private static PdfUnderstandingSemanticElement WithEvidence(
+        PdfUnderstandingSemanticElement current,
+        PdfUnderstandingSemanticKind kind,
+        double confidence,
+        PdfInferenceEvidence evidence,
+        int? level = null) => new PdfUnderstandingSemanticElement(
+            current.Region,
+            kind,
+            confidence,
+            current.Evidence.Concat(new[] { evidence }),
+            level ?? current.Level);
+
+    private static int? HeadingLevel(string role) =>
+        role.Length == 2 && (role[0] == 'H' || role[0] == 'h') && char.IsDigit(role[1])
+            ? role[1] - '0'
+            : null;
+
+    private static IEnumerable<PdfOutlineItem> FlattenOutlines(IReadOnlyList<PdfOutlineItem> outlines) {
+        var stack = new Stack<PdfOutlineItem>(outlines.Reverse());
+        while (stack.Count > 0) {
+            PdfOutlineItem current = stack.Pop();
+            yield return current;
+            for (int childIndex = current.Children.Count - 1; childIndex >= 0; childIndex--) {
+                stack.Push(current.Children[childIndex]);
+            }
+        }
+    }
+
+    private static int Find(int[] parent, int value) {
+        while (parent[value] != value) {
+            parent[value] = parent[parent[value]];
+            value = parent[value];
+        }
+        return value;
+    }
+
+    private static void Union(int[] parent, int left, int right) {
+        int leftRoot = Find(parent, left);
+        int rightRoot = Find(parent, right);
+        if (leftRoot != rightRoot) parent[rightRoot] = leftRoot;
+    }
+
+    private enum PageEdge { None, Header, Footer }
+
+    private readonly struct PageEdgeCandidate {
+        internal PageEdgeCandidate(int pageIndex, int elementIndex, int pageNumber, PageEdge edge, string signature, double normalizedLeft, double normalizedWidth) {
+            PageIndex = pageIndex;
+            ElementIndex = elementIndex;
+            PageNumber = pageNumber;
+            Edge = edge;
+            Signature = signature;
+            NormalizedLeft = normalizedLeft;
+            NormalizedWidth = normalizedWidth;
+        }
+        internal int PageIndex { get; }
+        internal int ElementIndex { get; }
+        internal int PageNumber { get; }
+        internal PageEdge Edge { get; }
+        internal string Signature { get; }
+        internal double NormalizedLeft { get; }
+        internal double NormalizedWidth { get; }
+    }
+
+    private readonly record struct TaggedRole(
+        string Name,
+        PdfUnderstandingSemanticKind Kind,
+        int? Level,
+        int Priority);
+
+    private readonly record struct TaggedLineMatch(
+        PdfUnderstandingLine Line,
+        IReadOnlyList<int> MarkedContentIds,
+        TaggedRole Role);
+}

@@ -69,7 +69,7 @@ For application code, use the focused adapter that owns the target:
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Pdf;
 
-PdfDocument pdf = PdfDocument.Open(File.ReadAllBytes("report.pdf"));
+PdfDocument pdf = PdfDocument.Load(File.ReadAllBytes("report.pdf"));
 PdfWordConversionResult result = pdf.ToWordDocumentResult();
 result.Value.Save("report.docx");
 

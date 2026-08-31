@@ -1,19 +1,19 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Fluent cross-page table recovery operations for a <see cref="PdfDocument"/>.</summary>
-public sealed partial class PdfDocumentReader {
+internal sealed partial class PdfDocumentReader {
     /// <summary>Recovers bounded table continuation groups for the full document.</summary>
     public IReadOnlyList<PdfLogicalTableContinuationGroup> TableContinuations(
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) =>
+        PdfLoadOptions? readOptions = null) =>
         Logical(layoutOptions, readOptions).GetTableContinuationGroups(continuationOptions);
 
     /// <summary>Attempts to recover table continuation groups for the full document.</summary>
     public PdfOperationResult<IReadOnlyList<PdfLogicalTableContinuationGroup>> TryTableContinuations(
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) =>
+        PdfLoadOptions? readOptions = null) =>
         _document.TryOperation(
             "Recover table continuations",
             PdfPreflightCapability.ReadLogicalObjects,
@@ -25,7 +25,7 @@ public sealed partial class PdfDocumentReader {
         PdfPageSelection selection,
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return Logical(selection, layoutOptions, readOptions).GetTableContinuationGroups(continuationOptions);
     }
@@ -35,7 +35,7 @@ public sealed partial class PdfDocumentReader {
         PdfPageSelection selection,
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation(
             "Recover table continuations",
@@ -49,6 +49,6 @@ public sealed partial class PdfDocumentReader {
         string pageRanges,
         PdfLogicalTableContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) =>
+        PdfLoadOptions? readOptions = null) =>
         TableContinuations(PdfPageSelection.Parse(pageRanges), continuationOptions, layoutOptions, readOptions);
 }

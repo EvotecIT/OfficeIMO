@@ -9,7 +9,7 @@ internal static partial class PdfPageEditor {
         return MovePagesWithReadOptions(pdf, insertBeforePageNumber, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] MovePagesWithReadOptions(byte[] pdf, int insertBeforePageNumber, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);

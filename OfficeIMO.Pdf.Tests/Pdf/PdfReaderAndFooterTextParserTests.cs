@@ -232,7 +232,7 @@ public partial class PdfReaderAndFooterRegressionTests {
             "BT\n/F1 12 Tf\n72 760 Td\n(Decorative header) Tj\nET\n" +
             "EMC\n" +
             "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
-        var options = new PdfReadOptions { IncludeArtifactText = true };
+        var options = new PdfLoadOptions { IncludeArtifactText = true };
 
         PdfReadPage page = PdfReadDocument.Open(bytes, options).Pages[0];
 

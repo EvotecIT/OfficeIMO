@@ -14,7 +14,7 @@ Supported import coverage includes PDF Info metadata, first-page paper size, log
 using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("source.pdf");
+PdfDocument pdf = PdfDocument.Load("source.pdf");
 PdfRtfConversionResult result = pdf.ToRtfDocumentResult();
 
 result.Value.Save("source.rtf");

@@ -115,7 +115,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Contains(info.Outlines[0].Children, outline => outline.Title == "Native proof areas" && outline.Level == 2);
         Assert.Contains(info.Outlines[0].Children, outline => outline.Title == "Native evidence table" && outline.Level == 2);
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         Assert.Contains(logical.Headings, heading => heading.Text == "Native Word PDF Visual Gate");
@@ -151,7 +151,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Contains("0.918 0.957 1 rg", rawPdf, StringComparison.Ordinal);
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         Assert.NotEmpty(logical.GetLinksByDestinationName("officeimo-heading-daily-word-layout-gate"));
@@ -190,7 +190,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Contains(info.Outlines, outline => outline.Title == "Details");
         Assert.Contains(info.LinkUris, uri => uri == "https://officeimo.net/excel-pdf");
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         Assert.Contains(logical.NamedDestinations, destination => destination.Name.Contains("summary", StringComparison.OrdinalIgnoreCase));

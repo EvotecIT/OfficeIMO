@@ -4,10 +4,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ExposesDocumentNavigationObjects() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNavigationPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildNavigationPdf());
 
         Assert.Equal("FullScreen", logical.CatalogPageMode);
         Assert.Equal("TwoColumnLeft", logical.CatalogPageLayout);
@@ -44,44 +44,44 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Reader_ExposesDocumentNavigationHelpers() {
-        PdfDocument document = PdfDocument.Open(BuildNavigationPdf());
+        PdfDocument document = PdfDocument.Load(BuildNavigationPdf());
 
-        Assert.Equal("FullScreen", document.Read.CatalogPageMode());
-        Assert.Equal("TwoColumnLeft", document.Read.CatalogPageLayout());
-        Assert.Equal("1.7", document.Read.CatalogVersion());
-        Assert.Equal("en-US", document.Read.CatalogLanguage());
+        Assert.Equal("FullScreen", document.Reader.CatalogPageMode());
+        Assert.Equal("TwoColumnLeft", document.Reader.CatalogPageLayout());
+        Assert.Equal("1.7", document.Reader.CatalogVersion());
+        Assert.Equal("en-US", document.Reader.CatalogLanguage());
 
-        PdfOutlineItem outline = Assert.Single(document.Read.Outlines());
+        PdfOutlineItem outline = Assert.Single(document.Reader.Outlines());
         Assert.Equal("Logical outline", outline.Title);
         Assert.Equal(1, outline.PageNumber);
 
-        PdfPageLabel label = Assert.Single(document.Read.PageLabels());
+        PdfPageLabel label = Assert.Single(document.Reader.PageLabels());
         Assert.Equal(1, label.StartPageNumber);
         Assert.Equal("A-", label.Prefix);
 
-        PdfNamedDestination destination = Assert.Single(document.Read.NamedDestinations());
+        PdfNamedDestination destination = Assert.Single(document.Reader.NamedDestinations());
         Assert.Equal("Chapter1", destination.Name);
         Assert.Equal(1, destination.PageNumber);
 
-        PdfDocumentOpenAction? openAction = document.Read.OpenAction();
+        PdfDocumentOpenAction? openAction = document.Reader.OpenAction();
         Assert.NotNull(openAction);
         Assert.Equal("Destination", openAction!.ActionType);
         Assert.Equal(1, openAction.PageNumber);
 
-        PdfViewerPreferences? preferences = document.Read.ViewerPreferences();
+        PdfViewerPreferences? preferences = document.Reader.ViewerPreferences();
         Assert.NotNull(preferences);
         Assert.True(preferences!.GetBoolean("HideToolbar"));
         Assert.True(preferences.GetBoolean("DisplayDocTitle"));
 
-        PdfOperationResult<IReadOnlyList<PdfOutlineItem>> safeOutlines = document.Read.TryOutlines();
+        PdfOperationResult<IReadOnlyList<PdfOutlineItem>> safeOutlines = document.Reader.TryOutlines();
         Assert.True(safeOutlines.Succeeded);
         Assert.Equal("Logical outline", Assert.Single(safeOutlines.RequireValue()).Title);
 
-        PdfOperationResult<IReadOnlyList<PdfPageLabel>> safeLabels = document.Read.TryPageLabels();
+        PdfOperationResult<IReadOnlyList<PdfPageLabel>> safeLabels = document.Reader.TryPageLabels();
         Assert.True(safeLabels.Succeeded);
         Assert.Equal("A-", Assert.Single(safeLabels.RequireValue()).Prefix);
 
-        PdfOperationResult<IReadOnlyList<PdfNamedDestination>> safeDestinations = document.Read.TryNamedDestinations();
+        PdfOperationResult<IReadOnlyList<PdfNamedDestination>> safeDestinations = document.Reader.TryNamedDestinations();
         Assert.True(safeDestinations.Succeeded);
         Assert.Equal("Chapter1", Assert.Single(safeDestinations.RequireValue()).Name);
     }
@@ -99,7 +99,7 @@ public partial class PdfLogicalDocumentTests {
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         PdfLogicalPage page = Assert.Single(logical.Pages);
@@ -135,9 +135,9 @@ public partial class PdfLogicalDocumentTests {
             })
             .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(pdf);
+        PdfDocument document = PdfDocument.Load(pdf);
 
-        PdfLogicalLinkAnnotation link = Assert.Single(document.Read.Links(new PdfReadOptions()));
+        PdfLogicalLinkAnnotation link = Assert.Single(document.Reader.Links(new PdfLoadOptions()));
         Assert.Equal(1, link.PageNumber);
         Assert.True(link.IsUriLink);
         Assert.Equal("https://evotec.xyz/logical-link", link.Uri);
@@ -145,35 +145,35 @@ public partial class PdfLogicalDocumentTests {
         Assert.True(link.Width > 0);
         Assert.True(link.Height > 0);
 
-        Assert.Equal("https://evotec.xyz/logical-link", Assert.Single(document.Read.LinksByUri("https://evotec.xyz/logical-link")).Uri);
-        Assert.Empty(document.Read.LinksByUri("https://evotec.xyz/missing"));
+        Assert.Equal("https://evotec.xyz/logical-link", Assert.Single(document.Reader.LinksByUri("https://evotec.xyz/logical-link")).Uri);
+        Assert.Empty(document.Reader.LinksByUri("https://evotec.xyz/missing"));
 
-        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> safeLinks = document.Read.TryLinks();
+        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> safeLinks = document.Reader.TryLinks();
         Assert.True(safeLinks.Succeeded);
         Assert.Equal("https://evotec.xyz/logical-link", Assert.Single(safeLinks.RequireValue()).Uri);
 
-        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> safeUriLinks = document.Read.TryLinksByUri("https://evotec.xyz/logical-link");
+        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> safeUriLinks = document.Reader.TryLinksByUri("https://evotec.xyz/logical-link");
         Assert.True(safeUriLinks.Succeeded);
         Assert.Equal("https://evotec.xyz/logical-link", Assert.Single(safeUriLinks.RequireValue()).Uri);
 
-        PdfDocument directDestinationDocument = PdfDocument.Open(BuildDirectDestinationLinkPdf());
-        Assert.Equal(1, Assert.Single(directDestinationDocument.Read.LinksByDestinationPageNumber(1)).DestinationPageNumber);
-        Assert.Equal(1, Assert.Single(directDestinationDocument.Read.TryLinksByDestinationPageNumber(1).RequireValue()).DestinationPageNumber);
+        PdfDocument directDestinationDocument = PdfDocument.Load(BuildDirectDestinationLinkPdf());
+        Assert.Equal(1, Assert.Single(directDestinationDocument.Reader.LinksByDestinationPageNumber(1)).DestinationPageNumber);
+        Assert.Equal(1, Assert.Single(directDestinationDocument.Reader.TryLinksByDestinationPageNumber(1).RequireValue()).DestinationPageNumber);
 
-        PdfDocument namedActionDocument = PdfDocument.Open(BuildNamedActionLinkPdf());
-        Assert.Equal("NextPage", Assert.Single(namedActionDocument.Read.LinksByNamedAction("NextPage")).NamedAction);
-        Assert.Equal("NextPage", Assert.Single(namedActionDocument.Read.TryLinksByNamedAction("NextPage").RequireValue()).NamedAction);
+        PdfDocument namedActionDocument = PdfDocument.Load(BuildNamedActionLinkPdf());
+        Assert.Equal("NextPage", Assert.Single(namedActionDocument.Reader.LinksByNamedAction("NextPage")).NamedAction);
+        Assert.Equal("NextPage", Assert.Single(namedActionDocument.Reader.TryLinksByNamedAction("NextPage").RequireValue()).NamedAction);
 
-        PdfDocument remoteDocument = PdfDocument.Open(BuildRemoteGoToLinkPdf());
-        Assert.Equal("remote-report.pdf", Assert.Single(remoteDocument.Read.LinksByRemoteFile("remote-report.pdf")).RemoteFile);
-        Assert.Equal("remote-report.pdf", Assert.Single(remoteDocument.Read.TryLinksByRemoteFile("remote-report.pdf").RequireValue()).RemoteFile);
+        PdfDocument remoteDocument = PdfDocument.Load(BuildRemoteGoToLinkPdf());
+        Assert.Equal("remote-report.pdf", Assert.Single(remoteDocument.Reader.LinksByRemoteFile("remote-report.pdf")).RemoteFile);
+        Assert.Equal("remote-report.pdf", Assert.Single(remoteDocument.Reader.TryLinksByRemoteFile("remote-report.pdf").RequireValue()).RemoteFile);
 
-        PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
-        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> blockedLinks = invalid.Read.TryLinks();
+        PdfDocument invalid = PdfDocument.Load(Encoding.ASCII.GetBytes("not a pdf"));
+        PdfOperationResult<IReadOnlyList<PdfLogicalLinkAnnotation>> blockedLinks = invalid.Reader.TryLinks();
         Assert.False(blockedLinks.CanAttempt);
         Assert.NotEmpty(blockedLinks.Diagnostics);
 
-        PdfOperationResult<IReadOnlyList<PdfOutlineItem>> blockedOutlines = invalid.Read.TryOutlines();
+        PdfOperationResult<IReadOnlyList<PdfOutlineItem>> blockedOutlines = invalid.Reader.TryOutlines();
         Assert.False(blockedOutlines.CanAttempt);
         Assert.NotEmpty(blockedOutlines.Diagnostics);
     }
@@ -199,7 +199,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 
@@ -220,7 +220,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesDirectDestinationLinkCoordinatesAsLogicalElements() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildDirectDestinationLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDirectDestinationLinkPdf());
 
         PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
         PdfLinkAnnotation pageLink = Assert.Single(Assert.Single(logical.Pages).LinkAnnotations);
@@ -244,7 +244,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesNamedActionLinksAsLogicalElements() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNamedActionLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildNamedActionLinkPdf());
 
         PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
         Assert.True(link.IsNamedActionLink);
@@ -266,7 +266,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesRemoteGoToLinksAsLogicalElements() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildRemoteGoToLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildRemoteGoToLinkPdf());
 
         PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
         Assert.True(link.IsRemoteGoToLink);
@@ -310,7 +310,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 

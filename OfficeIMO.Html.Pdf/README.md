@@ -272,7 +272,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument sourcePdf = PdfDocument.Open("quarterly-update.pdf");
+PdfDocument sourcePdf = PdfDocument.Load("quarterly-update.pdf");
 PdfHtmlSaveOptions semanticOptions = PdfHtmlSaveOptions.CreateSemanticProfile(
     OfficeVisualThemeKind.TechnicalDocument);
 string semantic = sourcePdf.ToHtml(semanticOptions);
@@ -282,7 +282,7 @@ PdfHtmlSaveOptions reviewOptions = PdfHtmlSaveOptions.CreatePositionedReviewProf
 reviewOptions.ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri;
 PdfConversionReport saveReport = sourcePdf.SaveAsHtml("quarterly-review.html", reviewOptions);
 
-PdfHtmlConversionResult reviewResult = sourcePdf.Read.Logical().ToHtmlResult(reviewOptions);
+PdfHtmlConversionResult reviewResult = sourcePdf.Read().ToHtmlResult(reviewOptions);
 foreach (PdfConversionWarning warning in reviewResult.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }

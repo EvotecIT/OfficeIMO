@@ -73,7 +73,7 @@ public class PdfFormModelSecurityTests {
         }
 
         IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> index =
-            PdfLogicalDocument.IndexFormWidgetsByPageNumber(fields);
+            PdfDocumentReadResult.IndexFormWidgetsByPageNumber(fields);
 
         Assert.Equal(16, index.Count);
         Assert.Equal(1024, index.Values.Sum(widgets => widgets.Count));

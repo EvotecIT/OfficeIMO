@@ -13,7 +13,7 @@ internal static partial class PdfSyntax {
 
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         byte[] pdf,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         bool includeParsedDetails = true) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();

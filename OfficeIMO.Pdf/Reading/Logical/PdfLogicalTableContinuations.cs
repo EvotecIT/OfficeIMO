@@ -79,7 +79,7 @@ public static class PdfLogicalTableContinuations {
     /// <param name="maximumSegmentsPerTable">Maximum adjacent segments in one group.</param>
     /// <param name="geometryTolerancePoints">Maximum per-column geometry difference in PDF points.</param>
     public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         int maxRows,
         bool mergePageContinuations,
         bool suppressRepeatedBodyHeaderRows,
@@ -97,7 +97,7 @@ public static class PdfLogicalTableContinuations {
 
     /// <summary>Groups compatible table segments using an explicit, typed continuation policy.</summary>
     public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalTableContinuationOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         PdfLogicalTableContinuationOptions effective = PdfLogicalTableContinuationOptions.Resolve(options);
@@ -139,7 +139,7 @@ public static class PdfLogicalTableContinuations {
     }
 
     private static bool CanContinue(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalTableExtraction previous,
         PdfLogicalTableExtraction current,
         double tolerance,
@@ -221,13 +221,31 @@ public static class PdfLogicalTableContinuations {
         return true;
     }
 
-    private static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) {
+    internal static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) {
         if (previous.Count != current.Count) return false;
+        var previousSignature = new System.Text.StringBuilder();
+        var currentSignature = new System.Text.StringBuilder();
         for (int index = 0; index < previous.Count; index++) {
-            if (!string.Equals(previous[index].Trim(), current[index].Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+            string left = PdfTextSimilarity.NormalizeSignature(previous[index]);
+            string right = PdfTextSimilarity.NormalizeSignature(current[index]);
+            if (left.Length == 0 || right.Length == 0) {
+                if (!string.Equals(left, right, StringComparison.Ordinal)) return false;
+            } else if (left.Length < 5 || right.Length < 5) {
+                if (!string.Equals(left, right, StringComparison.Ordinal)) return false;
+            } else if (PdfTextSimilarity.NormalizedSimilarity(left, right) < 0.75D) {
+                return false;
+            }
+            if (index > 0) {
+                previousSignature.Append('\u001F');
+                currentSignature.Append('\u001F');
+            }
+            previousSignature.Append(left);
+            currentSignature.Append(right);
         }
 
-        return true;
+        return PdfTextSimilarity.NormalizedSimilarity(
+            previousSignature.ToString(),
+            currentSignature.ToString()) >= 0.88D;
     }
 
     private static PdfLogicalTableContinuationGroup CreateGroup(
@@ -429,7 +447,7 @@ public sealed class PdfLogicalTableContinuationGroup {
     }
 }
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Returns bounded cross-page table continuation groups in document order.</summary>
     public IReadOnlyList<PdfLogicalTableContinuationGroup> GetTableContinuationGroups(
         PdfLogicalTableContinuationOptions? options = null) =>

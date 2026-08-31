@@ -35,7 +35,7 @@ This route is intentionally named PDF tables to Excel. It does not pretend that 
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("statement.pdf");
+PdfDocument pdf = PdfDocument.Load("statement.pdf");
 PdfExcelTableImportResult result = pdf.ImportTablesToExcelDocumentResult();
 using var workbook = result.Value;
 

@@ -75,13 +75,13 @@ public class RtfPdfIoTests {
         Type[] parsedSourceTypes = {
             typeof(RtfDocument),
             typeof(PdfCore.PdfDocument),
-            typeof(PdfCore.PdfLogicalDocument)
+            typeof(PdfCore.PdfDocumentReadResult)
         };
         Assert.All(methods, method =>
             Assert.Contains(method.GetParameters()[0].ParameterType, parsedSourceTypes));
         Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(RtfDocument));
         Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfDocument));
-        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfLogicalDocument));
+        Assert.Contains(methods, method => method.GetParameters()[0].ParameterType == typeof(PdfCore.PdfDocumentReadResult));
     }
 
     private static RtfDocument CreateDocument(string text) {

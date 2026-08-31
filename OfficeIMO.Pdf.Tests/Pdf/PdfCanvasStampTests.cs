@@ -11,7 +11,7 @@ public class PdfCanvasStampTests {
             .ToBytes();
         int callbackCount = 0;
 
-        PdfDocument stamped = PdfDocument.Open(target).Stamp.Content((canvas, context) => {
+        PdfDocument stamped = PdfDocument.Load(target).Stamp.Content((canvas, context) => {
             callbackCount++;
             canvas.Text("Canvas page " + context.PageNumber, 36D, 36D, 220D, 30D, fontSize: 14D)
                 .Table(new[] {
@@ -21,7 +21,7 @@ public class PdfCanvasStampTests {
                 .Image(PdfPngTestImages.CreateRgbPng(20, 80, 180), 36D, 210D, 24D, 24D, alternativeText: "Blue marker");
         });
 
-        string text = stamped.Read.Text();
+        string text = stamped.Reader.Text();
         Assert.Equal(1, callbackCount);
         Assert.Contains("Existing page body", text, StringComparison.Ordinal);
         Assert.Contains("Canvas page 1", text, StringComparison.Ordinal);
@@ -32,11 +32,11 @@ public class PdfCanvasStampTests {
     [Fact]
     public void ContentSupportsAuthenticatedEncryptedTargetsAndReportsIgnoredRestrictions() {
         byte[] encrypted = CreateRestrictedPdf("open", "owner", "Encrypted existing body");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Password = "open",
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         };
-        PdfDocument target = PdfDocument.Open(encrypted, options);
+        PdfDocument target = PdfDocument.Load(encrypted, options);
 
         PdfOperationResult<PdfDocument> result = target.Stamp.TryContent(
             (canvas, _) => canvas.Text("Authorized canvas stamp", 30D, 30D, 260D, 30D),
@@ -48,8 +48,8 @@ public class PdfCanvasStampTests {
         Assert.Contains("Input.PermissionRestrictionsIgnored", plan.Warnings);
         PdfDocument output = result.RequireValue();
         Assert.False(PdfInspector.Probe(output.ToBytes()).HasEncryption);
-        Assert.Contains("Encrypted existing body", output.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Authorized canvas stamp", output.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Encrypted existing body", output.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Authorized canvas stamp", output.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public class PdfCanvasStampTests {
             .ToBytes();
         int callbackCount = 0;
 
-        byte[] stamped = PdfDocument.Open(target).Stamp.Content((canvas, context) => {
+        byte[] stamped = PdfDocument.Load(target).Stamp.Content((canvas, context) => {
             callbackCount++;
             canvas.Text("Stamp page " + context.PageNumber, 30D, 30D, 180D, 24D);
         }).ToBytes();
@@ -85,7 +85,7 @@ public class PdfCanvasStampTests {
             .ToBytes();
         int callbackCount = 0;
 
-        byte[] stamped = PdfDocument.Open(target).Stamp.Content(
+        byte[] stamped = PdfDocument.Load(target).Stamp.Content(
             (canvas, _) => {
                 callbackCount++;
                 canvas.Text("Layer " + callbackCount, 30D, 30D + (callbackCount * 30D), 140D, 24D);
@@ -172,7 +172,7 @@ public class PdfCanvasStampTests {
             canvas => canvas.Text("Callback content", 36D, 36D, 220D, 30D),
             stampOptions);
 
-        string text = stamped.Read.Text();
+        string text = stamped.Reader.Text();
         Assert.Contains("Existing body", text, StringComparison.Ordinal);
         Assert.Contains("Callback content", text, StringComparison.Ordinal);
         Assert.DoesNotContain("Rendering-options header", text, StringComparison.Ordinal);
@@ -184,17 +184,17 @@ public class PdfCanvasStampTests {
         byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target page")).ToBytes();
         byte[] source = CreateRestrictedPdf("source-open", "source-owner", "Encrypted overlay source");
         var overlayOptions = new PdfPageOverlayOptions {
-            SourceReadOptions = new PdfReadOptions {
+            SourceReadOptions = new PdfLoadOptions {
                 Password = "source-open",
                 PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
             }
         };
 
-        PdfDocument stamped = PdfDocument.Open(target).Stamp.OverlayPage(source, overlayOptions);
+        PdfDocument stamped = PdfDocument.Load(target).Stamp.OverlayPage(source, overlayOptions);
 
-        Assert.Contains("Target", stamped.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Encrypted", stamped.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("overlay source", stamped.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Target", stamped.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Encrypted", stamped.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("overlay source", stamped.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -213,7 +213,7 @@ public class PdfCanvasStampTests {
             .Paragraph(paragraph => paragraph.Text("Existing body"))
             .ToBytes();
 
-        PdfDocument stamped = PdfDocument.Open(target).Stamp.Content(
+        PdfDocument stamped = PdfDocument.Load(target).Stamp.Content(
             canvas => canvas.Text(
                 new[] { PdfTextRun.Normal("Named font stamp", fontFamily: familyName) },
                 36D,

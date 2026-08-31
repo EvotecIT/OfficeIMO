@@ -1305,7 +1305,7 @@ public class PdfIccColorRenderingTests {
             imageEntries: "/Filter /DCTDecode /DecodeParms << /ColorTransform 1 >>",
             imageColorSpace: "/DeviceRGB",
             width: 20);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 50 }
         });
 
@@ -1698,7 +1698,7 @@ public class PdfIccColorRenderingTests {
             Encoding.ASCII.GetByteCount(program).ToString(CultureInfo.InvariantCulture) +
             " >>\nstream\n" + program + "\nendstream\nendobj\n";
         byte[] pdf = BuildIccShadingPdf(PdfIccProfiles.SrgbIec6196621, "7 0 R", function);
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 100 }
         }).Pages[0];
 
@@ -1721,7 +1721,7 @@ public class PdfIccColorRenderingTests {
             "7 0 R",
             function,
             contentOperations: "q /Perceptual ri 20 80 120 40 re W n /Sh1 sh Q");
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 200_000 }
         }).Pages[0];
 
@@ -1751,7 +1751,7 @@ public class PdfIccColorRenderingTests {
             contentOverride:
                 "/Pattern cs /Perceptual ri /Unused scn " +
                 "/RelativeColorimetric ri /Painted scn 20 80 120 40 re f");
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 200_000 }
         }).Pages[0];
 
@@ -2583,7 +2583,7 @@ public class PdfIccColorRenderingTests {
             compressedProfile,
             new byte[] { 255, 0, 0 },
             "/N 3 /Filter /FlateDecode");
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 
@@ -2603,7 +2603,7 @@ public class PdfIccColorRenderingTests {
             "1 0 0 scn",
             colorSpaceName: "CsRgb",
             colorSpaceResources: "/CsRgb /DeviceRGB /Unused [/ICCBased 5 0 R]");
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 
@@ -2616,7 +2616,7 @@ public class PdfIccColorRenderingTests {
     public void RenderDiagnostics_DoesNotScanNamedInlineImageSamplesAsOperators() {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         byte[] pdf = BuildNamedRawInlineImageWithUnusedIccPdf(Compress(profile));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 
@@ -2636,7 +2636,7 @@ public class PdfIccColorRenderingTests {
     public void RenderPage_DoesNotDecodeIccProfileFromUnusedVisualResource(string resourceKind) {
         byte[] profile = PdfIccProfiles.SrgbIec6196621;
         byte[] pdf = BuildUnusedIccVisualResourcePdf(resourceKind, Compress(profile));
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = profile.Length - 1 }
         });
 

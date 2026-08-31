@@ -13,7 +13,7 @@ internal static partial class PdfRedactionApplier {
     private static readonly Regex FontSelectionRegex = new Regex(@"/([^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf\b", RegexOptions.Compiled, RegexTimeout);
 
     /// <summary>Applies a previously reviewed plan, including exact form-field removal for field-derived search areas.</summary>
-    public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? readOptions = null) {
+    public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(plan, nameof(plan));
         if (plan.Areas.Count == 0) return (byte[])pdf.Clone();
         string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
@@ -34,7 +34,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return ApplyCore(
             pdf,
             areas,
@@ -56,7 +56,7 @@ internal static partial class PdfRedactionApplier {
         byte[] pdf,
         IEnumerable<PdfRedactionArea> areas,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return ApplyCore(
             pdf,
             areas,
@@ -81,7 +81,7 @@ internal static partial class PdfRedactionApplier {
     internal static byte[] RemoveImagePlacements(
         byte[] pdf,
         IReadOnlyList<PdfImagePlacement> placements,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(placements, nameof(placements));
         if (placements.Count == 0) return pdf.ToArray();
@@ -110,7 +110,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions,
         PdfTextLayoutOptions? layoutOptions,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         RedactionMutationScope mutationScope,
         bool paintMarks,
         PdfMutationOperation mutationOperation,
@@ -165,7 +165,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return Apply(ReadStream(stream, nameof(stream)), areas, applyOptions, layoutOptions, readOptions);
     }
 
@@ -178,7 +178,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         WriteOutput(outputStream, Apply(pdf, areas, applyOptions, layoutOptions, readOptions));
     }
 
@@ -191,7 +191,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         byte[] redacted = Apply(File.ReadAllBytes(inputPath), areas, applyOptions, layoutOptions, readOptions);
@@ -206,7 +206,7 @@ internal static partial class PdfRedactionApplier {
         IEnumerable<PdfRedactionArea> areas,
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         return Apply(File.ReadAllBytes(inputPath), areas, applyOptions, layoutOptions, readOptions);
     }

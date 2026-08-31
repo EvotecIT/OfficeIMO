@@ -7,7 +7,64 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.3 contains an intentional PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.3: one PDF load and semantic read contract
+
+The PDF lifecycle now uses `PdfDocument.Load(...)` for existing bytes, files, and
+streams. `PdfDocument.Read(...)` is the only semantic reconstruction entry point
+and returns `PdfDocumentReadResult`. The old `PdfDocument.Open(...)`, public
+`PdfDocument.Reader`, `pdf.Read.*`, `PdfLogicalDocument`, and public static
+logical-document loaders were removed rather than retained as parallel APIs.
+
+```csharp
+// OfficeIMO 3.2
+PdfDocument pdf = PdfDocument.Open("input.pdf");
+PdfLogicalDocument logical = pdf.Read.Logical();
+
+// OfficeIMO 3.3
+PdfDocument pdf = PdfDocument.Load("input.pdf");
+PdfDocumentReadResult result = pdf.Read();
+
+foreach (PdfLogicalPage page in result.Pages) {
+    foreach (PdfLogicalParagraph paragraph in page.Paragraphs) {
+        Console.WriteLine(paragraph.Text);
+    }
+
+    foreach (PdfLogicalTable table in page.Tables) {
+        Console.WriteLine($"Page {page.PageNumber}: {table.Rows.Count} rows");
+    }
+}
+```
+
+`PdfReadOptions` now controls semantic reconstruction. Parser limits,
+credentials, artifact-text inclusion, and source buffering moved to
+`PdfLoadOptions`, which is supplied to `Load(...)`. The default semantic profile
+is `PdfReadProfile.Structured`. `PdfReadProfile.Fast` omits optional
+document-wide enrichment but returns the same `PdfDocumentReadResult`; it is not
+a second logical model.
+
+| OfficeIMO 3.2 | OfficeIMO 3.3 |
+| --- | --- |
+| `PdfDocument.Open(...)` | `PdfDocument.Load(...)` |
+| parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
+| `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
+| `PdfLogicalDocument` | `PdfDocumentReadResult` |
+| `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
+| `pdf.Read.TextByPage()` | project `result.Pages[*].TextBlocks` for the application's text shape |
+| `pdf.Read.Images(...)` | `pdf.Images.Extract(...)` |
+| `pdf.Read.ImagePlacements(...)` | `pdf.Images.Placements(...)` |
+| `pdf.Read.Fonts(...)` / `pdf.Read.RawStructure(...)` | `pdf.Resources.Fonts(...)` / `pdf.Resources.RawStructure(...)` |
+| `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
+| `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
+| `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.ParagraphContinuations(...)` | `result.GetParagraphContinuationGroups(...)` |
+| `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
+
+Page-local `page.Tables`, `page.Paragraphs`, `page.Headings`, and the other
+logical collections remain available. `Analyze()` continues to report PDF
+health, preflight, and rewrite safety; it does not build the semantic document
+model and is not an alternative to `Read()`.
 
 ## OfficeIMO 3.2: Reader schema version 7 and shared format enums
 
@@ -775,11 +832,11 @@ The 3.1 PDF adapters use destination-shaped names for general conversion and exp
 
 Excel remains explicitly table-shaped because its PDF adapter recovers detected tables rather than arbitrary page content. Keep using `PdfExcelTableImportOptions`, `PdfExcelTableImportReport`, `PdfExcelTableImportResult`, `ImportTablesToExcelDocument`, and `SaveTablesAsExcel`.
 
-PowerPoint behavior broadens in 3.1: an opened `PdfDocument` now reconstructs supported text, detected tables, safe vector primitives, and images as editable slide objects by default. `PdfPowerPointImportOptions.Mode` defaults to `Auto`, which resolves an opened PDF to `EditableContent` and an already reduced `PdfLogicalDocument` to `EditableTables`. This intentionally changes the no-options behavior of `ToPowerPointPresentation*`, `SaveAsPowerPoint*`, and the opened-PDF-to-ODP bridge. Use `PdfPowerPointImportOptions.CreateVisualPages()` to retain the previous one-rendered-page-image-per-slide behavior. Use `CreateHybrid()` for visual pages with editable table overlays or `CreateEditableTables()` for detected tables only. None of these profiles claims recovery of original themes, masters, charts, groups, animations, notes, or authoring intent.
+PowerPoint behavior broadens in 3.1: an opened `PdfDocument` now reconstructs supported text, detected tables, safe vector primitives, and images as editable slide objects by default. `PdfPowerPointImportOptions.Mode` defaults to `Auto`, which resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`. This intentionally changes the no-options behavior of `ToPowerPointPresentation*`, `SaveAsPowerPoint*`, and the opened-PDF-to-ODP bridge. Use `PdfPowerPointImportOptions.CreateVisualPages()` to retain the previous one-rendered-page-image-per-slide behavior. Use `CreateHybrid()` for visual pages with editable table overlays or `CreateEditableTables()` for detected tables only. None of these profiles claims recovery of original themes, masters, charts, groups, animations, notes, or authoring intent.
 
 Use `PdfWordImportOptions.CreateTablesOnly()` for narrow Word table recovery. PowerPoint table details remain available through `PdfPowerPointConversionReport.TableEntries` when the editable-table profile is selected.
 
-Open a source once with `PdfDocument.Open(...)`. Destination adapters also accept `PdfLogicalDocument` when an application performs custom layout analysis or page selection before conversion. Word and RTF semantic import consume shared `PdfLogicalTextRun` fragments so color, font size, and best-effort bold or italic classification do not need to be reconstructed independently in each adapter.
+Open a source once with `PdfDocument.Load(...)`. Destination adapters also accept `PdfDocumentReadResult` when an application performs custom layout analysis or page selection before conversion. Word and RTF semantic import consume shared `PdfLogicalTextRun` fragments so color, font size, and best-effort bold or italic classification do not need to be reconstructed independently in each adapter.
 
 The common conversion grammar is:
 
@@ -812,7 +869,7 @@ The reverse-route boundaries are:
 | PDF to PowerPoint with `EditableTables` | Detected tables on editable slides | Other page content is reported as omitted |
 | PDF to RTF | Semantic text, lists, page breaks, and detected run styling | Unsupported tables, images, links, and widgets produce loss diagnostics |
 | PDF to HTML | Semantic or positioned review HTML | Neither profile claims browser-clone fidelity for arbitrary PDFs |
-| PDF to Markdown | Logical readable text through `pdf.Read.Markdown(...)` | Portable text rather than visual fidelity |
+| PDF to Markdown | Logical readable text through `pdf.Read().ToMarkdown(...)` | Portable text rather than visual fidelity |
 | PDF to ODT, ODS, or ODP | Composed Word-semantic, Excel-table, or PowerPoint-editable routes | Inspect both conversion stages and their loss reports; logical PDF input remains table-shaped for ODP |
 
 `PdfResourcePolicy.CreateDefault()` is the balanced adapter default: installed and document fonts are available while arbitrary local-file and remote-resource access remains denied. Use `PdfResourcePolicy.CreatePortableDeterministic()` for untrusted or reproducible conversion. Use `PdfResourcePolicy.CreateTrustedHost()` only when the operation intentionally resolves host or remote resources.
@@ -994,7 +1051,7 @@ OpenDocument save methods now return `OdfSaveResult` directly. Replace the disca
 
 Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
 
-The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
+The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfDocumentReadResult` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
 `VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
 limit before opening the package. For trusted documents that intentionally

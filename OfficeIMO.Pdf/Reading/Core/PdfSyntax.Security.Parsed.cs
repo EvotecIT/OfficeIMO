@@ -6,7 +6,7 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo fallback,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(fallback, nameof(fallback));

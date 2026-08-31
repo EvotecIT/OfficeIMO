@@ -13,7 +13,7 @@ internal static partial class PdfIncrementalUpdater {
         byte[] pdf,
         IPdfExternalSigner signer,
         PdfExternalSignatureOptions? options,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(signer, nameof(signer));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();

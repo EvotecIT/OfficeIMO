@@ -157,9 +157,9 @@ public partial class PdfComplianceAnalyzerTests {
         byte[] encryptedBytes = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Authenticated compliance readback."))
             .ToBytes();
-        PdfDocument opened = PdfDocument.Open(
+        PdfDocument opened = PdfDocument.Load(
             encryptedBytes,
-            new PdfReadOptions { Password = "open" });
+            new PdfLoadOptions { Password = "open" });
 
         PdfComplianceProofReport proof = opened.AssessComplianceProof(PdfComplianceProfile.PdfA3B);
 

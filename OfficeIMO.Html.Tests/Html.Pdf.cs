@@ -22,7 +22,7 @@ public sealed class HtmlPdfTests {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
         options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(CreateLogicalSamplePdf()).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options);
 
         Assert.Contains(
             "<body class=\"officeimo-html officeimo-pdf-html officeimo-pdf-semantic customer-shell\"",
@@ -214,7 +214,7 @@ public sealed class HtmlPdfTests {
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
-        PdfCore.PdfFormDataSet exported = PdfCore.PdfDocument.Open(pdf).Forms.ExportData();
+        PdfCore.PdfFormDataSet exported = PdfCore.PdfDocument.Load(pdf).Forms.ExportData();
 
         Assert.Equal(4, info.FormFields.Count);
         Assert.Equal(3, info.FormFields.Count(field => field.IsNoExport));
@@ -631,7 +631,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal("caf\u00E9", renderedField.Value);
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
-        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
     }
 
     [Fact]
@@ -678,7 +678,7 @@ public sealed class HtmlPdfTests {
         Assert.Equal("caf\u00E9", renderedField.Value);
         Assert.NotEqual(renderedField.Value, renderedField.RadioOption);
         Assert.Equal("caf\u00E9", Assert.Single(pdfField.Options).ExportValue);
-        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Open(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("caf\u00E9", Assert.Single(PdfCore.PdfDocument.Load(HtmlConversionDocument.Parse(html).ToPdf()).Forms.ExportData().Fields).Values[0]);
     }
 
     [Fact]
@@ -1054,7 +1054,7 @@ public sealed class HtmlPdfTests {
         };
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile(OfficeVisualThemeKind.TechnicalDocument);
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtml(options);
 
         Assert.Contains("<title>Logical PDF sample</title>", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">", html, StringComparison.Ordinal);
@@ -1082,7 +1082,7 @@ public sealed class HtmlPdfTests {
         };
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtml(options);
 
         Assert.Contains("body.officeimo-pdf-positioned .pdf-page", html, StringComparison.Ordinal);
         Assert.Contains("body.officeimo-pdf-positioned table.pdf-table", html, StringComparison.Ordinal);
@@ -1121,7 +1121,7 @@ public sealed class HtmlPdfTests {
             .H1("Positioned geometry")
             .Table(tableRows, style: tableStyle)
             .ToBytes();
-        PdfCore.PdfLogicalPage baselinePage = PdfCore.PdfLogicalDocument.Load(baselinePdf).Pages[0];
+        PdfCore.PdfLogicalPage baselinePage = PdfCore.PdfDocumentReadResult.Load(baselinePdf).Pages[0];
         PdfCore.PdfLogicalTable baselineTable = Assert.Single(baselinePage.Tables);
         PdfCore.PdfLogicalTextBlock matchingRow = Assert.Single(
             baselinePage.TextBlocks,
@@ -1134,13 +1134,13 @@ public sealed class HtmlPdfTests {
             .Table(tableRows, style: tableStyle)
             .Canvas(canvas => canvas.Text("Ready", outsideX, outsideY, 50D, 18D, fontSize: matchingRow.FontSize))
             .ToBytes();
-        PdfCore.PdfLogicalPage page = PdfCore.PdfLogicalDocument.Load(pdf).Pages[0];
+        PdfCore.PdfLogicalPage page = PdfCore.PdfDocumentReadResult.Load(pdf).Pages[0];
         PdfCore.PdfLogicalTable table = Assert.Single(page.Tables);
         double tableRight = table.Columns[table.Columns.Count - 1].To;
         Assert.Contains(page.TextBlocks, block =>
             block.XStart > tableRight + 1D && block.Text.Contains("Ready", StringComparison.Ordinal));
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(
             PdfHtmlSaveOptions.CreatePositionedReviewProfile());
 
         Assert.Equal(2, CountOccurrences(html, "Ready"));
@@ -1157,7 +1157,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.False(result.Report.HasWarnings);
         Assert.Contains("Logical Heading", result.Value, StringComparison.Ordinal);
@@ -1192,7 +1192,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.Contains("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"PDF outline\"", result.Value, StringComparison.Ordinal);
@@ -1222,7 +1222,7 @@ public sealed class HtmlPdfTests {
             IncludeOutlines = false
         };
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.DoesNotContain("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
         Assert.Equal(3, result.Summary.OutlineCount);
@@ -1236,7 +1236,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options);
 
         Assert.Contains("class=\"pdf-xfa-notice\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-xfa-packet-count=\"2\"", result.Value, StringComparison.Ordinal);
@@ -1264,7 +1264,7 @@ public sealed class HtmlPdfTests {
             MaxEmbeddedImageBytes = 0
         };
 
-        PdfHtmlConversionResult imageResult = PdfCore.PdfLogicalDocument.Load(imagePdf).ToHtmlResult(options);
+        PdfHtmlConversionResult imageResult = PdfCore.PdfDocumentReadResult.Load(imagePdf).ToHtmlResult(options);
         PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
@@ -1272,13 +1272,13 @@ public sealed class HtmlPdfTests {
         Assert.Throws<InvalidOperationException>(() => imageResult.RequireNoLoss());
 
         using var output = new MemoryStream();
-        PdfCore.PdfConversionReport saveReport = PdfCore.PdfLogicalDocument.Load(imagePdf).SaveAsHtml(output, options);
+        PdfCore.PdfConversionReport saveReport = PdfCore.PdfDocumentReadResult.Load(imagePdf).SaveAsHtml(output, options);
         Assert.True(saveReport.IsReadOnly);
         Assert.Throws<InvalidOperationException>(() => saveReport.Clear());
         Assert.True(saveReport.HasLoss);
         Assert.NotEmpty(output.ToArray());
 
-        PdfHtmlConversionResult textResult = PdfCore.PdfLogicalDocument.Load(textPdf).ToHtmlResult(options);
+        PdfHtmlConversionResult textResult = PdfCore.PdfDocumentReadResult.Load(textPdf).ToHtmlResult(options);
 
         Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.False(textResult.Report.HasWarnings);
@@ -1305,7 +1305,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         PdfHtmlConversionResult result = logical.ToHtmlResult(options);
 
         Assert.Equal(2, result.Summary.SourcePageCount);
@@ -1323,7 +1323,7 @@ public sealed class HtmlPdfTests {
             EmitDocumentShell = false
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.DoesNotContain("<!doctype html>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<style>", html, StringComparison.Ordinal);
@@ -1340,7 +1340,7 @@ public sealed class HtmlPdfTests {
             IncludeDefaultStyles = true
         };
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options));
     }
 
     [Fact]
@@ -1349,7 +1349,7 @@ public sealed class HtmlPdfTests {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
         options.IncludeDefaultStyles = false;
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options);
 
         Assert.Contains(".pdf-page {", result.Value, StringComparison.Ordinal);
         Assert.Contains(".pdf-text {", result.Value, StringComparison.Ordinal);
@@ -1375,7 +1375,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("body.officeimo-pdf-positioned figure.pdf-image-placeholder", html, StringComparison.Ordinal);
@@ -1392,7 +1392,7 @@ public sealed class HtmlPdfTests {
             ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
@@ -1412,7 +1412,7 @@ public sealed class HtmlPdfTests {
             })
             .H1("Repeated Page")
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         var options = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
@@ -1436,7 +1436,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.Semantic
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
@@ -1464,7 +1464,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.DoesNotContain("First PDF page", html, StringComparison.Ordinal);
         Assert.Contains("Second PDF page", html, StringComparison.Ordinal);
@@ -1490,7 +1490,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
         Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));
@@ -1510,7 +1510,7 @@ public sealed class HtmlPdfTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Second logical page"))
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
         var options = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.Semantic,
             PageRanges = new[] {
@@ -1532,7 +1532,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:38pt;top:40pt;width:22pt;height:140pt\"", html, StringComparison.Ordinal);
@@ -1547,7 +1547,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:140pt;top:38pt;width:140pt;height:22pt\"", html, StringComparison.Ordinal);
@@ -1567,8 +1567,8 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string semanticHtml = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(semanticOptions);
-        string positionedHtml = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(positionedOptions);
+        string semanticHtml = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(semanticOptions);
+        string positionedHtml = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(positionedOptions);
 
         Assert.DoesNotContain("<a href=\"javascript:", semanticHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", semanticHtml, StringComparison.Ordinal);
@@ -1584,7 +1584,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf).ToHtmlResult(options);
+        PdfHtmlConversionResult result = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options);
 
         Assert.True(result.Summary.HasOpenAction);
         Assert.True(result.Summary.HasCatalogActions);
@@ -1615,7 +1615,7 @@ public sealed class HtmlPdfTests {
 
         try {
             OfficeIMO.Html.HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).SaveAsPdf(pdfPath, new HtmlPdfSaveOptions());
-            PdfCore.PdfLogicalDocument.Load(pdfPath).SaveAsHtml(htmlPath, new PdfHtmlSaveOptions {
+            PdfCore.PdfDocumentReadResult.Load(pdfPath).SaveAsHtml(htmlPath, new PdfHtmlSaveOptions {
                 Profile = PdfHtmlProfile.PositionedReview,
                 IncludeLinkAnnotations = true
             });

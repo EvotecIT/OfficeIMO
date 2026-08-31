@@ -1256,18 +1256,21 @@ foreach (var warning in result.Warnings) {
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("packet.pdf");
-string firstPageText = source.Read.Text("1");
+PdfDocument source = PdfDocument.Load("packet.pdf");
+PdfDocumentReadResult firstPage = source.Read(new PdfReadOptions {
+    PageSelection = PdfPageSelection.Parse("1")
+});
+string firstPageText = string.Join('\n', firstPage.Pages[0].TextBlocks.Select(block => block.Text));
 source.Pages.Extract("1-3").Save("packet-summary.pdf");
 
-PdfDocument.Open("packet.pdf")
+PdfDocument.Load("packet.pdf")
     .MergeWith("appendix.pdf")
     .Pages.Delete("2")
     .Stamp.Text("Reviewed")
     .Save("packet-final.pdf");
 
 PdfAnalysisReport health = PdfDocument
-    .Open("packet-final.pdf")
+    .Load("packet-final.pdf")
     .Analyze();
 
 Console.WriteLine($"Readable: {health.CanRead}; rewrite safe: {health.CanRewrite}");

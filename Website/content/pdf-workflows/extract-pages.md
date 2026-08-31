@@ -34,7 +34,7 @@ Use extraction when the output should contain only a specific subset of pages. T
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("case-file.pdf");
+PdfDocument source = PdfDocument.Load("case-file.pdf");
 PdfPageSelector selection = PdfPageSelector.Parse("1-3,5,last");
 PdfDocument extracted = source.Pages.Extract(selection);
 
