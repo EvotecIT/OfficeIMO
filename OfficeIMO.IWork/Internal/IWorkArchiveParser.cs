@@ -148,7 +148,9 @@ internal static class IWorkArchiveParser {
             offset += infoLength;
             IWorkWireMessage archiveInfo = IWorkProtobuf.Parse(infoBytes, options);
             ulong? identifier = archiveInfo.GetUnsigned(1);
-            if (!identifier.HasValue) throw new InvalidDataException("ArchiveInfo does not declare an object identifier.");
+            if (!identifier.HasValue || archiveInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) {
+                throw new InvalidDataException("ArchiveInfo does not declare a valid object identifier.");
+            }
 
             if (archiveInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)) {
                 throw new InvalidDataException($"ArchiveInfo {identifier.Value} contains malformed MessageInfo entries.");
@@ -167,6 +169,14 @@ internal static class IWorkArchiveParser {
             }
             for (int payloadIndex = 0; payloadIndex < messages.Count; payloadIndex++) {
                 IWorkWireMessage messageInfo = messages[payloadIndex];
+                if (messageInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                    || messageInfo.HasUnexpectedWireKind(2, IWorkWireKind.Varint, IWorkWireKind.Bytes)
+                    || messageInfo.HasUnexpectedWireKind(3, IWorkWireKind.Varint)
+                    || messageInfo.HasUnexpectedWireKind(5, IWorkWireKind.Varint, IWorkWireKind.Bytes)
+                    || messageInfo.HasUnexpectedWireKind(6, IWorkWireKind.Varint, IWorkWireKind.Bytes)) {
+                    throw new InvalidDataException(
+                        $"MessageInfo for object {identifier.Value} contains an invalid wire encoding.");
+                }
                 ulong? rawType = messageInfo.GetUnsigned(1);
                 ulong? rawLength = messageInfo.GetUnsigned(3);
                 if (!rawType.HasValue || rawType.Value > uint.MaxValue) {

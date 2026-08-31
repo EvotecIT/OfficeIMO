@@ -1132,7 +1132,7 @@ public sealed partial class IWorkBoundaryTests {
         if (table.CellCrossesNextOffset) return CreateCrossingBncRow(table.Value);
         int cellOffset = table.WideOffsets ? 4 : 0;
         int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
-            : table.Decimal128HighBit ? 16 : 8;
+            : table.Decimal128HighBit || table.Decimal128Underflow ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
         buffer[cellOffset + 1] = table.Error ? (byte)8
@@ -1143,7 +1143,7 @@ public sealed partial class IWorkBoundaryTests {
             : (byte)2;
         uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.TextValue != null ? 1u << 3
-            : table.Decimal128HighBit ? 1u
+            : table.Decimal128HighBit || table.Decimal128Underflow ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag | (table.HasFormula ? 1u << 9 : 0));
@@ -1152,6 +1152,8 @@ public sealed partial class IWorkBoundaryTests {
             else if (table.Decimal128HighBit) {
                 buffer[cellOffset + 26] = 0x41;
                 buffer[cellOffset + 27] = 0x30;
+            } else if (table.Decimal128Underflow) {
+                buffer[cellOffset + 12] = 1;
             } else {
                 Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
             }
@@ -1476,7 +1478,7 @@ public sealed partial class IWorkBoundaryTests {
             bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
             bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
-            bool completeFormula = false) {
+            bool completeFormula = false, bool decimal128Underflow = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1511,6 +1513,7 @@ public sealed partial class IWorkBoundaryTests {
             MalformedSecondTileRow = malformedSecondTileRow;
             MalformedSecondTileEntry = malformedSecondTileEntry;
             CompleteFormula = completeFormula;
+            Decimal128Underflow = decimal128Underflow;
         }
 
         internal string Name { get; }
@@ -1547,5 +1550,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool MalformedSecondTileRow { get; }
         internal bool MalformedSecondTileEntry { get; }
         internal bool CompleteFormula { get; }
+        internal bool Decimal128Underflow { get; }
     }
 }

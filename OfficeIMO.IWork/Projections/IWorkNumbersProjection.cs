@@ -1003,7 +1003,7 @@ internal static class IWorkNumbersReader {
         string text = coefficient.ToString(CultureInfo.InvariantCulture)
             + "E" + exponent.ToString(CultureInfo.InvariantCulture);
         if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                out double value) || !IsFinite(value)) return null;
+                out double value) || !IsFinite(value) || value == 0d) return null;
         return (buffer[offset + 15] & 0x80) != 0 ? -value : value;
     }
 }

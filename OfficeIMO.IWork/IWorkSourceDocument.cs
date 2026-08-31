@@ -51,11 +51,15 @@ public sealed partial class IWorkSourceDocument {
 
     /// <summary>Opens an iWork file or directory bundle and verifies the expected application kind.</summary>
     public static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
-        IWorkReadOptions? options = null) => OpenPath(path, expectedKind, options);
+        IWorkReadOptions? options = null) {
+        ValidateDocumentKind(expectedKind, nameof(expectedKind));
+        return OpenPath(path, expectedKind, options);
+    }
 
     /// <summary>Opens a ZIP-based iWork stream using the supplied application kind.</summary>
     public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind kind,
         IWorkReadOptions? options = null) {
+        ValidateDocumentKind(kind, nameof(kind));
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
         return Create(package, kind, resolved, expectedKind: kind);
@@ -67,6 +71,11 @@ public sealed partial class IWorkSourceDocument {
     internal IWorkImportReport CreateReport(IWorkProjectionKind projectionKind,
         IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
         IWorkPreviewAsset? preview, int reconstructedItemCount) {
+        if (projectionKind is not (IWorkProjectionKind.EditableReconstruction
+                or IWorkProjectionKind.VisualFallback)) {
+            throw new ArgumentOutOfRangeException(nameof(projectionKind),
+                "The projection kind is not defined.");
+        }
         IWorkArchiveRecord[] allUnsupported = Records.ToArray();
         IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
             ? allUnsupported
@@ -107,6 +116,15 @@ public sealed partial class IWorkSourceDocument {
             throw new InvalidDataException($"The package is {detected}, not the expected {expectedKind.Value} source.");
         }
         return new IWorkSourceDocument(detected, package, records, options);
+    }
+
+    private static void ValidateDocumentKind(IWorkDocumentKind kind, string parameterName) {
+        if (kind is not (IWorkDocumentKind.Pages
+                or IWorkDocumentKind.Numbers
+                or IWorkDocumentKind.Keynote)) {
+            throw new ArgumentOutOfRangeException(parameterName,
+                "The document kind is not a defined iWork application.");
+        }
     }
 
     private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkPackageEntry> entries,
