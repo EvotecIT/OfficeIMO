@@ -48,6 +48,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         internal LegacyXlsTabularDataReader(
             LegacyBiffSource bytes,
             int sheetOffset,
+            int sheetEndOffset,
             IReadOnlyList<string> sharedStrings,
             bool[] dateStyles,
             bool uses1904DateSystem,
@@ -76,6 +77,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 bool indexed = bufferedRowOffsets != null
                     && TryDiscoverIndexed(
                         sheetOffset,
+                        sheetEndOffset,
                         bufferedRowOffsets,
                         out bufferedWorksheetEndOffset,
                         out firstRow,
@@ -149,7 +151,9 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         public override bool IsClosed => _closed;
         public override int RecordsAffected => -1;
 
-        public override bool Read() => ReadCore(_cancellationToken);
+        public override bool Read() => _cancellationToken.CanBeCanceled
+            ? ReadCore(_cancellationToken)
+            : ReadWithoutCancellation();
 
         public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
             try {
@@ -182,6 +186,18 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
+        private bool ReadWithoutCancellation() {
+            ThrowIfClosed();
+            _hasCurrentRow = false;
+            if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                _hasCurrentRow = true;
+                return true;
+            }
+
+            return ReadSourceRow();
+        }
+
         private bool ReadSourceRow() {
             if (_nextRow < 0 || _nextRow > _lastDataRow) return false;
 
@@ -208,6 +224,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 }
                 ReadBufferedCurrentRow(
                     _bufferedBytes,
+                    currentRow,
                     rowStartMarker - 1,
                     rowEnd,
                     ref pendingFormulaOrdinal,
@@ -257,6 +274,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private void ReadBufferedCurrentRow(
             byte[] bytes,
+            int currentRow,
             int rowStart,
             int rowEnd,
             ref int pendingFormulaOrdinal,
@@ -290,6 +308,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 if (!IsCellRecordType(type)) continue;
                 StoreBufferedCellRecord(
                     bytes,
+                    currentRow,
                     type,
                     recordOffset,
                     payloadOffset,
@@ -618,23 +637,30 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private void StoreBufferedCellRecord(
             byte[] bytes,
+            int expectedRow,
             ushort type,
             int recordOffset,
             int payloadOffset,
             int length,
             ref int pendingFormulaOrdinal,
             ref ushort pendingFormulaStyle) {
+            if (length < 6) {
+                throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+            }
+            uint rowAndColumn = BinaryPrimitives.ReadUInt32LittleEndian(
+                bytes.AsSpan(payloadOffset, sizeof(uint)));
+            int row = (ushort)rowAndColumn;
+            if (row != expectedRow) {
+                throw new InvalidDataException(
+                    $"The indexed XLS row span for row {expectedRow} contains a cell record for row {row}.");
+            }
+            int column = (ushort)(rowAndColumn >> 16);
             if (type == (ushort)BiffRecordType.MulRk) {
-                StoreBufferedMulRk(bytes, payloadOffset, length);
+                StoreBufferedMulRk(bytes, payloadOffset, length, column);
                 return;
             }
             if (type == (ushort)BiffRecordType.MulBlank) return;
 
-            if (length < 6) {
-                throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
-            }
-
-            int column = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
             int ordinal = column - _firstColumn;
             if ((uint)ordinal >= (uint)FieldCount) {
                 throw new InvalidDataException(
@@ -712,11 +738,14 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
-        private void StoreBufferedMulRk(byte[] bytes, int payloadOffset, int length) {
+        private void StoreBufferedMulRk(
+            byte[] bytes,
+            int payloadOffset,
+            int length,
+            int firstColumn) {
             if (length < 6) {
                 throw new InvalidDataException("A MULRK record has an invalid payload length.");
             }
-            int firstColumn = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
             int lastColumn = bytes[payloadOffset + length - 2]
                 | bytes[payloadOffset + length - 1] << 8;
             int count = checked(lastColumn - firstColumn + 1);

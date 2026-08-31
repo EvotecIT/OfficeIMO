@@ -28,8 +28,8 @@ Windows, Linux, and macOS results independently.
 
 This lane reads the same hash-pinned 65K fixture through OfficeIMO.CSV,
 ExcelReader.NET 2.3.0, Sep 0.17.0, and Sylvan.Data.Csv 1.4.4. Every method
-decodes and observes all typed fields, then setup rejects any row, cell,
-type, ordering, or payload-checksum mismatch before timing. The run used
+decodes and observes every field as text, then setup rejects any row, cell,
+ordering, character-count, or payload-checksum mismatch before timing. The run used
 .NET 10, `High` priority, eight fixed invocations, twelve warmups, twenty
 retained-outlier iterations, and separate jobs for both 16-logical-processor
 L3 domains on the AMD Ryzen 9 9950X3D2.
@@ -44,8 +44,8 @@ in BenchmarkDotNet's top statistical rank on both; Sylvan joins that rank on
 `0xFFFF`. The observed OfficeIMO means are 23-31% below ExcelReader.NET,
 2-10% below Sep, and 11-23% below Sylvan. OfficeIMO and Sep allocate nearly
 the same managed memory, while ExcelReader.NET and Sylvan allocate about
-1.5 MB more per read. These results apply to this fully observed typed-reader
-contract, not every CSV API or file shape.
+1.5 MB more per read. These results apply to this fully observed decoded-text
+reader contract, not every CSV API or file shape.
 
 Reproduce both topology domains with:
 

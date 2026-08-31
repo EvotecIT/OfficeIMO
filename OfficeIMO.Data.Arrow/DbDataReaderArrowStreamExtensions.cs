@@ -73,20 +73,19 @@ public static partial class DbDataReaderArrowExtensions {
 
         public async ValueTask<RecordBatch?> ReadNextRecordBatchAsync(
             CancellationToken cancellationToken = default) {
-            ObjectDisposedException.ThrowIf(_disposed, this);
-            if (_faulted) {
-                throw new InvalidOperationException(
-                    "The Arrow stream cannot continue after a failed or cancelled read.");
-            }
-            cancellationToken.ThrowIfCancellationRequested();
-            if (_completed) return null;
             if (Interlocked.CompareExchange(ref _readInProgress, 1, 0) != 0) {
                 throw new InvalidOperationException("Arrow stream reads must be sequential.");
             }
 
             bool readAttempted = false;
             try {
+                ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed), this);
+                if (_faulted) {
+                    throw new InvalidOperationException(
+                        "The Arrow stream cannot continue after a failed or cancelled read.");
+                }
                 cancellationToken.ThrowIfCancellationRequested();
+                if (_completed) return null;
                 readAttempted = true;
                 bool hasRow = await _reader.ReadAsync(cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
@@ -125,7 +124,7 @@ public static partial class DbDataReaderArrowExtensions {
         }
 
         public void Dispose() {
-            _disposed = true;
+            Volatile.Write(ref _disposed, true);
         }
     }
 }

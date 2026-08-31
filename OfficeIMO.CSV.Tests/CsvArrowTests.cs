@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Apache.Arrow;
@@ -80,6 +81,23 @@ public sealed class CsvArrowTests {
         await Assert.ThrowsAsync<ObjectDisposedException>(() =>
             stream.ReadNextRecordBatchAsync().AsTask());
         Assert.False(reader.IsClosed);
+    }
+
+    [Fact]
+    public async Task ManagedArrowStreamRejectsOverlapAfterTerminalStateIsPublished() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using IArrowArrayStream stream = reader.OpenArrowStream();
+        Type streamType = stream.GetType();
+        FieldInfo completed = streamType.GetField("_completed", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        FieldInfo readInProgress = streamType.GetField("_readInProgress", BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        completed.SetValue(stream, true);
+        readInProgress.SetValue(stream, 1);
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            stream.ReadNextRecordBatchAsync().AsTask());
+        Assert.Contains("sequential", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -516,7 +516,13 @@ required date32/int64 fields for the date and whole-number columns in this
 fixture. The runner therefore fails closed before timing instead of publishing
 a ratio for non-equivalent work.
 
-The final XLSX, XLS, XLSB, and Arrow measurements used SHA-256
+The final XLS rerun below used SHA-256
+`0D55C592DD8A6BEF096B312FCDF4B5737AE07BD010C69A42246CB18C8C926C4F`
+for `OfficeIMO.Excel.Benchmarks.dll` and
+`0139562CE332F91F715299FA314559320FA72A0BE3B861DAA37417EE8E0912A3`
+for `OfficeIMO.Excel.dll`.
+
+The final XLSX, XLSB, and Arrow measurements used SHA-256
 `4572E9B88A01CE8E3D02123C8C78EB15A6095D9A22710F76743EA919C3D252F2`
 for `OfficeIMO.Excel.Benchmarks.dll`,
 `0BC345371F395BD7B941E06F861CDC77C4D410AEC75BE93A7A9AF856D1A37385`
@@ -562,14 +568,19 @@ domains as the XLSX snapshot above.
 
 | Format | Cache domain | OfficeIMO median | Peer median | Ratio of medians | Paired ratio median (P25-P75) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| XLS vs ExcelReader.NET | `0xFFFF` | 25.794 ms | 27.147 ms | 0.9502 | 0.9643 |
-| XLS vs ExcelReader.NET | `0xFFFF0000` | 22.843 ms | 23.553 ms | 0.9699 | 0.9556 |
-| XLS vs Sylvan | `0xFFFF` | 27.885 ms | 29.507 ms | 0.9450 | 0.9524 (0.9044-1.0063) |
-| XLS vs Sylvan | `0xFFFF0000` | 25.275 ms | 25.967 ms | 0.9734 | 0.9594 (0.9204-1.0175) |
+| XLS vs ExcelReader.NET | `0xFFFF` | 26.737 ms | 27.574 ms | 0.9696 | 0.9806 (0.9360-1.0148) |
+| XLS vs ExcelReader.NET | `0xFFFF0000` | 23.414 ms | 25.095 ms | 0.9330 | 0.9206 (0.9000-0.9567) |
+| XLS vs Sylvan | `0xFFFF` | 26.115 ms | 27.433 ms | 0.9519 | 0.9658 (0.9200-1.0053) |
+| XLS vs Sylvan | `0xFFFF0000` | 23.222 ms | 24.532 ms | 0.9466 | 0.9423 (0.9193-0.9670) |
 | XLSB vs Sylvan | `0xFFFF` | 31.001 ms | 31.081 ms | 0.9974 | 1.0068 (0.9915-1.0152) |
 | XLSB vs Sylvan | `0xFFFF0000` | 30.710 ms | 31.269 ms | 0.9821 | 0.9855 (0.9762-1.0315) |
 
-The indexed BIFF8 path leads every paired XLS row. XLSB is a domain-sensitive
+The indexed BIFF8 path leads every paired XLS row. Its raw medians are 3-7%
+below ExcelReader.NET and 5% below Sylvan after rounding. Under the strict 5%
+classification, both domain-0 rows are ties and both domain-1 rows are
+OfficeIMO wins. Indexed discovery rejects incomplete, noncontiguous, and
+cross-sheet `DBCell` coverage before using the shortcut, while the hot reader
+still verifies every decoded cell's row identity. XLSB is a domain-sensitive
 tie with Sylvan: each library has one lower raw median and both paired
 distributions remain close to parity. The isolated four-library XLSB matrix
 also ranks OfficeIMO first on both domains. It reports 31.96/29.98 ms for
