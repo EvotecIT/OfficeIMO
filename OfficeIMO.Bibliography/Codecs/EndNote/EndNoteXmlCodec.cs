@@ -109,7 +109,8 @@ internal static class EndNoteXmlCodec {
                 cancellationToken.ThrowIfCancellationRequested();
                 string recordNamespace = GetRecordNamespace(item, recordsNamespace, cancellationToken);
                 string? recordPrefix = GetRecordPrefix(item, cancellationToken);
-                writer.WriteStartElement(recordPrefix, "record", recordNamespace);
+                string recordElementName = GetRecordElementName(item, cancellationToken);
+                writer.WriteStartElement(recordPrefix, recordElementName, recordNamespace);
                 WriteRecordAttributes(writer, item, report, cancellationToken);
                 WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
                 writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", OutputType(document.SourceFormat, item)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
@@ -117,13 +118,22 @@ internal static class EndNoteXmlCodec {
                 WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
                 WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace, cancellationToken);
                 foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteIdentifier(writer, identifier, recordNamespace);
-                WriteUrls(writer, item, report, recordNamespace, cancellationToken);
+                bool hasAdditionalUrls = Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace));
+                bool wroteUrls = false;
+                if (!hasAdditionalUrls) {
+                    WriteUrls(writer, item, report, recordNamespace, cancellationToken);
+                    wroteUrls = true;
+                }
                 if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
                 if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", Cancellable(item.Notes, cancellationToken)), recordNamespace);
                 foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
                     if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
                     } else if (field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace)) {
+                        if (!wroteUrls) {
+                            WriteUrls(writer, item, report, recordNamespace, cancellationToken);
+                            wroteUrls = true;
+                        }
                         continue;
                     } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace, cancellationToken) && TryWriteNativeField(writer, field, recordNamespace)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
@@ -155,7 +165,7 @@ internal static class EndNoteXmlCodec {
             int.TryParse(refType.Value.Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int nativeTypeNumber) &&
             nativeTypeNumber != ToEndNoteNumber(item.Type))
             diagnostics.Add(new BibliographyDiagnostic("BIBEND004", BibliographyDiagnosticSeverity.Warning, $"EndNote XML ref-type name '{type}' conflicts with numeric code '{nativeTypeNumber}'.", GetOffset(refType), itemKey: item.Key, field: "ref-type"));
-        if (HasElementMetadata(record)) {
+        if (HasElementMetadata(record) || !string.Equals(record.Name.LocalName, "record", StringComparison.Ordinal)) {
             string recordMetadata = SerializeAttributes(record, cancellationToken);
             limits.AddValue(partial, recordMetadata, GetOffset(record));
             item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, RecordAttributesFieldName, recordMetadata));
@@ -359,6 +369,16 @@ internal static class EndNoteXmlCodec {
     private static string? GetRecordPrefix(BibliographyItem item, CancellationToken cancellationToken) {
         BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
         return field == null ? null : GetCarrierPrefix(field.Value);
+    }
+    private static string GetRecordElementName(BibliographyItem item, CancellationToken cancellationToken) {
+        BibliographyNativeField? field = Cancellable(item.NativeFields, cancellationToken).FirstOrDefault(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, RecordAttributesFieldName, StringComparison.Ordinal));
+        if (field == null) return "record";
+        try {
+            string localName = XElement.Parse(field.Value, LoadOptions.PreserveWhitespace).Name.LocalName;
+            return string.Equals(localName, "record", StringComparison.OrdinalIgnoreCase) ? localName : "record";
+        } catch (XmlException) {
+            return "record";
+        }
     }
     private static string GetCarrierNamespace(string serializedCarrier, string fallback) {
         try { return XElement.Parse(serializedCarrier, LoadOptions.PreserveWhitespace).Name.NamespaceName; } catch (XmlException) { return fallback; }

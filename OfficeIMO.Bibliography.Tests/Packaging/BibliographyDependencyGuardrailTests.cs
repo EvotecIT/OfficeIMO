@@ -14,6 +14,13 @@ public sealed class BibliographyDependencyGuardrailTests {
         Assert.Equal(new[] { "System.Text.Encoding.CodePages", "System.Text.Json" }, packages);
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("OfficeIMO.Word", StringComparison.OrdinalIgnoreCase) >= 0);
         Assert.DoesNotContain(project.Descendants(), element => ((string?)element.Attribute("Include"))?.IndexOf("DocumentFormat.OpenXml", StringComparison.OrdinalIgnoreCase) >= 0);
+
+        XElement jsonReference = Assert.Single(project.Descendants(), element => element.Name.LocalName == "PackageReference" && (string?)element.Attribute("Include") == "System.Text.Json");
+        string? jsonCondition = (string?)jsonReference.Parent?.Attribute("Condition");
+        Assert.Contains("netstandard2.0", jsonCondition, StringComparison.Ordinal);
+        Assert.Contains("net472", jsonCondition, StringComparison.Ordinal);
+        Assert.DoesNotContain("net8.0", jsonCondition, StringComparison.Ordinal);
+        Assert.DoesNotContain("net10.0", jsonCondition, StringComparison.Ordinal);
     }
 
     private static string GetRepositoryRoot() {
