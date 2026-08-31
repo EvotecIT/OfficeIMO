@@ -292,6 +292,9 @@ public sealed partial class PowerPointPresentation {
                 if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
                     return $"Keynote table '{table.Name}' contains an uncached formula that the PPTX owner cannot evaluate.";
                 }
+                if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                    return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
+                }
                 destinationTableCells += tableCells;
                 double fallbackWidth = table.DefaultColumnWidth is > 0
                     ? table.DefaultColumnWidth.Value * table.ColumnCount

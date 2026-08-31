@@ -334,6 +334,9 @@ public partial class WordDocument {
             if (table.RowCount > 32_767 || tableCells > 100_000) {
                 return $"Pages table '{table.Name}' is too large for bounded DOCX table reconstruction.";
             }
+            if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                return $"Pages table '{table.Name}' contains content in a covered merged cell that the DOCX owner cannot preserve.";
+            }
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
@@ -719,6 +722,11 @@ public partial class WordDocument {
         }
 
         internal static bool CanPreserveStart(string? label) {
+            if (!string.IsNullOrWhiteSpace(label)) {
+                string token = MarkerToken(label!.Trim());
+                if (token.All(char.IsLetter)
+                    && token.Any(char.IsUpper) && token.Any(char.IsLower)) return false;
+            }
             WordListLevelKind kind = Classify(label);
             return kind == WordListLevelKind.Bullet || TryParseStart(label, kind, out _);
         }

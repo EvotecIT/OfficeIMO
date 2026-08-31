@@ -109,7 +109,7 @@ public partial class ExcelDocument {
                         }
                         if (table.DefaultColumnWidth is > 0) {
                             double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
-                            sheet.SetDefaultColumnWidth(width);
+                            sheet.SetDefaultColumnWidthExact(width);
                         }
                     }
                 }
@@ -167,6 +167,9 @@ public partial class ExcelDocument {
                 }
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
+                }
+                if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                    return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
                 }
                 if (table.DefaultRowHeight is double rowHeight
                     && (!IsFinite(rowHeight) || rowHeight > 409d

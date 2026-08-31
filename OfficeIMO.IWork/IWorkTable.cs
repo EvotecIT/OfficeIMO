@@ -129,5 +129,19 @@ public sealed class IWorkTable {
         return _cells.TryGetValue(Key(row, column), out IWorkTableCell? cell) ? cell : null;
     }
 
+    internal bool HasPopulatedCoveredMergeCells() {
+        if (MergedRanges.Count == 0) return false;
+        if (Internal.IWorkMergeRangeValidator.HasOverlaps(MergedRanges, ColumnCount)) return true;
+        foreach (IWorkTableMergeRange merge in MergedRanges) {
+            for (int row = merge.FirstRow; row <= merge.LastRow; row++) {
+                for (int column = merge.FirstColumn; column <= merge.LastColumn; column++) {
+                    if (row == merge.FirstRow && column == merge.FirstColumn) continue;
+                    if (_cells.ContainsKey(Key(row, column))) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     private static long Key(int row, int column) => ((long)row << 32) | (uint)column;
 }

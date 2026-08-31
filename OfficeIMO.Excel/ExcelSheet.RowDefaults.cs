@@ -64,14 +64,21 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="width">Default column width in character units. Excel supports values up to 255.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultColumnWidth(double width, bool save = true) {
+        public void SetDefaultColumnWidth(double width, bool save = true) =>
+            SetDefaultColumnWidthCore(width, save, roundToHundredths: true);
+
+        internal void SetDefaultColumnWidthExact(double width, bool save = true) =>
+            SetDefaultColumnWidthCore(width, save, roundToHundredths: false);
+
+        private void SetDefaultColumnWidthCore(double width, bool save,
+            bool roundToHundredths) {
             if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D || width > 255D) {
                 throw new ArgumentOutOfRangeException(nameof(width), "Default column width must be greater than 0 and less than or equal to 255 character units.");
             }
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultColumnWidth = Math.Round(width, 2);
+                sheetFormat.DefaultColumnWidth = roundToHundredths ? Math.Round(width, 2) : width;
                 if (save) {
                     WorksheetRoot.Save();
                 }

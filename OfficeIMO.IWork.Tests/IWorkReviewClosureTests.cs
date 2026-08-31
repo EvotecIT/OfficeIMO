@@ -138,8 +138,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(2, result.Document.Sheets.Count);
         Assert.Equal(1d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
         Assert.Equal(2d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(12.62d, result.Document.Sheets[0].DefaultColumnWidth);
-        Assert.Equal(25.95d, result.Document.Sheets[1].DefaultColumnWidth);
+        Assert.Equal(12.619047619047619d, result.Document.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(25.952380952380953d, result.Document.Sheets[1].DefaultColumnWidth);
         Assert.Empty(result.Document.Sheets[0].GetColumnDefinitions());
         Assert.Empty(result.Document.Sheets[1].GetColumnDefinitions());
     }
