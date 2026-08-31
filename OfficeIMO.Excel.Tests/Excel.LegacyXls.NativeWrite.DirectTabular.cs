@@ -1,6 +1,9 @@
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
+using OfficeIMO.Excel.LegacyXls.Read;
+using OfficeIMO.Excel.LegacyXls.Write;
+using System.Buffers;
 using System.Data;
 using System.Text;
 using System.Threading;
@@ -34,6 +37,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            var readOptions = new ExcelReadOptions();
+            using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))
+            using (var indexedReader = Assert.IsType<LegacyXlsTabularDataReader>(
+                       indexedWorkbook.OpenTable("Data", hasHeaderRow: true, readOptions))) {
+                Assert.True(indexedReader.UsedIndexedDiscovery);
+            }
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(workbook);
             Assert.Equal(4, reader.FieldCount);
             Assert.Equal("Text", reader.GetName(0));
@@ -177,6 +186,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_DirectTabularSave_BoundsCellCacheForWideSparseExtent() {
+            const int rowCount = 4097;
+            const int columnCount = 256;
+            var table = new DataTable("Sparse");
+            for (int column = 0; column < columnCount; column++) {
+                table.Columns.Add("Column" + column, typeof(string));
+            }
+            for (int row = 0; row < rowCount; row++) {
+                table.Rows.Add(table.NewRow());
+            }
+            table.Rows[0][0] = "First";
+            table.Rows[rowCount / 2][columnCount / 2] = "Middle";
+            table.Rows[rowCount - 1][columnCount - 1] = "Last";
+
+            var dataSet = new DataSet();
+            dataSet.Tables.Add(table);
+            using ExcelDocument document = ExcelDocument.Create();
+            document.InsertDataSet(
+                dataSet,
+                createTables: false,
+                includeHeaders: false,
+                includeAutoFilter: false);
+
+            byte[] workbook = document.ToBytes(ExcelFileFormat.Xls);
+
+            Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
+            using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+                workbook,
+                new ExcelReadOptions { HasHeaderRow = false });
+            Assert.Equal(columnCount, reader.FieldCount);
+            int actualRows = 0;
+            while (reader.Read()) {
+                if (actualRows == 0) Assert.Equal("First", reader.GetString(0));
+                if (actualRows == rowCount / 2) Assert.Equal("Middle", reader.GetString(columnCount / 2));
+                if (actualRows == rowCount - 1) Assert.Equal("Last", reader.GetString(columnCount - 1));
+                actualRows++;
+            }
+            Assert.Equal(rowCount, actualRows);
+        }
+
+        [Fact]
+        public void LegacyXls_DirectTabularSave_RejectsNewCellsInPreviouslyEmptyUncachedRows() {
+            const int rowCount = 4097;
+            const int columnCount = 256;
+            var table = new DataTable("MutableSparse");
+            for (int column = 0; column < columnCount; column++) {
+                table.Columns.Add("Column" + column, typeof(string));
+            }
+            for (int row = 0; row < rowCount; row++) {
+                table.Rows.Add(table.NewRow());
+            }
+
+            var dataSet = new DataSet();
+            dataSet.Tables.Add(table);
+            using ExcelDocument document = ExcelDocument.Create();
+            document.InsertDataSet(
+                dataSet,
+                createTables: false,
+                includeHeaders: false,
+                includeAutoFilter: false);
+            var source = new ExcelDirectTabularSource(
+                table.TableName,
+                new EmptyRowMutationSource(rowCount, columnCount),
+                includeHeaders: false);
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => LegacyXlsWriter.TryWriteDirectTabularWorkbook(
+                    document,
+                    source,
+                    CancellationToken.None,
+                    out _));
+
+            Assert.Contains("changed after validation", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void LegacyXls_DirectTabularSave_PreservesTrailingBlankRowAndColumn() {
             var table = new DataTable("Data");
             table.Columns.Add("Id", typeof(int));
@@ -220,6 +305,63 @@ namespace OfficeIMO.Tests {
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
                 document.SaveAsync(destination, ExcelFileFormat.Xls, cancellationToken: cancellation.Token));
             Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
+        public async Task LegacyXls_DirectTabularSave_ObservesCancellationBeforeSharedStringSerialization() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Value");
+            for (int row = 2; row <= 4096; row++) {
+                sheet.CellValue(row, 1, "Unique value " + row);
+            }
+
+            using var cancellation = new CancellationTokenSource();
+            document.Execution.OnTiming = (operation, _) => {
+                if (operation == "Save.Xls.Direct.ExtractCells") cancellation.Cancel();
+            };
+            using var destination = new MemoryStream();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                document.SaveAsync(destination, ExcelFileFormat.Xls, cancellationToken: cancellation.Token));
+            Assert.Equal(0, destination.Length);
+        }
+
+        [Fact]
+        public void LegacyXls_DirectTabularSave_ClearsPooledCellCachesBeforeReturningThem() {
+            var kindPool = new RetainingArrayPool<byte>();
+            var payloadPool = new RetainingArrayPool<ulong>();
+            byte[] kinds = kindPool.Rent(4);
+            ulong[] payloads = payloadPool.Rent(4);
+            for (int index = 0; index < kinds.Length; index++) kinds[index] = 0xa5;
+            for (int index = 0; index < payloads.Length; index++) payloads[index] = 0xa5a5a5a5a5a5a5a5UL;
+
+            LegacyXlsWriter.ClearAndReturnDirectCellCaches(kinds, payloads, kindPool, payloadPool);
+
+            Assert.All(kinds, value => Assert.Equal((byte)0, value));
+            Assert.All(payloads, value => Assert.Equal(0UL, value));
+            Assert.Same(kinds, kindPool.Returned.Single());
+            Assert.Same(payloads, payloadPool.Returned.Single());
+        }
+
+        [Fact]
+        public void LegacyXls_DirectTabularSave_ClearsReservedWritesBeyondLogicalLength() {
+            var pool = new RetainingArrayPool<byte>();
+            var stream = new LegacyXlsWriter.DirectTabularWorkbookStream(64, pool);
+            byte[] firstBuffer = stream.Buffer;
+            stream.WriteByte(0x11);
+            firstBuffer[32] = 0xa5;
+            stream.RegisterDirectWriteUpperBound(33);
+
+            stream.EnsureCapacity(128);
+            Assert.Equal((byte)0xa5, stream.Buffer[32]);
+            byte[] expandedBuffer = stream.Buffer;
+            stream.Dispose();
+
+            Assert.Equal((byte)0, firstBuffer[32]);
+            Assert.Equal((byte)0, expandedBuffer[32]);
+            Assert.Contains(firstBuffer, pool.Returned);
+            Assert.Contains(expandedBuffer, pool.Returned);
         }
 
         [Fact]
@@ -310,6 +452,54 @@ namespace OfficeIMO.Tests {
                 rowCount++;
             }
             Assert.Equal(255, rowCount);
+        }
+
+        private sealed class EmptyRowMutationSource : IExcelSheetTabularRowSource {
+            private readonly int _targetRow;
+            private readonly int _targetColumn;
+            private int _targetReads;
+
+            internal EmptyRowMutationSource(int rowCount, int columnCount) {
+                RowCount = rowCount;
+                ColumnCount = columnCount;
+                _targetRow = rowCount / 2;
+                _targetColumn = columnCount / 2;
+            }
+
+            public int ColumnCount { get; }
+
+            public int RowCount { get; }
+
+            public string GetColumnName(int index) => "Column" + index;
+
+            public Type GetColumnType(int index) => typeof(string);
+
+            public object? GetValue(int rowIndex, int columnIndex) {
+                if (rowIndex != _targetRow || columnIndex != _targetColumn) return null;
+                return Interlocked.Increment(ref _targetReads) == 1 ? null : "Late mutation";
+            }
+
+            public bool TryGetBufferedRow(int rowIndex, out object?[]? values) {
+                values = null;
+                return false;
+            }
+
+            public bool TryGetFlatValues(out object?[] values, out int columnCount) {
+                values = Array.Empty<object?>();
+                columnCount = 0;
+                return false;
+            }
+        }
+
+        private sealed class RetainingArrayPool<T> : ArrayPool<T> {
+            internal List<T[]> Returned { get; } = new();
+
+            public override T[] Rent(int minimumLength) => new T[minimumLength];
+
+            public override void Return(T[] array, bool clearArray = false) {
+                if (clearArray) Array.Clear(array, 0, array.Length);
+                Returned.Add(array);
+            }
         }
     }
 }

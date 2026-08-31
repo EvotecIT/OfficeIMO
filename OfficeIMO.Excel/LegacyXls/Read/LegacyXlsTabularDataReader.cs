@@ -6,6 +6,7 @@ using System.Data.Common;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using static OfficeIMO.Excel.LegacyXls.Read.LegacyXlsTabularWorkbook;
 
 namespace OfficeIMO.Excel.LegacyXls.Read {
@@ -21,10 +22,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly bool _uses1904DateSystem;
         private readonly ExcelReadOptions _options;
         private readonly CancellationToken _cancellationToken;
+        private CancellationToken _activeReadCancellationToken;
         private readonly string[] _headers;
         private readonly Dictionary<string, int> _ordinals;
         private readonly ValueKind[] _kinds;
         private readonly double[] _numbers;
+        private readonly DateTime[] _dates;
         private readonly bool[] _booleans;
         private readonly string?[] _strings;
         private readonly Type[] _columnTypes;
@@ -34,6 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly int _lastDataRow;
         private int[]? _bufferedRowOffsets;
         private readonly int _bufferedWorksheetEndOffset;
+        private readonly bool _usedIndexedDiscovery;
         private int _position;
         private int _nextRow;
         private int _schemaRowIndex;
@@ -44,6 +48,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         internal LegacyXlsTabularDataReader(
             LegacyBiffSource bytes,
             int sheetOffset,
+            int sheetEndOffset,
             IReadOnlyList<string> sharedStrings,
             bool[] dateStyles,
             bool uses1904DateSystem,
@@ -57,21 +62,41 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             _uses1904DateSystem = uses1904DateSystem;
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _cancellationToken = cancellationToken;
+            _activeReadCancellationToken = cancellationToken;
 
             int[]? bufferedRowOffsets = _bufferedBytes != null
                 ? ArrayPool<int>.Shared.Rent(ushort.MaxValue + 1)
                 : null;
-            int bufferedWorksheetEndOffset;
+            int bufferedWorksheetEndOffset = -1;
+            int firstRow = -1;
+            int lastRow = -1;
+            int firstColumn = 0;
+            int lastColumn = -1;
+            Dictionary<int, string?>? headerValues = null;
             try {
-                Discover(
-                    sheetOffset,
-                    bufferedRowOffsets,
-                    out bufferedWorksheetEndOffset,
-                    out int firstRow,
-                    out int lastRow,
-                    out int firstColumn,
-                    out int lastColumn,
-                    out Dictionary<int, string?>? headerValues);
+                bool indexed = bufferedRowOffsets != null
+                    && TryDiscoverIndexed(
+                        sheetOffset,
+                        sheetEndOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                if (!indexed) {
+                    Discover(
+                        sheetOffset,
+                        bufferedRowOffsets,
+                        out bufferedWorksheetEndOffset,
+                        out firstRow,
+                        out lastRow,
+                        out firstColumn,
+                        out lastColumn,
+                        out headerValues);
+                }
+                _usedIndexedDiscovery = indexed;
                 _bufferedRowOffsets = bufferedRowOffsets;
                 _bufferedWorksheetEndOffset = bufferedWorksheetEndOffset;
                 _firstColumn = firstColumn;
@@ -102,6 +127,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 _kinds = new ValueKind[fieldCount];
                 _numbers = new double[fieldCount];
+                _dates = new DateTime[fieldCount];
                 _booleans = new bool[fieldCount];
                 _strings = new string?[fieldCount];
                 _columnTypes = CreateObjectColumnTypes(fieldCount);
@@ -118,15 +144,50 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         public override object this[int ordinal] => GetValue(ordinal);
         public override object this[string name] => GetValue(GetOrdinal(name));
+        internal bool UsedIndexedDiscovery => _usedIndexedDiscovery;
         public override int Depth => 0;
         public override int FieldCount => _headers.Length;
         public override bool HasRows => _firstDataRow >= 0 && _firstDataRow <= _lastDataRow;
         public override bool IsClosed => _closed;
         public override int RecordsAffected => -1;
 
-        public override bool Read() {
+        public override bool Read() => _cancellationToken.CanBeCanceled
+            ? ReadCore(_cancellationToken)
+            : ReadWithoutCancellation();
+
+        public override Task<bool> ReadAsync(CancellationToken cancellationToken) {
+            try {
+                return Task.FromResult(ReadCore(cancellationToken));
+            } catch (OperationCanceledException exception) when (exception.CancellationToken.IsCancellationRequested) {
+                return Task.FromCanceled<bool>(exception.CancellationToken);
+            } catch (Exception exception) {
+                return Task.FromException<bool>(exception);
+            }
+        }
+
+        private bool ReadCore(CancellationToken cancellationToken) {
             ThrowIfClosed();
             _cancellationToken.ThrowIfCancellationRequested();
+            cancellationToken.ThrowIfCancellationRequested();
+            _activeReadCancellationToken = cancellationToken;
+            try {
+                _hasCurrentRow = false;
+                if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
+                    LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
+                    _hasCurrentRow = true;
+                    return true;
+                }
+
+                bool result = ReadSourceRow();
+                ThrowIfReadCancellationRequested();
+                return result;
+            } finally {
+                _activeReadCancellationToken = _cancellationToken;
+            }
+        }
+
+        private bool ReadWithoutCancellation() {
+            ThrowIfClosed();
             _hasCurrentRow = false;
             if (_schemaRows != null && _schemaRowIndex < _schemaRows.Count) {
                 LoadBufferedRow(_schemaRows[_schemaRowIndex++]);
@@ -163,6 +224,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 }
                 ReadBufferedCurrentRow(
                     _bufferedBytes,
+                    currentRow,
                     rowStartMarker - 1,
                     rowEnd,
                     ref pendingFormulaOrdinal,
@@ -212,11 +274,12 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private void ReadBufferedCurrentRow(
             byte[] bytes,
+            int currentRow,
             int rowStart,
             int rowEnd,
             ref int pendingFormulaOrdinal,
             ref ushort pendingFormulaStyle) {
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             _position = rowStart;
             while (_position < rowEnd) {
                 int recordOffset = _position;
@@ -245,6 +308,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 if (!IsCellRecordType(type)) continue;
                 StoreBufferedCellRecord(
                     bytes,
+                    currentRow,
                     type,
                     recordOffset,
                     payloadOffset,
@@ -291,7 +355,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             bool sawEof = false;
             int pendingHeaderColumn = -1;
             int previousCellRow = -1;
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             bufferedWorksheetEndOffset = -1;
             headerValues = null;
 
@@ -573,24 +637,35 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private void StoreBufferedCellRecord(
             byte[] bytes,
+            int expectedRow,
             ushort type,
             int recordOffset,
             int payloadOffset,
             int length,
             ref int pendingFormulaOrdinal,
             ref ushort pendingFormulaStyle) {
+            if (length < 6) {
+                throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
+            }
+            uint rowAndColumn = BinaryPrimitives.ReadUInt32LittleEndian(
+                bytes.AsSpan(payloadOffset, sizeof(uint)));
+            int row = (ushort)rowAndColumn;
+            if (row != expectedRow) {
+                throw new InvalidDataException(
+                    $"The indexed XLS row span for row {expectedRow} contains a cell record for row {row}.");
+            }
+            int column = (ushort)(rowAndColumn >> 16);
             if (type == (ushort)BiffRecordType.MulRk) {
-                StoreBufferedMulRk(bytes, payloadOffset, length);
+                StoreBufferedMulRk(bytes, payloadOffset, length, column);
                 return;
             }
             if (type == (ushort)BiffRecordType.MulBlank) return;
 
-            if (length < 6) {
-                throw TruncatedCell(new RecordSlice(type, recordOffset, payloadOffset, length));
-            }
-
-            int column = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
             int ordinal = column - _firstColumn;
+            if ((uint)ordinal >= (uint)FieldCount) {
+                throw new InvalidDataException(
+                    $"The XLS row contains column {column} outside its discovered schema.");
+            }
             ushort style = (ushort)(bytes[payloadOffset + 4] | bytes[payloadOffset + 5] << 8);
             switch ((BiffRecordType)type) {
                 case BiffRecordType.Blank:
@@ -648,8 +723,13 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             int count = checked(lastColumn - firstColumn + 1);
             int expectedLength = checked(4 + count * 6 + 2);
             if (record.Length != expectedLength) throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            int firstOrdinal = firstColumn - _firstColumn;
+            if (firstOrdinal < 0 || firstOrdinal > FieldCount - count) {
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
+            }
             for (int index = 0; index < count; index++) {
-                int ordinal = firstColumn + index - _firstColumn;
+                int ordinal = firstOrdinal + index;
                 int cellOffset = payload + 4 + index * 6;
                 StoreNumber(
                     ordinal,
@@ -658,10 +738,26 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
         }
 
-        private void StoreBufferedMulRk(byte[] bytes, int payloadOffset, int length) {
-            int firstColumn = bytes[payloadOffset + 2] | bytes[payloadOffset + 3] << 8;
-            int count = (length - 6) / 6;
+        private void StoreBufferedMulRk(
+            byte[] bytes,
+            int payloadOffset,
+            int length,
+            int firstColumn) {
+            if (length < 6) {
+                throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            }
+            int lastColumn = bytes[payloadOffset + length - 2]
+                | bytes[payloadOffset + length - 1] << 8;
+            int count = checked(lastColumn - firstColumn + 1);
+            int expectedLength = checked(4 + count * 6 + 2);
+            if (length != expectedLength) {
+                throw new InvalidDataException("A MULRK record has an invalid payload length.");
+            }
             int ordinal = firstColumn - _firstColumn;
+            if (ordinal < 0 || ordinal > FieldCount - count) {
+                throw new InvalidDataException(
+                    $"The XLS row contains columns {firstColumn}..{lastColumn} outside its discovered schema.");
+            }
             int cellOffset = payloadOffset + 4;
             for (int index = 0; index < count; index++, ordinal++, cellOffset += 6) {
                 StoreNumber(
@@ -740,12 +836,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, ushort style) {
+            DateTime date = default;
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && style < _dateStyles.Length
                 && _dateStyles[style]
-                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out _);
+                && LegacyXlsDateSerialConverter.TryConvert(number, _uses1904DateSystem, out date);
             _kinds[ordinal] = isDate ? ValueKind.Date : ValueKind.Number;
             _numbers[ordinal] = number;
+            if (isDate) {
+                _dates[ordinal] = date;
+            }
         }
 
         private string ReadLabel(RecordSlice record) {
@@ -779,9 +879,19 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private void CheckCancellation() {
-            if (!_cancellationToken.CanBeCanceled) return;
+            if (!CanCancelCurrentRead) return;
             if ((++_recordsSinceCancellationCheck & 1023) == 0) {
-                _cancellationToken.ThrowIfCancellationRequested();
+                ThrowIfReadCancellationRequested();
+            }
+        }
+
+        private bool CanCancelCurrentRead =>
+            _cancellationToken.CanBeCanceled || _activeReadCancellationToken.CanBeCanceled;
+
+        private void ThrowIfReadCancellationRequested() {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_activeReadCancellationToken != _cancellationToken) {
+                _activeReadCancellationToken.ThrowIfCancellationRequested();
             }
         }
 

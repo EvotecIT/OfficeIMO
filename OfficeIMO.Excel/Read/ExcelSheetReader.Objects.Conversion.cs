@@ -799,14 +799,15 @@ namespace OfficeIMO.Excel {
             }
 
             var aliases = new List<string>();
+            object[] attributes = Attribute.GetCustomAttributes(propertyInfo, inherit: true);
 
-            var displayName = propertyInfo.GetCustomAttribute<DisplayNameAttribute>(inherit: true);
+            var displayName = attributes.OfType<DisplayNameAttribute>().FirstOrDefault();
             YieldIfUnique(displayName?.DisplayName, aliases);
 
-            var dataMember = propertyInfo.GetCustomAttribute<DataMemberAttribute>(inherit: true);
+            var dataMember = attributes.OfType<DataMemberAttribute>().FirstOrDefault();
             YieldIfUnique(dataMember?.Name, aliases);
 
-            var excelColumn = propertyInfo.GetCustomAttribute<ExcelColumnAttribute>(inherit: true);
+            var excelColumn = attributes.OfType<ExcelColumnAttribute>().FirstOrDefault();
             if (excelColumn != null) {
                 YieldIfUnique(excelColumn.Name, aliases);
                 foreach (string alias in excelColumn.Aliases) {

@@ -9,6 +9,28 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
 
+## OfficeIMO 3.2: aggregate Reader legacy-format registrations
+
+`AddAllOfficeIMOHandlers()` now includes safe legacy-word and legacy-spreadsheet handlers. Applications that already register handlers for extensions such as `.wpd`, `.wps`, `.wk1`, or `.wq1` must opt out of the corresponding preset family to avoid an extension conflict, then add their application-owned registration:
+
+```csharp
+new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+        IncludeLegacyWord = false,
+        IncludeLegacySpreadsheet = false
+    })
+    .AddHandler(applicationLegacyWordHandler)
+    .AddHandler(applicationLegacySpreadsheetHandler);
+```
+
+Either flag can be disabled independently. Both default to `true`.
+
+## OfficeIMO 3.2: Reader capability schema 5
+
+Reader capability descriptors and manifests now advertise `officeimo.reader.capability` schema version `5`. The new optional `defaultMaxInputBytesByExtension` map lets one handler publish different default input limits for the extensions it owns; the existing handler-wide `defaultMaxInputBytes` remains the fallback.
+
+Hosts that require an exact capability schema version must accept version `5` before upgrading OfficeIMO. Update generated clients or manifest validators to read `defaultMaxInputBytesByExtension` as a string-to-integer map, continue using `defaultMaxInputBytes` when the map is absent or has no entry for the selected extension, and tolerate the new field when it is not needed. A host pinned to schema version `4` will reject manifests produced by the upgraded Reader until that gate is updated.
+
 ## OfficeIMO 3.2: Reader schema version 7 and shared format enums
 
 `OfficeDocumentReadResult` now defaults to schema version 7. Version 7 adds `ReaderInputKind.Opml` (`23`) and `ReaderInputKind.DocBook` (`24`) so serialized Reader results can retain those source formats. Applications that validate `schemaVersion`, use the packaged JSON Schema, generate transport bindings, or switch exhaustively over `ReaderInputKind` must accept version 7 and handle the two new values. Load the current schema with `OfficeDocumentReadResultSchema.GetJsonSchema()` instead of pinning the version 5 or 6 artifact.

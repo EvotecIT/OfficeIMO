@@ -18,6 +18,7 @@ internal static partial class DocumentReaderEngine {
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
             ResolveStreamMaxInputBytes(logicalName, effective, stream.CanSeek),
+            ResolveStreamInputLimitProbe(logicalName, effective),
             cancellationToken,
             out bool ownsReadStream);
         try {

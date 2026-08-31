@@ -57,9 +57,9 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 
 | Surface | Current repository coverage |
 | --- | ---: |
-| Coordinated source packages | 98 |
-| Documented package, tool, and example projects below | 105 |
-| Native format, foundation, and shared-service packages | 28 |
+| Coordinated source packages | 101 |
+| Documented package, tool, and example projects below | 108 |
+| Native format, foundation, and shared-service packages | 29 |
 | Conversion and cloud bridge packages | 36 |
 | Unified Reader packages | 29 |
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
@@ -96,6 +96,22 @@ Every checked item below is implemented today. Detailed behavior, examples, and 
 - [x] Reproducible, output-validated identification, decode, encode, resize, and placement-optimization benchmarks with opt-in library comparisons isolated from runtime packages
 
 _Dependency footprint:_ zero third-party runtime dependencies.
+
+#### [OfficeIMO.Data.Arrow](OfficeIMO.Data.Arrow/README.md)
+
+- [x] Bounded synchronous and asynchronous Apache Arrow record batches from any forward-only `DbDataReader`
+- [x] Native Boolean, numeric, decimal, temporal, GUID, binary, and text arrays with explicit unsupported-type policy
+- [x] Shared adapter for OfficeIMO Excel, CSV, and ordinary ADO.NET providers without adding Arrow to their runtime graphs
+
+_Dependency footprint:_ `OfficeIMO.Core` and Apache.Arrow; Excel and CSV remain independently usable.
+
+#### [OfficeIMO.Data.Generators](OfficeIMO.Data.Generators/README.md)
+
+- [x] Compile-time `RowMapper<T>` configuration shared by Excel, CSV, and other `DbDataReader` sources
+- [x] Primary column names, aliases, inherited writable properties, and build diagnostics for unsupported model shapes
+- [x] Reflection-free generated mapping validated in a NativeAOT consumer
+
+_Dependency footprint:_ build-time Roslyn analyzer only; no generator assembly is deployed with the application.
 
 #### [OfficeIMO.Drawing.HarfBuzz](OfficeIMO.Drawing.HarfBuzz/README.md)
 
@@ -353,6 +369,16 @@ _Dependency footprint:_ only `OfficeIMO.Core`; no Asciidoctor process or parser 
 
 _Dependency footprint:_ only `OfficeIMO.Core`; no TeX runtime, compiler, or parser dependency.
 
+#### [OfficeIMO.Bibliography](OfficeIMO.Bibliography/README.md)
+
+- [x] Format-neutral citation keys, item kinds, contributors, dates, identifiers, publication fields, keywords, notes, and ordered native extensions
+- [x] Source-preserving read, edit, deterministic write, and reopen workflows for BibTeX/BibLaTeX, CSL JSON, RIS, NBIB/MEDLINE, and EndNote XML
+- [x] Exact unchanged text and loaded-byte output, plus safe same-format unknown-field preservation after edits
+- [x] Cross-format conversion reports with strict rejection of approximated or omitted data
+- [x] Bounded file, stream, text, sync, and async APIs with cancellation and inert XML/TeX handling
+
+_Dependency footprint:_ `System.Text.Json` and `System.Text.Encoding.CodePages` on compatibility targets; no dependency on another OfficeIMO package, Word, Open XML, TeX, EndNote, rendering, or network clients.
+
 #### [OfficeIMO.Opml](OfficeIMO.Opml/README.md)
 
 - [x] OPML 1.0/2.0 create, read, edit, validate, convert, and deterministic write
@@ -507,6 +533,14 @@ _Dependency footprint:_ only OfficeIMO ADF and Markdown plus platform HTTP and `
 
 _Dependency footprint:_ OfficeIMO Word, HTML, and Drawing plus the Open XML SDK already used by Word; no separate conversion engine.
 
+#### [OfficeIMO.Word.Legacy](OfficeIMO.Word.Legacy/README.md)
+
+- [x] Read-only bounded adapters for WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Microsoft Works/Write, and selected Word for DOS profiles
+- [x] Structured or salvage quality, explicit loss reports, inert active content, and normal editable `WordDocument` output
+- [x] DOCX and plain-text output directly, with ODT, HTML, Markdown, and PDF through the existing Word converter packages
+
+_Dependency footprint:_ only OfficeIMO Core and Word; no native office application, process execution, or third-party parser runtime.
+
 #### [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown/README.md)
 
 - [x] Word to GitHub-friendly Markdown with headings, lists, tasks, tables, images, links, code, and footnotes
@@ -555,6 +589,14 @@ _Dependency footprint:_ OfficeIMO Word and GoogleWorkspace plus `System.Text.Jso
 - [x] Canonical CSV parsing, schema, compression, and writing options with no duplicate parser
 
 _Dependency footprint:_ only OfficeIMO Excel and CSV packages.
+
+#### [OfficeIMO.Excel.Legacy](OfficeIMO.Excel.Legacy/README.md)
+
+- [x] Read-only bounded adapters for Lotus 1-2-3, Quattro Pro, Multiplan, and selected Microsoft Works spreadsheet profiles
+- [x] Structured WK record recovery plus explicit salvage, cached-formula, name, chart-metadata, and loss reporting
+- [x] XLSX output through the normal workbook, with ODS, CSV, HTML, and PDF through the existing Excel converter packages
+
+_Dependency footprint:_ only OfficeIMO Core and Excel; macros, embedded objects, and external connections stay inert.
 
 #### [OfficeIMO.Excel.Html](OfficeIMO.Excel.Html/README.md)
 
@@ -822,16 +864,18 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Email`, `OfficeIMO.M
 #### [OfficeIMO.Reader.Word](OfficeIMO.Reader.Word/README.md)
 
 - [x] DOCX/DOCM and legacy DOC extraction through the owning Word engine
+- [x] Optional legacy-word handler over `OfficeIMO.Word.Legacy`, without duplicating parsing or conversion
 - [x] Rich headings, tables, images, metadata, diagnostics, and password-aware detection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Word`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Word`, and `OfficeIMO.Word.Legacy`.
 
 #### [OfficeIMO.Reader.Excel](OfficeIMO.Reader.Excel/README.md)
 
 - [x] XLSX/XLSM/XLSB and legacy XLS extraction through the owning Excel engine
+- [x] Optional legacy-spreadsheet handler over `OfficeIMO.Excel.Legacy`, without duplicating parsing or conversion
 - [x] Rich workbook, table, image, metadata, diagnostic, and password-aware projection
 
-_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Core`.
+_Dependency footprint:_ `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, `OfficeIMO.Excel.Legacy`, and `OfficeIMO.Core`.
 
 #### [OfficeIMO.Reader.PowerPoint](OfficeIMO.Reader.PowerPoint/README.md)
 

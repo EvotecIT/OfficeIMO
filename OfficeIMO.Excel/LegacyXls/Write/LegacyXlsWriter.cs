@@ -35,17 +35,21 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan? directPlan)) {
+            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
+            using (directPlan) {
+                ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
-            DirectTabularWorkbookStream workbookStream = BuildDirectTabularWorkbookStream(document, sheet, directPlan);
-            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
-            workbookBytes = BuildCompoundFile(document, workbookStream);
-            ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
-            return true;
+                using (DirectTabularWorkbookStream workbookStream =
+                       BuildDirectTabularWorkbookStream(document, sheet, directPlan)) {
+                    ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
+                    workbookBytes = BuildCompoundFile(document, workbookStream);
+                    ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
+                    return true;
+                }
+            }
         }
 
         private static void ReportDirectWriteTiming(
@@ -77,13 +81,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             byte[] buffer = workbookStream.Buffer;
-            int length = workbookStream.Length;
+            int length = checked((int)workbookStream.Length);
             return BuildCompoundFile(
                 document,
                 new OfficeCompoundStream(
                     GetWorkbookStreamName(sourceCompoundFile: null),
-                    length,
-                    () => new MemoryStream(buffer, 0, length, writable: false)));
+                    buffer,
+                    length));
         }
 
         private static byte[] BuildCompoundFile(

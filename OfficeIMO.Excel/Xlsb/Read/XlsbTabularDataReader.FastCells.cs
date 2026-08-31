@@ -120,6 +120,33 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedRkCell(byte[] bytes, int position, int ordinal, bool isDate) {
+            ref byte payload = ref bytes[position];
+            double number = BiffRkNumberReader.ReadRkNumber(
+                Unsafe.ReadUnaligned<uint>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, isDate);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedRealCell(byte[] bytes, int position, int ordinal, bool isDate) {
+            ref byte payload = ref bytes[position];
+            double number = BitConverter.Int64BitsToDouble(
+                Unsafe.ReadUnaligned<long>(
+                    ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
+            StoreNumber(ordinal, number, isDate);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StorePlannedSharedStringCell(byte[] bytes, int position, int ordinal) {
+            ref byte payload = ref bytes[position];
+            uint sharedStringIndex = Unsafe.ReadUnaligned<uint>(
+                ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint)));
+            _kinds[ordinal] = XlsbTabularValueKind.Text;
+            _strings[ordinal] = _sharedStrings[(int)sharedStringIndex];
+        }
+
         private static string ReadValidatedWideString(byte[] bytes, int position) {
             int characterCount = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(
                 bytes.AsSpan(position, sizeof(uint))));
@@ -133,6 +160,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         private void StoreNumber(int ordinal, double number, uint styleIndex) {
             bool isDate = _options.TreatDatesUsingNumberFormat
                 && _dateStyles[styleIndex];
+            StoreNumber(ordinal, number, isDate);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void StoreNumber(int ordinal, double number, bool isDate) {
             _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
             _numbers[ordinal] = number;
         }

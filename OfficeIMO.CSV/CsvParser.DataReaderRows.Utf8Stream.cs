@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using System.Runtime.Intrinsics.X86;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -147,12 +148,21 @@ internal static partial class CsvParser
         void ICsvDataReaderHeaderRowSource.SetSourceColumnCount(int sourceColumnCount) =>
             SetSourceColumnCount(sourceColumnCount);
 
-        public bool Read()
+        public bool Read() => Read(_options.CancellationToken);
+
+        public bool Read(CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfCancellationRequested(_options);
+            return ReadCore(cancellationToken);
+        }
+
+        private bool ReadCore(CancellationToken cancellationToken)
         {
             ObjectDisposedException.ThrowIf(_disposed, this);
             if (_fallback is not null)
             {
-                return _fallback.Read();
+                return _fallback.Read(cancellationToken);
             }
 
             _currentPhysicalLineNumber = null;
@@ -160,8 +170,9 @@ internal static partial class CsvParser
 
             while (true)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 ThrowIfCancellationRequested(_options);
-                if (!PrepareRecordStart())
+                if (!PrepareRecordStart(cancellationToken))
                 {
                     return false;
                 }
@@ -170,22 +181,31 @@ internal static partial class CsvParser
                 int fieldStart = recordStart;
                 int fieldIndex = 0;
                 int recordLineNumber = _physicalLineSeparatorsConsumed + 1;
+                int cancellationCheckPosition = _position + 16 * 1024;
                 _visitor.Reset();
 
                 if (_buffer[recordStart] == _commentCharacter)
                 {
-                    return StartFallback(recordStart, recordLineNumber);
+                    return StartFallback(recordStart, recordLineNumber, cancellationToken);
                 }
 
                 while (true)
                 {
+                    if (_position >= cancellationCheckPosition)
+                    {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        ThrowIfCancellationRequested(_options);
+                        cancellationCheckPosition = _position + 16 * 1024;
+                    }
+
                     if (_position == _length)
                     {
                         if (!_endOfStream && !FillForCurrentRecord(
                                 ref recordStart,
-                                ref fieldStart) && !_endOfStream)
+                                ref fieldStart,
+                                cancellationToken) && !_endOfStream)
                         {
-                            return StartFallback(recordStart, recordLineNumber);
+                            return StartFallback(recordStart, recordLineNumber, cancellationToken);
                         }
 
                         if (_endOfStream)
@@ -235,7 +255,7 @@ internal static partial class CsvParser
                         byte terminal = _buffer[terminalIndex];
                         if (terminal == (byte)'"')
                         {
-                            return StartFallback(recordStart, recordLineNumber);
+                            return StartFallback(recordStart, recordLineNumber, cancellationToken);
                         }
 
                         _position = terminalIndex + 1;
@@ -278,7 +298,7 @@ internal static partial class CsvParser
 
                     if (special == (byte)'"')
                     {
-                        return StartFallback(recordStart, recordLineNumber);
+                        return StartFallback(recordStart, recordLineNumber, cancellationToken);
                     }
 
                     _position = specialIndex + 1;
@@ -360,21 +380,21 @@ internal static partial class CsvParser
             ArrayPool<byte>.Shared.Return(buffer);
         }
 
-        private bool PrepareRecordStart()
+        private bool PrepareRecordStart(CancellationToken cancellationToken)
         {
             if (_skipLineFeedAfterCarriageReturn)
             {
                 _skipLineFeedAfterCarriageReturn = false;
-                if (EnsureBuffered() && _buffer[_position] == (byte)'\n')
+                if (EnsureBuffered(cancellationToken) && _buffer[_position] == (byte)'\n')
                 {
                     _position++;
                 }
             }
 
-            return EnsureBuffered();
+            return EnsureBuffered(cancellationToken);
         }
 
-        private bool EnsureBuffered()
+        private bool EnsureBuffered(CancellationToken cancellationToken)
         {
             if (_position < _length)
             {
@@ -386,14 +406,20 @@ internal static partial class CsvParser
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             _options.CancellationToken.ThrowIfCancellationRequested();
             _position = 0;
             _length = _stream.Read(_buffer, 0, _buffer.Length);
+            cancellationToken.ThrowIfCancellationRequested();
+            _options.CancellationToken.ThrowIfCancellationRequested();
             _endOfStream = _length == 0;
             return !_endOfStream;
         }
 
-        private bool FillForCurrentRecord(ref int recordStart, ref int fieldStart)
+        private bool FillForCurrentRecord(
+            ref int recordStart,
+            ref int fieldStart,
+            CancellationToken cancellationToken)
         {
             int retainedLength = _length - recordStart;
             if (retainedLength == _buffer.Length)
@@ -411,8 +437,11 @@ internal static partial class CsvParser
             recordStart = 0;
             _position = retainedLength;
             _length = retainedLength;
+            cancellationToken.ThrowIfCancellationRequested();
             _options.CancellationToken.ThrowIfCancellationRequested();
             int read = _stream.Read(_buffer, retainedLength, _buffer.Length - retainedLength);
+            cancellationToken.ThrowIfCancellationRequested();
+            _options.CancellationToken.ThrowIfCancellationRequested();
             if (read == 0)
             {
                 _endOfStream = true;
@@ -468,7 +497,10 @@ internal static partial class CsvParser
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        private bool StartFallback(int recordStart, int recordLineNumber)
+        private bool StartFallback(
+            int recordStart,
+            int recordLineNumber,
+            CancellationToken cancellationToken)
         {
             int prefixLength = _length - recordStart;
             byte[] prefix = new byte[prefixLength];
@@ -499,7 +531,7 @@ internal static partial class CsvParser
                 _fallback.SetSourceColumnCount(_sourceColumnCount);
             }
 
-            return _fallback.Read();
+            return _fallback.Read(cancellationToken);
         }
 
         private static bool HasNonUtf8Preamble(ReadOnlySpan<byte> bytes) =>

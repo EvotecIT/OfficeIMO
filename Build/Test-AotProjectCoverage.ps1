@@ -15,6 +15,7 @@ $libraryHostPath = Join-Path $RepositoryRoot 'OfficeIMO.All.AotSmoke\OfficeIMO.A
 [xml] $libraryHost = Get-Content -LiteralPath $libraryHostPath -Raw
 
 $referencedLibraries = @($libraryHost.Project.ItemGroup.ProjectReference |
+    Where-Object { [string] $_.ReferenceOutputAssembly -ne 'false' } |
     ForEach-Object { [string] $_.Include } |
     Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
     ForEach-Object { [System.IO.Path]::GetFileNameWithoutExtension($_.Replace('\', '/')) } |
@@ -63,6 +64,12 @@ $managedOnly = @(
         evidence = 'WPF executable publishing rejects trimming with NETSDK1168; validate this UI package with the managed Windows test lane.'
     }
 )
+$buildAnalyzers = @(
+    [ordered]@{
+        name = 'OfficeIMO.Data.Generators'
+        evidence = 'The analyzer generates an explicit row-mapping plan that compiles into and executes from the main NativeAOT host; the analyzer itself is a build-time component, not a runtime assembly.'
+    }
+)
 
 if ($securityRootedLibraries.Count -ne 1 -or $securityRootedLibraries[0] -ne 'OfficeIMO.Security') {
     throw "The optional security NativeAOT host must root exactly OfficeIMO.Security; found $($securityRootedLibraries -join ', ')."
@@ -70,8 +77,8 @@ if ($securityRootedLibraries.Count -ne 1 -or $securityRootedLibraries[0] -ne 'Of
 if ($c2paRootedLibraries.Count -ne 1 -or $c2paRootedLibraries[0] -ne 'OfficeIMO.Provenance.C2pa') {
     throw "The optional C2PA NativeAOT host must root exactly OfficeIMO.Provenance.C2pa; found $($c2paRootedLibraries -join ', ')."
 }
-if ($fullyRootedLibraries.Count -ne 101) {
-    throw "Expected 101 fully rooted production libraries across the ordinary and optional-adapter hosts, found $($fullyRootedLibraries.Count)."
+if ($fullyRootedLibraries.Count -ne 105) {
+    throw "Expected 105 fully rooted production libraries across the ordinary and optional-adapter hosts, found $($fullyRootedLibraries.Count)."
 }
 if ($boundedLibraries.Count -ne 1 -or $boundedLibraries[0] -ne 'OfficeIMO.GoogleWorkspace.Auth.GoogleApis') {
     throw "The bounded NativeAOT library set changed: $($boundedLibraries -join ', ')."
@@ -84,6 +91,7 @@ $classifiedNames = @(
     $boundedLibraries
     $nativeTools.name
     $managedOnly.name
+    $buildAnalyzers.name
 ) | Sort-Object -Unique
 
 $missing = @(Compare-Object -ReferenceObject $productionNames -DifferenceObject $classifiedNames |
@@ -118,6 +126,10 @@ $components = foreach ($component in @($catalog.components | Sort-Object name)) 
         $classification = 'native-executable'
         $nativeValidated = $true
         $evidence = [string] ($nativeTools | Where-Object name -EQ $name).evidence
+    } elseif ($name -in $buildAnalyzers.name) {
+        $classification = 'native-build-analyzer'
+        $nativeValidated = $true
+        $evidence = [string] ($buildAnalyzers | Where-Object name -EQ $name).evidence
     } elseif ($name -in $managedOnly.name) {
         $managedEntry = @($managedOnly | Where-Object name -EQ $name)[0]
         $classification = [string] $managedEntry.classification
@@ -145,6 +157,7 @@ $matrix = [ordered]@{
         fullyRootedLibraryCount = $fullyRootedLibraries.Count
         boundedWorkflowLibraryCount = $boundedLibraries.Count
         nativeExecutableCount = $nativeTools.Count
+        nativeBuildAnalyzerCount = $buildAnalyzers.Count
         managedCrossPlatformProjectCount = @($managedOnly | Where-Object classification -EQ 'managed-cross-platform').Count
         managedWindowsProjectCount = @($managedOnly | Where-Object classification -EQ 'managed-windows').Count
     }
@@ -152,6 +165,7 @@ $matrix = [ordered]@{
         nativeFullSurface = 'The production library is retained as a complete assembly in the NativeAOT compile graph.'
         nativeBoundedWorkflow = 'A customer-facing workflow publishes and runs natively, but the complete optional third-party dependency surface is not claimed.'
         nativeExecutable = 'The production CLI publishes as a native executable and starts successfully.'
+        nativeBuildAnalyzer = 'The build-time analyzer emits code that compiles into and executes from a NativeAOT consumer; the analyzer is not deployed as a runtime assembly.'
         managedCrossPlatform = 'The package is validated in its supported cross-platform managed deployment model rather than advertised for NativeAOT.'
         managedWindows = 'The package is validated in its supported managed Windows deployment model rather than advertised for NativeAOT.'
     }
@@ -171,6 +185,7 @@ if (-not [string]::IsNullOrWhiteSpace($JsonOutputPath)) {
     FullyRootedLibraryCount = $matrix.summary.fullyRootedLibraryCount
     BoundedWorkflowLibraryCount = $matrix.summary.boundedWorkflowLibraryCount
     NativeExecutableCount = $matrix.summary.nativeExecutableCount
+    NativeBuildAnalyzerCount = $matrix.summary.nativeBuildAnalyzerCount
     ManagedCrossPlatformProjectCount = $matrix.summary.managedCrossPlatformProjectCount
     ManagedWindowsProjectCount = $matrix.summary.managedWindowsProjectCount
     Status = 'passed'

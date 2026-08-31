@@ -44,7 +44,7 @@ Email attachments, EPUB resources and chapter pagination, and Visio
 preview-versus-semantic fallback behavior follow `PdfProjectionOptions`
 and are reported as structured conversion evidence.
 
-The preset adds Word, Excel, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CSV/TSV, DocBook, EPUB, HTML/MHTML, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, OPML, PDF, RTF, subtitles, Visio, XML, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser.
+The preset adds Word, Excel, their safe legacy-word and legacy-spreadsheet families, PowerPoint, Markdown, direct email artifacts, Outlook stores and OAB address books, plus AsciiDoc, CSV/TSV, DocBook, EPUB, HTML/MHTML, standalone images, JSON, LaTeX, Jupyter Notebook, offline OneNote, OpenDocument, OPML, PDF, RTF, subtitles, Visio, XML, YAML, and ZIP handlers. `OfficeIMO.Reader.Core` itself contains no format parser.
 
 Configure a format through one options object:
 
@@ -76,6 +76,19 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 ```
 
 Registrations are copied into the builder's immutable snapshot. The preset does not mutate process-wide reader state.
+
+Applications that already own one of the legacy extension families can disable those registrations before adding their custom handlers:
+
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers(new ReaderAllOptions {
+        IncludeLegacyWord = false,
+        IncludeLegacySpreadsheet = false
+    })
+    .AddHandler(applicationLegacyWordHandler)
+    .AddHandler(applicationLegacySpreadsheetHandler)
+    .Build();
+```
 
 ## Dependency boundary
 

@@ -52,6 +52,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Email performance evidence](officeimo.email-performance.md)
 - [AsciiDoc support](officeimo.asciidoc-support-matrix.md)
 - [LaTeX support](officeimo.latex-support-matrix.md)
+- [Bibliography support](officeimo.bibliography-support-matrix.md)
 - [Markdown compatibility](officeimo.markdown.compatibility-matrix.md)
 - [Markdown extension authoring](officeimo.markdown.extension-authoring.md)
 - [Markdown lossless round-trip design](officeimo.markdown.lossless-roundtrip-design.md)

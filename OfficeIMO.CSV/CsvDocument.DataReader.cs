@@ -2,6 +2,7 @@
 
 using System.Data.Common;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.CSV;
 
@@ -184,6 +185,109 @@ public sealed partial class CsvDocument
         }
     }
 
+#if NET8_0_OR_GREATER
+    /// <summary>
+    /// Asynchronously reads a bounded CSV file snapshot and opens a forward-only data reader over it.
+    /// Subsequent <see cref="DbDataReader.ReadAsync(CancellationToken)"/> calls are memory-backed and
+    /// therefore do not block on file I/O.
+    /// </summary>
+    /// <param name="path">Source CSV path.</param>
+    /// <param name="loadOptions">CSV load and input-bound options.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <param name="cancellationToken">Cancels asynchronous file reading and parsing.</param>
+    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
+    public static async Task<DbDataReader> OpenDataReaderAsync(
+        string path,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateAsyncReaderOptions(readerOptions);
+        CsvLoadOptions resolved = loadOptions?.Clone() ?? new CsvLoadOptions();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            resolved.CancellationToken);
+        CancellationToken effectiveCancellation = linkedCancellation.Token;
+        resolved.CancellationToken = effectiveCancellation;
+        resolved.Mode = CsvLoadMode.InMemory;
+        CsvDocument document = await LoadAsync(path, resolved, effectiveCancellation).ConfigureAwait(false);
+        DbDataReader reader = document.CreateDataReader(readerOptions, effectiveCancellation);
+        return ReturnAfterCancellationCheck(reader, effectiveCancellation);
+    }
+
+    /// <summary>
+    /// Asynchronously reads a bounded snapshot from a caller-owned stream and opens a forward-only
+    /// data reader over it. Disposing the returned reader does not dispose the source stream.
+    /// </summary>
+    /// <param name="stream">Readable source stream.</param>
+    /// <param name="loadOptions">CSV load and input-bound options.</param>
+    /// <param name="readerOptions">Reader projection options. When omitted, all columns are emitted as strings.</param>
+    /// <param name="cancellationToken">Cancels asynchronous stream reading and parsing.</param>
+    /// <returns>A memory-backed data reader. The caller owns the returned reader.</returns>
+    public static async Task<DbDataReader> OpenDataReaderAsync(
+        Stream stream,
+        CsvLoadOptions? loadOptions = null,
+        CsvDataReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default)
+    {
+        ValidateAsyncReaderOptions(readerOptions);
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+        CsvLoadOptions resolved = loadOptions?.Clone() ?? new CsvLoadOptions();
+        using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            cancellationToken,
+            resolved.CancellationToken);
+        CancellationToken effectiveCancellation = linkedCancellation.Token;
+        resolved.CancellationToken = effectiveCancellation;
+        resolved.Mode = CsvLoadMode.InMemory;
+        long startPosition = stream.CanSeek ? stream.Position : 0;
+        byte[] snapshot;
+        try
+        {
+            snapshot = await OfficeIMO.Core.Internal.OfficeStreamReader.ReadRemainingBytesAsync(
+                stream,
+                effectiveCancellation,
+                resolved.MaxInputBytes).ConfigureAwait(false);
+        }
+        finally
+        {
+            if (stream.CanSeek)
+            {
+                stream.Position = startPosition;
+            }
+        }
+
+        using var snapshotStream = new MemoryStream(snapshot, writable: false);
+        CsvDocument document = Load(snapshotStream, resolved);
+        DbDataReader reader = document.CreateDataReader(readerOptions, effectiveCancellation);
+        return ReturnAfterCancellationCheck(reader, effectiveCancellation);
+    }
+
+    private static DbDataReader ReturnAfterCancellationCheck(
+        DbDataReader reader,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            return reader;
+        }
+        catch
+        {
+            reader.Dispose();
+            throw;
+        }
+    }
+
+    private static void ValidateAsyncReaderOptions(CsvDataReaderOptions? readerOptions)
+    {
+        if (readerOptions is { SchemaSampleSize: <= 0 })
+        {
+            throw new ArgumentOutOfRangeException(nameof(readerOptions), "Schema sample size must be greater than zero.");
+        }
+    }
+#endif
+
     /// <summary>
     /// Opens a forward-only data reader over a CSV stream.
     /// </summary>
@@ -348,8 +452,14 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="options">Reader projection options. When omitted, all columns are emitted as strings.</param>
     /// <returns>A data reader suitable for DataTable loading and provider bulk-copy APIs.</returns>
-    public DbDataReader CreateDataReader(CsvDataReaderOptions? options = null)
+    public DbDataReader CreateDataReader(CsvDataReaderOptions? options = null) =>
+        CreateDataReader(options, CancellationToken.None);
+
+    internal DbDataReader CreateDataReader(
+        CsvDataReaderOptions? options,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         options ??= new CsvDataReaderOptions();
         if (options.SchemaSampleSize <= 0)
         {
@@ -365,11 +475,14 @@ public sealed partial class CsvDocument
                 _streamingSource.CanCreateDataReaderTextRowSource))
         {
             return CsvParallelDataReader.Apply(
-                CreateStreamingInferredDataReader(options.SchemaSampleSize),
+                CreateStreamingInferredDataReader(options.SchemaSampleSize, cancellationToken),
                 options);
         }
 
-        var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
+        var schema = options.Schema ?? _schema ?? (options.InferSchema
+            ? InferSchema(options.SchemaSampleSize, cancellationToken)
+            : null);
+        cancellationToken.ThrowIfCancellationRequested();
         var columns = CreateDataReaderColumns(_header, schema);
         if (_mode == CsvLoadMode.Stream && _streamingSource is not null)
         {
@@ -384,11 +497,12 @@ public sealed partial class CsvDocument
                     _dateTimeFormats), options);
             }
 
+            CsvLoadOptions readerLoadOptions = _streamingSource.Options.Clone();
             return CsvParallelDataReader.Apply(new CsvDataReader(
                 columns,
-                _streamingSource.ReadReusableStringRows(),
+                _streamingSource.ReadReusableStringRows(readerLoadOptions),
                 _streamingSource.SourceColumnCount,
-                _streamingSource.Options,
+                readerLoadOptions,
                 _culture,
                 _dateTimeFormats), options);
         }
@@ -664,8 +778,11 @@ public sealed partial class CsvDocument
         }
     }
 
-    private CsvDataReader CreateStreamingInferredDataReader(int schemaSampleSize)
+    private CsvDataReader CreateStreamingInferredDataReader(
+        int schemaSampleSize,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
 #if NET8_0_OR_GREATER
         if (_streamingSource!.TryCreateDataReaderTextRowSource(out var inferenceRows))
         {
@@ -673,7 +790,11 @@ public sealed partial class CsvDocument
             CsvSchema schema;
             using (rowsForInference)
             {
-                schema = InferSchema(rowsForInference, schemaSampleSize, _streamingSource.Options.NullValue);
+                schema = InferSchema(
+                    rowsForInference,
+                    schemaSampleSize,
+                    _streamingSource.Options.NullValue,
+                    cancellationToken);
             }
 
             var columns = CreateDataReaderColumns(_header, schema);
@@ -690,11 +811,18 @@ public sealed partial class CsvDocument
         }
 #endif
 
-        var rows = _streamingSource!.ReadReusableRows().GetEnumerator();
+        CsvLoadOptions inferenceOptions = _streamingSource!.Options.Clone();
+        var rows = _streamingSource.ReadReusableRows(inferenceOptions).GetEnumerator();
         try
         {
             var sampledRows = new List<object?[]>(Math.Min(schemaSampleSize, 4096));
-            var schema = InferSchema(rows, schemaSampleSize, sampledRows, cloneSampledRows: true);
+            var schema = InferSchema(
+                rows,
+                schemaSampleSize,
+                sampledRows,
+                cloneSampledRows: true,
+                cancellationToken: cancellationToken,
+                operationCancellationOptions: inferenceOptions);
             var columns = CreateDataReaderColumns(_header, schema);
             var rowOwner = new CsvStreamingDataReaderRowOwner(rows);
             return new CsvDataReader(
@@ -705,7 +833,7 @@ public sealed partial class CsvDocument
                 _streamingSource.Options.Delimiter,
                 _streamingSource.Options.MappingErrorValuePolicy,
                 rowOwner: rowOwner,
-                processingCancellationToken: _streamingSource.Options.CancellationToken);
+                operationCancellationOptions: inferenceOptions);
         }
         catch
         {

@@ -1,4 +1,5 @@
 using OfficeIMO.CSV;
+using OfficeIMO.Data;
 using System;
 using System.ComponentModel;
 using System.Globalization;
@@ -230,6 +231,17 @@ public sealed class CsvTypedRowsApiTests {
         Assert.Equal(165258.24m, row.Amount);
     }
 
+    [Theory]
+    [InlineData("Inherited Id")]
+    [InlineData("Legacy Id")]
+    public void RowsAs_HonorsInheritedDataColumnAttributeOnOverride(string columnName) {
+        CsvDocument document = CsvDocument.Parse(columnName + "\n42\n");
+
+        RuntimeOverrideRow row = Assert.Single(document.RowsAs<RuntimeOverrideRow>());
+
+        Assert.Equal(42, row.Id);
+    }
+
 #if NET6_0_OR_GREATER
     [Fact]
     public void RowsAs_ConvertsExplicitDateOnlyAndTimeOnlyTargetsWithoutChangingInference() {
@@ -317,6 +329,15 @@ public sealed class CsvTypedRowsApiTests {
         [DisplayName("Order Number")]
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
+    }
+
+    private class RuntimeOverrideBaseRow {
+        [DataColumn("Inherited Id", "Legacy Id")]
+        public virtual int Id { get; set; }
+    }
+
+    private sealed class RuntimeOverrideRow : RuntimeOverrideBaseRow {
+        public override int Id { get; set; }
     }
 
     private struct SalesValue {

@@ -445,7 +445,10 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void WritePaddedStream(Stream output, PaddedStream stream, int unitSize) {
-            using (Stream input = stream.Payload.OpenRead()) {
+            if (stream.Payload.TryGetBuffer(out byte[]? bytes, out int offset, out int count)) {
+                output.Write(bytes!, offset, count);
+            } else {
+                using Stream input = stream.Payload.OpenRead();
                 CopyExact(input, output, stream.OriginalLength);
                 if (input.ReadByte() >= 0) throw new InvalidDataException("A compound stream exceeds its declared length.");
             }
@@ -583,14 +586,28 @@ namespace OfficeIMO.Core.Internal {
         internal OfficeCompoundStream(string name, byte[] bytes) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            _byteOffset = 0;
+            _byteCount = bytes.Length;
             _openRead = null;
             Length = bytes.LongLength;
+        }
+
+        internal OfficeCompoundStream(string name, byte[] bytes, int count) {
+            Name = name ?? throw new ArgumentNullException(nameof(name));
+            _bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
+            if ((uint)count > (uint)bytes.Length) throw new ArgumentOutOfRangeException(nameof(count));
+            _byteOffset = 0;
+            _byteCount = count;
+            _openRead = null;
+            Length = count;
         }
 
         internal OfficeCompoundStream(string name, long length, Func<Stream> openRead) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
             _bytes = null;
+            _byteOffset = 0;
+            _byteCount = 0;
             _openRead = openRead ?? throw new ArgumentNullException(nameof(openRead));
             Length = length;
         }
@@ -605,10 +622,19 @@ namespace OfficeIMO.Core.Internal {
             "A streaming compound payload does not expose an in-memory byte array.");
 
         private readonly byte[]? _bytes;
+        private readonly int _byteOffset;
+        private readonly int _byteCount;
         private readonly Func<Stream>? _openRead;
 
+        internal bool TryGetBuffer(out byte[]? bytes, out int offset, out int count) {
+            bytes = _bytes;
+            offset = _byteOffset;
+            count = _byteCount;
+            return bytes != null;
+        }
+
         internal Stream OpenRead() {
-            if (_bytes != null) return new MemoryStream(_bytes, writable: false);
+            if (_bytes != null) return new MemoryStream(_bytes, _byteOffset, _byteCount, writable: false);
             Stream stream = _openRead!();
             if (stream == null || !stream.CanRead) {
                 stream?.Dispose();
