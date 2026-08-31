@@ -6,8 +6,10 @@ internal sealed class EndNoteCancellableTextReader : TextReader {
     private readonly CancellationToken _cancellationToken;
     private int _position;
 
-    internal EndNoteCancellableTextReader(string value, CancellationToken cancellationToken) {
+    internal EndNoteCancellableTextReader(string value, CancellationToken cancellationToken, int startPosition = 0) {
         _value = value ?? throw new ArgumentNullException(nameof(value));
+        if (startPosition < 0 || startPosition > value.Length) throw new ArgumentOutOfRangeException(nameof(startPosition));
+        _position = startPosition;
         _cancellationToken = cancellationToken;
     }
 

@@ -128,6 +128,7 @@ internal sealed class EndNoteSourceOffsetMap {
     internal EndNoteSourceOffsetMap(string source, int baseOffset, CancellationToken cancellationToken) {
         _source = source;
         _baseOffset = baseOffset;
+        _scanIndex = baseOffset;
         _currentLineStart = baseOffset;
         _cancellationToken = cancellationToken;
     }
@@ -150,11 +151,11 @@ internal sealed class EndNoteSourceOffsetMap {
 
     private void AdvanceLine() {
         _currentLine++;
-        _currentLineStart = _baseOffset + _scanIndex;
+        _currentLineStart = _scanIndex;
     }
 
     private void Reset() {
-        _scanIndex = 0;
+        _scanIndex = _baseOffset;
         _currentLine = 1;
         _currentLineStart = _baseOffset;
     }

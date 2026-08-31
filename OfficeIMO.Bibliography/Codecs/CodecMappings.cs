@@ -183,9 +183,12 @@ internal static class CodecMappings {
         var keys = new string[items.Count];
         for (int index = 0; index < items.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            string stem = string.IsNullOrWhiteSpace(items[index].Key)
+            bool missingKey = format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex
+                ? BibCodec.IsNullOrWhiteSpace(items[index].Key, cancellationToken)
+                : string.IsNullOrWhiteSpace(items[index].Key);
+            string stem = missingKey
                 ? "item-" + (index + 1).ToString(CultureInfo.InvariantCulture)
-                : NormalizeOutputKey(items[index].Key, format);
+                : NormalizeOutputKey(items[index].Key, format, cancellationToken);
             string candidate = stem;
             if (!used.Add(candidate)) {
                 int suffix = nextSuffixes.TryGetValue(stem, out int nextSuffix) ? nextSuffix : 2;
@@ -204,8 +207,8 @@ internal static class CodecMappings {
         return keys;
     }
 
-    internal static string NormalizeOutputKey(string key, BibliographyFormat format) =>
-        format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex ? BibCodec.SafeKey(key) : key;
+    internal static string NormalizeOutputKey(string key, BibliographyFormat format, CancellationToken cancellationToken) =>
+        format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex ? BibCodec.SafeKey(key, cancellationToken) : key;
 
     internal static int? ParseMonth(string value) {
         if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int numeric) && numeric >= 1 && numeric <= 12) return numeric;

@@ -72,14 +72,14 @@ internal static class BibliographyConversionInspector {
         diagnostic.Severity == BibliographyDiagnosticSeverity.Error || diagnostic.Code == "BIBBIB001" || diagnostic.Code == "BIBTAG001" || diagnostic.Code == "BIBTAG004" || diagnostic.Code == "BIBCSL003" || diagnostic.Code == "BIBEND004" || diagnostic.Code == "BIBEND005";
 
     private static void InspectKeys(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
-        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => string.IsNullOrWhiteSpace(item.Key) && !(format == BibliographyFormat.CslJson && string.IsNullOrEmpty(item.Key) && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
+        foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => IsNullOrWhiteSpaceKey(item.Key, format, cancellationToken) && !(format == BibliographyFormat.CslJson && string.IsNullOrEmpty(item.Key) && CslJsonCodec.HasNativeProperty(item, "id", cancellationToken))))
             Loss(report, item, "key", "BIBCONV215", $"A missing citation key is replaced with a deterministic generated identifier in {format}.", BibliographyConversionAction.Approximated);
         StringComparer keyComparer = format == BibliographyFormat.CslJson ? StringComparer.Ordinal : StringComparer.OrdinalIgnoreCase;
-        foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key)).GroupBy(item => CodecMappings.NormalizeOutputKey(item.Key, format), keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
+        foreach (IGrouping<string, BibliographyItem> duplicate in Cancellable(document.Items, cancellationToken).Where(item => !IsNullOrWhiteSpaceKey(item.Key, format, cancellationToken)).GroupBy(item => CodecMappings.NormalizeOutputKey(item.Key, format, cancellationToken), keyComparer).Where(group => Cancellable(group, cancellationToken).Skip(1).Any())) {
             foreach (BibliographyItem item in Cancellable(duplicate, cancellationToken)) Loss(report, item, "key", "BIBCONV216", $"Duplicate citation key '{duplicate.Key}' is not unique in {format} output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(static item => !string.IsNullOrWhiteSpace(item.Key) && item.Key.Any(character => !BibCodec.IsSafeKeyCharacter(character))))
+            foreach (BibliographyItem item in Cancellable(document.Items, cancellationToken).Where(item => !BibCodec.IsNullOrWhiteSpace(item.Key, cancellationToken) && BibCodec.HasUnsafeKeyCharacter(item.Key, cancellationToken)))
                 Loss(report, item, "key", "BIBCONV217", "The citation key contains characters that must be normalized for BibTeX output.", BibliographyConversionAction.Approximated);
         }
         if (format == BibliographyFormat.Nbib) {
@@ -157,7 +157,7 @@ internal static class BibliographyConversionInspector {
             if (!exact) Loss(report, item, "contributors." + role, "BIBCONV201", $"Contributor role '{role}' is not represented exactly in {format}.", format == BibliographyFormat.EndNoteXml ? BibliographyConversionAction.Approximated : BibliographyConversionAction.Omitted);
         }
         if (format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex) {
-            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name)))
+            foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(contributor => !BibCodec.CanRoundTripStructuredName(contributor.Name, cancellationToken)))
                 Loss(report, item, "contributors", "BIBCONV226", "A structured contributor name cannot be reopened exactly through BibTeX name syntax.", BibliographyConversionAction.Approximated);
         } else if (format == BibliographyFormat.Ris || format == BibliographyFormat.Nbib || format == BibliographyFormat.EndNoteXml) {
             foreach (BibliographyContributor contributor in Cancellable(item.Contributors, cancellationToken).Where(static contributor => !string.IsNullOrWhiteSpace(contributor.Name.DroppingParticle) || !string.IsNullOrWhiteSpace(contributor.Name.NonDroppingParticle)))
@@ -212,8 +212,14 @@ internal static class BibliographyConversionInspector {
     private static bool HasEmptyNameComponent(BibliographyName name) =>
         name.Given == null && name.Family == null && name.Literal == null && name.Suffix == null && name.DroppingParticle == null && name.NonDroppingParticle == null ||
         name.Literal == null && name.Family == null ||
+        name.Literal == null && name.Suffix != null && name.Given == null ||
         name.Given is { Length: 0 } || name.Family is { Length: 0 } || name.Literal is { Length: 0 } || name.Suffix is { Length: 0 } ||
         name.DroppingParticle is { Length: 0 } || name.NonDroppingParticle is { Length: 0 };
+
+    private static bool IsNullOrWhiteSpaceKey(string value, BibliographyFormat format, CancellationToken cancellationToken) =>
+        format == BibliographyFormat.BibTex || format == BibliographyFormat.BibLatex
+            ? BibCodec.IsNullOrWhiteSpace(value, cancellationToken)
+            : string.IsNullOrWhiteSpace(value);
 
     private static void InspectDocumentStructure(BibliographyDocument document, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
         if (format != BibliographyFormat.EndNoteXml) return;

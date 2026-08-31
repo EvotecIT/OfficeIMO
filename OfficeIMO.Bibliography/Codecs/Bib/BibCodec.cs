@@ -32,7 +32,7 @@ internal static class BibCodec {
             BibliographyItem item = document.Items[itemIndex];
             cancellationToken.ThrowIfCancellationRequested();
             string type = CanPreserveNativeType(document.SourceFormat, format, item) ? item.NativeType! : OutputType(item.Type, format);
-            builder.Append('@').Append(type).Append('{').Append(SafeKey(outputKeys[itemIndex])).Append(',').Append(options.LineEnding);
+            builder.Append('@').Append(type).Append('{').Append(outputKeys[itemIndex]).Append(',').Append(options.LineEnding);
             var fields = new List<KeyValuePair<string, string>>();
             Add(fields, "title", item.Title);
             AddNames(fields, "author", item, BibliographyContributorRole.Author, cancellationToken);
@@ -262,7 +262,33 @@ internal static class BibCodec {
         cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
-    internal static string SafeKey(string key) => string.IsNullOrWhiteSpace(key) ? "item" : new string(key.Select(character => IsSafeKeyCharacter(character) ? character : '_').ToArray());
+    internal static string SafeKey(string key, CancellationToken cancellationToken) {
+        if (IsNullOrWhiteSpace(key, cancellationToken)) return "item";
+        var characters = new char[key.Length];
+        for (int index = 0; index < key.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            characters[index] = IsSafeKeyCharacter(key[index]) ? key[index] : '_';
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new string(characters);
+    }
+    internal static bool IsNullOrWhiteSpace(string value, CancellationToken cancellationToken) {
+        if (value == null) return true;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!char.IsWhiteSpace(value[index])) return false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
+    internal static bool HasUnsafeKeyCharacter(string key, CancellationToken cancellationToken) {
+        for (int index = 0; index < key.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!IsSafeKeyCharacter(key[index])) return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
+    }
     internal static bool IsSafeKeyCharacter(char character) => !char.IsWhiteSpace(character) && !char.IsControl(character) && "\\\"#%'(),={}".IndexOf(character) < 0;
     private static bool IsSafeFieldName(string name) => name.Length > 0 && name.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':');
     private static bool IsSafeTypeName(string? name) => !string.IsNullOrWhiteSpace(name) && name!.All(character => char.IsLetterOrDigit(character) || character == '-' || character == '_' || character == ':' || character == '.');
@@ -282,17 +308,58 @@ internal static class BibCodec {
     private static string OutputType(BibliographyItemType type, BibliographyFormat format) =>
         format == BibliographyFormat.BibLatex && type == BibliographyItemType.Thesis ? "thesis" : CodecMappings.ToBibType(type);
 
-    internal static bool CanRoundTripStructuredName(BibliographyName name) {
+    internal static bool CanRoundTripStructuredName(BibliographyName name, CancellationToken cancellationToken) {
         if (name.Literal != null) return name.Given == null && name.Family == null && name.Suffix == null && name.NonDroppingParticle == null && name.DroppingParticle == null;
-        if (new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle }.Any(value => ContainsBibNameSyntaxSeparator(value) || HasNormalizedBibNameWhitespace(value))) return false;
+        foreach (string? value in new[] { name.Given, name.Family, name.Suffix, name.NonDroppingParticle, name.DroppingParticle })
+            if (ContainsBibNameSyntaxSeparator(value, cancellationToken) || HasNormalizedBibNameWhitespace(value, cancellationToken)) return false;
         if (!IsLowercaseParticle(name.NonDroppingParticle) || !IsLowercaseParticle(name.DroppingParticle)) return false;
         string family = string.Join(" ", new[] { name.NonDroppingParticle, name.Family }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         string given = string.Join(" ", new[] { name.Given, name.DroppingParticle }.Where(static part => !string.IsNullOrWhiteSpace(part)));
         return CountLeadingBibParticleWords(family) == CountWords(name.NonDroppingParticle) && CountTrailingLowercaseWords(given) == CountWords(name.DroppingParticle);
     }
 
-    private static bool ContainsBibNameSyntaxSeparator(string? value) => value?.IndexOf(',') >= 0 || value?.IndexOf(" and ", StringComparison.OrdinalIgnoreCase) >= 0;
-    private static bool HasNormalizedBibNameWhitespace(string? value) => value != null && (!string.Equals(value, value.Trim(), StringComparison.Ordinal) || value.IndexOf("  ", StringComparison.Ordinal) >= 0);
+    private static bool ContainsBibNameSyntaxSeparator(string? value, CancellationToken cancellationToken) {
+        if (value == null) return false;
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index] == ',') return true;
+            if (char.IsWhiteSpace(value[index]) && TryGetNameSeparatorEnd(value, index, cancellationToken, out _)) return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
+    }
+    private static bool HasNormalizedBibNameWhitespace(string? value, CancellationToken cancellationToken) {
+        if (value == null || value.Length == 0) return false;
+        if (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1])) return true;
+        for (int index = 1; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index - 1] == ' ' && value[index] == ' ') return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
+    }
+
+    private static bool TryGetNameSeparatorEnd(string value, int index, CancellationToken cancellationToken, out int separatorEnd) {
+        separatorEnd = index;
+        if (index >= value.Length || !char.IsWhiteSpace(value[index])) return false;
+        int wordStart = index;
+        while (wordStart < value.Length && char.IsWhiteSpace(value[wordStart])) {
+            if (((wordStart - index) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            wordStart++;
+        }
+        if (wordStart + 3 >= value.Length ||
+            (value[wordStart] != 'a' && value[wordStart] != 'A') ||
+            (value[wordStart + 1] != 'n' && value[wordStart + 1] != 'N') ||
+            (value[wordStart + 2] != 'd' && value[wordStart + 2] != 'D') ||
+            !char.IsWhiteSpace(value[wordStart + 3])) return false;
+        separatorEnd = wordStart + 4;
+        while (separatorEnd < value.Length && char.IsWhiteSpace(value[separatorEnd])) {
+            if (((separatorEnd - wordStart) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            separatorEnd++;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return true;
+    }
 
     private static bool IsLowercaseParticle(string? value) => string.IsNullOrWhiteSpace(value) || value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).All(static word => StartsWithLowercaseLetter(word));
     private static int CountWords(string? value) => string.IsNullOrWhiteSpace(value) ? 0 : value!.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
@@ -595,15 +662,10 @@ internal static class BibCodec {
                 if ((index & 4095) == 0) _cancellationToken.ThrowIfCancellationRequested();
                 if (value[index] == '\\' && index + 1 < value.Length) { index++; continue; }
                 if (value[index] == '{') depth++; else if (value[index] == '}' && depth > 0) depth--;
-                if (depth == 0 && IsNameSeparator(value, index)) { yield return value.Substring(start, index - start).Trim(); start = index + 5; index += 4; }
+                if (depth == 0 && TryGetNameSeparatorEnd(value, index, _cancellationToken, out int separatorEnd)) { yield return value.Substring(start, index - start).Trim(); start = separatorEnd; index = separatorEnd - 1; }
             }
             if (start <= value.Length) yield return value.Substring(start).Trim();
         }
-
-        private static bool IsNameSeparator(string value, int index) =>
-            value[index] == ' ' && (value[index + 1] == 'a' || value[index + 1] == 'A') &&
-            (value[index + 2] == 'n' || value[index + 2] == 'N') &&
-            (value[index + 3] == 'd' || value[index + 3] == 'D') && value[index + 4] == ' ';
 
         private void SetYear(BibliographyItem item, string value) {
             BibliographyDate date = item.GetDate(BibliographyDateRole.Issued) ?? new BibliographyDate { Role = BibliographyDateRole.Issued };

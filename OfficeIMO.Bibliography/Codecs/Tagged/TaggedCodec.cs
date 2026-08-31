@@ -117,6 +117,15 @@ internal static class TaggedCodec {
                 if (previousNativeField != null) {
                     previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
                     if (format == BibliographyFormat.Nbib && string.Equals(previousTag, "PT", StringComparison.OrdinalIgnoreCase)) UpdateNbibPublicationTypeAfterContinuation(current, previousNativeField, cancellationToken);
+                    else if (CanPromoteContinuedIdentifier(format, previousTag, previousNativeField.Value)) {
+                        int identifierCount = current.Identifiers.Count;
+                        bool identifierControlsKey = format == BibliographyFormat.Ris && string.Equals(previousTag, "AN", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(current.Key);
+                        current.NativeFields.RemoveAt(current.NativeFields.Count - 1);
+                        Bind(current, format, previousTag, previousNativeField.Value);
+                        previousNativeField = null;
+                        previousIdentifier = current.Identifiers.Count > identifierCount ? current.Identifiers[current.Identifiers.Count - 1] : null;
+                        previousIdentifierControlsKey = identifierControlsKey && previousIdentifier != null;
+                    }
                 }
                 else AppendContinuation(current, format, previousTag, continuation, previousIdentifier, previousIdentifierControlsKey, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
@@ -180,6 +189,13 @@ internal static class TaggedCodec {
     private static void Bind(BibliographyItem item, BibliographyFormat format, string tag, string value) {
         string field = tag.ToUpperInvariant();
         if (format == BibliographyFormat.Ris) BindRis(item, field, tag, value); else BindNbib(item, field, tag, value);
+    }
+
+    private static bool CanPromoteContinuedIdentifier(BibliographyFormat format, string tag, string value) {
+        if (format == BibliographyFormat.Ris)
+            return !string.IsNullOrWhiteSpace(value) && (string.Equals(tag, "DO", StringComparison.OrdinalIgnoreCase) || string.Equals(tag, "SN", StringComparison.OrdinalIgnoreCase) || string.Equals(tag, "AN", StringComparison.OrdinalIgnoreCase));
+        if (string.Equals(tag, "IS", StringComparison.OrdinalIgnoreCase)) return !string.IsNullOrWhiteSpace(value);
+        return (string.Equals(tag, "LID", StringComparison.OrdinalIgnoreCase) || string.Equals(tag, "AID", StringComparison.OrdinalIgnoreCase)) && WouldBindNbibIdentifier(value);
     }
 
     private static void BindRis(BibliographyItem item, string field, string sourceTag, string value) {

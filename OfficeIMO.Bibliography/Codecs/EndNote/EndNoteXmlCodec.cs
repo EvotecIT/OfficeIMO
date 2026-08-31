@@ -21,10 +21,9 @@ internal static class EndNoteXmlCodec {
         var diagnosticGuard = new BibliographyDiagnosticGuard(options, diagnostics, items);
         try {
             int sourceOffset = source.Length > 0 && source[0] == '\uFEFF' ? 1 : 0;
-            string xmlSource = sourceOffset == 0 ? source : source.Substring(sourceOffset);
-            var offsets = new EndNoteSourceOffsetMap(xmlSource, sourceOffset, cancellationToken);
+            var offsets = new EndNoteSourceOffsetMap(source, sourceOffset, cancellationToken);
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = options.MaximumInputCharacters };
-            using var textReader = new StringReader(xmlSource);
+            using var textReader = new EndNoteCancellableTextReader(source, cancellationToken, sourceOffset);
             using XmlReader innerReader = XmlReader.Create(textReader, settings);
             using var reader = new EndNoteBoundedXmlReader(innerReader, limits, materializationLimits, items, offsets, cancellationToken);
             XDocument document = XDocument.Load(reader, LoadOptions.PreserveWhitespace | LoadOptions.SetLineInfo);
