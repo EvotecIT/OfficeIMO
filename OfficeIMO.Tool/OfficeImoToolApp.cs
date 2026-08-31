@@ -4,6 +4,7 @@ using OfficeIMO.Tool.Commands.Html;
 using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
 using OfficeIMO.Tool.Commands.Reader;
+using OfficeIMO.Tool.Commands.Tabular;
 using System.Reflection;
 using System.Text;
 
@@ -21,6 +22,7 @@ Usage:
   officeimo html <command> [options]
   officeimo reader <command> [options]
   officeimo markup <command> [options]
+  officeimo tabular <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
   officeimo --version
@@ -94,6 +96,14 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                            leaveOpen: true) { AutoFlush = true }) {
                     return await MarkupCommand.RunAsync(
                         commandArguments, standardInput, markupOutput, standardError, cancellationToken).ConfigureAwait(false);
+                }
+            case "tabular":
+                using (var tabularOutput = CreateUtf8Writer(standardOutput)) {
+                    return await TabularCommand.RunAsync(
+                        commandArguments,
+                        tabularOutput,
+                        standardError,
+                        cancellationToken).ConfigureAwait(false);
                 }
             case "agent":
                 return await RunAgentAsync(

@@ -42,24 +42,26 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             throw new ArgumentOutOfRangeException(nameof(invocationsPerLeg));
         }
 
-        (Func<int> RunOfficeIMO, Func<int> RunExcelReader) operations;
-        try {
-            operations = CreateOperations(format, rowCount);
-        } catch (InvalidDataException exception) when (format == ExcelFileFormat.Xlsb) {
+        ComparisonOperations operations = CreateOperations(format, rowCount);
+        if (operations.Conformance is { IsEquivalent: false } nonEquivalent) {
             Console.WriteLine(
-                "XLSB write comparison is unranked because ExcelReader.NET 2.1.2 output failed strict validation: " +
-                exception.Message);
-            RunOfficeOnly(format, rowCount, iterations, invocationsPerLeg, affinity, priority);
+                $"ExcelReader.NET {format.ToString().ToUpperInvariant()} conformance probe: " +
+                $"semantic={nonEquivalent.SemanticRoundTrip}, structural={nonEquivalent.StructurallyConformant}. " +
+                $"{nonEquivalent.Detail} Artifact bytes: OfficeIMO={nonEquivalent.OfficeOutputBytes:N0}, " +
+                $"ExcelReader.NET={nonEquivalent.CompetitorOutputBytes:N0}.");
+            Console.WriteLine(
+                "Paired timing withheld because the generated workbooks are not equivalent. " +
+                "This conformance probe remains active and will automatically enter the timed lane when a future competitor release produces an equivalent workbook.");
+            if (operations.ProfileOfficeIMO is not null) {
+                Console.WriteLine(
+                    "OfficeIMO one-pass stage profile (diagnostic, outside comparison timing): " +
+                    string.Join(", ", operations.ProfileOfficeIMO()
+                        .Select(static stage => FormattableString.Invariant($"{stage.Name}={stage.Milliseconds:F3} ms"))));
+            }
             return;
         }
+
         (Func<int> RunOfficeIMO, Func<int> RunExcelReader) = operations;
-        if (format == ExcelFileFormat.Xls) {
-            Console.WriteLine(
-                "XLS write comparison is unranked because ExcelReader.NET 2.1.2 omits the BIFF8 " +
-                "Index/Row/DBCell cell-table structure emitted by OfficeIMO.");
-            RunOfficeOnly(format, rowCount, iterations, invocationsPerLeg, affinity, priority);
-            return;
-        }
         for (int index = 0; index < WarmupIterations; index++) {
             ValidateResult(format, rowCount, $"OfficeIMO warmup {index}", RunOfficeIMO());
             ValidateResult(format, rowCount, $"ExcelReader.NET warmup {index}", RunExcelReader());
@@ -97,24 +99,45 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
         double officeMedian = Median(officeSamples);
         double excelReaderMedian = Median(excelReaderSamples);
         Console.WriteLine(FormattableString.Invariant(
-            $"Paired {format.ToString().ToUpperInvariant()} write comparison ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
+            $"Paired {format.ToString().ToUpperInvariant()} write comparison, validated equivalent lane ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} ABBA samples, {invocationsPerLeg} invocations per leg, affinity {affinity}, priority {priority}): OfficeIMO median {officeMedian:F3} ms, ExcelReader.NET median {excelReaderMedian:F3} ms, ratio of medians {officeMedian / excelReaderMedian:F4}, paired ratio median {Median(pairedRatios):F4} (P25 {Percentile(pairedRatios, 0.25d):F4}, P75 {Percentile(pairedRatios, 0.75d):F4})."));
+        if (operations.Conformance is { } conformance) {
+            Console.WriteLine(
+                $"ExcelReader.NET conformance: semantic={conformance.SemanticRoundTrip}, " +
+                $"structural={conformance.StructurallyConformant}. {conformance.Detail} " +
+                $"Artifact bytes: OfficeIMO={conformance.OfficeOutputBytes:N0}, " +
+                $"ExcelReader.NET={conformance.CompetitorOutputBytes:N0}.");
+        }
+        if (operations.ProfileOfficeIMO is not null) {
+            Console.WriteLine(
+                "OfficeIMO one-pass stage profile (diagnostic, outside timed samples): " +
+                string.Join(", ", operations.ProfileOfficeIMO()
+                    .Select(static stage => FormattableString.Invariant($"{stage.Name}={stage.Milliseconds:F3} ms"))));
+        }
     }
 
-    private static (Func<int> RunOfficeIMO, Func<int> RunExcelReader) CreateOperations(
+    private static ComparisonOperations CreateOperations(
         ExcelFileFormat format,
         int rowCount) {
         if (format == ExcelFileFormat.Xlsx) {
             var benchmark = new ExcelGeneratedRowStreamingBenchmarks { RowCount = rowCount };
             benchmark.Setup();
-            return (benchmark.WriteRowsGenerated, benchmark.ExcelReaderNetWriteRowsGenerated);
+            return new ComparisonOperations(
+                benchmark.WriteRowsGenerated,
+                benchmark.ExcelReaderNetWriteRowsGenerated,
+                Conformance: null,
+                ProfileOfficeIMO: null);
         }
 
         var binaryBenchmark = new ExcelNativeBinaryWriteBenchmarks {
             Format = format,
             RowCount = rowCount
         };
-        binaryBenchmark.Setup();
-        return (binaryBenchmark.OfficeIMO_PublicTabularWrite, binaryBenchmark.ExcelReaderNet_DiagnosticWrite);
+        BinaryWriteConformanceObservation conformance = binaryBenchmark.SetupComparison();
+        return new ComparisonOperations(
+            binaryBenchmark.OfficeIMO_PublicTabularWrite,
+            binaryBenchmark.ExcelReaderNet_DiagnosticWrite,
+            conformance,
+            binaryBenchmark.ProfileOfficeIMOWriteStages);
     }
 
     private static (double Milliseconds, int Result) Measure(Func<int> operation, int invocationCount) {
@@ -125,35 +148,6 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
             result = operation();
         }
         return (Stopwatch.GetElapsedTime(started).TotalMilliseconds / invocationCount, result);
-    }
-
-    private static void RunOfficeOnly(
-        ExcelFileFormat format,
-        int rowCount,
-        int iterations,
-        int invocationsPerSample,
-        string affinity,
-        string priority) {
-        var benchmark = new ExcelNativeBinaryWriteBenchmarks {
-            Format = format,
-            RowCount = rowCount
-        };
-        benchmark.SetupOfficeIMOOnly();
-        for (int index = 0; index < WarmupIterations; index++) {
-            ValidateResult(format, rowCount, $"OfficeIMO warmup {index}", benchmark.OfficeIMO_PublicTabularWrite());
-        }
-
-        var samples = new double[iterations];
-        for (int index = 0; index < iterations; index++) {
-            (double milliseconds, int result) = Measure(
-                benchmark.OfficeIMO_PublicTabularWrite,
-                invocationsPerSample);
-            ValidateResult(format, rowCount, $"OfficeIMO sample {index}", result);
-            samples[index] = milliseconds;
-        }
-
-        Console.WriteLine(FormattableString.Invariant(
-            $"OfficeIMO validated {format.ToString().ToUpperInvariant()} write ({rowCount:N0} rows, {WarmupIterations} warmups, {iterations} samples, {invocationsPerSample} invocations per sample, affinity {affinity}, priority {priority}): median {Median(samples):F3} ms (P25 {Percentile(samples, 0.25d):F3}, P75 {Percentile(samples, 0.75d):F3})."));
     }
 
     private static void ValidateResult(ExcelFileFormat format, int expectedRowCount, string sample, int result) {
@@ -182,5 +176,16 @@ internal static class ExcelReaderWriteComparisonPairedRunner {
         int upper = Math.Min(lower + 1, ordered.Length - 1);
         double fraction = position - lower;
         return ordered[lower] + (ordered[upper] - ordered[lower]) * fraction;
+    }
+
+    private readonly record struct ComparisonOperations(
+        Func<int> RunOfficeIMO,
+        Func<int> RunExcelReader,
+        BinaryWriteConformanceObservation? Conformance,
+        Func<IReadOnlyList<(string Name, double Milliseconds)>>? ProfileOfficeIMO) {
+        internal void Deconstruct(out Func<int> officeIMO, out Func<int> excelReader) {
+            officeIMO = RunOfficeIMO;
+            excelReader = RunExcelReader;
+        }
     }
 }

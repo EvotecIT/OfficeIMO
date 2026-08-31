@@ -33,6 +33,15 @@ namespace OfficeIMO.Tests {
             public int CompletionPercent { get; set; }
         }
 
+        private class CompatibilityInheritedHeaderBaseRow {
+            [ExcelColumn("Inherited Total", "Legacy Total")]
+            public virtual int Total { get; set; }
+        }
+
+        private sealed class CompatibilityInheritedHeaderRow : CompatibilityInheritedHeaderBaseRow {
+            public override int Total { get; set; }
+        }
+
         private sealed class CompatibilityScoreRow {
             public string? Name { get; set; }
             public int Score { get; set; }
@@ -349,6 +358,35 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Alice", typedFromSheet.GivenName);
                 Assert.Equal("OK", typedFromSheet.Status);
                 Assert.Equal(97, typedFromSheet.CompletionPercent);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData("Inherited Total")]
+        [InlineData("Legacy Total")]
+        public void Compatibility_Corpus_TypedReads_MapInheritedAttributeAliases(string header) {
+            string filePath = Path.Combine(_directoryWithFiles, "CompatibilityCorpus.InheritedTypedHeaders.xlsx");
+
+            try {
+                ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
+                    var sheet = document.AddWorksheet("Data");
+                    sheet.CellValue(1, 1, header);
+                    sheet.CellValue(2, 1, 97);
+                });
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var typedFromReader = Assert.Single(
+                    reader.GetSheet("Data").ReadObjects<CompatibilityInheritedHeaderRow>("A1:A2"));
+                Assert.Equal(97, typedFromReader.Total);
+
+                using var document = ExcelDocument.Load(filePath);
+                var typedFromSheet = Assert.Single(
+                    document.GetSheet("Data").RowsAs<CompatibilityInheritedHeaderRow>("A1:A2"));
+                Assert.Equal(97, typedFromSheet.Total);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

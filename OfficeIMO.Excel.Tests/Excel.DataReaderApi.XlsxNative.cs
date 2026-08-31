@@ -7,6 +7,42 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Fact]
+    public void XlsxTabularWorkbook_PrefetchesSelectedWorksheetWithoutChangingRows() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var options = new ExcelReadOptions {
+                EnableWorksheetPrefetch = true,
+                SheetName = "Data"
+            };
+            using var workbook = XlsxTabularWorkbook.Open(path, options);
+            using DbDataReader reader = workbook.OpenTable(
+                "Data",
+                hasHeaderRow: true,
+                CancellationToken.None);
+
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+            Assert.True(reader.Read());
+            Assert.Equal(43, reader.GetInt32(0));
+            Assert.False(reader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void XlsxTabularWorkbook_DisposesUnconsumedWorksheetPrefetch() {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            var options = new ExcelReadOptions { EnableWorksheetPrefetch = true };
+            using XlsxTabularWorkbook workbook = XlsxTabularWorkbook.Open(path, options);
+            Assert.Equal(new[] { "Data" }, workbook.TableNames);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void XlsxTabularWorkbook_ReadsCanonicalPackageWithoutSdkProjection() {
         string path = CreateCompactFastPathWorkbook();
         try {

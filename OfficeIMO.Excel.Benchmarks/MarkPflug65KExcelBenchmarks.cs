@@ -66,9 +66,28 @@ public class MarkPflug65KXlsxBenchmarks {
     }
 
     [Benchmark]
+    public ExcelReadObservation OfficeIMO_Prefetch() {
+        using DbDataReader reader = ExcelDocument.OpenDataReader(
+            MarkPflug65KFixture.XlsxPath,
+            new ExcelReadOptions {
+                NumericAsDecimal = true,
+                SheetName = null,
+                EnableWorksheetPrefetch = true
+            });
+        return Validate(nameof(OfficeIMO_Prefetch), Observe(reader));
+    }
+
+    [Benchmark]
     public ExcelReadObservation ExcelReaderNet() {
         using XlsxReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath);
         return Validate(nameof(ExcelReaderNet), ObserveExcelReader(reader));
+    }
+
+    [Benchmark]
+    public ExcelReadObservation ExcelReaderNet_Prefetch() {
+        ExcelReaderOptions options = ExcelReaderOptions.Default with { PrefetchDecompression = true };
+        using XlsxReader reader = ExcelReaderApi.FromFile(MarkPflug65KFixture.XlsxPath, options);
+        return Validate(nameof(ExcelReaderNet_Prefetch), ObserveExcelReader(reader));
     }
 
     [Benchmark]

@@ -15,6 +15,14 @@ internal static class ExcelReaderComparisonPairedRunner {
             throw new ArgumentOutOfRangeException(nameof(iterations));
         }
 
+        bool prefetch = arguments.Length > 4
+            && string.Equals(arguments[4], "prefetch", StringComparison.OrdinalIgnoreCase);
+        if (prefetch && format != ExcelFileFormat.Xlsx) {
+            throw new ArgumentException(
+                "Worksheet prefetch comparison is supported only for XLSX.",
+                nameof(arguments));
+        }
+
         string affinity = arguments.Length > 2
             ? BenchmarkProcessorAffinity.Apply(arguments[2])
             : "unchanged";
@@ -22,9 +30,8 @@ internal static class ExcelReaderComparisonPairedRunner {
             && !string.Equals(arguments[3], "unchanged", StringComparison.OrdinalIgnoreCase)
                 ? BenchmarkProcessorAffinity.ApplyPriority(arguments[3])
                 : Process.GetCurrentProcess().PriorityClass.ToString();
-
         (Func<ExcelReadObservation> RunOfficeIMO, Func<ExcelReadObservation> RunExcelReader) =
-            CreateOperations(format);
+            CreateOperations(format, prefetch);
 
         for (int index = 0; index < WarmupIterations; index++) {
             ExcelReadObservation officeObservation = RunOfficeIMO();
@@ -63,7 +70,7 @@ internal static class ExcelReaderComparisonPairedRunner {
         double excelReaderMedian = Median(excelReaderSamples);
         Console.WriteLine(string.Format(
             CultureInfo.InvariantCulture,
-            "Paired {0} comparison ({1} warmups, {2} ABBA samples, affinity {3}, priority {4}): " +
+            "Paired {0} comparison{11} ({1} warmups, {2} ABBA samples, affinity {3}, priority {4}): " +
             "OfficeIMO median {5:F3} ms, ExcelReader.NET median {6:F3} ms, ratio of medians {7:F4}, " +
             "paired ratio median {8:F4} (P25 {9:F4}, P75 {10:F4}).",
             format.ToString().ToUpperInvariant(),
@@ -76,16 +83,19 @@ internal static class ExcelReaderComparisonPairedRunner {
             officeMedian / excelReaderMedian,
             Median(pairedRatios),
             Percentile(pairedRatios, 0.25d),
-            Percentile(pairedRatios, 0.75d)));
+            Percentile(pairedRatios, 0.75d),
+            prefetch ? " with bounded prefetch enabled for both libraries" : string.Empty));
     }
 
     private static (Func<ExcelReadObservation> RunOfficeIMO, Func<ExcelReadObservation> RunExcelReader)
-        CreateOperations(ExcelFileFormat format) {
+        CreateOperations(ExcelFileFormat format, bool prefetch) {
         switch (format) {
             case ExcelFileFormat.Xlsx: {
                 var benchmark = new MarkPflug65KXlsxBenchmarks();
                 benchmark.Setup();
-                return (benchmark.OfficeIMO, benchmark.ExcelReaderNet);
+                return prefetch
+                    ? (benchmark.OfficeIMO_Prefetch, benchmark.ExcelReaderNet_Prefetch)
+                    : (benchmark.OfficeIMO, benchmark.ExcelReaderNet);
             }
             case ExcelFileFormat.Xlsb: {
                 var benchmark = new MarkPflug65KXlsbBenchmarks();

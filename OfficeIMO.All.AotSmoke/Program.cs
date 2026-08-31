@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Apache.Arrow;
 using OfficeIMO.Adf;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
+using OfficeIMO.Data.Arrow;
 using OfficeIMO.DocBook;
 using OfficeIMO.Excel;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
@@ -90,6 +92,24 @@ if (parallelRows.Length != 2
     throw new InvalidOperationException("The explicit ordered-parallel CSV mapping did not survive NativeAOT.");
 }
 
+using var generatedReader = CsvDocument.OpenTextDataReader("Id,Name\n3,Katherine\n");
+AotGeneratedRow generatedRow = generatedReader
+    .RowsAs<AotGeneratedRow>(AotGeneratedRowRowMapping.Configure)
+    .Single();
+if (generatedRow.Id != 3 || generatedRow.Name != "Katherine") {
+    throw new InvalidOperationException("The source-generated row mapping did not survive NativeAOT.");
+}
+
+using var arrowReader = CsvDocument.OpenTextDataReader(
+    "Id,Name\n4,Dorothy\n",
+    readerOptions: new CsvDataReaderOptions { InferSchema = true });
+using RecordBatch arrowBatch = arrowReader
+    .ReadArrowBatches(new ArrowReadOptions { BatchSize = 1 })
+    .Single();
+if (arrowBatch.Length != 1 || arrowBatch.Schema.FieldsList.Count != 2) {
+    throw new InvalidOperationException("The bounded Apache Arrow adapter did not survive NativeAOT.");
+}
+
 using var excelSourceStream = new System.IO.MemoryStream();
 ExcelDocument.WriteRows(
     excelSourceStream,
@@ -142,7 +162,7 @@ if (excelRows.Length != 2
     throw new InvalidOperationException("The IDataReader XLSX write fallback and ordered-parallel Excel mapping did not survive NativeAOT.");
 }
 
-Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store plus CSV and Excel read/write and ordered-parallel contracts passed from NativeAOT.");
+Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store plus CSV, generated mapping, Arrow, and Excel contracts passed from NativeAOT.");
 
 file sealed class AotCsvRow {
     public int Id { get; set; }
@@ -151,6 +171,14 @@ file sealed class AotCsvRow {
 
 file sealed class AotExcelRow {
     public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+}
+
+[GenerateRowMapper]
+internal sealed class AotGeneratedRow {
+    [DataColumn("Id")]
+    public int Id { get; set; }
+
     public string Name { get; set; } = string.Empty;
 }
 

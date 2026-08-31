@@ -4,7 +4,7 @@ using System.Runtime.InteropServices;
 namespace OfficeIMO.Excel.Xlsb.Read {
     internal sealed partial class XlsbTabularDataReader {
         private bool ReadCurrentRowRecordsFast() {
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             byte[] bytes = _records.Buffer;
             // Discovery validated every record boundary in this immutable buffer.
             ref byte data = ref MemoryMarshal.GetReference(bytes.AsSpan());
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         private bool ReadCurrentRowRecordsConverted() {
-            bool checkCancellation = _cancellationToken.CanBeCanceled;
+            bool checkCancellation = CanCancelCurrentRead;
             while (_records.TryReadValidated(out XlsbRecordSlice record)) {
                 if (checkCancellation) {
                     CheckCancellation();

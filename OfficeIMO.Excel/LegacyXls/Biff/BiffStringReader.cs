@@ -15,6 +15,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return ReadByteStringBody(bytes, ref offset, charCount);
         }
 
+        internal static string ReadShortByteString(byte[] bytes, ref int offset, Encoding encoding) {
+            if (encoding is null) throw new ArgumentNullException(nameof(encoding));
+            if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF short byte string.");
+            int charCount = bytes[offset++];
+            return ReadByteStringBody(bytes, ref offset, charCount, encoding);
+        }
+
         internal static string ReadByteString(byte[] bytes, ref int offset) {
             int charCount = BiffRecordReader.ReadUInt16(bytes, offset);
             offset += 2;
@@ -240,6 +247,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             string value = ReadCompressedUnicode(bytes, offset, charCount);
+            offset += charCount;
+            return value;
+        }
+
+        private static string ReadByteStringBody(byte[] bytes, ref int offset, int charCount, Encoding encoding) {
+            if (charCount < 0) {
+                throw new InvalidDataException("The BIFF byte string has an invalid length.");
+            }
+
+            if (offset + charCount > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF byte string characters.");
+            }
+
+            string value;
+            try {
+                value = encoding.GetString(bytes, offset, charCount);
+            } catch (DecoderFallbackException ex) {
+                throw new InvalidDataException(
+                    $"The BIFF byte string is not valid for workbook code page {encoding.CodePage}.",
+                    ex);
+            }
             offset += charCount;
             return value;
         }

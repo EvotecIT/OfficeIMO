@@ -54,13 +54,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             ushort workbookGlobalsBiffVersion = GetWorkbookGlobalsBiffVersion(records);
+            BiffCodePageState workbookCodePage = ReadWorkbookCodePageState(records);
+            if (workbookGlobalsBiffVersion == LegacyBiffVersionValidator.Biff5Version
+                && workbookCodePage.IsInvalid) {
+                workbook.MutableDiagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Error,
+                    "XLS-BIFF-CODEPAGE-INVALID",
+                    workbookCodePage.InvalidReason!,
+                    recordOffset: workbookCodePage.ProblemRecordOffset,
+                    recordType: (ushort)BiffRecordType.CodePage));
+            }
             PopulateDefinedNameTable(records, definedNameTable);
 
             for (int i = 0; i < records.Count; i++) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 BiffRecord record = records[i];
                 if (record.Type == (ushort)BiffRecordType.BoundSheet8) {
-                    LegacyXlsWorksheet? sheet = TryReadBoundSheet(record, workbookGlobalsBiffVersion, workbook.MutableDiagnostics);
+                    LegacyXlsWorksheet? sheet = TryReadBoundSheet(
+                        record,
+                        workbookGlobalsBiffVersion,
+                        workbookCodePage,
+                        workbook.MutableDiagnostics);
                     if (sheet != null) {
                         boundSheetNames.Add(sheet.Name);
                     }
@@ -325,6 +339,22 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return BiffRecordReader.ReadUInt16(records[0].Payload, 0);
         }
 
+        private static BiffCodePageState ReadWorkbookCodePageState(IReadOnlyList<BiffRecord> records) {
+            var state = new BiffCodePageState();
+            for (int index = 0; index < records.Count; index++) {
+                BiffRecord record = records[index];
+                if (record.Type != (ushort)BiffRecordType.CodePage) {
+                    continue;
+                }
+                if (record.Payload.Length < 2) {
+                    state.ObserveMalformed(record.Offset);
+                } else {
+                    state.Observe(BiffRecordReader.ReadUInt16(record.Payload, 0), record.Offset);
+                }
+            }
+
+            return state;
+        }
         private static bool TryAddRecognizedBiff5WorkbookMetadata(LegacyXlsWorkbook workbook, BiffRecord record, ushort workbookGlobalsBiffVersion) {
             if (workbookGlobalsBiffVersion != LegacyBiffVersionValidator.Biff5Version) {
                 return false;
@@ -1146,7 +1176,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             fillBackgroundColorIndex = (ushort)((fillColors >> 7) & 0x7f);
         }
 
-        private static LegacyXlsWorksheet? TryReadBoundSheet(BiffRecord record, ushort workbookGlobalsBiffVersion, List<LegacyXlsImportDiagnostic> diagnostics) {
+        private static LegacyXlsWorksheet? TryReadBoundSheet(
+            BiffRecord record,
+            ushort workbookGlobalsBiffVersion,
+            BiffCodePageState workbookCodePage,
+            List<LegacyXlsImportDiagnostic> diagnostics) {
             try {
                 if (record.Payload.Length < 7) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -1163,7 +1197,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 byte sheetType = record.Payload[5];
                 int nameOffset = 6;
                 string name = workbookGlobalsBiffVersion == LegacyBiffVersionValidator.Biff5Version
-                    ? BiffStringReader.ReadShortByteString(record.Payload, ref nameOffset)
+                    ? BiffStringReader.ReadShortByteString(
+                        record.Payload,
+                        ref nameOffset,
+                        BiffCodePageEncoding.Resolve(workbookCodePage))
                     : BiffStringReader.ReadShortUnicodeString(record.Payload, ref nameOffset);
                 return new LegacyXlsWorksheet(name, streamOffset, visibility, sheetType);
             } catch (Exception ex) when (ex is InvalidDataException || ex is OverflowException) {

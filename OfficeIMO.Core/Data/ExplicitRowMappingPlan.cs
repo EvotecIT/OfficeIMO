@@ -23,7 +23,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         var mapper = new RowMapper<T>();
         configure(mapper);
         MappingBinding[] bindings = mapper.Entries
-            .Select(entry => new MappingBinding(FindColumn(headers, entry.ColumnName), entry))
+            .Select(entry => new MappingBinding(FindColumn(headers, entry.ColumnNames), entry))
             .ToArray();
         return new ExplicitRowMappingPlan<T>(bindings);
     }
@@ -86,17 +86,29 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         return instance;
     }
 
-    private static int FindColumn(IReadOnlyList<string> headers, string columnName) {
-        int found = -1;
-        for (int index = 0; index < headers.Count; index++) {
-            if (!string.Equals(headers[index], columnName, StringComparison.OrdinalIgnoreCase)) continue;
-            if (found >= 0) {
-                throw new DataMappingException($"Column name '{columnName}' is ambiguous.");
+    private static int FindColumn(IReadOnlyList<string> headers, IReadOnlyList<string> columnNames) {
+        for (int nameIndex = 0; nameIndex < columnNames.Count; nameIndex++) {
+            int found = -1;
+            for (int headerIndex = 0; headerIndex < headers.Count; headerIndex++) {
+                if (!string.Equals(
+                        headers[headerIndex],
+                        columnNames[nameIndex],
+                        StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                if (found >= 0) {
+                    throw new DataMappingException(
+                        $"Column name '{columnNames[nameIndex]}' matches multiple source columns.");
+                }
+                found = headerIndex;
             }
-            found = index;
+
+            if (found >= 0) return found;
         }
-        if (found < 0) throw new DataMappingException($"Column '{columnName}' was not found.");
-        return found;
+
+        throw new DataMappingException(
+            $"None of the columns '{string.Join("', '", columnNames)}' were found.");
     }
 
     private readonly struct MappingBinding {
