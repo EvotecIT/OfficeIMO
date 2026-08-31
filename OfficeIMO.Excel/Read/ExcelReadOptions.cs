@@ -13,6 +13,8 @@ namespace OfficeIMO.Excel {
         private int _schemaSampleRows = 1_024;
         private int _maxXlsbCells = 4_000_000;
         private int _maxXlsbLogicalRows = 1_048_576;
+        private int _maxWorksheets = 16_384;
+        private int _maxMetadataPartBytes = 16 * 1024 * 1024;
 
         /// <summary>
         /// Gets or sets the worksheet exposed by <see cref="ExcelDocument.OpenDataReader(string, ExcelReadOptions?)"/>.
@@ -74,6 +76,35 @@ namespace OfficeIMO.Excel {
                 }
 
                 _maxInputBytes = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum worksheet definitions accepted while reading workbook metadata. Default: 16,384.
+        /// </summary>
+        public int MaxWorksheets {
+            get => _maxWorksheets;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Worksheet limit must be greater than zero.");
+                }
+
+                _maxWorksheets = value;
+            }
+        }
+
+        /// <summary>
+        /// Maximum decompressed bytes accepted from one workbook metadata part. Default: 16 MiB.
+        /// Worksheet data, shared strings, and styles retain their format-specific limits.
+        /// </summary>
+        public int MaxMetadataPartBytes {
+            get => _maxMetadataPartBytes;
+            set {
+                if (value <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(value), "Metadata part limit must be greater than zero.");
+                }
+
+                _maxMetadataPartBytes = value;
             }
         }
 

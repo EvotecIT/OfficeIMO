@@ -36,6 +36,135 @@ public sealed class TabularCommandTests {
         }
     }
 
+    [Theory]
+    [InlineData(".xlsx")]
+    [InlineData(".xlsb")]
+    [InlineData(".xls")]
+    public void SheetMetadataDiscoveryDoesNotDecodeSharedStringsOrStyles(string workbookExtension) {
+        string directory = CreateTestDirectory();
+        string workbookPath = Path.Combine(directory, "metadata" + workbookExtension);
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                sheet.CellAt(1, 1).SetValue("Alpha");
+                sheet.CellAt(2, 1).SetValue("Beta");
+                sheet.CellAt(3, 1).SetValue("Gamma");
+                document.Save(workbookPath);
+            }
+
+            IReadOnlyList<string> names = ExcelDocument.GetSheetNames(
+                workbookPath,
+                new ExcelReadOptions {
+                    MaxSharedStringItems = 1,
+                    MaxSharedStringCharacters = 1,
+                    MaxSharedStringItemCharacters = 1
+                });
+
+            Assert.Equal(new[] { "Inventory" }, names);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SheetMetadataDiscoveryEnforcesCountAndCancellationLimits() {
+        string directory = CreateTestDirectory();
+        string workbookPath = Path.Combine(directory, "limits.xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddWorksheet("First");
+                document.AddWorksheet("Second");
+                document.Save(workbookPath);
+            }
+
+            InvalidDataException countError = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.GetSheetNames(
+                    workbookPath,
+                    new ExcelReadOptions { MaxWorksheets = 1 }));
+            Assert.Contains("worksheet", countError.Message, StringComparison.OrdinalIgnoreCase);
+
+            Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.GetSheetNames(
+                    workbookPath,
+                    new ExcelReadOptions { MaxMetadataPartBytes = 32 }));
+
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            Assert.ThrowsAny<OperationCanceledException>(() =>
+                ExcelDocument.GetSheetNames(
+                    workbookPath,
+                    new ExcelReadOptions { CancellationToken = cancellation.Token }));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task SheetMetadataDiscoverySupportsPercentEncodedOpcTargets() {
+        string directory = CreateTestDirectory();
+        string workbookPath = Path.Combine(directory, "encoded-target.xlsx");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                document.AddWorksheet("Encoded Target");
+                document.Save(workbookPath);
+            }
+
+            await RenameZipEntryAsync(
+                workbookPath,
+                "xl/worksheets/sheet1.xml",
+                "xl/worksheets/My Sheet.xml");
+            await ReplaceZipEntryTextAsync(
+                workbookPath,
+                "xl/_rels/workbook.xml.rels",
+                static xml => xml.Replace(
+                    "worksheets/sheet1.xml",
+                    "worksheets/My%20Sheet.xml",
+                    StringComparison.Ordinal));
+            await ReplaceZipEntryTextAsync(
+                workbookPath,
+                "[Content_Types].xml",
+                static xml => xml.Replace(
+                    "/xl/worksheets/sheet1.xml",
+                    "/xl/worksheets/My%20Sheet.xml",
+                    StringComparison.Ordinal));
+
+            Assert.Equal(
+                new[] { "Encoded Target" },
+                ExcelDocument.GetSheetNames(workbookPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void XlsbMetadataLimitDoesNotApplyToUnusedWorksheetParts() {
+        string directory = CreateTestDirectory();
+        string workbookPath = Path.Combine(directory, "large-sheet.xlsb");
+        const int MetadataLimit = 2 * 1024;
+        try {
+            using (ExcelDocument document = ExcelDocument.Create()) {
+                ExcelSheet sheet = document.AddWorksheet("Inventory");
+                for (int row = 1; row <= 500; row++) {
+                    sheet.CellAt(row, 1).SetValue("Value " + row);
+                }
+                document.Save(workbookPath);
+            }
+            using (ZipArchive archive = ZipFile.OpenRead(workbookPath)) {
+                ZipArchiveEntry worksheet = archive.Entries.Single(
+                    static entry => entry.FullName.EndsWith("/worksheets/sheet1.bin", StringComparison.OrdinalIgnoreCase));
+                Assert.True(worksheet.Length > MetadataLimit);
+            }
+
+            Assert.Equal(
+                new[] { "Inventory" },
+                ExcelDocument.GetSheetNames(
+                    workbookPath,
+                    new ExcelReadOptions { MaxMetadataPartBytes = MetadataLimit }));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task TabularCliReportsInferredSchemaAndStreamsWorkbookBackToTsv() {
         string directory = CreateTestDirectory();
@@ -137,6 +266,53 @@ public sealed class TabularCommandTests {
     }
 
     [Fact]
+    public async Task TabularCliKeepsInputAndOutputDelimitersIndependent() {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "pipe-input.csv");
+        string defaultOutputPath = Path.Combine(directory, "default-output.csv");
+        string explicitOutputPath = Path.Combine(directory, "explicit-output.csv");
+        await File.WriteAllTextAsync(inputPath, "Id|Name\n1|Alpha\n");
+
+        try {
+            (int defaultExit, _, string defaultError) = await RunAsync(
+                "tabular", "convert", inputPath, defaultOutputPath, "--delimiter", "|");
+            Assert.Equal((int)OfficeImoToolExitCode.Success, defaultExit);
+            Assert.Equal(string.Empty, defaultError);
+            Assert.Contains("Id,Name", await File.ReadAllTextAsync(defaultOutputPath), StringComparison.Ordinal);
+
+            (int explicitExit, _, string explicitError) = await RunAsync(
+                "tabular", "convert", inputPath, explicitOutputPath,
+                "--delimiter", "|", "--output-delimiter", ";");
+            Assert.Equal((int)OfficeImoToolExitCode.Success, explicitExit);
+            Assert.Equal(string.Empty, explicitError);
+            Assert.Contains("Id;Name", await File.ReadAllTextAsync(explicitOutputPath), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData("--delimiter")]
+    [InlineData("--output-delimiter")]
+    public async Task TabularCliRejectsTheCsvQuoteCharacterAsDelimiter(string option) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "input.csv");
+        string outputPath = Path.Combine(directory, "output.csv");
+        await File.WriteAllTextAsync(inputPath, "Id,Name\n1,Alpha\n");
+
+        try {
+            (int exitCode, _, string error) = await RunAsync(
+                "tabular", "convert", inputPath, outputPath, option, "\"");
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("quote", error, StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task TabularCliHonorsTheTsvDelimiterWhenFieldsContainCommas() {
         string directory = CreateTestDirectory();
         string tsvPath = Path.Combine(directory, "input.tsv");
@@ -196,6 +372,13 @@ public sealed class TabularCommandTests {
             await using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false));
             await writer.WriteAsync("<worksheet");
         }
+        await ReplaceZipEntryTextAsync(
+            workbookPath,
+            "xl/workbook.xml",
+            static xml => xml.Replace(
+                "name=\"MetadataOnly\"",
+                "name=\"MetadataOnly&#10;Injected\"",
+                StringComparison.Ordinal));
 
         try {
             (int exitCode, string output, string error) = await RunAsync(
@@ -204,7 +387,7 @@ public sealed class TabularCommandTests {
             Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
             Assert.Equal(string.Empty, error);
             Assert.Equal(
-                new[] { "BrokenData", "MetadataOnly" },
+                new[] { "BrokenData", "MetadataOnly\\nInjected" },
                 output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries));
         } finally {
             Directory.Delete(directory, recursive: true);
@@ -249,6 +432,36 @@ public sealed class TabularCommandTests {
         }
     }
 
+    [Fact]
+    public async Task TabularCliRejectsOptionsThatWorkbookToWorkbookConversionWouldIgnore() {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "input.xlsx");
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            document.AddWorksheet("Data");
+            document.Save(inputPath);
+        }
+
+        try {
+            foreach (string[] option in new[] {
+                         new[] { "--no-header" },
+                         new[] { "--delimiter", ";" },
+                         new[] { "--output-delimiter", ";" }
+                     }) {
+                string outputPath = Path.Combine(directory, Guid.NewGuid().ToString("N") + ".xlsb");
+                string[] arguments = new[] { "tabular", "convert", inputPath, outputPath }
+                    .Concat(option)
+                    .ToArray();
+                (int exitCode, _, string error) = await RunAsync(arguments);
+
+                Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, exitCode);
+                Assert.Contains(option[0], error, StringComparison.Ordinal);
+                Assert.False(File.Exists(outputPath));
+            }
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private static string CreateTestDirectory() {
         string directory = Path.Combine(
             Path.GetTempPath(),
@@ -256,6 +469,43 @@ public sealed class TabularCommandTests {
             Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         return directory;
+    }
+
+    private static async Task ReplaceZipEntryTextAsync(
+        string packagePath,
+        string entryName,
+        Func<string, string> replace) {
+        using ZipArchive archive = ZipFile.Open(packagePath, ZipArchiveMode.Update);
+        ZipArchiveEntry entry = archive.GetEntry(entryName)
+            ?? throw new InvalidDataException("The test package does not contain '" + entryName + "'.");
+        string contents;
+        await using (Stream input = entry.Open()) {
+            using var reader = new StreamReader(input, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+            contents = await reader.ReadToEndAsync();
+        }
+        entry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(entryName);
+        await using Stream output = replacement.Open();
+        await using var writer = new StreamWriter(output, new UTF8Encoding(false));
+        await writer.WriteAsync(replace(contents));
+    }
+
+    private static async Task RenameZipEntryAsync(
+        string packagePath,
+        string existingEntryName,
+        string replacementEntryName) {
+        using ZipArchive archive = ZipFile.Open(packagePath, ZipArchiveMode.Update);
+        ZipArchiveEntry entry = archive.GetEntry(existingEntryName)
+            ?? throw new InvalidDataException("The test package does not contain '" + existingEntryName + "'.");
+        using var buffer = new MemoryStream();
+        await using (Stream input = entry.Open()) {
+            await input.CopyToAsync(buffer);
+        }
+        entry.Delete();
+        ZipArchiveEntry replacement = archive.CreateEntry(replacementEntryName);
+        buffer.Position = 0;
+        await using Stream output = replacement.Open();
+        await buffer.CopyToAsync(output);
     }
 
     private static async Task<(int ExitCode, string Output, string Error)> RunAsync(params string[] args) {

@@ -52,6 +52,7 @@ officeimo tabular sheets workbook.xlsx
 officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
+officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -78,8 +79,10 @@ Tabular conversion writes through an atomic sibling staging file and refuses to 
 existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,
 `.xlsb`, and `.xls`; CSV and TSV are supported as delimited output. Select a workbook sheet
 with `--sheet <name>` or `--sheet-index <zero-based-index>`. Recognized `.tsv` inputs always
-use a tab unless `--delimiter` explicitly overrides it. Schema output is TSV; column names
-escape backslashes and control characters as `\\`, `\t`, `\r`, `\n`, or `\uXXXX`.
+use a tab unless `--delimiter` explicitly overrides it. `--delimiter` controls input parsing;
+`--output-delimiter` independently controls CSV or TSV serialization, whose default comes
+from the output extension. Sheet-list and schema output escape backslashes and control
+characters as `\\`, `\t`, `\r`, `\n`, or `\uXXXX` so each name remains on one output line.
 
 ## Office documents to PDF
 

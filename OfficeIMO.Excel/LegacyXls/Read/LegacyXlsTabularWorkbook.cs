@@ -62,6 +62,35 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return Open(stream, options, cancellationToken);
         }
 
+        internal static IReadOnlyList<string> ReadSheetNames(
+            string path,
+            ExcelReadOptions options,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("File path cannot be empty.", nameof(path));
+            }
+            if (options == null) throw new ArgumentNullException(nameof(options));
+
+            cancellationToken.ThrowIfCancellationRequested();
+            using var source = new FileStream(
+                path,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                1,
+                FileOptions.RandomAccess);
+            if (source.Length > options.MaxInputBytes) {
+                throw new InvalidDataException(
+                    $"Workbook input contains {source.Length} bytes, exceeding the configured limit of {options.MaxInputBytes} bytes.");
+            }
+
+            using Stream workbookStream = OpenWorkbookStream(source, options, cancellationToken);
+            using var biffSource = new LegacyBiffSource(workbookStream, cancellationToken);
+            IReadOnlyList<SheetInfo> sheets = ParseSheetNames(biffSource, options, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            return sheets.Select(static sheet => sheet.Name).ToArray();
+        }
+
         private static LegacyXlsTabularWorkbook Open(
             Stream source,
             ExcelReadOptions options,
@@ -194,6 +223,10 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
                 switch ((BiffRecordType)record.Type) {
                     case BiffRecordType.BoundSheet8:
+                        if (parsedSheets.Count >= options.MaxWorksheets) {
+                            throw new InvalidDataException(
+                                $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
+                        }
                         parsedSheets.Add(ReadBoundSheet(bytes, record));
                         break;
                     case BiffRecordType.Date1904:
@@ -234,21 +267,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 throw new InvalidDataException("The XLS workbook-globals substream is truncated before EOF.");
             }
 
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            SheetInfo[] worksheets = parsedSheets
-                .Where(static sheet => sheet.SheetType == 0)
-                .ToArray();
-            foreach (SheetInfo sheet in worksheets) {
-                if (sheet.StreamOffset < 0 || sheet.StreamOffset >= bytes.Length) {
-                    throw new InvalidDataException($"Worksheet '{sheet.Name}' has an invalid BIFF stream offset.");
-                }
-                if (!names.Add(sheet.Name)) {
-                    throw new InvalidDataException($"The workbook contains duplicate worksheet name '{sheet.Name}' under case-insensitive matching.");
-                }
-            }
-            if (worksheets.Length == 0) {
-                throw new InvalidDataException("The workbook contains no readable worksheets.");
-            }
+            SheetInfo[] worksheets = ValidateWorksheets(parsedSheets, bytes.Length);
 
             var styles = new bool[cellFormats.Count];
             for (int index = 0; index < styles.Length; index++) {
@@ -263,6 +282,80 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                 ? parsedSharedStrings
                 : Array.Empty<string>();
             dateStyles = styles;
+        }
+
+        private static IReadOnlyList<SheetInfo> ParseSheetNames(
+            LegacyBiffSource bytes,
+            ExcelReadOptions options,
+            CancellationToken cancellationToken) {
+            var parsedSheets = new List<SheetInfo>();
+            int offset = 0;
+            bool sawBof = false;
+            bool sawEof = false;
+            while (TryReadRecord(bytes, ref offset, out RecordSlice record)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!sawBof) {
+                    if (record.Type != (ushort)BiffRecordType.Bof || record.Length < 4) {
+                        throw new InvalidDataException(
+                            "The XLS workbook stream is missing a valid workbook-globals BOF record.");
+                    }
+                    ushort version = bytes.ReadUInt16(record.PayloadOffset);
+                    ushort substreamType = bytes.ReadUInt16(record.PayloadOffset + 2);
+                    if (version != Biff8Version || substreamType != 0x0005) {
+                        throw new LegacyXlsFastPathNotSupportedException(
+                            "The direct XLS reader supports BIFF8 workbook streams.");
+                    }
+                    sawBof = true;
+                    continue;
+                }
+
+                switch ((BiffRecordType)record.Type) {
+                    case BiffRecordType.BoundSheet8:
+                        if (parsedSheets.Count >= options.MaxWorksheets) {
+                            throw new InvalidDataException(
+                                $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
+                        }
+                        parsedSheets.Add(ReadBoundSheet(bytes, record));
+                        break;
+                    case BiffRecordType.FilePass:
+                        throw new LegacyXlsFastPathNotSupportedException(
+                            "Encrypted XLS workbooks are not supported by metadata-only sheet discovery.");
+                    case BiffRecordType.Eof:
+                        sawEof = true;
+                        offset = bytes.Length;
+                        break;
+                }
+            }
+
+            if (!sawBof || !sawEof) {
+                throw new InvalidDataException("The XLS workbook-globals substream is truncated before EOF.");
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return ValidateWorksheets(parsedSheets, bytes.Length);
+        }
+
+        private static SheetInfo[] ValidateWorksheets(
+            IReadOnlyList<SheetInfo> parsedSheets,
+            int streamLength) {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            SheetInfo[] worksheets = parsedSheets
+                .Where(static sheet => sheet.SheetType == 0)
+                .ToArray();
+            foreach (SheetInfo sheet in worksheets) {
+                if (sheet.StreamOffset < 0 || sheet.StreamOffset >= streamLength) {
+                    throw new InvalidDataException($"Worksheet '{sheet.Name}' has an invalid BIFF stream offset.");
+                }
+                if (!names.Add(sheet.Name)) {
+                    throw new InvalidDataException(
+                        $"The workbook contains duplicate worksheet name '{sheet.Name}' under case-insensitive matching.");
+                }
+            }
+            if (worksheets.Length == 0) {
+                throw new InvalidDataException("The workbook contains no readable worksheets.");
+            }
+
+            return worksheets;
         }
 
         private static ushort ResolveEffectiveNumberFormat(IReadOnlyList<XfInfo> cellFormats, int index) {

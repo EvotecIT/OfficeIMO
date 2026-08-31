@@ -88,33 +88,22 @@ namespace OfficeIMO.Excel {
         internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReadOptions options) {
             options.CancellationToken.ThrowIfCancellationRequested();
             string extension = Path.GetExtension(path).ToLowerInvariant();
-            switch (extension) {
-                case ".xls":
-                    using (LegacyXlsTabularWorkbook workbook = LegacyXlsTabularWorkbook.Open(
-                               path,
-                               options,
-                               options.CancellationToken)) {
-                        return workbook.TableNames.ToArray();
-                    }
-                case ".xlsb":
-                    using (XlsbTabularWorkbook workbook = XlsbTabularWorkbook.Open(
-                               path,
-                               options,
-                               options.CancellationToken)) {
-                        return workbook.TableNames.ToArray();
-                    }
-                case ".xlsx":
-                case ".xlsm":
-                case ".xltx":
-                case ".xltm":
-                case ".xlam":
-                    using (ExcelDocumentReader workbook = ExcelDocumentReader.Open(path, options)) {
-                        return workbook.GetSheetNames().ToArray();
-                    }
-                default:
-                    throw new NotSupportedException(
-                        "GetSheetNames supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.");
-            }
+            IReadOnlyList<string> names = extension switch {
+                ".xls" => LegacyXlsTabularWorkbook.ReadSheetNames(
+                    path,
+                    options,
+                    options.CancellationToken),
+                ".xlsb" => XlsbTabularWorkbook.ReadSheetNames(
+                    path,
+                    options,
+                    options.CancellationToken),
+                ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" =>
+                    XlsxTabularWorkbook.ReadSheetNames(path, options),
+                _ => throw new NotSupportedException(
+                    "GetSheetNames supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
+            };
+            options.CancellationToken.ThrowIfCancellationRequested();
+            return names;
         }
 
         internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReadOptions options) {
@@ -174,6 +163,7 @@ namespace OfficeIMO.Excel {
                 MaxInputBytes = options.MaxInputBytes,
                 XlsbImportOptions = new OfficeIMO.Excel.Xlsb.XlsbImportOptions {
                     MaxPackageBytes = options.MaxInputBytes,
+                    MaxWorksheets = options.MaxWorksheets,
                     MaxCells = options.MaxXlsbCells,
                     MaxLogicalRows = options.MaxXlsbLogicalRows,
                     MaxSharedStrings = options.MaxSharedStringItems,

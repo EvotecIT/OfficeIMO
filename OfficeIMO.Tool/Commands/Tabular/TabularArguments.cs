@@ -15,7 +15,8 @@ internal sealed class TabularArguments {
     internal string? OutputPath { get; private init; }
     internal string? SheetName { get; private init; }
     internal int? SheetIndex { get; private init; }
-    internal char? Delimiter { get; private init; }
+    internal char? InputDelimiter { get; private init; }
+    internal char? OutputDelimiter { get; private init; }
     internal bool HasHeaderRow { get; private init; } = true;
     internal bool Force { get; private init; }
 
@@ -35,7 +36,8 @@ internal sealed class TabularArguments {
         string? outputPath = null;
         string? sheetName = null;
         int? sheetIndex = null;
-        char? delimiter = null;
+        char? inputDelimiter = null;
+        char? outputDelimiter = null;
         bool hasHeaderRow = true;
         bool force = false;
 
@@ -54,12 +56,10 @@ internal sealed class TabularArguments {
                     sheetIndex = parsedIndex;
                     break;
                 case "--delimiter":
-                    string delimiterText = NextValue(args, ref index, token);
-                    delimiter = delimiterText == "\\t"
-                        ? '\t'
-                        : delimiterText.Length == 1
-                            ? delimiterText[0]
-                            : throw new TabularUsageException("--delimiter requires one character or \\t.");
+                    inputDelimiter = ParseDelimiter(NextValue(args, ref index, token), token);
+                    break;
+                case "--output-delimiter":
+                    outputDelimiter = ParseDelimiter(NextValue(args, ref index, token), token);
                     break;
                 case "--no-header":
                     hasHeaderRow = false;
@@ -91,8 +91,12 @@ internal sealed class TabularArguments {
             throw new TabularUsageException(command.ToString().ToLowerInvariant() + " accepts only one input path.");
         }
         if (command == TabularCommandKind.Sheets &&
-            (sheetName != null || sheetIndex.HasValue || delimiter.HasValue || !hasHeaderRow || force)) {
+            (sheetName != null || sheetIndex.HasValue || inputDelimiter.HasValue ||
+             outputDelimiter.HasValue || !hasHeaderRow || force)) {
             throw new TabularUsageException("sheets does not accept selection, delimiter, header, or overwrite options.");
+        }
+        if (command != TabularCommandKind.Convert && force) {
+            throw new TabularUsageException("--force applies only to convert.");
         }
 
         return new TabularArguments {
@@ -101,7 +105,8 @@ internal sealed class TabularArguments {
             OutputPath = outputPath == null ? null : Path.GetFullPath(outputPath),
             SheetName = sheetName,
             SheetIndex = sheetIndex,
-            Delimiter = delimiter,
+            InputDelimiter = inputDelimiter,
+            OutputDelimiter = outputDelimiter,
             HasHeaderRow = hasHeaderRow,
             Force = force
         };
@@ -112,6 +117,19 @@ internal sealed class TabularArguments {
             throw new TabularUsageException(option + " requires a value.");
         }
         return args[index];
+    }
+
+    private static char ParseDelimiter(string value, string option) {
+        char delimiter = value == "\\t"
+            ? '\t'
+            : value.Length == 1
+                ? value[0]
+                : throw new TabularUsageException(option + " requires one character or \\t.");
+        if (delimiter == '"') {
+            throw new TabularUsageException(option + " cannot use the CSV quote character (\").");
+        }
+
+        return delimiter;
     }
 
     private static bool IsHelp(string value) => value is "help" or "--help" or "-h";

@@ -31,7 +31,6 @@ namespace OfficeIMO.Excel {
         private const string InternationalMacroSheetRelationshipSuffix = "/intlMacrosheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
         private const string StylesRelationshipSuffix = "/styles";
-        private const int MaximumMetadataPartBytes = 16 * 1024 * 1024;
         private const int MaximumPrefetchedWorksheetBytes = 64 * 1024 * 1024;
         private const string WorksheetContentType =
             "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml";
@@ -65,7 +64,8 @@ namespace OfficeIMO.Excel {
             OpenXmlPackagePartBufferReader parts,
             OpenXmlPackagePartBufferReader? prefetchedParts,
             IDisposable? ownedResource,
-            ExcelReadOptions options) {
+            ExcelReadOptions options,
+            bool metadataOnly = false) {
             _parts = parts;
             _prefetchedParts = prefetchedParts;
             _ownedResource = ownedResource;
@@ -82,14 +82,26 @@ namespace OfficeIMO.Excel {
                 ReadRelationships(workbookPartName);
             (_sheets, ExcelDateSystem dateSystem) = ReadWorkbook(
                 workbookPartName,
-                workbookRelationships);
+                workbookRelationships,
+                metadataOnly);
             if (_sheets.Length == 0) {
+                if (metadataOnly) {
+                    throw new InvalidDataException("The workbook contains no readable worksheets.");
+                }
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The workbook contains no native-path worksheets.");
             }
 
             DateSystem = dateSystem;
             _tableNames = _sheets.Select(static sheet => sheet.Name).ToArray();
+            if (metadataOnly) {
+                _prefetchedSheetPartName = null;
+                _sharedStrings = SharedStringCache.Empty(options);
+                _styles = new StylesCacheProvider(StylesCache.Empty());
+                options.CancellationToken.ThrowIfCancellationRequested();
+                return;
+            }
+
             XlsxTabularSheet? prefetchedSheet = options.EnableWorksheetPrefetch
                 ? ResolvePrefetchedSheet(_sheets, options)
                 : null;
@@ -133,6 +145,19 @@ namespace OfficeIMO.Excel {
         internal ExcelDateSystem DateSystem { get; }
 
         internal static XlsxTabularWorkbook Open(string path, ExcelReadOptions options) {
+            return Open(path, options, metadataOnly: false);
+        }
+
+        internal static IReadOnlyList<string> ReadSheetNames(string path, ExcelReadOptions options) {
+            using XlsxTabularWorkbook workbook = Open(path, options, metadataOnly: true);
+            options.CancellationToken.ThrowIfCancellationRequested();
+            return workbook._tableNames.ToArray();
+        }
+
+        private static XlsxTabularWorkbook Open(
+            string path,
+            ExcelReadOptions options,
+            bool metadataOnly) {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
@@ -153,10 +178,10 @@ namespace OfficeIMO.Excel {
                 parts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1))
                     ?? throw new XlsxTabularFastPathNotSupportedException(
                         "The workbook is not a readable Open XML package.");
-                if (options.EnableWorksheetPrefetch) {
+                if (!metadataOnly && options.EnableWorksheetPrefetch) {
                     prefetchedParts = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
                 }
-                var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options);
+                var workbook = new XlsxTabularWorkbook(parts, prefetchedParts, snapshot, options, metadataOnly);
                 parts = null;
                 prefetchedParts = null;
                 snapshot = null;
@@ -268,7 +293,7 @@ namespace OfficeIMO.Excel {
 
         private (Dictionary<string, string> Overrides, Dictionary<string, string> Defaults)
             ReadContentTypes() {
-            XDocument contentTypes = ReadXmlPart("[Content_Types].xml", MaximumMetadataPartBytes);
+            XDocument contentTypes = ReadXmlPart("[Content_Types].xml", _options.MaxMetadataPartBytes);
             XNamespace ns = PackageContentTypesNamespace;
             if (contentTypes.Root?.Name != ns + "Types") {
                 throw new XlsxTabularFastPathNotSupportedException(
@@ -356,7 +381,7 @@ namespace OfficeIMO.Excel {
             string relationshipPartName = GetRelationshipPartName(sourcePartName);
             XDocument relationships = ReadXmlPart(
                 relationshipPartName,
-                MaximumMetadataPartBytes);
+                _options.MaxMetadataPartBytes);
             XNamespace ns = PackageRelationshipsNamespace;
             if (relationships.Root?.Name != ns + "Relationships") {
                 throw new XlsxTabularFastPathNotSupportedException(
@@ -397,8 +422,9 @@ namespace OfficeIMO.Excel {
 
         private (XlsxTabularSheet[] Sheets, ExcelDateSystem DateSystem) ReadWorkbook(
             string workbookPartName,
-            IReadOnlyDictionary<string, PackageRelationship> relationships) {
-            XDocument workbook = ReadXmlPart(workbookPartName, MaximumMetadataPartBytes);
+            IReadOnlyDictionary<string, PackageRelationship> relationships,
+            bool metadataOnly) {
+            XDocument workbook = ReadXmlPart(workbookPartName, _options.MaxMetadataPartBytes);
             if (workbook.Root == null
                 || (workbook.Root.Name.NamespaceName != TransitionalSpreadsheetNamespace
                     && workbook.Root.Name.NamespaceName != StrictSpreadsheetNamespace)
@@ -426,10 +452,19 @@ namespace OfficeIMO.Excel {
                     "The workbook has no sheets collection.");
             }
 
-            XElement[] workbookSheets = sheetsElement.Elements(spreadsheet + "sheet").ToArray();
+            var workbookSheets = new List<XElement>();
+            foreach (XElement sheet in sheetsElement.Elements(spreadsheet + "sheet")) {
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                if (workbookSheets.Count >= _options.MaxWorksheets) {
+                    throw new InvalidDataException(
+                        $"The workbook contains more than the configured {_options.MaxWorksheets} worksheet definitions.");
+                }
+                workbookSheets.Add(sheet);
+            }
             if (string.IsNullOrWhiteSpace(_options.SheetName)
                 && !_options.SheetIndex.HasValue
-                && workbookSheets.Length > 1) {
+                && workbookSheets.Count > 1
+                && !metadataOnly) {
                 // The public multi-result reader still uses the SDK path. Stop before
                 // resolving every sheet and optional global part so that fallback does
                 // not pay the complete native metadata probe first.
@@ -440,6 +475,7 @@ namespace OfficeIMO.Excel {
             XNamespace transitionalRelationships = TransitionalOfficeRelationshipsNamespace;
             XNamespace strictRelationships = StrictOfficeRelationshipsNamespace;
             var sheets = new List<XlsxTabularSheet>();
+            var worksheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (XElement sheet in workbookSheets) {
                 _options.CancellationToken.ThrowIfCancellationRequested();
                 string? name = (string?)sheet.Attribute("name");
@@ -457,12 +493,19 @@ namespace OfficeIMO.Excel {
                 }
                 if (!IsOfficeRelationship(relationship.Type, WorksheetRelationshipSuffix)) {
                     if (IsSupportedNonWorksheetRelationship(relationship.Type)) {
+                        if (metadataOnly) {
+                            continue;
+                        }
                         throw new XlsxTabularFastPathNotSupportedException(
                             "Non-worksheet sheet relationships require the Open XML SDK fallback path.");
                     }
 
                     throw new XlsxTabularFastPathNotSupportedException(
                         "A workbook sheet relationship requires the Open XML SDK fallback path.");
+                }
+                if (!worksheetNames.Add(name!)) {
+                    throw new InvalidDataException(
+                        $"The workbook contains duplicate worksheet name '{name}' under case-insensitive matching.");
                 }
 
                 string partName = ResolveTarget(workbookPartName, relationship.Target);
@@ -474,6 +517,7 @@ namespace OfficeIMO.Excel {
                 sheets.Add(new XlsxTabularSheet(name!, partName));
             }
 
+            _options.CancellationToken.ThrowIfCancellationRequested();
             return (sheets.ToArray(), dateSystem);
         }
 
@@ -516,7 +560,9 @@ namespace OfficeIMO.Excel {
                     CloseInput = false,
                     MaxCharactersInDocument = maximumBytes
                 });
-                return XDocument.Load(reader, LoadOptions.None);
+                XDocument document = XDocument.Load(reader, LoadOptions.None);
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                return document;
             } catch (XmlException exception) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     $"Package part '{partName}' requires the Open XML SDK fallback path.",
@@ -527,6 +573,8 @@ namespace OfficeIMO.Excel {
         private static string ResolveTarget(string sourcePartName, string target) {
             if (string.IsNullOrWhiteSpace(target)
                 || target.IndexOf('\\') >= 0
+                || target.IndexOf('?') >= 0
+                || target.IndexOf('#') >= 0
                 || Uri.TryCreate(target, UriKind.Absolute, out _)) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "A package relationship target is not supported by the native path.");
@@ -539,10 +587,12 @@ namespace OfficeIMO.Excel {
                 ? target.TrimStart('/')
                 : directory + target;
             var segments = new List<string>();
-            foreach (string segment in combined.Split('/')) {
-                if (segment.Length == 0 || segment == ".") {
+            foreach (string encodedSegment in combined.Split('/')) {
+                if (encodedSegment.Length == 0) {
                     continue;
                 }
+                string segment = DecodePartSegment(encodedSegment);
+                if (segment == ".") continue;
                 if (segment == "..") {
                     if (segments.Count == 0) {
                         throw new XlsxTabularFastPathNotSupportedException(
@@ -550,10 +600,6 @@ namespace OfficeIMO.Excel {
                     }
                     segments.RemoveAt(segments.Count - 1);
                     continue;
-                }
-                if (segment.IndexOf('%') >= 0) {
-                    throw new XlsxTabularFastPathNotSupportedException(
-                        "An encoded package relationship target requires the Open XML SDK fallback path.");
                 }
                 segments.Add(segment);
             }
@@ -581,26 +627,65 @@ namespace OfficeIMO.Excel {
                 || partName.EndsWith("/", StringComparison.Ordinal)
                 || partName!.IndexOf('\\') >= 0
                 || partName.IndexOf('?') >= 0
-                || partName.IndexOf('#') >= 0
-                || partName.Any(static character => !IsNativeContentTypePartNameCharacter(character))) {
+                || partName.IndexOf('#') >= 0) {
                 return string.Empty;
             }
 
-            string[] segments = partName.Split('/');
-            if (segments.Length < 2
-                || segments.Skip(1).Any(static segment =>
-                    segment.Length == 0 || segment == "." || segment == "..")) {
+            string[] encodedSegments = partName.Split('/');
+            if (encodedSegments.Length < 2) {
                 return string.Empty;
             }
 
-            return partName;
+            var segments = new List<string>(encodedSegments.Length - 1);
+            try {
+                foreach (string encodedSegment in encodedSegments.Skip(1)) {
+                    if (encodedSegment.Length == 0) return string.Empty;
+                    string segment = DecodePartSegment(encodedSegment);
+                    if (segment == "." || segment == "..") return string.Empty;
+                    segments.Add(segment);
+                }
+            } catch (XlsxTabularFastPathNotSupportedException) {
+                return string.Empty;
+            }
+
+            return "/" + string.Join("/", segments);
         }
 
-        private static bool IsNativeContentTypePartNameCharacter(char character) =>
-            character is >= 'a' and <= 'z'
-            || character is >= 'A' and <= 'Z'
-            || character is >= '0' and <= '9'
-            || character is '/' or '-' or '_' or '.' or '~';
+        private static string DecodePartSegment(string segment) {
+            for (int index = 0; index < segment.Length; index++) {
+                if (segment[index] != '%') continue;
+                if (index + 2 >= segment.Length
+                    || !IsHexDigit(segment[index + 1])
+                    || !IsHexDigit(segment[index + 2])) {
+                    throw new XlsxTabularFastPathNotSupportedException(
+                        "A package part URI contains invalid percent encoding.");
+                }
+                index += 2;
+            }
+
+            string decoded;
+            try {
+                decoded = Uri.UnescapeDataString(segment);
+            } catch (UriFormatException exception) {
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "A package part URI contains invalid percent encoding.",
+                    exception);
+            }
+            if (decoded.Length == 0
+                || decoded.IndexOf('/') >= 0
+                || decoded.IndexOf('\\') >= 0
+                || decoded.Any(char.IsControl)) {
+                throw new XlsxTabularFastPathNotSupportedException(
+                    "A package part URI contains an unsafe encoded segment.");
+            }
+
+            return decoded;
+        }
+
+        private static bool IsHexDigit(char value) =>
+            value is >= '0' and <= '9'
+            || value is >= 'a' and <= 'f'
+            || value is >= 'A' and <= 'F';
 
         private static bool IsValidContentType(string? contentType) {
             if (string.IsNullOrWhiteSpace(contentType)

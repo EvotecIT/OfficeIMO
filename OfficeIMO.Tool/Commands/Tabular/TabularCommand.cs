@@ -24,12 +24,14 @@ Usage:
   officeimo tabular schema <workbook|csv> [--sheet <name>|--sheet-index <index>]
                            [--delimiter <character|\t>] [--no-header]
   officeimo tabular convert <input> <output> [--sheet <name>|--sheet-index <index>]
-                            [--delimiter <character|\t>] [--no-header] [--force]
+                            [--delimiter <character|\t>] [--output-delimiter <character|\t>]
+                            [--no-header] [--force]
 
 Workbook input formats: XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and XLS.
 Workbook output formats: XLSX, XLSB, and XLS.
 CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
-Schema output is TSV; column names escape backslashes and controls as \\, \t, \r, \n, or \uXXXX.
+--delimiter controls delimited input; --output-delimiter controls delimited output.
+Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uXXXX.
 """;
 
     internal static async Task<int> RunAsync(
@@ -88,7 +90,7 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
             new ExcelReadOptions { CancellationToken = cancellationToken });
         foreach (string sheetName in sheetNames) {
             cancellationToken.ThrowIfCancellationRequested();
-            await output.WriteLineAsync(sheetName).ConfigureAwait(false);
+            await output.WriteLineAsync(EscapeOutputField(sheetName)).ConfigureAwait(false);
         }
         return (int)OfficeImoToolExitCode.Success;
     }
@@ -102,7 +104,7 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
         for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(
-                ordinal + "\t" + EscapeSchemaField(reader.GetName(ordinal)) + "\t" + reader.GetFieldType(ordinal).FullName)
+                ordinal + "\t" + EscapeOutputField(reader.GetName(ordinal)) + "\t" + reader.GetFieldType(ordinal).FullName)
                 .ConfigureAwait(false);
         }
         return (int)OfficeImoToolExitCode.Success;
@@ -154,7 +156,7 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
                 cancellationToken);
             if (outputIsCsv) {
                 var saveOptions = new CsvSaveOptions {
-                    Delimiter = ResolveDelimiter(temporaryPath, options.Delimiter),
+                    Delimiter = ResolveDelimiter(temporaryPath, options.OutputDelimiter),
                     IncludeHeader = options.HasHeaderRow,
                     NoClobber = true
                 };
@@ -240,7 +242,7 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
             var loadOptions = new CsvLoadOptions {
                 HasHeaderRow = options.HasHeaderRow,
                 DetectDelimiter = ShouldDetectDelimiter(options),
-                Delimiter = ResolveDelimiter(options.InputPath, options.Delimiter),
+                Delimiter = ResolveDelimiter(options.InputPath, options.InputDelimiter),
                 CancellationToken = cancellationToken
             };
             return CsvDocument.OpenDataReader(
@@ -265,10 +267,10 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
         (string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase) ? '\t' : ',');
 
     private static bool ShouldDetectDelimiter(TabularArguments options) =>
-        !options.Delimiter.HasValue
+        !options.InputDelimiter.HasValue
         && !string.Equals(Path.GetExtension(options.InputPath), ".tsv", StringComparison.OrdinalIgnoreCase);
 
-    private static string EscapeSchemaField(string value) {
+    private static string EscapeOutputField(string value) {
         if (string.IsNullOrEmpty(value)) return value;
 
         System.Text.StringBuilder? escaped = null;
@@ -299,16 +301,32 @@ Schema output is TSV; column names escape backslashes and controls as \\, \t, \r
 
     private static void ValidatePathOptions(TabularArguments options) {
         bool inputIsCsv = IsCsvPath(options.InputPath);
+        bool outputIsCsv = options.OutputPath is not null && IsCsvPath(options.OutputPath);
         if (inputIsCsv && (options.SheetName is not null || options.SheetIndex.HasValue)) {
             throw new NotSupportedException("--sheet and --sheet-index apply only to workbook input.");
+        }
+        if (!inputIsCsv && options.InputDelimiter.HasValue) {
+            throw new NotSupportedException("--delimiter applies only to CSV or TSV input.");
+        }
+        if (options.Command != TabularCommandKind.Convert && options.OutputDelimiter.HasValue) {
+            throw new NotSupportedException("--output-delimiter applies only to delimited conversion output.");
+        }
+        if (options.Command == TabularCommandKind.Convert && !outputIsCsv && options.OutputDelimiter.HasValue) {
+            throw new NotSupportedException("--output-delimiter applies only to CSV or TSV output.");
         }
 
         if (options.Command == TabularCommandKind.Convert &&
             !inputIsCsv &&
             options.OutputPath is not null &&
-            !IsCsvPath(options.OutputPath) &&
+            !outputIsCsv &&
             (options.SheetName is not null || options.SheetIndex.HasValue)) {
             throw new NotSupportedException("Sheet selection is available when converting a workbook to CSV or TSV, not workbook-to-workbook conversion.");
+        }
+        if (options.Command == TabularCommandKind.Convert &&
+            !inputIsCsv &&
+            !outputIsCsv &&
+            !options.HasHeaderRow) {
+            throw new NotSupportedException("--no-header does not apply to workbook-to-workbook conversion.");
         }
     }
 

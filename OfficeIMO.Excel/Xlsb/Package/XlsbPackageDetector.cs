@@ -55,7 +55,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 out workbookPartName);
         }
 
-        private static bool TryFindWorkbookPart(
+        internal static bool TryFindWorkbookPart(
             ZipArchive archive,
             long maxRootRelationshipsBytes,
             long maxContentTypesBytes,
@@ -69,7 +69,9 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                     return false;
                 }
 
-                string? target = ReadOfficeDocumentTarget(relationshipsEntry);
+                string? target = ReadOfficeDocumentTarget(
+                    relationshipsEntry,
+                    maxRootRelationshipsBytes);
                 if (string.IsNullOrWhiteSpace(target)) {
                     return false;
                 }
@@ -110,7 +112,8 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                CloseInput = false
+                CloseInput = false,
+                MaxCharactersInDocument = maxContentTypesBytes
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
@@ -156,12 +159,15 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             return "/" + partName.TrimStart('/');
         }
 
-        private static string? ReadOfficeDocumentTarget(ZipArchiveEntry relationshipsEntry) {
+        private static string? ReadOfficeDocumentTarget(
+            ZipArchiveEntry relationshipsEntry,
+            long maximumBytes) {
             using Stream stream = relationshipsEntry.Open();
             using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
                 DtdProcessing = DtdProcessing.Prohibit,
                 XmlResolver = null,
-                CloseInput = false
+                CloseInput = false,
+                MaxCharactersInDocument = maximumBytes
             });
             XDocument document = XDocument.Load(reader, LoadOptions.None);
             if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
