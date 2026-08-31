@@ -13,7 +13,7 @@ public static class PdfAdvancedUnderstandingStages {
     /// <summary>Spatial connected-region segmentation.</summary>
     public static IPdfPageSegmentationStage PageSegmentation { get; } = new AdvancedPageSegmentationStage();
     /// <summary>Spanning-band and multi-column reading order.</summary>
-    public static IPdfReadingOrderStage ReadingOrder { get; } = new AdvancedReadingOrderStage();
+    public static IPdfReadingOrderStage ReadingOrder { get; } = new PdfRecursiveXyCutReadingOrderStage();
     /// <summary>Business-document semantic classification.</summary>
     public static IPdfSemanticClassificationStage SemanticClassification { get; } = new AdvancedSemanticClassificationStage();
 
@@ -100,6 +100,7 @@ public static class PdfAdvancedUnderstandingStages {
         public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) {
             var remaining = new HashSet<int>(Enumerable.Range(0, lines.Count));
             var regions = new List<PdfUnderstandingRegion>();
+            AddCanonicalTableRegions(context, lines, remaining, regions);
             while (remaining.Count > 0) {
                 int seed = remaining.First();
                 remaining.Remove(seed);
@@ -121,6 +122,43 @@ public static class PdfAdvancedUnderstandingStages {
             return regions.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : regions.AsReadOnly();
         }
 
+        private static void AddCanonicalTableRegions(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines,
+            HashSet<int> remaining,
+            List<PdfUnderstandingRegion> regions) {
+            if (context.DecodedRuns.Count == 0 || lines.Count == 0) return;
+
+            StructuredPage structure = ContentStructureExtractor.Extract(
+                context.DecodedRuns,
+                context.LayoutOptions.ToEngineOptions(),
+                context.Height);
+            foreach (StructuredTable table in structure.TablesDetailed) {
+                if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase) || table.Columns.Count < 2) continue;
+
+                double top = Math.Max(table.YTop, table.YBottom);
+                double bottom = Math.Min(table.YTop, table.YBottom);
+                double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
+                double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+                int[] tableLineIndexes = remaining
+                    .Where(index => HasMeaningfulTableOverlap(lines[index], top, bottom, left, right))
+                    .OrderByDescending(index => lines[index].BaselineY)
+                    .ThenBy(index => lines[index].XStart)
+                    .ToArray();
+                if (tableLineIndexes.Length < 2) continue;
+
+                PdfUnderstandingLine[] tableLines = tableLineIndexes.Select(index => lines[index]).ToArray();
+                foreach (int index in tableLineIndexes) remaining.Remove(index);
+                double confidence = PdfInference.Clamp(tableLines.Average(static line => line.Confidence));
+                regions.Add(new PdfUnderstandingRegion(tableLines, confidence, new[] {
+                    new PdfInferenceEvidence(
+                        "region.canonical-table",
+                        "The canonical layout engine recovered these aligned lines as one validated table.",
+                        0.9D)
+                }));
+            }
+        }
+
         private static bool AreSpatialNeighbors(PdfUnderstandingLine left, PdfUnderstandingLine right) {
             if (AngularDistance(left.RotationDegrees, right.RotationDegrees) > 4D) return false;
             double verticalGap = Math.Abs(left.BaselineY - right.BaselineY);
@@ -129,41 +167,6 @@ public static class PdfAdvancedUnderstandingStages {
             double allowedHorizontal = Math.Max(18D, Math.Max(left.FontSize, right.FontSize) * 2D);
             bool overlapsHorizontally = left.XStart <= right.XEnd + allowedHorizontal && right.XStart <= left.XEnd + allowedHorizontal;
             return verticalGap <= allowedVertical && overlapsHorizontally && horizontalGap <= allowedHorizontal;
-        }
-    }
-
-    private sealed class AdvancedReadingOrderStage : IPdfReadingOrderStage {
-        public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) {
-            if (regions.Count <= 1) return regions.ToArray();
-            double pageWidth = Math.Max(1D, context.Width);
-            PdfUnderstandingRegion[] spanning = regions.Where(region => region.XEnd - region.XStart >= pageWidth * 0.62D).OrderByDescending(static region => region.YTop).ToArray();
-            var ordered = new List<PdfUnderstandingRegion>(regions.Count);
-            var consumed = new HashSet<PdfUnderstandingRegion>();
-            double bandTop = double.PositiveInfinity;
-            foreach (PdfUnderstandingRegion divider in spanning) {
-                AddBand(regions.Where(region => !consumed.Contains(region) && !ReferenceEquals(region, divider) && region.YTop <= bandTop && region.YTop > divider.YTop));
-                ordered.Add(divider); consumed.Add(divider); bandTop = divider.YBottom;
-            }
-            AddBand(regions.Where(region => !consumed.Contains(region)));
-            return ordered.ToArray();
-
-            void AddBand(IEnumerable<PdfUnderstandingRegion> candidates) {
-                PdfUnderstandingRegion[] band = candidates.ToArray();
-                if (band.Length == 0) return;
-                double medianWidth = band.Select(region => region.XEnd - region.XStart).OrderBy(static width => width).ElementAt(band.Length / 2);
-                double columnTolerance = Math.Max(18D, medianWidth * 0.2D);
-                var columns = new List<List<PdfUnderstandingRegion>>();
-                foreach (PdfUnderstandingRegion region in band.OrderBy(static region => region.XStart)) {
-                    List<PdfUnderstandingRegion>? column = columns.FirstOrDefault(candidate => Math.Abs(candidate.Average(static item => item.XStart) - region.XStart) <= columnTolerance);
-                    if (column is null) { column = new List<PdfUnderstandingRegion>(); columns.Add(column); }
-                    column.Add(region);
-                }
-                foreach (List<PdfUnderstandingRegion> column in columns.OrderBy(static column => column.Min(static region => region.XStart))) {
-                    foreach (PdfUnderstandingRegion region in column.OrderByDescending(static region => region.YTop).ThenBy(static region => region.XStart)) {
-                        if (consumed.Add(region)) ordered.Add(region);
-                    }
-                }
-            }
         }
     }
 
@@ -182,12 +185,13 @@ public static class PdfAdvancedUnderstandingStages {
         private static (PdfUnderstandingSemanticKind Kind, double Confidence, string Code, string Message) Classify(PdfUnderstandingPageContext context, PdfUnderstandingRegion region, double median) {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
+            if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (region.YTop >= context.Height * 0.94D) return (PdfUnderstandingSemanticKind.Header, 0.82D, "semantic.page-edge-header", "The region occupies the top six percent of the page.");
             if (region.YBottom <= context.Height * 0.08D && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
             if (region.YBottom <= context.Height * 0.05D) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "The region occupies the bottom five percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
             if (LooksLikeTable(region)) return (PdfUnderstandingSemanticKind.Table, 0.83D, "semantic.column-alignment", "Several lines share aligned word columns with large horizontal gaps.");
-            if (StartsWithListMarker(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
+            if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
         }
@@ -204,12 +208,6 @@ public static class PdfAdvancedUnderstandingStages {
             return alignedRows >= 2;
         }
 
-        private static bool StartsWithListMarker(string text) {
-            if (text.Length == 0) return false;
-            if (text[0] == '-' || text[0] == '*' || text[0] == '•') return true;
-            int index = 0; while (index < text.Length && char.IsDigit(text[index])) index++;
-            return index > 0 && index < text.Length && (text[index] == '.' || text[index] == ')');
-        }
     }
 
     private sealed class BaselineGroup {
@@ -217,6 +215,21 @@ public static class PdfAdvancedUnderstandingStages {
         internal double Angle { get; }
         internal double Normal { get; set; }
         internal List<PdfUnderstandingWord> Words { get; } = new();
+    }
+
+    internal static bool HasMeaningfulTableOverlap(
+        PdfUnderstandingLine line,
+        double top,
+        double bottom,
+        double left,
+        double right) {
+        double verticalTolerance = Math.Max(1D, line.FontSize * 0.5D);
+        if (line.BaselineY > top + verticalTolerance || line.BaselineY < bottom - verticalTolerance) return false;
+        double lineLeft = Math.Min(line.XStart, line.XEnd);
+        double lineRight = Math.Max(line.XStart, line.XEnd);
+        double overlap = Math.Max(0D, Math.Min(lineRight, right) - Math.Max(lineLeft, left));
+        double narrowerWidth = Math.Min(lineRight - lineLeft, right - left);
+        return narrowerWidth > 0.001D && overlap + 0.001D >= narrowerWidth * 0.5D;
     }
 
     private static double WordAnchorX(PdfUnderstandingWord word) => (word.XStart + word.XEnd) / 2D;

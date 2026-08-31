@@ -19,6 +19,7 @@ The benchmark families intentionally answer different questions:
 - `PdfHtmlPayloadBenchmarks`: OfficeIMO.Html.Pdf and PeachPDF render exact 21 KiB plain-text, table-heavy, and multilingual HTML payloads as tagged PDFs. The multilingual lane makes the same bundled Carlito font the primary CSS family for both engines and requires every measured Latin, Greek, and Cyrillic sample plus the embedded font in the resulting artifact. It therefore runs portably without host-font dependencies or role mismatches. The quick runner uses BenchmarkDotNet's process-isolated `Dry` job for cold-start evidence; full runs measure warmed throughput. Cleanup reopens each result, checks page count, first/last content, the unique terminal marker, all multilingual samples, and reports HTML bytes, PDF bytes, pages, and extracted-text length.
 - `PdfFormatConversionBenchmarks` and `PdfExtendedFormatConversionBenchmarks`: all fourteen advertised OfficeIMO source routes parse deterministic source bytes and produce a PDF in one measured operation. DOCX, XLSX, PPTX, HTML, Markdown, RTF, AsciiDoc, LaTeX, MHTML, OneNote, ODT, ODS, ODP, and Visio outputs are reopened independently; every lane requires all four semantic fields for each of 120 records and reports source bytes, PDF bytes, pages, and extracted-text length. This is an OfficeIMO route-health benchmark, not a third-party comparison: adapters with materially different format contracts are not forced into artificial parity. The shared runner can execute this local health lane, but never writes it to the library-comparison evidence catalog, including when `all` or `-Publish` selects it.
 - `PdfReadBenchmarks`: OfficeIMO.Pdf, PdfPig, and iText open identical bytes, enumerate every page, and extract the complete text payload. The corpus is repeated for OfficeIMO-, QuestPDF-, PeachPDF-, MigraDoc-, and iText-produced PDFs to avoid a single-producer result.
+- `PdfAdvancedUnderstandingBenchmarks` and `PdfLogicalStructureBenchmarks`: OfficeIMO-only route-health evidence over deterministic multi-page PDFs containing running headers/footers, a spanning heading, indented two-column body regions, a list item, caption, and table. `AdvancedUnderstanding` measures open, glyph decoding, word/line grouping, spatial connected-component segmentation, recursive XY-cut reading order, and semantic classification. `LogicalStructureAndTables` measures the current logical model and actual table-cell extraction. Each class owns only its contract's setup gate, and the shared runner registers them as separate `pdfunderstanding` and `pdflogicalstructure` lanes so BenchmarkDotNet never ranks or cross-gates the two different contracts.
 - `PdfSplitBenchmarks`: OfficeIMO, iText, and PDFsharp split the same OfficeIMO- and iText-produced documents into single pages and fixed-size bundles, then reopen every output with the producing engine and verify its page count inside the timed operation.
 - `PdfMergeBenchmarks`: all three engines merge the same ordered source set, reopen the serialized output with the producing engine inside the timed operation, and preserve the exact page-marker sequence.
 - `PdfPageSelectionBenchmarks`: all three engines extract the same reversed, non-contiguous page selection, reopen the serialized output with the producing engine inside the timed operation, and preserve that order.
@@ -100,6 +101,8 @@ pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtml -RunMode quick 
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfhtmlpayload -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfformats -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfread -RunMode quick -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfunderstanding -RunMode quick -Framework net10.0
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdflogicalstructure -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfsplit -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfmerge -RunMode quick -Framework net10.0
 pwsh Build/Run-LibraryComparisonBenchmarks.ps1 -Workload pdfselect -RunMode quick -Framework net10.0
@@ -126,7 +129,17 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfHtmlPayloadBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*Pdf*FormatConversionBenchmarks*" --job Short
 dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfReadBenchmarks*" --job Short
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*" --job Short
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- --filter "*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*" --job Short
 ```
+
+Generate the deterministic semantic accuracy report separately from timings:
+
+```powershell
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -c Release -f net10.0 -- semantic-evidence --scale Medium --output Ignore/Benchmarks/PdfComparisons/semantic-accuracy.json
+```
+
+The report records labelled-region character error rate, pairwise reading-order accuracy, Kendall tau, per-kind precision/recall/F1, and logical-table detection precision/recall/F1. Its generated corpus is a regression gate, not an independent estimate of real-world accuracy. Whole-document character error rate, heading-level F1, table cell-adjacency/TEDS, cross-page continuation F1, and independent-producer generalization remain explicitly unmeasured until suitable corpus annotations exist.
 
 Prepare and validate the real-document corpus before running its BenchmarkDotNet lane:
 

@@ -1,6 +1,6 @@
 # Real-world corpus evidence
 
-OfficeIMO uses a bounded external-corpus lane to discover parser and routing failures that curated regression fixtures may not expose. The lane exercises the public `OfficeIMO.Reader.All` normalized-read contract across content-detected Word, Excel, PowerPoint, PDF, HTML, and RTF inputs.
+OfficeIMO uses a bounded external-corpus lane to discover parser and routing failures that curated regression fixtures may not expose. The lane exercises the public `OfficeIMO.Reader.All` normalized-read contract across content-detected Word, Excel, PowerPoint, PDF, HTML, and RTF inputs. Selected PDFs additionally exercise the canonical PDF inspection, semantic recovery, font, image, managed-rendering, mutation-planning, and declared-compliance claim APIs.
 
 This is discovery evidence, not a compatibility percentage. The source corpus is a convenience sample, related files may share producers or templates, and a successful normalized read does not prove visual fidelity or lossless editing.
 
@@ -15,6 +15,7 @@ Each report records:
 - every discovered file's size, extension, content hash when read, content kind and confidence, effective kind, stable detection evidence, and separate classification/read timings;
 - exact eligible, duplicate, selected, completed, diagnostic, failure, timeout, and oversize counts;
 - stable diagnostic codes and exception types, without extracted document content or exception messages.
+- per-PDF stage results and timings, logical paragraph and table counts, cross-page continuation counts, font and image facts, first-page managed-render evidence, all 21 mutation plan modes, and declared compliance claim states.
 
 Raw corpus files and generated document content are never uploaded. Source names are withheld by default. The maintained Govdocs1 workflow opts in to its public numeric corpus paths so an observation can be reproduced without rescanning every hash. Reports are retained as workflow artifacts for 30 days.
 
@@ -31,6 +32,8 @@ The fixed chunk and its expected SHA-256 keep the monthly input population stabl
 ## Isolation and outcomes
 
 Classification and normalized reading each run in a separate child process per file. The coordinator applies a 50 MiB input cap, a 30-second timeout per stage, a bounded traversal count, and limited parallelism. Before Word, Excel, or PowerPoint opens a package, the shared package-security inspector caps it at 4,096 parts, 64 MiB per expanded part, 32 MiB of XML text per metadata part, 256 MiB expanded in total, and a 500:1 compression ratio. The maintained workflow limits traversal to 1,000 entries and selection to 600 files: at four workers, the worst-case classification and read deadlines consume 3 hours 20 minutes. The complete download, including retries, has a 30-minute wall-clock limit, leaving more than two hours of the six-hour job budget for checkout, build, hashing, extraction, process overhead, reporting, and upload. A timeout kills the worker process tree so one malformed input cannot stall the complete measurement.
+
+For a selected PDF, the read worker runs seven independently reported stages: document inspection, logical semantics and cross-page continuations, fonts, images and placements, one bounded SVG page render, the complete mutation portfolio, and declared compliance claim assessment. A failed deep stage remains visible even when the normalized Reader envelope completed. The first-page render proves that the managed renderer produced bytes and reports capability diagnostics; it is not a visual-fidelity score.
 
 The report keeps outcomes factual:
 
@@ -70,6 +73,17 @@ dotnet run --project Build/RealWorldCorpus/OfficeIMO.RealWorldCorpus.Tool.csproj
 ```
 
 Keep both report paths outside the input directory so evidence from an earlier run cannot become part of a later inventory.
+
+The strict release gate uses 14 redistributed fixtures from checksum-pinned Open Preservation Foundation and veraPDF commits. Each case binds its source path, license, SHA-256, byte length, expected semantic facts, render diagnostics, and mutation mode. It runs the same deep API stages in isolated processes, adds a 1 GiB peak-working-set budget, rejects unproven compliance claims, and writes atomic JSON and Markdown scorecards:
+
+```powershell
+pwsh -NoProfile -File Build/Test-PdfQualityCorpus.ps1 `
+  -Configuration Release `
+  -Framework net8.0 `
+  -OutputDirectory artifacts/pdf-quality-corpus
+```
+
+The `PDF quality corpus` workflow runs this strict gate on Windows, Linux, and macOS. Its elapsed, CPU, and peak-memory values are operational evidence for the recorded artifact and runtime; BenchmarkDotNet remains the owner of comparative microbenchmark claims.
 
 The repository contract check uses small project-owned fixtures to exercise all six normalized-reader formats, plus synthetic inputs for routing, policy, privacy, and reporting edge cases:
 

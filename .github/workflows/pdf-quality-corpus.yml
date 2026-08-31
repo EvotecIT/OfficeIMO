@@ -1,0 +1,69 @@
+name: PDF quality corpus
+
+on:
+  pull_request:
+    paths:
+      - "OfficeIMO.Core/**"
+      - "OfficeIMO.Pdf/**"
+      - "OfficeIMO.SharedSource/**"
+      - "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/**"
+      - "Build/PdfQualityCorpus/**"
+      - "Build/Compatibility/IsExternalInit.cs"
+      - "Build/Test-PdfQualityCorpus.ps1"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "global.json"
+      - ".github/workflows/pdf-quality-corpus.yml"
+  push:
+    branches:
+      - master
+    paths:
+      - "OfficeIMO.Core/**"
+      - "OfficeIMO.Pdf/**"
+      - "OfficeIMO.SharedSource/**"
+      - "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/**"
+      - "Build/PdfQualityCorpus/**"
+      - "Build/Compatibility/IsExternalInit.cs"
+      - "Build/Test-PdfQualityCorpus.ps1"
+      - "Directory.Build.props"
+      - "Directory.Build.targets"
+      - "global.json"
+      - ".github/workflows/pdf-quality-corpus.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scorecard:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Run provenance-bound scorecard
+        shell: pwsh
+        run: ./Build/Test-PdfQualityCorpus.ps1 -Configuration Release -Framework net8.0 -OutputDirectory ./artifacts/pdf-quality-corpus
+
+      - name: Upload scorecard
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: pdf-quality-corpus-${{ matrix.os }}
+          path: artifacts/pdf-quality-corpus
+          if-no-files-found: error

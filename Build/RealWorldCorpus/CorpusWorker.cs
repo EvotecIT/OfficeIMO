@@ -38,6 +38,9 @@ internal static class CorpusWorker {
         ValidatePackage(snapshot, Path.GetFileName(path), maxFileBytes);
         OfficeDocumentReadResult result = Reader.ReadDocument(snapshot, Path.GetFileName(path),
             CorpusReaderPolicy.CreateReadOptions(maxFileBytes));
+        CorpusPdfEvidence? pdfEvidence = result.Kind == ReaderInputKind.Pdf
+            ? PdfCorpusProbe.Probe(snapshot)
+            : null;
         return new CorpusWorkerResult {
             Stage = CorpusOutcomes.Probe,
             Succeeded = true,
@@ -49,6 +52,7 @@ internal static class CorpusWorker {
             InformationDiagnostics = result.Diagnostics.Count(item => item.Severity == OfficeDocumentDiagnosticSeverity.Information),
             WarningDiagnostics = result.Diagnostics.Count(item => item.Severity == OfficeDocumentDiagnosticSeverity.Warning),
             ErrorDiagnostics = result.Diagnostics.Count(item => item.Severity == OfficeDocumentDiagnosticSeverity.Error),
+            PdfEvidence = pdfEvidence,
             DiagnosticCodes = result.Diagnostics.Select(item => item.Code)
                 .Where(code => !string.IsNullOrWhiteSpace(code))
                 .Distinct(StringComparer.Ordinal)

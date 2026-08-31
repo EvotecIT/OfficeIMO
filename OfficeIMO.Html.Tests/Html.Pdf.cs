@@ -1169,7 +1169,7 @@ public sealed class HtmlPdfTests {
         Assert.True(result.Summary.TextBlockCount > 0);
         Assert.True(result.Summary.HeadingCount > 0);
         Assert.True(result.Summary.ListItemCount > 0);
-        Assert.Equal(0, result.Summary.TableCount);
+        Assert.Equal(1, result.Summary.TableCount);
         Assert.True(result.Summary.ImageCount > 0);
         Assert.True(result.Summary.ImagePlacementCount > 0);
         Assert.True(result.Summary.LinkCount > 0);

@@ -39,6 +39,8 @@ param(
         'pdfread',
         'pdfreverse',
         'pdfcorpusread',
+        'pdfunderstanding',
+        'pdflogicalstructure',
         'pdfsplit',
         'pdfmerge',
         'pdfselect')]
@@ -462,6 +464,32 @@ $definitions = [ordered]@{
             }
         )
     }
+    pdfunderstanding = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfAdvancedUnderstandingBenchmarks.AdvancedUnderstanding*'
+        ComparisonId = "officeimo-pdf-advanced-understanding-$Framework"
+        Suite = 'OfficeIMO.Pdf.AdvancedUnderstanding'
+        CatalogEligible = $false
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                "AdvancedUnderstanding|Scale=$scale"
+            }
+        )
+    }
+    pdflogicalstructure = [pscustomobject]@{
+        Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
+        Filter = '*PdfLogicalStructureBenchmarks.LogicalStructureAndTables*'
+        ComparisonId = "officeimo-pdf-logical-structure-tables-$Framework"
+        Suite = 'OfficeIMO.Pdf.LogicalStructureAndTables'
+        CatalogEligible = $false
+        IdentityVariables = @('scale')
+        ExpectedCases = @(
+            foreach ($scale in @('Easy', 'Medium', 'High')) {
+                "LogicalStructureAndTables|Scale=$scale"
+            }
+        )
+    }
     pdfreverse = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
         Filter = '*PdfReverseConversionBenchmarks*'
@@ -662,6 +690,7 @@ $executionPlan = @(
         $willCatalog = ($RunMode -eq 'quick' -or [bool] $Publish) -and $catalogEligibleByPolicy
         [pscustomobject]@{
             Workload = $name
+            Filter = $definition.Filter
             ComparisonId = $definition.ComparisonId
             CatalogEligible = $catalogEligibleByPolicy
             WillCatalog = $willCatalog
