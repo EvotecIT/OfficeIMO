@@ -821,7 +821,8 @@ public sealed partial class CsvDocument
                 schemaSampleSize,
                 sampledRows,
                 cloneSampledRows: true,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken,
+                operationCancellationOptions: inferenceOptions);
             var columns = CreateDataReaderColumns(_header, schema);
             var rowOwner = new CsvStreamingDataReaderRowOwner(rows);
             return new CsvDataReader(

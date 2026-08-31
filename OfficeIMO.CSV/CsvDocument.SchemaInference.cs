@@ -32,7 +32,8 @@ public sealed partial class CsvDocument
         int sampleSize,
         ICollection<object?[]>? sampledRows,
         bool cloneSampledRows = false,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        CsvLoadOptions? operationCancellationOptions = null)
     {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
@@ -41,7 +42,10 @@ public sealed partial class CsvDocument
         }
 
         var sampledRowCount = 0;
-        while (sampledRowCount < sampleSize && rows.MoveNext())
+        while (sampledRowCount < sampleSize && MoveNextForSchemaInference(
+                   rows,
+                   operationCancellationOptions,
+                   cancellationToken))
         {
             cancellationToken.ThrowIfCancellationRequested();
             var row = rows.Current;
@@ -68,6 +72,28 @@ public sealed partial class CsvDocument
         }
 
         return new CsvSchema(schemaColumns);
+    }
+
+    internal static bool MoveNextForSchemaInference(
+        IEnumerator<object?[]> rows,
+        CsvLoadOptions? operationCancellationOptions,
+        CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (operationCancellationOptions is null)
+        {
+            return rows.MoveNext();
+        }
+
+        operationCancellationOptions.OperationCancellationToken = cancellationToken;
+        try
+        {
+            return rows.MoveNext();
+        }
+        finally
+        {
+            operationCancellationOptions.OperationCancellationToken = default;
+        }
     }
 
 #if NET8_0_OR_GREATER

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data.Common;
 using System.Globalization;
 using System.IO;
@@ -551,6 +552,28 @@ public sealed class CsvDataReaderApiTests {
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             reader.ReadAsync(cancellation.Token));
         Assert.Equal(2, stream.ReadCount);
+    }
+
+    [Fact]
+    public void SchemaInferenceMoveNext_PropagatesOperationCancellationToGeneralParser() {
+        using var cancellation = new CancellationTokenSource();
+        var options = new CsvLoadOptions { NormalizeQuotes = true };
+        using var textReader = new CancelingTextReader(
+            new string('x', 600_000) + "\n",
+            cancellation,
+            maximumReadSize: 4096);
+        var source = new CsvStreamingSource(
+            () => textReader,
+            options,
+            skipRecordCount: 0,
+            headerCount: 1);
+        using IEnumerator<object?[]> rows = source.ReadReusableRows(options).GetEnumerator();
+
+        Assert.False(cancellation.IsCancellationRequested);
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            CsvDocument.MoveNextForSchemaInference(rows, options, cancellation.Token));
+        Assert.Equal(1, textReader.ReadCount);
+        Assert.False(options.OperationCancellationToken.CanBeCanceled);
     }
 
     [Fact]

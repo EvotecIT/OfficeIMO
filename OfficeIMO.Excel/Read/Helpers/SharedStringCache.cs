@@ -8,6 +8,8 @@ using System.Xml;
 
 namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
+        internal const int Utf8CacheSlotCount = 256;
+        internal const int MaximumCachedUtf8ItemBytes = 4 * 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
         private readonly Lazy<SharedStringTablePart?> _part;
@@ -22,7 +24,8 @@ namespace OfficeIMO.Excel {
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
         private readonly object _utf8CacheLock = new object();
-        private byte[]?[]? _utf8Cache;
+        private int[]? _utf8CacheIndexes;
+        private byte[]?[]? _utf8CacheValues;
 
         private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -312,17 +315,35 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            byte[]?[]? cache = _utf8Cache;
-            if (cache == null) {
-                lock (_utf8CacheLock) {
-                    cache = _utf8Cache ??= new byte[items.Count][];
+            int slot = index & (Utf8CacheSlotCount - 1);
+            lock (_utf8CacheLock) {
+                if (_utf8CacheIndexes != null
+                    && _utf8CacheIndexes[slot] == index
+                    && _utf8CacheValues![slot] is byte[] cached) {
+                    value = new ArraySegment<byte>(cached);
+                    return true;
                 }
             }
 
-            byte[]? bytes = Volatile.Read(ref cache[index]);
-            if (bytes == null) {
-                byte[] encoded = Encoding.UTF8.GetBytes(items[index]);
-                bytes = Interlocked.CompareExchange(ref cache[index], encoded, null) ?? encoded;
+            byte[] bytes = Encoding.UTF8.GetBytes(items[index]);
+            if (bytes.Length <= MaximumCachedUtf8ItemBytes) {
+                lock (_utf8CacheLock) {
+                    if (_utf8CacheIndexes == null) {
+                        _utf8CacheIndexes = new int[Utf8CacheSlotCount];
+                        for (int cacheIndex = 0; cacheIndex < _utf8CacheIndexes.Length; cacheIndex++) {
+                            _utf8CacheIndexes[cacheIndex] = -1;
+                        }
+                        _utf8CacheValues = new byte[Utf8CacheSlotCount][];
+                    }
+
+                    if (_utf8CacheIndexes[slot] == index
+                        && _utf8CacheValues![slot] is byte[] cached) {
+                        bytes = cached;
+                    } else {
+                        _utf8CacheIndexes[slot] = index;
+                        _utf8CacheValues![slot] = bytes;
+                    }
+                }
             }
 
             value = new ArraySegment<byte>(bytes);

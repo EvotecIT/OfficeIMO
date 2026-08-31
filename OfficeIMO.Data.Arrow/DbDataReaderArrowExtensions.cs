@@ -32,16 +32,27 @@ public static class DbDataReaderArrowExtensions {
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!reader.Read()) yield break;
+            bool hasRow = reader.Read();
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!hasRow) yield break;
             ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize, fastValueSource);
             int rowCount = 0;
             do {
                 cancellationToken.ThrowIfCancellationRequested();
                 AppendRow(reader, builders);
+                cancellationToken.ThrowIfCancellationRequested();
                 rowCount++;
             } while (rowCount < effectiveOptions.BatchSize && reader.Read());
 
-            yield return BuildBatch(schema, builders, rowCount);
+            cancellationToken.ThrowIfCancellationRequested();
+            RecordBatch batch = BuildBatch(schema, builders, rowCount, cancellationToken);
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+            } catch {
+                batch.Dispose();
+                throw;
+            }
+            yield return batch;
         }
     }
 
@@ -63,16 +74,28 @@ public static class DbDataReaderArrowExtensions {
 
         while (true) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (!await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) yield break;
+            bool hasRow = await reader.ReadAsync(cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!hasRow) yield break;
             ArrowColumnBuilder[] builders = CreateBuilders(columns, effectiveOptions.BatchSize, fastValueSource);
             int rowCount = 0;
             do {
+                cancellationToken.ThrowIfCancellationRequested();
                 AppendRow(reader, builders);
+                cancellationToken.ThrowIfCancellationRequested();
                 rowCount++;
             } while (rowCount < effectiveOptions.BatchSize &&
                      await reader.ReadAsync(cancellationToken).ConfigureAwait(false));
 
-            yield return BuildBatch(schema, builders, rowCount);
+            cancellationToken.ThrowIfCancellationRequested();
+            RecordBatch batch = BuildBatch(schema, builders, rowCount, cancellationToken);
+            try {
+                cancellationToken.ThrowIfCancellationRequested();
+            } catch {
+                batch.Dispose();
+                throw;
+            }
+            yield return batch;
         }
     }
 
@@ -122,15 +145,28 @@ public static class DbDataReaderArrowExtensions {
         }
     }
 
-    private static RecordBatch BuildBatch(Schema schema, ArrowColumnBuilder[] builders, int rowCount) {
+    private static RecordBatch BuildBatch(
+        Schema schema,
+        ArrowColumnBuilder[] builders,
+        int rowCount,
+        CancellationToken cancellationToken) {
         var arrays = new IArrowArray[builders.Length];
+        RecordBatch? batch = null;
         try {
             for (int ordinal = 0; ordinal < arrays.Length; ordinal++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 arrays[ordinal] = builders[ordinal].Build();
+                cancellationToken.ThrowIfCancellationRequested();
             }
-            return new RecordBatch(schema, arrays, rowCount);
+            batch = new RecordBatch(schema, arrays, rowCount);
+            cancellationToken.ThrowIfCancellationRequested();
+            return batch;
         } catch {
-            foreach (IArrowArray? array in arrays) array?.Dispose();
+            if (batch != null) {
+                batch.Dispose();
+            } else {
+                foreach (IArrowArray? array in arrays) array?.Dispose();
+            }
             throw;
         }
     }

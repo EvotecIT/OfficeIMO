@@ -154,5 +154,55 @@ public sealed class CsvArrowTests {
         Assert.Throws<OperationCanceledException>(() =>
             reader.ReadArrowBatches(cancellationToken: cancellation.Token).ToArray());
     }
+
+    [Fact]
+    public async Task AsyncArrowAdapterRejectsCancellationRaisedBySuccessfulRead() {
+        using var cancellation = new CancellationTokenSource();
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Value" },
+            new[] { new object?[] { 42 } },
+            afterRead: _ => cancellation.Cancel());
+        await using IAsyncEnumerator<RecordBatch> batches = reader
+            .ReadArrowBatchesAsync(
+                new ArrowReadOptions { BatchSize = 1 },
+                cancellation.Token)
+            .GetAsyncEnumerator();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            batches.MoveNextAsync().AsTask());
+    }
+
+    [Fact]
+    public void SyncArrowAdapterRejectsCancellationRaisedByEndOfDataRead() {
+        using var cancellation = new CancellationTokenSource();
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Value" },
+            new[] { new object?[] { 42 } },
+            afterEnd: cancellation.Cancel);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            reader.ReadArrowBatches(
+                new ArrowReadOptions { BatchSize = 2 },
+                cancellation.Token)
+                .ToArray());
+    }
+
+    [Fact]
+    public void SyncArrowAdapterStopsBeforeNextReadWhenGetterCancels() {
+        using var cancellation = new CancellationTokenSource();
+        int readCount = 0;
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Value" },
+            new[] { new object?[] { 42 }, new object?[] { 43 } },
+            afterRead: _ => readCount++,
+            afterValueRead: _ => cancellation.Cancel());
+
+        Assert.Throws<OperationCanceledException>(() =>
+            reader.ReadArrowBatches(
+                new ArrowReadOptions { BatchSize = 2 },
+                cancellation.Token)
+                .ToArray());
+        Assert.Equal(1, readCount);
+    }
 }
 #endif

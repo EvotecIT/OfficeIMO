@@ -27,6 +27,50 @@ public partial class Excel {
     }
 
     [Fact]
+    public void GetSheetNames_SdkFallbackRejectsCaseInsensitiveDuplicates() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.MetadataDuplicateNames.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                document.AddWorksheet("Data");
+                document.AddWorksheet("Other");
+                document.Save();
+            }
+
+            const string workbookEntry = "xl/workbook.xml";
+            XDocument workbook = XDocument.Parse(
+                Encoding.UTF8.GetString(ReadZipEntry(path, workbookEntry)));
+            XNamespace spreadsheet =
+                "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+            XElement[] sheets = workbook.Root!
+                .Element(spreadsheet + "sheets")!
+                .Elements(spreadsheet + "sheet")
+                .ToArray();
+            Assert.Equal(2, sheets.Length);
+            sheets[1].SetAttributeValue("name", "DATA");
+            ReplaceZipEntry(
+                path,
+                workbookEntry,
+                Encoding.UTF8.GetBytes(workbook.ToString(SaveOptions.DisableFormatting)));
+
+            const string contentTypesEntry = "[Content_Types].xml";
+            string contentTypes = Encoding.UTF8.GetString(ReadZipEntry(path, contentTypesEntry));
+            string changed = contentTypes.Replace(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml",
+                "text/plain");
+            Assert.NotEqual(contentTypes, changed);
+            ReplaceZipEntry(path, contentTypesEntry, Encoding.UTF8.GetBytes(changed));
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.GetSheetNames(path));
+            Assert.Contains("duplicate worksheet name 'DATA'", exception.Message, StringComparison.Ordinal);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_SdkPathEnforcesWorksheetDefinitionLimit() {
         string xlsxPath = Path.Combine(
             Path.GetTempPath(),

@@ -23,7 +23,12 @@ namespace OfficeIMO.Excel {
         private OpenXmlPackagePartBufferReader(Stream stream) {
             _stream = stream;
             _archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
-            _entries = BuildEntryIndex(_archive);
+            try {
+                _entries = BuildEntryIndex(_archive);
+            } catch {
+                _archive.Dispose();
+                throw;
+            }
         }
 
         /// <summary>
@@ -35,6 +40,9 @@ namespace OfficeIMO.Excel {
             try {
                 var reader = new OpenXmlPackagePartBufferReader(stream);
                 return reader;
+            } catch (OpenXmlPackagePartIndexException) {
+                stream.Dispose();
+                throw;
             } catch (InvalidDataException) {
                 stream.Dispose();
                 return null;
@@ -60,6 +68,9 @@ namespace OfficeIMO.Excel {
                 var reader = new OpenXmlPackagePartBufferReader(stream);
                 stream = null;
                 return reader;
+            } catch (OpenXmlPackagePartIndexException) {
+                stream?.Dispose();
+                throw;
             } catch (InvalidDataException) {
                 stream?.Dispose();
                 return null;
@@ -179,14 +190,14 @@ namespace OfficeIMO.Excel {
                     int read = input.Read(output, offset, length - offset);
                     if (read == 0) {
                         throw new EndOfStreamException(
-                            $"Package part '{normalizedPartName}' ended after {offset} of {length} declared bytes.");
+                            $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
                     }
                     offset += read;
                 }
                 cancellationToken.ThrowIfCancellationRequested();
                 if (input.ReadByte() >= 0) {
                     throw new InvalidDataException(
-                        $"Package part '{normalizedPartName}' exceeds its declared decompressed length of {length} bytes.");
+                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' exceeds its declared decompressed length of {length} bytes.");
                 }
                 return new PrefetchedPartBuffer(output, length);
             } catch {
@@ -213,11 +224,11 @@ namespace OfficeIMO.Excel {
 
             string normalizedPartName = NormalizePartName(partName);
             if (!_entries.TryGetValue(normalizedPartName, out ZipArchiveEntry? entry)) {
-                throw new InvalidDataException($"Package part '{normalizedPartName}' is missing.");
+                throw new InvalidDataException($"Package part '{FormatPartNameForDisplay(normalizedPartName)}' is missing.");
             }
             if (entry.Length < 0 || entry.Length > maximumBytes || entry.Length > int.MaxValue) {
                 throw ExcelReadLimitFailure.Create(
-                    $"Package part '{normalizedPartName}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
+                    $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 
             return entry.Open();
@@ -232,7 +243,8 @@ namespace OfficeIMO.Excel {
 
                 string normalized = NormalizePartName(entry.FullName);
                 if (entries.ContainsKey(normalized)) {
-                    throw new InvalidDataException($"The Open XML package contains duplicate part name '{normalized}'.");
+                    throw new OpenXmlPackagePartIndexException(
+                        $"The Open XML package contains ambiguous part name '{FormatPartNameForDisplay(normalized)}'.");
                 }
 
                 entries.Add(normalized, entry);
@@ -246,16 +258,66 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Package part name cannot be empty.", nameof(partName));
             }
             if (partName.IndexOf('\\') >= 0) {
-                throw new InvalidDataException($"Package part name '{partName}' contains a backslash.");
+                throw new OpenXmlPackagePartIndexException($"Package part name '{partName}' contains a backslash.");
             }
 
             string normalized = partName.TrimStart('/');
-            if (normalized.Split('/').Any(static segment => segment == "..")) {
-                throw new InvalidDataException($"Package part name '{partName}' is not safe.");
+            string[] encodedSegments = normalized.Split('/');
+            var canonicalSegments = new string[encodedSegments.Length];
+            for (int index = 0; index < encodedSegments.Length; index++) {
+                string encodedSegment = encodedSegments[index];
+                if (encodedSegment.Length == 0) {
+                    throw new OpenXmlPackagePartIndexException($"Package part name '{partName}' contains an empty segment.");
+                }
+
+                for (int characterIndex = 0; characterIndex < encodedSegment.Length; characterIndex++) {
+                    if (encodedSegment[characterIndex] != '%') continue;
+                    if (characterIndex + 2 >= encodedSegment.Length
+                        || !IsHexDigit(encodedSegment[characterIndex + 1])
+                        || !IsHexDigit(encodedSegment[characterIndex + 2])) {
+                        throw new OpenXmlPackagePartIndexException($"Package part name '{partName}' contains invalid percent encoding.");
+                    }
+                    characterIndex += 2;
+                }
+
+                string decodedSegment;
+                try {
+                    decodedSegment = Uri.UnescapeDataString(encodedSegment);
+                } catch (UriFormatException exception) {
+                    throw new OpenXmlPackagePartIndexException(
+                        $"Package part name '{partName}' contains invalid percent encoding.",
+                        exception);
+                }
+                if (decodedSegment.Length == 0
+                    || decodedSegment == "."
+                    || decodedSegment == ".."
+                    || decodedSegment.IndexOf('/') >= 0
+                    || decodedSegment.IndexOf('\\') >= 0
+                    || decodedSegment.Any(char.IsControl)) {
+                    throw new OpenXmlPackagePartIndexException($"Package part name '{partName}' is not safe.");
+                }
+
+                // OPC relationship targets are URI-encoded while ZIP writers differ on
+                // whether FullName exposes the encoded or decoded spelling. Re-encode once
+                // to an idempotent URI key so %20 and %2520 remain distinct.
+                canonicalSegments[index] = Uri.EscapeDataString(decodedSegment);
             }
 
-            return normalized;
+            return string.Join("/", canonicalSegments);
         }
+
+        private static string FormatPartNameForDisplay(string canonicalPartName) {
+            try {
+                return Uri.UnescapeDataString(canonicalPartName);
+            } catch (UriFormatException) {
+                return canonicalPartName;
+            }
+        }
+
+        private static bool IsHexDigit(char value) =>
+            value is >= '0' and <= '9'
+            || value is >= 'a' and <= 'f'
+            || value is >= 'A' and <= 'F';
 
         public void Dispose() {
             if (_disposed) {
@@ -305,5 +367,12 @@ namespace OfficeIMO.Excel {
                 if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
             }
         }
+    }
+
+    internal sealed class OpenXmlPackagePartIndexException : IOException {
+        internal OpenXmlPackagePartIndexException(string message) : base(message) { }
+
+        internal OpenXmlPackagePartIndexException(string message, Exception innerException)
+            : base(message, innerException) { }
     }
 }

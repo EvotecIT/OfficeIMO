@@ -153,7 +153,9 @@ namespace OfficeIMO.Excel {
                 // Unusual package metadata retains the complete SDK validation path without
                 // opening any worksheet data stream.
                 using ExcelDocumentReader owner = ExcelDocumentReader.Open(path, options);
-                return owner.GetValidatedWorksheetNames();
+                IReadOnlyList<string> names = owner.GetValidatedWorksheetNames();
+                ValidateUniqueSheetNames(names, options.CancellationToken);
+                return names;
             }
         }
 

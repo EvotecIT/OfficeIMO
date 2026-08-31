@@ -601,9 +601,9 @@ namespace OfficeIMO.Excel {
                     segments.RemoveAt(segments.Count - 1);
                     continue;
                 }
-                // Validate the decoded segment above, but retain the encoded OPC part name.
-                // ZipArchiveEntry.FullName and content-type overrides use that encoded form.
-                segments.Add(encodedSegment);
+                // Canonicalize both decoded ZIP entry names and encoded relationship targets
+                // to the same idempotent OPC URI key.
+                segments.Add(Uri.EscapeDataString(segment));
             }
 
             if (segments.Count == 0) {
@@ -644,7 +644,7 @@ namespace OfficeIMO.Excel {
                     if (encodedSegment.Length == 0) return string.Empty;
                     string segment = DecodePartSegment(encodedSegment);
                     if (segment == "." || segment == "..") return string.Empty;
-                    segments.Add(encodedSegment);
+                    segments.Add(Uri.EscapeDataString(segment));
                 }
             } catch (XlsxTabularFastPathNotSupportedException) {
                 return string.Empty;
