@@ -197,8 +197,6 @@ internal static class IWorkPagesReader {
                 "The Pages drawable graph is malformed or contains unresolved references; editable reconstruction is incomplete.",
                 document.EntryPath, document.Identifier));
         }
-        var skippedStorages = new HashSet<ulong>();
-        if (body != null) skippedStorages.Add(body.Identifier);
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord shape in documentDrawables
                      .Where(record => record.MessageType == ShapeInfoArchive)) {
@@ -234,8 +232,7 @@ internal static class IWorkPagesReader {
                 }
                 continue;
             }
-            if (storage.MessageType != TextStorageArchive
-                || skippedStorages.Contains(storage.Identifier)) continue;
+            if (storage.MessageType != TextStorageArchive) continue;
             IWorkTextContent text;
             if (textCache.TryGetValue(storage.Identifier, out IWorkTextContent? cached)) {
                 text = cached;

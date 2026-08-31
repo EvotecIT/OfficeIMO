@@ -68,4 +68,35 @@ public sealed class PowerPointShapeHyperlinkTests {
             relationship => relationship.Id == replacementRelationshipId);
         Assert.Empty(presentation.ValidateDocument());
     }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Replacing_or_clearing_internal_slide_hyperlinks_removes_unused_part_relationships(
+        bool replaceWithExternalLink) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointSlide source = presentation.AddSlide();
+        PowerPointTextBox shape = source.AddTextBox("Linked");
+        PowerPointSlide target = presentation.AddSlide();
+        shape.SetHyperlink(target);
+        P.NonVisualDrawingProperties properties = ((P.Shape)shape.Element)
+            .NonVisualShapeProperties!.NonVisualDrawingProperties!;
+        string relationshipId = properties
+            .GetFirstChild<A.HyperlinkOnClick>()!.Id!.Value!;
+        Assert.True(source.SlidePart.TryGetPartById(
+            relationshipId, out OpenXmlPart? linkedPart));
+        Assert.Same(target.SlidePart, linkedPart);
+
+        if (replaceWithExternalLink) {
+            shape.SetHyperlink(new Uri("https://example.test/replacement"));
+        } else {
+            shape.ClearHyperlink();
+        }
+
+        Assert.False(source.SlidePart.TryGetPartById(
+            relationshipId, out _));
+        Assert.DoesNotContain(source.SlidePart.Parts,
+            pair => pair.RelationshipId == relationshipId);
+        Assert.Empty(presentation.ValidateDocument());
+    }
 }

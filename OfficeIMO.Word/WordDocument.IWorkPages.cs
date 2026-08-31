@@ -389,8 +389,10 @@ public partial class WordDocument {
                         return "Pages contains transparent text colors that cannot be represented by the DOCX owner.";
                     }
                     if (run.Style.FontSizePoints is double fontSize
-                        && (!IsFinite(fontSize) || fontSize < 0 || fontSize > int.MaxValue / 2d)) {
-                        return "A Pages font size exceeds the DOCX measurement range.";
+                        && (!IsFinite(fontSize) || fontSize < 0 || fontSize > int.MaxValue / 2d
+                            || fontSize * 2d != Math.Round(fontSize * 2d,
+                                MidpointRounding.AwayFromZero))) {
+                        return "A Pages font size exceeds the DOCX measurement range or half-point precision.";
                     }
                 }
             }

@@ -124,7 +124,15 @@ namespace OfficeIMO.PowerPoint {
                 HyperlinkRelationship? relationship = slidePart.HyperlinkRelationships
                     .FirstOrDefault(candidate => string.Equals(candidate.Id, relationshipId,
                         StringComparison.Ordinal));
-                if (relationship != null) slidePart.DeleteReferenceRelationship(relationship);
+                if (relationship != null) {
+                    slidePart.DeleteReferenceRelationship(relationship);
+                    continue;
+                }
+                if (slidePart.Parts.Any(pair => string.Equals(
+                        pair.RelationshipId, relationshipId,
+                        StringComparison.Ordinal))) {
+                    slidePart.DeletePart(relationshipId);
+                }
             }
             foreach (string relationshipId in soundRelationshipIds) {
                 PowerPointEmbeddedSound.RemoveIfUnused(slidePart, relationshipId);

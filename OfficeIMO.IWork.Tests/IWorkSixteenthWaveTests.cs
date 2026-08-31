@@ -119,7 +119,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreatePagesImagePackage(bool duplicateMetadata,
-        int imageCount, byte[] imageBytes) {
+        int imageCount, byte[] imageBytes, bool malformedIdentifierWire = false,
+        bool malformedImageIdentifierWire = false) {
         var records = new List<byte[]> { ArchiveRecord(1, 10000, Message()) };
         var metadataEntries = new List<byte[]>();
         var packageEntries = new List<(string Path, byte[] Bytes)>();
@@ -128,8 +129,12 @@ public sealed partial class IWorkBoundaryTests {
             string name = $"image-{index}.png";
             records.Add(ArchiveRecord(checked((ulong)(10 + index)), 3005,
                 Message(BytesField(1, Message()),
-                    BytesField(11, Message(VarintField(1, dataIdentifier))))));
+                    BytesField(11, Message(VarintField(1, dataIdentifier),
+                        malformedImageIdentifierWire
+                            ? StringField(1, "invalid")
+                            : Array.Empty<byte>())))));
             metadataEntries.Add(BytesField(4, Message(VarintField(1, dataIdentifier),
+                malformedIdentifierWire ? StringField(1, "invalid") : Array.Empty<byte>(),
                 StringField(3, name), StringField(4, name))));
             packageEntries.Add(($"Data/{name}", imageBytes));
         }

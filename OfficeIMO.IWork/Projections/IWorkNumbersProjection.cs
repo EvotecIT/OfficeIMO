@@ -925,7 +925,10 @@ internal static class IWorkNumbersReader {
             case 6:
                 if (!hasDouble) return Error(row, column, "Boolean cell has no value field.");
                 if (!IsFinite(doubleValue)) return Error(row, column, "Boolean cell has a non-finite value.");
-                bool booleanValue = doubleValue != 0;
+                if (doubleValue is not 0d and not 1d) {
+                    return Error(row, column, "Boolean cell value is not 0 or 1.");
+                }
+                bool booleanValue = doubleValue == 1d;
                 return hasFormula
                     ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, booleanValue, IWorkCellKind.Boolean)
                     : new IWorkTableCell(row, column, IWorkCellKind.Boolean, booleanValue);

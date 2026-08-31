@@ -924,7 +924,8 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreatePagesPackageWithStyleChain(int depth,
         bool invalidFontName = false, bool malformedColor = false, bool wrongWireBold = false,
         bool invalidAlignment = false, bool includePreview = false,
-        bool naturalAlignment = false, string bodyText = "Styled", bool bold = false) {
+        bool naturalAlignment = false, string bodyText = "Styled", bool bold = false,
+        float? fontSize = null) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong firstStyleId = 10;
@@ -950,6 +951,9 @@ public sealed partial class IWorkBoundaryTests {
                 fields.Add(BytesField(11, Message(FloatField(1, 1f))));
             } else if (index == 0 && bold) {
                 fields.Add(BytesField(11, Message(VarintField(1, 1))));
+            }
+            if (index == 0 && fontSize.HasValue) {
+                fields.Add(BytesField(11, Message(FloatField(3, fontSize.Value))));
             }
             if (index == 0 && invalidAlignment) {
                 fields.Add(BytesField(12, Message(VarintField(1, 99))));
@@ -1140,6 +1144,7 @@ public sealed partial class IWorkBoundaryTests {
             : table.TextValue != null ? (byte)3
             : table.Date ? (byte)5
             : table.Duration ? (byte)7
+            : table.Boolean ? (byte)6
             : (byte)2;
         uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.TextValue != null ? 1u << 3
@@ -1481,7 +1486,7 @@ public sealed partial class IWorkBoundaryTests {
             bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
             bool completeFormula = false, bool decimal128Underflow = false,
-            bool unknownCellValueFlag = false) {
+            bool unknownCellValueFlag = false, bool boolean = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1518,6 +1523,7 @@ public sealed partial class IWorkBoundaryTests {
             CompleteFormula = completeFormula;
             Decimal128Underflow = decimal128Underflow;
             UnknownCellValueFlag = unknownCellValueFlag;
+            Boolean = boolean;
         }
 
         internal string Name { get; }
@@ -1556,5 +1562,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool CompleteFormula { get; }
         internal bool Decimal128Underflow { get; }
         internal bool UnknownCellValueFlag { get; }
+        internal bool Boolean { get; }
     }
 }

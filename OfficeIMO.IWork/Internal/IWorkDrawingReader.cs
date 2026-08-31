@@ -108,12 +108,15 @@ internal static class IWorkDrawingReader {
             complete = false;
             return null;
         }
-        ulong? dataIdentifier = DataIdentifier(message, 11)
-            ?? DataIdentifier(message, 15)
-            ?? DataIdentifier(message, 17)
-            ?? DataIdentifier(message, 13)
-            ?? DataIdentifier(message, 12)
-            ?? DataIdentifier(message, 23);
+        ulong? dataIdentifier = null;
+        foreach (int field in new[] { 11, 15, 17, 13, 12, 23 }) {
+            ulong? candidate = DataIdentifier(message, field, out bool identifierComplete);
+            if (!identifierComplete) {
+                complete = false;
+                return null;
+            }
+            dataIdentifier ??= candidate;
+        }
         if (!dataIdentifier.HasValue) {
             complete = false;
             return null;
@@ -188,7 +191,8 @@ internal static class IWorkDrawingReader {
             ulong? identifier = message.GetUnsigned(1);
             string? preferred = message.GetString(3, out bool preferredComplete);
             string? stored = message.GetString(4, out bool storedComplete) ?? preferred;
-            if (!preferredComplete || !storedComplete) metadataComplete = false;
+            if (message.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+                || !preferredComplete || !storedComplete) metadataComplete = false;
             if (identifier.HasValue && preferred != null && stored != null
                 && IsSafeFileName(stored)) {
                 if (!result.ContainsKey(identifier.Value)) {
@@ -201,8 +205,20 @@ internal static class IWorkDrawingReader {
         return result;
     }
 
-    private static ulong? DataIdentifier(IWorkWireMessage image, int field) =>
-        IWorkObjectIndex.TryGetMessage(image, field)?.GetUnsigned(1);
+    private static ulong? DataIdentifier(IWorkWireMessage image, int field, out bool complete) {
+        complete = true;
+        if (!image.HasField(field)) return null;
+        IWorkWireMessage? identifier = IWorkObjectIndex.TryGetMessage(
+            image, field, out bool malformedIdentifier);
+        ulong? value = identifier?.GetUnsigned(1);
+        if (malformedIdentifier || identifier == null
+            || identifier.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            || !value.HasValue) {
+            complete = false;
+            return null;
+        }
+        return value;
+    }
 
     private static bool IsSafeFileName(string value) => value.Length > 0
         && value != "." && value != ".."

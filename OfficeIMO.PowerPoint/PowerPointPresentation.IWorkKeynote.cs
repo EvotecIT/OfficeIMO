@@ -266,8 +266,10 @@ public sealed partial class PowerPointPresentation {
                         return $"Keynote slide {slide.Index} contains paragraph formatting outside the PPTX range.";
                     }
                     if (paragraph.Runs.Any(run => run.Style.FontSizePoints is double fontSize
-                            && (!IsFinite(fontSize) || fontSize < 1d || fontSize > 4000d))) {
-                        return $"Keynote slide {slide.Index} contains a font size outside the PPTX range.";
+                            && (!IsFinite(fontSize) || fontSize < 1d || fontSize > 4000d
+                                || fontSize * 100d != Math.Round(fontSize * 100d,
+                                    MidpointRounding.AwayFromZero)))) {
+                        return $"Keynote slide {slide.Index} contains a font size outside the PPTX range or hundredth-point precision.";
                     }
                     if (paragraph.Runs.Any(run => run.Style.Color is { Alpha: < byte.MaxValue }
                             || run.Style.BackgroundColor is { Alpha: < byte.MaxValue })) {
