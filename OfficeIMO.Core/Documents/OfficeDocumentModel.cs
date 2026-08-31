@@ -50,7 +50,11 @@ public enum OfficeDocumentFormat {
     /// <summary>Calendar content.</summary>
     Calendar,
     /// <summary>Contact-card content.</summary>
-    VCard
+    VCard,
+    /// <summary>Outline Processor Markup Language content.</summary>
+    Opml,
+    /// <summary>DocBook XML content.</summary>
+    DocBook
 }
 
 /// <summary>
@@ -81,6 +85,12 @@ public sealed class OfficeDocumentModel {
 
     /// <summary>Logical source blocks in reading order.</summary>
     public IReadOnlyList<OfficeDocumentModelBlock> Blocks { get; set; } = Array.Empty<OfficeDocumentModelBlock>();
+
+    /// <summary>
+    /// Recursive semantic structure when the source format has meaningful nesting that cannot be represented by
+    /// the flat <see cref="Blocks"/> collection without loss.
+    /// </summary>
+    public IReadOnlyList<OfficeDocumentModelNode> Structure { get; set; } = Array.Empty<OfficeDocumentModelNode>();
 
     /// <summary>Structured tables.</summary>
     public IReadOnlyList<OfficeDocumentModelTable> Tables { get; set; } = Array.Empty<OfficeDocumentModelTable>();

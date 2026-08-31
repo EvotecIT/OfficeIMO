@@ -120,7 +120,7 @@ internal static class EndNoteXmlCodec {
                 bool hasAdditionalUrls = Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace, cancellationToken));
                 bool wroteUrls = false;
                 if (!hasAdditionalUrls) {
-                    WriteUrls(writer, item, report, recordNamespace, cancellationToken);
+                    WriteUrls(writer, item, report, recordNamespace, additionalUrl: null, includePrimary: true, cancellationToken);
                     wroteUrls = true;
                 }
                 if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteElement(writer, "keyword", keyword, recordNamespace, cancellationToken); writer.WriteEndElement(); }
@@ -129,10 +129,8 @@ internal static class EndNoteXmlCodec {
                     if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
                     } else if (field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace, cancellationToken)) {
-                        if (!wroteUrls) {
-                            WriteUrls(writer, item, report, recordNamespace, cancellationToken);
-                            wroteUrls = true;
-                        }
+                        WriteUrls(writer, item, report, recordNamespace, field, includePrimary: !wroteUrls, cancellationToken);
+                        wroteUrls = true;
                         continue;
                     } else if (field.Format == BibliographyFormat.EndNoteXml && !ConflictsWithTypedRecordElement(item, field, recordNamespace, cancellationToken) && TryWriteNativeField(writer, field, recordNamespace, cancellationToken)) {
                         report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, $"Preserved native EndNote XML element '{field.Name}'.", BibliographyConversionAction.PreservedExtension, item, field.Name);
@@ -200,11 +198,17 @@ internal static class EndNoteXmlCodec {
         foreach (XElement element in Cancellable(record.Elements(), cancellationToken)) {
             bool knownRecordElement = HasNameInNamespace(element, record.Name.Namespace) && KnownRecordElements.Contains(element.Name.LocalName);
             bool repeatedSingleValue = knownRecordElement && !IsRepeatableRecordElement(element.Name.LocalName) && Cancellable(element.ElementsBeforeSelf(), cancellationToken).Any(previous => HasName(previous, record.Name.Namespace, element.Name.LocalName));
+            bool representedByRelatedUrlFields = HasName(element, record.Name.Namespace, "urls") && IsRepresentedByRelatedUrlFields(element, cancellationToken);
             if (!knownRecordElement) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
             else if (ReferenceEquals(element, periodical) && retainedAdditionalPeriodical) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "periodical", element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
             else if (IsRepeatableRecordElement(element.Name.LocalName) && string.IsNullOrWhiteSpace(element.Value)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
-            else if (IsEmptyKnownRecordContainer(element, cancellationToken) || HasEmptyKnownNestedContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken)) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
-            if (ReferenceEquals(element, urls)) foreach (XElement relatedUrl in Cancellable(relatedUrls.Skip(1), cancellationToken)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits, cancellationToken)));
+            else if (!representedByRelatedUrlFields && (IsEmptyKnownRecordContainer(element, cancellationToken) || HasEmptyKnownNestedContainer(element, cancellationToken) || repeatedSingleValue || HasUnsupportedNestedContent(element, cancellationToken) || HasDuplicateKnownNestedContent(element, cancellationToken))) item.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, element.Name.LocalName, element.Value, SerializeBoundedElement(element, partial, limits, cancellationToken)));
+            if (representedByRelatedUrlFields) {
+                XElement relatedUrlsElement = Child(element, "related-urls", cancellationToken)!;
+                IEnumerable<XElement> preservedUrls = Cancellable(relatedUrlsElement.Elements(), cancellationToken).Where(url => HasName(url, record.Name.Namespace, "url"));
+                if (ReferenceEquals(element, urls)) preservedUrls = preservedUrls.Skip(1);
+                foreach (XElement relatedUrl in Cancellable(preservedUrls, cancellationToken)) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.EndNoteXml, "url", relatedUrl.Value, SerializeBoundedElement(relatedUrl, partial, limits, cancellationToken)));
+            }
         }
         if (string.IsNullOrWhiteSpace(item.Key)) diagnostics.Add(new BibliographyDiagnostic("BIBEND003", BibliographyDiagnosticSeverity.Warning, "EndNote XML record has no rec-number."));
         return item;
@@ -302,16 +306,24 @@ internal static class EndNoteXmlCodec {
         return !Cancellable(date.NativeFields.TakeWhile(candidate => !ReferenceEquals(candidate, field)), cancellationToken).Any(candidate => candidate.Format == BibliographyFormat.EndNoteXml && string.Equals(candidate.Name, "date", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, CancellationToken cancellationToken) {
-        BibliographyNativeField[] additionalUrls = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace, cancellationToken)).ToArray();
-        if (item.Url == null && additionalUrls.Length == 0) return;
+    private static void WriteUrls(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, BibliographyNativeField? additionalUrl, bool includePrimary, CancellationToken cancellationToken) {
+        if (!includePrimary && additionalUrl == null || includePrimary && item.Url == null && additionalUrl == null) return;
         writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
-        WriteElement(writer, "url", item.Url ?? string.Empty, xmlNamespace, cancellationToken);
-        foreach (BibliographyNativeField field in Cancellable(additionalUrls, cancellationToken)) {
-            if (TryWriteNativeField(writer, field, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
+        if (includePrimary) WriteElement(writer, "url", item.Url ?? string.Empty, xmlNamespace, cancellationToken);
+        if (additionalUrl != null) {
+            if (TryWriteNativeField(writer, additionalUrl, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
         }
         writer.WriteEndElement(); writer.WriteEndElement();
+    }
+
+    private static bool IsRepresentedByRelatedUrlFields(XElement urls, CancellationToken cancellationToken) {
+        if (Cancellable(urls.Attributes(), cancellationToken).Any()) return false;
+        XElement[] children = Cancellable(urls.Elements(), cancellationToken).ToArray();
+        if (children.Length != 1 || !HasName(children[0], urls.Name.Namespace, "related-urls") || Cancellable(children[0].Attributes(), cancellationToken).Any()) return false;
+        if (Cancellable(urls.Nodes(), cancellationToken).Any(static node => node is XText text ? !string.IsNullOrWhiteSpace(text.Value) : !(node is XElement))) return false;
+        if (Cancellable(children[0].Nodes(), cancellationToken).Any(node => node is XText text ? !string.IsNullOrWhiteSpace(text.Value) : node is XElement element ? !HasName(element, urls.Name.Namespace, "url") : true)) return false;
+        return Cancellable(children[0].Elements(), cancellationToken).Any(url => HasName(url, urls.Name.Namespace, "url"));
     }
 
     private static void WriteIdentifier(XmlWriter writer, BibliographyIdentifier identifier, string xmlNamespace, CancellationToken cancellationToken) {

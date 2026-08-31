@@ -34,7 +34,6 @@ public sealed class BibliographyReviewWave40RegressionTests {
     [InlineData("periodical", "<full-title>Second journal</full-title>", "Second journal")]
     [InlineData("contributors", "<authors><author>Second, Author</author></authors>", "Second, Author")]
     [InlineData("dates", "<year>2027</year>", "2027")]
-    [InlineData("urls", "<related-urls><url>https://second.example</url></related-urls>", "https://second.example")]
     [InlineData("keywords", "<keyword>second-keyword</keyword>", "second-keyword")]
     public void Retained_EndNote_containers_cannot_restore_cleared_typed_owners(string container, string nested, string marker) {
         string first = FirstContainer(container);

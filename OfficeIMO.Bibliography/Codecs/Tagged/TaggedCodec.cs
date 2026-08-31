@@ -46,7 +46,7 @@ internal static class TaggedCodec {
             if (!hasNativePublicationTypes) WriteNbibPublicationTypes(builder, document.SourceFormat, item, options.LineEnding, report, cancellationToken);
             WriteTag(builder, "TI", item.Title, options.LineEnding, cancellationToken); WriteTag(builder, TaggedOutputTag(item, BibliographyFormat.Nbib, "container-title", "JT"), item.ContainerTitle, options.LineEnding, cancellationToken);
             foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "FAU", CodecMappings.FormatName(author.Name), options.LineEnding, cancellationToken);
-            foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name), options.LineEnding, cancellationToken);
+            foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "AU", CompactName(author.Name, cancellationToken), options.LineEnding, cancellationToken);
             foreach (BibliographyContributor author in Cancellable(item.Contributors, cancellationToken).Where(static contributor => contributor.Role == BibliographyContributorRole.Author && !string.IsNullOrWhiteSpace(contributor.Name.Literal))) WriteTag(builder, "CN", author.Name.Literal, options.LineEnding, cancellationToken);
             BibliographyDate? issued = Cancellable(item.Dates, cancellationToken).FirstOrDefault(static date => date.Role == BibliographyDateRole.Issued); if (issued != null) WriteTag(builder, "DP", CodecMappings.FormatDate(issued), options.LineEnding, cancellationToken);
             WriteTag(builder, "VI", item.Volume, options.LineEnding, cancellationToken); WriteTag(builder, "IP", item.Issue, options.LineEnding, cancellationToken); WriteTag(builder, "PG", item.Pages, options.LineEnding, cancellationToken);
@@ -104,7 +104,7 @@ internal static class TaggedCodec {
                     int nativeCount = current!.NativeFields.Count;
                     int identifierCount = current.Identifiers.Count;
                     bool accessionCanSetKey = format == BibliographyFormat.Ris && string.Equals(tag, "AN", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(current.Key);
-                    Bind(current, format, tag, value);
+                    Bind(current, format, tag, value, cancellationToken);
                     previousNativeField = current.NativeFields.Count > nativeCount ? current.NativeFields[current.NativeFields.Count - 1] : null;
                     previousIdentifier = current.Identifiers.Count > identifierCount ? current.Identifiers[current.Identifiers.Count - 1] : null;
                     previousIdentifierControlsKey = accessionCanSetKey && previousIdentifier != null;
@@ -121,13 +121,13 @@ internal static class TaggedCodec {
                         int identifierCount = current.Identifiers.Count;
                         bool identifierControlsKey = format == BibliographyFormat.Ris && string.Equals(previousTag, "AN", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(current.Key);
                         current.NativeFields.RemoveAt(current.NativeFields.Count - 1);
-                        Bind(current, format, previousTag, previousNativeField.Value);
+                        Bind(current, format, previousTag, previousNativeField.Value, cancellationToken);
                         previousNativeField = null;
                         previousIdentifier = current.Identifiers.Count > identifierCount ? current.Identifiers[current.Identifiers.Count - 1] : null;
                         previousIdentifierControlsKey = identifierControlsKey && previousIdentifier != null;
                     }
                 }
-                else AppendContinuation(current, format, previousTag, continuation, previousIdentifier, previousIdentifierControlsKey, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
+                else AppendContinuation(current, format, previousTag, continuation, previousIdentifier, previousIdentifierControlsKey, diagnosticGuard, lineIndex + 1, lineOffset, items, limits, cancellationToken);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
         }
         if (format == BibliographyFormat.Nbib) NormalizeNbibAuthors(items, cancellationToken);
@@ -186,9 +186,9 @@ internal static class TaggedCodec {
         length = end - start;
     }
 
-    private static void Bind(BibliographyItem item, BibliographyFormat format, string tag, string value) {
+    private static void Bind(BibliographyItem item, BibliographyFormat format, string tag, string value, CancellationToken cancellationToken) {
         string field = tag.ToUpperInvariant();
-        if (format == BibliographyFormat.Ris) BindRis(item, field, tag, value); else BindNbib(item, field, tag, value);
+        if (format == BibliographyFormat.Ris) BindRis(item, field, tag, value); else BindNbib(item, field, tag, value, cancellationToken);
     }
 
     private static bool CanPromoteContinuedIdentifier(BibliographyFormat format, string tag, string value) {
@@ -229,7 +229,7 @@ internal static class TaggedCodec {
         }
     }
 
-    private static void BindNbib(BibliographyItem item, string field, string sourceTag, string value) {
+    private static void BindNbib(BibliographyItem item, string field, string sourceTag, string value, CancellationToken cancellationToken) {
         switch (field) {
             case "PMID": item.Key = value; AddTaggedIdentifier(item, "PMID", value, sourceTag); break;
             case "PT":
@@ -240,7 +240,7 @@ internal static class TaggedCodec {
             case "TI": SetScalar(item, BibliographyFormat.Nbib, "title", sourceTag, value, assigned => item.Title = assigned); break;
             case "JT": case "TA": SetScalar(item, BibliographyFormat.Nbib, "container-title", sourceTag, value, assigned => item.ContainerTitle = assigned); break;
             case "FAU": AddNbibContributor(item, sourceTag, CodecMappings.ParseCommaName(value)); break;
-            case "AU": AddNbibContributor(item, sourceTag, ParseCompactNbibName(value)); break;
+            case "AU": AddNbibContributor(item, sourceTag, ParseCompactNbibName(value, cancellationToken)); break;
             case "CN": AddNbibContributor(item, sourceTag, new BibliographyName { Literal = value }); break;
             case "DP": AddTaggedDate(item, BibliographyDateRole.Issued, sourceTag, value); break;
             case "VI": SetScalar(item, BibliographyFormat.Nbib, "volume", sourceTag, value, assigned => item.Volume = assigned); break;
@@ -351,7 +351,7 @@ internal static class TaggedCodec {
         item.Pages = hasStart && hasEnd ? item.RisPageStart + "-" + item.RisPageEnd : hasStart ? item.RisPageStart : hasEnd ? item.RisPageEnd : null;
     }
 
-    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyIdentifier? identifierBinding, bool identifierControlsKey, BibliographyDiagnosticGuard diagnostics, int line, int offset, IList<BibliographyItem> items, BibliographyLimitGuard limits) {
+    private static void AppendContinuation(BibliographyItem item, BibliographyFormat format, string tag, string value, BibliographyIdentifier? identifierBinding, bool identifierControlsKey, BibliographyDiagnosticGuard diagnostics, int line, int offset, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
         string field = tag.ToUpperInvariant();
         if (format == BibliographyFormat.Ris) {
             switch (field) {
@@ -392,7 +392,7 @@ internal static class TaggedCodec {
                 case "IS": case "LID": case "AID": AppendTaggedIdentifier(item, field, value, items, limits, offset); return;
                 case "GN": AppendLast(item.Notes, value, items, limits, offset); return;
                 case "OT": AppendLast(item.Keywords, value, items, limits, offset); return;
-                case "FAU": case "AU": case "CN": AppendNbibContributor(item, field, value, items, limits, offset); return;
+                case "FAU": case "AU": case "CN": AppendNbibContributor(item, field, value, items, limits, offset, cancellationToken); return;
             }
         }
         if (item.NativeFields.LastOrDefault(nativeField => nativeField.Format == format && string.Equals(nativeField.Name, tag, StringComparison.OrdinalIgnoreCase)) is BibliographyNativeField native) {
@@ -427,11 +427,11 @@ internal static class TaggedCodec {
         item.TaggedContributorTags[contributor] = tag;
     }
 
-    private static void AppendNbibContributor(BibliographyItem item, string tag, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset) {
+    private static void AppendNbibContributor(BibliographyItem item, string tag, string continuation, IList<BibliographyItem> items, BibliographyLimitGuard limits, int offset, CancellationToken cancellationToken) {
         BibliographyContributor? contributor = item.Contributors.LastOrDefault(candidate => item.TaggedContributorTags.TryGetValue(candidate, out string? sourceTag) && string.Equals(sourceTag, tag, StringComparison.OrdinalIgnoreCase));
         if (contributor == null) return;
-        string original = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? CompactName(contributor.Name) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? contributor.Name.Literal ?? string.Empty : CodecMappings.FormatName(contributor.Name);
-        BibliographyName parsed = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? ParseCompactNbibName(AppendChecked(original, continuation, items, limits, offset)) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? new BibliographyName { Literal = AppendChecked(original, continuation, items, limits, offset) } : CodecMappings.ParseCommaName(AppendChecked(original, continuation, items, limits, offset));
+        string original = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? CompactName(contributor.Name, cancellationToken) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? contributor.Name.Literal ?? string.Empty : CodecMappings.FormatName(contributor.Name);
+        BibliographyName parsed = string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase) ? ParseCompactNbibName(AppendChecked(original, continuation, items, limits, offset), cancellationToken) : string.Equals(tag, "CN", StringComparison.OrdinalIgnoreCase) ? new BibliographyName { Literal = AppendChecked(original, continuation, items, limits, offset) } : CodecMappings.ParseCommaName(AppendChecked(original, continuation, items, limits, offset));
         contributor.Name.Given = parsed.Given; contributor.Name.Family = parsed.Family; contributor.Name.Literal = parsed.Literal; contributor.Name.Suffix = parsed.Suffix;
         contributor.Name.DroppingParticle = parsed.DroppingParticle; contributor.Name.NonDroppingParticle = parsed.NonDroppingParticle;
     }
@@ -466,7 +466,7 @@ internal static class TaggedCodec {
                 if (!item.TaggedContributorTags.TryGetValue(contributor, out string? tag)) continue;
                 if (string.Equals(tag, "AU", StringComparison.OrdinalIgnoreCase)) compactAuthors.Add(contributor);
                 else if (string.Equals(tag, "FAU", StringComparison.OrdinalIgnoreCase)) {
-                    string key = NormalizeCompactName(CompactName(contributor.Name), cancellationToken);
+                    string key = NormalizeCompactName(CompactName(contributor.Name, cancellationToken), cancellationToken);
                     if (!fullAuthorsByCompactName.TryGetValue(key, out Queue<BibliographyContributor>? matches)) {
                         matches = new Queue<BibliographyContributor>();
                         fullAuthorsByCompactName.Add(key, matches);
@@ -694,13 +694,39 @@ internal static class TaggedCodec {
         }
     }
     private static string NbibIdentifierTag(BibliographyItem item, BibliographyIdentifier identifier) => item.TaggedIdentifierTags.TryGetValue(identifier, out string? sourceTag) && (string.Equals(sourceTag, "LID", StringComparison.OrdinalIgnoreCase) || string.Equals(sourceTag, "AID", StringComparison.OrdinalIgnoreCase)) ? sourceTag.ToUpperInvariant() : "AID";
-    private static BibliographyName ParseCompactNbibName(string value) {
-        string trimmed = value.Trim();
-        if (trimmed.IndexOf(',') >= 0) return CodecMappings.ParseCommaName(trimmed);
-        string[] words = trimmed.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0) return new BibliographyName();
-        if (words.Length == 1) return new BibliographyName { Family = words[0] };
-        return new BibliographyName { Family = string.Join(" ", words.Take(words.Length - 1)), Given = words[words.Length - 1] };
+    private static BibliographyName ParseCompactNbibName(string value, CancellationToken cancellationToken) {
+        int start = 0;
+        while (start < value.Length && char.IsWhiteSpace(value[start])) { if ((start & 4095) == 0) cancellationToken.ThrowIfCancellationRequested(); start++; }
+        int end = value.Length;
+        while (end > start && char.IsWhiteSpace(value[end - 1])) { if (((value.Length - end) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested(); end--; }
+        if (start == end) return new BibliographyName();
+        for (int index = start; index < end; index++) {
+            if (((index - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index] == ',') return CodecMappings.ParseCommaName(value.Substring(start, end - start));
+        }
+
+        int wordStart = -1;
+        int previousWordStart = -1;
+        int previousWordLength = 0;
+        var family = new StringBuilder(end - start);
+        for (int index = start; index <= end; index++) {
+            if (((index - start) & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            bool separator = index == end || value[index] == ' ';
+            if (!separator && wordStart < 0) wordStart = index;
+            if (!separator) continue;
+            if (wordStart < 0) continue;
+            if (previousWordStart >= 0) {
+                if (family.Length > 0) family.Append(' ');
+                family.Append(value, previousWordStart, previousWordLength);
+            }
+            previousWordStart = wordStart;
+            previousWordLength = index - wordStart;
+            wordStart = -1;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        if (previousWordStart < 0) return new BibliographyName();
+        if (family.Length == 0) return new BibliographyName { Family = value.Substring(previousWordStart, previousWordLength) };
+        return new BibliographyName { Family = family.ToString(), Given = value.Substring(previousWordStart, previousWordLength) };
     }
     private static string TaggedOutputTag(BibliographyItem item, BibliographyFormat format, string semanticName, string fallback) =>
         item.TaggedFieldNames.TryGetValue(format + ":" + semanticName, out string? sourceTag) && IsTag(sourceTag) ? sourceTag.ToUpperInvariant() : fallback;
@@ -708,16 +734,25 @@ internal static class TaggedCodec {
         item.TaggedContributorTags.TryGetValue(contributor, out string? sourceTag) && (string.Equals(sourceTag, fallback, StringComparison.OrdinalIgnoreCase) || alternatives.Any(alternative => string.Equals(sourceTag, alternative, StringComparison.OrdinalIgnoreCase))) ? sourceTag.ToUpperInvariant() : fallback;
     private static string DateTag(BibliographyItem item, BibliographyDate date, string fallback, params string[] alternatives) =>
         item.TaggedDateTags.TryGetValue(date, out string? sourceTag) && (string.Equals(sourceTag, fallback, StringComparison.OrdinalIgnoreCase) || alternatives.Any(alternative => string.Equals(sourceTag, alternative, StringComparison.OrdinalIgnoreCase))) ? sourceTag.ToUpperInvariant() : fallback;
-    private static string CompactName(BibliographyName name) {
+    private static string CompactName(BibliographyName name, CancellationToken cancellationToken) {
         if (!string.IsNullOrWhiteSpace(name.Literal)) return name.Literal!;
-        string initials = Initials(name.Given);
+        string initials = Initials(name.Given, cancellationToken);
         if (initials.Length == 0 && name.Family?.Any(char.IsWhiteSpace) == true) return CodecMappings.FormatName(name);
         return ((name.Family ?? string.Empty) + " " + initials).Trim();
     }
-    private static string Initials(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+    internal static string Initials(string? value, CancellationToken cancellationToken = default) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
         var builder = new StringBuilder();
-        foreach (string part in value!.Split(new[] { ' ', '-' }, StringSplitOptions.RemoveEmptyEntries)) builder.Append(StringInfo.GetNextTextElement(part, 0));
+        bool atComponentStart = true;
+        for (int index = 0; index < value!.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char current = value[index];
+            if (current == ' ' || current == '-') { atComponentStart = true; continue; }
+            if (!atComponentStart) continue;
+            builder.Append(StringInfo.GetNextTextElement(value, index));
+            atComponentStart = false;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
 
