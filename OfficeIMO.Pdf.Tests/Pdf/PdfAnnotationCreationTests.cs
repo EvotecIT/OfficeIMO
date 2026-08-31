@@ -6,6 +6,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAnnotationCreationTests {
     [Fact]
+    public void AddAnnotation_CreatesUriLinkWithReadback() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+
+        PdfAnnotationEditResult result = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link",
+            Rectangle = new[] { 40D, 50D, 180D, 80D },
+            Contents = "OfficeIMO",
+            LinkUri = "https://officeimo.com"
+        });
+
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(result.Bytes).GetLinkAnnotationsByUri("https://officeimo.com"));
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal("OfficeIMO", link.Contents);
+        Assert.Equal(40D, link.X1);
+        Assert.Equal(80D, link.Y2);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 

@@ -1,0 +1,45 @@
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public sealed class PdfLogicalPageCoordinateTests {
+    [Fact]
+    public void MapVisualRectangleToUserSpace_MapsTopLeftCoordinatesOnUnrotatedPage() {
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(source).Pages);
+
+        PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
+
+        Assert.Equal(40D, rectangle.Left);
+        Assert.Equal(700D, rectangle.Bottom);
+        Assert.Equal(180D, rectangle.Right);
+        Assert.Equal(750D, rectangle.Top);
+    }
+
+    [Fact]
+    public void MapVisualRectangleToUserSpace_AccountsForInheritedPageRotation() {
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] rotated = PdfDocument.Open(source).Pages.Rotate(90, 1).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(rotated).Pages);
+
+        PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
+
+        Assert.Equal(500D, rectangle.Left);
+        Assert.Equal(620D, rectangle.Bottom);
+        Assert.Equal(550D, rectangle.Right);
+        Assert.Equal(760D, rectangle.Top);
+    }
+
+    [Fact]
+    public void MapVisualPointToUserSpace_UsesTheSameRotatedCoordinateContract() {
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] rotated = PdfDocument.Open(source).Pages.Rotate(90, 1).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(rotated).Pages);
+
+        PdfPagePoint point = page.MapVisualPointToUserSpace(40D, 50D);
+
+        Assert.Equal(550D, point.X);
+        Assert.Equal(760D, point.Y);
+    }
+}

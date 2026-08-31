@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
 
@@ -12,6 +13,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<CancellationToken, Task<string?>> _pickSavePdf;
     private readonly Func<CancellationToken, Task<string?>> _pickImportPdf;
     private readonly Func<CancellationToken, Task<string?>> _pickOutputFolder;
+    private readonly Func<CancellationToken, Task<string?>> _pickImage;
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private PdfWorkspace? _workspace;
@@ -59,11 +61,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickImportPdf = null,
         Func<CancellationToken, Task<string?>>? pickOutputFolder = null,
         Func<Uri, Task>? openUri = null,
-        Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null) {
+        Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
+        Func<CancellationToken, Task<string?>>? pickImage = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdf = pickImportPdf ?? (_ => Task.FromResult<string?>(null));
         _pickOutputFolder = pickOutputFolder ?? (_ => Task.FromResult<string?>(null));
+        _pickImage = pickImage ?? (_ => Task.FromResult<string?>(null));
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
     }
@@ -341,6 +345,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         foreach (PdfPageViewModel page in pages) {
             page.LinkActivated += OnPageLinkActivated;
+            page.EditorGestureCompleted += OnPageEditorGestureCompleted;
+            page.AnnotationSelected += OnPageAnnotationSelected;
+            page.EditorTool = ActiveEditorTool;
             Pages.Add(page);
         }
         foreach (PdfOrganizerPageViewModel page in organizerPages) OrganizerPages.Add(page);

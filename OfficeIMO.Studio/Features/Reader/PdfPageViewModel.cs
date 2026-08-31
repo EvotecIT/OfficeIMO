@@ -1,6 +1,7 @@
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
+using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
@@ -48,6 +49,12 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     [ObservableProperty]
     private double _renderedScale;
 
+    [ObservableProperty]
+    private PdfEditorTool _editorTool;
+
+    [ObservableProperty]
+    private int? _selectedAnnotationObjectNumber;
+
     private double _zoom;
 
     internal PdfPageViewModel(
@@ -79,6 +86,10 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     public bool HasDiagnostics => !string.IsNullOrWhiteSpace(DiagnosticsSummary);
 
     internal event Action<string>? LinkActivated;
+
+    internal event Action<PdfEditorGesture>? EditorGestureCompleted;
+
+    internal event Action<PdfEditorSelection?>? AnnotationSelected;
 
     internal void AttachToViewport() {
         if (_disposed || _isAttached) return;
@@ -112,6 +123,10 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     internal void ActivateLink(string target) {
         if (!string.IsNullOrWhiteSpace(target)) LinkActivated?.Invoke(target);
     }
+
+    internal void CompleteEditorGesture(PdfEditorGesture gesture) => EditorGestureCompleted?.Invoke(gesture);
+
+    internal void SelectAnnotation(PdfEditorSelection? selection) => AnnotationSelected?.Invoke(selection);
 
     internal async Task EnsureRenderedAsync() {
         if (_disposed || !_isAttached) return;

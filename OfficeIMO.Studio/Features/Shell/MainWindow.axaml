@@ -3,13 +3,14 @@
         xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
         xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
         xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
+        xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
         x:DataType="shell:MainWindowViewModel"
         x:Name="StudioWindow"
         Title="OfficeIMO Studio"
         Width="1280"
         Height="820"
-        MinWidth="860"
+        MinWidth="1050"
         MinHeight="560"
         Background="{DynamicResource StudioWindowBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
@@ -177,9 +178,9 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="4" x:Name="PageViewport" ColumnDefinitions="250,*">
+    <Grid Grid.Row="4" x:Name="PageViewport" ColumnDefinitions="250,*,292">
       <Border IsVisible="{Binding IsEmpty}"
-              Grid.ColumnSpan="2"
+              Grid.ColumnSpan="3"
               Margin="28"
               Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}"
@@ -217,6 +218,151 @@
                   HorizontalAlignment="Center"
                   Margin="0,8,0,0" />
         </StackPanel>
+      </Border>
+
+      <Border Grid.Column="2"
+              IsVisible="{Binding HasDocument}"
+              Background="{DynamicResource StudioPanelBrush}"
+              BorderBrush="{DynamicResource StudioBorderBrush}"
+              BorderThickness="1,0,0,0">
+        <TabControl>
+          <TabItem Header="Edit">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="14" Spacing="10">
+                <TextBlock Text="Tool" FontWeight="SemiBold" />
+                <ComboBox ItemsSource="{Binding EditorTools}"
+                          SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="editor:PdfEditorToolChoice">
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding EditorInstruction}"
+                           Foreground="{DynamicResource StudioMutedTextBrush}"
+                           TextWrapping="Wrap" FontSize="11" />
+
+                <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,3" />
+                <TextBlock Text="Properties" FontWeight="SemiBold" />
+                <TextBlock Text="Text / comment" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                <TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="54" TextWrapping="Wrap" />
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Author" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding EditorAuthor}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Color" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding EditorColorHex}" />
+                  </StackPanel>
+                </Grid>
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                  <StackPanel Spacing="3">
+                    <TextBlock Text="Font size" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" Increment="1" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Spacing="3">
+                    <TextBlock Text="Stamp name" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding EditorStampName}" />
+                  </StackPanel>
+                </Grid>
+                <TextBlock Text="Link URI" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                <TextBox Text="{Binding EditorLinkUri}" />
+
+                <Border IsVisible="{Binding HasSelectedAnnotation}"
+                        Background="{DynamicResource StudioAccentSoftBrush}"
+                        BorderBrush="{DynamicResource StudioAccentBrush}"
+                        BorderThickness="1" CornerRadius="7" Padding="10" Margin="0,4">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="Selected annotation" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding SelectedAnnotationSummary}" FontSize="11"
+                               Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+                    <TextBlock Text="Contents" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="48" TextWrapping="Wrap" />
+                    <TextBlock Text="Author" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding SelectedAnnotationAuthor}" />
+                    <Button Classes="primary" Content="Update annotation" Command="{Binding UpdateSelectedAnnotationCommand}" />
+                    <TextBlock Text="Reply" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding AnnotationReplyText}" AcceptsReturn="True" MinHeight="42" TextWrapping="Wrap" />
+                    <Button Classes="tool" Content="Add reply" Command="{Binding ReplyToSelectedAnnotationCommand}" />
+                    <WrapPanel>
+                      <Button Classes="tool" Content="Flatten" Command="{Binding FlattenSelectedAnnotationCommand}" />
+                      <Button Classes="tool" Content="Remove" Command="{Binding RemoveSelectedAnnotationCommand}" Margin="6,0,0,0" />
+                    </WrapPanel>
+                    <TextBlock Text="Flatten and remove require a safe full rewrite. Signed append-only files will remain protected."
+                               FontSize="10" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+                  </StackPanel>
+                </Border>
+
+                <Border IsVisible="{Binding HasPendingRedaction}"
+                        Background="#FFF4F2" BorderBrush="#D92D20" BorderThickness="1"
+                        CornerRadius="7" Padding="10" Margin="0,4">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="Permanent redaction" Foreground="#B42318" FontWeight="SemiBold" />
+                    <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" FontSize="11" />
+                    <TextBlock Text="Optional text marker that must be absent after rewriting" TextWrapping="Wrap"
+                               FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                    <TextBox Text="{Binding RedactionRemovedMarker}" PlaceholderText="Sensitive text" />
+                    <WrapPanel>
+                      <Button Classes="primary" Content="Apply &amp; verify" Command="{Binding ApplyPendingRedactionCommand}" />
+                      <Button Classes="tool" Content="Cancel" Command="{Binding CancelPendingRedactionCommand}" Margin="6,0,0,0" />
+                    </WrapPanel>
+                  </StackPanel>
+                </Border>
+
+                <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,3" />
+                <TextBlock Text="Document overlays" FontWeight="SemiBold" />
+                <TextBlock Text="Watermark text" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
+                <TextBox Text="{Binding WatermarkText}" />
+                <WrapPanel>
+                  <Button Classes="tool" Content="Add watermark" Command="{Binding ApplyWatermarkCommand}"
+                          IsEnabled="{Binding CanEditPageContent}" />
+                  <Button Classes="tool" Content="Add page numbers" Command="{Binding ApplyPageNumbersCommand}"
+                          IsEnabled="{Binding CanEditPageContent}" Margin="6,0,0,0" />
+                </WrapPanel>
+                <TextBlock Text="Added text and images are explicit overlays. Existing PDF text is not reflow-edited."
+                           Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" FontSize="11" />
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+
+          <TabItem Header="Forms">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <StackPanel Margin="14" Spacing="10">
+                <TextBlock Text="AcroForm fields" FontWeight="SemiBold" />
+                <TextBlock IsVisible="{Binding !HasFormFields}"
+                           Text="This PDF has no supported named form fields."
+                           Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
+                <ComboBox ItemsSource="{Binding FormFields}"
+                          SelectedItem="{Binding SelectedFormField, Mode=TwoWay}"
+                          IsVisible="{Binding HasFormFields}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="editor:PdfFormFieldViewModel">
+                      <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="Value" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}"
+                           IsVisible="{Binding HasFormFields}" />
+                <TextBox Text="{Binding FormFieldValue}" IsVisible="{Binding HasFormFields}" />
+                <Button Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}"
+                        IsEnabled="{Binding CanFillForms}" IsVisible="{Binding HasFormFields}" />
+                <Button Classes="tool" Content="Fill and flatten field" Command="{Binding FillAndFlattenFormFieldCommand}"
+                        IsEnabled="{Binding CanFillForms}" IsVisible="{Binding HasFormFields}" />
+                <Border Background="#FFF8E7" BorderBrush="#E9B949" BorderThickness="1"
+                        CornerRadius="7" Padding="10" IsVisible="{Binding HasFormFields}">
+                  <StackPanel Spacing="7">
+                    <TextBlock Text="Flattening is explicit" FontWeight="SemiBold" Foreground="#7A4D00" />
+                    <TextBlock Text="Flattening turns supported widgets into permanent page content and removes their interactivity."
+                               TextWrapping="Wrap" FontSize="11" />
+                    <Button Classes="tool" Content="Flatten all fields" Command="{Binding FlattenAllFormFieldsCommand}"
+                            IsEnabled="{Binding CanFlattenForms}" />
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+            </ScrollViewer>
+          </TabItem>
+        </TabControl>
       </Border>
 
       <Border Grid.Column="0"
@@ -339,7 +485,7 @@
       </ListBox>
 
       <Border IsVisible="{Binding IsOpening}"
-              Grid.ColumnSpan="2"
+              Grid.ColumnSpan="3"
               Background="#66000000">
         <Border Background="{DynamicResource StudioPanelBrush}"
                 BorderBrush="{DynamicResource StudioBorderBrush}"

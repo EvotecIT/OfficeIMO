@@ -356,6 +356,11 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(HasRecovery));
         OnPropertyChanged(nameof(CanMutatePages));
         OnPropertyChanged(nameof(CanMutateSelection));
+        OnPropertyChanged(nameof(CanEditAnnotations));
+        OnPropertyChanged(nameof(CanEditPageContent));
+        OnPropertyChanged(nameof(CanRedact));
+        OnPropertyChanged(nameof(CanFillForms));
+        OnPropertyChanged(nameof(CanFlattenForms));
         OnPropertyChanged(nameof(SecurityWarning));
         OnPropertyChanged(nameof(HasSecurityWarning));
         if (_workspace is not null) {
@@ -364,6 +369,7 @@ public sealed partial class MainWindowViewModel {
             if (_workspace.HasRecovery) OperationStatus = "Recovered edits are available for this document.";
         }
         RebuildBookmarks();
+        RebuildFormFields();
     }
 
     private void RebuildBookmarks() {

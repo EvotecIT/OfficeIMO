@@ -14,6 +14,8 @@
       <Grid>
         <reader:PdfPageCanvas x:Name="PageCanvas"
                               Scene="{Binding Scene}"
+                              EditorTool="{Binding EditorTool}"
+                              SelectedAnnotationObjectNumber="{Binding SelectedAnnotationObjectNumber}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
 

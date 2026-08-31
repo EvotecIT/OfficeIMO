@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Workspace;
 
@@ -66,6 +67,16 @@ internal sealed class PdfWorkspace : IDisposable {
     internal string? RecoveryPath { get; private set; }
 
     internal bool CanMutatePages => _preflight.CanManipulatePages;
+
+    internal bool CanEditAnnotations => CanPlan(PdfMutationOperation.ModifyAnnotations);
+
+    internal bool CanEditPageContent => CanPlan(PdfMutationOperation.ModifyPageContent);
+
+    internal bool CanRedact => CanPlan(PdfMutationOperation.Redact);
+
+    internal bool CanFillForms => _preflight.CanFillSimpleFormFields || _preflight.CanAppendFormFieldRevision;
+
+    internal bool CanFlattenForms => _preflight.CanFlattenSimpleFormFields;
 
     internal string? SecurityWarning {
         get {
@@ -172,6 +183,199 @@ internal sealed class PdfWorkspace : IDisposable {
         PdfDocument blank = PdfDocument.Create(compose => compose.Page(page => page.Size(width, height)));
         return MutateAsync(PdfWorkspaceOperationKind.InsertBlank, "Inserted a blank page", Array.Empty<int>(), document => document.Pages.Insert(insertBeforePageNumber, blank), cancellationToken, progress);
     }
+
+    internal Task ApplyEditorGestureAsync(
+        PdfEditorTool tool,
+        PdfEditorGesture gesture,
+        PdfEditorProperties properties,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) {
+        if (tool is PdfEditorTool.Select or PdfEditorTool.Redact) throw new ArgumentException("This editor tool requires a different workflow.", nameof(tool));
+        PdfWorkspaceOperationKind kind = tool is PdfEditorTool.AddText or PdfEditorTool.AddImage
+            ? PdfWorkspaceOperationKind.AddedContent
+            : PdfWorkspaceOperationKind.Annotation;
+        string description = "Added " + GetToolDescription(tool) + " on page " + gesture.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        return MutateBytesAsync(
+            kind,
+            description,
+            new[] { gesture.PageNumber },
+            bytes => PdfEditorCommandExecutor.Apply(bytes, PdfEditorCommandFactory.Create(bytes, tool, gesture, properties)),
+            cancellationToken,
+            progress);
+    }
+
+    internal async Task<PdfVerifiedRedactionResult> ApplyVerifiedRedactionAsync(
+        PdfEditorGesture gesture,
+        PdfEditorProperties properties,
+        string? removedTextMarker,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) {
+        PdfVerifiedRedactionResult? verified = null;
+        await MutateBytesAsync(
+            PdfWorkspaceOperationKind.Redaction,
+            "Applied and verified redaction on page " + gesture.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            new[] { gesture.PageNumber },
+            bytes => {
+                PdfEditorCommand command = PdfEditorCommandFactory.Create(bytes, PdfEditorTool.Redact, gesture, properties);
+                verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(bytes, command, removedTextMarker);
+                return verified.Bytes;
+            },
+            cancellationToken,
+            progress).ConfigureAwait(false);
+        return verified ?? throw new InvalidOperationException("Redaction did not produce a verification result.");
+    }
+
+    internal Task<PdfRedactionPlan> PlanRedactionAsync(
+        PdfEditorGesture gesture,
+        PdfEditorProperties properties,
+        CancellationToken cancellationToken) {
+        ThrowIfDisposed();
+        byte[] snapshot = CopyBytes();
+        return Task.Run(() => {
+            PdfEditorCommand command = PdfEditorCommandFactory.Create(snapshot, PdfEditorTool.Redact, gesture, properties);
+            return PdfEditorCommandExecutor.PlanRedaction(snapshot, command);
+        }, cancellationToken);
+    }
+
+    internal Task FillFormFieldAsync(
+        string fieldName,
+        string value,
+        bool flatten,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) {
+        if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentException("Choose a form field.", nameof(fieldName));
+        string normalizedName = fieldName.Trim();
+        IReadOnlyDictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal) { [normalizedName] = value ?? string.Empty };
+        return MutateBytesAsync(
+            flatten ? PdfWorkspaceOperationKind.FormFlatten : PdfWorkspaceOperationKind.FormFill,
+            flatten ? "Filled and flattened form field " + normalizedName : "Filled form field " + normalizedName,
+            Array.Empty<int>(),
+            bytes => {
+                PdfDocument document = PdfDocument.Open(bytes);
+                if (flatten) return document.Forms.FillAndFlatten(values).ToBytes();
+                PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
+                return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
+                    ? document.Forms.AppendRevision(values)
+                    : document.Forms.Fill(values)).ToBytes();
+            },
+            cancellationToken,
+            progress);
+    }
+
+    internal Task FlattenFormFieldsAsync(
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.FormFlatten,
+            "Flattened form fields",
+            Array.Empty<int>(),
+            bytes => PdfDocument.Open(bytes).Forms.Flatten().ToBytes(),
+            cancellationToken,
+            progress);
+
+    internal Task ApplyWatermarkAsync(
+        string text,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) {
+        if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("Watermark text is required.", nameof(text));
+        return MutateBytesAsync(
+            PdfWorkspaceOperationKind.Watermark,
+            "Added text watermark",
+            Enumerable.Range(1, Pages.Count).ToArray(),
+            bytes => PdfDocument.Open(bytes).Stamp.TextWatermark(text.Trim(), new PdfTextStampOptions {
+                FontSize = 42D,
+                RotationDegrees = -35D,
+                Color = PdfColor.FromRgb(148, 163, 184)
+            }).ToBytes(),
+            cancellationToken,
+            progress);
+    }
+
+    internal Task ApplyPageNumbersAsync(
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.PageNumbers,
+            "Added page numbers",
+            Enumerable.Range(1, Pages.Count).ToArray(),
+            bytes => PdfDocument.Open(bytes).Stamp.Content(
+                (canvas, context) => canvas.Text(
+                    context.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " / " + context.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    20D,
+                    Math.Max(0D, context.Height - 28D),
+                    Math.Max(1D, context.Width - 40D),
+                    18D,
+                    fontSize: 10D,
+                    color: PdfColor.FromRgb(71, 84, 103),
+                    align: PdfAlign.Center),
+                new PdfCanvasStampOptions()).ToBytes(),
+            cancellationToken,
+            progress);
+
+    internal Task UpdateAnnotationAsync(
+        int objectNumber,
+        string contents,
+        string author,
+        PdfColor color,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.Annotation,
+            "Updated annotation",
+            Array.Empty<int>(),
+            bytes => PdfDocument.Open(bytes).Annotations.Update(objectNumber, new PdfAnnotationUpdateOptions {
+                Contents = contents ?? string.Empty,
+                Title = author ?? string.Empty,
+                Color = new[] { color.R, color.G, color.B },
+                RegenerateAppearance = true
+            }).Bytes,
+            cancellationToken,
+            progress);
+
+    internal Task AddAnnotationReplyAsync(
+        int objectNumber,
+        string contents,
+        string author,
+        PdfColor color,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) {
+        if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply text is required.", nameof(contents));
+        return MutateBytesAsync(
+            PdfWorkspaceOperationKind.Annotation,
+            "Added annotation reply",
+            Array.Empty<int>(),
+            bytes => PdfDocument.Open(bytes).Annotations.AddReply(objectNumber, contents.Trim(), new PdfAnnotationReplyOptions {
+                Author = author,
+                Color = new[] { color.R, color.G, color.B },
+                CreatePopup = true
+            }).Bytes,
+            cancellationToken,
+            progress);
+    }
+
+    internal Task FlattenAnnotationAsync(
+        int objectNumber,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.Annotation,
+            "Flattened annotation",
+            Array.Empty<int>(),
+            bytes => PdfDocument.Open(bytes).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = objectNumber }).Bytes,
+            cancellationToken,
+            progress);
+
+    internal Task RemoveAnnotationAsync(
+        int objectNumber,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.Annotation,
+            "Removed annotation",
+            Array.Empty<int>(),
+            bytes => PdfDocument.Open(bytes).Annotations.Remove(new PdfAnnotationRemovalOptions { ObjectNumber = objectNumber }).Bytes,
+            cancellationToken,
+            progress);
 
     internal async Task ExtractAsync(IReadOnlyList<int> pageNumbers, string outputPath, CancellationToken cancellationToken, IProgress<PdfWorkspaceProgress>? progress = null) {
         ThrowIfDisposed();
@@ -283,14 +487,30 @@ internal sealed class PdfWorkspace : IDisposable {
         IProgress<PdfWorkspaceProgress>? progress) {
         ThrowIfDisposed();
         if (!CanMutatePages) throw new InvalidOperationException(SecurityWarning ?? "This document cannot be safely rewritten.");
+        await MutateBytesAsync(
+            kind,
+            description,
+            pageNumbers,
+            bytes => mutation(PdfDocument.Open(bytes)).ToBytes(),
+            cancellationToken,
+            progress).ConfigureAwait(false);
+    }
+
+    private async Task MutateBytesAsync(
+        PdfWorkspaceOperationKind kind,
+        string description,
+        IReadOnlyList<int> pageNumbers,
+        Func<byte[], byte[]> mutation,
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress) {
+        ThrowIfDisposed();
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             progress?.Report(new PdfWorkspaceProgress(description, 0.1D));
             byte[] previousBytes = _bytes;
-            PdfDocument candidate = await Task.Run(
-                () => mutation(PdfDocument.Open(previousBytes)),
+            byte[] candidateBytes = await Task.Run(
+                () => mutation(previousBytes),
                 cancellationToken).ConfigureAwait(false);
-            byte[] candidateBytes = await Task.Run(candidate.ToBytes, cancellationToken).ConfigureAwait(false);
             progress?.Report(new PdfWorkspaceProgress("Validating changed document", 0.75D));
             (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await Task.Run(
                 () => Analyze(candidateBytes),
@@ -316,6 +536,32 @@ internal sealed class PdfWorkspace : IDisposable {
             _operationGate.Release();
         }
     }
+
+    private bool CanPlan(PdfMutationOperation operation) {
+        try {
+            return PdfDocument.Open(_bytes).PlanMutation(operation).CanExecute;
+        } catch {
+            return false;
+        }
+    }
+
+    private static string GetToolDescription(PdfEditorTool tool) => tool switch {
+        PdfEditorTool.Note => "note",
+        PdfEditorTool.FreeText => "free text",
+        PdfEditorTool.Highlight => "highlight",
+        PdfEditorTool.Underline => "underline",
+        PdfEditorTool.StrikeOut => "strikeout",
+        PdfEditorTool.Rectangle => "rectangle",
+        PdfEditorTool.Ellipse => "ellipse",
+        PdfEditorTool.Line => "line",
+        PdfEditorTool.Ink => "ink",
+        PdfEditorTool.Stamp => "stamp",
+        PdfEditorTool.AddText => "text",
+        PdfEditorTool.AddImage => "image",
+        PdfEditorTool.Link => "link",
+        PdfEditorTool.SignatureAppearance => "visual signature appearance",
+        _ => throw new ArgumentOutOfRangeException(nameof(tool), tool, "Unsupported editor tool.")
+    };
 
     private async Task RestoreHistoryAsync(bool isUndo, CancellationToken cancellationToken) {
         ThrowIfDisposed();

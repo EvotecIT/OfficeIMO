@@ -10,6 +10,8 @@ public sealed class PdfAnnotationCreateOptions {
     public IReadOnlyList<double> Rectangle { get; set; } = new[] { 36D, 36D, 54D, 54D };
     /// <summary>Optional annotation contents.</summary>
     public string? Contents { get; set; }
+    /// <summary>URI action target for a Link annotation. Other annotation subtypes must leave this null.</summary>
+    public string? LinkUri { get; set; }
     /// <summary>Optional author/title.</summary>
     public string? Title { get; set; }
     /// <summary>Optional stable /NM name.</summary>

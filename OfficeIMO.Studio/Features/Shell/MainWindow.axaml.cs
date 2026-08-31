@@ -26,7 +26,8 @@ public sealed partial class MainWindow : Window {
             PickPdfAsync,
             PickOutputFolderAsync,
             OpenUriAsync,
-            ConfirmUnsavedChangesAsync);
+            ConfirmUnsavedChangesAsync,
+            PickImageAsync);
         DataContext = ViewModel;
 
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
@@ -141,6 +142,24 @@ public sealed partial class MainWindow : Window {
         });
         cancellationToken.ThrowIfCancellationRequested();
         return folders.FirstOrDefault()?.Path.LocalPath;
+    }
+
+    private async Task<string?> PickImageAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanOpen) return null;
+        IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+            Title = "Choose image",
+            AllowMultiple = false,
+            FileTypeFilter = [
+                new FilePickerFileType("PNG or JPEG images") {
+                    Patterns = ["*.png", "*.jpg", "*.jpeg"],
+                    MimeTypes = ["image/png", "image/jpeg"],
+                    AppleUniformTypeIdentifiers = ["public.png", "public.jpeg"]
+                }
+            ]
+        });
+        cancellationToken.ThrowIfCancellationRequested();
+        return files.FirstOrDefault()?.Path.LocalPath;
     }
 
     private async Task OpenUriAsync(Uri uri) {

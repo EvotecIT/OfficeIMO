@@ -1,9 +1,157 @@
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Pdf;
+using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class PdfWorkspaceTests {
+    [Fact]
+    public async Task EditorMutationParticipatesInRecoveryUndoRedoAndJournal() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-editor-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        CreateEditableSource(source);
+        var recovery = new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery"));
+        var gesture = new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>());
+        var properties = new PdfEditorProperties(
+            "Workspace note",
+            "OfficeIMO Studio",
+            PdfColor.FromRgb(229, 72, 77),
+            "Approved",
+            "https://officeimo.com",
+            14D);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None, recovery);
+
+            await workspace.ApplyEditorGestureAsync(PdfEditorTool.Note, gesture, properties, CancellationToken.None);
+
+            Assert.True(workspace.IsDirty);
+            Assert.True(workspace.CanUndo);
+            Assert.Equal(PdfWorkspaceOperationKind.Annotation, Assert.Single(workspace.Journal).Kind);
+            Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+
+            await workspace.UndoAsync(CancellationToken.None);
+            Assert.Empty(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            await workspace.RedoAsync(CancellationToken.None);
+            Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task FormFillAndExplicitFlattenProduceReadableCurrentArtifacts() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-form-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).Save(source);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Assert.True(workspace.CanFillForms);
+            Assert.True(workspace.CanFlattenForms);
+
+            await workspace.FillFormFieldAsync("Customer.Name", "After", flatten: false, CancellationToken.None);
+            PdfFormField filled = Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().FormFields);
+            Assert.Equal("After", filled.Value);
+
+            await workspace.FlattenFormFieldsAsync(CancellationToken.None);
+            PdfDocument flattened = PdfDocument.Open(workspace.CopyBytes());
+            Assert.Empty(flattened.Inspect().FormFields);
+            Assert.Contains("After", flattened.Read.Text(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task WatermarkAndPageNumbersAreInspectableAndRenderableAfterSave() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-overlays-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string saved = Path.Combine(root, "saved.pdf");
+        CreateEditableSource(source);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            await workspace.ApplyWatermarkAsync("INTERNAL", CancellationToken.None);
+            await workspace.ApplyPageNumbersAsync(CancellationToken.None);
+            await workspace.SaveAsync(saved, CancellationToken.None);
+
+            PdfDocument reopened = PdfDocument.Open(saved);
+            string text = reopened.Read.Text();
+            Assert.Contains("INTERNAL", text, StringComparison.Ordinal);
+            Assert.Contains("1 / 1", text, StringComparison.Ordinal);
+            Assert.True(Assert.Single(reopened.Read.RenderPages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task CertificationPolicyAllowsAppendOnlyReviewButBlocksPageContentEdits() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-certified-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "certified.pdf");
+        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.Paragraph(paragraph => paragraph.Text("Certified content")))))).ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfDocument.Open(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+            Profile = PdfSignatureProfile.Certification,
+            CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
+            FieldName = "Certification",
+            ReservedSignatureContentsBytes = 512
+        });
+        byte[] signed = preparation.Complete(new byte[] { 0x30, 0x01, 0x00 }).ToBytes();
+        await File.WriteAllBytesAsync(source, signed);
+        var gesture = new PdfEditorGesture(1, 40D, 50D, 60D, 70D, Array.Empty<PdfEditorVisualPoint>());
+        var properties = new PdfEditorProperties("Certified review", "Studio", PdfColor.FromRgb(220, 38, 38), "Approved", "https://officeimo.com", 12D);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Assert.True(workspace.CanEditAnnotations);
+            Assert.False(workspace.CanEditPageContent);
+
+            await workspace.ApplyEditorGestureAsync(PdfEditorTool.Note, gesture, properties, CancellationToken.None);
+
+            byte[] edited = workspace.CopyBytes();
+            Assert.True(edited.AsSpan(0, signed.Length).SequenceEqual(signed));
+            Assert.Single(PdfDocument.Open(edited).Inspect().GetAnnotationsBySubtype("Text"));
+            await Assert.ThrowsAnyAsync<Exception>(() => workspace.ApplyWatermarkAsync("BLOCKED", CancellationToken.None));
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task FailedRedactionProofDoesNotCommitCandidateBytesOrHistory() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-redaction-proof-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.Paragraph(paragraph => paragraph.Text("Keep this marker")))))).Save(source);
+        var gesture = new PdfEditorGesture(1, 300D, 300D, 340D, 340D, Array.Empty<PdfEditorVisualPoint>());
+        var properties = new PdfEditorProperties(string.Empty, "Studio", PdfColor.Black, "Approved", "https://officeimo.com", 12D);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            byte[] original = workspace.CopyBytes();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => workspace.ApplyVerifiedRedactionAsync(
+                gesture,
+                properties,
+                "Keep this marker",
+                CancellationToken.None));
+
+            Assert.Equal(original, workspace.CopyBytes());
+            Assert.False(workspace.IsDirty);
+            Assert.False(workspace.CanUndo);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task MutationUndoRedoAndSaveMaintainWorkspaceContract() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-workspace-" + Guid.NewGuid().ToString("N"));

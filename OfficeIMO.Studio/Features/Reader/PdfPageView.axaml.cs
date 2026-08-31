@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using OfficeIMO.Studio.Features.Editor;
 
 namespace OfficeIMO.Studio.Features.Reader;
 
@@ -9,6 +10,8 @@ public sealed partial class PdfPageView : UserControl {
     public PdfPageView() {
         InitializeComponent();
         PageCanvas.LinkActivated += OnLinkActivated;
+        PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
+        PageCanvas.AnnotationSelected += OnAnnotationSelected;
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;
@@ -21,6 +24,10 @@ public sealed partial class PdfPageView : UserControl {
     }
 
     private void OnLinkActivated(string target) => _viewModel?.ActivateLink(target);
+
+    private void OnEditorGestureCompleted(PdfEditorGesture gesture) => _viewModel?.CompleteEditorGesture(gesture);
+
+    private void OnAnnotationSelected(PdfEditorSelection? selection) => _viewModel?.SelectAnnotation(selection);
 
     private void OnDataContextChanged(object? sender, EventArgs e) {
         UpdateViewModel();

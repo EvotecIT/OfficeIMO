@@ -8,6 +8,13 @@ internal enum PdfWorkspaceOperationKind {
     Import,
     Crop,
     InsertBlank,
+    Annotation,
+    AddedContent,
+    FormFill,
+    FormFlatten,
+    Redaction,
+    Watermark,
+    PageNumbers,
     RecoveryRestore,
     Undo,
     Redo
