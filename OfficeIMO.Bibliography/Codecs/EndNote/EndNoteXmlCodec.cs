@@ -91,7 +91,7 @@ internal static class EndNoteXmlCodec {
                 writer.WriteStartElement(rootPrefix, rootElementName, outputNamespace);
                 WriteDocumentAttributes(writer, document, rootElementName, report, cancellationToken);
                 foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == "element")) {
-                    if (TryWriteRootElement(writer, entry, outputNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                    if (TryWriteRootElement(writer, entry, outputNamespace, cancellationToken)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved document-level EndNote XML element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                     else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"Document-level EndNote XML element '{entry.Name}' is malformed or reserved and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
                 }
             }
@@ -101,7 +101,7 @@ internal static class EndNoteXmlCodec {
             writer.WriteStartElement(recordsPrefix, recordsElementName, recordsNamespace);
             WriteDocumentAttributes(writer, document, recordsElementName, report, cancellationToken);
             foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken).Where(entry => entry.Format == BibliographyFormat.EndNoteXml && entry.Kind == RecordsElementEntryKind)) {
-                if (TryWriteRecordsElement(writer, entry, recordsNamespace)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
+                if (TryWriteRecordsElement(writer, entry, recordsNamespace, cancellationToken)) report.Add("BIBCONV015", BibliographyDiagnosticSeverity.Information, $"Preserved EndNote XML records-container element '{entry.Name}'.", BibliographyConversionAction.PreservedExtension, field: entry.Name);
                 else report.Add("BIBCONV117", BibliographyDiagnosticSeverity.Warning, $"EndNote XML records-container element '{entry.Name}' is malformed, reserved, or otherwise unsafe and was omitted.", BibliographyConversionAction.Omitted, field: entry.Name);
             }
             for (int itemIndex = 0; itemIndex < document.Items.Count; itemIndex++) {
@@ -327,37 +327,103 @@ internal static class EndNoteXmlCodec {
 
     private static bool TryWriteElement(XmlWriter writer, string xml, CancellationToken cancellationToken = default) {
         try {
-            cancellationToken.ThrowIfCancellationRequested();
-            XElement element = XElement.Parse(xml, LoadOptions.PreserveWhitespace);
-            cancellationToken.ThrowIfCancellationRequested();
-            element.WriteTo(writer);
-            cancellationToken.ThrowIfCancellationRequested();
+            XElement element = ParseElementCancellable(xml, cancellationToken);
+            WriteElementCancellable(writer, element, cancellationToken);
             return true;
         } catch (XmlException) {
             return false;
         }
     }
-    private static bool TryWriteRootElement(XmlWriter writer, BibliographyNativeEntry entry, string rootNamespace) {
+    private static bool TryWriteRootElement(XmlWriter writer, BibliographyNativeEntry entry, string rootNamespace, CancellationToken cancellationToken) {
         try {
-            XElement element = XElement.Parse(entry.Value, LoadOptions.PreserveWhitespace);
+            XElement element = ParseElementCancellable(entry.Value, cancellationToken);
             if (!string.Equals(entry.Name, element.Name.LocalName, StringComparison.Ordinal)) return false;
             if (HasName(element, XNamespace.Get(rootNamespace), "records")) return false;
-            element.WriteTo(writer);
+            WriteElementCancellable(writer, element, cancellationToken);
             return true;
         } catch (XmlException) {
             return false;
         }
     }
-    private static bool TryWriteRecordsElement(XmlWriter writer, BibliographyNativeEntry entry, string recordsNamespace) {
+    private static bool TryWriteRecordsElement(XmlWriter writer, BibliographyNativeEntry entry, string recordsNamespace, CancellationToken cancellationToken) {
         try {
-            XElement element = XElement.Parse(entry.Value, LoadOptions.PreserveWhitespace);
+            XElement element = ParseElementCancellable(entry.Value, cancellationToken);
             if (!string.Equals(entry.Name, element.Name.LocalName, StringComparison.Ordinal)) return false;
             if (HasName(element, XNamespace.Get(recordsNamespace), "record")) return false;
-            element.WriteTo(writer);
+            WriteElementCancellable(writer, element, cancellationToken);
             return true;
         } catch (XmlException) {
             return false;
         }
+    }
+
+    private static XElement ParseElementCancellable(string xml, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        using var textReader = new EndNoteCancellableTextReader(xml, cancellationToken);
+        using XmlReader reader = XmlReader.Create(textReader, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null });
+        XElement element = XElement.Load(reader, LoadOptions.PreserveWhitespace);
+        cancellationToken.ThrowIfCancellationRequested();
+        return element;
+    }
+
+    private static void WriteElementCancellable(XmlWriter writer, XElement element, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string? elementPrefix = element.GetPrefixOfNamespace(element.Name.Namespace);
+        writer.WriteStartElement(elementPrefix, element.Name.LocalName, element.Name.NamespaceName);
+        foreach (XAttribute attribute in Cancellable(element.Attributes(), cancellationToken)) {
+            if (attribute.IsNamespaceDeclaration) {
+                string declaredPrefix = attribute.Name.LocalName == "xmlns" ? string.Empty : attribute.Name.LocalName;
+                writer.WriteAttributeString("xmlns", declaredPrefix, "http://www.w3.org/2000/xmlns/", attribute.Value);
+                continue;
+            }
+            string? attributePrefix = attribute.Name.Namespace == XNamespace.None ? null : element.GetPrefixOfNamespace(attribute.Name.Namespace);
+            writer.WriteStartAttribute(attributePrefix, attribute.Name.LocalName, attribute.Name.NamespaceName);
+            WriteStringCancellable(writer, attribute.Value, cancellationToken);
+            writer.WriteEndAttribute();
+        }
+        foreach (XNode node in Cancellable(element.Nodes(), cancellationToken)) {
+            if (node is XElement child) WriteElementCancellable(writer, child, cancellationToken);
+            else if (node is XCData cdata) WriteRawNodeCancellable(writer, "<![CDATA[", cdata.Value, "]]>", cancellationToken);
+            else if (node is XText text) WriteStringCancellable(writer, text.Value, cancellationToken);
+            else if (node is XComment comment) WriteRawNodeCancellable(writer, "<!--", comment.Value, "-->", cancellationToken);
+            else if (node is XProcessingInstruction instruction) WriteRawNodeCancellable(writer, "<?" + instruction.Target + (instruction.Data.Length == 0 ? string.Empty : " "), instruction.Data, "?>", cancellationToken);
+            else {
+                cancellationToken.ThrowIfCancellationRequested();
+                node.WriteTo(writer);
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+        }
+        writer.WriteEndElement();
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static void WriteStringCancellable(XmlWriter writer, string value, CancellationToken cancellationToken) {
+        const int chunkSize = 4096;
+        for (int offset = 0; offset < value.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            writer.WriteString(value.Substring(offset, Math.Min(chunkSize, value.Length - offset)));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    private static void WriteRawNodeCancellable(XmlWriter writer, string prefix, string value, string suffix, CancellationToken cancellationToken) {
+        writer.WriteRaw(prefix);
+        const int chunkSize = 4096;
+        for (int offset = 0; offset < value.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            writer.WriteRaw(value.Substring(offset, Math.Min(chunkSize, value.Length - offset)));
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        writer.WriteRaw(suffix);
+    }
+
+    internal static bool ContainsCarriageReturn(string value, CancellationToken cancellationToken = default) {
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (value[index] == '\r') return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return false;
     }
     private static void CaptureAttributes(XElement element, IList<BibliographyNativeEntry> nativeEntries, IList<BibliographyItem> items, BibliographyLimitGuard limits, CancellationToken cancellationToken) {
         if (!HasElementMetadata(element)) return;

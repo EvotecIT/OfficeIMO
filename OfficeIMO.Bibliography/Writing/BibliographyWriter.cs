@@ -223,6 +223,12 @@ internal static class BibliographyConversionInspector {
             report.Add("BIBCONV248", BibliographyDiagnosticSeverity.Warning, $"Additional EndNote XML attribute metadata for '{rootElementName}' is omitted by canonical output.", BibliographyConversionAction.Omitted, field: rootElementName);
         if (!string.Equals(recordsElementName, rootElementName, StringComparison.OrdinalIgnoreCase) && EndNoteXmlCodec.CoalescesRecordsContainerMetadata(document, cancellationToken))
             report.Add("BIBCONV238", BibliographyDiagnosticSeverity.Warning, "Separate EndNote XML records-container metadata is coalesced into one canonical records container.", BibliographyConversionAction.Approximated, field: "records");
+        foreach (BibliographyNativeEntry entry in Cancellable(document.NativeEntries, cancellationToken)) {
+            bool isWrittenElement = entry.Format == BibliographyFormat.EndNoteXml &&
+                (entry.Kind == "records-element" || entry.Kind == "element" && !document.EndNoteRecordsRoot);
+            if (isWrittenElement && EndNoteXmlCodec.ContainsCarriageReturn(entry.Value, cancellationToken))
+                report.Add("BIBCONV235", BibliographyDiagnosticSeverity.Warning, $"Carriage returns in document-level EndNote XML element '{entry.Name}' normalize to line feeds.", BibliographyConversionAction.Approximated, field: entry.Name ?? entry.Kind);
+        }
     }
 
     private static void InspectDates(BibliographyItem item, BibliographyFormat format, BibliographyConversionReport report, CancellationToken cancellationToken) {
