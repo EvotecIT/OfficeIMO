@@ -848,6 +848,33 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void HeadingFontTierLookup_ChargesSortingWork() {
+        double[] fontSizes = Enumerable.Range(0, 64).Select(static index => 100D - index).ToArray();
+        var budget = new PdfUnderstandingWorkBudget(64, CancellationToken.None);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfHeadingFontTierAnalysis.BuildLookup(fontSizes, () => budget.Consume()));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(64, exception.Limit);
+        Assert.Equal(65, exception.Actual);
+    }
+
+    [Fact]
+    public void HeadingFontTierLookup_ObservesCancellationDuringSorting() {
+        double[] fontSizes = Enumerable.Range(0, 128).Select(static index => 200D - index).ToArray();
+        using var cancellation = new CancellationTokenSource();
+        int polls = 0;
+
+        Assert.Throws<OperationCanceledException>(() => PdfHeadingFontTierAnalysis.BuildLookup(fontSizes, () => {
+            if (++polls == 140) cancellation.Cancel();
+            cancellation.Token.ThrowIfCancellationRequested();
+        }));
+
+        Assert.Equal(140, polls);
+    }
+
+    [Fact]
     public void StructuredRead_BindsMixedTaggedHeadingLevelsToTheirOwnMarkedContent() {
         byte[] pdf = PdfDocument.Create()
             .TaggedPdfCatalogMarkers()

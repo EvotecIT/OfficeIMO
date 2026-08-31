@@ -52,6 +52,29 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public void DocumentHeadingTiers_RankDistinctSizesAndClusterNearbySizes() {
+        double[] fontSizes = { 30D, 29.6D, 28D, 27D, 26D, 25D, 24D, 23D };
+        PdfLogicalHeading[] headings = fontSizes.Select((fontSize, index) => {
+            var block = new PdfLogicalTextBlock(
+                1,
+                PdfLogicalElementKind.Heading,
+                "Heading " + index,
+                50D,
+                250D,
+                700D - index * 30D,
+                fontSize,
+                Array.Empty<PdfTextSpan>());
+            return new PdfLogicalHeading(1, 1, block.Text, fontSize, block);
+        }).ToArray();
+
+        PdfDocumentReadResult.ApplyDocumentHeadingFontTiers(
+            headings,
+            System.Threading.CancellationToken.None);
+
+        Assert.Equal(new[] { 1, 1, 2, 3, 4, 5, 6, 6 }, headings.Select(static heading => heading.Level));
+    }
+
+    [Fact]
     public void Read_BuildsHeadingHierarchyAndDirectSectionOwnership() {
         byte[] pdf = PdfDocument.Create()
             .H1("Operations")

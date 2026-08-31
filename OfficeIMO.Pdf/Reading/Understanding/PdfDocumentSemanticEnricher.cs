@@ -315,6 +315,7 @@ internal static class PdfDocumentSemanticEnricher {
 
     private static void ApplyHeadingFontTierEvidence(List<PdfUnderstandingSemanticElement>[] elements, PdfUnderstandingWorkBudget workBudget) {
         var candidates = new List<(int PageIndex, int ElementIndex, double FontSize)>();
+        var fontSizes = new List<double>();
         for (int pageIndex = 0; pageIndex < elements.Length; pageIndex++) {
             for (int elementIndex = 0; elementIndex < elements[pageIndex].Count; elementIndex++) {
                 workBudget.Consume();
@@ -322,23 +323,21 @@ internal static class PdfDocumentSemanticEnricher {
                 if (element.Kind != PdfUnderstandingSemanticKind.Heading ||
                     element.Level.HasValue ||
                     element.Region.Lines.Count == 0) continue;
+                double fontSize = element.Region.Lines.Max(static line => line.FontSize);
                 candidates.Add((
                     pageIndex,
                     elementIndex,
-                    element.Region.Lines.Max(static line => line.FontSize)));
+                    fontSize));
+                fontSizes.Add(fontSize);
             }
         }
         if (candidates.Count == 0) return;
 
-        var tiers = new List<double>();
-        foreach (double fontSize in candidates.Select(static candidate => candidate.FontSize).OrderByDescending(static size => size)) {
-            if (tiers.Count == 0 || Math.Abs(tiers[tiers.Count - 1] - fontSize) > 0.5D) {
-                tiers.Add(fontSize);
-            }
-        }
+        Dictionary<double, int> tierByFontSize = PdfHeadingFontTierAnalysis.BuildLookup(fontSizes, () => workBudget.Consume());
 
         foreach ((int pageIndex, int elementIndex, double fontSize) in candidates) {
-            int level = Math.Min(6, tiers.FindIndex(tier => Math.Abs(tier - fontSize) <= 0.5D) + 1);
+            workBudget.Consume();
+            int level = Math.Min(6, tierByFontSize[fontSize]);
             PdfUnderstandingSemanticElement current = elements[pageIndex][elementIndex];
             elements[pageIndex][elementIndex] = WithEvidence(
                 current,

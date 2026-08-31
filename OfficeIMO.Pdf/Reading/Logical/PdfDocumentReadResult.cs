@@ -1273,22 +1273,21 @@ public sealed partial class PdfDocumentReadResult {
         cancellationToken.ThrowIfCancellationRequested();
         if (headings.Count == 0) return;
 
-        var tiers = new List<double>();
-        foreach (double fontSize in headings
-                     .Where(static heading => heading.CanApplyDocumentFontTier)
-                     .Select(static heading => heading.FontSize)
-                     .OrderByDescending(static size => size)) {
+        var fontSizes = new List<double>(headings.Count);
+        for (int headingIndex = 0; headingIndex < headings.Count; headingIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (tiers.Count == 0 || Math.Abs(tiers[tiers.Count - 1] - fontSize) > 0.5D) {
-                tiers.Add(fontSize);
-            }
+            PdfLogicalHeading heading = headings[headingIndex];
+            if (heading.CanApplyDocumentFontTier) fontSizes.Add(heading.FontSize);
         }
+        Dictionary<double, int> tierByFontSize = PdfHeadingFontTierAnalysis.BuildLookup(
+            fontSizes,
+            cancellationToken.ThrowIfCancellationRequested);
 
-        foreach (PdfLogicalHeading heading in headings) {
+        for (int headingIndex = 0; headingIndex < headings.Count; headingIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
+            PdfLogicalHeading heading = headings[headingIndex];
             if (!heading.CanApplyDocumentFontTier) continue;
-            int tier = tiers.FindIndex(size => Math.Abs(size - heading.FontSize) <= 0.5D) + 1;
-            heading.ApplyDocumentFontTier(tier);
+            if (tierByFontSize.TryGetValue(heading.FontSize, out int tier)) heading.ApplyDocumentFontTier(tier);
         }
     }
 
