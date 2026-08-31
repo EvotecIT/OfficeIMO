@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">net472;$(TargetFrameworks)</TargetFrameworks>
     <EnableOfficeIMOTypographyPackageSmoke Condition="'$(EnableOfficeIMOTypographyPackageSmoke)' == ''">false</EnableOfficeIMOTypographyPackageSmoke>
-    <OfficeIMOTypographyPackageVersion Condition="'$(OfficeIMOTypographyPackageVersion)' == ''">3.2.5-typography-local</OfficeIMOTypographyPackageVersion>
+    <OfficeIMOTypographyPackageVersion Condition="'$(OfficeIMOTypographyPackageVersion)' == ''">3.3.0</OfficeIMOTypographyPackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
