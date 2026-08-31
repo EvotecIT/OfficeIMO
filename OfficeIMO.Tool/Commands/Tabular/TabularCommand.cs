@@ -29,6 +29,7 @@ Usage:
 Workbook input formats: XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and XLS.
 Workbook output formats: XLSX, XLSB, and XLS.
 CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
+Schema output is TSV; column names escape backslashes and controls as \\, \t, \r, \n, or \uXXXX.
 """;
 
     internal static async Task<int> RunAsync(
@@ -82,10 +83,10 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
         TextWriter output,
         CancellationToken cancellationToken) {
         EnsureExcelPath(options.InputPath, "sheets");
-        using ExcelWorkbookDataReader reader = ExcelDocument.OpenDataReader(
+        IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
             options.InputPath,
             new ExcelReadOptions { CancellationToken = cancellationToken });
-        foreach (string sheetName in reader.SheetNames) {
+        foreach (string sheetName in sheetNames) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(sheetName).ConfigureAwait(false);
         }
@@ -101,7 +102,7 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
         for (int ordinal = 0; ordinal < reader.FieldCount; ordinal++) {
             cancellationToken.ThrowIfCancellationRequested();
             await output.WriteLineAsync(
-                ordinal + "\t" + reader.GetName(ordinal) + "\t" + reader.GetFieldType(ordinal).FullName)
+                ordinal + "\t" + EscapeSchemaField(reader.GetName(ordinal)) + "\t" + reader.GetFieldType(ordinal).FullName)
                 .ConfigureAwait(false);
         }
         return (int)OfficeImoToolExitCode.Success;
@@ -238,7 +239,7 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
         if (IsCsvPath(options.InputPath)) {
             var loadOptions = new CsvLoadOptions {
                 HasHeaderRow = options.HasHeaderRow,
-                DetectDelimiter = !options.Delimiter.HasValue,
+                DetectDelimiter = ShouldDetectDelimiter(options),
                 Delimiter = ResolveDelimiter(options.InputPath, options.Delimiter),
                 CancellationToken = cancellationToken
             };
@@ -262,6 +263,37 @@ CSV and TSV conversion uses the OfficeIMO.CSV streaming reader and writer.
 
     private static char ResolveDelimiter(string path, char? delimiter) => delimiter ??
         (string.Equals(Path.GetExtension(path), ".tsv", StringComparison.OrdinalIgnoreCase) ? '\t' : ',');
+
+    private static bool ShouldDetectDelimiter(TabularArguments options) =>
+        !options.Delimiter.HasValue
+        && !string.Equals(Path.GetExtension(options.InputPath), ".tsv", StringComparison.OrdinalIgnoreCase);
+
+    private static string EscapeSchemaField(string value) {
+        if (string.IsNullOrEmpty(value)) return value;
+
+        System.Text.StringBuilder? escaped = null;
+        for (int index = 0; index < value.Length; index++) {
+            char current = value[index];
+            string? replacement = current switch {
+                '\\' => "\\\\",
+                '\t' => "\\t",
+                '\r' => "\\r",
+                '\n' => "\\n",
+                _ when char.IsControl(current) =>
+                    "\\u" + ((int)current).ToString("X4", System.Globalization.CultureInfo.InvariantCulture),
+                _ => null
+            };
+            if (replacement == null) {
+                escaped?.Append(current);
+                continue;
+            }
+
+            escaped ??= new System.Text.StringBuilder(value.Length + 8).Append(value, 0, index);
+            escaped.Append(replacement);
+        }
+
+        return escaped?.ToString() ?? value;
+    }
 
     private static bool IsCsvPath(string path) => CsvExtensions.Contains(Path.GetExtension(path));
 

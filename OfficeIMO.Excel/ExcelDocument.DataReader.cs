@@ -27,6 +27,22 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Reads worksheet names from XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS
+        /// workbook metadata without opening a worksheet data stream.
+        /// </summary>
+        /// <param name="path">Workbook path.</param>
+        /// <param name="options">Workbook metadata read limits and cancellation.</param>
+        /// <returns>Readable worksheet names in workbook order.</returns>
+        public static IReadOnlyList<string> GetSheetNames(string path, ExcelReadOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("File path cannot be empty.", nameof(path));
+            }
+
+            ExcelReadOptions effectiveOptions = options ?? new ExcelReadOptions();
+            return ExcelWorkbookDataReader.ReadSheetNames(path, effectiveOptions);
+        }
+
+        /// <summary>
         /// Opens an XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook stream as a forward-only data reader.
         /// The format is detected from the package rather than the file name. The input stream
         /// remains open after the returned reader is disposed.

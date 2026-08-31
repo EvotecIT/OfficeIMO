@@ -1,5 +1,7 @@
 using Xunit;
 using OfficeIMO.Tool.Commands.Tabular;
+using OfficeIMO.Excel;
+using System.IO.Compression;
 
 namespace OfficeIMO.Tool.Tests;
 
@@ -129,6 +131,81 @@ public sealed class TabularCommandTests {
             string converted = await File.ReadAllTextAsync(tsvPath);
             Assert.Contains("00123\tTRUE\t01/02/2026", converted, StringComparison.Ordinal);
             Assert.Contains("00007\tfalse\t2026-08-31", converted, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TabularCliHonorsTheTsvDelimiterWhenFieldsContainCommas() {
+        string directory = CreateTestDirectory();
+        string tsvPath = Path.Combine(directory, "input.tsv");
+        await File.WriteAllTextAsync(tsvPath, "Person,Display\tAge\nAlice,Smith\t42\n");
+
+        try {
+            (int exitCode, string output, string error) = await RunAsync(
+                "tabular", "schema", tsvPath);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.Equal(string.Empty, error);
+            Assert.Contains("0\tPerson,Display\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Contains("1\tAge\t", output, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TabularCliEscapesSchemaControlCharactersWithoutAddingRows() {
+        string directory = CreateTestDirectory();
+        string csvPath = Path.Combine(directory, "input.csv");
+        await File.WriteAllTextAsync(
+            csvPath,
+            "\"Name\tPart\",\"Line\r\nBreak\",\"Slash\\Path\"\r\nOne,Two,Three\r\n");
+
+        try {
+            (int exitCode, string output, string error) = await RunAsync(
+                "tabular", "schema", csvPath);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.Equal(string.Empty, error);
+            Assert.Contains("0\tName\\tPart\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Contains("1\tLine\\r\\nBreak\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Contains("2\tSlash\\\\Path\tSystem.String", output, StringComparison.Ordinal);
+            Assert.Equal(4, output.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TabularCliListsSheetMetadataWithoutOpeningTheFirstWorksheet() {
+        string directory = CreateTestDirectory();
+        string workbookPath = Path.Combine(directory, "broken-first-sheet.xlsx");
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            document.AddWorksheet("BrokenData");
+            document.AddWorksheet("MetadataOnly");
+            document.Save(workbookPath);
+        }
+        using (ZipArchive archive = ZipFile.Open(workbookPath, ZipArchiveMode.Update)) {
+            ZipArchiveEntry worksheet = archive.GetEntry("xl/worksheets/sheet1.xml")
+                ?? throw new InvalidDataException("The test workbook does not contain its first worksheet part.");
+            worksheet.Delete();
+            worksheet = archive.CreateEntry("xl/worksheets/sheet1.xml");
+            await using Stream stream = worksheet.Open();
+            await using var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false));
+            await writer.WriteAsync("<worksheet");
+        }
+
+        try {
+            (int exitCode, string output, string error) = await RunAsync(
+                "tabular", "sheets", workbookPath);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
+            Assert.Equal(string.Empty, error);
+            Assert.Equal(
+                new[] { "BrokenData", "MetadataOnly" },
+                output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries));
         } finally {
             Directory.Delete(directory, recursive: true);
         }

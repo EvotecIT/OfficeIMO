@@ -77,7 +77,9 @@ Run `officeimo help` or append `<area> --help` for the complete command contract
 Tabular conversion writes through an atomic sibling staging file and refuses to replace an
 existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,
 `.xlsb`, and `.xls`; CSV and TSV are supported as delimited output. Select a workbook sheet
-with `--sheet <name>` or `--sheet-index <zero-based-index>`.
+with `--sheet <name>` or `--sheet-index <zero-based-index>`. Recognized `.tsv` inputs always
+use a tab unless `--delimiter` explicitly overrides it. Schema output is TSV; column names
+escape backslashes and control characters as `\\`, `\t`, `\r`, `\n`, or `\uXXXX`.
 
 ## Office documents to PDF
 
