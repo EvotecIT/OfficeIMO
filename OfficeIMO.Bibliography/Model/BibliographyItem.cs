@@ -9,6 +9,7 @@ public sealed class BibliographyItem {
     internal IDictionary<BibliographyDate, string> TaggedDateTags { get; } = new Dictionary<BibliographyDate, string>();
     internal IDictionary<BibliographyIdentifier, string> TaggedIdentifierTags { get; } = new Dictionary<BibliographyIdentifier, string>();
     internal ISet<string> TaggedScalarBindings { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    internal BibliographyNativeField? NbibTypeBinding { get; set; }
     internal string? RisPageStart { get; set; }
     internal string? RisPageEnd { get; set; }
     internal bool BibMonthWasNumeric { get; set; }

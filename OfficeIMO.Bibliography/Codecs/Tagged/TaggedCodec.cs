@@ -105,7 +105,7 @@ internal static class TaggedCodec {
                 string continuation = source.Substring(continuationStart, continuationLength);
                 if (previousNativeField != null) {
                     previousNativeField.Value = AppendChecked(previousNativeField.Value, continuation, items, limits, lineOffset);
-                    if (format == BibliographyFormat.Nbib && string.Equals(previousTag, "PT", StringComparison.OrdinalIgnoreCase)) RebindNbibPublicationType(current);
+                    if (format == BibliographyFormat.Nbib && string.Equals(previousTag, "PT", StringComparison.OrdinalIgnoreCase)) UpdateNbibPublicationTypeAfterContinuation(current, previousNativeField, cancellationToken);
                 }
                 else AppendContinuation(current, format, previousTag, continuation, diagnosticGuard, lineIndex + 1, lineOffset, items, limits);
             } else diagnosticGuard.Add(new BibliographyDiagnostic("BIBTAG001", BibliographyDiagnosticSeverity.Warning, $"Ignored malformed {format} line.", offset: lineOffset, line: lineIndex + 1, column: 1));
@@ -205,7 +205,11 @@ internal static class TaggedCodec {
     private static void BindNbib(BibliographyItem item, string field, string sourceTag, string value) {
         switch (field) {
             case "PMID": item.Key = value; AddTaggedIdentifier(item, "PMID", value, sourceTag); break;
-            case "PT": BindNbibPublicationType(item, value); item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value)); break;
+            case "PT":
+                var publicationType = new BibliographyNativeField(BibliographyFormat.Nbib, sourceTag, value);
+                item.NativeFields.Add(publicationType);
+                BindNbibPublicationType(item, publicationType);
+                break;
             case "TI": SetScalar(item, BibliographyFormat.Nbib, "title", sourceTag, value, assigned => item.Title = assigned); break;
             case "JT": case "TA": SetScalar(item, BibliographyFormat.Nbib, "container-title", sourceTag, value, assigned => item.ContainerTitle = assigned); break;
             case "FAU": AddNbibContributor(item, sourceTag, CodecMappings.ParseCommaName(value)); break;
@@ -240,19 +244,30 @@ internal static class TaggedCodec {
         else item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.Nbib, field, value));
     }
 
-    private static void BindNbibPublicationType(BibliographyItem item, string value) {
-        BibliographyItemType parsed = CodecMappings.ParseType(value);
-        if (parsed == BibliographyItemType.Unknown || !item.TaggedScalarBindings.Add("Nbib:type")) return;
+    private static void BindNbibPublicationType(BibliographyItem item, BibliographyNativeField field) {
+        BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
+        if (parsed == BibliographyItemType.Unknown || item.NbibTypeBinding != null) return;
         item.Type = parsed;
-        item.NativeType = value;
+        item.NativeType = field.Value;
+        item.NbibTypeBinding = field;
+        item.TaggedScalarBindings.Add("Nbib:type");
     }
 
-    private static void RebindNbibPublicationType(BibliographyItem item) {
-        item.Type = BibliographyItemType.ArticleJournal;
-        item.NativeType = "Journal Article";
-        item.TaggedScalarBindings.Remove("Nbib:type");
-        foreach (BibliographyNativeField field in item.NativeFields.Where(static field => field.Format == BibliographyFormat.Nbib && string.Equals(field.Name, "PT", StringComparison.OrdinalIgnoreCase)))
-            BindNbibPublicationType(item, field.Value);
+    private static void UpdateNbibPublicationTypeAfterContinuation(BibliographyItem item, BibliographyNativeField field, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (ReferenceEquals(item.NbibTypeBinding, field)) {
+            BibliographyItemType parsed = CodecMappings.ParseType(field.Value);
+            if (parsed != BibliographyItemType.Unknown) {
+                item.Type = parsed;
+                item.NativeType = field.Value;
+                return;
+            }
+            item.Type = BibliographyItemType.ArticleJournal;
+            item.NativeType = "Journal Article";
+            item.NbibTypeBinding = null;
+            item.TaggedScalarBindings.Remove("Nbib:type");
+        }
+        if (item.NbibTypeBinding == null) BindNbibPublicationType(item, field);
     }
 
     private static void AddTaggedIdentifier(BibliographyItem item, string scheme, string value, string tag) {

@@ -174,10 +174,10 @@ internal static class EndNoteXmlCodec {
         }
         XElement? titles = Child(record, "titles", cancellationToken); XElement? periodical = Child(record, "periodical", cancellationToken);
         string? secondaryTitle = OptionalValue(titles, "secondary-title", cancellationToken); string? periodicalTitle = OptionalValue(periodical, "full-title", cancellationToken);
-        item.Title = OptionalValue(titles, "title", cancellationToken); item.ContainerTitle = FirstNonEmpty(secondaryTitle, periodicalTitle); item.CollectionTitle = OptionalValue(titles, "tertiary-title", cancellationToken);
-        if (!string.IsNullOrWhiteSpace(secondaryTitle)) item.EndNoteFieldNames["container-title"] = "secondary-title";
-        else if (!string.IsNullOrWhiteSpace(periodicalTitle)) item.EndNoteFieldNames["container-title"] = "periodical";
-        bool retainedAdditionalPeriodical = periodical != null && !string.IsNullOrWhiteSpace(secondaryTitle) && !string.IsNullOrWhiteSpace(periodicalTitle);
+        item.Title = OptionalValue(titles, "title", cancellationToken); item.ContainerTitle = secondaryTitle ?? periodicalTitle; item.CollectionTitle = OptionalValue(titles, "tertiary-title", cancellationToken);
+        if (secondaryTitle != null) item.EndNoteFieldNames["container-title"] = "secondary-title";
+        else if (periodicalTitle != null) item.EndNoteFieldNames["container-title"] = "periodical";
+        bool retainedAdditionalPeriodical = periodical != null && secondaryTitle != null && periodicalTitle != null;
         item.Pages = OptionalValue(record, "pages", cancellationToken); item.Volume = OptionalValue(record, "volume", cancellationToken); item.Issue = OptionalValue(record, "number", cancellationToken); item.Edition = OptionalValue(record, "edition", cancellationToken);
         item.Publisher = OptionalValue(record, "publisher", cancellationToken); item.PublisherPlace = OptionalValue(record, "pub-location", cancellationToken); item.Abstract = OptionalValue(record, "abstract", cancellationToken); item.Language = OptionalValue(record, "language", cancellationToken);
         ParseContributors(item, Child(record, "contributors", cancellationToken), cancellationToken); ParseDates(item, Child(record, "dates", cancellationToken), cancellationToken);
@@ -228,7 +228,9 @@ internal static class EndNoteXmlCodec {
         string year = yearElement?.Value ?? string.Empty; string pubDate = dateElement?.Value ?? string.Empty;
         if (string.IsNullOrWhiteSpace(year) && string.IsNullOrWhiteSpace(pubDate)) {
             XElement retained = dateElement ?? yearElement!;
-            item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = retained.Value });
+            var emptyDate = new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = retained.Value };
+            if (yearElement != null) emptyDate.NativeFields.Add(BibliographyNativeField.FromParsedSource(BibliographyFormat.EndNoteXml, "year", year, yearElement.ToString(SaveOptions.DisableFormatting)));
+            item.Dates.Add(emptyDate);
             return;
         }
         BibliographyDate parsedYear = CodecMappings.ParseDate(BibliographyDateRole.Issued, year);
@@ -686,7 +688,6 @@ internal static class EndNoteXmlCodec {
     }
     private static string Value(XElement? parent, string name, CancellationToken cancellationToken = default) => Child(parent, name, cancellationToken)?.Value ?? string.Empty;
     private static string? OptionalValue(XElement? parent, string name, CancellationToken cancellationToken = default) => Child(parent, name, cancellationToken)?.Value;
-    private static string? FirstNonEmpty(params string?[] values) => values.FirstOrDefault(static value => !string.IsNullOrWhiteSpace(value)) ?? values.FirstOrDefault(static value => value != null);
     private static int GetOffset(XElement element) => element.Annotation<EndNoteSourceOffset>()?.Value ?? -1;
     private static void AddIdentifier(BibliographyItem item, string scheme, string value) { if (!string.IsNullOrWhiteSpace(value)) item.Identifiers.Add(new BibliographyIdentifier(scheme, value)); }
     private static IEnumerable<T> Cancellable<T>(IEnumerable<T> source, CancellationToken cancellationToken) {

@@ -4,8 +4,8 @@ using System.Text.Json;
 namespace OfficeIMO.Bibliography;
 
 internal static class CslJsonCodec {
-    internal const int NativeJsonMaximumDepth = 1024;
-    private const int JsonWriterMaximumDepth = NativeJsonMaximumDepth + 8;
+    internal const int NativeJsonMaximumDepth = 124;
+    private const int JsonWriterMaximumDepth = 128;
 
     internal static IList<BibliographyItem> Parse(string source, BibliographyReadOptions options, List<BibliographyDiagnostic> diagnostics, out bool singleObjectRoot, CancellationToken cancellationToken) {
         var items = new List<BibliographyItem>();
@@ -540,6 +540,11 @@ internal static class CslJsonCodec {
 
     internal static bool CanRoundTripType(BibliographyFormat sourceFormat, BibliographyItem item) =>
         CodecMappings.ParseCslType(OutputType(sourceFormat, item)) == item.Type;
+
+    internal static bool PreservesNativeType(BibliographyFormat sourceFormat, BibliographyItem item) =>
+        sourceFormat != BibliographyFormat.CslJson ||
+        item.NativeType == null ||
+        string.Equals(OutputType(sourceFormat, item), item.NativeType, StringComparison.Ordinal);
 
     private static string OutputType(BibliographyFormat sourceFormat, BibliographyItem item) =>
         UsesNativeType(sourceFormat, item) ? item.NativeType! : CodecMappings.ToCslType(item.Type);

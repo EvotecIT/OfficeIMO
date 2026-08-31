@@ -197,17 +197,20 @@ public sealed class BibliographyReviewRemediationTests {
     }
 
     [Fact]
-    public void CSL_writer_accepts_native_values_up_to_the_read_depth_limit() {
+    public void CSL_writer_rejects_native_values_that_require_nondefault_read_depth() {
         string nested = new string('[', 1010) + "0" + new string(']', 1010);
         string source = "[{\"id\":\"x\",\"type\":\"book\",\"custom\":" + nested + "}]";
         var readOptions = new BibliographyReadOptions { MaximumNestingDepth = 1024 };
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, readOptions).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyReadResult reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson, readOptions);
+        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyReadResult reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson);
 
         Assert.False(reopened.HasErrors);
-        Assert.NotNull(Assert.Single(reopened.Document.Items[0].NativeFields).UnmodifiedRawValue);
+        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV247" || diagnostic.Code == "BIBCONV126");
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "custom");
     }
 
     [Fact]
