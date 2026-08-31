@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 using OfficeIMO.Adf;
 using OfficeIMO.CSV;
 using OfficeIMO.Data;
+using OfficeIMO.DocBook;
 using OfficeIMO.Excel;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
+using OfficeIMO.Opml;
 using OfficeIMO.Reader;
 
 var adfAttributes = new ReadOnlyObjectDictionary(new Dictionary<string, object?> {
@@ -20,6 +22,19 @@ JsonElement adfValue = new AdfNode("extension")
     .Attributes["parameters"];
 if (adfValue.ValueKind != JsonValueKind.Object || !adfValue.GetProperty("enabled").GetBoolean()) {
     throw new InvalidOperationException("The ADF read-only dictionary did not retain its JSON object shape.");
+}
+
+OpmlDocument opml = OpmlDocument.Create();
+opml.AddOutline("AOT root").AddChild("AOT child");
+if (OpmlDocument.Parse(opml.ToOpml()).Outlines.Single().Children.Single().Text != "AOT child") {
+    throw new InvalidOperationException("The OPML create/write/reopen path did not survive NativeAOT.");
+}
+
+DocBookDocument docBook = DocBookDocument.CreateArticle();
+docBook.Title = "AOT guide";
+docBook.AddSection("Start").AddParagraph("Body");
+if (!DocBookDocument.Parse(docBook.ToDocBook()).Validate().IsValid) {
+    throw new InvalidOperationException("The DocBook create/write/reopen path did not survive NativeAOT.");
 }
 
 string readerJson = OfficeDocumentReadResultJson.Serialize(new OfficeDocumentReadResult {

@@ -47,6 +47,9 @@
     <InternalsVisibleTo Include="OfficeIMO.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
+    <InternalsVisibleTo Include="OfficeIMO.Opml" />
+    <InternalsVisibleTo Include="OfficeIMO.DocBook" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
     <Compile Include="..\OfficeIMO.SharedSource\Compound\*.cs" Link="Internal\Compound\%(Filename)%(Extension)" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
