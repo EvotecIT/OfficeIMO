@@ -86,4 +86,50 @@ public partial class Excel {
             File.Delete(path);
         }
     }
+
+    [Fact]
+    public void MetadataPartLimitCountsBytesReadInsteadOfTrustingStreamMetadata() {
+        using var stream = new NonSeekableReadStream(new byte[65]);
+        var options = new ExcelReadOptions { MaxMetadataPartBytes = 64 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            ExcelDocumentReader.DrainMetadataPartStream(
+                stream,
+                "xl/workbook.xml",
+                options));
+
+        Assert.Contains("xl/workbook.xml", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
+    }
+
+    private sealed class NonSeekableReadStream : Stream {
+        private readonly MemoryStream _inner;
+
+        internal NonSeekableReadStream(byte[] bytes) {
+            _inner = new MemoryStream(bytes, writable: false);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) =>
+            _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) {
+                _inner.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+    }
 }

@@ -312,6 +312,57 @@ public sealed class TabularCommandTests {
         }
     }
 
+    [Theory]
+    [InlineData("--delimiter", "\r")]
+    [InlineData("--delimiter", "\n")]
+    [InlineData("--output-delimiter", "\r")]
+    [InlineData("--output-delimiter", "\n")]
+    public async Task TabularCliRejectsRecordSeparatorsAsDelimiters(string option, string delimiter) {
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "input.csv");
+        string outputPath = Path.Combine(directory, "output.csv");
+        await File.WriteAllTextAsync(inputPath, "Id,Name\n1,Alpha\n");
+
+        try {
+            (int exitCode, _, string error) = await RunAsync(
+                "tabular", "convert", inputPath, outputPath, option, delimiter);
+
+            Assert.Equal((int)OfficeImoToolExitCode.Usage, exitCode);
+            Assert.Contains("record separator", error, StringComparison.OrdinalIgnoreCase);
+            Assert.False(File.Exists(outputPath));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TabularCliClassifiesLockedInputAsDocumentedIoFailure() {
+        if (!OperatingSystem.IsWindows()) return;
+
+        string directory = CreateTestDirectory();
+        string inputPath = Path.Combine(directory, "locked.xlsx");
+        using (ExcelDocument document = ExcelDocument.Create()) {
+            document.AddWorksheet("Data");
+            document.Save(inputPath);
+        }
+
+        try {
+            await using (var locked = new FileStream(
+                inputPath,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.None)) {
+                (int exitCode, _, string error) = await RunAsync(
+                    "tabular", "schema", inputPath);
+
+                Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, exitCode);
+                Assert.Contains("I/O failed", error, StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     [Fact]
     public async Task TabularCliHonorsTheTsvDelimiterWhenFieldsContainCommas() {
         string directory = CreateTestDirectory();

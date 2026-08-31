@@ -1,3 +1,4 @@
+using System.Buffers;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -22,7 +23,21 @@ namespace OfficeIMO.Excel {
 
         private void ValidateSdkMetadataLimits() {
             _opt.CancellationToken.ThrowIfCancellationRequested();
-            WorkbookPart workbookPart = WorkbookPartRoot;
+            if (!_owns) {
+                // Opening a part stream on a mutable SDK document invalidates its loaded
+                // root element. These limits protect package input, not the caller's
+                // already-open authoring model.
+                return;
+            }
+
+            WorkbookPart? workbookPart = _doc.WorkbookPart;
+            Workbook? workbook = workbookPart?.Workbook;
+            if (workbookPart == null || workbook == null) {
+                // A reader can wrap a newly-created workbook while its SDK root is still
+                // being assembled. Package metadata limits apply when package metadata
+                // exists; they must not make trusted in-memory authoring unreadable.
+                return;
+            }
 
             if (_partBufferReader != null
                 && _partBufferReader.ContainsPart(workbookPart.Uri.OriginalString)) {
@@ -40,7 +55,7 @@ namespace OfficeIMO.Excel {
 
             int sheetDefinitions = 0;
             IEnumerable<Sheet> sheets =
-                WorkbookRoot.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>();
+                workbook.Sheets?.Elements<Sheet>() ?? Enumerable.Empty<Sheet>();
             foreach (Sheet _ in sheets) {
                 _opt.CancellationToken.ThrowIfCancellationRequested();
                 sheetDefinitions++;
@@ -63,27 +78,42 @@ namespace OfficeIMO.Excel {
             using Stream stream = partBufferReader.OpenPart(
                 partName,
                 options.MaxMetadataPartBytes);
-            options.CancellationToken.ThrowIfCancellationRequested();
+            DrainMetadataPartStream(stream, partName, options);
         }
 
         private void ValidateMetadataPartStream(OpenXmlPart part) {
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-            if (stream.CanSeek && stream.Length > _opt.MaxMetadataPartBytes) {
+            DrainMetadataPartStream(stream, part.Uri.OriginalString, _opt);
+        }
+
+        internal static void DrainMetadataPartStream(
+            Stream stream,
+            string partName,
+            ExcelReadOptions options) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (options == null) throw new ArgumentNullException(nameof(options));
+
+            options.CancellationToken.ThrowIfCancellationRequested();
+            if (stream.CanSeek && stream.Length > options.MaxMetadataPartBytes) {
                 throw ExcelReadLimitFailure.Create(
-                    $"Package part '{part.Uri}' contains {stream.Length} bytes, exceeding the supported limit of {_opt.MaxMetadataPartBytes} bytes.");
+                    $"Package part '{partName}' contains {stream.Length} bytes, exceeding the supported limit of {options.MaxMetadataPartBytes} bytes.");
             }
 
-            int bufferLength = Math.Min(8192, _opt.MaxMetadataPartBytes);
-            byte[] buffer = new byte[bufferLength];
-            long totalBytes = 0;
-            int read;
-            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-                _opt.CancellationToken.ThrowIfCancellationRequested();
-                totalBytes += read;
-                if (totalBytes > _opt.MaxMetadataPartBytes) {
-                    throw ExcelReadLimitFailure.Create(
-                        $"Package part '{part.Uri}' exceeds the supported limit of {_opt.MaxMetadataPartBytes} bytes.");
+            int bufferLength = Math.Min(8192, options.MaxMetadataPartBytes);
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferLength);
+            try {
+                long totalBytes = 0;
+                int read;
+                while ((read = stream.Read(buffer, 0, bufferLength)) > 0) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    totalBytes += read;
+                    if (totalBytes > options.MaxMetadataPartBytes) {
+                        throw ExcelReadLimitFailure.Create(
+                            $"Package part '{partName}' exceeds the supported limit of {options.MaxMetadataPartBytes} bytes.");
+                    }
                 }
+            } finally {
+                ArrayPool<byte>.Shared.Return(buffer);
             }
         }
 

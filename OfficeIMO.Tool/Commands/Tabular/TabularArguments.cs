@@ -56,10 +56,10 @@ internal sealed class TabularArguments {
                     sheetIndex = parsedIndex;
                     break;
                 case "--delimiter":
-                    inputDelimiter = ParseDelimiter(NextValue(args, ref index, token), token);
+                    inputDelimiter = ParseDelimiter(NextValue(args, ref index, token, allowWhitespace: true), token);
                     break;
                 case "--output-delimiter":
-                    outputDelimiter = ParseDelimiter(NextValue(args, ref index, token), token);
+                    outputDelimiter = ParseDelimiter(NextValue(args, ref index, token, allowWhitespace: true), token);
                     break;
                 case "--no-header":
                     hasHeaderRow = false;
@@ -112,8 +112,14 @@ internal sealed class TabularArguments {
         };
     }
 
-    private static string NextValue(string[] args, ref int index, string option) {
-        if (++index >= args.Length || string.IsNullOrWhiteSpace(args[index])) {
+    private static string NextValue(
+        string[] args,
+        ref int index,
+        string option,
+        bool allowWhitespace = false) {
+        if (++index >= args.Length
+            || args[index].Length == 0
+            || (!allowWhitespace && string.IsNullOrWhiteSpace(args[index]))) {
             throw new TabularUsageException(option + " requires a value.");
         }
         return args[index];
@@ -127,6 +133,9 @@ internal sealed class TabularArguments {
                 : throw new TabularUsageException(option + " requires one character or \\t.");
         if (delimiter == '"') {
             throw new TabularUsageException(option + " cannot use the CSV quote character (\").");
+        }
+        if (delimiter is '\r' or '\n') {
+            throw new TabularUsageException(option + " cannot use a record separator (carriage return or newline).");
         }
 
         return delimiter;

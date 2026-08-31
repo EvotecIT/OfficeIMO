@@ -74,6 +74,12 @@ Sheet and schema names escape backslashes and controls as \\, \t, \r, \n, or \uX
         } catch (TabularOutputException exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OutputFailed;
+        } catch (IOException exception) {
+            await standardError.WriteLineAsync("I/O failed: " + exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
+        } catch (UnauthorizedAccessException exception) {
+            await standardError.WriteLineAsync("Access failed: " + exception.Message).ConfigureAwait(false);
+            return (int)OfficeImoToolExitCode.UnsupportedInput;
         } catch (Exception exception) {
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OperationFailed;
