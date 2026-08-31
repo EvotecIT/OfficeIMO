@@ -136,12 +136,25 @@ namespace OfficeIMO.Excel {
                     options,
                     options.CancellationToken),
                 ".xlsx" or ".xlsm" or ".xltx" or ".xltm" or ".xlam" =>
-                    XlsxTabularWorkbook.ReadSheetNames(path, options),
+                    ReadOpenXmlSheetNames(path, options),
                 _ => throw new NotSupportedException(
                     "GetSheetNames supports .xlsx, .xlsm, .xltx, .xltm, .xlam, .xlsb, and .xls workbooks.")
             };
             options.CancellationToken.ThrowIfCancellationRequested();
             return names;
+        }
+
+        private static IReadOnlyList<string> ReadOpenXmlSheetNames(
+            string path,
+            ExcelReadOptions options) {
+            try {
+                return XlsxTabularWorkbook.ReadSheetNames(path, options);
+            } catch (XlsxTabularFastPathNotSupportedException) {
+                // Unusual package metadata retains the complete SDK validation path without
+                // opening any worksheet data stream.
+                using ExcelDocumentReader owner = ExcelDocumentReader.Open(path, options);
+                return owner.GetValidatedWorksheetNames();
+            }
         }
 
         internal static ExcelWorkbookDataReader OpenOpenXml(byte[] bytes, ExcelReadOptions options) {

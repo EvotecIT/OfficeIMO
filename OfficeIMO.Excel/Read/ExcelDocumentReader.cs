@@ -47,6 +47,7 @@ namespace OfficeIMO.Excel {
             _ownedStream = ownedStream;
             _ownedResource = ownedResource;
             _partBufferReader = partBufferReader;
+            ValidateSdkMetadataLimits();
             _dateSystem = GetWorkbookDateSystem(doc);
             _sst = SharedStringCache.Build(doc, _opt);
             _styles = new StylesCacheProvider(doc);
@@ -76,11 +77,12 @@ namespace OfficeIMO.Excel {
                         $"Workbook input contains {snapshot.Length} bytes, exceeding the configured limit of {effectiveOptions.MaxInputBytes} bytes.");
                 }
 
+                partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
+                ValidatePackageBootstrapMetadata(partBufferReader, effectiveOptions);
                 documentStream = snapshot.CreateView();
                 packageOpenAttempted = true;
                 package = Package.Open(documentStream, FileMode.Open, FileAccess.Read);
                 document = SpreadsheetDocument.Open(package);
-                partBufferReader = OpenXmlPackagePartBufferReader.TryOpen(snapshot.CreateView(bufferSize: 1));
                 ExcelDocumentReader reader = new ExcelDocumentReader(
                     document,
                     effectiveOptions,
@@ -592,12 +594,13 @@ namespace OfficeIMO.Excel {
                     packageStream = new MemoryStream(bytes, 0, bytes.Length, writable: false, publiclyVisible: false);
                 }
 
+                partBufferReader = normalizeContentTypes
+                    ? TryOpenPartBufferReader(packageStream)
+                    : OpenXmlPackagePartBufferReader.TryOpen(bytes);
+                ValidatePackageBootstrapMetadata(partBufferReader, effectiveOptions);
                 package = Package.Open(packageStream, FileMode.Open, FileAccess.Read);
                 effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
                 document = SpreadsheetDocument.Open(package);
-                partBufferReader = normalizeContentTypes
-                    ? null
-                    : OpenXmlPackagePartBufferReader.TryOpen(bytes);
                 ExcelDocumentReader reader = new ExcelDocumentReader(
                     document,
                     effectiveOptions,
@@ -629,7 +632,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsRecoverableOpenException(Exception ex) {
-            return ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException;
+            return !ExcelReadLimitFailure.Is(ex)
+                   && (ex is InvalidDataException || ex is OpenXmlPackageException || ex is XmlException);
         }
 
     }

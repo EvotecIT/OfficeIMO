@@ -216,7 +216,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException($"Package part '{normalizedPartName}' is missing.");
             }
             if (entry.Length < 0 || entry.Length > maximumBytes || entry.Length > int.MaxValue) {
-                throw new InvalidDataException(
+                throw ExcelReadLimitFailure.Create(
                     $"Package part '{normalizedPartName}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 
