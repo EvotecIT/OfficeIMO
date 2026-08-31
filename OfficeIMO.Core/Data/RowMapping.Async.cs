@@ -69,12 +69,14 @@ public static class DataReaderAsyncMappingExtensions {
             DataReaderMappingExtensions.GetHeaders(reader),
             requireAllColumnsMapped);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) {
-            yield return plan.MapReaderRow(
+            T row = plan.MapReaderRow(
                 reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
                 errorValuePolicy);
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return row;
         }
     }
 
@@ -96,12 +98,14 @@ public static class DataReaderAsyncMappingExtensions {
             out _,
             out DataMappingErrorValuePolicy errorValuePolicy);
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) {
-            yield return plan.MapReaderRow(
+            T row = plan.MapReaderRow(
                 reader,
                 culture,
                 dateTimeFormats,
                 typeConverter,
                 errorValuePolicy);
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return row;
         }
     }
 
@@ -111,7 +115,9 @@ public static class DataReaderAsyncMappingExtensions {
         [EnumeratorCancellation] CancellationToken cancellationToken) {
         if (reader.FieldCount == 0) yield break;
         while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false)) {
-            yield return factory(reader);
+            T row = factory(reader);
+            cancellationToken.ThrowIfCancellationRequested();
+            yield return row;
         }
     }
 }

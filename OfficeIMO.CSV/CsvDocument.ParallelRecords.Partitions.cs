@@ -26,8 +26,14 @@ public sealed partial class CsvDocument
         CsvRecordFactory<T> factory,
         CancellationToken cancellationToken)
     {
+        CancellationToken loadCancellationToken = preparedSource.Options.CancellationToken;
+        bool canCancel = cancellationToken.CanBeCanceled || loadCancellationToken.CanBeCanceled;
         for (int waveStart = 0; waveStart < partitions.Length; waveStart += degreeOfParallelism)
         {
+            if (canCancel)
+            {
+                ThrowIfParallelReadCancellationRequested(cancellationToken, loadCancellationToken);
+            }
             int waveCount = Math.Min(degreeOfParallelism, partitions.Length - waveStart);
             var mapped = new CsvMappedRecordBatch<T>[waveCount];
             var completed = new bool[waveCount];
@@ -44,6 +50,10 @@ public sealed partial class CsvDocument
                             CancellationToken = cancellationToken
                         },
                         index => {
+                            if (canCancel)
+                            {
+                                ThrowIfParallelReadCancellationRequested(cancellationToken, loadCancellationToken);
+                            }
                             mapped[index] = MapTextPartition(
                                 text,
                                 preparedSource.Options,
@@ -52,6 +62,10 @@ public sealed partial class CsvDocument
                                 factory,
                                 cancellationToken);
                             Volatile.Write(ref completed[index], true);
+                            if (canCancel)
+                            {
+                                ThrowIfParallelReadCancellationRequested(cancellationToken, loadCancellationToken);
+                            }
                         });
                 }
                 catch (AggregateException exception)
@@ -67,9 +81,9 @@ public sealed partial class CsvDocument
                     CsvMappedRecordBatch<T> batch = mapped[partitionIndex];
                     for (int rowIndex = 0; rowIndex < batch.Count; rowIndex++)
                     {
-                        if (cancellationToken.CanBeCanceled)
+                        if (canCancel)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
+                            ThrowIfParallelReadCancellationRequested(cancellationToken, loadCancellationToken);
                         }
                         yield return batch.Rows[rowIndex];
                     }
@@ -107,11 +121,12 @@ public sealed partial class CsvDocument
             partition.End);
         try
         {
+            bool canCancel = cancellationToken.CanBeCanceled || options.CancellationToken.CanBeCanceled;
             while (source.Read())
             {
-                if (cancellationToken.CanBeCanceled && (outputIndex & 63) == 0)
+                if (canCancel && (outputIndex & 63) == 0)
                 {
-                    cancellationToken.ThrowIfCancellationRequested();
+                    ThrowIfParallelReadCancellationRequested(cancellationToken, options.CancellationToken);
                 }
                 if ((uint)outputIndex >= (uint)partition.RowCount)
                 {
@@ -121,7 +136,10 @@ public sealed partial class CsvDocument
                 rows[outputIndex++] = factory(new CsvRecord(source));
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
+            if (canCancel)
+            {
+                ThrowIfParallelReadCancellationRequested(cancellationToken, options.CancellationToken);
+            }
 
             if (outputIndex != partition.RowCount)
             {
@@ -138,6 +156,15 @@ public sealed partial class CsvDocument
                 clearArray: RuntimeHelpers.IsReferenceOrContainsReferences<T>());
             throw;
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ThrowIfParallelReadCancellationRequested(
+        CancellationToken cancellationToken,
+        CancellationToken loadCancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        loadCancellationToken.ThrowIfCancellationRequested();
     }
 
     private static bool TryCreateTextPartitions(

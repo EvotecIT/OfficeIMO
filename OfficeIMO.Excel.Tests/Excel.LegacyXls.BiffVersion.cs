@@ -92,6 +92,100 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Biff5SheetNames_UseWorkbookCodePage() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithEncodedSheetName(
+                new byte[] { 0xcb, 0xe8, 0xf1, 0xf2 },
+                new byte[] { 0xe3, 0x04 });
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5CodePage.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Equal(new[] { "Лист" }, OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+                LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
+                Assert.Equal((ushort)1251, workbook.CodePage);
+                Assert.Equal("Лист", Assert.Single(workbook.Worksheets).Name);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Biff5SheetNames_SupportDbcsWorkbookCodePages() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithEncodedSheetName(
+                new byte[] { 0x83, 0x56, 0x81, 0x5b, 0x83, 0x67 },
+                new byte[] { 0xa4, 0x03 });
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5DbcsCodePage.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Equal(new[] { "シート" }, OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+                LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
+                Assert.Equal((ushort)932, workbook.CodePage);
+                Assert.Equal("シート", Assert.Single(workbook.Worksheets).Name);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyXls_Biff5SheetNames_RejectInvalidCodePageDeclarations(bool conflicting) {
+            byte[][] codePagePayloads = conflicting
+                ? new[] { new byte[] { 0xe3, 0x04 }, new byte[] { 0xe4, 0x04 } }
+                : new[] { Array.Empty<byte>() };
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithEncodedSheetName(
+                new byte[] { 0xcb, 0xe8, 0xf1, 0xf2 },
+                codePagePayloads);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5InvalidCodePage.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Throws<InvalidDataException>(() => OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+                LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
+                Assert.Empty(workbook.Worksheets);
+                Assert.Contains(workbook.Diagnostics, diagnostic =>
+                    diagnostic.Code == "XLS-BIFF-CODEPAGE-INVALID"
+                    && diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Biff5SheetNames_AcceptDuplicateIdenticalCodePageDeclarations() {
+            byte[] codePage = new byte[] { 0xe3, 0x04 };
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithEncodedSheetName(
+                new byte[] { 0xcb, 0xe8, 0xf1, 0xf2 },
+                codePage,
+                codePage);
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string path = Path.Combine(
+                Path.GetTempPath(),
+                $"OfficeIMO.Excel.Biff5DuplicateCodePage.{Guid.NewGuid():N}.xls");
+            try {
+                File.WriteAllBytes(path, compound);
+
+                Assert.Equal(new[] { "Лист" }, OfficeIMO.Excel.ExcelDocument.GetSheetNames(path));
+                LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
+                Assert.Equal("Лист", Assert.Single(workbook.Worksheets).Name);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic =>
+                    diagnostic.Code == "XLS-BIFF-CODEPAGE-INVALID");
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_GetSheetNames_CountsAllBiff5SheetDefinitionsBeforeBodies() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookWithChartDefinition();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -241,6 +335,38 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateBiff5WorkbookWithEncodedSheetName(
+                byte[] sheetNameBytes,
+                params byte[][] codePagePayloads) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x05, 0x00 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(
+                    stream,
+                    0x0085,
+                    BuildBiff5BoundSheetPayload(
+                        0,
+                        sheetNameBytes));
+                // Keep CodePage after BoundSheet to prove discovery is independent of record order.
+                foreach (byte[] payload in codePagePayloads) {
+                    WriteRecord(stream, 0x0042, payload);
+                }
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x10, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(
+                    BitConverter.GetBytes(sheetOffset),
+                    0,
+                    bytes,
+                    checked((int)boundSheetPosition + 4),
+                    4);
+                return bytes;
+            }
+
             internal static byte[] CreateBiff5WorkbookWithChartDefinition() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x05, 0x05, 0x00 });
@@ -267,7 +393,16 @@ namespace OfficeIMO.Tests {
                 int streamOffset,
                 string name,
                 byte sheetType = 0) {
-                byte[] nameBytes = System.Text.Encoding.ASCII.GetBytes(name);
+                return BuildBiff5BoundSheetPayload(
+                    streamOffset,
+                    System.Text.Encoding.ASCII.GetBytes(name),
+                    sheetType);
+            }
+
+            private static byte[] BuildBiff5BoundSheetPayload(
+                int streamOffset,
+                byte[] nameBytes,
+                byte sheetType = 0) {
                 byte[] payload = new byte[7 + nameBytes.Length];
                 Buffer.BlockCopy(BitConverter.GetBytes(streamOffset), 0, payload, 0, 4);
                 payload[5] = sheetType;

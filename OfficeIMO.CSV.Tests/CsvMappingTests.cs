@@ -343,6 +343,28 @@ public class CsvMappingTests
         Assert.Throws<OperationCanceledException>(() => rows.MoveNext());
     }
 
+    [Fact]
+    public void Transient_Record_Projection_Observes_Load_Cancellation_While_Yielding_Completed_Batch()
+    {
+        var text = new StringBuilder("Id\n");
+        for (int id = 1; id <= 1024; id++) text.Append(id).Append('\n');
+        using var cancellation = new CancellationTokenSource();
+        using IEnumerator<int> rows = CsvDocument.ReadTextRowsAsParallel<int>(
+            text.ToString(),
+            _ => row => row.GetInt32(0),
+            loadOptions: new CsvLoadOptions {
+                CancellationToken = cancellation.Token
+            },
+            parallelOptions: new ParallelRowMappingOptions {
+                MaxDegreeOfParallelism = 2,
+                BatchSize = 256
+            }).GetEnumerator();
+
+        Assert.True(rows.MoveNext());
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => rows.MoveNext());
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]

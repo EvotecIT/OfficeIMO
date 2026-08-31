@@ -20,7 +20,9 @@ using DbDataReader reader = ExcelDocument.OpenDataReader(
 await foreach (RecordBatch batch in reader.ReadArrowBatchesAsync(
     new ArrowReadOptions { BatchSize = 65_536 },
     cancellationToken)) {
-    // Send the batch to an analytics, IPC, or columnar processing pipeline.
+    using (batch) {
+        // Send the batch to an analytics, IPC, or columnar processing pipeline.
+    }
 }
 ```
 

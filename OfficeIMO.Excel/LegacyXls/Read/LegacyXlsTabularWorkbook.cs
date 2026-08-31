@@ -290,10 +290,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             LegacyBiffSource bytes,
             ExcelReadOptions options,
             CancellationToken cancellationToken) {
-            var parsedSheets = new List<SheetInfo>();
+            var boundSheetRecords = new List<RecordSlice>();
             int offset = 0;
             int sheetDefinitionCount = 0;
             ushort workbookVersion = 0;
+            var workbookCodePage = new BiffCodePageState();
             bool sawBof = false;
             bool sawEof = false;
             while (TryReadRecord(bytes, ref offset, out RecordSlice record)) {
@@ -321,7 +322,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
                                 $"The XLS workbook contains more than the configured {options.MaxWorksheets} worksheet definitions.");
                         }
                         sheetDefinitionCount++;
-                        parsedSheets.Add(ReadBoundSheet(bytes, record, workbookVersion));
+                        boundSheetRecords.Add(record);
+                        break;
+                    case BiffRecordType.CodePage:
+                        if (record.Length < 2) {
+                            workbookCodePage.ObserveMalformed(record.Offset);
+                        } else {
+                            workbookCodePage.Observe(
+                                bytes.ReadUInt16(record.PayloadOffset),
+                                record.Offset);
+                        }
                         break;
                     case BiffRecordType.FilePass:
                         throw new LegacyXlsFastPathNotSupportedException(
@@ -338,6 +348,14 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            Encoding? sheetNameEncoding = workbookVersion == Biff5Version
+                ? BiffCodePageEncoding.Resolve(workbookCodePage)
+                : null;
+            var parsedSheets = new List<SheetInfo>(boundSheetRecords.Count);
+            foreach (RecordSlice record in boundSheetRecords) {
+                cancellationToken.ThrowIfCancellationRequested();
+                parsedSheets.Add(ReadBoundSheet(bytes, record, workbookVersion, sheetNameEncoding));
+            }
             return ValidateWorksheets(parsedSheets, bytes.Length);
         }
 
@@ -422,13 +440,17 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private static SheetInfo ReadBoundSheet(
             LegacyBiffSource bytes,
             RecordSlice record,
-            ushort workbookVersion = Biff8Version) {
+            ushort workbookVersion = Biff8Version,
+            Encoding? byteStringEncoding = null) {
             int minimumLength = workbookVersion == Biff5Version ? 7 : 8;
             if (record.Length < minimumLength) throw Truncated(record, "BoundSheet");
             byte[] payload = CopyPayload(bytes, record);
             int nameOffset = 6;
             string name = workbookVersion == Biff5Version
-                ? BiffStringReader.ReadShortByteString(payload, ref nameOffset)
+                ? BiffStringReader.ReadShortByteString(
+                    payload,
+                    ref nameOffset,
+                    byteStringEncoding ?? BiffCodePageEncoding.Resolve((ushort?)null))
                 : BiffStringReader.ReadShortUnicodeString(payload, ref nameOffset);
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new InvalidDataException("An XLS worksheet has an empty name.");
