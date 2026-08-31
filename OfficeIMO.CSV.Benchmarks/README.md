@@ -24,6 +24,41 @@ Windows, Linux, and macOS results independently.
 | Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
+## Dated four-reader CSV snapshot (2026-08-31)
+
+This lane reads the same hash-pinned 65K fixture through OfficeIMO.CSV,
+ExcelReader.NET 2.3.0, Sep 0.17.0, and Sylvan.Data.Csv 1.4.4. Every method
+decodes and observes all typed fields, then setup rejects any row, cell,
+type, ordering, or payload-checksum mismatch before timing. The run used
+.NET 10, `High` priority, eight fixed invocations, twelve warmups, twenty
+retained-outlier iterations, and separate jobs for both 16-logical-processor
+L3 domains on the AMD Ryzen 9 9950X3D2.
+
+| Cache domain | OfficeIMO | ExcelReader.NET | Sep | Sylvan | Allocation: OfficeIMO / ExcelReader.NET / Sep / Sylvan |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `0xFFFF` | 17.11 ms | 22.20 ms | 18.91 ms | 22.29 ms | 34.24 / 35.72 / 34.23 / 35.75 MB |
+| `0xFFFF0000` | 17.16 ms | 24.99 ms | 17.49 ms | 19.38 ms | 34.24 / 35.72 / 34.23 / 35.75 MB |
+
+OfficeIMO has the lowest observed mean on both domains. OfficeIMO and Sep are
+in BenchmarkDotNet's top statistical rank on both; Sylvan joins that rank on
+`0xFFFF`. The observed OfficeIMO means are 23-31% below ExcelReader.NET,
+2-10% below Sep, and 11-23% below Sylvan. OfficeIMO and Sep allocate nearly
+the same managed memory, while ExcelReader.NET and Sylvan allocate about
+1.5 MB more per read. These results apply to this fully observed typed-reader
+contract, not every CSV API or file shape.
+
+Reproduce both topology domains with:
+
+```powershell
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -- --filter "*MarkPflug65KCsvBenchmarks.OfficeIMO" "*MarkPflug65KCsvBenchmarks.ExcelReaderNet" "*MarkPflug65KCsvBenchmarks.Sep" "*MarkPflug65KCsvBenchmarks.Sylvan" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 8 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+```
+
+The final measurements used SHA-256
+`58505CF743EEF1F7008D5A98E69B5851BB96A66F1B0F73804467F184DF2381E1`
+for `OfficeIMO.CSV.Benchmarks.dll` and
+`C256B61D5F1C3622E70E9039F9BC81D490407A30433521E0F6D0233A97E7EC55`
+for `OfficeIMO.CSV.dll`.
+
 ## Run
 
 ```powershell

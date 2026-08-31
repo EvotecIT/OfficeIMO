@@ -23,9 +23,7 @@ namespace OfficeIMO.Excel {
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
-        private readonly object _utf8CacheLock = new object();
-        private int[]? _utf8CacheIndexes;
-        private byte[]?[]? _utf8CacheValues;
+        private readonly Utf8CacheEntry?[] _utf8Cache = new Utf8CacheEntry?[Utf8CacheSlotCount];
 
         private SharedStringCache(WorkbookPart? workbookPart, bool preferDom, ExcelReadOptions options) {
             _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
@@ -316,38 +314,35 @@ namespace OfficeIMO.Excel {
             }
 
             int slot = index & (Utf8CacheSlotCount - 1);
-            lock (_utf8CacheLock) {
-                if (_utf8CacheIndexes != null
-                    && _utf8CacheIndexes[slot] == index
-                    && _utf8CacheValues![slot] is byte[] cached) {
-                    value = new ArraySegment<byte>(cached);
-                    return true;
-                }
+            Utf8CacheEntry? entry = Volatile.Read(ref _utf8Cache[slot]);
+            if (entry != null && entry.Index == index) {
+                value = new ArraySegment<byte>(entry.Value);
+                return true;
             }
 
             byte[] bytes = Encoding.UTF8.GetBytes(items[index]);
             if (bytes.Length <= MaximumCachedUtf8ItemBytes) {
-                lock (_utf8CacheLock) {
-                    if (_utf8CacheIndexes == null) {
-                        _utf8CacheIndexes = new int[Utf8CacheSlotCount];
-                        for (int cacheIndex = 0; cacheIndex < _utf8CacheIndexes.Length; cacheIndex++) {
-                            _utf8CacheIndexes[cacheIndex] = -1;
-                        }
-                        _utf8CacheValues = new byte[Utf8CacheSlotCount][];
-                    }
-
-                    if (_utf8CacheIndexes[slot] == index
-                        && _utf8CacheValues![slot] is byte[] cached) {
-                        bytes = cached;
-                    } else {
-                        _utf8CacheIndexes[slot] = index;
-                        _utf8CacheValues![slot] = bytes;
-                    }
+                entry = Volatile.Read(ref _utf8Cache[slot]);
+                if (entry != null && entry.Index == index) {
+                    bytes = entry.Value;
+                } else {
+                    Volatile.Write(ref _utf8Cache[slot], new Utf8CacheEntry(index, bytes));
                 }
             }
 
             value = new ArraySegment<byte>(bytes);
             return true;
+        }
+
+        private sealed class Utf8CacheEntry {
+            internal Utf8CacheEntry(int index, byte[] value) {
+                Index = index;
+                Value = value;
+            }
+
+            internal int Index { get; }
+
+            internal byte[] Value { get; }
         }
 
         internal List<string> GetItems() {

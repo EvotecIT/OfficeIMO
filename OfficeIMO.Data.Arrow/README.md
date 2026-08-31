@@ -38,3 +38,38 @@ reading, so the conversion does not pay a schema-sampling pass.
 CLR `DateTime` columns become timezone-less Arrow timestamps so spreadsheet and database
 wall-clock values retain their original meaning. `DateTimeOffset` columns become UTC-aware
 timestamps and preserve their instant.
+
+## Managed and C streams
+
+For consumers that expect Apache Arrow's stream contract, open a managed
+`IArrowArrayStream`. It keeps the same bounded-batch behavior and leaves the source reader
+caller-owned:
+
+```csharp
+using Apache.Arrow.Ipc;
+
+using IArrowArrayStream stream = reader.OpenArrowStream(
+    new ArrowReadOptions { BatchSize = 16_384 });
+
+while (await stream.ReadNextRecordBatchAsync(cancellationToken) is { } batch) {
+    using (batch) {
+        // Consume one bounded batch.
+    }
+}
+```
+
+Native engines can consume the same pipeline through the Arrow C Data Interface:
+
+```csharp
+using ArrowCArrayStreamOwner stream = reader.ExportArrowCStream(
+    new ArrowReadOptions { BatchSize = 16_384 });
+
+nint address = stream.Address;
+// Pass address to a native ArrowArrayStream consumer while stream remains alive.
+```
+
+`ArrowCArrayStreamOwner` owns both the unmanaged stream struct and its managed callbacks.
+Keep it alive for the complete native call and dispose it afterwards. Native code may invoke
+the stream's release callback, but it must not free the struct allocation. Each `get_next`
+call produces at most the configured batch size; the full worksheet or CSV is never collected
+into one `RecordBatch`.

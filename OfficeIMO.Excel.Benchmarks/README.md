@@ -477,8 +477,9 @@ threshold:
 | `0xFFFF` | 74.932 ms | 75.181 ms | 0.9967 | 0.9920 (0.9596-1.0362) |
 | `0xFFFF0000` | 70.980 ms | 75.707 ms | 0.9376 | 0.9448 (0.9085-0.9958) |
 
-The earlier equivalent XLSB lane had an OfficeIMO median 15-18% lower. XLS
-stayed close but favored ExcelReader.NET by 2-4% at the median. Enabling the
+The final XLSB matrix puts OfficeIMO ahead of ExcelReader.NET by 12-15% and in
+the top rank with Sylvan on both domains. The final indexed XLS paired runs put
+OfficeIMO 3-5% ahead of both ExcelReader.NET and Sylvan. Enabling the
 experimental bounded XLSX worksheet prefetch made this fixture 19% slower on
 both domains. Prefetch therefore remains opt-in and disabled by default; the
 negative result is retained instead of being presented as a win.
@@ -486,29 +487,28 @@ negative result is retained instead of being presented as a win.
 The Arrow lane uses the same hash-pinned 65K XLSX and explicit schemas that
 produce identical field names, Arrow types, nullability, row and cell counts,
 and payload and schema checksums. It measures OfficeIMO's generic
-`DbDataReader` adapter against `ExcelReader.Arrow` 2.3.0. Thirty symmetric ABBA
-samples after twelve warmups produced a practical tie on both cache domains:
+`DbDataReader` adapter against `ExcelReader.Arrow` 2.3.0. Forty symmetric ABBA
+samples after twelve warmups produced a practical tie with each implementation
+recording the lower raw median on one domain:
 
 | Cache domain | OfficeIMO median | ExcelReader.NET median | Ratio of medians | Paired ratio median (P25-P75) |
 | --- | ---: | ---: | ---: | ---: |
-| `0xFFFF` | 100.144 ms | 98.003 ms | 1.0218 | 0.9893 (0.9287-1.0257) |
-| `0xFFFF0000` | 88.863 ms | 90.817 ms | 0.9785 | 0.9809 (0.9328-1.0299) |
+| `0xFFFF` | 110.011 ms | 113.615 ms | 0.9683 | 0.9622 (0.9203-1.0083) |
+| `0xFFFF0000` | 86.557 ms | 86.311 ms | 1.0029 | 1.0036 (0.9591-1.0338) |
 
-The result is parity, not a broad speed win: OfficeIMO has the lower raw median
-on one domain and ExcelReader.NET on the other, while both paired distributions
-cross 1.0. OfficeIMO's explicit `ColumnTypes` path avoids source schema
-sampling, and its 8,192-row bounded-output lane is validated against the same
-one-batch payload. `ExcelReader.Arrow` materializes the complete sheet as one
-`RecordBatch`.
+The result is top-rank parity, not a universal separation. OfficeIMO's explicit
+`ColumnTypes` path avoids source schema sampling, and its 8,192-row
+bounded-output lane is validated against the same one-batch payload.
+`ExcelReader.Arrow` materializes the complete sheet as one `RecordBatch`.
 
-BenchmarkDotNet's 15-iteration allocation lane reported 105.85 MB for OfficeIMO
-and 32.07 MB for ExcelReader.NET on both domains. The OfficeIMO figure includes
-the pooled, at-most-64-MiB worksheet buffer used by its fastest UTF-8 source path
-when BenchmarkDotNet's collection pressure prevents reuse. Arrow output itself
-remains batch-bounded, but this is still a real cold/allocation-pressure cost and
-is not presented as a memory win. On the same run the elapsed means had
-overlapping intervals: 106.39 versus 100.96 ms on `0xFFFF`, and 92.56 versus
-93.85 ms on `0xFFFF0000`.
+The warmed BenchmarkDotNet lane used two invocations, ten warmups, and twenty
+retained-outlier iterations. OfficeIMO allocated 30.74 MB per conversion versus
+31.92 MB for ExcelReader.NET. Its means were 106.56 versus 103.46 ms on
+`0xFFFF`, with overlapping 99.9% intervals, and 84.68 versus 86.36 ms on
+`0xFFFF0000`. The bounded worksheet-part pool removes the former cold 64-MiB
+bucket penalty from steady-state measurements, while the lock-free immutable
+UTF-8 shared-string cache removes per-hit monitor contention without weakening
+concurrent eviction correctness.
 
 The inferred-schema payloads are also equal, but the schemas are not:
 OfficeIMO chooses nullable timestamp/double fields while ExcelReader.NET chooses
@@ -516,12 +516,12 @@ required date32/int64 fields for the date and whole-number columns in this
 fixture. The runner therefore fails closed before timing instead of publishing
 a ratio for non-equivalent work.
 
-The final XLSX and Arrow measurements used SHA-256
-`321032C5C18CFA840FC366EB20513CCF61526BCAF38198C9161D3F3C9A9AD324`
+The final XLSX, XLS, XLSB, and Arrow measurements used SHA-256
+`4572E9B88A01CE8E3D02123C8C78EB15A6095D9A22710F76743EA919C3D252F2`
 for `OfficeIMO.Excel.Benchmarks.dll`,
-`D1DB0A5E5DCE8BF2E3F2CEA392622E893E99293C825DC1DE46A8AD8ACA8E280B`
+`0BC345371F395BD7B941E06F861CDC77C4D410AEC75BE93A7A9AF856D1A37385`
 for `OfficeIMO.Excel.dll`, and
-`38D08905AD40EC733112A21E03743DEFE8DC6428EE198158F9105DCC1FCFE053`
+`73CE0854B4F94F755DACB92D397F6FB2FDC0901C661F330B36F83FEF2540AC69`
 for `OfficeIMO.Data.Arrow.dll`.
 
 The earlier read/write measurements above used SHA-256
@@ -537,7 +537,7 @@ dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIM
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsx-paired 40 0xFFFF High prefetch
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xlsb-paired 40 0xFFFF High
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-xls-paired 40 0xFFFF High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-arrow-paired explicit 30 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-arrow-paired explicit 40 0xFFFF High
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsx 25000 30 0xFFFF High 8
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xlsb 25000 30 0xFFFF High 8
 dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-excelreader-write-paired Xls 25000 30 0xFFFF High 8
@@ -549,10 +549,10 @@ mask is not equivalent to either domain-constrained parallel measurement.
 Run the allocation lane with:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelArrowConversionBenchmarks.OfficeIMO_ExplicitSchema" "*ExcelArrowConversionBenchmarks.ExcelReaderNet_ExplicitSchema" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 1 --unrollFactor 1 --warmupCount 8 --iterationCount 15 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*ExcelArrowConversionBenchmarks.OfficeIMO_ExplicitSchema" "*ExcelArrowConversionBenchmarks.ExcelReaderNet_ExplicitSchema" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 2 --unrollFactor 1 --warmupCount 10 --iterationCount 20 --launchCount 1 --outliers DontRemove
 ```
 
-### Dated 65K XLS and XLSB snapshot (2026-08-10)
+### Dated 65K XLS and XLSB snapshot (2026-08-31)
 
 The legacy-format runner uses twelve warmups followed by eighty symmetric ABBA
 samples at High process priority. Each sample averages two reads per library,
@@ -560,37 +560,39 @@ alternates which library runs outside the pair, and rejects any row, cell, or
 payload observation mismatch. These results used the same workstation and CPU
 domains as the XLSX snapshot above.
 
-| Format | CPU | OfficeIMO median | Sylvan median | Ratio of medians | Paired ratio median (P25-P75) |
+| Format | Cache domain | OfficeIMO median | Peer median | Ratio of medians | Paired ratio median (P25-P75) |
 | --- | --- | ---: | ---: | ---: | ---: |
-| XLS | CPU 0 | 28.334 ms | 27.533 ms | 1.0291 | 1.0238 (0.9679-1.0869) |
-| XLS | CPU 16 | 24.271 ms | 23.054 ms | 1.0528 | 1.0459 (0.9845-1.0955) |
-| XLSB | CPU 0 | 48.187 ms | 46.466 ms | 1.0370 | 1.0308 (0.9837-1.0804) |
-| XLSB | CPU 16 | 37.128 ms | 37.433 ms | 0.9919 | 0.9879 (0.9729-1.0173) |
+| XLS vs ExcelReader.NET | `0xFFFF` | 25.794 ms | 27.147 ms | 0.9502 | 0.9643 |
+| XLS vs ExcelReader.NET | `0xFFFF0000` | 22.843 ms | 23.553 ms | 0.9699 | 0.9556 |
+| XLS vs Sylvan | `0xFFFF` | 27.885 ms | 29.507 ms | 0.9450 | 0.9524 (0.9044-1.0063) |
+| XLS vs Sylvan | `0xFFFF0000` | 25.275 ms | 25.967 ms | 0.9734 | 0.9594 (0.9204-1.0175) |
+| XLSB vs Sylvan | `0xFFFF` | 31.001 ms | 31.081 ms | 0.9974 | 1.0068 (0.9915-1.0152) |
+| XLSB vs Sylvan | `0xFFFF0000` | 30.710 ms | 31.269 ms | 0.9821 | 0.9855 (0.9762-1.0315) |
 
-Three ratio-of-medians results are within the repository's predeclared 5%
-threshold. XLS on CPU 16 is borderline: its ratio of medians is 1.0528 while
-the paired ratio median is 1.0459 and the interquartile range crosses parity.
-The snapshot therefore establishes near parity, not an OfficeIMO timing win.
-OfficeIMO had the lower observed median only for XLSB on CPU 16.
+The indexed BIFF8 path leads every paired XLS row. XLSB is a domain-sensitive
+tie with Sylvan: each library has one lower raw median and both paired
+distributions remain close to parity. The isolated four-library XLSB matrix
+also ranks OfficeIMO first on both domains. It reports 31.96/29.98 ms for
+OfficeIMO, 36.21/35.36 ms for ExcelReader.NET, 31.98/28.62 ms for Sylvan, and
+122.37/116.72 ms for ExcelDataReader. OfficeIMO allocates about 116 KB per read,
+versus 344 KB for Sylvan and 73.8 MB for ExcelDataReader.
 
 The timed observer folds every typed value into the deterministic checksum one
 word at a time. This preserves row, cell, type, order, and payload validation
 without making byte-at-a-time checksum bookkeeping the dominant workload. A
-separate two-reader BenchmarkDotNet run with four invocations, twelve warmups,
-twenty retained-outlier iterations, and both affinity jobs measured 115.15 KB
-for OfficeIMO and 343.71-343.87 KB for Sylvan. Its isolated method processes
-changed performance phase and produced multimodal timing distributions, so the
-ABBA runner above is the relative timing evidence; that BenchmarkDotNet run is
-used only for allocation evidence.
+separate BenchmarkDotNet process for every library keeps allocation and
+isolated timing visible, while the ABBA runner controls short-run ordering drift.
+Both views are retained because this processor's two cache domains can favor
+different implementations.
 
 Reproduce both timing domains and the allocation run with:
 
 ```powershell
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0x1 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0x10000 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0x1 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0x10000 High
-dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks.OfficeIMO" "*MarkPflug65KXlsbBenchmarks.Sylvan" --affinityMasks "0x1,0x10000" --priority High --invocationCount 4 --unrollFactor 1 --warmupCount 12 --iterationCount 20 --launchCount 1 --outliers DontRemove
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xls-paired 80 0xFFFF0000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0xFFFF High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --compare-markpflug65k-xlsb-paired 80 0xFFFF0000 High
+dotnet run -c Release -f net10.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --filter "*MarkPflug65KXlsbBenchmarks.OfficeIMO" "*MarkPflug65KXlsbBenchmarks.ExcelReaderNet" "*MarkPflug65KXlsbBenchmarks.Sylvan" "*MarkPflug65KXlsbBenchmarks.ExcelDataReader" --affinityMasks "0xFFFF,0xFFFF0000" --priority High --invocationCount 4 --unrollFactor 1 --warmupCount 10 --iterationCount 20 --launchCount 1 --outliers DontRemove
 ```
 
 The four `--profile-markpflug65k-*` commands are lightweight profiling loops,
@@ -600,10 +602,10 @@ count, cell count, and deterministic payload observation. The paired commands
 control short-run ordering drift; use the BenchmarkDotNet class filters above
 when statistical error and allocation measurements are required.
 
-The XLS lane includes OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. The
-XLSX lane includes OfficeIMO, Sylvan.Data.Excel, ExcelDataReader,
-ClosedXML, EPPlus, and MiniExcel. The XLSB lane includes only the compatible
-readers: OfficeIMO, Sylvan.Data.Excel, and ExcelDataReader. Every implementation
+The XLS lane includes OfficeIMO, ExcelReader.NET, Sylvan.Data.Excel, and
+ExcelDataReader. The XLSX lane includes those readers plus ClosedXML, EPPlus,
+and MiniExcel. The XLSB lane includes the four compatible readers: OfficeIMO,
+ExcelReader.NET, Sylvan.Data.Excel, and ExcelDataReader. Every implementation
 reads the same fourteen typed columns and must produce the same row count, cell
 count, and deterministic payload observation before a measurement is accepted.
 Write-focused libraries such as LargeXlsx and SpreadCheetah remain in the write

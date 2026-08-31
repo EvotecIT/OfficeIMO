@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
                     }
                 } finally {
                     if (buffer != null) {
-                        ArrayPool<byte>.Shared.Return(buffer);
+                        OpenXmlPartBufferPool.Return(buffer);
                     }
                 }
             }
@@ -204,7 +204,7 @@ namespace OfficeIMO.Excel {
                     return true;
                 } finally {
                     if (buffer != null) {
-                        ArrayPool<byte>.Shared.Return(buffer);
+                        OpenXmlPartBufferPool.Return(buffer);
                     }
                 }
             }
@@ -433,8 +433,7 @@ namespace OfficeIMO.Excel {
 
                 _disposed = true;
                 if (_buffer != null) {
-                    Array.Clear(_buffer, 0, _length);
-                    ArrayPool<byte>.Shared.Return(_buffer);
+                    OpenXmlPartBufferPool.Return(_buffer);
                     _buffer = null;
                 }
 
@@ -450,7 +449,7 @@ namespace OfficeIMO.Excel {
             }
 
             private static bool TryReadWorksheetBuffer(Stream stream, CancellationToken ct, out byte[]? buffer, out int length) {
-                buffer = ArrayPool<byte>.Shared.Rent(InitialBufferSize);
+                buffer = OpenXmlPartBufferPool.Rent(InitialBufferSize);
                 length = 0;
                 while (true) {
                     if (ct.CanBeCanceled) {
@@ -460,7 +459,7 @@ namespace OfficeIMO.Excel {
                     if (length == buffer.Length) {
                         if (buffer.Length >= MaximumBufferSize) {
                             if (stream.ReadByte() >= 0) {
-                                ArrayPool<byte>.Shared.Return(buffer);
+                                OpenXmlPartBufferPool.Return(buffer, retain: false);
                                 buffer = null;
                                 length = 0;
                                 return false;
@@ -470,9 +469,9 @@ namespace OfficeIMO.Excel {
                         }
 
                         int nextSize = Math.Min(MaximumBufferSize, checked(buffer.Length * 2));
-                        byte[] next = ArrayPool<byte>.Shared.Rent(nextSize);
+                        byte[] next = OpenXmlPartBufferPool.Rent(nextSize);
                         Buffer.BlockCopy(buffer, 0, next, 0, length);
-                        ArrayPool<byte>.Shared.Return(buffer);
+                        OpenXmlPartBufferPool.Return(buffer, retain: false);
                         buffer = next;
                     }
 

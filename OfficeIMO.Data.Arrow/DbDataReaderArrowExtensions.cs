@@ -11,8 +11,12 @@ using OfficeIMO.Data;
 namespace OfficeIMO.Data.Arrow;
 
 /// <summary>Apache Arrow projections for forward-only tabular readers.</summary>
-public static class DbDataReaderArrowExtensions {
-    private const int MaximumInitialReservedCells = 65_536;
+public static partial class DbDataReaderArrowExtensions {
+    // Reserve enough space to avoid repeated builder growth for ordinary narrow
+    // tables while bounding wide schemas by a total slot budget. At the widest
+    // Excel shape this permits only 64 initial values per column, rather than a
+    // full row batch for every column.
+    private const int MaximumInitialReservedCells = 1_048_576;
 
     /// <summary>
     /// Converts the current result set into bounded Arrow record batches.

@@ -1,6 +1,5 @@
 #nullable enable
 
-using System.Buffers;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
@@ -181,7 +180,7 @@ namespace OfficeIMO.Excel {
             string normalizedPartName,
             CancellationToken cancellationToken) {
             int length = checked((int)entry.Length);
-            byte[] output = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));
+            byte[] output = OpenXmlPartBufferPool.Rent(length);
             try {
                 using Stream input = entry.Open();
                 int offset = 0;
@@ -201,7 +200,7 @@ namespace OfficeIMO.Excel {
                 }
                 return new PrefetchedPartBuffer(output, length);
             } catch {
-                ArrayPool<byte>.Shared.Return(output);
+                OpenXmlPartBufferPool.Return(output);
                 throw;
             }
         }
@@ -364,7 +363,7 @@ namespace OfficeIMO.Excel {
             public void Dispose() {
                 byte[]? buffer = _buffer;
                 _buffer = null;
-                if (buffer != null) ArrayPool<byte>.Shared.Return(buffer);
+                OpenXmlPartBufferPool.Return(buffer);
             }
         }
     }

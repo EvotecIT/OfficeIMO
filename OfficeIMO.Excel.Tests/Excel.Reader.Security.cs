@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Threading.Tasks;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -108,6 +109,16 @@ namespace OfficeIMO.Tests {
             Assert.NotSame(first.Array, collision.Array);
             Assert.True(cache.TryGetUtf8(0, out ArraySegment<byte> afterEviction));
             Assert.NotSame(first.Array, afterEviction.Array);
+
+            Parallel.For(0, 10_000, iteration => {
+                int index = (iteration & 1) == 0
+                    ? 0
+                    : SharedStringCache.Utf8CacheSlotCount;
+                Assert.True(cache.TryGetUtf8(index, out ArraySegment<byte> concurrent));
+                Assert.Equal(
+                    $"value-{index}",
+                    Encoding.UTF8.GetString(concurrent.Array!, concurrent.Offset, concurrent.Count));
+            });
 
             int largeIndex = SharedStringCache.Utf8CacheSlotCount + 1;
             Assert.True(cache.TryGetUtf8(largeIndex, out ArraySegment<byte> largeFirst));

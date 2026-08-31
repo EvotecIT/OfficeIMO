@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Apache.Arrow;
+using Apache.Arrow.C;
+using Apache.Arrow.Ipc;
 using Apache.Arrow.Types;
 using OfficeIMO.Data.Arrow;
 using Xunit;
@@ -12,6 +14,74 @@ using Xunit;
 namespace OfficeIMO.CSV.Tests;
 
 public sealed class CsvArrowTests {
+    [Fact]
+    public async Task ManagedArrowStreamIsBoundedSequentialAndLeavesReaderOpen() {
+        CsvDocument document = CsvDocument.Parse(
+            "Id,Name\n" +
+            "1,Alpha\n" +
+            "2,Beta\n" +
+            "3,Gamma\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using IArrowArrayStream stream = reader.OpenArrowStream(
+            new ArrowReadOptions { BatchSize = 2 });
+
+        Assert.Equal(2, stream.Schema.FieldsList.Count);
+        using RecordBatch first = (await stream.ReadNextRecordBatchAsync())!;
+        using RecordBatch second = (await stream.ReadNextRecordBatchAsync())!;
+
+        Assert.Equal(2, first.Length);
+        Assert.Equal(1, second.Length);
+        Assert.Null(await stream.ReadNextRecordBatchAsync());
+        Assert.False(reader.IsClosed);
+    }
+
+    [Fact]
+    public async Task ArrowCStreamRoundTripsBoundedBatchesAndMovesOwnershipSafely() {
+        CsvDocument document = CsvDocument.Parse(
+            "Id,Name\n" +
+            "1,Alpha\n" +
+            "2,Beta\n" +
+            "3,Gamma\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(
+            new ArrowReadOptions { BatchSize = 2 });
+
+        Assert.NotEqual(0, owner.Address);
+        IArrowArrayStream importedStream;
+        unsafe {
+            importedStream = CArrowArrayStreamImporter.ImportArrayStream(
+                owner.DangerousGetPointer());
+        }
+        using IArrowArrayStream imported = importedStream;
+
+        // Import moves the release callback into the managed importer. The owner can
+        // now free its original struct without releasing the moved stream twice.
+        owner.Dispose();
+        Assert.True(owner.IsDisposed);
+        Assert.Equal(2, imported.Schema.FieldsList.Count);
+
+        using RecordBatch first = (await imported.ReadNextRecordBatchAsync())!;
+        using RecordBatch second = (await imported.ReadNextRecordBatchAsync())!;
+        Assert.Equal(2, first.Length);
+        Assert.Equal(1, second.Length);
+        Assert.Equal(1, Assert.IsType<Int32Array>(first.Column(0)).GetValue(0));
+        Assert.Equal("Gamma", Assert.IsType<StringArray>(second.Column(1)).GetString(0));
+        Assert.Null(await imported.ReadNextRecordBatchAsync());
+        Assert.False(reader.IsClosed);
+    }
+
+    [Fact]
+    public async Task ManagedArrowStreamRejectsReadsAfterDisposal() {
+        CsvDocument document = CsvDocument.Parse("Id\n1\n");
+        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        IArrowArrayStream stream = reader.OpenArrowStream();
+        stream.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() =>
+            stream.ReadNextRecordBatchAsync().AsTask());
+        Assert.False(reader.IsClosed);
+    }
+
     [Fact]
     public async Task InferredCsvReaderStreamsTypedBoundedArrowBatches() {
         CsvDocument document = CsvDocument.Parse(
