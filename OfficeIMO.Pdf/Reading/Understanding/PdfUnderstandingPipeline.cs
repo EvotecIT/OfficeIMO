@@ -125,6 +125,15 @@ internal sealed class PdfUnderstandingPipeline {
             cancellationToken);
         var trace = new List<PdfUnderstandingStageTrace>(6);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
+        cancellationToken.ThrowIfCancellationRequested();
+        EnsureCount(runs.Count, _limits.MaxRunsPerPage);
+        EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
+        runs = TextLayoutEngine.FilterIgnoredPageBands(
+            runs,
+            context.Height,
+            _layout,
+            context.ConsumeWork,
+            context.ThrowIfCancellationRequested);
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
         EnsureTextCharacters(runs.Select(static run => run.Text), _limits.MaxTextCharactersPerPage);
         context.DecodedRuns = runs;

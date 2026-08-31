@@ -976,7 +976,9 @@ public sealed partial class PdfDocumentReadResult {
                         PdfLogicalListItem value = page.ListItems[item.SourceIndex];
                         current.Add(value);
                         _listItemSections[value] = current;
-                        _textBlockSections[value.Line] = current;
+                        for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
+                            _textBlockSections[value.Lines[lineIndex]] = current;
+                        }
                         break;
                     }
                     case PdfLogicalReadingOrderKind.Table: {
@@ -1179,7 +1181,10 @@ public sealed partial class PdfDocumentReadResult {
         for (int i = 0; i < pageNumbers.Length; i++) {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
-            formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets);
+            IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets = null;
+            if (formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? sourceWidgets)) {
+                pageFormWidgets = CloneFormWidgetsForOccurrence(sourceWidgets, pageNumber);
+            }
             pages.Add(PdfLogicalPage.From(
                 document,
                 document.Pages[pageNumber - 1],
@@ -1243,6 +1248,17 @@ public sealed partial class PdfDocumentReadResult {
             int tier = tiers.FindIndex(size => Math.Abs(size - heading.FontSize) <= 0.5D) + 1;
             heading.ApplyDocumentFontTier(tier);
         }
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalFormWidget> CloneFormWidgetsForOccurrence(
+        IReadOnlyList<PdfLogicalFormWidget> source,
+        int pageNumber) {
+        var result = new PdfLogicalFormWidget[source.Count];
+        for (int index = 0; index < source.Count; index++) {
+            PdfLogicalFormWidget widget = source[index];
+            result[index] = new PdfLogicalFormWidget(pageNumber, widget.Field, widget.SourceWidget);
+        }
+        return Array.AsReadOnly(result);
     }
 
     internal static IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> IndexFormWidgetsByPageNumber(

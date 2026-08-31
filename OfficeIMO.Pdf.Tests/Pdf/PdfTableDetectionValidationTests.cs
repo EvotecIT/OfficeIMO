@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -372,6 +373,57 @@ public sealed class PdfTableDetectionValidationTests {
 
         Assert.False(ContentStructureExtractor.IsInsideTable(adjacent, new[] { table }));
         Assert.True(ContentStructureExtractor.IsInsideTable(overlapping, new[] { table }));
+    }
+
+    [Fact]
+    public void TableOwnership_ChargesTableAndColumnTraversal() {
+        StructuredTable[] tables = Enumerable.Range(0, 40)
+            .Select(index => {
+                var table = new StructuredTable { YTop = 500D, YBottom = 450D };
+                for (int column = 0; column < 8; column++) {
+                    table.Columns.Add(new StructuredTableColumn {
+                        From = 50D + column * 25D,
+                        To = 75D + column * 25D
+                    });
+                }
+                return table;
+            })
+            .ToArray();
+        TextLayoutEngine.TextLine line = CreateLine(475D, ("Outside every table", 500D, 100D, "Helvetica"));
+        long consumed = 0L;
+
+        Assert.Throws<InvalidOperationException>(() => ContentStructureExtractor.IsInsideTable(
+            line,
+            tables,
+            units => {
+                consumed += units;
+                if (consumed > 50L) throw new InvalidOperationException("test work limit");
+            },
+            cancellationCheck: null));
+
+        Assert.Equal(51L, consumed);
+    }
+
+    [Fact]
+    public void TableOwnership_ObservesCancellationDuringTableTraversal() {
+        var table = new StructuredTable { YTop = 500D, YBottom = 450D };
+        for (int column = 0; column < 100; column++) {
+            table.Columns.Add(new StructuredTableColumn { From = column, To = column + 1D });
+        }
+        TextLayoutEngine.TextLine line = CreateLine(475D, ("Outside table", 500D, 100D, "Helvetica"));
+        using var cancellation = new CancellationTokenSource();
+        int polls = 0;
+
+        Assert.Throws<OperationCanceledException>(() => ContentStructureExtractor.IsInsideTable(
+            line,
+            new[] { table },
+            consumeWork: null,
+            cancellationCheck: () => {
+                if (++polls == 10) cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }));
+
+        Assert.Equal(10, polls);
     }
 
     private static TextLayoutEngine.TextLine CreateLine(

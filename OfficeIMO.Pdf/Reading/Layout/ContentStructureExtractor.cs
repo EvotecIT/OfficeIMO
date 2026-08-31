@@ -217,6 +217,20 @@ public sealed class StructuredLine {
 }
 
 internal static class ContentStructureExtractor {
+    private readonly struct StructuredTableBounds {
+        internal StructuredTableBounds(double top, double bottom, double left, double right) {
+            Top = top;
+            Bottom = bottom;
+            Left = left;
+            Right = right;
+        }
+
+        internal double Top { get; }
+        internal double Bottom { get; }
+        internal double Left { get; }
+        internal double Right { get; }
+    }
+
     private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)](?=\s|[^\d\s])\s*(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])(?:\s+|(?![\-\*])(?!(?:\p{Sc}\s*)?(?:\d|[\.,]\d))(?=[^\d\s])))(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s*(?<text>.+)$", RegexOptions.Compiled);
@@ -264,19 +278,36 @@ internal static class ContentStructureExtractor {
     public static StructuredPage Extract(
         IReadOnlyList<PdfTextSpan> spans,
         TextLayoutEngine.Options opts,
-        double? pageHeight = null) {
+        double? pageHeight = null) =>
+        Extract(spans, opts, pageHeight, consumeWork: null, cancellationCheck: null);
+
+    internal static StructuredPage Extract(
+        IReadOnlyList<PdfTextSpan> spans,
+        TextLayoutEngine.Options opts,
+        double? pageHeight,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
         var page = new StructuredPage();
         var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
-        var lines = TextLayoutEngine.BuildLines(spans, opts);
+        var lines = TextLayoutEngine.BuildLines(spans, opts, consumeWork, cancellationCheck);
         var nonEmpty = new List<TextLayoutEngine.TextLine>();
-        foreach (var ln in lines) if (!string.IsNullOrWhiteSpace(ln.Text)) nonEmpty.Add(ln);
-        var bands = TextLayoutEngine.BandLines(nonEmpty, opts);
+        foreach (var ln in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
+            if (!string.IsNullOrWhiteSpace(ln.Text)) nonEmpty.Add(ln);
+        }
+        var bands = TextLayoutEngine.BandLines(nonEmpty, opts, consumeWork, cancellationCheck);
         // Fill detailed geometry first
         foreach (var ln in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             page.LinesDetailed.Add(ToStructuredLine(ln));
         }
         // Then semantic classification
         foreach (var ln in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             string t = ln.Text.Trim();
             if (t.Length == 0) continue;
             page.Lines.Add(t);
@@ -307,7 +338,9 @@ internal static class ContentStructureExtractor {
         }
         // Populate bands (diagnostics)
         foreach (var b in bands) {
+            cancellationCheck?.Invoke();
             if (b.Count == 0) continue;
+            consumeWork?.Invoke(b.Count);
             double top = b[0].Y; double bottom = b[b.Count - 1].Y;
             var sb = new StructuredBand { YTop = top, YBottom = bottom };
             foreach (var ln in b) sb.Lines.Add(ln.Text);
@@ -315,7 +348,11 @@ internal static class ContentStructureExtractor {
         }
 
         // Table detection: prefer banded column inference; fallback to per-line
-        var tables = TableDetector.DetectTablesFromBands(bands, pageHeight);
+        var tables = TableDetector.DetectTablesFromBands(
+            bands,
+            pageHeight,
+            consumeWork,
+            cancellationCheck);
         if (tables.Count > 0) {
             // Clean leaders and add
             foreach (var t in tables) {
@@ -349,7 +386,11 @@ internal static class ContentStructureExtractor {
             }
         } else {
             // Try a page-level leader-based table (TOC-like)
-            var leaderTbl = TableDetector.DetectLeaderTable(nonEmpty, pageHeight);
+            var leaderTbl = TableDetector.DetectLeaderTable(
+                nonEmpty,
+                pageHeight,
+                consumeWork,
+                cancellationCheck);
             if (leaderTbl is not null) {
                 if (string.Equals(leaderTbl.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < leaderTbl.Rows.Count; r++) if (leaderTbl.Rows[r].Length >= 2) {
@@ -360,7 +401,11 @@ internal static class ContentStructureExtractor {
                 page.TablesDetailed.Add(leaderTbl);
                 foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
-                var rows = TableDetector.DetectLineRows(lines, pageHeight);
+                var rows = TableDetector.DetectLineRows(
+                    lines,
+                    pageHeight,
+                    consumeWork,
+                    cancellationCheck);
                 if (rows.Count > 0) {
                     foreach (var row in rows) {
                         var r = row.Cells;
@@ -375,20 +420,35 @@ internal static class ContentStructureExtractor {
                 }
             }
         }
-        AddHeadings(page, nonEmpty);
-        AddParagraphs(page, nonEmpty, fallbackTableLines);
+        cancellationCheck?.Invoke();
+        IReadOnlyList<StructuredTableBounds> tableBounds = BuildTableBounds(
+            page.TablesDetailed,
+            consumeWork,
+            cancellationCheck);
+        AddHeadings(page, nonEmpty, tableBounds, consumeWork, cancellationCheck);
+        cancellationCheck?.Invoke();
+        AddParagraphs(page, nonEmpty, fallbackTableLines, tableBounds, consumeWork, cancellationCheck);
+        cancellationCheck?.Invoke();
         return page;
     }
 
-    private static void AddParagraphs(StructuredPage page, List<TextLayoutEngine.TextLine> lines, HashSet<TextLayoutEngine.TextLine> fallbackTableLines) {
+    private static void AddParagraphs(
+        StructuredPage page,
+        List<TextLayoutEngine.TextLine> lines,
+        HashSet<TextLayoutEngine.TextLine> fallbackTableLines,
+        IReadOnlyList<StructuredTableBounds> tableBounds,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         var candidates = new List<TextLayoutEngine.TextLine>();
         foreach (var line in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 IsListItemText(text) ||
-                IsHeadingLine(line, page.Headings) ||
+                IsHeadingLine(line, page.Headings, consumeWork, cancellationCheck) ||
                 fallbackTableLines.Contains(line) ||
-                IsInsideTable(line, page.TablesDetailed)) {
+                IsInsideTable(line, tableBounds, consumeWork, cancellationCheck)) {
                 continue;
             }
 
@@ -401,6 +461,8 @@ internal static class ContentStructureExtractor {
 
         var gaps = new List<double>();
         for (int i = 1; i < candidates.Count; i++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             double gap = candidates[i - 1].Y - candidates[i].Y;
             if (gap > 0.001) {
                 gaps.Add(gap);
@@ -413,6 +475,8 @@ internal static class ContentStructureExtractor {
         var current = new List<TextLayoutEngine.TextLine> { candidates[0] };
 
         for (int i = 1; i < candidates.Count; i++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             var previous = candidates[i - 1];
             var next = candidates[i];
             double gap = previous.Y - next.Y;
@@ -454,13 +518,20 @@ internal static class ContentStructureExtractor {
         return paragraph;
     }
 
-    private static void AddHeadings(StructuredPage page, List<TextLayoutEngine.TextLine> lines) {
+    private static void AddHeadings(
+        StructuredPage page,
+        List<TextLayoutEngine.TextLine> lines,
+        IReadOnlyList<StructuredTableBounds> tableBounds,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         var bodySizes = new List<double>();
         foreach (var line in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 IsListItemText(text) ||
-                IsInsideTable(line, page.TablesDetailed)) {
+                IsInsideTable(line, tableBounds, consumeWork, cancellationCheck)) {
                 continue;
             }
 
@@ -473,11 +544,13 @@ internal static class ContentStructureExtractor {
         }
 
         foreach (var line in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             string text = line.Text.Trim();
             if (text.Length == 0 ||
                 text.Length > 160 ||
                 IsListItemText(text) ||
-                IsInsideTable(line, page.TablesDetailed)) {
+                IsInsideTable(line, tableBounds, consumeWork, cancellationCheck)) {
                 continue;
             }
 
@@ -525,8 +598,14 @@ internal static class ContentStructureExtractor {
         return fontSizes[index];
     }
 
-    private static bool IsHeadingLine(TextLayoutEngine.TextLine line, List<StructuredHeading> headings) {
+    private static bool IsHeadingLine(
+        TextLayoutEngine.TextLine line,
+        List<StructuredHeading> headings,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         for (int i = 0; i < headings.Count; i++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             var heading = headings[i];
             if (Math.Abs(heading.Line.Y - line.Y) <= 0.001 &&
                 Math.Abs(heading.Line.XStart - line.XStart) <= 0.001 &&
@@ -558,23 +637,63 @@ internal static class ContentStructureExtractor {
         };
     }
 
-    internal static bool IsInsideTable(TextLayoutEngine.TextLine line, IReadOnlyList<StructuredTable> tables) {
+    internal static bool IsInsideTable(TextLayoutEngine.TextLine line, IReadOnlyList<StructuredTable> tables) =>
+        IsInsideTable(line, tables, consumeWork: null, cancellationCheck: null);
+
+    internal static bool IsInsideTable(
+        TextLayoutEngine.TextLine line,
+        IReadOnlyList<StructuredTable> tables,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) =>
+        IsInsideTable(line, BuildTableBounds(tables, consumeWork, cancellationCheck), consumeWork, cancellationCheck);
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredTableBounds> BuildTableBounds(
+        IReadOnlyList<StructuredTable> tables,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        var result = new List<StructuredTableBounds>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             var table = tables[i];
             if (table.Columns.Count == 0) {
                 continue;
             }
 
-            double tableLeft = table.Columns.Min(static column => Math.Min(column.From, column.To));
-            double tableRight = table.Columns.Max(static column => Math.Max(column.From, column.To));
-            double lineLeft = Math.Min(line.XStart, line.XEnd);
-            double lineRight = Math.Max(line.XStart, line.XEnd);
-            if (line.Y <= Math.Max(table.YTop, table.YBottom) + 0.001D &&
-                line.Y >= Math.Min(table.YTop, table.YBottom) - 0.001D &&
-                lineRight >= tableLeft - 2D &&
-                lineLeft <= tableRight + 2D) {
-                return true;
+            double tableLeft = double.MaxValue;
+            double tableRight = double.MinValue;
+            for (int columnIndex = 0; columnIndex < table.Columns.Count; columnIndex++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(1);
+                StructuredTableColumn column = table.Columns[columnIndex];
+                tableLeft = Math.Min(tableLeft, Math.Min(column.From, column.To));
+                tableRight = Math.Max(tableRight, Math.Max(column.From, column.To));
             }
+            result.Add(new StructuredTableBounds(
+                Math.Max(table.YTop, table.YBottom),
+                Math.Min(table.YTop, table.YBottom),
+                tableLeft,
+                tableRight));
+        }
+
+        return result.AsReadOnly();
+    }
+
+    private static bool IsInsideTable(
+        TextLayoutEngine.TextLine line,
+        IReadOnlyList<StructuredTableBounds> tables,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        double lineLeft = Math.Min(line.XStart, line.XEnd);
+        double lineRight = Math.Max(line.XStart, line.XEnd);
+        for (int i = 0; i < tables.Count; i++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
+            StructuredTableBounds table = tables[i];
+            if (line.Y <= table.Top + 0.001D &&
+                line.Y >= table.Bottom - 0.001D &&
+                lineRight >= table.Left - 2D &&
+                lineLeft <= table.Right + 2D) return true;
         }
 
         return false;

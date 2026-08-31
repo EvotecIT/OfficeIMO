@@ -268,7 +268,7 @@ public sealed partial class PdfLogicalPage {
             bool isStructuredHeading = headingLineKeys.Contains(CreateStructuredLineKey(line));
             bool isStructuredListItem = listLines.Contains(NormalizeForKindComparison(text)) || ContentStructureExtractor.IsListItemText(text);
             PdfUnderstandingSemanticElement? semantic = semanticIndex.Find(line.Y, line.XStart, text);
-            var kind = ToLogicalKind(semantic, line, isStructuredHeading, isStructuredListItem)
+            var kind = ToLogicalKind(semantic, line, isStructuredHeading)
                 ?? (isStructuredHeading
                     ? PdfLogicalElementKind.Heading
                     : isStructuredListItem
@@ -346,7 +346,7 @@ public sealed partial class PdfLogicalPage {
             textBlocks.AsReadOnly(),
             BuildHeadings(pageNumber, structured.Headings, textBlocks, semanticByTextBlock, semanticIndex, textBlockLookup),
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
-            BuildListItems(pageNumber, structured.ListNodes, textBlockLookup),
+            BuildListItems(pageNumber, structured.ListNodes, textBlocks, semanticByTextBlock, textBlockLookup),
             tables.AsReadOnly(),
             vectorPrimitiveCount,
             unrepresentedVectorPrimitiveCount,
@@ -422,24 +422,90 @@ public sealed partial class PdfLogicalPage {
     private static (long BaselineY, long XStart, string Text) CreateTextBlockLookupKey(double baselineY, double xStart, string text) =>
         (BitConverter.DoubleToInt64Bits(baselineY), BitConverter.DoubleToInt64Bits(xStart), text);
 
-    private static IReadOnlyList<PdfLogicalListItem> BuildListItems(
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalListItem> BuildListItems(
         int pageNumber,
         List<StructuredListItem> listItems,
+        List<PdfLogicalTextBlock> textBlocks,
+        Dictionary<PdfLogicalTextBlock, PdfUnderstandingSemanticElement> semanticByTextBlock,
         Dictionary<(PdfLogicalElementKind Kind, long BaselineY, long XStart, string Text), Queue<PdfLogicalTextBlock>> textBlockLookup) {
-        if (listItems.Count == 0) {
-            return Array.Empty<PdfLogicalListItem>();
+        var result = new List<PdfLogicalListItem>(Math.Max(listItems.Count, 4));
+        var represented = new HashSet<PdfLogicalTextBlock>();
+        var semanticGroups = new Dictionary<PdfUnderstandingSemanticElement, List<PdfLogicalTextBlock>>();
+        for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
+            PdfLogicalTextBlock block = textBlocks[blockIndex];
+            if (block.Kind != PdfLogicalElementKind.ListItem ||
+                !semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic) ||
+                semantic.Kind != PdfUnderstandingSemanticKind.ListItem ||
+                !semantic.Evidence.Any(static evidence =>
+                    string.Equals(evidence.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal))) continue;
+            if (!semanticGroups.TryGetValue(semantic, out List<PdfLogicalTextBlock>? group)) {
+                group = new List<PdfLogicalTextBlock>();
+                semanticGroups.Add(semantic, group);
+            }
+            group.Add(block);
         }
-
-        var result = new List<PdfLogicalListItem>(listItems.Count);
         for (int i = 0; i < listItems.Count; i++) {
             var item = listItems[i];
             PdfLogicalTextBlock? block = FindTextBlock(item.Line, textBlockLookup, PdfLogicalElementKind.ListItem);
-            if (block is not null) {
-                result.Add(new PdfLogicalListItem(pageNumber, item.Level, item.Marker, item.Text, block));
+            if (block is not null && !represented.Contains(block)) {
+                semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic);
+                IReadOnlyList<PdfLogicalTextBlock> lines = semantic is not null && semanticGroups.TryGetValue(semantic, out List<PdfLogicalTextBlock>? group)
+                    ? group
+                    : new[] { block };
+                IReadOnlyList<string> lineTexts = BuildListItemLineTexts(lines, block, item.Text);
+                result.Add(new PdfLogicalListItem(
+                    pageNumber,
+                    semantic?.Level ?? item.Level,
+                    item.Marker,
+                    string.Join(" ", lineTexts.Where(static part => part.Length > 0)),
+                    lines,
+                    lineTexts,
+                    semantic?.Confidence,
+                    semantic?.Evidence));
+                for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
             }
         }
 
+        for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
+            PdfLogicalTextBlock block = textBlocks[blockIndex];
+            if (block.Kind != PdfLogicalElementKind.ListItem || represented.Contains(block)) continue;
+            semanticByTextBlock.TryGetValue(block, out PdfUnderstandingSemanticElement? semantic);
+            IReadOnlyList<PdfLogicalTextBlock> lines = semantic is not null && semanticGroups.TryGetValue(semantic, out List<PdfLogicalTextBlock>? group)
+                ? group
+                : new[] { block };
+            bool parsed = ContentStructureExtractor.TryParseListItemText(
+                block.Text,
+                out string marker,
+                out string text,
+                out int level);
+            string firstLineText = parsed ? text : block.Text;
+            IReadOnlyList<string> lineTexts = BuildListItemLineTexts(lines, block, firstLineText);
+            result.Add(new PdfLogicalListItem(
+                pageNumber,
+                semantic?.Level ?? level,
+                parsed ? marker : string.Empty,
+                string.Join(" ", lineTexts.Where(static part => part.Length > 0)),
+                lines,
+                lineTexts,
+                semantic?.Confidence,
+                semantic?.Evidence));
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) represented.Add(lines[lineIndex]);
+        }
+
         return result.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> BuildListItemLineTexts(
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        PdfLogicalTextBlock anchor,
+        string anchorText) {
+        var result = new string[lines.Count];
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            result[lineIndex] = ReferenceEquals(lines[lineIndex], anchor)
+                ? anchorText
+                : lines[lineIndex].Text.Trim();
+        }
+        return Array.AsReadOnly(result);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalHeading> BuildHeadings(
@@ -492,10 +558,9 @@ public sealed partial class PdfLogicalPage {
     private static PdfLogicalElementKind? ToLogicalKind(
         PdfUnderstandingSemanticElement? semantic,
         StructuredLine line,
-        bool isStructuredHeading,
-        bool isStructuredListItem) => semantic?.Kind switch {
+        bool isStructuredHeading) => semantic?.Kind switch {
         PdfUnderstandingSemanticKind.Heading when isStructuredHeading || SupportsRegionHeadingProjection(semantic, line) => PdfLogicalElementKind.Heading,
-        PdfUnderstandingSemanticKind.ListItem when isStructuredListItem => PdfLogicalElementKind.ListItem,
+        PdfUnderstandingSemanticKind.ListItem => PdfLogicalElementKind.ListItem,
         PdfUnderstandingSemanticKind.Header => PdfLogicalElementKind.Header,
         PdfUnderstandingSemanticKind.Footer => PdfLogicalElementKind.Footer,
         PdfUnderstandingSemanticKind.Caption => PdfLogicalElementKind.Caption,

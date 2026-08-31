@@ -261,6 +261,7 @@ internal static partial class PdfReaderAdapter {
                 if (element is PdfLogicalTextBlock textBlock) {
                     PdfLogicalHeading? heading = FindHeading(page, textBlock);
                     PdfLogicalListItem? listItem = FindListItem(page, textBlock);
+                    if (listItem is not null && !ReferenceEquals(listItem.Line, textBlock)) continue;
                     string kind = heading != null
                         ? "heading"
                         : listItem != null
@@ -741,7 +742,7 @@ internal static partial class PdfReaderAdapter {
 
     private static PdfLogicalListItem? FindListItem(PdfLogicalPage page, PdfLogicalTextBlock textBlock) {
         for (int i = 0; i < page.ListItems.Count; i++) {
-            if (ReferenceEquals(page.ListItems[i].Line, textBlock)) {
+            if (page.ListItems[i].Lines.Any(line => ReferenceEquals(line, textBlock))) {
                 return page.ListItems[i];
             }
         }

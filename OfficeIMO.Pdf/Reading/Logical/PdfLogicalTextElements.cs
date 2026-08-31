@@ -275,15 +275,38 @@ public sealed class PdfLogicalHeading {
 /// Detected bullet or numbered list item.
 /// </summary>
 public sealed class PdfLogicalListItem {
-    internal PdfLogicalListItem(int pageNumber, int level, string marker, string text, PdfLogicalTextBlock line) {
+    internal PdfLogicalListItem(
+        int pageNumber,
+        int level,
+        string marker,
+        string text,
+        PdfLogicalTextBlock line,
+        double? confidence = null,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) :
+        this(pageNumber, level, marker, text, new[] { line }, new[] { text }, confidence, evidence) { }
+
+    internal PdfLogicalListItem(
+        int pageNumber,
+        int level,
+        string marker,
+        string text,
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        IReadOnlyList<string> lineTexts,
+        double? confidence = null,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) {
+        if (lines.Count == 0) throw new ArgumentException("A logical list item requires at least one source line.", nameof(lines));
+        if (lineTexts.Count != lines.Count) throw new ArgumentException("Each logical list source line requires corresponding item text.", nameof(lineTexts));
         PageNumber = pageNumber;
         Level = level;
         Marker = marker;
         Text = text;
-        Line = line;
-        Runs = SliceRuns(line, text);
-        Confidence = string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D;
-        Evidence = new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) };
+        Lines = Array.AsReadOnly(lines.ToArray());
+        Line = Lines[0];
+        Runs = BuildRuns(Lines, lineTexts);
+        Confidence = PdfInference.Clamp(confidence ?? (string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D));
+        Evidence = evidence is null
+            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
+            : PdfInference.Snapshot(evidence);
     }
 
     /// <summary>One-based source page number.</summary>
@@ -298,8 +321,11 @@ public sealed class PdfLogicalListItem {
     /// <summary>List item text without the marker.</summary>
     public string Text { get; }
 
-    /// <summary>Line-level text block that produced the list item.</summary>
+    /// <summary>First line-level text block that produced the list item.</summary>
     public PdfLogicalTextBlock Line { get; }
+
+    /// <summary>Line-level text blocks that produced the list item, in reading order.</summary>
+    public IReadOnlyList<PdfLogicalTextBlock> Lines { get; }
 
     /// <summary>List item text segmented into semantic runs, excluding the detected marker.</summary>
     public IReadOnlyList<PdfLogicalTextRun> Runs { get; }
@@ -308,6 +334,24 @@ public sealed class PdfLogicalListItem {
     public double Confidence { get; }
     /// <summary>Evidence supporting the list classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalTextRun> BuildRuns(
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        IReadOnlyList<string> lineTexts) {
+        var result = new List<PdfLogicalTextRun>();
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            string lineText = lineTexts[lineIndex];
+            IReadOnlyList<PdfLogicalTextRun> lineRuns = SliceRuns(lines[lineIndex], lineText);
+            if (lineText.Length == 0) continue;
+            if (result.Count > 0) result.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
+            if (lineRuns.Count == 0) {
+                result.Add(new PdfLogicalTextRun(lineText, sourceSpan: null));
+            } else {
+                result.AddRange(lineRuns);
+            }
+        }
+        return result.AsReadOnly();
+    }
 
     private static IReadOnlyList<PdfLogicalTextRun> SliceRuns(PdfLogicalTextBlock line, string text) {
         if (string.IsNullOrEmpty(text)) {

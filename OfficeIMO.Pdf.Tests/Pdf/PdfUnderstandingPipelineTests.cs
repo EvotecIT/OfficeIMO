@@ -1,4 +1,6 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
 using System.Threading;
 using Xunit;
 
@@ -433,6 +435,54 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedSegmentation_ChargesCanonicalLayoutRecoveryBeforeTableProjection() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(
+            sourcePage,
+            1,
+            new PdfTextLayoutOptions(),
+            10_000,
+            10_000,
+            maxWorkUnitsPerPage: 1);
+        PdfUnderstandingLine first = CreateGappedUnderstandingLine("Metric", "Value", 500D);
+        PdfUnderstandingLine second = CreateGappedUnderstandingLine("Quality", "Premium", 480D);
+        context.DecodedRuns = first.Words.SelectMany(static word => word.SourceRuns)
+            .Concat(second.Words.SelectMany(static word => word.SourceRuns))
+            .ToArray();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfAdvancedUnderstandingStages.PageSegmentation.Segment(context, new[] { first, second }));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void Pipeline_RemovesIgnoredPageBandsBeforeSemanticStages() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Ignored header evidence", "F1", 8D, 50D, 760D, 140D),
+            new PdfTextSpan("Retained body evidence", "F1", 12D, 50D, 500D, 140D),
+            new PdfTextSpan("Ignored footer evidence", "F1", 8D, 50D, 20D, 140D)
+        });
+
+        PdfLogicalPage page = Assert.Single(Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions {
+                IgnoreHeaderHeight = 80D,
+                IgnoreFooterHeight = 80D
+            }).Pages);
+
+        Assert.Equal("Retained body evidence", Assert.Single(page.Analysis.DecodedRuns).Text);
+        Assert.DoesNotContain(page.Analysis.Elements, static element => element.Region.Text.Contains("Ignored", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.TextBlocks, static block => block.Text.Contains("Ignored", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void AdvancedSegmentation_SortsCallerSuppliedLinesBeforeVerticalGapExit() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         var options = PdfUnderstandingPipelineOptions.Structured();
@@ -468,6 +518,49 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void Pipeline_RejectsRawGlyphOverflowBeforeIgnoredPageBandsAreRemoved() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var options = new PdfUnderstandingPipelineOptions {
+            GlyphDecoding = new FixedGlyphStage(new[] {
+                new PdfTextSpan("header one", "F1", 12, 10, 790, 60),
+                new PdfTextSpan("header two", "F1", 12, 80, 790, 60),
+                new PdfTextSpan("body", "F1", 12, 10, 400, 30)
+            }),
+            MaxRunsPerPage = 2
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => Read(
+            pdf,
+            options,
+            layoutOptions: new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D }));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
+    public void IgnoredPageBandFiltering_ObservesCancellationDuringTraversal() {
+        IReadOnlyList<PdfTextSpan> spans = Enumerable.Range(0, 20)
+            .Select(index => new PdfTextSpan("header", "F1", 12D, index * 10D, 790D, 30D))
+            .ToArray();
+        using var cancellation = new CancellationTokenSource();
+        int polls = 0;
+
+        Assert.Throws<OperationCanceledException>(() => TextLayoutEngine.FilterIgnoredPageBands(
+            spans,
+            792D,
+            new PdfTextLayoutOptions { IgnoreHeaderHeight = 20D },
+            consumeWork: null,
+            cancellationCheck: () => {
+                if (++polls == 5) cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }));
+
+        Assert.Equal(5, polls);
     }
 
     [Fact]
@@ -673,6 +766,80 @@ public class PdfUnderstandingPipelineTests {
             page.Elements,
             static element => element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
                               element.Region.Text.Contains("Premium", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void LogicalProjection_PreservesAuthoritativeUnmarkedListItems() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Semantically tagged list entry"))
+            .ToBytes();
+        var options = new PdfUnderstandingPipelineOptions {
+            SemanticClassification = new UnmarkedListClassificationStage()
+        };
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfLogicalListItem item = Assert.Single(page.ListItems);
+
+        Assert.Equal(PdfLogicalElementKind.ListItem, item.Line.Kind);
+        Assert.Equal("Semantically tagged list entry", item.Text);
+        Assert.Equal(string.Empty, item.Marker);
+        Assert.Equal(2, item.Level);
+        Assert.Equal(0.95D, item.Confidence, 3);
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "semantic.test-list-item");
+    }
+
+    [Fact]
+    public void LogicalProjection_KeepsMultiLineTaggedListItemAsOneReaderBlock() {
+        var options = new PdfUnderstandingPipelineOptions {
+            PageSegmentation = new HeadingThenRemainingRegionStage(),
+            ReadingOrder = new IdentityReadingOrderStage(),
+            SemanticClassification = new ParagraphClassificationStage()
+        };
+
+        PdfDocumentReadResult logical = Read(CreateMultiLineTaggedListItemPdf(), options);
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        PdfLogicalListItem item = Assert.Single(page.ListItems);
+
+        Assert.Equal(2, item.Lines.Count);
+        Assert.Same(item.Lines[0], item.Line);
+        Assert.Equal("First tagged list line continuation tagged list line", item.Text);
+        Assert.Equal(item.Text, string.Concat(item.Runs.Select(static run => run.Text)));
+        Assert.Contains(item.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
+        Assert.Single(PdfLogicalReadingOrderAnalysis.Analyze(page),
+            static candidate => candidate.Kind == PdfLogicalReadingOrderKind.ListItem);
+        PdfLogicalSection section = Assert.Single(logical.Sections);
+        Assert.Same(section, logical.GetOwningSection(item));
+        Assert.All(item.Lines, line => Assert.Same(section, logical.GetOwningSection(line)));
+
+        OfficeDocumentReadResult reader = PdfReaderAdapter.ReadDocument(logical);
+        OfficeDocumentBlock block = Assert.Single(reader.Blocks, static block => block.Kind == "list-item");
+        Assert.Equal(item.Text, block.Text);
+        Assert.DoesNotContain(reader.Blocks, static block => block.Text == "continuation tagged list line");
+
+        string markdown = logical.ToMarkdown();
+        Assert.Single(markdown.Split('\n'), static line => line.StartsWith("- ", StringComparison.Ordinal));
+        Assert.Contains(item.Text, markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LogicalProjection_KeepsSeparateVisualBulletsIndependentInsideOneHeuristicRegion() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("- First independent item", "F1", 12D, 72D, 700D, 130D),
+            new PdfTextSpan("- Second independent item", "F1", 12D, 72D, 680D, 140D)
+        });
+        options.PageSegmentation = new WholePageRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfDocumentReadResult logical = Read(pdf, options);
+        PdfLogicalListItem[] items = Assert.Single(logical.Pages).ListItems.ToArray();
+
+        Assert.Equal(2, items.Length);
+        Assert.Equal(new[] { "First independent item", "Second independent item" },
+            items.Select(static item => item.Text));
+        Assert.All(items, static item => Assert.Single(item.Lines));
+        Assert.Equal(2, logical.ToMarkdown().Split('\n').Count(static line => line.StartsWith("- ", StringComparison.Ordinal)));
     }
 
     [Fact]
@@ -938,6 +1105,26 @@ public class PdfUnderstandingPipelineTests {
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
     }
 
+    private static byte[] CreateMultiLineTaggedListItemPdf() {
+        string content = "/H1 << /MCID 0 >> BDC\n" +
+            "BT /F1 18 Tf 72 740 Td (Tagged list section) Tj ET\nEMC\n" +
+            "/Span << /MCID 1 >> BDC\n" +
+            "BT /F1 12 Tf 72 700 Td (First tagged list line) Tj ET\nEMC\n" +
+            "/Span << /MCID 2 >> BDC\n" +
+            "BT /F1 12 Tf 90 680 Td (continuation tagged list line) Tj ET\nEMC\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /StructTreeRoot /K [7 0 R 8 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /H1 /P 6 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Type /StructElem /S /LI /P 6 0 R /Pg 3 0 R /K [1 2] >>",
+            "<< /Nums [0 [7 0 R 8 0 R 8 0 R]] >>");
+    }
+
     private static byte[] CreateInvalidTaggedHeadingPdf() {
         string content = "/H0 << /MCID 0 >> BDC\n" +
             "BT /F1 12 Tf 72 700 Td (Malformed tagged heading) Tj ET\nEMC\n";
@@ -1115,6 +1302,23 @@ public class PdfUnderstandingPipelineTests {
             new[] { new PdfUnderstandingRegion(new[] { Assert.Single(lines) }) };
     }
 
+    private sealed class WholePageRegionStage : IPdfPageSegmentationStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) =>
+            lines.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : new[] { new PdfUnderstandingRegion(lines) };
+    }
+
+    private sealed class HeadingThenRemainingRegionStage : IPdfPageSegmentationStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) {
+            if (lines.Count <= 1) return lines.Count == 0
+                ? Array.Empty<PdfUnderstandingRegion>()
+                : new[] { new PdfUnderstandingRegion(lines) };
+            return new[] {
+                new PdfUnderstandingRegion(new[] { lines[0] }),
+                new PdfUnderstandingRegion(lines.Skip(1).ToArray())
+            };
+        }
+    }
+
     private sealed class IdentityReadingOrderStage : IPdfReadingOrderStage {
         public IReadOnlyList<PdfUnderstandingRegion> Order(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> regions) => regions;
     }
@@ -1134,5 +1338,15 @@ public class PdfUnderstandingPipelineTests {
             orderedRegions.Select(static region => region.Lines.Max(static line => line.FontSize) >= 15D
                 ? new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Heading, level: 2)
                 : new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
+    }
+
+    private sealed class UnmarkedListClassificationStage : IPdfSemanticClassificationStage {
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
+            orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(
+                region,
+                PdfUnderstandingSemanticKind.ListItem,
+                0.95D,
+                new[] { new PdfInferenceEvidence("semantic.test-list-item", "The test classifier supplied authoritative list semantics.", 1D) },
+                level: 2)).ToArray();
     }
 }

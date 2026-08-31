@@ -89,7 +89,7 @@ public sealed partial class PdfLogicalPage {
                     foreach (PdfLogicalTextBlock line in page.Paragraphs[item.SourceIndex].Lines) Add(line);
                     break;
                 case PdfLogicalReadingOrderKind.ListItem:
-                    Add(page.ListItems[item.SourceIndex].Line);
+                    foreach (PdfLogicalTextBlock line in page.ListItems[item.SourceIndex].Lines) Add(line);
                     break;
             }
         }

@@ -78,6 +78,38 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public void Read_CreatesOccurrenceLocalWidgetsForRepeatedPageSelections() {
+        byte[] source = PdfDocument.Create()
+            .H1("Repeated interactive section")
+            .Paragraph(paragraph => paragraph.Text("Repeated page body"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "repeated-note",
+            Kind = PdfFormFieldCreationKind.Text,
+            PageNumber = 1,
+            X = 72,
+            Y = 420,
+            Width = 180,
+            Height = 24
+        })).ToDocument();
+
+        PdfDocumentReadResult result = document.Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1, 1)
+        });
+        PdfLogicalFormWidget first = Assert.Single(result.Pages[0].FormWidgets);
+        PdfLogicalFormWidget second = Assert.Single(result.Pages[1].FormWidgets);
+        PdfLogicalSection firstOwner = Assert.IsType<PdfLogicalSection>(result.GetOwningSection(first));
+        PdfLogicalSection secondOwner = Assert.IsType<PdfLogicalSection>(result.GetOwningSection(second));
+
+        Assert.NotSame(first, second);
+        Assert.NotSame(firstOwner, secondOwner);
+        Assert.Contains(first, firstOwner.FormWidgets);
+        Assert.DoesNotContain(second, firstOwner.FormWidgets);
+        Assert.Contains(second, secondOwner.FormWidgets);
+        Assert.DoesNotContain(first, secondOwner.FormWidgets);
+    }
+
+    [Fact]
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
             .Paragraph(paragraph => paragraph

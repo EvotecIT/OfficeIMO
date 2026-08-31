@@ -220,7 +220,9 @@ public static class PdfAdvancedUnderstandingStages {
             StructuredPage structure = ContentStructureExtractor.Extract(
                 context.DecodedRuns,
                 context.LayoutOptions.ToEngineOptions(),
-                context.Height);
+                context.Height,
+                context.ConsumeWork,
+                context.ThrowIfCancellationRequested);
             foreach (StructuredTable table in structure.TablesDetailed) {
                 context.ConsumeWork();
                 if (string.Equals(table.Kind, "leaders", StringComparison.OrdinalIgnoreCase) || table.Columns.Count < 2) continue;

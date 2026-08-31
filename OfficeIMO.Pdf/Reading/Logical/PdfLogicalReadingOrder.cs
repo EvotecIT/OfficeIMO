@@ -305,7 +305,7 @@ public static class PdfLogicalReadingOrderAnalysis {
             PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
             PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
             PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
-            PdfLogicalReadingOrderKind.ListItem => new[] { page.ListItems[item.SourceIndex].Line },
+            PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
             _ => null
         };
         if (lines is null || lines.Count == 0) return false;
@@ -403,7 +403,9 @@ public static class PdfLogicalReadingOrderAnalysis {
         for (int index = 0; index < page.Paragraphs.Count; index++) {
             foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) semanticTextBlocks.Add(line);
         }
-        for (int index = 0; index < page.ListItems.Count; index++) semanticTextBlocks.Add(page.ListItems[index].Line);
+        for (int index = 0; index < page.ListItems.Count; index++) {
+            foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) semanticTextBlocks.Add(line);
+        }
         int sequence = 0;
         for (int index = 0; index < page.TextBlocks.Count; index++) {
             PdfLogicalTextBlock block = page.TextBlocks[index];
@@ -413,7 +415,7 @@ public static class PdfLogicalReadingOrderAnalysis {
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
         for (int index = 0; index < page.Paragraphs.Count; index++) AddText(PdfLogicalReadingOrderKind.Paragraph, index, page.Paragraphs[index].Lines);
-        for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, new[] { page.ListItems[index].Line });
+        for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, page.ListItems[index].Lines);
         for (int index = 0; index < page.Tables.Count; index++) {
             PdfLogicalTable table = page.Tables[index];
             if (table.VisualBounds is PdfLogicalVisualBounds visualBounds) {
