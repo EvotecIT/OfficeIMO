@@ -188,8 +188,6 @@ internal static class IWorkPagesReader {
                 ref supportsEditableReconstruction);
         }
 
-        var reachable = new HashSet<ulong>(index.ReachableFrom(document)
-            .Select(record => record.Identifier));
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
             documentMessage, out bool drawableGraphComplete);
         if (!drawableGraphComplete) {
@@ -201,14 +199,6 @@ internal static class IWorkPagesReader {
         }
         var skippedStorages = new HashSet<ulong>();
         if (body != null) skippedStorages.Add(body.Identifier);
-        foreach (IWorkArchiveRecord record in index.PrimaryRecords
-                     .Where(record => record.MessageType == HeadersFootersArchive)
-                     .Where(record => reachable.Contains(record.Identifier))) {
-            IWorkWireMessage message = index.Message(record);
-            foreach (int field in new[] { 1, 2 }) {
-                foreach (IWorkArchiveRecord storage in index.DereferenceAll(message, field)) skippedStorages.Add(storage.Identifier);
-            }
-        }
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord shape in documentDrawables
                      .Where(record => record.MessageType == ShapeInfoArchive)) {

@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(slideId, 5,
                 Message(ReferenceField(presenterNotes ? 27 : 5, shapeOrNoteId)),
                 new[] { shapeOrNoteId }),
-            ArchiveRecord(shapeOrNoteId, presenterNotes ? 100u : 2011u,
+            ArchiveRecord(shapeOrNoteId, presenterNotes ? 15u : 2011u,
                 Message(ReferenceField(presenterNotes ? 1 : 2, storageId)),
                 new[] { storageId }),
             ArchiveRecord(storageId, 2001,

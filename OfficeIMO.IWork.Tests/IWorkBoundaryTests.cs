@@ -1105,6 +1105,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static byte[] CreateBncRow(TableSpec table) {
+        if (table.CellCrossesNextOffset) return CreateCrossingBncRow(table.Value);
         int cellOffset = table.WideOffsets ? 4 : 0;
         int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.Decimal128HighBit ? 16 : 8;
@@ -1145,6 +1146,19 @@ public sealed partial class IWorkBoundaryTests {
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
         return Message(fields.ToArray());
+    }
+
+    private static byte[] CreateCrossingBncRow(double secondValue) {
+        var buffer = new byte[36];
+        buffer[0] = 5;
+        buffer[1] = 2;
+        WriteUInt32(buffer, 8, 1u << 1);
+        buffer[16] = 5;
+        buffer[17] = 2;
+        WriteUInt32(buffer, 24, 1u << 1);
+        Buffer.BlockCopy(BitConverter.GetBytes(secondValue), 0, buffer, 28, 8);
+        return Message(VarintField(1, 0), BytesField(6, buffer),
+            BytesField(7, new byte[] { 0, 0, 16, 0 }));
     }
 
     private static byte[] FormulaConstant(double value) => Message(BytesField(1,
@@ -1422,7 +1436,8 @@ public sealed partial class IWorkBoundaryTests {
             bool duplicateFormula = false, bool wrongWireDimensions = false,
             bool oddCurrentOffsets = false, double? defaultRowHeight = null,
             int headerRows = 0, int footerRows = 0, bool error = false,
-            bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false) {
+            bool populatedOffsetBeyondColumns = false, bool emptyOffsetBeyondColumns = false,
+            bool cellCrossesNextOffset = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1452,6 +1467,7 @@ public sealed partial class IWorkBoundaryTests {
             Error = error;
             PopulatedOffsetBeyondColumns = populatedOffsetBeyondColumns;
             EmptyOffsetBeyondColumns = emptyOffsetBeyondColumns;
+            CellCrossesNextOffset = cellCrossesNextOffset;
         }
 
         internal string Name { get; }
@@ -1483,5 +1499,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool Error { get; }
         internal bool PopulatedOffsetBeyondColumns { get; }
         internal bool EmptyOffsetBeyondColumns { get; }
+        internal bool CellCrossesNextOffset { get; }
     }
 }

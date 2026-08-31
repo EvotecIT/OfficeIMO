@@ -150,8 +150,21 @@ internal static class IWorkArchiveParser {
             ulong? identifier = archiveInfo.GetUnsigned(1);
             if (!identifier.HasValue) throw new InvalidDataException("ArchiveInfo does not declare an object identifier.");
 
+            if (archiveInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)) {
+                throw new InvalidDataException($"ArchiveInfo {identifier.Value} contains malformed MessageInfo entries.");
+            }
+            int messageCount = IWorkProtobuf.CountFields(
+                infoBytes, 2, options.MaximumProtobufFieldCount);
+            if (messageCount == 0) {
+                throw new InvalidDataException($"ArchiveInfo {identifier.Value} does not declare any payloads.");
+            }
+            if (messageCount > options.MaximumRecordCount - records.Count) {
+                throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaximumRecordCount}.");
+            }
             IReadOnlyList<IWorkWireMessage> messages = archiveInfo.GetRepeatedMessages(2);
-            if (messages.Count == 0) throw new InvalidDataException($"ArchiveInfo {identifier.Value} does not declare any payloads.");
+            if (messages.Count != messageCount) {
+                throw new InvalidDataException($"ArchiveInfo {identifier.Value} contains malformed MessageInfo entries.");
+            }
             for (int payloadIndex = 0; payloadIndex < messages.Count; payloadIndex++) {
                 IWorkWireMessage messageInfo = messages[payloadIndex];
                 ulong? rawType = messageInfo.GetUnsigned(1);
@@ -166,10 +179,6 @@ internal static class IWorkArchiveParser {
                 if (offset > stream.Length - payloadLength) {
                     throw new InvalidDataException($"Truncated payload for object {identifier.Value} at offset {offset}.");
                 }
-                if (records.Count >= options.MaximumRecordCount) {
-                    throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaximumRecordCount}.");
-                }
-
                 records.Add(new IWorkArchiveRecord(
                     identifier.Value,
                     (uint)rawType.Value,

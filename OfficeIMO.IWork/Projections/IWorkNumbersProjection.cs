@@ -496,11 +496,26 @@ internal static class IWorkNumbersReader {
                 if (hasPopulatedTrailingOffset) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                 }
+                int[] populatedOffsets = Enumerable.Range(0, offsets.Length / 2)
+                    .Select(column => offsets[column * 2] | offsets[column * 2 + 1] << 8)
+                    .Where(encodedOffset => encodedOffset != ushort.MaxValue)
+                    .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
+                    .Distinct()
+                    .OrderBy(cellOffset => cellOffset)
+                    .ToArray();
+                var cellLimits = new Dictionary<int, int>(populatedOffsets.Length);
+                for (int offsetIndex = 0; offsetIndex < populatedOffsets.Length; offsetIndex++) {
+                    cellLimits.Add(populatedOffsets[offsetIndex],
+                        offsetIndex + 1 < populatedOffsets.Length
+                            ? populatedOffsets[offsetIndex + 1]
+                            : buffer.Length);
+                }
                 for (int column = 0; column < availableColumns; column++) {
                     int encodedOffset = offsets[column * 2] | offsets[column * 2 + 1] << 8;
                     if (encodedOffset == ushort.MaxValue) continue;
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
-                    IWorkTableCell cell = DecodeCell(buffer, offset, checked((int)zeroBasedRow + 1), column + 1,
+                    IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
+                        checked((int)zeroBasedRow + 1), column + 1,
                         strings, formulas, source.Options, projectionBudget);
                     if (cell.Kind == IWorkCellKind.Empty) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
@@ -731,10 +746,12 @@ internal static class IWorkNumbersReader {
         return (int)resolved;
     }
 
-    private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int row, int column,
+    private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
+        int row, int column,
         IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
         IWorkReadOptions options, IWorkProjectionBudget projectionBudget) {
-        if (offset < 0 || offset > buffer.Length - 12) return Error(row, column, "Truncated cell record.");
+        if (offset < 0 || endOffset < offset || endOffset > buffer.Length
+            || offset > endOffset - 12) return Error(row, column, "Truncated cell record.");
         int version = buffer[offset];
         int type = buffer[offset + 1];
         if (version != 5) return Error(row, column, $"Unsupported cell storage version {version}.");
@@ -753,7 +770,7 @@ internal static class IWorkNumbersReader {
         for (int bit = 0; bit < 21; bit++) {
             if ((flags & (1u << bit)) == 0) continue;
             int size = bit == 0 ? 16 : bit is 1 or 2 ? 8 : 4;
-            if (position < 0 || position > buffer.Length - size) return Error(row, column, "Truncated cell value field.");
+            if (position < 0 || position > endOffset - size) return Error(row, column, "Truncated cell value field.");
             switch (bit) {
                 case 0:
                     decimalValue = ReadDecimal128(buffer, position);

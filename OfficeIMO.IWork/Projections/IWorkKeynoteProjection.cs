@@ -142,6 +142,7 @@ internal static class IWorkKeynoteReader {
     private const uint SlideNodeArchive = 4;
     private const uint SlideArchive = 5;
     private const uint PlaceholderArchive = 7;
+    private const uint PresenterNoteArchive = 15;
     private const uint TextStorageArchive = 2001;
     private const uint TextShapeArchive = 2011;
 
@@ -413,18 +414,25 @@ internal static class IWorkKeynoteReader {
 
         IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(), isComplete: true);
         bool hasNoteReference = message.HasField(27);
-        IWorkArchiveRecord? note = index.Dereference(message, 27);
-        if (message.LacksWireKind(27, IWorkWireKind.Bytes)
-            || hasNoteReference && note == null) {
+        IReadOnlyList<IWorkArchiveRecord> noteRecords = index.DereferenceAll(
+            message, 27, out int unresolvedNoteCount);
+        if (hasNoteReference && (unresolvedNoteCount > 0 || noteRecords.Count != 1)) {
             MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
-        } else if (note != null) {
-            IWorkArchiveRecord? storage = index.Dereference(index.Message(note), 1);
-            if (storage != null && storage.MessageType == TextStorageArchive) {
+        } else if (noteRecords.Count == 1
+                   && noteRecords[0].MessageType == PresenterNoteArchive) {
+            IWorkArchiveRecord note = noteRecords[0];
+            IReadOnlyList<IWorkArchiveRecord> noteStorages = index.DereferenceAll(
+                index.Message(note), 1, out int unresolvedStorageCount);
+            if (unresolvedStorageCount == 0 && noteStorages.Count == 1
+                && noteStorages[0].MessageType == TextStorageArchive) {
+                IWorkArchiveRecord storage = noteStorages[0];
                 notes = IWorkTextReader.Read(index, storage, projectionBudget);
                 if (!notes.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
             } else {
                 MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
             }
+        } else if (noteRecords.Count > 0) {
+            MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         }
         string? slideName = message.GetString(10, out bool slideNameComplete);
         if (!slideNameComplete) {
