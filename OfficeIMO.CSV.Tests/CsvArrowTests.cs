@@ -207,28 +207,45 @@ public sealed class CsvArrowTests {
 
     [Fact]
     public void ArrowAdapterSeparatesTimezoneLessDateTimeFromUtcDateTimeOffset() {
-        DateTime wallClock = new(2026, 8, 31, 14, 35, 12, DateTimeKind.Unspecified);
-        DateTimeOffset instant = new(2026, 8, 31, 14, 35, 12, TimeSpan.FromHours(2));
+        DateTime wallClock = new DateTime(2026, 8, 31, 14, 35, 12, DateTimeKind.Unspecified).AddTicks(7);
+        DateTimeOffset instant = new DateTimeOffset(2026, 8, 31, 14, 35, 12, TimeSpan.FromHours(2)).AddTicks(9);
+        TimeOnly time = new TimeOnly(14, 35, 12).Add(TimeSpan.FromTicks(3));
         var table = new System.Data.DataTable();
         table.Columns.Add("WallClock", typeof(DateTime));
         table.Columns.Add("Instant", typeof(DateTimeOffset));
-        table.Rows.Add(wallClock, instant);
+        table.Columns.Add("Time", typeof(TimeOnly));
+        table.Rows.Add(wallClock, instant, time);
         using var reader = table.CreateDataReader();
 
         RecordBatch batch = Assert.Single(reader.ReadArrowBatches());
         try {
             var wallClockType = Assert.IsType<TimestampType>(batch.Schema.GetFieldByIndex(0).DataType);
             var instantType = Assert.IsType<TimestampType>(batch.Schema.GetFieldByIndex(1).DataType);
+            var timeType = Assert.IsType<Time64Type>(batch.Schema.GetFieldByIndex(2).DataType);
             Assert.False(wallClockType.IsTimeZoneAware);
             Assert.True(instantType.IsTimeZoneAware);
+            Assert.Equal(TimeUnit.Nanosecond, wallClockType.Unit);
+            Assert.Equal(TimeUnit.Nanosecond, instantType.Unit);
+            Assert.Equal(TimeUnit.Nanosecond, timeType.Unit);
 
             var wallClockValues = Assert.IsType<TimestampArray>(batch.Column(0));
             var instantValues = Assert.IsType<TimestampArray>(batch.Column(1));
+            var timeValues = Assert.IsType<Time64Array>(batch.Column(2));
             Assert.Equal(wallClock.Ticks, wallClockValues.GetTimestamp(0)!.Value.UtcTicks);
             Assert.Equal(instant.UtcTicks, instantValues.GetTimestamp(0)!.Value.UtcTicks);
+            Assert.Equal(time.Ticks, timeValues.GetTime(0)!.Value.Ticks);
         } finally {
             batch.Dispose();
         }
+    }
+
+    [Fact]
+    public void ArrowTemporalUnitRequiresAnArrowTime64Unit() {
+        var options = new ArrowReadOptions();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.TemporalUnit = TimeUnit.Millisecond);
+        options.TemporalUnit = TimeUnit.Microsecond;
+        Assert.Equal(TimeUnit.Microsecond, options.TemporalUnit);
     }
 
     [Fact]

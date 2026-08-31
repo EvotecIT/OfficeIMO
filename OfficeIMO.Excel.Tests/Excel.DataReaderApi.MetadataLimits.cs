@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Excel.Xlsb.Package;
 using Xunit;
 
 namespace OfficeIMO.Excel.Tests;
@@ -143,6 +144,18 @@ public partial class Excel {
                 options));
 
         Assert.Contains("xl/workbook.xml", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void XlsbBootstrapMetadataLimitCountsEncodedBytes() {
+        byte[] xml = Encoding.UTF8.GetBytes("<root>" + new string('\u00e9', 40) + "</root>");
+        Assert.True(xml.Length > 64);
+        using var stream = new NonSeekableReadStream(xml);
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            XlsbPackageDetector.LoadBoundedXml(stream, maximumBytes: 64));
+
         Assert.Contains("64 bytes", exception.Message, StringComparison.Ordinal);
     }
 

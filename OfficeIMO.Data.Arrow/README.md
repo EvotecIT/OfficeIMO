@@ -37,7 +37,10 @@ leave reader-side inference disabled. The adapter snapshots and validates the ex
 reading, so the conversion does not pay a schema-sampling pass.
 CLR `DateTime` columns become timezone-less Arrow timestamps so spreadsheet and database
 wall-clock values retain their original meaning. `DateTimeOffset` columns become UTC-aware
-timestamps and preserve their instant.
+timestamps and preserve their instant. Temporal columns use nanoseconds by default so CLR
+100-nanosecond precision is retained. Set `ArrowReadOptions.TemporalUnit` to
+`TimeUnit.Microsecond` when the wider microsecond timestamp range is required and accepting
+sub-microsecond precision loss is appropriate.
 
 ## Managed and C streams
 

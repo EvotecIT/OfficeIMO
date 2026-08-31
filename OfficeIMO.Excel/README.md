@@ -149,6 +149,22 @@ and DOC/XLS/XLSB loss policies, see the
 
 ### Stream workbook rows
 
+List worksheet names without decoding worksheet cells, shared strings, or styles:
+
+```csharp
+IReadOnlyList<string> sheetNames = ExcelDocument.GetSheetNames(
+    "input.xlsx",
+    new ExcelReadOptions {
+        MaxWorksheets = 256,
+        MaxMetadataPartBytes = 4 * 1024 * 1024
+    });
+```
+
+`GetSheetNames` supports XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, and BIFF5/BIFF8
+XLS. It returns readable worksheets in workbook order and applies
+`MaxInputBytes`, `MaxWorksheets`, `MaxMetadataPartBytes`, and the configured
+cancellation token before worksheet data is opened.
+
 ```csharp
 using OfficeIMO.Excel;
 

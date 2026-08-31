@@ -274,7 +274,7 @@ public static partial class DbDataReaderArrowExtensions {
                 });
             }
             if (type == typeof(DateTime)) {
-                var timestampType = new TimestampType(TimeUnit.Microsecond, (string)null!);
+                var timestampType = new TimestampType(options.TemporalUnit, (string)null!);
                 return new ArrowColumnFactory(timestampType, (capacity, fastValueSource) => {
                     var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
                     return new ArrowColumnBuilder(
@@ -297,7 +297,7 @@ public static partial class DbDataReaderArrowExtensions {
                 });
             }
             if (type == typeof(DateTimeOffset)) {
-                var timestampType = new TimestampType(TimeUnit.Microsecond, TimeZoneInfo.Utc);
+                var timestampType = new TimestampType(options.TemporalUnit, TimeZoneInfo.Utc);
                 return new ArrowColumnFactory(timestampType, capacity => {
                     var builder = new TimestampArray.Builder(timestampType).Reserve(capacity);
                     return new ArrowColumnBuilder(
@@ -309,7 +309,7 @@ public static partial class DbDataReaderArrowExtensions {
             if (type == typeof(DateOnly)) return Primitive<Date32Array.Builder, Date32Array, DateOnly>(
                 new Date32Type(), static () => new Date32Array.Builder(), static (b, c) => b.Reserve(c), static b => b.AppendNull(), static b => b.Build(), static (b, v) => b.Append(v), static (r, i) => r.GetFieldValue<DateOnly>(i));
             if (type == typeof(TimeOnly)) {
-                var timeType = new Time64Type(TimeUnit.Microsecond);
+                var timeType = new Time64Type(options.TemporalUnit);
                 return new ArrowColumnFactory(timeType, capacity => {
                     var builder = new Time64Array.Builder(timeType).Reserve(capacity);
                     return new ArrowColumnBuilder(

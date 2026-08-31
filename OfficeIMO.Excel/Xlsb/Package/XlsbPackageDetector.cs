@@ -109,13 +109,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             }
 
             using Stream stream = contentTypesEntry.Open();
-            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                CloseInput = false,
-                MaxCharactersInDocument = maxContentTypesBytes
-            });
-            XDocument document = XDocument.Load(reader, LoadOptions.None);
+            XDocument document = LoadBoundedXml(stream, maxContentTypesBytes);
             if (document.Root?.Name != XName.Get("Types", PackageContentTypesNamespace)) return false;
             string expectedPartName = "/" + workbookPartName.TrimStart('/');
             string?[] overrides = document.Root
@@ -163,13 +157,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             ZipArchiveEntry relationshipsEntry,
             long maximumBytes) {
             using Stream stream = relationshipsEntry.Open();
-            using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
-                DtdProcessing = DtdProcessing.Prohibit,
-                XmlResolver = null,
-                CloseInput = false,
-                MaxCharactersInDocument = maximumBytes
-            });
-            XDocument document = XDocument.Load(reader, LoadOptions.None);
+            XDocument document = LoadBoundedXml(stream, maximumBytes);
             if (document.Root?.Name != XName.Get("Relationships", PackageRelationshipsNamespace)) return null;
             XElement[] relationships = document.Root
                 .Elements(XName.Get("Relationship", PackageRelationshipsNamespace))
@@ -179,6 +167,20 @@ namespace OfficeIMO.Excel.Xlsb.Package {
                 .Take(2)
                 .ToArray();
             return relationships.Length == 1 ? (string?)relationships[0].Attribute("Target") : null;
+        }
+
+        internal static XDocument LoadBoundedXml(Stream stream, long maximumBytes) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+
+            using var bounded = new BootstrapMetadataReadStream(stream, maximumBytes);
+            using XmlReader reader = XmlReader.Create(bounded, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                CloseInput = false,
+                MaxCharactersInDocument = maximumBytes
+            });
+            return XDocument.Load(reader, LoadOptions.None);
         }
 
         private static string? NormalizePackageTarget(string target) {
@@ -226,5 +228,58 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             archive.Entries.Where(entry =>
                 entry.FullName.IndexOf('\\') < 0 &&
                 string.Equals(entry.FullName, fullName, StringComparison.OrdinalIgnoreCase));
+
+        private sealed class BootstrapMetadataReadStream : Stream {
+            private readonly Stream _inner;
+            private readonly long _maximumBytes;
+            private long _bytesRead;
+
+            internal BootstrapMetadataReadStream(Stream inner, long maximumBytes) {
+                _inner = inner;
+                _maximumBytes = maximumBytes;
+            }
+
+            public override bool CanRead => _inner.CanRead;
+            public override bool CanSeek => false;
+            public override bool CanWrite => false;
+            public override long Length => throw new NotSupportedException();
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public override void Flush() { }
+
+            public override int Read(byte[] buffer, int offset, int count) {
+                int read = _inner.Read(buffer, offset, LimitReadSize(count));
+                Debit(read);
+                return read;
+            }
+
+            public override int ReadByte() {
+                int value = _inner.ReadByte();
+                if (value >= 0) Debit(1);
+                return value;
+            }
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+            public override void SetLength(long value) => throw new NotSupportedException();
+            public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            private int LimitReadSize(int requested) {
+                long remaining = _maximumBytes - _bytesRead;
+                return remaining >= requested
+                    ? requested
+                    : checked((int)Math.Min((long)requested, remaining + 1L));
+            }
+
+            private void Debit(int count) {
+                if (count < 0 || _bytesRead > _maximumBytes - count) {
+                    throw new InvalidDataException(
+                        $"The XLSB bootstrap metadata part exceeds the configured limit of {_maximumBytes} bytes.");
+                }
+                _bytesRead += count;
+            }
+        }
     }
 }
