@@ -183,6 +183,12 @@ internal static class IWorkDrawingReader {
         duplicateIdentifiers = duplicates;
         metadataComplete = metadata != null && !duplicateMetadata;
         if (metadata == null) return new Dictionary<ulong, DataEntry>();
+        int metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
+            source.Options.MaximumProtobufFieldCount);
+        if (metadataEntryCount > source.Options.MaximumProjectedImages) {
+            throw new InvalidDataException(
+                $"iWork image metadata exceeds the configured projection limit of {source.Options.MaximumProjectedImages} entries.");
+        }
         var result = new Dictionary<ulong, DataEntry>();
         IReadOnlyList<IWorkWireMessage> messages = IWorkObjectIndex.TryGetMessages(
             source.Index.Message(metadata), 4, out bool malformedEntries);

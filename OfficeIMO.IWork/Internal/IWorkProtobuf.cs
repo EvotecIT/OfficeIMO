@@ -120,6 +120,11 @@ internal sealed class IWorkWireMessage {
     internal int CountNestedFields(byte[] bytes, int field) =>
         IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount);
 
+    internal int CountNestedFields(byte[] bytes, int field,
+        out int totalFieldCount) =>
+        IWorkProtobuf.CountFields(bytes, field, _options.MaximumProtobufFieldCount,
+            out totalFieldCount);
+
     internal string? GetString(int field) => GetString(field, out _);
 
     internal string? GetString(int field, out bool complete) {
@@ -165,6 +170,11 @@ internal sealed class IWorkWireMessage {
 
 internal static class IWorkProtobuf {
     internal static int CountFields(byte[] data, int targetField, int maximumFields) {
+        return CountFields(data, targetField, maximumFields, out _);
+    }
+
+    internal static int CountFields(byte[] data, int targetField, int maximumFields,
+        out int totalFieldCount) {
         int offset = 0;
         int fieldCount = 0;
         int matchCount = 0;
@@ -207,6 +217,7 @@ internal static class IWorkProtobuf {
                     $"A protobuf message exceeds the configured field limit of {maximumFields}.");
             }
         }
+        totalFieldCount = fieldCount;
         return matchCount;
     }
 

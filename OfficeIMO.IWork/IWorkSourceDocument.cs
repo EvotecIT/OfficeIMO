@@ -131,7 +131,7 @@ public sealed partial class IWorkSourceDocument {
         IWorkDocumentKind? hint, IWorkReadOptions options) {
         bool hasPagesRoot = records.Any(record => record.IsPrimary && record.MessageType == 10000);
         var index = new IWorkObjectIndex(records, options);
-        bool hasNumbersRoot = HasNumbersRoot(index, records);
+        bool hasNumbersRoot = HasNumbersRoot(index, records, options);
         bool hasKeynoteRoot = HasKeynoteRoot(index, records);
         int rootCount = (hasPagesRoot ? 1 : 0) + (hasNumbersRoot ? 1 : 0) + (hasKeynoteRoot ? 1 : 0);
         if (rootCount > 1) {
@@ -145,9 +145,15 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static bool HasNumbersRoot(IWorkObjectIndex index,
-        IReadOnlyList<IWorkArchiveRecord> records) {
+        IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
         foreach (IWorkArchiveRecord document in records.Where(record =>
                      record.IsPrimary && record.MessageType == 1)) {
+            int declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
+                options.MaximumProtobufFieldCount);
+            if (declaredSheetCount > options.MaximumProjectedSheets) {
+                throw new InvalidDataException(
+                    $"Numbers sheet count exceeds the configured projection limit of {options.MaximumProjectedSheets}.");
+            }
             IWorkWireMessage message;
             try {
                 message = index.Message(document);

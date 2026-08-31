@@ -1054,7 +1054,8 @@ public sealed partial class IWorkBoundaryTests {
             ulong formulaListId = tableInfoId + 200_000;
             var storeFields = new List<byte[]> { BytesField(3, tileStorage) };
             if (table.TextValue != null) storeFields.Add(ReferenceField(4, stringListId));
-            if (table.DuplicateFormula || table.CompleteFormula) {
+            if (table.DuplicateFormula || table.CompleteFormula
+                || table.FormulaPayload != null) {
                 storeFields.Add(ReferenceField(6, formulaListId));
             }
             byte[] store = Message(storeFields.ToArray());
@@ -1096,9 +1097,10 @@ public sealed partial class IWorkBoundaryTests {
                 byte[] secondEntry = Message(VarintField(1, 0), BytesField(5, secondFormula));
                 records.Add(ArchiveRecord(formulaListId, 6201,
                     Message(BytesField(3, firstEntry), BytesField(3, secondEntry))));
-            } else if (table.CompleteFormula) {
+            } else if (table.CompleteFormula || table.FormulaPayload != null) {
                 byte[] formulaEntry = Message(VarintField(1, 0),
-                    BytesField(5, FormulaConstant(1d, table.MixedFormulaTypeWire)));
+                    BytesField(5, table.FormulaPayload
+                        ?? FormulaConstant(1d, table.MixedFormulaTypeWire)));
                 records.Add(ArchiveRecord(formulaListId, 6201,
                     Message(BytesField(3, formulaEntry))));
             }
@@ -1495,7 +1497,7 @@ public sealed partial class IWorkBoundaryTests {
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
             bool completeFormula = false, bool decimal128Underflow = false,
             bool unknownCellValueFlag = false, bool boolean = false,
-            bool mixedFormulaTypeWire = false) {
+            bool mixedFormulaTypeWire = false, byte[]? formulaPayload = null) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1534,6 +1536,7 @@ public sealed partial class IWorkBoundaryTests {
             UnknownCellValueFlag = unknownCellValueFlag;
             Boolean = boolean;
             MixedFormulaTypeWire = mixedFormulaTypeWire;
+            FormulaPayload = formulaPayload;
         }
 
         internal string Name { get; }
@@ -1574,5 +1577,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool UnknownCellValueFlag { get; }
         internal bool Boolean { get; }
         internal bool MixedFormulaTypeWire { get; }
+        internal byte[]? FormulaPayload { get; }
     }
 }

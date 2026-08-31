@@ -37,10 +37,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Enforces_the_projected_sheet_budget_before_owner_materialization() {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(),
             sheetReferenceCount: 2);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedSheets = 1 });
-
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
+                new IWorkReadOptions { MaximumProjectedSheets = 1 }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

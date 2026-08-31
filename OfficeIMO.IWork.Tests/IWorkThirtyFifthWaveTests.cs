@@ -36,10 +36,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_sheet_bound_is_enforced_before_nested_references_are_parsed() {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(),
             includeMalformedSecondSheetReference: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProjectedSheets = 1 });
-
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
+                new IWorkReadOptions { MaximumProjectedSheets = 1 }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }

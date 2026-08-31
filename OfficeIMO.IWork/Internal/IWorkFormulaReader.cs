@@ -230,13 +230,16 @@ internal static class IWorkFormulaReader {
         byte[]? nodeArrayBytes = formula.GetBytes(1);
         if (nodeArrayBytes == null || formula.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) return false;
         int nodeCount;
+        int totalFieldCount;
         try {
-            nodeCount = formula.CountNestedFields(nodeArrayBytes, 1);
+            nodeCount = formula.CountNestedFields(nodeArrayBytes, 1,
+                out totalFieldCount);
         } catch (InvalidDataException) {
             return false;
         }
-        if (nodeCount > maximumNodes) {
-            throw new InvalidDataException($"An iWork formula exceeds the configured syntax-node limit of {maximumNodes}.");
+        if (totalFieldCount > maximumNodes) {
+            throw new InvalidDataException(
+                $"An iWork formula exceeds the configured syntax-node limit of {maximumNodes}.");
         }
         IWorkWireMessage nodeArray;
         try {
