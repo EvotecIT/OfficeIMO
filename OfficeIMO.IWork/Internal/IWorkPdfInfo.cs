@@ -197,7 +197,8 @@ internal static class IWorkPdfInfo {
             if (!parent.HasValue
                 || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
                     out long parentObject, out long parentGeneration)
-                || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation) {
+                || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
+                || !HasCompletePageContents(bytes, inUseOffsets, dictionaryStart, dictionaryEnd, limit)) {
                 return false;
             }
             pageCount = 1;
@@ -222,6 +223,94 @@ internal static class IWorkPdfInfo {
         }
         pageCount = total;
         return total == declaredCount;
+    }
+
+    private static bool HasCompletePageContents(byte[] bytes,
+        IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int dictionaryStart, int dictionaryEnd, int limit) {
+        int contentsOffset = FindDictionaryName(bytes, "/Contents", dictionaryStart,
+            dictionaryEnd, out int contentsCount);
+        if (contentsCount == 0) return true;
+        if (contentsCount != 1 || contentsOffset < 0) return false;
+
+        IReadOnlyList<(long Object, long Generation)> references;
+        if (TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Contents",
+                out long contentObject, out long contentGeneration)) {
+            references = new[] { (contentObject, contentGeneration) };
+        } else if (!TryReadDictionaryReferenceArray(bytes, dictionaryStart, dictionaryEnd,
+                       "/Contents", out references)) {
+            return false;
+        }
+
+        var validated = new HashSet<(long Object, long Generation)>();
+        foreach ((long referencedObject, long referencedGeneration) in references) {
+            if (!inUseOffsets.TryGetValue((referencedObject, referencedGeneration), out int contentOffset)
+                || validated.Add((referencedObject, referencedGeneration))
+                && !IsCompleteStreamObject(bytes, inUseOffsets, contentOffset, limit,
+                    referencedObject, referencedGeneration)) return false;
+        }
+        return true;
+    }
+
+    private static bool IsCompleteStreamObject(byte[] bytes,
+        IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int offset, int limit, long expectedObject, long expectedGeneration) {
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!TryReadDecimal(bytes, ref offset, limit, out long objectNumber)
+            || objectNumber != expectedObject) return false;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!TryReadDecimal(bytes, ref offset, limit, out long generation)
+            || generation != expectedGeneration) return false;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!StartsWith(bytes, offset, "obj")) return false;
+        offset += 3;
+        SkipWhitespace(bytes, ref offset, limit);
+        int dictionaryStart = StartsWith(bytes, offset, "<<") ? offset : -1;
+        int dictionaryEnd = dictionaryStart < 0 ? -1 : FindDictionaryEnd(bytes,
+            dictionaryStart, Math.Min(limit, dictionaryStart + 65536));
+        if (dictionaryStart < 0 || dictionaryEnd < 0) return false;
+
+        long streamLength;
+        if (!TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Length",
+                out streamLength)) {
+            if (!TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Length",
+                    out long lengthObject, out long lengthGeneration)
+                || !inUseOffsets.TryGetValue((lengthObject, lengthGeneration), out int lengthOffset)
+                || !TryReadIndirectIntegerObject(bytes, lengthOffset, limit,
+                    lengthObject, lengthGeneration, out streamLength)) return false;
+        }
+        if (streamLength < 0 || streamLength > int.MaxValue) return false;
+
+        offset = dictionaryEnd + 2;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!StartsWith(bytes, offset, "stream")) return false;
+        offset += 6;
+        if (!ConsumeLineEnd(bytes, ref offset, limit)
+            || offset > limit - streamLength) return false;
+        offset += (int)streamLength;
+        if (!ConsumeLineEnd(bytes, ref offset, limit)
+            || !StartsWith(bytes, offset, "endstream")) return false;
+        offset += 9;
+        SkipWhitespace(bytes, ref offset, limit);
+        return StartsWith(bytes, offset, "endobj");
+    }
+
+    private static bool TryReadIndirectIntegerObject(byte[] bytes, int offset, int limit,
+        long expectedObject, long expectedGeneration, out long value) {
+        value = 0;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!TryReadDecimal(bytes, ref offset, limit, out long objectNumber)
+            || objectNumber != expectedObject) return false;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!TryReadDecimal(bytes, ref offset, limit, out long generation)
+            || generation != expectedGeneration) return false;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!StartsWith(bytes, offset, "obj")) return false;
+        offset += 3;
+        SkipWhitespace(bytes, ref offset, limit);
+        if (!TryReadDecimal(bytes, ref offset, limit, out value)) return false;
+        SkipWhitespace(bytes, ref offset, limit);
+        return StartsWith(bytes, offset, "endobj");
     }
 
     private static bool TryReadDictionaryReferenceArray(byte[] bytes, int start, int end,

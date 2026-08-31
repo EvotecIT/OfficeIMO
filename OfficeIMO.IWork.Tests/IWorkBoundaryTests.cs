@@ -1154,6 +1154,7 @@ public sealed partial class IWorkBoundaryTests {
         if (table.CellCrossesNextOffset) return CreateCrossingBncRow(table.Value);
         int cellOffset = table.WideOffsets ? 4 : 0;
         int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
+            : table.ConflictingNumberValue ? 24
             : table.Decimal128HighBit || table.Decimal128Underflow ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
@@ -1166,6 +1167,7 @@ public sealed partial class IWorkBoundaryTests {
             : (byte)2;
         uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.TextValue != null ? 1u << 3
+            : table.ConflictingNumberValue ? (1u << 0) | (1u << 1)
             : table.Decimal128HighBit || table.Decimal128Underflow ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
@@ -1174,7 +1176,12 @@ public sealed partial class IWorkBoundaryTests {
             | (table.UnknownCellValueFlag ? 1u << 21 : 0));
         if (!table.FormulaWithoutCachedValue && !table.Error) {
             if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
-            else if (table.Decimal128HighBit) {
+            else if (table.ConflictingNumberValue) {
+                buffer[cellOffset + 12] = 1;
+                buffer[cellOffset + 26] = 0x40;
+                buffer[cellOffset + 27] = 0x30;
+                Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 28, 8);
+            } else if (table.Decimal128HighBit) {
                 buffer[cellOffset + 26] = 0x41;
                 buffer[cellOffset + 27] = 0x30;
             } else if (table.Decimal128Underflow) {
@@ -1519,7 +1526,7 @@ public sealed partial class IWorkBoundaryTests {
             int unexpectedStringCatalogFieldCount = 0,
             int unexpectedFormulaCatalogFieldCount = 0,
             int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
-            bool duplicateRowIndex = false) {
+            bool duplicateRowIndex = false, bool conflictingNumberValue = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1566,6 +1573,7 @@ public sealed partial class IWorkBoundaryTests {
             TrailingEmptyOffsetCount = trailingEmptyOffsetCount;
             DuplicateTableStore = duplicateTableStore;
             DuplicateRowIndex = duplicateRowIndex;
+            ConflictingNumberValue = conflictingNumberValue;
         }
 
         internal string Name { get; }
@@ -1614,5 +1622,6 @@ public sealed partial class IWorkBoundaryTests {
         internal int TrailingEmptyOffsetCount { get; }
         internal bool DuplicateTableStore { get; }
         internal bool DuplicateRowIndex { get; }
+        internal bool ConflictingNumberValue { get; }
     }
 }

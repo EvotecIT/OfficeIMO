@@ -300,6 +300,14 @@ internal static class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
         }
         IWorkArchiveRecord? titlePlaceholder = index.Dereference(message, 5);
+        if (message.FieldCount(6) > 1) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                "A Keynote slide declares more than one body placeholder; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
+        }
+        IWorkArchiveRecord? bodyPlaceholder = index.Dereference(message, 6);
         var candidates = new List<IWorkArchiveRecord>();
         var candidateIdentifiers = new HashSet<ulong>();
         bool hasUnresolvedDrawable = false;
@@ -443,7 +451,7 @@ internal static class IWorkKeynoteReader {
                 title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
-                if (index.Dereference(message, 6)?.Identifier == drawable.Identifier) {
+                if (bodyPlaceholder?.Identifier == drawable.Identifier) {
                     IWorkWireMessage? bodyGeometry = IWorkObjectIndex.TryGetMessage(
                         message, 14, out bool malformedBodyGeometry);
                     if (bodyGeometry != null) {

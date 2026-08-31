@@ -2,6 +2,8 @@ namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkObjectIndex {
     private readonly Dictionary<ulong, IWorkArchiveRecord> _objects;
+    private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
+    private readonly object _messageLock = new();
     private readonly IWorkReadOptions _options;
 
     internal IWorkObjectIndex(IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
@@ -19,7 +21,14 @@ internal sealed class IWorkObjectIndex {
 
     internal IEnumerable<IWorkArchiveRecord> PrimaryRecords => _objects.Values;
 
-    internal IWorkWireMessage Message(IWorkArchiveRecord record) => IWorkProtobuf.Parse(record.Payload, _options);
+    internal IWorkWireMessage Message(IWorkArchiveRecord record) {
+        lock (_messageLock) {
+            if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
+            IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
+            _messages.Add(record, parsed);
+            return parsed;
+        }
+    }
 
     internal IWorkArchiveRecord? UniqueOfType(uint type, out bool duplicate) {
         IWorkArchiveRecord[] matches = _objects.Values

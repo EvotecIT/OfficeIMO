@@ -473,6 +473,9 @@ internal static class IWorkTextReader {
             return false;
         }
         if (message == null) return false;
+        bool hasWhite = message.HasField(11);
+        bool hasAnyRgb = message.HasField(3) || message.HasField(4) || message.HasField(5);
+        bool hasCompleteRgb = message.HasField(3) && message.HasField(4) && message.HasField(5);
         float? white = message.GetFloat(11);
         float red = white ?? message.GetFloat(3) ?? 0;
         float green = white ?? message.GetFloat(4) ?? 0;
@@ -482,6 +485,8 @@ internal static class IWorkTextReader {
                 message.FieldCount(component) > 1
                 || message.HasUnexpectedWireKind(component, IWorkWireKind.Fixed32)
                 || message.HasField(component) && !message.GetFloat(component).HasValue)
+            || hasWhite == hasAnyRgb
+            || hasAnyRgb && !hasCompleteRgb
             || !new[] { red, green, blue, alpha }.All(IsNormalizedColorComponent)) {
             complete = false;
             return false;

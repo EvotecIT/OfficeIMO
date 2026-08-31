@@ -939,6 +939,19 @@ internal static class IWorkNumbersReader {
             position += size;
         }
 
+        bool hasConflictingValueFields = type switch {
+            0 => hasDecimal || hasDouble || hasDate || hasString,
+            2 or 10 => hasDecimal && hasDouble || hasDate || hasString,
+            3 => hasDecimal || hasDouble || hasDate,
+            5 => hasDecimal || hasDouble || hasString,
+            6 or 7 => hasDecimal || hasDate || hasString,
+            8 or 9 => hasDecimal || hasDouble || hasDate || hasString,
+            _ => false
+        };
+        if (hasConflictingValueFields) {
+            return Error(row, column, "Cell storage declares conflicting value fields.");
+        }
+
         switch (type) {
             case 0:
                 return new IWorkTableCell(row, column, IWorkCellKind.Empty, null);
@@ -1043,9 +1056,11 @@ internal static class IWorkNumbersReader {
 
     private static bool TryReadDateTime(double seconds, out DateTime value) {
         long epochTicks = new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).Ticks;
-        double roundedDeltaTicks = Math.Round(seconds * TimeSpan.TicksPerSecond,
+        double deltaTicks = seconds * TimeSpan.TicksPerSecond;
+        double roundedDeltaTicks = Math.Round(deltaTicks,
             MidpointRounding.AwayFromZero);
         if (!IsFinite(roundedDeltaTicks)
+            || deltaTicks != roundedDeltaTicks
             || roundedDeltaTicks < -epochTicks
             || roundedDeltaTicks > DateTime.MaxValue.Ticks - epochTicks) {
             value = default;
