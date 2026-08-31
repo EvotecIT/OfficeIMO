@@ -74,6 +74,9 @@ public sealed class PdfLogicalTableContinuationContractTests {
         Assert.False(PdfLogicalTableContinuations.HeadersEqual(
             new[] { "ID", "Amount" },
             new[] { "IP", "Amount" }));
+        Assert.False(PdfLogicalTableContinuations.HeadersEqual(
+            new[] { "Region", "Revenue 2023" },
+            new[] { "Region", "Revenue 2024" }));
     }
 
     private static byte[] BuildMultiPageTablePdf() {

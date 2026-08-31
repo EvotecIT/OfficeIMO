@@ -350,6 +350,7 @@ internal static class PdfDocumentSemanticEnricher {
 
     private static int? HeadingLevel(string role) =>
         role.Length == 2 && (role[0] == 'H' || role[0] == 'h') && char.IsDigit(role[1])
+            && role[1] >= '1' && role[1] <= '6'
             ? role[1] - '0'
             : null;
 

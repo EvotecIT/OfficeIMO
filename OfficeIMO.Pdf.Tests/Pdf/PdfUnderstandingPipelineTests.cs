@@ -353,6 +353,20 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_IgnoresInvalidTaggedHeadingLevels() {
+        byte[] pdf = CreateInvalidTaggedHeadingPdf();
+
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        Assert.Contains(page.Elements, element =>
+            element.Region.Text.Contains("Malformed tagged heading", StringComparison.Ordinal));
+        Assert.DoesNotContain(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Heading && element.Level is <= 0);
+        Assert.Contains(result.TaggedContent!.StructureElements, element => element.StructureType == "H0");
+    }
+
+    [Fact]
     public void SemanticClassifier_DoesNotCreateASecondTableFromUnrelatedGaps() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
@@ -683,6 +697,21 @@ public class PdfUnderstandingPipelineTests {
             "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R " +
                 "/K << /Type /MCR /Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
+    }
+
+    private static byte[] CreateInvalidTaggedHeadingPdf() {
+        string content = "/H0 << /MCID 0 >> BDC\n" +
+            "BT /F1 12 Tf 72 700 Td (Malformed tagged heading) Tj ET\nEMC\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /H0 /P 6 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Nums [0 [7 0 R]] >>");
     }
 
     private static string BuildStreamBody(string dictionaryEntries, string content) {

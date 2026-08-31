@@ -74,6 +74,9 @@ namespace OfficeIMO.Word.Pdf {
                         case ImportItemKind.Paragraph:
                             AddParagraph(target, item.Paragraph!, item.Link, item.LinkText, options, navigation);
                             break;
+                        case ImportItemKind.TextBlock:
+                            AddTextBlock(target, item.TextBlock!, item.Link, item.LinkText, options, navigation);
+                            break;
                         case ImportItemKind.ListItem:
                             AddListItem(target, item.ListItem!, ref bulletList, ref numberedList);
                             break;
@@ -123,6 +126,25 @@ namespace OfficeIMO.Word.Pdf {
                     PdfCore.PdfLogicalParagraph paragraph = page.Paragraphs[i];
                     PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, paragraph, options, navigation, consumedLinks);
                     items.Add(ImportItem.ForParagraph(paragraph, paragraph.YTop, sequence++, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i), link, link == null ? null : paragraph.Text));
+                }
+
+                for (int i = 0; i < page.TextBlocks.Count; i++) {
+                    PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
+                    if (block.Kind is not (PdfCore.PdfLogicalElementKind.Header or
+                        PdfCore.PdfLogicalElementKind.Footer or
+                        PdfCore.PdfLogicalElementKind.Caption or
+                        PdfCore.PdfLogicalElementKind.Footnote)) {
+                        continue;
+                    }
+
+                    PdfCore.PdfLogicalLinkAnnotation? link = FindOverlappingImportableLink(page, block, options, navigation, consumedLinks);
+                    items.Add(ImportItem.ForTextBlock(
+                        block,
+                        block.BaselineY,
+                        sequence++,
+                        GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i),
+                        link,
+                        link == null ? null : block.Text));
                 }
             }
 
@@ -440,6 +462,21 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? paragraph.Text : linkText!, options, navigation);
+        }
+
+        private static void AddTextBlock(
+            WordDocument document,
+            PdfCore.PdfLogicalTextBlock block,
+            PdfCore.PdfLogicalLinkAnnotation? link,
+            string? linkText,
+            PdfWordImportOptions options,
+            ImportNavigationMap navigation) {
+            if (link == null) {
+                AddStyledParagraph(document, new[] { block });
+                return;
+            }
+
+            AddHyperlinkParagraph(document, link, string.IsNullOrWhiteSpace(linkText) ? block.Text : linkText!, options, navigation);
         }
 
         private static WordParagraph AddStyledParagraph(
@@ -950,6 +987,8 @@ namespace OfficeIMO.Word.Pdf {
 
             public PdfCore.PdfLogicalParagraph? Paragraph { get; private set; }
 
+            public PdfCore.PdfLogicalTextBlock? TextBlock { get; private set; }
+
             public PdfCore.PdfLogicalListItem? ListItem { get; private set; }
 
             public PdfCore.PdfLogicalTableExtraction? TableExtraction { get; private set; }
@@ -970,6 +1009,9 @@ namespace OfficeIMO.Word.Pdf {
             public static ImportItem ForParagraph(PdfCore.PdfLogicalParagraph paragraph, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
                 new ImportItem(ImportItemKind.Paragraph, y, sequence, readingOrderIndex) { Paragraph = paragraph, Link = link, LinkText = linkText };
 
+            public static ImportItem ForTextBlock(PdfCore.PdfLogicalTextBlock block, double y, int sequence, int? readingOrderIndex, PdfCore.PdfLogicalLinkAnnotation? link = null, string? linkText = null) =>
+                new ImportItem(ImportItemKind.TextBlock, y, sequence, readingOrderIndex) { TextBlock = block, Link = link, LinkText = linkText };
+
             public static ImportItem ForListItem(PdfCore.PdfLogicalListItem listItem, double y, int sequence, int? readingOrderIndex) =>
                 new ImportItem(ImportItemKind.ListItem, y, sequence, readingOrderIndex) { ListItem = listItem };
 
@@ -989,6 +1031,7 @@ namespace OfficeIMO.Word.Pdf {
         private enum ImportItemKind {
             Heading,
             Paragraph,
+            TextBlock,
             ListItem,
             Table,
             Image,

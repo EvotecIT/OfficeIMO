@@ -226,8 +226,9 @@ public static class PdfLogicalTableContinuations {
         var previousSignature = new System.Text.StringBuilder();
         var currentSignature = new System.Text.StringBuilder();
         for (int index = 0; index < previous.Count; index++) {
-            string left = PdfTextSimilarity.NormalizeSignature(previous[index]);
-            string right = PdfTextSimilarity.NormalizeSignature(current[index]);
+            string left = NormalizeHeaderSignature(previous[index]);
+            string right = NormalizeHeaderSignature(current[index]);
+            if (!HaveMatchingNumbers(left, right)) return false;
             if (left.Length == 0 || right.Length == 0) {
                 if (!string.Equals(left, right, StringComparison.Ordinal)) return false;
             } else if (left.Length < 5 || right.Length < 5) {
@@ -246,6 +247,28 @@ public static class PdfLogicalTableContinuations {
         return PdfTextSimilarity.NormalizedSimilarity(
             previousSignature.ToString(),
             currentSignature.ToString()) >= 0.88D;
+    }
+
+    private static string NormalizeHeaderSignature(string? value) {
+        string signature = PdfTextSimilarity.NormalizeSignaturePreservingDigits(value);
+        return System.Text.RegularExpressions.Regex.Replace(
+            signature,
+            @"\s+(?:page|pg|p)\s+\d+(?:\s+of\s+\d+)?$",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    }
+
+    private static bool HaveMatchingNumbers(string left, string right) {
+        System.Text.RegularExpressions.MatchCollection leftNumbers =
+            System.Text.RegularExpressions.Regex.Matches(left, @"\d+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        System.Text.RegularExpressions.MatchCollection rightNumbers =
+            System.Text.RegularExpressions.Regex.Matches(right, @"\d+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        if (leftNumbers.Count != rightNumbers.Count) return false;
+        for (int index = 0; index < leftNumbers.Count; index++) {
+            if (!string.Equals(leftNumbers[index].Value, rightNumbers[index].Value, StringComparison.Ordinal)) return false;
+        }
+
+        return true;
     }
 
     private static PdfLogicalTableContinuationGroup CreateGroup(

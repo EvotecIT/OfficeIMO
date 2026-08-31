@@ -81,6 +81,48 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndFootnoteText() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 450,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 42,
+                MarginBottom = 42,
+                DefaultFontSize = 11
+            })
+            .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
+            .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
+            .Paragraph(paragraph => paragraph.Text("Figure 1. Classified caption"))
+            .Canvas(canvas => canvas.Text("1 Classified footnote", 36D, 415D, 220D, 18D, fontSize: 7D))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third page body."))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
+
+        Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Headers));
+        Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Footers));
+        Assert.Contains(logical.Pages.SelectMany(static page => page.Captions), block => block.Text.Contains("Classified caption", StringComparison.Ordinal));
+        Assert.True(
+            logical.Pages.SelectMany(static page => page.Footnotes).Any(block => block.Text.Contains("Classified footnote", StringComparison.Ordinal)),
+            string.Join(" | ", logical.Pages.SelectMany(static page => page.TextBlocks).Select(static block =>
+                block.Kind + ":" + block.Text + ":" + block.BaselineY.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+
+        using OfficeWordDocument imported = logical.ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(imported.ToBytes()), false);
+        string importedText = string.Join("\n", GetPdfSemanticBody(package)
+            .Elements<Paragraph>()
+            .Select(ReadParagraphText));
+
+        Assert.Contains("Import header", importedText, StringComparison.Ordinal);
+        Assert.Contains("Import footer", importedText, StringComparison.Ordinal);
+        Assert.Contains("Figure 1. Classified caption", importedText, StringComparison.Ordinal);
+        Assert.Contains("1 Classified footnote", importedText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfSemanticImport_ResultsKeepDiagnosticsScopedToEachConversion() {
         byte[] imagePdf = PdfCore.PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Operation-scoped image")
