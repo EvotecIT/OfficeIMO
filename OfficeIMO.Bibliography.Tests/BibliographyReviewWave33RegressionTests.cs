@@ -29,11 +29,8 @@ public sealed class BibliographyReviewWave33RegressionTests {
     public void CSL_large_token_parsing_observes_cancellation() {
         string source = "[{\"id\":\"x\",\"title\":\"" + new string('x', 16 * 1024 * 1024) + "\"}]";
         var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
-
-        Assert.Throws<OperationCanceledException>(() =>
-            BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options, cancellation.Token));
+        BibliographyCancellationTest.AssertObserved(token =>
+            BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options, token));
     }
 
     [Fact]

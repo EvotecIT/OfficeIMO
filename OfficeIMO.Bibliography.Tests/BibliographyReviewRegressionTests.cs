@@ -319,10 +319,8 @@ public sealed class BibliographyReviewRegressionTests {
         var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book };
         for (int index = 0; index < 100_000; index++) item.NativeFields.Add(new BibliographyNativeField(BibliographyFormat.CslJson, "field-" + index.ToString(CultureInfo.InvariantCulture), "true", "true"));
         document.Items.Add(item);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
-
-        Assert.Throws<OperationCanceledException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, cancellation.Token));
+        BibliographyCancellationTest.AssertObserved(token =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, token), delayMilliseconds: 10);
     }
 
     [Fact]
@@ -655,11 +653,8 @@ public sealed class BibliographyReviewRegressionTests {
     public void Bib_raw_directives_observe_cancellation_during_scan() {
         string source = "@comment{" + new string('x', 8 * 1024 * 1024);
         var options = new BibliographyReadOptions { MaximumValueLength = 16 * 1024 * 1024 };
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
-
-        Assert.Throws<OperationCanceledException>(() =>
-            BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options, cancellation.Token));
+        BibliographyCancellationTest.AssertObserved(token =>
+            BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options, token), delayMilliseconds: 10);
     }
 
     [Fact]

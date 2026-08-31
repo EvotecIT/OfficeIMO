@@ -90,9 +90,7 @@ public sealed class BibliographyReviewWave24RegressionTests {
         var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book };
         for (int index = 0; index < 200_000; index++) item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Family" + index }));
         document.Items.Add(item);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
-
-        Assert.Throws<OperationCanceledException>(() => BibCodec.Write(document, BibliographyFormat.BibLatex, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), cancellation.Token));
+        BibliographyCancellationTest.AssertObserved(token =>
+            BibCodec.Write(document, BibliographyFormat.BibLatex, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), token));
     }
 }

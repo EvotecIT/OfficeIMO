@@ -14,8 +14,8 @@ public sealed class BibliographyReviewWave54RegressionTests {
         BibliographyNativeEntry reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.NativeEntries,
             entry => entry.Kind == kind && entry.Name == "metadata");
 
-        Assert.Contains("A\nB", reopened.Value, StringComparison.Ordinal);
-        Assert.DoesNotContain('\r', reopened.Value);
+        Assert.Equal("<metadata>A\nB</metadata>", reopened.Value.Replace("\r\n", "\n"));
+        Assert.DoesNotContain("A\rB", reopened.Value, StringComparison.Ordinal);
         Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV235" && diagnostic.Field == "metadata");
     }

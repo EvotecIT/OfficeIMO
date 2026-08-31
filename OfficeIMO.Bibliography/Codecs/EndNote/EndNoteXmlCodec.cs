@@ -112,11 +112,11 @@ internal static class EndNoteXmlCodec {
                 string recordElementName = GetRecordElementName(item, cancellationToken);
                 writer.WriteStartElement(recordPrefix, recordElementName, recordNamespace);
                 WriteRecordAttributes(writer, item, report, cancellationToken);
-                WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace);
-                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteAttributeString("name", SanitizeXml(OutputType(document.SourceFormat, item), cancellationToken)); writer.WriteString(ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture)); writer.WriteEndElement();
-                WriteContributors(writer, item, recordNamespace, cancellationToken); WriteTitles(writer, item, recordNamespace); WritePeriodical(writer, item, recordNamespace); WriteElement(writer, "pages", item.Pages, recordNamespace); WriteElement(writer, "volume", item.Volume, recordNamespace); WriteElement(writer, "number", item.Issue, recordNamespace);
-                WriteElement(writer, "edition", item.Edition, recordNamespace); WriteElement(writer, "publisher", item.Publisher, recordNamespace); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace);
-                WriteElement(writer, "abstract", item.Abstract, recordNamespace); WriteElement(writer, "language", item.Language, recordNamespace); WriteDates(writer, item, report, recordNamespace, cancellationToken);
+                WriteElement(writer, "rec-number", outputKeys[itemIndex], recordNamespace, cancellationToken);
+                writer.WriteStartElement(null, "ref-type", recordNamespace); writer.WriteStartAttribute("name"); WriteStringCancellable(writer, SanitizeXml(OutputType(document.SourceFormat, item), cancellationToken), cancellationToken); writer.WriteEndAttribute(); WriteStringCancellable(writer, ToEndNoteNumber(item.Type).ToString(CultureInfo.InvariantCulture), cancellationToken); writer.WriteEndElement();
+                WriteContributors(writer, item, recordNamespace, cancellationToken); WriteTitles(writer, item, recordNamespace, cancellationToken); WritePeriodical(writer, item, recordNamespace, cancellationToken); WriteElement(writer, "pages", item.Pages, recordNamespace, cancellationToken); WriteElement(writer, "volume", item.Volume, recordNamespace, cancellationToken); WriteElement(writer, "number", item.Issue, recordNamespace, cancellationToken);
+                WriteElement(writer, "edition", item.Edition, recordNamespace, cancellationToken); WriteElement(writer, "publisher", item.Publisher, recordNamespace, cancellationToken); WriteElement(writer, "pub-location", item.PublisherPlace, recordNamespace, cancellationToken);
+                WriteElement(writer, "abstract", item.Abstract, recordNamespace, cancellationToken); WriteElement(writer, "language", item.Language, recordNamespace, cancellationToken); WriteDates(writer, item, report, recordNamespace, cancellationToken);
                 foreach (BibliographyIdentifier identifier in Cancellable(item.Identifiers, cancellationToken)) WriteIdentifier(writer, identifier, recordNamespace, cancellationToken);
                 bool hasAdditionalUrls = Cancellable(item.NativeFields, cancellationToken).Any(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, recordNamespace));
                 bool wroteUrls = false;
@@ -124,8 +124,8 @@ internal static class EndNoteXmlCodec {
                     WriteUrls(writer, item, report, recordNamespace, cancellationToken);
                     wroteUrls = true;
                 }
-                if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteElement(writer, "keyword", keyword, recordNamespace); writer.WriteEndElement(); }
-                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", Cancellable(item.Notes, cancellationToken)), recordNamespace);
+                if (item.Keywords.Count > 0) { writer.WriteStartElement(null, "keywords", recordNamespace); foreach (string keyword in Cancellable(item.Keywords, cancellationToken)) WriteElement(writer, "keyword", keyword, recordNamespace, cancellationToken); writer.WriteEndElement(); }
+                if (item.Notes.Count > 0) WriteElement(writer, "notes", string.Join("; ", Cancellable(item.Notes, cancellationToken)), recordNamespace, cancellationToken);
                 foreach (BibliographyNativeField field in Cancellable(item.NativeFields, cancellationToken)) {
                     if (field.Format == BibliographyFormat.EndNoteXml && string.Equals(field.Name, RecordAttributesFieldName, StringComparison.Ordinal)) {
                         continue;
@@ -257,20 +257,20 @@ internal static class EndNoteXmlCodec {
         if (item.Contributors.Count == 0) return;
         writer.WriteStartElement(null, "contributors", xmlNamespace);
         foreach (IGrouping<BibliographyContributorRole, BibliographyContributor> group in Cancellable(item.Contributors, cancellationToken).GroupBy(static contributor => contributor.Role)) {
-            writer.WriteStartElement(null, ElementFromRole(group.Key), xmlNamespace); foreach (BibliographyContributor contributor in Cancellable(group, cancellationToken)) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name), xmlNamespace); writer.WriteEndElement();
+            writer.WriteStartElement(null, ElementFromRole(group.Key), xmlNamespace); foreach (BibliographyContributor contributor in Cancellable(group, cancellationToken)) WriteElement(writer, "author", CodecMappings.FormatName(contributor.Name), xmlNamespace, cancellationToken); writer.WriteEndElement();
         }
         writer.WriteEndElement();
     }
 
-    private static void WriteTitles(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
+    private static void WriteTitles(XmlWriter writer, BibliographyItem item, string xmlNamespace, CancellationToken cancellationToken) {
         string? secondaryTitle = item.EndNoteFieldNames.TryGetValue("container-title", out string? source) && string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase) ? null : item.ContainerTitle;
         if (item.Title == null && secondaryTitle == null && item.CollectionTitle == null) return;
-        writer.WriteStartElement(null, "titles", xmlNamespace); WriteElement(writer, "title", item.Title, xmlNamespace); WriteElement(writer, "secondary-title", secondaryTitle, xmlNamespace); WriteElement(writer, "tertiary-title", item.CollectionTitle, xmlNamespace); writer.WriteEndElement();
+        writer.WriteStartElement(null, "titles", xmlNamespace); WriteElement(writer, "title", item.Title, xmlNamespace, cancellationToken); WriteElement(writer, "secondary-title", secondaryTitle, xmlNamespace, cancellationToken); WriteElement(writer, "tertiary-title", item.CollectionTitle, xmlNamespace, cancellationToken); writer.WriteEndElement();
     }
 
-    private static void WritePeriodical(XmlWriter writer, BibliographyItem item, string xmlNamespace) {
+    private static void WritePeriodical(XmlWriter writer, BibliographyItem item, string xmlNamespace, CancellationToken cancellationToken) {
         if (!item.EndNoteFieldNames.TryGetValue("container-title", out string? source) || !string.Equals(source, "periodical", StringComparison.OrdinalIgnoreCase) || item.ContainerTitle == null) return;
-        writer.WriteStartElement(null, "periodical", xmlNamespace); WriteElement(writer, "full-title", item.ContainerTitle, xmlNamespace); writer.WriteEndElement();
+        writer.WriteStartElement(null, "periodical", xmlNamespace); WriteElement(writer, "full-title", item.ContainerTitle, xmlNamespace, cancellationToken); writer.WriteEndElement();
     }
 
     private static void WriteDates(XmlWriter writer, BibliographyItem item, BibliographyConversionReport report, string xmlNamespace, CancellationToken cancellationToken) {
@@ -280,14 +280,14 @@ internal static class EndNoteXmlCodec {
         if (nativeYear != null) {
             if (TryWriteNativeField(writer, nativeYear, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct EndNote XML year component.", BibliographyConversionAction.PreservedExtension, item, "dates.year");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct EndNote XML year component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.year");
-        } else if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace);
+        } else if (date.Year.HasValue) WriteElement(writer, "year", date.Year.Value.ToString(CultureInfo.InvariantCulture), xmlNamespace, cancellationToken);
         string formatted = CodecMappings.FormatDate(date);
         BibliographyNativeField? nativePublicationDate = Cancellable(date.NativeFields, cancellationToken).FirstOrDefault(field => CanPreserveNativePublicationDateField(date, field, cancellationToken));
         writer.WriteStartElement(null, "pub-dates", xmlNamespace);
         if (nativePublicationDate != null) {
             if (TryWriteNativeField(writer, nativePublicationDate, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved a distinct empty EndNote XML publication-date component.", BibliographyConversionAction.PreservedExtension, item, "dates.date");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "A distinct empty EndNote XML publication-date component is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "dates.date");
-        } else WriteElement(writer, "date", formatted, xmlNamespace);
+        } else WriteElement(writer, "date", formatted, xmlNamespace, cancellationToken);
         writer.WriteEndElement();
         writer.WriteEndElement();
     }
@@ -307,7 +307,7 @@ internal static class EndNoteXmlCodec {
         BibliographyNativeField[] additionalUrls = Cancellable(item.NativeFields, cancellationToken).Where(field => field.Format == BibliographyFormat.EndNoteXml && IsAdditionalUrlField(field, xmlNamespace)).ToArray();
         if (item.Url == null && additionalUrls.Length == 0) return;
         writer.WriteStartElement(null, "urls", xmlNamespace); writer.WriteStartElement(null, "related-urls", xmlNamespace);
-        writer.WriteElementString(null, "url", xmlNamespace, item.Url == null ? string.Empty : SanitizeXml(item.Url, cancellationToken));
+        WriteElement(writer, "url", item.Url ?? string.Empty, xmlNamespace, cancellationToken);
         foreach (BibliographyNativeField field in Cancellable(additionalUrls, cancellationToken)) {
             if (TryWriteNativeField(writer, field, xmlNamespace, cancellationToken)) report.Add("BIBCONV014", BibliographyDiagnosticSeverity.Information, "Preserved an additional EndNote XML related URL.", BibliographyConversionAction.PreservedExtension, item, "url");
             else report.Add("BIBCONV123", BibliographyDiagnosticSeverity.Warning, "An additional EndNote XML related URL is malformed and was omitted.", BibliographyConversionAction.Omitted, item, "url");
@@ -319,7 +319,7 @@ internal static class EndNoteXmlCodec {
         if (string.Equals(identifier.Scheme, "ISBN", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "ISSN", StringComparison.OrdinalIgnoreCase)) {
             writer.WriteStartElement(null, "isbn", xmlNamespace);
             if (!string.Equals(CodecMappings.InferSerialScheme(identifier.Value), identifier.Scheme, StringComparison.Ordinal)) writer.WriteAttributeString("type", SanitizeXml(identifier.Scheme, cancellationToken));
-            writer.WriteString(SanitizeXml(identifier.Value, cancellationToken)); writer.WriteEndElement();
+            WriteStringCancellable(writer, SanitizeXml(identifier.Value, cancellationToken), cancellationToken); writer.WriteEndElement();
         }
         else if (string.Equals(identifier.Scheme, "DOI", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "electronic-resource-num", identifier.Value, xmlNamespace, cancellationToken);
         else if (string.Equals(identifier.Scheme, "accession", StringComparison.OrdinalIgnoreCase) || string.Equals(identifier.Scheme, "PMID", StringComparison.OrdinalIgnoreCase)) WriteElement(writer, "accession-num", identifier.Value, xmlNamespace, cancellationToken);
@@ -399,9 +399,11 @@ internal static class EndNoteXmlCodec {
 
     private static void WriteStringCancellable(XmlWriter writer, string value, CancellationToken cancellationToken) {
         const int chunkSize = 4096;
-        for (int offset = 0; offset < value.Length; offset += chunkSize) {
+        for (int offset = 0; offset < value.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            writer.WriteString(value.Substring(offset, Math.Min(chunkSize, value.Length - offset)));
+            int length = GetWriteChunkLength(value, offset, chunkSize);
+            writer.WriteString(value.Substring(offset, length));
+            offset += length;
         }
         cancellationToken.ThrowIfCancellationRequested();
     }
@@ -409,12 +411,21 @@ internal static class EndNoteXmlCodec {
     private static void WriteRawNodeCancellable(XmlWriter writer, string prefix, string value, string suffix, CancellationToken cancellationToken) {
         writer.WriteRaw(prefix);
         const int chunkSize = 4096;
-        for (int offset = 0; offset < value.Length; offset += chunkSize) {
+        for (int offset = 0; offset < value.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
-            writer.WriteRaw(value.Substring(offset, Math.Min(chunkSize, value.Length - offset)));
+            int length = GetWriteChunkLength(value, offset, chunkSize);
+            writer.WriteRaw(value.Substring(offset, length));
+            offset += length;
         }
         cancellationToken.ThrowIfCancellationRequested();
         writer.WriteRaw(suffix);
+    }
+
+    private static int GetWriteChunkLength(string value, int offset, int maximumLength) {
+        int length = Math.Min(maximumLength, value.Length - offset);
+        int next = offset + length;
+        if (next < value.Length && char.IsHighSurrogate(value[next - 1]) && char.IsLowSurrogate(value[next])) length++;
+        return length;
     }
 
     internal static bool ContainsCarriageReturn(string value, CancellationToken cancellationToken = default) {
@@ -561,7 +572,9 @@ internal static class EndNoteXmlCodec {
         if (field.RawValue != null) return TryWriteEditedNativeElement(writer, field, cancellationToken);
         try {
             XmlConvert.VerifyNCName(field.Name);
-            writer.WriteElementString(null, field.Name, xmlNamespace, SanitizeXml(field.Value, cancellationToken));
+            writer.WriteStartElement(null, field.Name, xmlNamespace);
+            WriteStringCancellable(writer, SanitizeXml(field.Value, cancellationToken), cancellationToken);
+            writer.WriteEndElement();
             return true;
         } catch (XmlException) {
             return false;
@@ -703,7 +716,12 @@ internal static class EndNoteXmlCodec {
         if (string.Equals(element.Parent?.Name.LocalName, "record", StringComparison.OrdinalIgnoreCase) && HasUnsupportedNestedContent(element, cancellationToken)) return true;
         return !IsKnownContainer(element.Name.LocalName);
     }
-    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace, CancellationToken cancellationToken = default) { if (value != null) writer.WriteElementString(null, name, xmlNamespace, SanitizeXml(value, cancellationToken)); }
+    private static void WriteElement(XmlWriter writer, string name, string? value, string xmlNamespace, CancellationToken cancellationToken) {
+        if (value == null) return;
+        writer.WriteStartElement(null, name, xmlNamespace);
+        WriteStringCancellable(writer, SanitizeXml(value, cancellationToken), cancellationToken);
+        writer.WriteEndElement();
+    }
     internal static string SanitizeXml(string value, CancellationToken cancellationToken = default) {
         var builder = new StringBuilder(value.Length);
         for (int index = 0; index < value.Length; index++) {

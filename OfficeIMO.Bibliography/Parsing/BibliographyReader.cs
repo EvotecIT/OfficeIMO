@@ -292,7 +292,7 @@ internal static class BibliographyFormatDetector {
     private static bool LooksLikeEndNoteRecordsContainer(string source, int maximumNestingDepth, CancellationToken cancellationToken) {
         try {
             var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, IgnoreComments = true, IgnoreProcessingInstructions = true };
-            using var textReader = new StringReader(source);
+            using var textReader = new EndNoteCancellableTextReader(source, cancellationToken);
             using XmlReader reader = XmlReader.Create(textReader, settings);
             while (reader.Read()) {
                 cancellationToken.ThrowIfCancellationRequested();

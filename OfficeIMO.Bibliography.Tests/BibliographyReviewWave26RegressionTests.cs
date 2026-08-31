@@ -41,12 +41,9 @@ public sealed class BibliographyReviewWave26RegressionTests {
         }
         if (format == BibliographyFormat.Nbib) item.Identifiers.Insert(0, new BibliographyIdentifier("PMID", "x"));
         document.Items.Add(item);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
-
-        Assert.Throws<OperationCanceledException>(() => {
-            if (format == BibliographyFormat.Ris) TaggedCodec.WriteRis(document, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), cancellation.Token);
-            else TaggedCodec.WriteNbib(document, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), cancellation.Token);
+        BibliographyCancellationTest.AssertObserved(token => {
+            if (format == BibliographyFormat.Ris) TaggedCodec.WriteRis(document, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), token);
+            else TaggedCodec.WriteNbib(document, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, new BibliographyConversionReport(), token);
         });
     }
 

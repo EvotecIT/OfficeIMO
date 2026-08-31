@@ -64,10 +64,7 @@ public sealed class BibliographyIoAndSafetyTests {
     public void EndNote_materialization_observes_cancellation() {
         string source = "<xml><padding>" + new string('x', 16 * 1024 * 1024) + "</padding><records /></xml>";
         var options = new BibliographyReadOptions { MaximumValueLength = 20 * 1024 * 1024 };
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(1);
-
-        Assert.Throws<OperationCanceledException>(() => BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, cancellation.Token));
+        BibliographyCancellationTest.AssertObserved(token => BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, token));
     }
 
     [Fact]
