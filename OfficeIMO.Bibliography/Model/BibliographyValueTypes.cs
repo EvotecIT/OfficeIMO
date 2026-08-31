@@ -123,6 +123,7 @@ public sealed class BibliographyNativeField {
 
     internal string? UnmodifiedRawValue => RawValue != null && _rawValueRepresentsOriginalValue && string.Equals(Value, _originalValue, StringComparison.Ordinal) ? RawValue : null;
     internal bool HasInconsistentRawValue => RawValue != null && !_rawValueRepresentsOriginalValue && string.Equals(Value, _originalValue, StringComparison.Ordinal);
+    internal bool RawValueRepresentedOriginalValue => _rawValueRepresentsOriginalValue;
 
     private static bool RawValueRepresentsValue(BibliographyFormat format, string name, string value, string? rawValue) {
         if (rawValue == null) return true;

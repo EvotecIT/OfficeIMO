@@ -593,7 +593,10 @@ internal static class EndNoteXmlCodec {
         string? raw = field.UnmodifiedRawValue;
         if (raw != null) return TryWriteElement(writer, raw, cancellationToken);
         if (HasInvalidXmlCharacters(field.Value, cancellationToken)) return false;
-        if (field.RawValue != null) return TryWriteEditedNativeElement(writer, field, cancellationToken);
+        if (field.RawValue != null && field.RawValueRepresentedOriginalValue) return TryWriteEditedNativeElement(writer, field, cancellationToken);
+        return TryWriteCanonicalNativeElement(writer, field, xmlNamespace, cancellationToken);
+    }
+    private static bool TryWriteCanonicalNativeElement(XmlWriter writer, BibliographyNativeField field, string xmlNamespace, CancellationToken cancellationToken) {
         try {
             XmlConvert.VerifyNCName(field.Name);
             writer.WriteStartElement(null, field.Name, xmlNamespace);

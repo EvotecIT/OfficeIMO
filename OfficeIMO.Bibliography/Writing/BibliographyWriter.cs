@@ -395,7 +395,8 @@ internal static class BibliographyConversionInspector {
         }
 
         void InspectRaw(BibliographyNativeField field, string path) {
-            if (field.Format == format && field.HasInconsistentRawValue)
+            if (field.Format == format && (field.HasInconsistentRawValue ||
+                (format == BibliographyFormat.EndNoteXml && field.RawValue != null && !field.RawValueRepresentedOriginalValue)))
                 Loss(report, item, path, "BIBCONV247", $"Native {format} field '{field.Name}' has a raw representation that does not match its decoded value or field name.", BibliographyConversionAction.Approximated);
             if (format == BibliographyFormat.CslJson && field.Format == BibliographyFormat.CslJson &&
                 (CslJsonCodec.ContainsInvalidUtf16(field.Name, cancellationToken) || CslJsonCodec.ContainsInvalidUtf16(field.Value, cancellationToken)))
