@@ -305,7 +305,7 @@ public sealed partial class IWorkBoundaryTests {
         bool wrongWireSkippedFlag = false, byte[]? textBoxDrawable = null,
         float? slideWidth = null, float? slideHeight = null,
         bool naturalAlignment = false, bool duplicateDrawableInField = false,
-        bool aliasDrawableAcrossFields = false) {
+        bool aliasDrawableAcrossFields = false, int? drawableReferenceCount = null) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -356,7 +356,10 @@ public sealed partial class IWorkBoundaryTests {
         byte[] showPayload = wrongWireSlideSize
             ? Message(BytesField(3, slideTree), VarintField(4, 1))
             : Message(BytesField(3, slideTree), slideSize);
-        var slideFields = new List<byte[]> { ReferenceField(5, shapeId) };
+        var slideFields = drawableReferenceCount.HasValue
+            ? Enumerable.Range(0, drawableReferenceCount.Value)
+                .Select(_ => ReferenceField(5, shapeId)).ToList()
+            : new List<byte[]> { ReferenceField(5, shapeId) };
         if (duplicateDrawableInField) slideFields.Add(ReferenceField(5, shapeId));
         if (aliasDrawableAcrossFields) slideFields.Add(ReferenceField(6, shapeId));
         if (slideName != null) slideFields.Add(StringField(10, slideName));

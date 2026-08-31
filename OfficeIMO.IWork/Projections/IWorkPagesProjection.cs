@@ -189,7 +189,7 @@ internal static class IWorkPagesReader {
         }
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
-            documentMessage, out bool drawableGraphComplete);
+            documentMessage, projectionBudget, out bool drawableGraphComplete);
         if (!drawableGraphComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -350,7 +350,8 @@ internal static class IWorkPagesReader {
     }
 
     private static IReadOnlyList<IWorkArchiveRecord> CollectDocumentDrawables(IWorkObjectIndex index,
-        IWorkArchiveRecord document, IWorkWireMessage documentMessage, out bool complete) {
+        IWorkArchiveRecord document, IWorkWireMessage documentMessage,
+        IWorkProjectionBudget projectionBudget, out bool complete) {
         complete = true;
         var identifiers = new HashSet<ulong>();
         var ordered = new List<IWorkArchiveRecord>();
@@ -362,6 +363,8 @@ internal static class IWorkPagesReader {
         if (documentMessage.HasUnexpectedWireKind(20, IWorkWireKind.Bytes)
             || documentMessage.HasField(20) && zOrder == null) complete = false;
         if (zOrder != null) {
+            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
+                zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount));
             int unresolvedZOrderCount;
             var zOrderOccurrences = new HashSet<ulong>();
             foreach (IWorkArchiveRecord record in index.DereferenceAll(
@@ -375,11 +378,14 @@ internal static class IWorkPagesReader {
         if (documentMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
             || documentMessage.HasField(3) && floating == null) complete = false;
         if (floating != null) {
+            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
+                floating.Payload, 1, projectionBudget.MaximumProtobufFieldCount));
             IReadOnlyList<IWorkWireMessage> pageGroups = IWorkObjectIndex.TryGetMessages(
                 index.Message(floating), 1, out bool malformedPageGroups);
             if (malformedPageGroups) complete = false;
             foreach (IWorkWireMessage pageGroup in pageGroups) {
                 foreach (int field in new[] { 2, 3, 4 }) {
+                    projectionBudget.AddDrawableReferences(pageGroup.FieldCount(field));
                     var fieldOccurrences = new HashSet<ulong>();
                     IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
                         pageGroup, field, out bool malformedEntries);

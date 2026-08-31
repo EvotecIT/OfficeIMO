@@ -140,6 +140,8 @@ internal static class IWorkNumbersReader {
                     sheetRecord.EntryPath, sheetRecord.Identifier));
                 continue;
             }
+            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
+                sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount));
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
             var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();

@@ -995,7 +995,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[]? sheetNameBytes = null, bool includeWrongWireDrawableReference = false,
         byte[]? textBoxDrawable = null, byte[]? tableDrawable = null,
         bool includeMalformedSecondSheetReference = false,
-        bool duplicateTextBoxStorageReference = false) {
+        bool duplicateTextBoxStorageReference = false,
+        int repeatedFirstDrawableCount = 0) {
         const ulong documentId = 1;
         const ulong sheetId = 2;
         var records = new List<byte[]>();
@@ -1097,7 +1098,7 @@ public sealed partial class IWorkBoundaryTests {
                     Message(BytesField(3, firstEntry), BytesField(3, secondEntry))));
             } else if (table.CompleteFormula) {
                 byte[] formulaEntry = Message(VarintField(1, 0),
-                    BytesField(5, FormulaConstant(1d)));
+                    BytesField(5, FormulaConstant(1d, table.MixedFormulaTypeWire)));
                 records.Add(ArchiveRecord(formulaListId, 6201,
                     Message(BytesField(3, formulaEntry))));
             }
@@ -1122,6 +1123,11 @@ public sealed partial class IWorkBoundaryTests {
         }
         if (includeWrongWireDrawableReference) sheetFields.Add(VarintField(2, 10));
         if (duplicateFirstDrawable && tables.Count > 0) sheetFields.Add(ReferenceField(2, 10));
+        if (tables.Count > 0) {
+            for (int index = 0; index < repeatedFirstDrawableCount; index++) {
+                sheetFields.Add(ReferenceField(2, 10));
+            }
+        }
 
         records.Insert(1, ArchiveRecord(sheetId, 2, Message(sheetFields.ToArray())));
         byte[] iwaStream = Message(records.ToArray());
@@ -1194,8 +1200,10 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(7, new byte[] { 0, 0, 16, 0 }));
     }
 
-    private static byte[] FormulaConstant(double value) => Message(BytesField(1,
-        Message(BytesField(1, Message(VarintField(1, 17), DoubleField(4, value))))));
+    private static byte[] FormulaConstant(double value, bool mixedTypeWire = false) => Message(BytesField(1,
+        Message(BytesField(1, Message(VarintField(1, 17),
+            mixedTypeWire ? StringField(1, "invalid") : Array.Empty<byte>(),
+            DoubleField(4, value))))));
 
     private static MemoryStream CreatePagesPackage(bool includeBody, string? textBox, bool includePreview,
         string archivePath = "Index/Document.iwa", byte[]? pdfPreviewBytes = null, string bodyText = "Body",
@@ -1486,7 +1494,8 @@ public sealed partial class IWorkBoundaryTests {
             bool cellCrossesNextOffset = false, bool malformedSecondMergePair = false,
             bool malformedSecondTileRow = false, bool malformedSecondTileEntry = false,
             bool completeFormula = false, bool decimal128Underflow = false,
-            bool unknownCellValueFlag = false, bool boolean = false) {
+            bool unknownCellValueFlag = false, bool boolean = false,
+            bool mixedFormulaTypeWire = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1524,6 +1533,7 @@ public sealed partial class IWorkBoundaryTests {
             Decimal128Underflow = decimal128Underflow;
             UnknownCellValueFlag = unknownCellValueFlag;
             Boolean = boolean;
+            MixedFormulaTypeWire = mixedFormulaTypeWire;
         }
 
         internal string Name { get; }
@@ -1563,5 +1573,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool Decimal128Underflow { get; }
         internal bool UnknownCellValueFlag { get; }
         internal bool Boolean { get; }
+        internal bool MixedFormulaTypeWire { get; }
     }
 }

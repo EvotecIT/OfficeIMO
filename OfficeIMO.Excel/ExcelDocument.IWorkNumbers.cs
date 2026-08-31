@@ -105,7 +105,7 @@ public partial class ExcelDocument {
                                 + ":" + CellReference(merge.LastRow, merge.LastColumn));
                         }
                         if (table.DefaultRowHeight is > 0) {
-                            sheet.SetDefaultRowHeight(table.DefaultRowHeight.Value);
+                            sheet.SetDefaultRowHeightExact(table.DefaultRowHeight.Value);
                         }
                         if (table.DefaultColumnWidth is > 0) {
                             double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
@@ -169,14 +169,17 @@ public partial class ExcelDocument {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
                 if (table.DefaultRowHeight is double rowHeight
-                    && (rowHeight > 409d || Math.Round(rowHeight, 2) <= 0d)) {
+                    && (!IsFinite(rowHeight) || rowHeight > 409d
+                        || rowHeight <= 0d)) {
                     return $"Numbers table '{table.Name}' has a default row height outside the XLSX-supported range.";
                 }
-                if (table.DefaultColumnWidth is double columnWidth
-                    && (!IsFinite(columnWidth)
-                        || PointsToExcelColumnWidth(columnWidth) > 255d
-                        || Math.Round(PointsToExcelColumnWidth(columnWidth), 2) <= 0d)) {
-                    return $"Numbers table '{table.Name}' has a default column width outside the XLSX-supported range.";
+                if (table.DefaultColumnWidth is double columnWidth) {
+                    double destinationWidth = PointsToExcelColumnWidth(columnWidth);
+                    if (!IsFinite(columnWidth) || !IsFinite(destinationWidth)
+                        || destinationWidth > 255d
+                        || Math.Round(destinationWidth, 2) <= 0d) {
+                        return $"Numbers table '{table.Name}' has a default column width outside the XLSX-supported range.";
+                    }
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
                     string? text = cell.Kind == IWorkCellKind.Error

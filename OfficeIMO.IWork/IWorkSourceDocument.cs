@@ -111,7 +111,7 @@ public sealed partial class IWorkSourceDocument {
         }
 
         IReadOnlyList<IWorkArchiveRecord> records = IWorkArchiveParser.Parse(package.Entries, options);
-        IWorkDocumentKind detected = DetectKind(package.Entries, records, hint);
+        IWorkDocumentKind detected = DetectKind(records, hint, options);
         if (expectedKind.HasValue && expectedKind.Value != detected) {
             throw new InvalidDataException($"The package is {detected}, not the expected {expectedKind.Value} source.");
         }
@@ -127,34 +127,66 @@ public sealed partial class IWorkSourceDocument {
         }
     }
 
-    private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkPackageEntry> entries,
-        IReadOnlyList<IWorkArchiveRecord> records, IWorkDocumentKind? hint) {
-        bool hasSlides = entries.Any(entry => IsKeynoteSlideArchive(entry.Path));
-        if (hasSlides) return IWorkDocumentKind.Keynote;
-        if (records.Any(record => record.IsPrimary && record.MessageType == 10000)) return IWorkDocumentKind.Pages;
-        if (records.Any(record => record.IsPrimary && record.MessageType == 2)
-            && records.Any(record => record.IsPrimary && record.MessageType is 6000 or 6001 or 6002)) {
-            return IWorkDocumentKind.Numbers;
+    private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkArchiveRecord> records,
+        IWorkDocumentKind? hint, IWorkReadOptions options) {
+        bool hasPagesRoot = records.Any(record => record.IsPrimary && record.MessageType == 10000);
+        var index = new IWorkObjectIndex(records, options);
+        bool hasNumbersRoot = HasNumbersRoot(index, records);
+        bool hasKeynoteRoot = HasKeynoteRoot(index, records);
+        int rootCount = (hasPagesRoot ? 1 : 0) + (hasNumbersRoot ? 1 : 0) + (hasKeynoteRoot ? 1 : 0);
+        if (rootCount > 1) {
+            throw new InvalidDataException("The iWork package declares conflicting application roots.");
         }
+        if (hasPagesRoot) return IWorkDocumentKind.Pages;
+        if (hasNumbersRoot) return IWorkDocumentKind.Numbers;
+        if (hasKeynoteRoot) return IWorkDocumentKind.Keynote;
         if (hint.HasValue) return hint.Value;
-        if (records.Any(record => record.IsPrimary && record.MessageType == 1)) return IWorkDocumentKind.Numbers;
         throw new InvalidDataException("The iWork application kind could not be identified from the package structure.");
     }
 
-    private static bool IsKeynoteSlideArchive(string path) {
-        const string indexPrefix = "Index/";
-        if (!path.StartsWith(indexPrefix, StringComparison.OrdinalIgnoreCase)
-            || path.IndexOf('/', indexPrefix.Length) >= 0) return false;
-        string name = path.Substring(indexPrefix.Length);
-        return IsArchiveName(name, "Slide")
-            || IsArchiveName(name, "MasterSlide")
-            || IsArchiveName(name, "TemplateSlide");
+    private static bool HasNumbersRoot(IWorkObjectIndex index,
+        IReadOnlyList<IWorkArchiveRecord> records) {
+        foreach (IWorkArchiveRecord document in records.Where(record =>
+                     record.IsPrimary && record.MessageType == 1)) {
+            IWorkWireMessage message;
+            try {
+                message = index.Message(document);
+            } catch (InvalidDataException) {
+                continue;
+            }
+            if (message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) continue;
+            IReadOnlyList<IWorkArchiveRecord> sheets = index.DereferenceAll(
+                message, 1, out int unresolved);
+            if (unresolved == 0 && sheets.Count > 0
+                && sheets.All(sheet => sheet.MessageType == 2)) return true;
+        }
+        return false;
     }
 
-    private static bool IsArchiveName(string name, string stem) =>
-        name.Equals(stem + ".iwa", StringComparison.OrdinalIgnoreCase)
-        || name.StartsWith(stem + "-", StringComparison.OrdinalIgnoreCase)
-        && name.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
+    private static bool HasKeynoteRoot(IWorkObjectIndex index,
+        IReadOnlyList<IWorkArchiveRecord> records) {
+        foreach (IWorkArchiveRecord document in records.Where(record =>
+                     record.IsPrimary && record.MessageType == 1)) {
+            IWorkWireMessage documentMessage;
+            try {
+                documentMessage = index.Message(document);
+            } catch (InvalidDataException) {
+                continue;
+            }
+            if (documentMessage.FieldCount(2) != 1
+                || documentMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)) continue;
+            IWorkArchiveRecord? show = index.Dereference(documentMessage, 2);
+            if (show == null || show.MessageType != 2) continue;
+            try {
+                IWorkWireMessage showMessage = index.Message(show);
+                if (showMessage.HasBytes(3)
+                    && !showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)) return true;
+            } catch (InvalidDataException) {
+                // A malformed show is not an authoritative Keynote root.
+            }
+        }
+        return false;
+    }
 
     private static IWorkDocumentKind? KindFromExtension(string extension) => extension.ToLowerInvariant() switch {
         ".pages" => IWorkDocumentKind.Pages,

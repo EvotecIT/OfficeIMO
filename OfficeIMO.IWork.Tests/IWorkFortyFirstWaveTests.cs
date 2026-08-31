@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream CreatePagesDrawableOccurrencePackage(bool duplicateWithinField,
-        bool floating, bool aliasAcrossFloatingFields = false) {
+        bool floating, bool aliasAcrossFloatingFields = false, int? occurrenceCount = null) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong orderId = 3;
@@ -112,9 +112,10 @@ public sealed partial class IWorkBoundaryTests {
             orderedPayload = Message(BytesField(1, pageGroup));
             documentOrderReference = ReferenceField(3, orderId);
         } else {
-            orderedPayload = Message(
-                occurrence,
-                duplicateWithinField ? occurrence : Array.Empty<byte>());
+            orderedPayload = occurrenceCount.HasValue
+                ? Message(Enumerable.Range(0, occurrenceCount.Value).Select(_ => occurrence).ToArray())
+                : Message(occurrence,
+                    duplicateWithinField ? occurrence : Array.Empty<byte>());
             documentOrderReference = ReferenceField(20, orderId);
         }
         byte[] records = Message(

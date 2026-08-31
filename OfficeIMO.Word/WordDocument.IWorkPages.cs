@@ -414,14 +414,15 @@ public partial class WordDocument {
             or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
 
     private static bool FitsUnsignedTwips(double points) =>
-        IsFinite(points) && points >= 0 && points <= uint.MaxValue / 20d;
+        IsFinite(points) && points >= 0 && points <= uint.MaxValue / 20d
+        && IsExactDestinationUnit(points, 20d);
 
     private static bool CanApplyPageLayout(IWorkPageLayout layout) =>
         layout.WidthPoints > 0 && layout.HeightPoints > 0
         && layout.LeftMarginPoints + layout.RightMarginPoints < layout.WidthPoints
         && layout.TopMarginPoints + layout.BottomMarginPoints < layout.HeightPoints
-        && layout.WidthPoints <= uint.MaxValue / 20d
-        && layout.HeightPoints <= uint.MaxValue / 20d
+        && FitsUnsignedTwips(layout.WidthPoints)
+        && FitsUnsignedTwips(layout.HeightPoints)
         && FitsUnsignedTwips(layout.LeftMarginPoints)
         && FitsUnsignedTwips(layout.RightMarginPoints)
         && FitsSignedTwips(layout.TopMarginPoints)
@@ -430,20 +431,31 @@ public partial class WordDocument {
         && FitsUnsignedTwips(layout.FooterMarginPoints);
 
     private static bool FitsSignedTwips(double? points) => !points.HasValue
-        || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / 20d;
+        || IsFinite(points.Value) && Math.Abs(points.Value) <= int.MaxValue / 20d
+        && IsExactDestinationUnit(points.Value, 20d);
 
     private static bool FitsUnsignedNullableTwips(double? points) => !points.HasValue
-        || IsFinite(points.Value) && points.Value >= 0 && points.Value <= uint.MaxValue / 20d;
+        || IsFinite(points.Value) && points.Value >= 0 && points.Value <= uint.MaxValue / 20d
+        && IsExactDestinationUnit(points.Value, 20d);
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static bool FitsEmuOffset(double points) =>
         !double.IsNaN(points) && !double.IsInfinity(points)
-        && points >= int.MinValue / 12700d && points <= int.MaxValue / 12700d;
+        && points >= int.MinValue / 12700d && points <= int.MaxValue / 12700d
+        && IsExactDestinationUnit(points, 12700d);
 
     private static bool FitsEmuExtent(double points) =>
         !double.IsNaN(points) && !double.IsInfinity(points)
-        && points >= 0 && points <= long.MaxValue / 12700d;
+        && points >= 0 && points <= long.MaxValue / 12700d
+        && IsExactDestinationUnit(points, 12700d);
+
+    private static bool IsExactDestinationUnit(double points, double unitsPerPoint) {
+        double scaled = points * unitsPerPoint;
+        double rounded = Math.Round(scaled, MidpointRounding.AwayFromZero);
+        double sourceFloatTolerance = Math.Max(1e-6d, Math.Abs(scaled) * 1e-7d);
+        return Math.Abs(scaled - rounded) <= sourceFloatTolerance;
+    }
 
     private static int ToEmusInt32(double points) => checked((int)Math.Round(points * 12700d,
         MidpointRounding.AwayFromZero));

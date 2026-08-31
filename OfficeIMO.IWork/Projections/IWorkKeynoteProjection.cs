@@ -273,6 +273,10 @@ internal static class IWorkKeynoteReader {
         ref int materializedCellCount,
         List<IWorkDiagnostic> diagnostics,
         ref bool supportsEditableReconstruction) {
+        foreach (int field in new[] { 7, 42, 5, 6 }) {
+            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
+                slide.Payload, field, projectionBudget.MaximumProtobufFieldCount));
+        }
         IWorkWireMessage message = index.Message(slide);
         IWorkArchiveRecord? titlePlaceholder = index.Dereference(message, 5);
         var candidates = new List<IWorkArchiveRecord>();

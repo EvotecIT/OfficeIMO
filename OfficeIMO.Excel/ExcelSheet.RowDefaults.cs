@@ -36,14 +36,21 @@ namespace OfficeIMO.Excel {
         /// <param name="height">Default row height in points. Excel supports values up to 409 points.</param>
         /// <param name="hidden">Whether empty rows should be hidden by default.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultRowHeight(double height, bool hidden = false, bool save = true) {
+        public void SetDefaultRowHeight(double height, bool hidden = false, bool save = true) =>
+            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: true);
+
+        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) =>
+            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+
+        private void SetDefaultRowHeightCore(double height, bool hidden, bool save,
+            bool roundToHundredths) {
             if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D || height > 409D) {
                 throw new ArgumentOutOfRangeException(nameof(height), "Default row height must be greater than 0 and less than or equal to 409 points.");
             }
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultRowHeight = Math.Round(height, 2);
+                sheetFormat.DefaultRowHeight = roundToHundredths ? Math.Round(height, 2) : height;
                 sheetFormat.CustomHeight = true;
                 sheetFormat.ZeroHeight = hidden;
                 if (save) {

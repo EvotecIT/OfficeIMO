@@ -4,6 +4,7 @@ internal sealed class IWorkProjectionBudget {
     private readonly IWorkReadOptions _options;
     private int _tableCount;
     private int _imageCount;
+    private int _drawableReferenceCount;
     private int _textItemCount;
     private int _textBoundaryCount;
     private long _textCharacterCount;
@@ -12,6 +13,8 @@ internal sealed class IWorkProjectionBudget {
     internal IWorkProjectionBudget(IWorkReadOptions options) {
         _options = options;
     }
+
+    internal int MaximumProtobufFieldCount => _options.MaximumProtobufFieldCount;
 
     internal void AddTable() {
         if (_tableCount >= _options.MaximumProjectedTables) {
@@ -27,6 +30,16 @@ internal sealed class IWorkProjectionBudget {
                 $"iWork image count exceeds the configured projection limit of {_options.MaximumProjectedImages}.");
         }
         _imageCount++;
+    }
+
+    internal void AddDrawableReferences(int count) {
+        long maximum = Math.Min(int.MaxValue, (long)_options.MaximumProjectedTables
+            + _options.MaximumProjectedImages + _options.MaximumProjectedTextItems);
+        if (count < 0 || _drawableReferenceCount > maximum - count) {
+            throw new InvalidDataException(
+                $"iWork drawable references exceed the configured combined projection limit of {maximum}.");
+        }
+        _drawableReferenceCount += count;
     }
 
     internal long RemainingDecodedImageBytes =>

@@ -57,6 +57,7 @@ internal static class IWorkFormulaReader {
         var stack = new List<Operand>();
         bool complete = true;
         foreach (IWorkWireMessage node in nodes) {
+            if (node.HasUnexpectedWireKind(1, IWorkWireKind.Varint)) complete = false;
             ulong rawType = node.GetUnsigned(1) ?? 0;
             int type = rawType <= int.MaxValue ? (int)rawType : -1;
             if (type < 0) complete = false;
@@ -83,6 +84,8 @@ internal static class IWorkFormulaReader {
                     break;
                 }
                 case 16: {
+                    if (node.HasUnexpectedWireKind(2, IWorkWireKind.Varint)
+                        || node.HasUnexpectedWireKind(3, IWorkWireKind.Varint)) complete = false;
                     ulong rawFunctionIndex = node.GetUnsigned(2) ?? 0;
                     int functionIndex = rawFunctionIndex <= int.MaxValue ? (int)rawFunctionIndex : -1;
                     int argumentCount = BoundedCount(node.GetUnsigned(3), maximumNodes);
@@ -100,6 +103,7 @@ internal static class IWorkFormulaReader {
                     stack.Add(new Operand(FormatNumber(node, ref complete), PrimaryPrecedence));
                     break;
                 case 18: {
+                    if (node.HasUnexpectedWireKind(5, IWorkWireKind.Varint)) complete = false;
                     ulong? value = node.GetUnsigned(5);
                     if (!value.HasValue) complete = false;
                     stack.Add(new Operand(value.GetValueOrDefault() != 0 ? "TRUE" : "FALSE", PrimaryPrecedence));
@@ -122,7 +126,9 @@ internal static class IWorkFormulaReader {
                     break;
                 case 24:
                 case 25: {
-                    int count = BoundedCount(node.GetUnsigned(type == 24 ? 11 : 13), maximumNodes);
+                    int countField = type == 24 ? 11 : 13;
+                    if (node.HasUnexpectedWireKind(countField, IWorkWireKind.Varint)) complete = false;
+                    int count = BoundedCount(node.GetUnsigned(countField), maximumNodes);
                     Operand[] items = Pop(stack, count, ref complete);
                     stack.Add(new Operand(Delimited(type == 24 ? "{" : "(", type == 24 ? "}" : ")",
                         items, maximumCharacters, ref complete), PrimaryPrecedence));
@@ -149,6 +155,7 @@ internal static class IWorkFormulaReader {
                     stack.Add(new Operand("#REF!", PrimaryPrecedence));
                     break;
                 case 31: {
+                    if (node.HasUnexpectedWireKind(18, IWorkWireKind.Varint)) complete = false;
                     int argumentCount = BoundedCount(node.GetUnsigned(18), maximumNodes);
                     Operand[] arguments = Pop(stack, argumentCount, ref complete);
                     string name = node.GetString(17, out bool nameComplete) ?? "UNKNOWN";
@@ -200,6 +207,7 @@ internal static class IWorkFormulaReader {
         out int firstRow, out int firstColumn, out int lastRow, out int lastColumn) {
         firstRow = firstColumn = lastRow = lastColumn = 0;
         if (!TryReadNodes(formula, maximumNodes, out IReadOnlyList<IWorkWireMessage> nodes)) return false;
+        if (nodes.Any(node => node.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) return false;
         if (nodes[0].GetUnsigned(1) == 67) {
             IWorkWireMessage? tract = IWorkObjectIndex.TryGetMessage(nodes[0], 40);
             if (tract == null
@@ -353,7 +361,9 @@ internal static class IWorkFormulaReader {
         }
         absolute = false;
         IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, relativeField, out bool malformed);
-        if (malformed || ranges.Count == 0) {
+        if (malformed || ranges.Count == 0
+            || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)) {
             first = last = 0;
             return false;
         }
@@ -380,6 +390,8 @@ internal static class IWorkFormulaReader {
     private static bool TryAbsoluteRange(IWorkWireMessage tract, int field, out int first, out int last) {
         IReadOnlyList<IWorkWireMessage> ranges = IWorkObjectIndex.TryGetMessages(tract, field, out bool malformed);
         if (malformed || ranges.Count == 0
+            || ranges[0].HasUnexpectedWireKind(1, IWorkWireKind.Varint)
+            || ranges[0].HasUnexpectedWireKind(2, IWorkWireKind.Varint)
             || ranges[0].GetUnsigned(1) is not ulong rawFirst || rawFirst > int.MaxValue) {
             first = last = 0;
             return false;
@@ -461,6 +473,9 @@ internal static class IWorkFormulaReader {
     }
 
     private static string FormatNumber(IWorkWireMessage node, ref bool complete) {
+        if (node.HasUnexpectedWireKind(4, IWorkWireKind.Fixed64)
+            || node.HasUnexpectedWireKind(7, IWorkWireKind.Fixed64)
+            || node.HasUnexpectedWireKind(8, IWorkWireKind.Fixed64)) complete = false;
         double? value = node.GetDouble(4) ?? node.GetDouble(7) ?? node.GetDouble(8);
         if (!value.HasValue || double.IsNaN(value.Value) || double.IsInfinity(value.Value)) {
             complete = false;
