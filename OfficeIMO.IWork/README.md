@@ -90,7 +90,7 @@ This is extended semantic reconstruction rather than plain-text extraction:
 - Numbers recovers sparse typed cells, supported formulas with cached values, merges, table metadata, and default sizing for editable Excel projection. Each source table receives its own worksheet so table-local formulas and column sizing remain stable; sheet-level text receives a separate worksheet when present.
 - Keynote recovers slide size, order and names, positioned rich text with explicit inline breaks and source-proven list labels and levels, shape/run and presenter-note hyperlinks, notes, images, positioned and rotated tables, and merges for editable PowerPoint projection.
 
-Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable.
+Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, and source-wide materialized cells in addition to the package/IWA limits.
 

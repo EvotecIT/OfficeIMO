@@ -104,9 +104,13 @@ public sealed class IWorkKeynoteProjection {
     public bool HasEditableContent => Slides.Count > 0 && _supportsEditableReconstruction;
 
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
-    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
+    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
+        CreateImportReport(kind, preview, Array.Empty<IWorkDiagnostic>());
+
+    internal IWorkImportReport CreateImportReport(IWorkProjectionKind kind,
+        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, Diagnostics, preview,
+        return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Slides.Count + Slides.Sum(slide => slide.TextBoxes.Count + slide.Images.Count + slide.Tables.Count

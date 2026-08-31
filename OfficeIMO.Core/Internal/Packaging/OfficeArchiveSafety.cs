@@ -172,10 +172,10 @@ internal static class OfficeArchiveSafety {
             ulong declaredEntries;
             ulong centralDirectorySize;
             ulong centralDirectoryOffset;
-            bool zip64 = entriesOnDisk16 == ushort.MaxValue
-                || totalEntries16 == ushort.MaxValue
-                || centralDirectorySize32 == uint.MaxValue
+            bool zip64Required = centralDirectorySize32 == uint.MaxValue
                 || centralDirectoryOffset32 == uint.MaxValue;
+            bool zip64 = zip64Required || HasZip64Locator(source,
+                originalPosition, endOfCentralDirectoryOffset);
             if (zip64) {
                 if (!TryReadZip64Directory(source, originalPosition, archiveLength,
                         endOfCentralDirectoryOffset,
@@ -317,10 +317,10 @@ internal static class OfficeArchiveSafety {
         ulong declaredEntries;
         ulong centralDirectorySize;
         ulong centralDirectoryOffset;
-        bool zip64 = entriesOnDisk16 == ushort.MaxValue
-            || totalEntries16 == ushort.MaxValue
-            || centralDirectorySize32 == uint.MaxValue
+        bool zip64Required = centralDirectorySize32 == uint.MaxValue
             || centralDirectoryOffset32 == uint.MaxValue;
+        bool zip64 = zip64Required || HasZip64Locator(bytes,
+            archiveOffset, endOfCentralDirectory);
         if (zip64) {
             if (!TryReadZip64Directory(bytes, archiveOffset,
                     archiveLength, endOfCentralDirectory,
@@ -494,6 +494,25 @@ internal static class OfficeArchiveSafety {
         centralDirectorySize = ReadZipUInt64(bytes, recordOffset + 40);
         centralDirectoryOffset = ReadZipUInt64(bytes, recordOffset + 48);
         return true;
+    }
+
+    private static bool HasZip64Locator(byte[] bytes, int archiveOffset,
+        int endOfCentralDirectory) {
+        int locatorOffset = endOfCentralDirectory - 20;
+        return locatorOffset >= archiveOffset
+            && ReadZipUInt32(bytes, locatorOffset)
+                == Zip64EndOfCentralDirectoryLocatorSignature;
+    }
+
+    private static bool HasZip64Locator(Stream source, long archiveOffset,
+        long endOfCentralDirectory) {
+        long locatorOffset = endOfCentralDirectory - 20;
+        if (locatorOffset < 0) return false;
+        var signature = new byte[4];
+        ReadExactlyAt(source, archiveOffset + locatorOffset,
+            signature, signature.Length);
+        return ReadZipUInt32(signature, 0)
+            == Zip64EndOfCentralDirectoryLocatorSignature;
     }
 
     private static bool TryReadZip64Directory(Stream source,

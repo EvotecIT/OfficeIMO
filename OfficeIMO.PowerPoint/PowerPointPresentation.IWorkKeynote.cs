@@ -40,6 +40,9 @@ public sealed partial class PowerPointPresentation {
             : FindPowerPointProjectionLimitation(projection);
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
+        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = editable
+            ? FindPowerPointProjectionDiagnostics(projection)
+            : Array.Empty<IWorkDiagnostic>();
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Keynote source has no supported editable slides.");
@@ -110,7 +113,8 @@ public sealed partial class PowerPointPresentation {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkKeynoteLoadResult(presentation, source, projection, projection.CreateImportReport(kind, preview));
+            return new IWorkKeynoteLoadResult(presentation, source, projection,
+                projection.CreateImportReport(kind, preview, destinationDiagnostics));
         } catch {
             presentation.Dispose();
             throw;
@@ -141,6 +145,18 @@ public sealed partial class PowerPointPresentation {
             : source.DefaultRowHeight is > 0
                 ? source.DefaultRowHeight.Value * source.RowCount
                 : Math.Max(36d, 24d * source.RowCount);
+        double? columnWidth = source.DefaultColumnWidth is > 0
+            ? QuantizePositiveEmuPoints(width / source.ColumnCount)
+            : null;
+        double? rowHeight = source.DefaultRowHeight is > 0
+            ? QuantizePositiveEmuPoints(height / source.RowCount)
+            : null;
+        width = columnWidth.HasValue
+            ? columnWidth.Value * source.ColumnCount
+            : QuantizePositiveEmuPoints(width);
+        height = rowHeight.HasValue
+            ? rowHeight.Value * source.RowCount
+            : QuantizePositiveEmuPoints(height);
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
         table.AltText = source.AccessibilityDescription;
@@ -160,16 +176,14 @@ public sealed partial class PowerPointPresentation {
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - 1, merge.LastColumn - 1);
         }
-        if (source.DefaultColumnWidth is > 0) {
-            double columnWidth = width / source.ColumnCount;
+        if (columnWidth.HasValue) {
             for (int column = 0; column < source.ColumnCount; column++) {
-                table.SetColumnWidthPoints(column, columnWidth);
+                table.SetColumnWidthPoints(column, columnWidth.Value);
             }
         }
-        if (source.DefaultRowHeight is > 0) {
-            double rowHeight = height / source.RowCount;
+        if (rowHeight.HasValue) {
             for (int row = 0; row < source.RowCount; row++) {
-                table.SetRowHeightPoints(row, rowHeight);
+                table.SetRowHeightPoints(row, rowHeight.Value);
             }
         }
     }
@@ -192,6 +206,8 @@ public sealed partial class PowerPointPresentation {
             width *= scale;
             height *= scale;
         }
+        width = QuantizePositiveEmuPoints(width);
+        height = QuantizePositiveEmuPoints(height);
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
         PowerPointPicture picture = slide.AddPicturePoints(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
@@ -232,7 +248,9 @@ public sealed partial class PowerPointPresentation {
                 .Concat(slide.Tables.Select(table => table.Geometry))
                 .Where(geometry => geometry != null)
                 .Cast<IWorkGeometry>();
-            if (geometries.Any(geometry => Math.Abs(geometry.LeftPoints) > MaximumPointMeasurement
+            if (geometries.Any(geometry => !IsFinite(geometry.LeftPoints)
+                    || Math.Abs(geometry.LeftPoints) > MaximumPointMeasurement
+                    || !IsFinite(geometry.TopPoints)
                     || Math.Abs(geometry.TopPoints) > MaximumPointMeasurement
                     || !FitsPositiveMeasurement(geometry.WidthPoints, MaximumPointMeasurement, allowZero: true)
                     || !FitsPositiveMeasurement(geometry.HeightPoints, MaximumPointMeasurement, allowZero: true))) {
@@ -334,6 +352,56 @@ public sealed partial class PowerPointPresentation {
         !double.IsNaN(value) && !double.IsInfinity(value)
         && value >= 914400d / 12700d
         && value <= 51206400d / 12700d;
+
+    private static IReadOnlyList<IWorkDiagnostic> FindPowerPointProjectionDiagnostics(
+        IWorkKeynoteProjection projection) {
+        bool requiresEmuRounding = projection.SlideSize is { } slideSize
+                && (!IsExactEmu(slideSize.WidthPoints) || !IsExactEmu(slideSize.HeightPoints))
+            || projection.Slides.SelectMany(slide => slide.TextBoxes
+                    .Select(textBox => textBox.Geometry)
+                    .Concat(slide.TitleBox == null
+                        ? Array.Empty<IWorkGeometry?>()
+                        : new[] { slide.TitleBox.Geometry })
+                    .Concat(slide.Images.Select(image => image.Geometry))
+                    .Concat(slide.Tables.Select(table => table.Geometry)))
+                .Where(geometry => geometry != null)
+                .Cast<IWorkGeometry>()
+                .Any(geometry => !IsExactEmu(geometry.LeftPoints)
+                    || !IsExactEmu(geometry.TopPoints)
+                    || !IsExactEmu(geometry.WidthPoints)
+                    || !IsExactEmu(geometry.HeightPoints))
+            || projection.Slides.SelectMany(slide => slide.Tables)
+                .Any(table => TableSizingRequiresEmuRounding(table));
+        if (!requiresEmuRounding) return Array.Empty<IWorkDiagnostic>();
+        return new[] {
+            new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_PPTX_PRECISION",
+                "Keynote point measurements were quantized to the nearest PPTX EMU; the bounded source geometry remains available on the load result.")
+        };
+    }
+
+    private static bool TableSizingRequiresEmuRounding(IWorkTable table) {
+        if (table.RowCount <= 0 || table.ColumnCount <= 0) return false;
+        double width = table.Geometry?.WidthPoints
+            ?? (table.DefaultColumnWidth is > 0
+                ? table.DefaultColumnWidth.Value * table.ColumnCount
+                : Math.Max(144d, 72d * table.ColumnCount));
+        double height = table.Geometry?.HeightPoints
+            ?? (table.DefaultRowHeight is > 0
+                ? table.DefaultRowHeight.Value * table.RowCount
+                : Math.Max(36d, 24d * table.RowCount));
+        return table.DefaultColumnWidth is > 0 && !IsExactEmu(width / table.ColumnCount)
+            || table.DefaultRowHeight is > 0 && !IsExactEmu(height / table.RowCount);
+    }
+
+    private static bool IsExactEmu(double points) {
+        double scaled = points * PowerPointUnits.EmusPerPoint;
+        return scaled == Math.Round(scaled)
+            && PowerPointUnits.ToPoints(PowerPointUnits.FromPoints(points)) == points;
+    }
+
+    private static double QuantizePositiveEmuPoints(double points) =>
+        PowerPointUnits.ToPoints(Math.Max(1L, PowerPointUnits.FromPoints(points)));
 
     private static IEnumerable<IWorkTextContent> SlideText(IWorkKeynoteSlide slide) {
         if (slide.TitleBox != null) yield return slide.TitleBox.Content;

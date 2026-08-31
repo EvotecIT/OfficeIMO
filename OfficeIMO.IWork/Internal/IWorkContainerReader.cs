@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 
 namespace OfficeIMO.IWork.Internal;
@@ -98,6 +99,8 @@ internal static class IWorkContainerReader {
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
         long total = 0;
         int nodeCount = 0;
+        ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
+            options.MaximumEntryCount);
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true)) {
             ReadArchiveEntries(archive, entries, prefix: null, ref total, ref nodeCount, options);
         }
@@ -112,8 +115,25 @@ internal static class IWorkContainerReader {
         ref int nodeCount, IWorkReadOptions options) {
         if (!entries.TryGetValue("Index.zip", out IWorkPackageEntry? nested)) return;
         using var stream = new MemoryStream(nested.Bytes, writable: false);
+        ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
+            options.MaximumEntryCount);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         ReadArchiveEntries(archive, entries, "Index", ref total, ref nodeCount, options);
+    }
+
+    private static void ValidateZipCentralDirectory(Stream stream, int remainingEntries,
+        int maximumEntries) {
+        OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
+            OfficeArchiveSafety.ScanZipCentralDirectory(stream,
+                stream.Length - stream.Position, Math.Max(0, remainingEntries));
+        if (!directory.IsValid) {
+            throw new InvalidDataException(directory.Error
+                ?? "The ZIP central directory is malformed.");
+        }
+        if (directory.LimitExceeded) {
+            throw new InvalidDataException(
+                $"Package entry count exceeds the configured limit of {maximumEntries} before package entries are opened.");
+        }
     }
 
     private static void ReadArchiveEntries(ZipArchive archive, Dictionary<string, IWorkPackageEntry> entries,
