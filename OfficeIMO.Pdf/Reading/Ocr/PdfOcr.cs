@@ -27,7 +27,8 @@ internal static class PdfOcr {
             readDocument,
             new PdfReadOptions {
                 Profile = PdfReadProfile.Structured,
-                PageSelection = effectiveOptions.Selection
+                PageSelection = effectiveOptions.Selection,
+                Pipeline = CreateUnderstandingPipelineOptions(effectiveOptions)
             },
             cancellationToken);
         var renderOptions = new PdfPageRenderOptions {
@@ -59,6 +60,11 @@ internal static class PdfOcr {
             effectiveOptions,
             cancellationToken);
         return new PdfOcrMergeResult(logical, enriched, mergedPages);
+    }
+
+    internal static PdfUnderstandingPipelineOptions CreateUnderstandingPipelineOptions(PdfOcrMergeOptions options) {
+        Guard.NotNull(options, nameof(options));
+        return new PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages };
     }
 
     private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {

@@ -460,6 +460,42 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void LogicalProjection_ClearsDecodedTextWhenConfiguredLineStageReturnsNoLines() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Filtered source content"))
+            .ToBytes();
+        var pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.LineGrouping = new FixedLineGroupingStage(Array.Empty<PdfUnderstandingLine>());
+
+        PdfDocumentReadResult result = Read(pdf, pipeline);
+        PdfLogicalPage page = Assert.Single(result.Pages);
+
+        Assert.Empty(page.Analysis.Lines);
+        Assert.Empty(page.TextBlocks);
+        Assert.Empty(page.Paragraphs);
+        Assert.Equal(string.Empty, result.Text);
+    }
+
+    [Fact]
+    public void LogicalProjection_ClaimsCombinedCustomLinesOnlyOnceAcrossSourceParagraphs() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("First source paragraph"))
+            .Spacer(80D)
+            .Paragraph(paragraph => paragraph.Text("Second source paragraph"))
+            .ToBytes();
+        var pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.LineGrouping = new CombinedLineGroupingStage();
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, pipeline).Pages);
+        PdfLogicalTextBlock block = Assert.Single(page.TextBlocks);
+        PdfLogicalParagraph paragraph = Assert.Single(page.Paragraphs);
+
+        Assert.Same(block, Assert.Single(paragraph.Lines));
+        Assert.Contains("First source paragraph", block.Text, StringComparison.Ordinal);
+        Assert.Contains("Second source paragraph", block.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StructuredRead_InheritsSemanticRolesFromTaggedAncestors() {
         PdfDocumentReadResult result = PdfDocument.Load(CreateNestedTaggedHeadingPdf()).Read();
         PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
@@ -595,6 +631,25 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void StructuredRead_ChargesTaggedStructureIndexAgainstDocumentBudget() {
+        PdfReadDocument document = PdfReadDocument.Open(CreateEmptyTaggedStructurePdf());
+        Assert.Single(document.TaggedContent!.StructureElements);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocumentSemanticEnricher.Enrich(
+                document,
+                new[] { 1 },
+                new[] { PdfUnderstandingPageResult.Empty(1) },
+                10,
+                1,
+                CancellationToken.None));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+        Assert.Equal(2, exception.Actual);
     }
 
     [Fact]
@@ -805,6 +860,24 @@ public class PdfUnderstandingPipelineTests {
             Assert.Contains(runningHeader.Evidence, evidence => evidence.Code == "semantic.repeated-header");
         });
         Assert.DoesNotContain(result.Sections, section => section.Title == "Large running header");
+    }
+
+    [Fact]
+    public void StructuredRead_KeepsDistinctNumberedEdgeHeadingsAsSections() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Chapter 1")
+            .PageBreak()
+            .H1("Chapter 2")
+            .ToBytes();
+        var pipeline = PdfUnderstandingPipelineOptions.Structured();
+        pipeline.SemanticClassification = new HeadingClassificationStage();
+
+        PdfDocumentReadResult result = Read(pdf, pipeline);
+
+        Assert.Equal(new[] { "Chapter 1", "Chapter 2" }, result.Headings.Select(static heading => heading.Text));
+        Assert.DoesNotContain(result.Pages.SelectMany(static page => page.Headers), block =>
+            block.Text.StartsWith("Chapter ", StringComparison.Ordinal));
+        Assert.Equal(new[] { "Chapter 1", "Chapter 2" }, result.Sections.Select(static section => section.Title));
     }
 
     [Fact]
@@ -1343,6 +1416,16 @@ public class PdfUnderstandingPipelineTests {
         });
     }
 
+    private static byte[] CreateEmptyTaggedStructurePdf() {
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 5 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R >>",
+            "<< /Length 0 >>\nstream\n\nendstream",
+            "<< /Type /StructTreeRoot /K [6 0 R] >>",
+            "<< /Type /StructElem /S /Div /P 5 0 R /Pg 3 0 R /K [] >>");
+    }
+
     private static PdfUnderstandingLine CreateUnderstandingLine(
         string text,
         double xStart,
@@ -1402,6 +1485,14 @@ public class PdfUnderstandingPipelineTests {
         public IReadOnlyList<PdfUnderstandingLine> GroupLines(
             PdfUnderstandingPageContext context,
             IReadOnlyList<PdfUnderstandingWord> words) => _lines;
+    }
+
+    private sealed class CombinedLineGroupingStage : IPdfLineGroupingStage {
+        public IReadOnlyList<PdfUnderstandingLine> GroupLines(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingWord> words) => words.Count == 0
+                ? Array.Empty<PdfUnderstandingLine>()
+                : new[] { new PdfUnderstandingLine(words) };
     }
 
     private sealed class SingleRegionStage : IPdfPageSegmentationStage {

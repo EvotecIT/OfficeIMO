@@ -114,6 +114,15 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public void OcrSemanticPipeline_InheritsThePublicOcrPageLimit() {
+        var options = new PdfOcrMergeOptions { MaxPages = 1_500 };
+
+        PdfUnderstandingPipelineOptions pipeline = PdfOcr.CreateUnderstandingPipelineOptions(options);
+
+        Assert.Equal(options.MaxPages, pipeline.MaxPages);
+    }
+
+    [Fact]
     public async Task RecognizeAndMergeAsync_PreservesDuplicateCallerOrderedPages() {
         byte[] pdf = PdfDocument.Create()
             .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)

@@ -367,7 +367,6 @@ public sealed partial class PdfLogicalPage {
         StructuredPage structured,
         IReadOnlyList<PdfUnderstandingLine> sourceLines,
         CancellationToken cancellationToken) {
-        if (sourceLines.Count == 0) return;
         structured.Lines.Clear();
         structured.LinesDetailed.Clear();
         for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
@@ -433,17 +432,17 @@ public sealed partial class PdfLogicalPage {
         for (int blockIndex = 0; blockIndex < textBlocks.Count; blockIndex++) {
             textBlockIndexes[textBlocks[blockIndex]] = blockIndex;
         }
+        var claimedLines = new HashSet<PdfLogicalTextBlock>();
         for (int i = 0; i < paragraphs.Count; i++) {
             var paragraph = paragraphs[i];
             var lines = new List<PdfLogicalTextBlock>(paragraph.Lines.Count);
-            var representedLines = new HashSet<PdfLogicalTextBlock>();
             for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
                 var line = paragraph.Lines[lineIndex];
                 var key = CreateTextBlockLookupKey(line.Y, line.XStart, line.Text.Trim());
                 PdfLogicalTextBlock? block = textBlockLookup.TryGetValue(key, out Queue<PdfLogicalTextBlock>? blocks) && blocks.Count > 0
                     ? blocks.Dequeue()
                     : textBlockSourceIndex.Find(line, PdfLogicalElementKind.TextBlock);
-                if (block is not null && representedLines.Add(block)) lines.Add(block);
+                if (block is not null && claimedLines.Add(block)) lines.Add(block);
             }
 
             if (lines.Count > 0) {

@@ -91,7 +91,10 @@ internal static class PdfDocumentSemanticEnricher {
                     : visual.Bottom >= height * 0.85D
                         ? PageEdge.Footer
                         : PageEdge.None;
-                string signature = PdfTextSimilarity.NormalizeSignature(region.Text);
+                bool requiresExactSignature = element.Kind == PdfUnderstandingSemanticKind.Heading;
+                string signature = requiresExactSignature
+                    ? PdfTextSimilarity.NormalizeSignaturePreservingDigits(region.Text)
+                    : PdfTextSimilarity.NormalizeSignature(region.Text);
                 if (edge == PageEdge.None || signature.Length == 0) continue;
                 candidates.Add(new PageEdgeCandidate(
                     pageIndex,
@@ -99,7 +102,7 @@ internal static class PdfDocumentSemanticEnricher {
                     pageNumbers[pageIndex],
                     edge,
                     signature,
-                    element.Kind == PdfUnderstandingSemanticKind.Heading,
+                    requiresExactSignature,
                     visual.Left / width,
                     Math.Max(0D, visual.Width) / width));
             }
@@ -228,8 +231,11 @@ internal static class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         PdfTaggedContentInfo? tagged = document.TaggedContent;
         if (tagged is null || tagged.StructureElements.Count == 0) return;
-        IReadOnlyDictionary<int, PdfStructureElementInfo> structuresByObject = tagged.StructureElements
-            .ToDictionary(static element => element.ObjectNumber);
+        var structuresByObject = new Dictionary<int, PdfStructureElementInfo>(tagged.StructureElements.Count);
+        foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
+            workBudget.Consume();
+            structuresByObject.Add(structureElement.ObjectNumber, structureElement);
+        }
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             int pageNumber = pageNumbers[pageIndex];
             var rolesByMarkedContent = new Dictionary<MarkedContentKey, List<string>>();
@@ -351,7 +357,7 @@ internal static class PdfDocumentSemanticEnricher {
 
     private static TaggedStructureBinding? ResolveTaggedBinding(
         PdfTaggedContentInfo tagged,
-        IReadOnlyDictionary<int, PdfStructureElementInfo> structuresByObject,
+        Dictionary<int, PdfStructureElementInfo> structuresByObject,
         PdfStructureElementInfo structureElement,
         PdfUnderstandingWorkBudget workBudget) {
         var visited = new HashSet<int>();
