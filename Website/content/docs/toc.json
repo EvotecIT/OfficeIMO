@@ -86,7 +86,8 @@
       { "title": "HTML Rendering and Conversion", "path": "html/render-and-convert/index.md", "href": "/docs/html/render-and-convert/" },
       { "title": "Rich Text Format", "path": "rtf/index.md", "href": "/docs/rtf/" },
       { "title": "EPUB Extraction", "path": "epub/index.md", "href": "/docs/epub/" },
-      { "title": "OpenDocument", "path": "open-document/index.md", "href": "/docs/open-document/" }
+      { "title": "OpenDocument", "path": "open-document/index.md", "href": "/docs/open-document/" },
+      { "title": "Apple iWork", "path": "iwork/index.md", "href": "/docs/iwork/" }
     ]
   },
   {

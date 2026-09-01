@@ -23,7 +23,7 @@ OfficeIMO is a modular document platform, not a single basic DOCX helper. The re
 - **Formats and interoperability:** 17 focused components
 - **Foundations and integrations:** 11 focused components
 - **Google Workspace:** 4 focused components
-- **Office documents:** 20 focused components
+- **Office documents:** 21 focused components
 - **Publishing and conversion:** 18 focused components
 - **Rendering surfaces:** 3 focused components
 - **Specialized components:** 10 focused components

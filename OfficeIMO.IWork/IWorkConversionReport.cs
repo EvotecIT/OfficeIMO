@@ -1,8 +1,8 @@
 namespace OfficeIMO.IWork;
 
 /// <summary>Loss-aware summary of one iWork-to-OfficeIMO projection.</summary>
-public sealed class IWorkImportReport {
-    internal IWorkImportReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
+public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionReport {
+    internal IWorkConversionReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
         IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> unsupportedRecords,
         IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
         int totalRecordCount, int unsupportedRecordCount, int reconstructedItemCount) {
@@ -36,14 +36,14 @@ public sealed class IWorkImportReport {
     /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
     public int ReconstructedItemCount { get; }
     /// <summary>Gets whether the projection is known to omit or flatten source content.</summary>
-    public bool HasConversionLoss => ProjectionKind == IWorkProjectionKind.VisualFallback || UnsupportedRecordCount > 0;
+    public bool HasLoss => ProjectionKind == IWorkProjectionKind.VisualFallback || UnsupportedRecordCount > 0 || HasErrors;
     /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
     public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
     /// <summary>Gets whether the visual fallback is known to cover the complete source rather than a first-page or composite preview.</summary>
     public bool HasCompleteVisualCoverage => VisualPreview?.Coverage == IWorkVisualCoverage.FullDocument;
 
     /// <summary>Throws when the result is a visual fallback rather than editable reconstruction.</summary>
-    public IWorkImportReport EnsureEditableReconstruction() {
+    public IWorkConversionReport RequireEditableReconstruction() {
         if (ProjectionKind != IWorkProjectionKind.EditableReconstruction) {
             throw new InvalidOperationException("The iWork source was projected as a visual fallback, not editable content.");
         }
@@ -51,19 +51,19 @@ public sealed class IWorkImportReport {
     }
 
     /// <summary>Throws when the projection reported errors.</summary>
-    public IWorkImportReport EnsureNoErrors() {
+    public IWorkConversionReport RequireNoErrors() {
         if (HasErrors) {
-            throw new InvalidOperationException("The iWork import reported errors: "
+            throw new InvalidOperationException("The iWork conversion reported errors: "
                 + string.Join("; ", Diagnostics.Where(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error).Take(8)));
         }
         return this;
     }
 
-    /// <summary>Throws when the projection used a visual fallback or left preserved records unprojected.</summary>
-    public IWorkImportReport EnsureNoConversionLoss() {
-        if (HasConversionLoss) {
-            throw new InvalidOperationException("The iWork import contains visual fallback content or preserved records that are not represented in the editable destination.");
+    /// <summary>Throws when the projection used a visual fallback, left preserved records unprojected, or reported errors.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) {
+            throw new InvalidOperationException(
+                "The iWork conversion contains errors, visual fallback content, or preserved records that are not represented in the editable destination.");
         }
-        return this;
     }
 }

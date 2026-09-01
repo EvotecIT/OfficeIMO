@@ -25,15 +25,15 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_text_boxes_normalize_iwork_break_controls(char separator) {
         using MemoryStream package = CreateNumbersPackageWithTextBox("Before" + separator + "After");
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Before\nAfter", Assert.Single(Assert.Single(
             result.Projection.Sheets).TextBoxes));
-        Assert.Equal("Before\nAfter", Assert.Single(result.Document.Sheets)
+        Assert.Equal("Before\nAfter", Assert.Single(result.Value.Sheets)
             .CellAt(1, 1).GetValue<string>());
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.Equal("Before\nAfter", Assert.Single(reopened.Sheets)

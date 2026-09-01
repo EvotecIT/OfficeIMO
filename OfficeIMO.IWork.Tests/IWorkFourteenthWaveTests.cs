@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, includeWrongWireDrawableReference: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -80,9 +80,9 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Tall table", 4097, 1, 42d, defaultRowHeight: 20d)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.Equal(20d, result.Document.Sheets[0].DefaultRowHeight);
+        Assert.Equal(20d, result.Value.Sheets[0].DefaultRowHeight);
     }
 
     private static MemoryStream CreatePagesPackageWithRepeatedHeader(int sectionCount) {

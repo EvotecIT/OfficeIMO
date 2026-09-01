@@ -21,9 +21,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
-    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,6 +32,9 @@
     <Using Include="System.IO" />
     <Using Include="System.IO.Compression" />
     <Using Include="System.Linq" />
+    <Using Include="OfficeIMO.Excel.IWork" />
+    <Using Include="OfficeIMO.PowerPoint.IWork" />
+    <Using Include="OfficeIMO.Word.IWork" />
     <Using Include="Xunit" />
   </ItemGroup>
 

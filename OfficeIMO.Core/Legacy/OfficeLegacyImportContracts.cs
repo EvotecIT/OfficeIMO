@@ -66,7 +66,7 @@ public sealed class OfficeLegacyImportLimits {
 }
 
 /// <summary>Immutable import and loss report produced by a managed legacy source adapter.</summary>
-public sealed class OfficeLegacyImportReport {
+public sealed class OfficeLegacyImportReport : IOfficeConversionReport {
     private readonly ReadOnlyCollection<OfficeCompatibilityFinding> _findings;
 
     /// <summary>Creates a legacy import report.</summary>
@@ -103,20 +103,20 @@ public sealed class OfficeLegacyImportReport {
     /// <summary>Gets feature-level recovery, approximation, omission, and safety findings.</summary>
     public IReadOnlyList<OfficeCompatibilityFinding> Findings => _findings;
 
-    /// <summary>Gets whether any finding reports source fidelity loss.</summary>
-    public bool HasLoss => _findings.Any(finding => finding.RepresentsLoss);
+    /// <summary>Gets whether the import used salvage recovery, kept active content inert, or reported a lossy or blocked mapping.</summary>
+    public bool HasLoss => Quality != OfficeLegacyImportQuality.Structured
+        || HasInertContent
+        || _findings.Any(finding => finding.RepresentsLoss
+            || finding.State == OfficeCompatibilityState.Blocked);
 
     /// <summary>Gets whether the source contained active or externally resolved content that remained inert.</summary>
     public bool HasInertContent => InertContent != OfficeLegacyInertContentKind.None;
 
-    /// <summary>Throws when the import contains a known loss or blocked feature.</summary>
-    public void RequireStructuredNoLoss() {
-        if (Quality != OfficeLegacyImportQuality.Structured) {
-            throw new InvalidOperationException("Legacy import produced salvage quality rather than a structured reconstruction.");
+    /// <summary>Throws when the import did not produce a structured, inert-content-free, lossless reconstruction.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) {
+            throw new InvalidOperationException(
+                "Legacy import used salvage recovery, kept active content inert, or contains a lossy or blocked source mapping.");
         }
-        if (_findings.Any(finding => finding.State == OfficeCompatibilityState.Blocked)) {
-            throw new InvalidOperationException("Legacy import contains one or more blocked source features.");
-        }
-        if (HasLoss) throw new InvalidOperationException("Legacy import contains one or more lossy source mappings.");
     }
 }

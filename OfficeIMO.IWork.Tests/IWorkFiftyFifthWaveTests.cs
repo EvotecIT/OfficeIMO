@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Repeated row", 2, 1, 42d, duplicateRowIndex: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

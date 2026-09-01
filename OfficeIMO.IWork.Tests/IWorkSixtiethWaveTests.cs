@@ -31,11 +31,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: 960.0001f, slideHeight: 540f);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
     }
 
@@ -47,11 +47,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
     }
 
@@ -62,13 +62,13 @@ public sealed partial class IWorkBoundaryTests {
             defaultRowHeight: 0.5d / PowerPointUnits.EmusPerPoint,
             defaultColumnWidth: 30d, includePreview: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
-        PowerPointTable table = Assert.Single(result.Document.Slides[0].Tables);
+        PowerPointTable table = Assert.Single(result.Value.Slides[0].Tables);
         Assert.True(table.Height > 0);
         Assert.True(table.GetRowHeight(0) > 0);
     }
@@ -77,13 +77,13 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_image_extents_below_half_an_emu_remain_editable() {
         using MemoryStream package = CreateKeynotePackageWithTinyImageExtent();
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION");
-        PowerPointPicture picture = Assert.Single(result.Document.Slides[0].Pictures);
+        PowerPointPicture picture = Assert.Single(result.Value.Slides[0].Pictures);
         Assert.True(picture.Width > 0);
         Assert.True(picture.Height > 0);
     }

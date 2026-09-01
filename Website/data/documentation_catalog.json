@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 213,
-    "productionComponentCount": 113,
+    "projectCount": 214,
+    "productionComponentCount": 114,
     "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
-    "conceptualPageCount": 95,
-    "conceptualWordCount": 41922
+    "conceptualPageCount": 96,
+    "conceptualWordCount": 42304
   },
   "categories": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "name": "Office documents",
-      "componentCount": 20
+      "componentCount": 21
     },
     {
       "name": "Publishing and conversion",
@@ -300,7 +300,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 994,
+      "sourceFileCount": 1003,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -346,17 +346,17 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Html"
     },
     {
-      "name": "OfficeIMO.Excel.Legacy",
-      "packageId": "OfficeIMO.Excel.Legacy",
+      "name": "OfficeIMO.Excel.IWork",
+      "packageId": "OfficeIMO.Excel.IWork",
       "category": "Office documents",
-      "description": "Safe read-only import of selected legacy spreadsheet formats into the OfficeIMO.Excel model.",
+      "description": "Opt-in Apple Numbers to OfficeIMO Excel conversion adapter with bounded source and loss reports.",
       "kind": "package",
-      "projectPath": "OfficeIMO.Excel.Legacy/OfficeIMO.Excel.Legacy.csproj",
-      "sourceFileCount": 11,
+      "projectPath": "OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj",
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/excel/",
+      "docsUrl": "/docs/iwork/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Legacy"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork"
     },
     {
       "name": "OfficeIMO.Excel.OpenDocument",
@@ -510,7 +510,7 @@
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
       "sourceFileCount": 30,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/capabilities/packages/",
+      "docsUrl": "/docs/iwork/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
     },
@@ -846,8 +846,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 468,
-      "referencingTestProjectCount": 9,
+      "sourceFileCount": 466,
+      "referencingTestProjectCount": 8,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
@@ -877,6 +877,19 @@
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.Html"
+    },
+    {
+      "name": "OfficeIMO.PowerPoint.IWork",
+      "packageId": "OfficeIMO.PowerPoint.IWork",
+      "category": "Office documents",
+      "description": "Opt-in Apple Keynote to OfficeIMO PowerPoint conversion adapter with bounded source and loss reports.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
+      "sourceFileCount": 3,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/iwork/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.IWork"
     },
     {
       "name": "OfficeIMO.PowerPoint.OpenDocument",
@@ -1405,7 +1418,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 659,
+      "sourceFileCount": 670,
       "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
@@ -1438,17 +1451,17 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Html"
     },
     {
-      "name": "OfficeIMO.Word.Legacy",
-      "packageId": "OfficeIMO.Word.Legacy",
+      "name": "OfficeIMO.Word.IWork",
+      "packageId": "OfficeIMO.Word.IWork",
       "category": "Office documents",
-      "description": "Safe read-only import of selected legacy word-processing formats into the OfficeIMO.Word model.",
+      "description": "Opt-in Apple Pages to OfficeIMO Word conversion adapter with bounded source and loss reports.",
       "kind": "package",
-      "projectPath": "OfficeIMO.Word.Legacy/OfficeIMO.Word.Legacy.csproj",
-      "sourceFileCount": 13,
+      "projectPath": "OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj",
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/word/",
+      "docsUrl": "/docs/iwork/",
       "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Legacy"
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork"
     },
     {
       "name": "OfficeIMO.Word.Markdown",

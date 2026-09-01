@@ -10,50 +10,32 @@ using OpenXmlNumberingProperties = DocumentFormat.OpenXml.Wordprocessing.Numberi
 using OpenXmlParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using DrawingWordprocessing = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
-namespace OfficeIMO.Word;
+namespace OfficeIMO.Word.IWork;
 
-public partial class WordDocument {
-    /// <summary>Loads a Pages source into the normal editable Word model, using a visual preview only when requested or necessary.</summary>
-    public static WordDocument LoadPages(string path, IWorkReadOptions? options = null) =>
-        LoadPagesWithReport(path, options).Document;
-
-    /// <summary>Loads a Pages stream into the normal editable Word model, using a visual preview only when requested or necessary.</summary>
-    public static WordDocument LoadPages(Stream stream, IWorkReadOptions? options = null) =>
-        LoadPagesWithReport(stream, options).Document;
-
-    /// <summary>Loads a Pages source and returns its Word projection, bounded source model, and loss report.</summary>
-    public static IWorkPagesLoadResult LoadPagesWithReport(string path, IWorkReadOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        return ProjectPages(IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages, options));
-    }
-
-    /// <summary>Loads a Pages stream and returns its Word projection, bounded source model, and loss report.</summary>
-    public static IWorkPagesLoadResult LoadPagesWithReport(Stream stream, IWorkReadOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        return ProjectPages(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages, options));
-    }
-
-    private static IWorkPagesLoadResult ProjectPages(IWorkSourceDocument source) {
-        IWorkImportMode mode = source.RequestedImportMode;
-        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+/// <summary>Projects Apple Pages sources into editable OfficeIMO Word documents.</summary>
+public static partial class WordIWorkConverter {
+    private static PagesToWordResult ProjectPages(IWorkSourceDocument source,
+        IWorkConversionOptions? options = null) {
+        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
-        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+        if (mode == IWorkConversionMode.VisualOnly && preview == null) {
             throw new NotSupportedException("The Pages source has no embedded raster preview.");
         }
 
         IWorkPagesProjection projection = source.ReadPages();
-        string? destinationLimitation = mode == IWorkImportMode.VisualOnly
+        string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
             : FindWordProjectionLimitation(projection);
-        bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
+        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
         IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !projection.HasEditableContent
                 || destinationLimitation == null
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (!editable && mode == IWorkImportMode.EditableOnly) {
+        if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Pages source has no supported editable content.");
         }
@@ -63,7 +45,7 @@ public partial class WordDocument {
             throw new NotSupportedException("The Pages source has no supported editable content or embedded raster preview.");
         }
 
-        WordDocument document = Create();
+        WordDocument document = WordDocument.Create();
         try {
             if (projection.PageLayout is { } pageLayout && CanApplyPageLayout(pageLayout)) {
                 ApplyPageLayout(document.Sections[0], pageLayout);
@@ -146,8 +128,8 @@ public partial class WordDocument {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkPagesLoadResult(document, source, projection,
-                projection.CreateImportReport(kind, preview, destinationDiagnostics));
+            return new PagesToWordResult(document, source, projection,
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
         } catch {
             document.Dispose();
             throw;

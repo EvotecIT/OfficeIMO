@@ -115,7 +115,7 @@ public sealed class LegacySpreadsheetImportResult : IDisposable {
     internal LegacySpreadsheetImportResult(ExcelDocument document, LegacySpreadsheetDetection detection, OfficeLegacyImportReport report,
         IReadOnlyDictionary<string, string> metadata, IReadOnlyList<LegacySpreadsheetChartMetadata> charts,
         IReadOnlyList<LegacySpreadsheetCellContent> cells, IReadOnlyList<LegacySpreadsheetNameContent> names) {
-        Document = document;
+        Value = document;
         Detection = detection;
         Report = report;
         Metadata = metadata;
@@ -124,7 +124,7 @@ public sealed class LegacySpreadsheetImportResult : IDisposable {
         Names = names;
     }
     /// <summary>Gets the normal OfficeIMO workbook used by XLSX and converter packages.</summary>
-    public ExcelDocument Document { get; }
+    public ExcelDocument Value { get; }
     /// <summary>Gets detected family and profile information.</summary>
     public LegacySpreadsheetDetection Detection { get; }
     /// <summary>Gets structured/salvage quality, inert-content flags, and explicit losses.</summary>
@@ -137,6 +137,20 @@ public sealed class LegacySpreadsheetImportResult : IDisposable {
     public IReadOnlyList<LegacySpreadsheetCellContent> Cells { get; }
     /// <summary>Gets recovered source names and whether each was projected into the workbook.</summary>
     public IReadOnlyList<LegacySpreadsheetNameContent> Names { get; }
+    /// <summary>Gets whether the import used salvage recovery or omitted, blocked, or kept source content inert.</summary>
+    public bool HasLoss => Report.HasLoss;
+    /// <summary>Returns the imported workbook.</summary>
+    public ExcelDocument RequireValue() => Value;
+    /// <summary>Returns the imported workbook or throws when the import was lossy.</summary>
+    public ExcelDocument RequireNoLoss() {
+        try {
+            Report.RequireNoLoss();
+            return Value;
+        } catch {
+            Value.Dispose();
+            throw;
+        }
+    }
     /// <inheritdoc />
-    public void Dispose() => Document.Dispose();
+    public void Dispose() => Value.Dispose();
 }

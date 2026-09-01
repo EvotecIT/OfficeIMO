@@ -57,29 +57,6 @@ document.AsFluent()
 document.Save();
 ```
 
-## Import Apple Pages sources
-
-Modern IWA-based `.pages` packages load through the Word semantic owner. The short API returns an editable DOCX model; the report API retains the bounded source and exact loss boundary:
-
-```csharp
-using OfficeIMO.IWork;
-using OfficeIMO.Word;
-using OfficeIMO.Word.IWork;
-
-using IWorkPagesLoadResult result = WordDocument.LoadPagesWithReport(
-    "source.pages",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
-
-Console.WriteLine(result.ImportReport.ProjectionKind);
-foreach (IWorkArchiveRecord record in result.ImportReport.UnsupportedRecords) {
-    Console.WriteLine($"Unprojected IWA type {record.MessageType}");
-}
-
-result.Document.Save("converted.docx");
-```
-
-Supported body, header/footer, and text-box text becomes normal Word content. `Auto` uses a raster preview only when editable reconstruction is unavailable; `EditableOnly` rejects that fallback, while `VisualOnly` requests it explicitly. The report distinguishes both outcomes. OfficeIMO preserves unsupported source records for inspection but does not write Pages files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
-
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.
@@ -384,6 +361,43 @@ or preserve-only content by default. Set `LossPolicy` to
 See [DOC and DOCX compatibility](../Docs/officeimo.word.legacy-doc-compatibility.md)
 for the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
+
+### Import additional legacy word-processing formats
+
+The `OfficeIMO.Word` package also contains an explicit, read-only importer for selected WordPerfect, WordStar, Ami Pro, Lotus Word Pro, Microsoft Works/Write, and Word for DOS sources. No additional package is required, and these formats are only processed when the application calls `LegacyWordImporter` or explicitly registers the corresponding Reader handler.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Word.Legacy;
+
+using LegacyWordImportResult imported = LegacyWordImporter.Import("archive.wpd");
+Console.WriteLine(imported.Report.Quality);
+foreach (LegacyWordParagraphContent paragraph in imported.Content.Paragraphs) {
+    Console.WriteLine($"{paragraph.StyleName}: {paragraph.Text}");
+}
+foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+
+imported.Value.Save("archive.docx");
+```
+
+The importer never saves back to these source formats, executes macros or embedded code, activates embedded objects, or resolves external links. Each result identifies structured or salvage recovery and reports feature-level loss. The source-oriented `Content` retains paragraphs, formatted runs, notes, and inert resource references beside the projected `WordDocument`; existing Word converter packages can export that document to ODT, HTML, Markdown, or PDF.
+
+#### Profile coverage
+
+| Family/profile | Quality | Recovered today | Explicit boundary |
+| --- | --- | --- | --- |
+| WordStar 3-7 character streams | Structured | hard and soft returns, paragraphs, common inline formatting, page breaks, selected dot commands, bounded notes/comments, paragraph-style names, and inert graphics references | printer/font/color/style-library sequences and unrecognized dot commands are reported; text-marker lists are identified as inferred |
+| Ami Pro SAM 4 | Structured | style definitions, paragraphs, basic character styles, fonts, RGB color, alignment, spacing, page-break and keep properties, and source style names | the current structured profile is ASCII-only; code pages, frames, equations, images, tables, and additional inline tags remain open |
+| Weak WordStar or non-SAM4 Ami Pro input with an explicit hint | Salvage | bounded text and paragraphs | a hint selects the family but does not upgrade weak input to structured quality |
+| WordPerfect 5/6 | Salvage | bounded document-area text, paragraphs, offsets, and active-content marker inventory | prefix packets, formatting codes, notes, tables, graphics, and layout are not yet semantically decoded |
+| Lotus Word Pro LWP | Salvage | bounded text plus compound-content safety inventory | document zones, styles, notes, tables, graphics, and layout are not yet reconstructed |
+| Microsoft Works word 2-8 | Salvage | bounded text and paragraphs plus compound-content safety inventory where applicable | formatting, fields, notes, tables, images, and layout are not yet reconstructed |
+| Microsoft Write WRI | Salvage | bounded text and paragraph runs | formatting runs, objects, headers, footers, and layout are not yet reconstructed |
+| Microsoft Word for DOS 4-6 | Salvage | bounded text and paragraphs | formatting, annotations, objects, and layout are not yet reconstructed |
+
+`Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
 
 ### Protection
 
