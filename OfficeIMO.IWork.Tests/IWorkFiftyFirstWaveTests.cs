@@ -78,7 +78,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Geometry_free_keynote_images_fit_inside_the_slide() {
+    public void Geometry_free_keynote_images_use_visual_fallback() {
         const string imageName = "large.png";
         byte[] image = Message(BytesField(1, Message()),
             BytesField(11, Message(VarintField(1, 20))));
@@ -99,14 +99,10 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()));
 
         using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
-        PowerPointPicture picture = Assert.Single(Assert.Single(result.Document.Slides).Pictures);
-
-        Assert.False(result.IsVisualFallback, string.Join("; ",
-            result.Projection.Diagnostics.Select(diagnostic =>
-                $"{diagnostic.Code}: {diagnostic.Message}")));
-        Assert.True(picture.RightPoints <= result.Document.SlideSize.WidthPoints);
-        Assert.True(picture.BottomPoints <= result.Document.SlideSize.HeightPoints);
-        Assert.Equal(2d, picture.WidthPoints / picture.HeightPoints, 6);
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_IMAGE_UNSUPPORTED");
+        Assert.Single(Assert.Single(result.Document.Slides).Pictures);
     }
 
     [Theory]

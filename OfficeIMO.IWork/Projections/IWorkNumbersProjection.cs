@@ -346,11 +346,13 @@ internal static class IWorkNumbersReader {
                 "An iWork table contains malformed drawable geometry; editable reconstruction is incomplete.",
                 tableRecord.EntryPath, tableRecord.Identifier));
         }
-        bool geometryComplete = true;
+        bool requirePositiveGeometry = source.Kind == IWorkDocumentKind.Keynote;
+        bool geometryComplete = !requirePositiveGeometry || drawable != null;
         IWorkGeometry? geometry = drawable == null
             ? null
-            : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete);
-        if (drawable != null && !geometryComplete) {
+            : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete,
+                requirePositiveSize: requirePositiveGeometry);
+        if (!geometryComplete) {
             supportsEditableReconstruction = false;
             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_DRAWABLE_UNSUPPORTED"
                     && diagnostic.RecordIdentifier == tableRecord.Identifier)) {

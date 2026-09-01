@@ -109,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream CreateKeynotePackageWithTableDefaults(
         int rows, int columns, double defaultRowHeight, double defaultColumnWidth,
         bool includePreview = false, string? accessibilityDescription = null,
-        byte[]? tableDrawable = null) {
+        byte[]? tableDrawable = null, bool omitTableGeometry = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -121,6 +121,16 @@ public sealed partial class IWorkBoundaryTests {
             VarintField(6, checked((ulong)rows)), VarintField(7, checked((ulong)columns)),
             StringField(8, "Small"), DoubleField(16, defaultRowHeight),
             DoubleField(17, defaultColumnWidth));
+        byte[]? effectiveTableDrawable = omitTableGeometry
+            ? null
+            : tableDrawable ?? GeometryDrawable(72f, 72f,
+                checked((float)(defaultColumnWidth * columns)),
+                checked((float)(defaultRowHeight * rows)));
+        byte[] drawableFields = Message(
+            effectiveTableDrawable ?? Array.Empty<byte>(),
+            accessibilityDescription == null
+                ? Array.Empty<byte>()
+                : StringField(8, accessibilityDescription));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
             ArchiveRecord(showId, 2,
@@ -129,12 +139,9 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(slideId, 5, Message(ReferenceField(6, tableId))),
             ArchiveRecord(tableId, 6000,
                 Message(
-                    tableDrawable == null
+                    drawableFields.Length == 0
                         ? Array.Empty<byte>()
-                        : BytesField(1, tableDrawable),
-                    accessibilityDescription == null
-                        ? Array.Empty<byte>()
-                        : BytesField(1, Message(StringField(8, accessibilityDescription))),
+                        : BytesField(1, drawableFields),
                     ReferenceField(2, modelId)), new[] { modelId }),
             ArchiveRecord(modelId, 6001, model));
         return includePreview

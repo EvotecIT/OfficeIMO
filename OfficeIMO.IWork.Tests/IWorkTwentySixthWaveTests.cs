@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
-        Assert.True(result.Projection.HasEditableContent);
+        Assert.False(result.Projection.HasEditableContent);
     }
 
     [Theory]

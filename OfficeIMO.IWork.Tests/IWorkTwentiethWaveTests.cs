@@ -189,7 +189,12 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))));
             records.Add(ArchiveRecord(slideId, 5, Message(ReferenceField(6, tableId))));
         }
-        records.Add(ArchiveRecord(tableId, 6000, Message(ReferenceField(2, modelId)), new[] { modelId }));
+        records.Add(ArchiveRecord(tableId, 6000,
+            kind == IWorkDocumentKind.Keynote
+                ? Message(BytesField(1, GeometryDrawable(72f, 72f, 120f, 40f)),
+                    ReferenceField(2, modelId))
+                : Message(ReferenceField(2, modelId)),
+            new[] { modelId }));
         records.Add(ArchiveRecord(modelId, 6001, model, new[] { tileId, formulaListId }));
         records.Add(ArchiveRecord(tileId, 6002, Message(BytesField(5, row))));
         records.Add(ArchiveRecord(formulaListId, 6201, Message(BytesField(3, formulaEntry))));

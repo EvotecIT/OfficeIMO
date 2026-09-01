@@ -184,7 +184,9 @@ internal static class IWorkDrawingReader {
         }
         (DataEntry data, IWorkPackageEntry entry, string mediaType,
             int pixelWidth, int pixelHeight) = resolved.Value;
-        IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete);
+        bool requireGeometry = source.Kind == IWorkDocumentKind.Keynote;
+        IWorkGeometry? geometry = ReadGeometry(drawable, out bool geometryComplete,
+            requirePositiveSize: requireGeometry);
         if (!geometryComplete) complete = false;
         bool hasMask = message.HasBytes(5);
         if (hasMask || message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)) complete = false;
@@ -222,8 +224,15 @@ internal static class IWorkDrawingReader {
         duplicateIdentifiers = duplicates;
         metadataComplete = metadata != null && !duplicateMetadata;
         if (metadata == null) return new Dictionary<ulong, DataEntry>();
-        int metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
-            source.Options.MaximumProtobufFieldCount);
+        int metadataEntryCount;
+        try {
+            metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
+                source.Options.MaximumProtobufFieldCount);
+        } catch (InvalidDataException exception)
+            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            metadataComplete = false;
+            return new Dictionary<ulong, DataEntry>();
+        }
         if (metadataEntryCount > source.Options.MaximumImageMetadataEntries) {
             throw new InvalidDataException(
                 $"iWork image metadata exceeds the configured catalog limit of {source.Options.MaximumImageMetadataEntries} entries.");
