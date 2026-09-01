@@ -17,10 +17,11 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             return regions.ToArray();
         }
 
+        (double visualPageWidth, double visualPageHeight) = context.Page.GetVisualPageSize();
         var boxes = new RegionBox[regions.Count];
         for (int index = 0; index < regions.Count; index++) {
             context.ConsumeWork();
-            boxes[index] = RegionBox.From(regions[index]);
+            boxes[index] = RegionBox.From(context.Page, regions[index], visualPageHeight);
         }
         double medianFontSize = Median(boxes.Select(static box => box.FontSize));
         double minimumHorizontalGap = Math.Max(6D, medianFontSize * 0.8D);
@@ -34,7 +35,7 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             minimumHorizontalGap,
             minimumVerticalGap,
             context.LayoutOptions.ForceSingleColumn,
-            context.Width,
+            visualPageWidth,
             depth: 0);
 
         return ordered.ToArray();
@@ -316,14 +317,18 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
         internal double Top { get; }
         internal double FontSize { get; }
 
-        internal static RegionBox From(PdfUnderstandingRegion region) {
+        internal static RegionBox From(
+            PdfReadPage page,
+            PdfUnderstandingRegion region,
+            double visualPageHeight) {
             (double left, double right, double bottom, double top, double fontSize) = GetSourceBounds(region);
+            PdfVisualBounds visual = page.TransformBoundsToVisual(left, bottom, right, top);
             return new RegionBox(
                 region,
-                left,
-                right,
-                bottom,
-                top,
+                visual.Left,
+                visual.Right,
+                visualPageHeight - visual.Bottom,
+                visualPageHeight - visual.Top,
                 fontSize);
         }
     }

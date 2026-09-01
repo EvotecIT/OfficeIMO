@@ -12,7 +12,7 @@ internal static class PdfDocumentReadEngine {
         Guard.NotNull(options, nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Read(source.GetReadDocument(cancellationToken: cancellationToken), options, cancellationToken);
+        return Read(source.GetReadDocument(source.ReadOptions, cancellationToken), options, cancellationToken);
     }
 
     internal static PdfDocumentReadResult Read(
@@ -39,13 +39,17 @@ internal static class PdfDocumentReadEngine {
                 cancellationToken);
         }
         cancellationToken.ThrowIfCancellationRequested();
-
-        return PdfDocumentReadResult.FromPageNumbers(
+        PdfDocumentReadResult result = PdfDocumentReadResult.FromPageNumbers(
             document,
             options.LayoutOptions,
             pageNumbers,
             analyses,
             options.Profile,
             cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        for (int pageIndex = 0; pageIndex < analyses.Count; pageIndex++) {
+            analyses[pageIndex].CompleteOperation();
+        }
+        return result;
     }
 }

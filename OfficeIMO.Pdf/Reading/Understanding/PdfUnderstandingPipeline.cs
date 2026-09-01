@@ -172,7 +172,8 @@ internal sealed class PdfUnderstandingPipeline {
             elements,
             trace.AsReadOnly(),
             context.ConsumeWork,
-            context.ThrowIfCancellationRequested);
+            context.ThrowIfCancellationRequested,
+            context.CompleteOperation);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {

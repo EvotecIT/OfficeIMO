@@ -7,6 +7,7 @@ internal sealed class PdfUnderstandingWorkBudget {
     private readonly CancellationToken _cancellationToken;
     private readonly long _maximum;
     private long _consumed;
+    private int _operationCompleted;
 
     internal PdfUnderstandingWorkBudget(long maximum, CancellationToken cancellationToken) {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
@@ -19,13 +20,15 @@ internal sealed class PdfUnderstandingWorkBudget {
 
     internal long Maximum => _maximum;
     internal long Consumed => _consumed;
-    internal CancellationToken CancellationToken => _cancellationToken;
+    internal CancellationToken CancellationToken => Volatile.Read(ref _operationCompleted) == 0
+        ? _cancellationToken
+        : CancellationToken.None;
 
     internal void Consume(long units = 1) {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
         if (units <= 0) throw new ArgumentOutOfRangeException(nameof(units));
 #pragma warning restore CA1512
-        _cancellationToken.ThrowIfCancellationRequested();
+        ThrowIfCancellationRequested();
         long next;
         try {
             next = checked(_consumed + units);
@@ -38,5 +41,12 @@ internal sealed class PdfUnderstandingWorkBudget {
         _consumed = next;
     }
 
-    internal void ThrowIfCancellationRequested() => _cancellationToken.ThrowIfCancellationRequested();
+    internal void ThrowIfCancellationRequested() {
+        if (Volatile.Read(ref _operationCompleted) == 0) {
+            _cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    /// <summary>Detaches retained lazy projections from the completed read operation's token.</summary>
+    internal void CompleteOperation() => Volatile.Write(ref _operationCompleted, 1);
 }

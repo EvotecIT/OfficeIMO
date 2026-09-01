@@ -63,7 +63,8 @@ internal static class PdfDocumentSemanticEnricher {
                 elements[pageIndex].AsReadOnly(),
                 page.Trace,
                 page.ConsumeWork,
-                page.CancellationCheck);
+                page.CancellationCheck,
+                page.CompleteOperation);
         }
         return Array.AsReadOnly(result);
     }

@@ -67,6 +67,7 @@ public sealed class PdfUnderstandingPageContext {
     public void ConsumeWork(long units = 1) => _workBudget.Consume(units);
     /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
     public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
+    internal void CompleteOperation() => _workBudget.CompleteOperation();
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
 }
 
@@ -207,6 +208,8 @@ public sealed class PdfUnderstandingStageTrace {
 
 /// <summary>All intermediate and final artifacts for one page.</summary>
 public sealed class PdfUnderstandingPageResult {
+    private readonly Action? _completeOperation;
+
     internal PdfUnderstandingPageResult(
         int pageNumber,
         IReadOnlyList<PdfTextSpan> runs,
@@ -218,7 +221,8 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfUnderstandingSemanticElement> elements,
         IReadOnlyList<PdfUnderstandingStageTrace> trace,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        Action? completeOperation = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -230,6 +234,7 @@ public sealed class PdfUnderstandingPageResult {
         Trace = trace;
         ConsumeWork = consumeWork;
         CancellationCheck = cancellationCheck;
+        _completeOperation = completeOperation;
     }
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
@@ -251,6 +256,7 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
+    internal void CompleteOperation() => _completeOperation?.Invoke();
 
     internal static PdfUnderstandingPageResult Empty(int pageNumber) => new PdfUnderstandingPageResult(
         pageNumber,

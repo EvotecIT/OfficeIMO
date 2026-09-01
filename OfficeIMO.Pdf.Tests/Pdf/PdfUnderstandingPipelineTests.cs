@@ -762,6 +762,36 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void CompletedReadResult_RemainsUsableAfterItsOperationTokenIsCanceled() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Completed read")
+            .Paragraph(paragraph => paragraph.Text("Retained semantic content"))
+            .ToBytes();
+        using var cancellation = new CancellationTokenSource();
+
+        PdfDocumentReadResult result = Read(
+            pdf,
+            PdfUnderstandingPipelineOptions.Structured(),
+            cancellationToken: cancellation.Token);
+        cancellation.Cancel();
+
+        Assert.Contains("Retained semantic content", result.Text, StringComparison.Ordinal);
+        Assert.NotEmpty(result.Sections);
+        Assert.NotEmpty(PdfLogicalReadingOrderAnalysis.Analyze(Assert.Single(result.Pages)));
+    }
+
+    [Fact]
+    public void GeneratedEncryptedDocument_UsesItsCredentialsForCanonicalRead() {
+        PdfDocument document = PdfDocument.Create(
+            new PdfOptions().SetEncryption("open", "owner"));
+        document.Paragraph(paragraph => paragraph.Text("Encrypted semantic content"));
+
+        PdfDocumentReadResult result = document.Read();
+
+        Assert.Contains("Encrypted semantic content", result.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AdvancedSegmentation_ChargesCanonicalLayoutRecoveryBeforeTableProjection() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
@@ -1474,6 +1504,28 @@ public class PdfUnderstandingPipelineTests {
 
         Assert.True(top - bottom >= 399D, $"Expected the rotated extent to span about 400 points, but it spanned {top - bottom:0.###}.");
         Assert.True(right - left >= 10D, $"Expected the rotated glyph thickness to span about one font size, but it spanned {right - left:0.###}.");
+    }
+
+    [Fact]
+    public void AdvancedReadingOrder_NormalizesRotatedCropGeometryBeforePartitioning() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        pdf = PdfPageEditor.SetCropBox(pdf, 100D, 200D, 500D, 800D);
+        pdf = PdfPageEditor.RotatePages(pdf, 90);
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(
+            sourcePage,
+            1,
+            new PdfTextLayoutOptions(),
+            10_000,
+            10_000);
+        PdfUnderstandingRegion visualBottom = CreateUnderstandingRegion("Visual bottom", 150D, 500D, 11D);
+        PdfUnderstandingRegion visualTop = CreateUnderstandingRegion("Visual top", 350D, 500D, 11D);
+
+        IReadOnlyList<PdfUnderstandingRegion> ordered = PdfAdvancedUnderstandingStages.ReadingOrder.Order(
+            context,
+            new[] { visualBottom, visualTop });
+
+        Assert.Equal(new[] { "Visual top", "Visual bottom" }, ordered.Select(static region => region.Text));
     }
 
     [Fact]
