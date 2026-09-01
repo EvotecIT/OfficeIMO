@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
+using OfficeIMO.Html;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -53,6 +54,7 @@ public sealed class OfficeWorkflowRunnerTests {
         });
 
         Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(OfficeWorkflowFailureKind.None, result.FailureKind);
         Assert.Equal(output, result.OutputPath);
         Assert.True(File.Exists(output));
         Assert.True(result.OutputBytes > 0);
@@ -81,6 +83,7 @@ public sealed class OfficeWorkflowRunnerTests {
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Message.Contains("while it was being serialized", StringComparison.Ordinal));
         Assert.False(File.Exists(output));
@@ -100,6 +103,7 @@ public sealed class OfficeWorkflowRunnerTests {
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Message.Contains("supports only the Faithful output profile", StringComparison.Ordinal));
     }
@@ -154,6 +158,17 @@ public sealed class OfficeWorkflowRunnerTests {
             OfficeWorkflowInputReader.ReadAllBytes(source, "growing.pdf", 16, CancellationToken.None));
 
         Assert.Contains("above the configured 16-byte limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlInputPreservesTheSourceFileAsItsBaseUri() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        byte[] html = Encoding.UTF8.GetBytes("<!doctype html><html><body><img src='assets/chart.png'></body></html>");
+
+        HtmlConversionDocument document = OfficeWorkflowRunner.ParseHtmlInput(html, input);
+
+        Assert.Equal(new Uri(Path.GetFullPath(input)), document.BaseUri);
     }
 
     [Fact]
@@ -226,6 +241,7 @@ public sealed class OfficeWorkflowRunnerTests {
         }, cancellationToken: cancellation.Token);
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.None, result.FailureKind);
         Assert.False(File.Exists(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
     }
@@ -240,6 +256,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
         OfficeWorkflowResult failed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Fail));
         Assert.Equal(OfficeWorkflowStatus.Failed, failed.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, failed.FailureKind);
         Assert.Equal("existing", await File.ReadAllTextAsync(output));
 
         OfficeWorkflowResult renamed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
@@ -251,6 +268,18 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(replaced.Succeeded, replaced.Summary);
         Assert.NotEqual("existing", await File.ReadAllTextAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task GeneralWorkflowResultClassifiesMissingInput() {
+        using var scope = new TestDirectory();
+        string missing = Path.Combine(scope.Path, "missing.pdf");
+        OfficeWorkflowResult missingResult = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = missing
+        });
+
+        Assert.Equal(OfficeWorkflowFailureKind.InputNotFound, missingResult.FailureKind);
     }
 
     [Fact]

@@ -60,8 +60,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "html-pdf": {
-                string html = DecodeHtmlInput(input);
-                PdfDocumentConversionResult conversion = HtmlConversionDocument.Parse(html)
+                PdfDocumentConversionResult conversion = ParseHtmlInput(input, request.InputPath)
                     .ToPdfDocumentResultAsync(new HtmlPdfSaveOptions(), cancellationToken)
                     .GetAwaiter()
                     .GetResult();
@@ -162,5 +161,13 @@ public sealed partial class OfficeWorkflowRunner {
             bufferSize: 1024,
             leaveOpen: false);
         return reader.ReadToEnd();
+    }
+
+    internal static HtmlConversionDocument ParseHtmlInput(byte[] input, string inputPath) {
+        ArgumentNullException.ThrowIfNull(input);
+        if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
+        return HtmlConversionDocument.Parse(
+            DecodeHtmlInput(input),
+            new HtmlConversionDocumentOptions { BaseUri = new Uri(Path.GetFullPath(inputPath)) });
     }
 }

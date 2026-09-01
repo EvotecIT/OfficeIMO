@@ -26,9 +26,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         long inputBytes = 0;
         string? stagingPath = null;
+        WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
         try {
             ValidatedRequest validated = ValidateRequest(request);
+            failureStage = WorkflowFailureStage.Input;
             Report(progress, request.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
             inputBytes = new FileInfo(validated.InputPath).Length;
@@ -38,6 +40,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             }
 
             Report(progress, request.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
+            failureStage = WorkflowFailureStage.Operation;
             OperationArtifact artifact = await Task.Run(
                 () => Execute(validated, diagnostics, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
@@ -65,6 +68,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             EnsureVerifiedHealthArtifact(validated.Operation, artifact.HealthReport);
 
             cancellationToken.ThrowIfCancellationRequested();
+            failureStage = WorkflowFailureStage.Output;
             string outputDirectory = Path.GetDirectoryName(validated.OutputPath!)!;
             Directory.CreateDirectory(outputDirectory);
             stagingPath = Path.Combine(
@@ -114,6 +118,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 request.Id,
                 request.Operation,
                 OfficeWorkflowStatus.Cancelled,
+                OfficeWorkflowFailureKind.None,
                 outputPath: null,
                 inputBytes,
                 outputBytes: 0,
@@ -133,6 +138,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 request.Id,
                 request.Operation,
                 OfficeWorkflowStatus.Failed,
+                ClassifyFailure(ex, failureStage),
                 outputPath: null,
                 inputBytes,
                 outputBytes: 0,
@@ -646,6 +652,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             request.Id,
             request.Operation,
             status,
+            OfficeWorkflowFailureKind.None,
             outputPath,
             inputBytes,
             outputBytes,
