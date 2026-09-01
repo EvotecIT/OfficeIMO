@@ -206,6 +206,49 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocumentReadResult_ToPowerPointPresentation_AppliesSelectionBeforeDestinationLimit() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
+        var options = PdfPowerPointImportOptions.CreateEditableContent();
+        options.MaxPages = 1;
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(2)
+        };
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
+            Assert.Equal(2, page.PageNumber);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentReadResult_ToPowerPointPresentation_PreservesSelectedOrderAndDuplicates() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
+        var options = PdfPowerPointImportOptions.CreateEditableContent();
+        options.MaxPages = 3;
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(2, 1, 2)
+        };
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            Assert.Equal(new[] { 2, 1, 2 }, result.Report.EditablePages.Select(page => page.PageNumber).ToArray());
+        }
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_EditableObjectLimitReportsTextAndTableLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Limit contract")

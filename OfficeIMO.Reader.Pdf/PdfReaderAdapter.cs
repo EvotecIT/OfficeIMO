@@ -174,42 +174,9 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static IReadOnlyList<PdfLogicalPage> GetReaderPages(PdfDocumentReadResult document, ReaderPdfOptions options) {
-        PdfPageSelection? selection = options.ReadOptions?.PageSelection;
-        if (selection is null) {
-            return document.Pages;
-        }
-
-        IReadOnlyList<PdfPageRange> ranges = selection.Ranges;
-
-        int maxSourcePageNumber = 0;
-        for (int i = 0; i < document.Pages.Count; i++) {
-            maxSourcePageNumber = Math.Max(maxSourcePageNumber, document.Pages[i].PageNumber);
-        }
-
-        if (maxSourcePageNumber == 0) {
-            return Array.Empty<PdfLogicalPage>();
-        }
-
-        var pages = new List<PdfLogicalPage>();
-        for (int rangeIndex = 0; rangeIndex < ranges.Count; rangeIndex++) {
-            PdfPageRange range = ranges[rangeIndex];
-            if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
-                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.ReadOptions), "The PDF page selection must contain inclusive one-based ranges.");
-            }
-
-            if (range.LastPage > maxSourcePageNumber) {
-                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.ReadOptions), "The PDF page selection cannot exceed the document page count.");
-            }
-
-            for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
-                IReadOnlyList<PdfLogicalPage> sourcePages = document.GetPages(pageNumber);
-                for (int sourceIndex = 0; sourceIndex < sourcePages.Count; sourceIndex++) {
-                    pages.Add(sourcePages[sourceIndex]);
-                }
-            }
-        }
-
-        return pages.AsReadOnly();
+        return document.ProjectPages(
+            options.ReadOptions?.PageSelection,
+            nameof(ReaderPdfOptions.ReadOptions)).Pages;
     }
 
     private static string BuildMarkdown(IReadOnlyList<PdfLogicalPage> pages, PdfLogicalMarkdownOptions markdownOptions) {
