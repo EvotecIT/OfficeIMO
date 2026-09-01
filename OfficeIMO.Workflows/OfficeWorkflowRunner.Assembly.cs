@@ -281,6 +281,9 @@ public sealed partial class OfficeWorkflowRunner {
             EnforceInputLimit(archivePath, archiveFileBytes, request.Limits);
             string destinationRoot = Path.Combine(extractionRoot, "archive-" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
             Directory.CreateDirectory(destinationRoot);
+            string canonicalDestinationRoot = Path.GetFullPath(destinationRoot)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            StringComparison destinationComparison = OfficeWorkflowPathIdentity.GetComparison(destinationRoot);
             using var archiveStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             int remainingDiscoveryCapacity = request.Options.MaximumDiscoveredEntries - discoveredEntryCount;
             int preflightLimit = Math.Min(request.Options.MaximumArchiveEntries, remainingDiscoveryCapacity);
@@ -342,11 +345,7 @@ public sealed partial class OfficeWorkflowRunner {
 
                 string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 string destination = Path.GetFullPath(Path.Combine(destinationRoot, normalizedName));
-                string relativeDestination = Path.GetRelativePath(destinationRoot, destination);
-                if (Path.IsPathRooted(relativeDestination) ||
-                    string.Equals(relativeDestination, "..", StringComparison.Ordinal) ||
-                    relativeDestination.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) ||
-                    relativeDestination.StartsWith(".." + Path.AltDirectorySeparatorChar, StringComparison.Ordinal)) {
+                if (!destination.StartsWith(canonicalDestinationRoot, destinationComparison)) {
                     throw new InvalidDataException("An archive entry resolves outside its extraction directory.");
                 }
                 Directory.CreateDirectory(Path.GetDirectoryName(destination)!);

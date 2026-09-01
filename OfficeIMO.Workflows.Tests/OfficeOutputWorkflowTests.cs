@@ -368,13 +368,17 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.Contains("explicit input", result.Summary, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public async Task ZipTraversalFailsBeforeAnyOutputIsPublished() {
+    [Theory]
+    [InlineData("../outside.pdf")]
+    [InlineData("..\\outside.pdf")]
+    [InlineData("folder/..\\../outside.pdf")]
+    [InlineData("/outside.pdf")]
+    public async Task ZipTraversalFailsBeforeAnyOutputIsPublished(string entryName) {
         using var scope = new TestDirectory();
         string source = CreatePdf(scope.Path, "source.pdf", "Traversal payload");
         string archivePath = Path.Combine(scope.Path, "traversal.zip");
         using (ZipArchive archive = ZipFile.Open(archivePath, ZipArchiveMode.Create)) {
-            AddArchiveFile(archive, source, "../outside.pdf");
+            AddArchiveFile(archive, source, entryName);
         }
         string output = Path.Combine(scope.Path, "must-not-exist.pdf");
 
@@ -385,8 +389,29 @@ public sealed class OfficeOutputWorkflowTests {
         });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
         Assert.Contains("outside", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task ZipContainedPathNormalizationRemainsSupported() {
+        using var scope = new TestDirectory();
+        string source = CreatePdf(scope.Path, "source.pdf", "Contained payload");
+        string archivePath = Path.Combine(scope.Path, "contained.zip");
+        using (ZipArchive archive = ZipFile.Open(archivePath, ZipArchiveMode.Create)) {
+            AddArchiveFile(archive, source, "folder/../contained.pdf");
+        }
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [archivePath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("Contained payload", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
     }
 
     [Fact]
