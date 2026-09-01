@@ -82,6 +82,7 @@ public partial class ExcelDocument {
                                 _ => cell.Value
                             };
                             ExcelCell targetCell = sheet.CellAt(cell.Row, cell.Column);
+                            bool formulaWritten = false;
                             bool hasErrorValue = cell.Kind == IWorkCellKind.Error
                                 || cell.Kind == IWorkCellKind.Formula
                                     && cell.ValueKind == IWorkCellKind.Error;
@@ -89,9 +90,23 @@ public partial class ExcelDocument {
                                 string errorText = ErrorText(cell);
                                 if (IsNativeExcelError(errorText)) {
                                     sheet.CellError(cell.Row, cell.Column, errorText);
+                                } else if (cell.Kind == IWorkCellKind.Formula
+                                    && cell.FormulaIsComplete
+                                    && !string.IsNullOrEmpty(cell.Formula)) {
+                                    sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
+                                        cell.Formula!, errorText);
+                                    formulaWritten = true;
                                 } else {
                                     targetCell.SetValue(errorText);
                                 }
+                            } else if (cell.Kind == IWorkCellKind.Formula
+                                && cell.ValueKind == IWorkCellKind.Text
+                                && value is string cachedText
+                                && cell.FormulaIsComplete
+                                && !string.IsNullOrEmpty(cell.Formula)) {
+                                sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
+                                    cell.Formula!, cachedText);
+                                formulaWritten = true;
                             } else if (cell.Kind != IWorkCellKind.Formula || cell.Value != null) {
                                 targetCell.SetValue(value);
                             }
@@ -100,7 +115,7 @@ public partial class ExcelDocument {
                                 targetCell.SetBold();
                             }
                             if (cell.Kind == IWorkCellKind.Formula && cell.FormulaIsComplete
-                                && !string.IsNullOrEmpty(cell.Formula)) {
+                                && !string.IsNullOrEmpty(cell.Formula) && !formulaWritten) {
                                 targetCell.SetFormula(cell.Formula!);
                             }
                             if (isDuration && cell.Value is double) targetCell.DurationHours();

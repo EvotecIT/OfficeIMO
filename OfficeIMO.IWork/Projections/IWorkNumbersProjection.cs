@@ -587,9 +587,12 @@ internal static class IWorkNumbersReader {
                     .Select(column => offsets[column * 2] | offsets[column * 2 + 1] << 8)
                     .Where(encodedOffset => encodedOffset != ushort.MaxValue)
                     .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
-                    .Distinct()
-                    .OrderBy(cellOffset => cellOffset)
                     .ToArray();
+                if (populatedOffsets.Length != populatedOffsets.Distinct().Count()) {
+                    MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
+                    continue;
+                }
+                Array.Sort(populatedOffsets);
                 var cellLimits = new Dictionary<int, int>(populatedOffsets.Length);
                 for (int offsetIndex = 0; offsetIndex < populatedOffsets.Length; offsetIndex++) {
                     cellLimits.Add(populatedOffsets[offsetIndex],

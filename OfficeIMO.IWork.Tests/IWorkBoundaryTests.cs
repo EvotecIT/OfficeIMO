@@ -1215,6 +1215,9 @@ public sealed partial class IWorkBoundaryTests {
                     checked(table.TrailingEmptyOffsetCount * 2))).ToArray()
             : table.OddCurrentOffsets
             ? new[] { (byte)encodedOffset }
+            : table.DuplicatePopulatedOffset
+                ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
+                    (byte)encodedOffset, (byte)(encodedOffset >> 8) }
             : table.PopulatedOffsetBeyondColumns
                 ? new[] { (byte)encodedOffset, (byte)(encodedOffset >> 8),
                     (byte)encodedOffset, (byte)(encodedOffset >> 8) }
@@ -1545,7 +1548,8 @@ public sealed partial class IWorkBoundaryTests {
             int unexpectedFormulaCatalogFieldCount = 0,
             int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
             bool duplicateRowIndex = false, bool conflictingNumberValue = false,
-            byte decimal128SpecialHighByte = 0, bool emptyTile = false) {
+            byte decimal128SpecialHighByte = 0, bool emptyTile = false,
+            bool duplicatePopulatedOffset = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1595,6 +1599,7 @@ public sealed partial class IWorkBoundaryTests {
             ConflictingNumberValue = conflictingNumberValue;
             Decimal128SpecialHighByte = decimal128SpecialHighByte;
             EmptyTile = emptyTile;
+            DuplicatePopulatedOffset = duplicatePopulatedOffset;
         }
 
         internal string Name { get; }
@@ -1646,5 +1651,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool ConflictingNumberValue { get; }
         internal byte Decimal128SpecialHighByte { get; }
         internal bool EmptyTile { get; }
+        internal bool DuplicatePopulatedOffset { get; }
     }
 }

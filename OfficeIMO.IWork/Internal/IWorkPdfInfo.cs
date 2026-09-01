@@ -381,7 +381,10 @@ internal static class IWorkPdfInfo {
         if (objectEnd < 0) return false;
         dictionaryStart = IndexOf(bytes, "<<", offset + 3, objectEnd);
         dictionaryEnd = dictionaryStart < 0 ? -1 : FindDictionaryEnd(bytes, dictionaryStart, objectEnd);
-        return dictionaryStart >= 0 && dictionaryEnd >= 0;
+        if (dictionaryStart < 0 || dictionaryEnd < 0) return false;
+        int trailingOffset = dictionaryEnd + 2;
+        return SkipWhitespaceAndComments(bytes, ref trailingOffset, objectEnd)
+            && trailingOffset == objectEnd;
     }
 
     private static int FindDictionaryEnd(byte[] bytes, int start, int limit) {
@@ -627,6 +630,16 @@ internal static class IWorkPdfInfo {
 
     private static void SkipWhitespace(byte[] bytes, ref int offset, int limit) {
         while (offset < limit && IsWhitespace(bytes[offset])) offset++;
+    }
+
+    private static bool SkipWhitespaceAndComments(byte[] bytes, ref int offset, int limit) {
+        while (offset < limit) {
+            SkipWhitespace(bytes, ref offset, limit);
+            if (offset >= limit || bytes[offset] != (byte)'%') return true;
+            while (offset < limit && bytes[offset] is not 0x0a and not 0x0d) offset++;
+            if (offset >= limit) return false;
+        }
+        return true;
     }
 
     private static bool ContainsOnlyTrailingWhitespace(byte[] bytes, int offset) {

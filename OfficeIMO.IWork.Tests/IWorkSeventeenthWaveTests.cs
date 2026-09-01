@@ -255,16 +255,22 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] CreateOnePageClassicPdf(bool validKids,
         string pageDictionaryPrefix = "", string trailerDictionaryPrefix = "",
         bool omitCatalogEndObject = false, bool omitPagesEndObject = false,
-        bool omitPageEndObject = false) {
+        bool omitPageEndObject = false, bool trailCatalogDictionary = false,
+        bool trailPagesDictionary = false, bool trailPageDictionary = false,
+        bool commentCatalogDictionary = false) {
         const string header = "%PDF-1.4\n";
         string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\n"
+            + (trailCatalogDictionary ? "42\n" : string.Empty)
+            + (commentCatalogDictionary ? "% valid comment\n" : string.Empty)
             + (omitCatalogEndObject ? string.Empty : "endobj\n");
         string pages = validKids
             ? "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\n"
             : "2 0 obj\n<< /Type /Pages /Count 1 /Kids [] >>\n";
+        if (trailPagesDictionary) pages += "42\n";
         if (!omitPagesEndObject) pages += "endobj\n";
         string page = "3 0 obj\n<< /Type /Page " + pageDictionaryPrefix
             + "/Parent 2 0 R >>\n"
+            + (trailPageDictionary ? "42\n" : string.Empty)
             + (omitPageEndObject ? string.Empty : "endobj\n");
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);
