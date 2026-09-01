@@ -128,6 +128,9 @@ internal static class PdfOcr {
         ref long comparisons,
         CancellationToken cancellationToken) {
         double wordArea = word.Width * word.Height;
+        double requiredArea = wordArea * threshold;
+        var intersections = new List<OcrOverlapRectangle>();
+        double summedIntersectionArea = 0D;
         for (int i = 0; i < nativeTextBounds.Count; i++) {
             comparisons = checked(comparisons + 1L);
             if (comparisons > maximumComparisons) {
@@ -135,12 +138,135 @@ internal static class PdfOcr {
             }
             if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
             PdfSelectionQuad bounds = nativeTextBounds[i];
-            double overlapWidth = Math.Max(0D, Math.Min(word.X + word.Width, bounds.Right) - Math.Max(word.X, bounds.Left));
-            double overlapHeight = Math.Max(0D, Math.Min(word.Y + word.Height, bounds.Bottom) - Math.Max(word.Y, bounds.Top));
-            if ((overlapWidth * overlapHeight) / wordArea >= threshold) return true;
+            double left = Math.Max(word.X, bounds.Left);
+            double top = Math.Max(word.Y, bounds.Top);
+            double right = Math.Min(word.X + word.Width, bounds.Right);
+            double bottom = Math.Min(word.Y + word.Height, bounds.Bottom);
+            double overlapWidth = Math.Max(0D, right - left);
+            double overlapHeight = Math.Max(0D, bottom - top);
+            double overlapArea = overlapWidth * overlapHeight;
+            if (overlapArea >= requiredArea) return true;
+            if (overlapArea <= 0D) continue;
+            intersections.Add(new OcrOverlapRectangle(left, top, right, bottom));
+            summedIntersectionArea += overlapArea;
         }
 
-        return false;
+        return summedIntersectionArea >= requiredArea &&
+            CalculateRectangleUnionArea(intersections, cancellationToken) >= requiredArea;
+    }
+
+    private static double CalculateRectangleUnionArea(
+        IReadOnlyList<OcrOverlapRectangle> rectangles,
+        CancellationToken cancellationToken) {
+        if (rectangles.Count == 0) return 0D;
+        var yCoordinates = new List<double>(checked(rectangles.Count * 2));
+        for (int i = 0; i < rectangles.Count; i++) {
+            yCoordinates.Add(rectangles[i].Top);
+            yCoordinates.Add(rectangles[i].Bottom);
+        }
+        yCoordinates.Sort();
+        int uniqueCount = 0;
+        for (int i = 0; i < yCoordinates.Count; i++) {
+            if (uniqueCount == 0 || yCoordinates[i] != yCoordinates[uniqueCount - 1]) {
+                yCoordinates[uniqueCount++] = yCoordinates[i];
+            }
+        }
+        if (uniqueCount < yCoordinates.Count) yCoordinates.RemoveRange(uniqueCount, yCoordinates.Count - uniqueCount);
+
+        var coordinateIndexes = new Dictionary<double, int>(yCoordinates.Count);
+        for (int i = 0; i < yCoordinates.Count; i++) coordinateIndexes.Add(yCoordinates[i], i);
+        var events = new List<OcrOverlapEvent>(checked(rectangles.Count * 2));
+        for (int i = 0; i < rectangles.Count; i++) {
+            OcrOverlapRectangle rectangle = rectangles[i];
+            int topIndex = coordinateIndexes[rectangle.Top];
+            int bottomIndex = coordinateIndexes[rectangle.Bottom] - 1;
+            events.Add(new OcrOverlapEvent(rectangle.Left, topIndex, bottomIndex, 1));
+            events.Add(new OcrOverlapEvent(rectangle.Right, topIndex, bottomIndex, -1));
+        }
+        events.Sort(static (first, second) => first.X.CompareTo(second.X));
+
+        var coverage = new OcrVerticalCoverageTree(yCoordinates);
+        double area = 0D;
+        double previousX = events[0].X;
+        int eventIndex = 0;
+        while (eventIndex < events.Count) {
+            if ((eventIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
+            double x = events[eventIndex].X;
+            area += (x - previousX) * coverage.CoveredLength;
+            while (eventIndex < events.Count && events[eventIndex].X == x) {
+                OcrOverlapEvent current = events[eventIndex++];
+                coverage.Update(current.TopIndex, current.BottomIndex, current.Delta);
+            }
+            previousX = x;
+        }
+        return area;
+    }
+
+    private readonly struct OcrOverlapEvent {
+        internal OcrOverlapEvent(double x, int topIndex, int bottomIndex, int delta) {
+            X = x;
+            TopIndex = topIndex;
+            BottomIndex = bottomIndex;
+            Delta = delta;
+        }
+
+        internal double X { get; }
+        internal int TopIndex { get; }
+        internal int BottomIndex { get; }
+        internal int Delta { get; }
+    }
+
+    private sealed class OcrVerticalCoverageTree {
+        private readonly IReadOnlyList<double> _coordinates;
+        private readonly int[] _coverageCounts;
+        private readonly double[] _coveredLengths;
+
+        internal OcrVerticalCoverageTree(IReadOnlyList<double> coordinates) {
+            _coordinates = coordinates;
+            int intervalCount = coordinates.Count - 1;
+            int storageSize = checked(Math.Max(1, intervalCount) * 4);
+            _coverageCounts = new int[storageSize];
+            _coveredLengths = new double[storageSize];
+        }
+
+        internal double CoveredLength => _coveredLengths[1];
+
+        internal void Update(int firstInterval, int lastInterval, int delta) {
+            if (firstInterval > lastInterval) return;
+            Update(1, 0, _coordinates.Count - 2, firstInterval, lastInterval, delta);
+        }
+
+        private void Update(int node, int left, int right, int firstInterval, int lastInterval, int delta) {
+            if (firstInterval <= left && right <= lastInterval) {
+                _coverageCounts[node] += delta;
+            } else {
+                int middle = left + ((right - left) / 2);
+                if (firstInterval <= middle) Update(node * 2, left, middle, firstInterval, lastInterval, delta);
+                if (lastInterval > middle) Update((node * 2) + 1, middle + 1, right, firstInterval, lastInterval, delta);
+            }
+
+            if (_coverageCounts[node] > 0) {
+                _coveredLengths[node] = _coordinates[right + 1] - _coordinates[left];
+            } else if (left == right) {
+                _coveredLengths[node] = 0D;
+            } else {
+                _coveredLengths[node] = _coveredLengths[node * 2] + _coveredLengths[(node * 2) + 1];
+            }
+        }
+    }
+
+    private readonly struct OcrOverlapRectangle {
+        internal OcrOverlapRectangle(double left, double top, double right, double bottom) {
+            Left = left;
+            Top = top;
+            Right = right;
+            Bottom = bottom;
+        }
+
+        internal double Left { get; }
+        internal double Top { get; }
+        internal double Right { get; }
+        internal double Bottom { get; }
     }
 
     private static string BuildMergedText(

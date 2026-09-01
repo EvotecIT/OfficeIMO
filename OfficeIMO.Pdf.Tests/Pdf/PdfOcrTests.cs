@@ -216,6 +216,83 @@ public class PdfOcrTests {
         Assert.False(result.WasModified);
     }
 
+    [Fact]
+    public async Task RecognizeAndMergeAsync_CombinesFragmentedNativeSpansForOverlapRejection() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas
+                .Text("N", 50D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("a", 62D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("t", 74D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("i", 86D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("v", 98D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("e", 110D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
+            .Select(static region => region.Quad)
+            .ToArray();
+        Assert.Equal(6, glyphs.Length);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Native", left * request.Scale, top * request.Scale,
+                (right - left) * request.Scale, (bottom - top) * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Empty(page.Words);
+        Assert.Equal(1, page.RejectedNativeOverlapCount);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_DoesNotDoubleCountOverlappingNativeSpans() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas
+                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfSelectionQuad glyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", glyph.Left * request.Scale, glyph.Top * request.Scale,
+                glyph.Width * 3D * request.Scale, glyph.Height * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_DoesNotUseFullyClippedTextForOverlapRejection() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Clip(10D, 10D, 10D, 10D, clipped =>
+                clipped.Text("Clipped", 100D, 100D, 80D, 20D, fontSize: 12D)))
+            .ToBytes();
+        PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
+            .Select(static region => region.Quad)
+            .ToArray();
+        Assert.NotEmpty(glyphs);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", left * request.Scale, top * request.Scale,
+                (right - left) * request.Scale, (bottom - top) * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(270)]

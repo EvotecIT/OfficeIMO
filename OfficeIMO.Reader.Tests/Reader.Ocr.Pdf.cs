@@ -83,6 +83,32 @@ public sealed class ReaderOcrPdfTests {
     }
 
     [Fact]
+    public async Task OfficeOcrEnginePdfProvider_FallsBackToLineWhenWordGeometryCannotBeProjected() {
+        var engine = new StubEngine(new OfficeOcrEngineResult {
+            Text = "Line fallback",
+            Spans = new[] {
+                new OfficeOcrTextSpan {
+                    Sequence = 0,
+                    Level = OfficeOcrTextSpanLevel.Word,
+                    Text = "Unplaced word"
+                },
+                new OfficeOcrTextSpan {
+                    Sequence = 1,
+                    Level = OfficeOcrTextSpanLevel.Line,
+                    Text = "Line fallback",
+                    Region = new OfficeDocumentRegion { X = 10D, Y = 20D, Width = 80D, Height = 12D }
+                }
+            }
+        });
+        var provider = new OfficeOcrEnginePdfProvider(engine);
+
+        PdfOcrResponse response = await provider.RecognizeAsync(new PdfOcrRequest(1, new byte[] { 1 }, 100, 100, 50, 50, 2D));
+
+        Assert.Equal("Line fallback", Assert.Single(response.Words).Text);
+        Assert.DoesNotContain(response.Diagnostics, diagnostic => diagnostic.StartsWith("ocr-span-geometry-missing:", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task OfficeOcrEnginePdfProvider_DoesNotInventGeometryForPlainText() {
         var provider = new OfficeOcrEnginePdfProvider(new StubEngine(new OfficeOcrEngineResult { Text = "Text only" }));
 

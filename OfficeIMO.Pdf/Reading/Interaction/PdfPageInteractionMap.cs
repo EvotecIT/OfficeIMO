@@ -71,6 +71,7 @@ public sealed class PdfPageInteractionMap {
         IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
         (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
         var bounds = new List<PdfSelectionQuad>(spans.Count);
+        var geometryBudget = new PdfReadPage.VisualGeometryBudget();
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
             // Rendering mode 3 is the standard invisible searchable-text layer. Include it
@@ -98,6 +99,15 @@ public sealed class PdfPageInteractionMap {
                 Math.Max(1D, span.FontSize),
                 Math.Max(0.5D, span.FontSize * 0.2D),
                 pageHeight);
+            if (span.ClipPath.HasValue) {
+                PdfPageClipPath clip = span.ClipPath.Value;
+                if (clip.Width <= 0D || clip.Height <= 0D ||
+                    clip.CanProveNoPositiveAreaIntersection(
+                        PdfPageClipPath.Rectangle(quad.Left, quad.Top, quad.Width, quad.Height),
+                        geometryBudget)) {
+                    continue;
+                }
+            }
             if (quad.Intersects(0D, 0D, pageWidth, pageHeight)) bounds.Add(quad);
         }
         return bounds.Count == 0 ? Array.Empty<PdfSelectionQuad>() : bounds.AsReadOnly();

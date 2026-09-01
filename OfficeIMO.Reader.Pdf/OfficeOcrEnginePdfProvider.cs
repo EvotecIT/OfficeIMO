@@ -74,14 +74,55 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
             }
         }
 
-        IReadOnlyList<OfficeOcrTextSpan> spans = SelectSpans(result.Spans);
-        var words = new List<PdfOcrWord>(spans.Count);
+        OfficeOcrTextSpan[] spans = (result.Spans ?? Array.Empty<OfficeOcrTextSpan>())
+            .Where(static span => span != null)
+            .OrderBy(static span => span.Sequence)
+            .ToArray();
+        OfficeOcrTextSpan[] wordSpans = spans
+            .Where(static span => span.Level == OfficeOcrTextSpanLevel.Word)
+            .ToArray();
+        var words = new List<PdfOcrWord>(wordSpans.Length);
         bool usedFallbackConfidence = false;
+        AppendProjectedSpans(wordSpans, request, result, diagnostics, words, ref usedFallbackConfidence, cancellationToken);
+        if (words.Count == 0 && _options.UseLineSpansWhenWordsUnavailable) {
+            OfficeOcrTextSpan[] lineSpans = spans
+                .Where(static span => span.Level == OfficeOcrTextSpanLevel.Line)
+                .ToArray();
+            AppendProjectedSpans(lineSpans, request, result, diagnostics, words, ref usedFallbackConfidence, cancellationToken);
+        }
+
+        if (words.Count == 0 && !string.IsNullOrWhiteSpace(result.Text)) {
+            diagnostics.Add("ocr-span-geometry-missing: The OCR engine returned text without word or line geometry, so it could not be placed on the PDF page.");
+        }
+        if (usedFallbackConfidence) {
+            diagnostics.Add("ocr-confidence-unavailable: The OCR engine did not report confidence; the configured fallback confidence was used.");
+        }
+
+        return new PdfOcrResponse(
+            words,
+            diagnostics,
+            provider: string.IsNullOrWhiteSpace(result.Provider) ? _engine.Id : result.Provider,
+            model: result.Model,
+            language: result.Language ?? _options.Language);
+    }
+
+    private void AppendProjectedSpans(
+        IReadOnlyList<OfficeOcrTextSpan> spans,
+        PdfOcrRequest request,
+        OfficeOcrEngineResult result,
+        List<string> diagnostics,
+        List<PdfOcrWord> words,
+        ref bool usedFallbackConfidence,
+        CancellationToken cancellationToken) {
         for (int index = 0; index < spans.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeOcrTextSpan span = spans[index];
-            if (string.IsNullOrWhiteSpace(span.Text) || span.Region == null) continue;
+            if (string.IsNullOrWhiteSpace(span.Text)) continue;
             if (span.PageNumber.HasValue && span.PageNumber.Value != request.PageNumber && span.PageNumber.Value != 1) continue;
+            if (span.Region == null) {
+                diagnostics.Add("ocr-span-geometry: A recognized span did not include geometry.");
+                continue;
+            }
             if (!TryConvertRegion(span.Region, span.CoordinateUnit, request, out double x, out double y, out double width, out double height)) {
                 diagnostics.Add("ocr-span-geometry: A recognized span had unsupported or non-finite geometry.");
                 continue;
@@ -98,30 +139,6 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
             }
             words.Add(new PdfOcrWord(span.Text, x, y, width, height, confidence));
         }
-
-        if (spans.Count == 0 && !string.IsNullOrWhiteSpace(result.Text)) {
-            diagnostics.Add("ocr-span-geometry-missing: The OCR engine returned text without word or line geometry, so it could not be placed on the PDF page.");
-        }
-        if (usedFallbackConfidence) {
-            diagnostics.Add("ocr-confidence-unavailable: The OCR engine did not report confidence; the configured fallback confidence was used.");
-        }
-
-        return new PdfOcrResponse(
-            words,
-            diagnostics,
-            provider: string.IsNullOrWhiteSpace(result.Provider) ? _engine.Id : result.Provider,
-            model: result.Model,
-            language: result.Language ?? _options.Language);
-    }
-
-    private IReadOnlyList<OfficeOcrTextSpan> SelectSpans(IReadOnlyList<OfficeOcrTextSpan>? source) {
-        OfficeOcrTextSpan[] spans = (source ?? Array.Empty<OfficeOcrTextSpan>())
-            .Where(static span => span != null)
-            .OrderBy(static span => span.Sequence)
-            .ToArray();
-        OfficeOcrTextSpan[] words = spans.Where(static span => span.Level == OfficeOcrTextSpanLevel.Word).ToArray();
-        if (words.Length > 0 || !_options.UseLineSpansWhenWordsUnavailable) return words;
-        return spans.Where(static span => span.Level == OfficeOcrTextSpanLevel.Line).ToArray();
     }
 
     private static bool TryConvertRegion(
@@ -154,7 +171,9 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
             default:
                 return false;
         }
-        return IsFinite(x) && IsFinite(y) && IsFinite(width) && IsFinite(height);
+        return IsFinite(x) && IsFinite(y) && IsFinite(width) && IsFinite(height) &&
+            x >= 0D && y >= 0D && width > 0D && height > 0D &&
+            x + width <= request.PixelWidth + 0.01D && y + height <= request.PixelHeight + 0.01D;
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
