@@ -14,8 +14,8 @@ public enum IWorkContainerKind {
     ZipPackageWithNestedIndex
 }
 
-/// <summary>Controls how a semantic owner should project an iWork source.</summary>
-public enum IWorkImportMode {
+/// <summary>Controls how a destination adapter should convert an opened iWork source.</summary>
+public enum IWorkConversionMode {
     /// <summary>Prefer editable semantic content and use an embedded raster preview only when no supported structure is available.</summary>
     Auto,
     /// <summary>Require editable semantic reconstruction and fail when supported structure cannot be recovered.</summary>
@@ -24,7 +24,7 @@ public enum IWorkImportMode {
     VisualOnly
 }
 
-/// <summary>Describes the representation produced by an iWork import.</summary>
+/// <summary>Describes the representation produced by an iWork conversion.</summary>
 public enum IWorkProjectionKind {
     EditableReconstruction,
     VisualFallback

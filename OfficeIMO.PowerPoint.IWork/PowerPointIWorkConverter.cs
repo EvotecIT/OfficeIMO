@@ -2,43 +2,25 @@ using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
 
-namespace OfficeIMO.PowerPoint;
+namespace OfficeIMO.PowerPoint.IWork;
 
-public sealed partial class PowerPointPresentation {
-    /// <summary>Loads a Keynote source into the normal editable PowerPoint model, using a visual preview only when requested or necessary.</summary>
-    public static PowerPointPresentation LoadKeynote(string path, IWorkReadOptions? options = null) =>
-        LoadKeynoteWithReport(path, options).Document;
-
-    /// <summary>Loads a Keynote stream into the normal editable PowerPoint model, using a visual preview only when requested or necessary.</summary>
-    public static PowerPointPresentation LoadKeynote(Stream stream, IWorkReadOptions? options = null) =>
-        LoadKeynoteWithReport(stream, options).Document;
-
-    /// <summary>Loads a Keynote source and returns its PowerPoint projection, bounded source model, and loss report.</summary>
-    public static IWorkKeynoteLoadResult LoadKeynoteWithReport(string path, IWorkReadOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        return ProjectKeynote(IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote, options));
-    }
-
-    /// <summary>Loads a Keynote stream and returns its PowerPoint projection, bounded source model, and loss report.</summary>
-    public static IWorkKeynoteLoadResult LoadKeynoteWithReport(Stream stream, IWorkReadOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        return ProjectKeynote(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote, options));
-    }
-
-    private static IWorkKeynoteLoadResult ProjectKeynote(IWorkSourceDocument source) {
-        IWorkImportMode mode = source.RequestedImportMode;
-        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+/// <summary>Projects Apple Keynote sources into editable OfficeIMO PowerPoint presentations.</summary>
+public static partial class PowerPointIWorkConverter {
+    private static KeynoteToPowerPointResult ProjectKeynote(
+        IWorkSourceDocument source, IWorkConversionOptions? options = null) {
+        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
-        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+        if (mode == IWorkConversionMode.VisualOnly && preview == null) {
             throw new NotSupportedException("The Keynote source has no embedded raster preview.");
         }
 
         IWorkKeynoteProjection projection = source.ReadKeynote();
-        string? destinationLimitation = mode == IWorkImportMode.VisualOnly
+        string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
             : FindPowerPointProjectionLimitation(projection);
-        bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
+        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
         IReadOnlyList<IWorkDiagnostic> destinationDiagnostics =
             (!projection.HasEditableContent || destinationLimitation == null
@@ -49,7 +31,7 @@ public sealed partial class PowerPointPresentation {
                 ? FindPowerPointProjectionDiagnostics(projection)
                 : Array.Empty<IWorkDiagnostic>())
             .ToArray();
-        if (!editable && mode == IWorkImportMode.EditableOnly) {
+        if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Keynote source has no supported editable slides.");
         }
@@ -59,7 +41,7 @@ public sealed partial class PowerPointPresentation {
             throw new NotSupportedException("The Keynote source has no supported editable slides or embedded raster preview.");
         }
 
-        PowerPointPresentation presentation = Create();
+        PowerPointPresentation presentation = PowerPointPresentation.Create();
         try {
             IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
             bool useSourceSlideSize = sourceSlideSize != null
@@ -124,8 +106,8 @@ public sealed partial class PowerPointPresentation {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkKeynoteLoadResult(presentation, source, projection,
-                projection.CreateImportReport(kind, preview, destinationDiagnostics));
+            return new KeynoteToPowerPointResult(presentation, source, projection,
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
         } catch {
             presentation.Dispose();
             throw;

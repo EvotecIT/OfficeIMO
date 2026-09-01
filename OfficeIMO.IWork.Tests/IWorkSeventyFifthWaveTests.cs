@@ -11,12 +11,12 @@ public sealed partial class IWorkBoundaryTests {
             rows: 2, columns: 2, defaultRowHeight: 20d, defaultColumnWidth: 40d,
             includePreview: true, omitTableGeometry: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_DRAWABLE_UNSUPPORTED");
-        Assert.Single(Assert.Single(result.Document.Slides).Pictures);
+        Assert.Single(Assert.Single(result.Value.Slides).Pictures);
     }
 
     [Fact]
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithMalformedImageCatalog(
             IWorkDocumentKind.Pages);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithMalformedImageCatalog(
             IWorkDocumentKind.Keynote);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

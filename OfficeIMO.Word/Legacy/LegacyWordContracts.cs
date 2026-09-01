@@ -227,7 +227,7 @@ public sealed class LegacyWordImportOptions {
 /// <summary>Owns an imported editable Word model and its source-loss report.</summary>
 public sealed class LegacyWordImportResult : IDisposable {
     internal LegacyWordImportResult(WordDocument document, LegacyWordDetection detection, OfficeLegacyImportReport report, string plainText, IReadOnlyDictionary<string, string> metadata, LegacyWordContent content) {
-        Document = document;
+        Value = document;
         Detection = detection;
         Report = report;
         PlainText = plainText;
@@ -236,7 +236,7 @@ public sealed class LegacyWordImportResult : IDisposable {
     }
 
     /// <summary>Gets the normal OfficeIMO Word model used by DOCX and converter packages.</summary>
-    public WordDocument Document { get; }
+    public WordDocument Value { get; }
     /// <summary>Gets detected family and profile information.</summary>
     public LegacyWordDetection Detection { get; }
     /// <summary>Gets structured/salvage quality, inert-content flags, and explicit losses.</summary>
@@ -247,6 +247,20 @@ public sealed class LegacyWordImportResult : IDisposable {
     public IReadOnlyDictionary<string, string> Metadata { get; }
     /// <summary>Gets the source-oriented semantic recovery snapshot.</summary>
     public LegacyWordContent Content { get; }
+    /// <summary>Gets whether the import used salvage recovery or omitted, blocked, or kept source content inert.</summary>
+    public bool HasLoss => Report.HasLoss;
+    /// <summary>Returns the imported Word document.</summary>
+    public WordDocument RequireValue() => Value;
+    /// <summary>Returns the imported Word document or throws when the import was lossy.</summary>
+    public WordDocument RequireNoLoss() {
+        try {
+            Report.RequireNoLoss();
+            return Value;
+        } catch {
+            Value.Dispose();
+            throw;
+        }
+    }
     /// <inheritdoc />
-    public void Dispose() => Document.Dispose();
+    public void Dispose() => Value.Dispose();
 }

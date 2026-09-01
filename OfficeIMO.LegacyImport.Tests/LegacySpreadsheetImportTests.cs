@@ -24,7 +24,7 @@ public sealed class LegacySpreadsheetImportTests {
         using LegacySpreadsheetImportResult result = LegacySpreadsheetImporter.Import(source, new LegacySpreadsheetImportOptions { SourceName = sourceName });
         Assert.Equal(expected, result.Detection.Format);
         Assert.True(result.Report.RecoveredItemCount > 0);
-        Assert.NotEmpty(result.Document.Sheets);
+        Assert.NotEmpty(result.Value.Sheets);
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal(84d, Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 3).CachedValue);
         Assert.Equal("Input", Assert.Single(imported.Names).Name);
         Assert.Equal("Input", Assert.Single(imported.Names).ProjectedName);
-        Assert.Contains(imported.Document.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
-        var sheet = Assert.Single(imported.Document.CreateInspectionSnapshot().Worksheets);
+        Assert.Contains(imported.Value.CreateInspectionSnapshot().NamedRanges, name => name.Name == "Input");
+        var sheet = Assert.Single(imported.Value.CreateInspectionSnapshot().Worksheets);
         Assert.Equal("Name", Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1).Value);
         Assert.Equal("left", Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1).Style?.HorizontalAlignment);
         Assert.Equal(OfficeIMO.Excel.ExcelHorizontalAlignment.Left, Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 1).Alignment);
@@ -47,7 +47,7 @@ public sealed class LegacySpreadsheetImportTests {
         var formulaCell = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 3);
         Assert.Equal("($A$1+$B$1)", formulaCell.Formula);
         Assert.Equal(84d, Convert.ToDouble(formulaCell.Value));
-        Assert.Equal("84", imported.Document.Sheets[0].CellAt(1, 3).GetValue().CachedText);
+        Assert.Equal("84", imported.Value.Sheets[0].CellAt(1, 3).GetValue().CachedText);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class LegacySpreadsheetImportTests {
 
         LegacySpreadsheetCellContent blank = Assert.Single(imported.Cells, cell => cell.Row == 1 && cell.Column == 4);
         Assert.Null(blank.CachedValue);
-        Assert.Null(imported.Document.Sheets[0].CellAt(1, 4).GetValue().Value);
+        Assert.Null(imported.Value.Sheets[0].CellAt(1, 4).GetValue().Value);
     }
 
     [Fact]
@@ -173,7 +173,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal(84d, formula.CachedValue);
         Assert.Contains(imported.Metadata.Values, value => value.Contains("outside the validated absolute/relative profile", StringComparison.Ordinal));
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_FORMULA_CACHED_FALLBACK");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
         Assert.Contains(imported.Cells, cell => cell.Row == 1 && cell.Column == 4 && cell.CachedValue == null);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_RECORDS_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Null(imported.Names[2].ProjectedName);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_COLLISION");
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
-        Assert.Single(imported.Document.CreateInspectionSnapshot().NamedRanges);
+        Assert.Single(imported.Value.CreateInspectionSnapshot().NamedRanges);
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Empty(imported.Names);
         Assert.Equal("Input", imported.Metadata["UnresolvedName.Sample.1"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_REFERENCE_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -282,7 +282,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Null(name.ProjectedName);
         Assert.Equal("1", imported.Metadata["UnprojectedInvalidNameCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_NAME_INVALID");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
 
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "WK_CELL_PROTECTION_UNSUPPORTED");
-        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireStructuredNoLoss());
+        Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -311,7 +311,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal("Sheet1", projected.SheetName);
         Assert.Equal(257, projected.FirstColumn);
         Assert.Equal(258, projected.LastColumn);
-        Assert.Contains(imported.Document.ListNamedRanges(), name => name.Name == "Wide" &&
+        Assert.Contains(imported.Value.ListNamedRanges(), name => name.Name == "Wide" &&
             name.Reference.Contains("$IW$1:$IX$1", StringComparison.Ordinal));
     }
 
@@ -338,7 +338,7 @@ public sealed class LegacySpreadsheetImportTests {
         LegacySpreadsheetNameContent name = Assert.Single(imported.Names);
         Assert.Equal("Sheet2", name.SheetName);
         Assert.Equal("Second", name.ProjectedName);
-        Assert.Contains(imported.Document.ListNamedRanges(), range =>
+        Assert.Contains(imported.Value.ListNamedRanges(), range =>
             range.Name == "Second" && range.Reference.Contains("'Sheet2'", StringComparison.Ordinal));
     }
 
@@ -354,8 +354,8 @@ public sealed class LegacySpreadsheetImportTests {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.Wq1SheetsOutOfOrder(),
             new LegacySpreadsheetImportOptions { SourceName = "archive.wq1", RequireStructured = true });
-        Assert.Equal(2, imported.Document.Sheets.Count);
-        Assert.Equal(new[] { "Sheet1", "Sheet2" }, imported.Document.Sheets.Select(sheet => sheet.Name));
+        Assert.Equal(2, imported.Value.Sheets.Count);
+        Assert.Equal(new[] { "Sheet1", "Sheet2" }, imported.Value.Sheets.Select(sheet => sheet.Name));
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet1" && Convert.ToInt32(cell.CachedValue) == 1);
         Assert.Contains(imported.Cells, cell => cell.SheetName == "Sheet2" && Convert.ToInt32(cell.CachedValue) == 2);
     }
@@ -367,8 +367,8 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { SourceName = "archive.wk1", RequireStructured = true });
 
         Assert.Empty(imported.Cells);
-        Assert.Single(imported.Document.Sheets);
-        imported.Report.RequireStructuredNoLoss();
+        Assert.Single(imported.Value.Sheets);
+        imported.Report.RequireNoLoss();
     }
 
     [Fact]
@@ -517,7 +517,7 @@ public sealed class LegacySpreadsheetImportTests {
         Assert.Equal(32_767, value.Length);
         Assert.Equal("1", imported.Metadata["TruncatedSalvageCellCount"]);
         Assert.Contains(imported.Report.Findings, finding => finding.Code == "LEGACY_SHEET_CELL_TEXT_TRUNCATED");
-        Assert.Equal(value, imported.Document.Sheets[0].CellAt(1, 1).GetValue().CachedText);
+        Assert.Equal(value, imported.Value.Sheets[0].CellAt(1, 1).GetValue().CachedText);
     }
 
     [Fact]
@@ -565,13 +565,13 @@ public sealed class LegacySpreadsheetImportTests {
     public void ImportedWorkbookUsesEverySupportedModernOutputOwner() {
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(LegacyFixtureFactory.Wk(), new LegacySpreadsheetImportOptions { SourceName = "archive.wk1" });
         using var xlsx = new MemoryStream();
-        imported.Document.Save(xlsx);
+        imported.Value.Save(xlsx);
         Assert.True(xlsx.Length > 100);
-        Assert.Contains("Name", imported.Document.ToHtml());
-        Assert.Contains("Name", imported.Document.Sheets[0].ToCsv());
-        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(imported.Document.ToPdf(), 0, 4));
+        Assert.Contains("Name", imported.Value.ToHtml());
+        Assert.Contains("Name", imported.Value.Sheets[0].ToCsv());
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(imported.Value.ToPdf(), 0, 4));
         using var ods = new MemoryStream();
-        imported.Document.ToOpenDocument().Save(ods);
+        imported.Value.ToOpenDocument().Save(ods);
         Assert.True(ods.Length > 100);
     }
 

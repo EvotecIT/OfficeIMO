@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: true,
             documentLayoutFields: layout);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
                 unknownCellValueFlag: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: true, floating: false);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: true, floating: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: false, floating: true, aliasAcrossFloatingFields: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Shape", Assert.Single(result.Projection.TextBoxes));

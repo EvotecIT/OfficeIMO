@@ -13,7 +13,6 @@ New-Item -ItemType Directory -Path $feedPath -Force | Out-Null
 try {
     $projects = @(
         'OfficeIMO.Core/OfficeIMO.Core.csproj',
-        'OfficeIMO.IWork/OfficeIMO.IWork.csproj',
         'OfficeIMO.Html/OfficeIMO.Html.csproj',
         'OfficeIMO.Word/OfficeIMO.Word.csproj',
         'OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj',

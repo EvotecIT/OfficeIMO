@@ -45,14 +45,15 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Undefined_import_modes_are_rejected_before_package_reads() {
-        using var package = new MemoryStream();
-
+    public void Undefined_conversion_modes_are_rejected_before_projection() {
+        using MemoryStream package = CreatePagesPackage(
+            includeBody: true, textBox: null, includePreview: false);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { ImportMode = (IWorkImportMode)99 }));
+            source.ToWordDocumentResult(
+                new IWorkConversionOptions { Mode = (IWorkConversionMode)99 }));
 
-        Assert.Equal("ImportMode", exception.ParamName);
+        Assert.Equal("Mode", exception.ParamName);
     }
 
     [Fact]
@@ -62,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             IWorkSourceDocument.Open(package, (IWorkDocumentKind)99));
 
-        Assert.Equal("kind", exception.ParamName);
+        Assert.Equal("expectedKind", exception.ParamName);
     }
 
     [Fact]
@@ -73,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
             package, IWorkDocumentKind.Pages).ReadPages();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            projection.CreateImportReport((IWorkProjectionKind)99));
+            projection.CreateConversionReport((IWorkProjectionKind)99));
 
         Assert.Equal("projectionKind", exception.ParamName);
     }
@@ -84,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Underflow", 1, 1, 0d, decimal128Underflow: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

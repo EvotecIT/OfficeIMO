@@ -8,21 +8,21 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_even_header_mode_populates_every_section() {
         using MemoryStream package = CreatePagesPackageWithSectionWideEvenHeaders();
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(2, result.Document.Sections.Count);
-        Assert.Contains(result.Document.Sections[0].Header.Even!.Paragraphs,
+        Assert.Equal(2, result.Value.Sections.Count);
+        Assert.Contains(result.Value.Sections[0].Header.Even!.Paragraphs,
             paragraph => paragraph.Text == "First default header");
-        Assert.Contains(result.Document.Sections[0].Footer.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].Footer.Even!.Paragraphs,
             paragraph => paragraph.Text == "First default footer");
-        Assert.Contains(result.Document.Sections[1].Header.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].Header.Even!.Paragraphs,
             paragraph => paragraph.Text == "Second even header");
-        Assert.Contains(result.Document.Sections[1].Footer.Even!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].Footer.Even!.Paragraphs,
             paragraph => paragraph.Text == "Second even footer");
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Contains(reopened.Sections[0].Header.Even!.Paragraphs,
@@ -37,12 +37,12 @@ public sealed partial class IWorkBoundaryTests {
             includePreview: true,
             textBoxDrawable: Message(StringField(4, "https://example.test/empty-pages-shape")));
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-pages-shape",
             Assert.Single(result.Projection.TextBoxObjects).Hyperlink);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED");
     }
 
@@ -52,13 +52,13 @@ public sealed partial class IWorkBoundaryTests {
             text: string.Empty,
             textBoxDrawable: Message(StringField(4, "https://example.test/empty-keynote-shape")));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-keynote-shape",
             Assert.Single(result.Projection.Slides).TitleBox!.Hyperlink);
         Assert.Equal(new Uri("https://example.test/empty-keynote-shape"),
-            Assert.Single(Assert.Single(result.Document.Slides).TextBoxes).Hyperlink);
+            Assert.Single(Assert.Single(result.Value.Slides).TextBoxes).Hyperlink);
     }
 
     private static MemoryStream CreatePagesPackageWithSectionWideEvenHeaders() {

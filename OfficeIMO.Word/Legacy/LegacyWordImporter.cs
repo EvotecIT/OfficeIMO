@@ -32,6 +32,13 @@ public static class LegacyWordImporter {
         return Detect(data, effective, cancellationToken);
     }
 
+    /// <summary>Detects a legacy-word source from a stream.</summary>
+    public static LegacyWordDetection Detect(Stream stream, LegacyWordImportOptions? options = null, CancellationToken cancellationToken = default) {
+        LegacyWordImportOptions effective = Prepare(options, options?.SourceName);
+        byte[] data = OfficeLegacyImportBuffer.ReadAll(stream, effective.Limits, cancellationToken);
+        return Detect(data, effective, cancellationToken);
+    }
+
     /// <summary>Detects a legacy-word source from bytes.</summary>
     public static LegacyWordDetection Detect(byte[] data, LegacyWordImportOptions? options = null, CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));

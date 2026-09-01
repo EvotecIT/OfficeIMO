@@ -48,26 +48,6 @@ document.AsFluent()
 document.Save();
 ```
 
-## Import Apple Numbers sources
-
-Modern IWA-based `.numbers` packages load through the Excel semantic owner:
-
-```csharp
-using OfficeIMO.Excel;
-using OfficeIMO.Excel.IWork;
-using OfficeIMO.IWork;
-
-using IWorkNumbersLoadResult result = ExcelDocument.LoadNumbersWithReport(
-    "source.numbers",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
-
-Console.WriteLine(result.ImportReport.ProjectionKind);
-Console.WriteLine(result.Projection.Sheets[0].Tables[0].Cells.Count);
-result.Document.Save("converted.xlsx");
-```
-
-Sheets, tables, declared dimensions, sparse typed cells, cached formula markers, and text-box text become normal Excel content. Each Numbers table maps to its own destination worksheet so table-local formulas and sizing remain stable; sheet-level text maps to a separate worksheet when present. `Auto`, `EditableOnly`, and `VisualOnly` make editable reconstruction versus raster-preview fallback explicit. Unsupported IWA payloads remain available on `result.Source` and in the loss report; OfficeIMO does not write Numbers files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
-
 ## What it does
 
 - Creates and edits workbooks, worksheets, cells, ranges, tables, styles, hyperlinks, formulas, names, comments, images, charts, filters, and page setup.
@@ -137,6 +117,40 @@ only after reviewing that loss. See
 [XLS and XLSX compatibility](../Docs/officeimo.excel.legacy-xls-compatibility.md) for
 the current capability matrix and safety contract. Use the
 [migration guide](../MIGRATION.md#legacy-doc-and-xls-api-changes) for canonical API replacements.
+
+### Import additional legacy spreadsheet formats
+
+The `OfficeIMO.Excel` package also contains an explicit, read-only importer for selected Lotus 1-2-3, Quattro Pro, Multiplan, and Microsoft Works sources. No additional package is required, and these formats are only processed when the application calls `LegacySpreadsheetImporter` or explicitly registers the corresponding Reader handler.
+
+```csharp
+using OfficeIMO;
+using OfficeIMO.Excel.Legacy;
+
+using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import("archive.wk1");
+Console.WriteLine(imported.Report.Quality);
+foreach (LegacySpreadsheetCellContent cell in imported.Cells) {
+    Console.WriteLine($"{cell.SheetName}!R{cell.Row}C{cell.Column}: {cell.Formula ?? cell.CachedValue}");
+}
+foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
+    Console.WriteLine($"{finding.Code}: {finding.Message}");
+}
+
+imported.Value.Save("archive.xlsx");
+```
+
+The importer never saves back to these source formats, executes macros, activates embedded objects, or resolves and refreshes external links. Each result identifies structured or salvage recovery and reports feature-level loss. Existing Excel converter packages can export the returned workbook to ODS, CSV, HTML, or PDF.
+
+#### Profile coverage
+
+| Family/profile | Quality | Recovered today | Explicit boundary |
+| --- | --- | --- | --- |
+| Lotus 1-2-3 WK1 `0x0406` record streams | Structured | empty workbooks, cells, labels, numbers, finite formula caches, bounded RPN formula translation, names, selected number formats, alignment, and chart metadata | WK1 is projected as one source sheet; other Lotus profiles remain salvage; unsupported formula tokens retain the cache with a diagnostic |
+| Quattro Pro DOS WQ1/WQ2 record streams | Structured | sheet identifiers, cells, finite cached values, names, alignment, and chart metadata | Quattro formulas retain cached values with a diagnostic; WB/QPW structures, comments, advanced formatting, and live charts are not claimed |
+| Microsoft Works DOS WKS `0x0404` record streams | Structured | cells, cached values, safe formulas, names, selected number formats, alignment, and chart metadata | later Works binary/compound structures and comments are not claimed |
+| Later Lotus 123, Quattro QPW, and Works XLR/binary profiles | Salvage | bounded text/tabular runs and compound-content safety inventory where applicable | workbook structure, formulas, names, comments, advanced formatting, and charts are reported as unavailable |
+| Microsoft Multiplan DOS 1-3 | Salvage | bounded text and tabular runs | cell zones, formulas, names, formats, comments, and charts are not yet semantically decoded |
+
+Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
 
 ### Work with XLSB workbooks
 

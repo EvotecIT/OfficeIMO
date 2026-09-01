@@ -4,16 +4,16 @@
 
 ## Reference from a source checkout
 
-For source-based development, reference the bounded reader and the semantic owner you need:
+For source-based development, reference the bounded reader and the opt-in adapter you need:
 
 ```xml
 <ItemGroup>
   <ProjectReference Include="../OfficeIMO.IWork/OfficeIMO.IWork.csproj" />
-  <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+  <ProjectReference Include="../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj" />
 </ItemGroup>
 ```
 
-Use `OfficeIMO.Word` for Pages or `OfficeIMO.PowerPoint` for Keynote in place of the Excel owner. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
+Use `OfficeIMO.Word.IWork` for Pages or `OfficeIMO.PowerPoint.IWork` for Keynote in place of the Excel adapter. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
 
 ## Read and inspect a source
 
@@ -28,20 +28,19 @@ Console.WriteLine(source.ContainerKind);        // ZipPackage, DirectoryBundle, 
 Console.WriteLine(string.Join(", ", source.BuildVersions));
 Console.WriteLine(pages.Paragraphs.Count);
 
-IWorkImportReport report = pages.CreateImportReport(
+IWorkConversionReport report = pages.CreateConversionReport(
     IWorkProjectionKind.EditableReconstruction);
 foreach (IWorkArchiveRecord record in report.UnsupportedRecords) {
     Console.WriteLine($"{record.EntryPath}: {record.MessageType}");
 }
 ```
 
-Path and stream entry points use the same bounded parser. Streams require an explicit `IWorkDocumentKind` because they have no reliable filename:
+Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:
 
 ```csharp
 using FileStream stream = File.OpenRead("budget.numbers");
 IWorkSourceDocument source = IWorkSourceDocument.Open(
     stream,
-    IWorkDocumentKind.Numbers,
     new IWorkReadOptions {
         MaximumPackageBytes = 64 * 1024 * 1024,
         MaximumArchiveReferenceCount = 1_000_000,
@@ -54,26 +53,17 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
 IWorkNumbersProjection workbook = source.ReadNumbers();
 ```
 
-## Project into OfficeIMO owners
+The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
 
-The public destination APIs live on their semantic owners:
+## Opt in to an Office destination adapter
 
-```csharp
-using OfficeIMO.Excel;
-using OfficeIMO.Excel.IWork;
-using OfficeIMO.IWork;
+Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.
 
-using IWorkNumbersLoadResult result = ExcelDocument.LoadNumbersWithReport(
-    "budget.numbers",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
+- [Pages to Word](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.IWork/README.md)
+- [Numbers to Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.IWork/README.md)
+- [Keynote to PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.IWork/README.md)
 
-ExcelDocument workbook = result.Document;
-Console.WriteLine(result.ImportReport.ProjectionKind);
-Console.WriteLine(result.HasConversionLoss);
-workbook.Save("budget.xlsx");
-```
-
-The equivalent entry points are `WordDocument.LoadPages*` and `PowerPointPresentation.LoadKeynote*`. The short overload returns the destination document. The `WithReport` overload also returns the bounded source, typed projection, preserved records, diagnostics, producer build history, and the exact projection kind.
+Each adapter README owns its conversion API and example. The source reader remains useful on its own for inspection, extraction, and application-owned projection workflows.
 
 This is extended semantic reconstruction rather than plain-text extraction:
 
@@ -85,7 +75,7 @@ Advanced charts, vector effects, animations, comments/change tracking, masks/cro
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
-`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
+All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 ## Preservation and authoring boundary
 
@@ -93,8 +83,8 @@ Every package entry and every decoded IWA payload remains available as defensive
 
 There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
 
-See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
+See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 
 ## Target frameworks and dependencies
 
-`OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. It depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations.
+`OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.

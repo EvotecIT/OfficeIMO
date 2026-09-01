@@ -312,8 +312,8 @@ if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 214
-    productionComponentCount = 113
+    projectCount = 215
+    productionComponentCount = 114
     testProjectCount = 41
     benchmarkProjectCount = 33
     validationProjectCount = 28

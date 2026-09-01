@@ -31,10 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="OfficeIMO.Excel" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
-    <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
-    <InternalsVisibleTo Include="OfficeIMO.Word" />
+    <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
   </ItemGroup>
 
   <ItemGroup>
