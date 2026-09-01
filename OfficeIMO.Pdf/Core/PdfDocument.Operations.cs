@@ -11,6 +11,15 @@ public sealed partial class PdfDocument {
         PdfInspector.Preflight(pdf, options);
 
     /// <summary>
+    /// Reports read and rewrite capabilities for a PDF byte array with cooperative cancellation.
+    /// </summary>
+    public static PdfDocumentPreflight Preflight(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        PdfInspector.Preflight(pdf, options, cancellationToken);
+
+    /// <summary>
     /// Reports read and rewrite capabilities for a PDF file without requiring the document to open successfully.
     /// This is useful for encrypted, malformed, or otherwise unsupported input that still needs a diagnostic report.
     /// </summary>
@@ -28,27 +37,49 @@ public sealed partial class PdfDocument {
     /// Produces one consolidated health and capability report.
     /// Supply a compliance profile to include artifact readback readiness.
     /// </summary>
-    public PdfAnalysisReport Analyze(PdfComplianceProfile complianceProfile = PdfComplianceProfile.None) {
-        var snapshot = GetReadSnapshot();
+    public PdfAnalysisReport Analyze(PdfComplianceProfile complianceProfile = PdfComplianceProfile.None) =>
+        Analyze(complianceProfile, CancellationToken.None);
+
+    /// <summary>
+    /// Produces one consolidated health and capability report with cooperative cancellation.
+    /// </summary>
+    public PdfAnalysisReport Analyze(
+        PdfComplianceProfile complianceProfile,
+        CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("analysis report");
-        PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+        PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,
             snapshot.Options,
-            () => snapshot.Document);
+            () => snapshot.Document,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDiagnosticReport diagnostics = PdfDiagnostics.Analyze(
             snapshot.Bytes,
             snapshot.Document,
             info,
-            preflight);
-        PdfOptimizationReport optimization = PdfDiagnostics.BuildOptimizationReport(diagnostics);
+            preflight,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfOptimizationReport optimization = PdfDiagnostics.BuildOptimizationReport(diagnostics, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfSignatureValidationReport signatures = PdfSignatureValidator.Validate(
             snapshot.Bytes,
-            info.Security);
+            info.Security,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfAppendOnlyMutationReport appendOnlyMutation = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(info.Security);
         PdfComplianceReadinessReport? compliance = complianceProfile == PdfComplianceProfile.None
             ? null
-            : PdfComplianceAnalyzer.AssessReadback(complianceProfile, snapshot.Document, info);
+            : PdfComplianceAnalyzer.AssessReadback(
+                complianceProfile,
+                snapshot.Document,
+                info,
+                cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfAnalysisReport(
             info,

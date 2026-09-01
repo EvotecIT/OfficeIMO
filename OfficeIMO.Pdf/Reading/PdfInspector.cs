@@ -111,29 +111,47 @@ internal static class PdfInspector {
 
     internal static PdfDocumentPreflight Preflight(
         byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        return PreflightCore(pdf, options, readDocumentFactory: null, cancellationToken);
+    }
+
+    internal static PdfDocumentPreflight Preflight(
+        byte[] pdf,
         PdfLoadOptions options,
         Func<PdfReadDocument> readDocumentFactory) {
         Guard.NotNull(readDocumentFactory, nameof(readDocumentFactory));
         return PreflightCore(pdf, options, readDocumentFactory);
     }
 
+    internal static PdfDocumentPreflight Preflight(
+        byte[] pdf,
+        PdfLoadOptions options,
+        Func<PdfReadDocument> readDocumentFactory,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(readDocumentFactory, nameof(readDocumentFactory));
+        return PreflightCore(pdf, options, readDocumentFactory, cancellationToken);
+    }
+
     private static PdfDocumentPreflight PreflightCore(
         byte[] pdf,
         PdfLoadOptions? options,
-        Func<PdfReadDocument>? readDocumentFactory) {
+        Func<PdfReadDocument>? readDocumentFactory,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfReadDocument? readDocument = null;
         Exception? readDocumentException = null;
         PdfDocumentProbe probe;
         if (readDocumentFactory is null) {
-            probe = Probe(pdf, effectiveOptions);
+            probe = Probe(pdf, effectiveOptions, cancellationToken);
         } else {
             try {
                 readDocument = readDocumentFactory();
-                probe = Probe(pdf, readDocument);
-            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                probe = Probe(pdf, readDocument, cancellationToken);
+            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 readDocumentException = ex;
-                probe = Probe(pdf, effectiveOptions);
+                probe = Probe(pdf, effectiveOptions, cancellationToken);
             }
         }
 
@@ -157,15 +175,15 @@ internal static class PdfInspector {
                     throw readDocumentException;
                 }
 
-                readDocument ??= PdfReadDocument.Open(pdf, effectiveOptions);
-                probe = Probe(pdf, readDocument);
-                info = FromReadDocument(readDocument, probe);
+                readDocument ??= PdfReadDocument.Open(pdf, effectiveOptions, cancellationToken);
+                probe = Probe(pdf, readDocument, cancellationToken);
+                info = FromReadDocument(readDocument, probe, cancellationToken: cancellationToken);
                 if (info.PageCount == 0) {
                     AddReadBlocker(PdfReadBlockerKind.NoPages, "No PDF pages were discovered.");
                     canRead = false;
                 }
 
-                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(readDocument);
+                var unsupportedContentFilters = GetUnsupportedContentStreamFilters(readDocument, cancellationToken);
                 if (unsupportedContentFilters.Count > 0) {
                     AddReadBlocker(
                         PdfReadBlockerKind.UnsupportedContentStreamFilter,
@@ -181,15 +199,16 @@ internal static class PdfInspector {
             } catch (PdfUnsupportedEncryptionException ex) {
                 AddReadBlocker(PdfReadBlockerKind.Encryption, ex.Message);
                 canRead = false;
-            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 AddReadBlocker(PdfReadBlockerKind.ParserUnsupported, "PDF could not be parsed by OfficeIMO.Pdf: " + ex.Message);
                 canRead = false;
             }
         }
 
         if (canRead && readDocument is not null && !probe.HasEncryption) {
+            cancellationToken.ThrowIfCancellationRequested();
             try {
-                ValidateRewriteObjectGraph(readDocument);
+                ValidateRewriteObjectGraph(readDocument, cancellationToken);
             } catch (Exception ex) when (ex is InvalidOperationException || ex is NotSupportedException || ex is ArgumentException) {
                 AddRewriteBlocker(PdfRewriteBlockerKind.InvalidObjectReferences, "PDF object graph is not safe for rewriting by OfficeIMO.Pdf yet: " + ex.Message);
             }
@@ -255,6 +274,7 @@ internal static class PdfInspector {
             AddRewriteBlocker(PdfRewriteBlockerKind.ActiveContent, "PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.");
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         bool canRewrite = canRead && rewriteBlockers.Count == 0;
         return new PdfDocumentPreflight(probe, info, canRead, canRewrite, diagnostics.AsReadOnly(), readBlockers.AsReadOnly(), rewriteBlockers.AsReadOnly(), effectiveOptions.PermissionPolicy);
 
@@ -275,13 +295,17 @@ internal static class PdfInspector {
         }
     }
 
-    private static void ValidateRewriteObjectGraph(PdfReadDocument document) {
+    private static void ValidateRewriteObjectGraph(
+        PdfReadDocument document,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         string trailerRaw = document.TrailerRaw;
         var catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
-        var collector = new PdfPageExtractor.ObjectCollector(objects);
+        var collector = new PdfPageExtractor.ObjectCollector(objects, cancellationToken: cancellationToken);
 
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             collector.CollectPage(document.Pages[i].ObjectNumber);
         }
 
@@ -336,10 +360,14 @@ internal static class PdfInspector {
         return Preflight(buffer.ToArray(), effectiveOptions);
     }
 
-    private static List<string> GetUnsupportedContentStreamFilters(PdfReadDocument document) {
+    private static List<string> GetUnsupportedContentStreamFilters(
+        PdfReadDocument document,
+        CancellationToken cancellationToken) {
         var unsupported = new List<string>();
         for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             foreach (string filterName in document.Pages[i].GetUnsupportedContentStreamFilters()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!ContainsFilter(unsupported, filterName)) {
                     unsupported.Add(filterName);
                 }
@@ -363,18 +391,33 @@ internal static class PdfInspector {
     /// Reads lightweight PDF markers from a byte array without full document parsing.
     /// </summary>
     public static PdfDocumentProbe Probe(byte[] pdf, PdfLoadOptions? options = null) {
-        Guard.NotNull(pdf, nameof(pdf));
+        return Probe(pdf, options, CancellationToken.None);
+    }
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, options);
+    internal static PdfDocumentProbe Probe(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
+            pdf,
+            options,
+            cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         try {
-            var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
-            return Probe(pdf, security, objects, trailerRaw);
+            var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options, out _, out _, cancellationToken);
+            return Probe(pdf, security, objects, trailerRaw, cancellationToken);
         } catch (Exception ex) when (
             ex is not PdfEncryptionException &&
+            ex is not OperationCanceledException &&
             ex is not OutOfMemoryException &&
             ex is not StackOverflowException) {
+            cancellationToken.ThrowIfCancellationRequested();
             return ProbeFromRawBytes(pdf, security, options);
         } catch (PdfEncryptionException) when (options?.Password is null) {
+            cancellationToken.ThrowIfCancellationRequested();
             return ProbeFromRawBytes(pdf, security, options);
         }
     }

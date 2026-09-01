@@ -187,9 +187,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     }
 
     private static OperationArtifact Inspect(ValidatedRequest request, CancellationToken cancellationToken) {
-        byte[] input = File.ReadAllBytes(request.InputPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions);
+        byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var report = new PdfHealthReport(
             OfficeWorkflowOperation.Inspect,
@@ -201,10 +200,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     }
 
     private static OperationArtifact Compare(ValidatedRequest request, CancellationToken cancellationToken) {
-        byte[] expected = File.ReadAllBytes(request.InputPath);
-        byte[] actual = File.ReadAllBytes(request.ComparisonPath!);
-        PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions);
-        PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions);
+        byte[] expected = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
+        PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
             actual,
@@ -238,9 +237,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         ValidatedRequest request,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
-        byte[] input = File.ReadAllBytes(request.InputPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions);
+        byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfOptimizationOptions options = PdfOptimizationOptions.Create(ToOptimizationProfile(request.OutputProfile));
         options.CancellationToken = cancellationToken;
@@ -251,7 +249,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Lossless optimization preservation verification failed; no artifact will be published.");
         }
         byte[] output = optimization.Bytes;
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["originalBytes"] = optimization.OriginalLengthBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["candidateBytes"] = optimization.CandidateLengthBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -281,9 +279,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         ValidatedRequest request,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
-        byte[] input = File.ReadAllBytes(request.InputPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions);
+        byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfRepairArtifactResult repair = PdfRepairArtifact.Create(
             input,
@@ -297,7 +294,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Repair artifact verification failed; no artifact will be published.");
         }
         byte[] output = repair.ToBytes();
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["recoveredDefects"] = repair.SourceRepairReport.RepairCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["detectedOnlyDefects"] = repair.SourceRepairReport.DetectionOnlyCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -320,12 +317,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     }
 
     private static OperationArtifact RepairPlan(ValidatedRequest request, CancellationToken cancellationToken) {
-        byte[] input = File.ReadAllBytes(request.InputPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions);
+        byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument document = PdfDocument.Load(input, request.PdfLoadOptions);
-        PdfAnalysisReport analysis = document.Analyze();
+        PdfAnalysisReport analysis = document.Analyze(PdfComplianceProfile.None, cancellationToken);
         PdfMutationPlan mutationPlan = document.PlanMutation(PdfMutationOperation.Optimize);
         PdfDocumentSecurityInfo security = analysis.Info.Security;
         bool hasProtectedSecurity = security.HasEncryption || security.HasSignatures ||
@@ -362,9 +358,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         ValidatedRequest request,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
-        byte[] input = File.ReadAllBytes(request.InputPath);
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions);
+        byte[] input = ReadInput(request.InputPath, request.Limits, cancellationToken);
+        PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
             new PdfSanitizationOptions { CancellationToken = cancellationToken });
@@ -373,7 +368,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");
         }
         byte[] output = sanitization.ToBytes();
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["removedFindings"] = sanitization.RemovedFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["remainingFindings"] = sanitization.RemainingFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -395,18 +390,24 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         return new OperationArtifact(output, report.Summary, report);
     }
 
-    private static PdfHealthSnapshot CreateHealthSnapshot(byte[] bytes, PdfLoadOptions loadOptions) {
-        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, loadOptions);
+    private static PdfHealthSnapshot CreateHealthSnapshot(
+        byte[] bytes,
+        PdfLoadOptions loadOptions,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfDocumentPreflight preflight = PdfDocument.Preflight(bytes, loadOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo? info = preflight.DocumentInfo;
         PdfRepairReport? repairs = null;
         var diagnostics = new List<string>(preflight.Diagnostics);
         if (preflight.CanRead) {
             try {
-                PdfAnalysisReport analysis = PdfDocument.Load(bytes, loadOptions).Analyze();
+                PdfAnalysisReport analysis = PdfDocument.Load(bytes, loadOptions)
+                    .Analyze(PdfComplianceProfile.None, cancellationToken);
                 info = analysis.Info;
                 repairs = analysis.Repair;
                 diagnostics.AddRange(repairs.Diagnostics.Select(static item => item.Message));
-            } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException and not OutOfMemoryException and not StackOverflowException) {
                 diagnostics.Add("Analysis: " + ex.Message);
             }
         }
@@ -466,6 +467,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             }
         } else {
             EnsurePdfExtension(inputPath);
+            if (request.Operation == OfficeWorkflowOperation.Optimize &&
+                request.OutputProfile == OfficeWorkflowOutputProfile.TextOnly) {
+                throw new ArgumentException(
+                    "Lossless PDF optimization does not support the TextOnly output profile.",
+                    nameof(request));
+            }
             if (request.Operation is OfficeWorkflowOperation.Optimize or OfficeWorkflowOperation.Repair or OfficeWorkflowOperation.Sanitize) {
                 outputPath ??= Path.Combine(
                     Path.GetDirectoryName(inputPath)!,
@@ -588,7 +595,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowOutputProfile.Faithful => PdfOptimizationProfile.Balanced,
         OfficeWorkflowOutputProfile.Lightweight => PdfOptimizationProfile.MaximumCompression,
         OfficeWorkflowOutputProfile.PrintReady => PdfOptimizationProfile.Archival,
-        OfficeWorkflowOutputProfile.TextOnly => PdfOptimizationProfile.Web,
+        OfficeWorkflowOutputProfile.TextOnly => throw new ArgumentException(
+            "Lossless PDF optimization does not support the TextOnly output profile.", nameof(profile)),
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
 
@@ -647,6 +655,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 $"Input '{Path.GetFileName(path)}' is {size:N0} bytes, above the configured {limits.MaximumInputBytes:N0}-byte limit.");
         }
     }
+
+    private static byte[] ReadInput(
+        string path,
+        OfficeWorkflowLimits limits,
+        CancellationToken cancellationToken) =>
+        OfficeWorkflowInputReader.ReadAllBytes(path, limits.MaximumInputBytes, cancellationToken);
 
     private static void EnsurePdfExtension(string path) {
         if (!string.Equals(Path.GetExtension(path), ".pdf", StringComparison.OrdinalIgnoreCase)) {

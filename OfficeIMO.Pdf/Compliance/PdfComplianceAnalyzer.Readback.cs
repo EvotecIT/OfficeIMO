@@ -56,14 +56,24 @@ internal static partial class PdfComplianceAnalyzer {
     internal static PdfComplianceReadinessReport AssessReadback(
         PdfComplianceProfile profile,
         PdfReadDocument document,
-        PdfDocumentInfo info) {
+        PdfDocumentInfo info) =>
+        AssessReadback(profile, document, info, System.Threading.CancellationToken.None);
+
+    internal static PdfComplianceReadinessReport AssessReadback(
+        PdfComplianceProfile profile,
+        PdfReadDocument document,
+        PdfDocumentInfo info,
+        System.Threading.CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfExtractedAttachment> attachments = document.ExtractAttachments();
+        cancellationToken.ThrowIfCancellationRequested();
         return AssessReadback(
             profile,
             info,
-            document.ExtractAttachments(),
-            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document) : null,
-            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document) : null);
+            attachments,
+            IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document, cancellationToken) : null,
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null);
     }
 
     private static PdfComplianceReadinessReport AssessReadback(

@@ -1669,8 +1669,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool HasNormalAppearance(PdfDictionary annotation) {
-        var appearance = ResolveDictionary(annotation.Items.TryGetValue("AP", out var appearanceObject) ? appearanceObject : null);
-        return appearance != null && appearance.Items.ContainsKey("N");
+        return TryGetNormalAppearanceStream(annotation, out _);
     }
 
     private bool TryReadRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {

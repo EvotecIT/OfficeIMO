@@ -18,12 +18,17 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         OfficeWorkflowRoute route = request.Route!;
         cancellationToken.ThrowIfCancellationRequested();
+        byte[] input = OfficeWorkflowInputReader.ReadAllBytes(
+            request.InputPath,
+            request.Limits.MaximumInputBytes,
+            cancellationToken);
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
         bool hasLoss = false;
         switch (route.Id) {
             case "docx-pdf":
-                using (WordDocument document = WordDocument.Load(request.InputPath)) {
+                using (var source = new MemoryStream(input, writable: false))
+                using (WordDocument document = WordDocument.Load(source)) {
                     var options = new WordPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -33,7 +38,8 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "xlsx-pdf":
-                using (ExcelDocument document = ExcelDocument.Load(request.InputPath)) {
+                using (var source = new MemoryStream(input, writable: false))
+                using (ExcelDocument document = ExcelDocument.Load(source)) {
                     var options = new ExcelPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -43,7 +49,8 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "pptx-pdf":
-                using (PowerPointPresentation document = PowerPointPresentation.Load(request.InputPath)) {
+                using (var source = new MemoryStream(input, writable: false))
+                using (PowerPointPresentation document = PowerPointPresentation.Load(source)) {
                     var options = new PowerPointPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -53,7 +60,7 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "html-pdf": {
-                string html = File.ReadAllText(request.InputPath, Encoding.UTF8);
+                string html = DecodeHtmlInput(input);
                 PdfDocumentConversionResult conversion = HtmlConversionDocument.Parse(html)
                     .ToPdfDocumentResultAsync(new HtmlPdfSaveOptions(), cancellationToken)
                     .GetAwaiter()
@@ -64,7 +71,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-docx": {
-                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
+                PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfWordImportOptions {
                     CancellationToken = cancellationToken
                 });
@@ -78,7 +85,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-xlsx": {
-                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
+                PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfExcelTableImportOptions {
                     CancellationToken = cancellationToken
                 });
@@ -98,7 +105,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-pptx": {
-                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
+                PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(
                     CreatePowerPointImportOptions(cancellationToken));
                 using PowerPointPresentation document = conversion.Value;
@@ -111,7 +118,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-html": {
-                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
+                PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
                 PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
                     Profile = PdfHtmlProfile.PositionedReview,
                     IncludeLinkAnnotations = true,
@@ -144,5 +151,16 @@ public sealed partial class OfficeWorkflowRunner {
             ? route.Label + " completed with fidelity warnings; review the structured diagnostics."
             : route.Label + " completed and the output reopened successfully.";
         return new OperationArtifact(bytes, summary, null);
+    }
+
+    private static string DecodeHtmlInput(byte[] input) {
+        using var source = new MemoryStream(input, writable: false);
+        using var reader = new StreamReader(
+            source,
+            Encoding.UTF8,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize: 1024,
+            leaveOpen: false);
+        return reader.ReadToEnd();
     }
 }

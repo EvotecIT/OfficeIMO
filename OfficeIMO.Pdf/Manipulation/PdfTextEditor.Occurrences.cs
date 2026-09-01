@@ -58,18 +58,53 @@ internal static partial class PdfTextEditor {
         PdfResolvedTextStyle style,
         int requestOrdinal) {
         if (length <= 0) return;
-        int end = start + length;
-        while (start < end && char.IsWhiteSpace(sourceSpan.Text[start])) start++;
-        while (end > start && char.IsWhiteSpace(sourceSpan.Text[end - 1])) end--;
-        length = end - start;
-        if (length <= 0) return;
+        int leadingWhitespaceLength = 0;
+        while (leadingWhitespaceLength < length &&
+               char.IsWhiteSpace(sourceSpan.Text[start + leadingWhitespaceLength])) {
+            leadingWhitespaceLength++;
+        }
+        if (leadingWhitespaceLength > 0 && leadingWhitespaceLength < length) {
+            AddExactAuthoredSliceRequest(
+                requests, pageNumber, sourceSpan, start, leadingWhitespaceLength,
+                deltaX, deltaY, style, requestOrdinal, partOrdinal: 0);
+            start += leadingWhitespaceLength;
+            length -= leadingWhitespaceLength;
+            AddExactAuthoredSliceRequest(
+                requests, pageNumber, sourceSpan, start, length,
+                deltaX, deltaY, style, requestOrdinal, partOrdinal: 1);
+            return;
+        }
+
+        AddExactAuthoredSliceRequest(
+            requests, pageNumber, sourceSpan, start, length,
+            deltaX, deltaY, style, requestOrdinal, partOrdinal: 0);
+    }
+
+    private static void AddExactAuthoredSliceRequest(
+        List<PdfStamper.TextStampRequest> requests,
+        int pageNumber,
+        PdfTextSpan sourceSpan,
+        int start,
+        int length,
+        double deltaX,
+        double deltaY,
+        PdfResolvedTextStyle style,
+        int requestOrdinal,
+        int partOrdinal) {
         string text = GetAuthoredSlice(sourceSpan, start, length);
         if (text.Length == 0) return;
         double radians = sourceSpan.RotationDegrees * Math.PI / 180D;
         double baselineOffset = GetCharacterBoundaryAdvance(sourceSpan, start);
         double x = sourceSpan.X + Math.Cos(radians) * baselineOffset + deltaX;
         double y = sourceSpan.Y + Math.Sin(radians) * baselineOffset + deltaY;
-        AddStampLines(requests, pageNumber, x, y, text, style, sourceSpan.PaintOrder + (requestOrdinal * 0.00000001D));
+        AddStampLines(
+            requests,
+            pageNumber,
+            x,
+            y,
+            text,
+            style,
+            sourceSpan.PaintOrder + (requestOrdinal * 0.00000001D) + (partOrdinal * 0.0000000001D));
     }
 
     private static string GetAuthoredSlice(PdfTextSpan sourceSpan, int start, int length) {

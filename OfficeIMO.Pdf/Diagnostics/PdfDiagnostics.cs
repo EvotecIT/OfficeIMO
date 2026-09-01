@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free PDF diagnostics and optimization analysis.</summary>
@@ -25,18 +27,21 @@ internal static class PdfDiagnostics {
         byte[] pdf,
         PdfReadDocument document,
         PdfDocumentInfo info,
-        PdfDocumentPreflight preflight) {
+        PdfDocumentPreflight preflight,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(info, nameof(info));
         Guard.NotNull(preflight, nameof(preflight));
+        cancellationToken.ThrowIfCancellationRequested();
 
         return BuildReport(
-            PdfInspector.Probe(pdf, document),
+            PdfInspector.Probe(pdf, document, cancellationToken),
             preflight,
             info,
             document.Objects,
-            objectGraphError: null);
+            objectGraphError: null,
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>Analyzes a PDF file.</summary>
@@ -81,11 +86,15 @@ internal static class PdfDiagnostics {
         return AnalyzeOptimization(buffer.ToArray(), options);
     }
 
-    internal static PdfOptimizationReport BuildOptimizationReport(PdfDiagnosticReport diagnostics) {
+    internal static PdfOptimizationReport BuildOptimizationReport(
+        PdfDiagnosticReport diagnostics,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<PdfDiagnosticFinding>();
-        var duplicateGroups = GetDuplicateStreamGroups(diagnostics.Streams);
+        var duplicateGroups = GetDuplicateStreamGroups(diagnostics.Streams, cancellationToken);
         long estimatedSavings = 0;
         foreach (PdfDuplicateStreamGroup group in duplicateGroups) {
+            cancellationToken.ThrowIfCancellationRequested();
             estimatedSavings += group.EstimatedSavingsBytes;
             findings.Add(new PdfDiagnosticFinding(
                 PdfDiagnosticSeverity.Info,
@@ -94,13 +103,20 @@ internal static class PdfDiagnostics {
                 bytes: group.EstimatedSavingsBytes));
         }
 
-        var largest = diagnostics.Streams
-            .OrderByDescending(stream => stream.Length)
-            .ThenBy(stream => stream.ObjectNumber)
-            .Take(10)
-            .ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var largestCandidates = new List<PdfStreamDiagnostic>(diagnostics.Streams.Count);
+        foreach (PdfStreamDiagnostic stream in diagnostics.Streams) {
+            cancellationToken.ThrowIfCancellationRequested();
+            largestCandidates.Add(stream);
+        }
+        largestCandidates.Sort(static (left, right) => {
+            int lengthOrder = right.Length.CompareTo(left.Length);
+            return lengthOrder != 0 ? lengthOrder : left.ObjectNumber.CompareTo(right.ObjectNumber);
+        });
+        PdfStreamDiagnostic[] largest = largestCandidates.Take(10).ToArray();
 
         foreach (PdfStreamDiagnostic stream in diagnostics.Streams) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (stream.Filters.Count == 0 && stream.Length >= UncompressedStreamThresholdBytes) {
                 long estimate = stream.Length / 3;
                 estimatedSavings += estimate;
@@ -158,7 +174,9 @@ internal static class PdfDiagnostics {
         PdfDocumentPreflight preflight,
         PdfDocumentInfo? info,
         Dictionary<int, PdfIndirectObject>? objects,
-        string? objectGraphError) {
+        string? objectGraphError,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var findings = new List<PdfDiagnosticFinding>();
         AddPreflightFindings(preflight, findings);
 
@@ -169,11 +187,12 @@ internal static class PdfDiagnostics {
         bool objectGraphParsed = objects != null;
         if (objects != null) {
             foreach (PdfIndirectObject indirect in objects.Values.OrderBy(item => item.ObjectNumber)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string objectKind = GetObjectKind(indirect.Value);
                 Increment(objectTypeCounts, objectKind);
 
                 if (indirect.Value is PdfStream stream) {
-                    PdfStreamDiagnostic streamDiagnostic = BuildStreamDiagnostic(indirect, stream);
+                    PdfStreamDiagnostic streamDiagnostic = BuildStreamDiagnostic(indirect, stream, cancellationToken);
                     streams.Add(streamDiagnostic);
                     Increment(streamTypeCounts, streamDiagnostic.Kind);
                     AddStreamFindings(streamDiagnostic, findings);
@@ -252,9 +271,12 @@ internal static class PdfDiagnostics {
         }
     }
 
-    private static PdfDuplicateStreamGroup[] GetDuplicateStreamGroups(IReadOnlyList<PdfStreamDiagnostic> streams) {
+    private static PdfDuplicateStreamGroup[] GetDuplicateStreamGroups(
+        IReadOnlyList<PdfStreamDiagnostic> streams,
+        CancellationToken cancellationToken) {
         var grouped = new Dictionary<string, List<PdfStreamDiagnostic>>(StringComparer.Ordinal);
         foreach (PdfStreamDiagnostic stream in streams) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (stream.Length == 0) {
                 continue;
             }
@@ -270,6 +292,7 @@ internal static class PdfDiagnostics {
 
         var result = new List<PdfDuplicateStreamGroup>();
         foreach (List<PdfStreamDiagnostic> group in grouped.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (group.Count < 2) {
                 continue;
             }
@@ -281,13 +304,18 @@ internal static class PdfDiagnostics {
             result.Add(new PdfDuplicateStreamGroup(group[0].Hash, group[0].Length, objectNumbers));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return result
             .OrderByDescending(group => group.EstimatedSavingsBytes)
             .ThenBy(group => group.ObjectNumbers[0])
             .ToArray();
     }
 
-    private static PdfStreamDiagnostic BuildStreamDiagnostic(PdfIndirectObject indirect, PdfStream stream) {
+    private static PdfStreamDiagnostic BuildStreamDiagnostic(
+        PdfIndirectObject indirect,
+        PdfStream stream,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string? type = stream.Dictionary.Get<PdfName>("Type")?.Name;
         string? subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
         string kind = !string.IsNullOrEmpty(subtype)
@@ -310,7 +338,7 @@ internal static class PdfDiagnostics {
             GetInt(stream.Dictionary, "Width"),
             GetInt(stream.Dictionary, "Height"),
             GetInt(stream.Dictionary, "BitsPerComponent"),
-            ComputeHash(stream.Data));
+            ComputeHash(stream.Data, cancellationToken));
     }
 
     private static PdfFontDiagnostic BuildFontDiagnostic(PdfIndirectObject indirect, PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
@@ -461,11 +489,12 @@ internal static class PdfDiagnostics {
         counts.Add(key, 1);
     }
 
-    private static string ComputeHash(byte[] data) {
+    private static string ComputeHash(byte[] data, CancellationToken cancellationToken = default) {
         const ulong offset = 14695981039346656037UL;
         const ulong prime = 1099511628211UL;
         ulong hash = offset;
         for (int i = 0; i < data.Length; i++) {
+            if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             hash ^= data[i];
             hash *= prime;
         }

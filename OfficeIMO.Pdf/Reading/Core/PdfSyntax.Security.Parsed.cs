@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -6,12 +8,15 @@ internal static partial class PdfSyntax {
         Dictionary<int, PdfIndirectObject> objects,
         string trailerRaw,
         PdfDocumentSecurityInfo fallback,
-        PdfLoadOptions? options = null) {
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(fallback, nameof(fallback));
+        cancellationToken.ThrowIfCancellationRequested();
 
         string text = PdfEncoding.Latin1GetString(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", limits);
         int? encryptObjectNumber = encryptReference?.ObjectNumber;
@@ -59,6 +64,7 @@ internal static partial class PdfSyntax {
 
         PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
         if (catalog is not null) {
+            cancellationToken.ThrowIfCancellationRequested();
             documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);
             ReadCatalogSecurityState(
                 objects,
@@ -74,6 +80,7 @@ internal static partial class PdfSyntax {
         }
 
         foreach (var entry in objects.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -103,6 +110,7 @@ internal static partial class PdfSyntax {
         }
 
         foreach (var entry in objects.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -139,6 +147,7 @@ internal static partial class PdfSyntax {
         int? infoObjectGeneration = infoReference?.Generation ?? fallback.InfoObjectGeneration;
         bool hasByteRange = byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange");
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
             hasEncryption,
             encryptObjectNumber,

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -9,10 +10,15 @@ internal static partial class PdfPageExtractor {
         private readonly Dictionary<int, Dictionary<string, PdfObject>> _pageOverrides;
         private readonly List<int> _objectIds = new();
         private readonly HashSet<int> _visited = new();
+        private readonly CancellationToken _cancellationToken;
     
-        public ObjectCollector(Dictionary<int, PdfIndirectObject> sourceObjects, Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null) {
+        public ObjectCollector(
+            Dictionary<int, PdfIndirectObject> sourceObjects,
+            Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides = null,
+            CancellationToken cancellationToken = default) {
             _sourceObjects = sourceObjects;
             _pageOverrides = pageOverrides ?? new Dictionary<int, Dictionary<string, PdfObject>>();
+            _cancellationToken = cancellationToken;
         }
     
         public IReadOnlyList<int> ObjectIds => _objectIds;
@@ -22,12 +28,14 @@ internal static partial class PdfPageExtractor {
         public Dictionary<int, Dictionary<string, PdfObject>> MaterializedPageValues { get; } = new();
     
         public void CollectObjectGraph(PdfObject? value) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (value is not null) {
                 CollectReferences(value, isPageObject: false);
             }
         }
     
         public void CollectPage(int objectNumber) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (!_sourceObjects.TryGetValue(objectNumber, out var indirect) || indirect.Value is not PdfDictionary pageDictionary) {
                 throw new InvalidOperationException("PDF page object " + objectNumber.ToString(CultureInfo.InvariantCulture) + " was not found.");
             }
@@ -69,6 +77,7 @@ internal static partial class PdfPageExtractor {
 
         private void TraversePending(Stack<TraversalItem> pending) {
             while (pending.Count != 0) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 TraversalItem current = pending.Pop();
                 PdfObject value = current.Value;
                 bool isPageObject = current.IsPageObject;
@@ -121,6 +130,7 @@ internal static partial class PdfPageExtractor {
     
         private void MaterializeInheritedPageValues(int pageObjectNumber, PdfDictionary pageDictionary) {
             foreach (string key in InheritablePageKeys) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (pageDictionary.Items.ContainsKey(key)) {
                     continue;
                 }
@@ -144,6 +154,7 @@ internal static partial class PdfPageExtractor {
             PdfDictionary? current = pageDictionary;
             int guard = 0;
             while (current is not null && guard++ < 100) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 if (current.Items.TryGetValue(key, out var value)) {
                     return value;
                 }

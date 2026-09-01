@@ -108,6 +108,53 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void VisualAnnotation_MoveAndResizePreserveAuthoredNormalAppearance() {
+        byte[] source = BuildSquareAppearanceAnnotationPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Square"));
+
+        PdfAnnotationEditResult moved = PdfDocument.Load(source).Annotations.Move(annotation.ObjectNumber!.Value, 10D, 15D);
+        PdfAnnotation movedAnnotation = Assert.Single(moved.ToDocument().Inspect().GetAnnotationsBySubtype("Square"));
+        PdfAnnotationEditResult resized = moved.ToDocument().Annotations.Resize(
+            movedAnnotation.ObjectNumber!.Value,
+            new PdfPageRectangle(25D, 35D, 145D, 155D));
+
+        string raw = Encoding.ASCII.GetString(resized.Bytes);
+        PdfAnnotation result = Assert.Single(resized.ToDocument().Inspect().GetAnnotationsBySubtype("Square"));
+        Assert.True(result.HasNormalAppearance);
+        Assert.Contains("0.125 0.25 0.5 rg", raw, StringComparison.Ordinal);
+        var (objects, _) = PdfSyntax.ParseObjects(resized.Bytes);
+        PdfStream appearance = Assert.Single(
+            objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => Encoding.ASCII.GetString(stream.Data).Contains("0.125 0.25 0.5 rg", StringComparison.Ordinal));
+        PdfArray boundingBox = Assert.IsType<PdfArray>(appearance.Dictionary.Items["BBox"]);
+        Assert.Equal(new[] { 0D, 0D, 60D, 60D }, boundingBox.Items.Cast<PdfNumber>().Select(static number => number.Value));
+    }
+
+    [Fact]
+    public void VisualAnnotation_MoveRegeneratesAppearanceWhenSelectedStateIsMissing() {
+        byte[] source = BuildSquareAppearanceStateMismatchPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Square"));
+        Assert.False(annotation.HasNormalAppearance);
+
+        PdfAnnotationEditResult moved = PdfDocument.Load(source).Annotations.Move(
+            annotation.ObjectNumber!.Value,
+            10D,
+            15D);
+
+        PdfAnnotation result = Assert.Single(moved.ToDocument().Inspect().GetAnnotationsBySubtype("Square"));
+        Assert.True(result.HasNormalAppearance);
+        var (objects, _) = PdfSyntax.ParseObjects(moved.Bytes);
+        PdfDictionary annotationDictionary = Assert.IsType<PdfDictionary>(objects[result.ObjectNumber!.Value].Value);
+        PdfDictionary appearanceDictionary = Assert.IsType<PdfDictionary>(annotationDictionary.Items["AP"]);
+        PdfReference normalAppearance = Assert.IsType<PdfReference>(appearanceDictionary.Items["N"]);
+        PdfStream regeneratedAppearance = Assert.IsType<PdfStream>(objects[normalAppearance.ObjectNumber].Value);
+        Assert.DoesNotContain(
+            "0.125 0.25 0.5 rg",
+            Encoding.ASCII.GetString(regeneratedAppearance.Data),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
@@ -367,6 +414,26 @@ public class PdfAnnotationCreationTests {
         "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
         "5 0 obj\n<< /Type /Annot /Subtype /Link /Rect [20 20 80 40] /A << /S /URI /URI (https://officeimo.com) >> /AP << /N 6 0 R >> >>\nendobj\n" +
         "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 60 20] /Length 8 >>\nstream\n1 0 0 RG\nendstream\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildSquareAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /AP << /N 6 0 R >> >>\nendobj\n" +
+        "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 60 60] /Length 33 >>\nstream\n0.125 0.25 0.5 rg 0 0 60 60 re f\nendstream\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildSquareAppearanceStateMismatchPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Square /Rect [20 20 80 80] /AP << /N << /On 6 0 R >> >> /AS /Missing >>\nendobj\n" +
+        "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 60 60] /Length 33 >>\nstream\n0.125 0.25 0.5 rg 0 0 60 60 re f\nendstream\nendobj\n" +
         "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
 
     private static byte[] BuildEmptyAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(

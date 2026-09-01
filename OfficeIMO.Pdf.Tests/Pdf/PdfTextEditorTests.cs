@@ -179,6 +179,7 @@ public class PdfTextEditorTests {
         PdfTextMatch targetBefore = Assert.Single(moveSource.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch omegaBefore = Assert.Single(moveSource.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextEditResult moved = moveSource.Text.Move(targetBefore, 12D, -4D);
+        string movedText = moved.Document.Reader.Text();
         PdfTextMatch alphaAfter = Assert.Single(moved.Document.Text.Find("Alpha", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch targetAfter = Assert.Single(moved.Document.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch omegaAfter = Assert.Single(moved.Document.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
@@ -189,6 +190,10 @@ public class PdfTextEditorTests {
         Assert.Equal(targetBefore.Y - 4D, targetAfter.Y, 2);
         Assert.Equal(omegaBefore.X, omegaAfter.X, 2);
         Assert.Equal(omegaBefore.Y, omegaAfter.Y, 2);
+        Assert.Contains("Alpha Omega", movedText, StringComparison.Ordinal);
+        string movedRaw = PdfEncoding.Latin1GetString(moved.Document.ToBytes());
+        Assert.Contains("<416C70686120> Tj", movedRaw, StringComparison.Ordinal);
+        Assert.Contains("<20> Tj", movedRaw, StringComparison.Ordinal);
     }
 
     [Fact]

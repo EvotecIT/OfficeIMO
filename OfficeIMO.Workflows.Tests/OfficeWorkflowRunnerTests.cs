@@ -119,6 +119,34 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task OptimizeRejectsTextOnlyProfileInsteadOfSubstitutingLosslessWebProfile() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "text-only.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            OutputProfile = OfficeWorkflowOutputProfile.TextOnly
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("does not support the TextOnly output profile", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void InputReaderEnforcesTheLimitAgainstBytesReadFromTheOpenedHandle() {
+        using var source = new UnderreportedLengthStream(new byte[17], reportedLength: 16);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OfficeWorkflowInputReader.ReadAllBytes(source, "growing.pdf", 16, CancellationToken.None));
+
+        Assert.Contains("above the configured 16-byte limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CancellationDuringActiveHtmlConversionStopsBeforePublication() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.html");
@@ -424,6 +452,32 @@ public sealed class OfficeWorkflowRunnerTests {
         OutputPath = output,
         ConflictPolicy = policy
     };
+
+    private sealed class UnderreportedLengthStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly long _reportedLength;
+
+        internal UnderreportedLengthStream(byte[] bytes, long reportedLength) {
+            _inner = new MemoryStream(bytes, writable: false);
+            _reportedLength = reportedLength;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _reportedLength;
+        public override long Position { get => _inner.Position; set => _inner.Position = value; }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 
     private static string CreateInput(string root, string routeId) {
         if (routeId.StartsWith("pdf-", StringComparison.Ordinal)) return CreatePdf(root, "source.pdf");

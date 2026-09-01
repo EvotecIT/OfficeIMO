@@ -1,9 +1,20 @@
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAnalysisReportTests {
+    [Fact]
+    public void AnalyzeHonorsCancellationBeforeStartingTheHealthPass() {
+        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancelled analysis")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.Load(bytes).Analyze(PdfComplianceProfile.None, cancellation.Token));
+    }
+
     [Fact]
     public void AnalyzeReturnsOneCoherentHealthAndCapabilityReport() {
         byte[] bytes = PdfDocument.Create()
