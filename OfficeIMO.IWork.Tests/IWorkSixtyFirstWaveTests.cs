@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Date", 1, 1, 0.0000001d, date: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.IsType<DateTime>(Assert.Single(Assert.Single(
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 date: true, completeFormula: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         IWorkTableCell cell = Assert.Single(Assert.Single(
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Date", 1, 1, 0.001d, date: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.False(result.IsVisualFallback);
     }

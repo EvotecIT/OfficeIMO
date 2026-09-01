@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_footer_variants_map_to_distinct_word_parts() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
         WordSection section = Assert.Single(result.Document.Sections);
 
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: label);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(
             Assert.Single(result.Document.Slides).TextBoxes).Paragraphs);
 
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Consecutive_keynote_list_items_continue_native_numbering() {
         using MemoryStream package = CreateKeynotePackageWithNumberedSequence("10.");
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointParagraph[] paragraphs = Assert.Single(
             Assert.Single(result.Document.Slides).TextBoxes).Paragraphs.ToArray();
 
@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: "custom:");
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

@@ -7,7 +7,19 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.3 contains an intentional PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.3: opt-in Apple iWork adapters
+
+`OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` no longer depend on `OfficeIMO.IWork`. Applications that import Apple Pages, Numbers, or Keynote files must reference the matching adapter package explicitly:
+
+| Source | Add package | Replace |
+| --- | --- | --- |
+| Pages | `OfficeIMO.Word.IWork` | `WordDocument.LoadPages*` with `WordIWorkConverter.LoadPages*` |
+| Numbers | `OfficeIMO.Excel.IWork` | `ExcelDocument.LoadNumbers*` with `ExcelIWorkConverter.LoadNumbers*` |
+| Keynote | `OfficeIMO.PowerPoint.IWork` | `PowerPointPresentation.LoadKeynote*` with `PowerPointIWorkConverter.LoadKeynote*` |
+
+The result types and `IWorkReadOptions` contract are unchanged. Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 
 ## OfficeIMO 3.3: one PDF load and semantic read contract
 

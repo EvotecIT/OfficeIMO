@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_presenter_note_pagination_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithStyledPresenterNote();
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

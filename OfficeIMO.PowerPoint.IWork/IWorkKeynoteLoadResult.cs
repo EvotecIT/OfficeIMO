@@ -2,7 +2,7 @@ using OfficeIMO.IWork;
 
 namespace OfficeIMO.PowerPoint.IWork;
 
-/// <summary>Contains a PowerPoint projection and the Keynote source/report that produced it.</summary>
+/// <summary>Contains an opt-in PowerPoint projection and the Keynote source/report that produced it.</summary>
 public sealed class IWorkKeynoteLoadResult : IDisposable {
     internal IWorkKeynoteLoadResult(PowerPointPresentation document, IWorkSourceDocument source,
         IWorkKeynoteProjection projection, IWorkImportReport report) {

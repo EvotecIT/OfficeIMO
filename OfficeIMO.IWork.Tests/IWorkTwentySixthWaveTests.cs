@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_list_placeholder_levels_adopt_their_authored_numbering_kind() {
         using MemoryStream package = CreatePagesPackageWithDescendingListLevels();
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         using var saved = new MemoryStream();
         result.Document.Save(saved);
         saved.Position = 0;
@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithImage(
             masked: false, left: 0, rotation: 0, width: 600, height: 900);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         WordImage image = Assert.Single(result.Document.Images);
 
         Assert.False(result.IsVisualFallback);
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithImage(
             masked: false, left: 0, rotation: 0, width: float.MaxValue, height: 30);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -109,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
             rows, columns, defaultRowHeight: 10d, defaultColumnWidth: 30d,
             includePreview: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -122,7 +122,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithTableGeometry(
             0, 0, 0, 0, 0, includePreview: true, rows: rows, columns: columns);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

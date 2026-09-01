@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithColor(0f, alpha: 0.999f,
             includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         IWorkTextRun run = Assert.Single(Assert.Single(result.Projection.Body.Paragraphs).Runs);

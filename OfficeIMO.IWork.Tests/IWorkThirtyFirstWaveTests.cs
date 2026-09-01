@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         bool presenterNotes) {
         using MemoryStream package = CreateKeynotePackageWithNestedList(presenterNotes);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointSlide slide = Assert.Single(result.Document.Slides);
         PowerPointParagraph[] paragraphs = (presenterNotes
                 ? slide.Notes.Paragraphs
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_container_breaks_use_visual_fallback(char separator) {
         using MemoryStream package = CreatePagesPackageWithHeaderBreak(separator);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true,
             textBox: "Before\u000cAfter", includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Before\u000cAfter");
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

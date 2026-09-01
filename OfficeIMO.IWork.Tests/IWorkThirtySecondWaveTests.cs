@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Parenthesized_pages_lists_preserve_native_numbering(
         string label, int expectedStart, string expectedFormat) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         using var saved = new MemoryStream();
         result.Document.Save(saved);
         saved.Position = 0;
@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
                 populatedOffsetBeyondColumns: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Trailing empty", 1, 1, 42d, emptyOffsetBeyondColumns: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(42d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>());
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Linked",
             includePreview: true, textBoxDrawable: Message(StringField(field, value)));
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Text",
             includePreview: true, textBoxDrawable: new byte[] { 0x08, 0x80 });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

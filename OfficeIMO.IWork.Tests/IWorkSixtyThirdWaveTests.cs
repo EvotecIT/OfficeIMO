@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
                 wideOffsets: wideOffsets, duplicatePopulatedOffset: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
                 textValue: "Approved", completeFormula: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
         ExcelSheet sheet = Assert.Single(result.Document.Sheets);
 
         Assert.False(result.IsVisualFallback);
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
                 error: true, completeFormula: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
         ExcelSheet sheet = Assert.Single(result.Document.Sheets);
 
         Assert.False(result.IsVisualFallback);

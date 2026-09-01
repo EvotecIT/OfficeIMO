@@ -2,7 +2,7 @@ using OfficeIMO.IWork;
 
 namespace OfficeIMO.Excel.IWork;
 
-/// <summary>Contains an Excel projection and the Numbers source/report that produced it.</summary>
+/// <summary>Contains an opt-in Excel projection and the Numbers source/report that produced it.</summary>
 public sealed class IWorkNumbersLoadResult : IDisposable {
     internal IWorkNumbersLoadResult(ExcelDocument document, IWorkSourceDocument source,
         IWorkNumbersProjection projection, IWorkImportReport report) {

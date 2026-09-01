@@ -8,7 +8,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_even_header_mode_populates_every_section() {
         using MemoryStream package = CreatePagesPackageWithSectionWideEvenHeaders();
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Document.Sections.Count);
@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
             includePreview: true,
             textBoxDrawable: Message(StringField(4, "https://example.test/empty-pages-shape")));
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-pages-shape",
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
             text: string.Empty,
             textBoxDrawable: Message(StringField(4, "https://example.test/empty-keynote-shape")));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-keynote-shape",

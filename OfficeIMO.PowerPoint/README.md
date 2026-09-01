@@ -54,25 +54,6 @@ streamed.AddSlide().AddTitle("Stream-backed deck");
 streamed.Save();
 ```
 
-### Keynote sources
-
-Modern IWA-based `.key` packages load through the PowerPoint semantic owner:
-
-```csharp
-using OfficeIMO.IWork;
-using OfficeIMO.PowerPoint;
-using OfficeIMO.PowerPoint.IWork;
-
-using IWorkKeynoteLoadResult result =
-    PowerPointPresentation.LoadKeynoteWithReport("source.key");
-
-Console.WriteLine(result.ImportReport.ProjectionKind);
-Console.WriteLine(result.Projection.Slides.Count);
-result.Document.Save("converted.pptx");
-```
-
-Slide order, skipped-slide state, positioned rich title/body text, shape and run hyperlinks, and rich presenter notes become normal PowerPoint objects. `Auto` prefers editable reconstruction; `EditableOnly` rejects unsupported sources, and `VisualOnly` embeds the raster preview with an explicit `VisualFallback` report. Unsupported IWA payloads remain inspectable, but OfficeIMO does not write Keynote files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
-
 ### PowerPoint 97-2003 binary files
 
 Normal loading detects the OLE document streams, so callers do not need a separate code path for `.ppt`,

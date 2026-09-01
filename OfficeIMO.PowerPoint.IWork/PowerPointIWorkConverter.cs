@@ -2,9 +2,10 @@ using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
 
-namespace OfficeIMO.PowerPoint;
+namespace OfficeIMO.PowerPoint.IWork;
 
-public sealed partial class PowerPointPresentation {
+/// <summary>Projects Apple Keynote sources into editable OfficeIMO PowerPoint presentations.</summary>
+public static class PowerPointIWorkConverter {
     /// <summary>Loads a Keynote source into the normal editable PowerPoint model, using a visual preview only when requested or necessary.</summary>
     public static PowerPointPresentation LoadKeynote(string path, IWorkReadOptions? options = null) =>
         LoadKeynoteWithReport(path, options).Document;
@@ -59,7 +60,7 @@ public sealed partial class PowerPointPresentation {
             throw new NotSupportedException("The Keynote source has no supported editable slides or embedded raster preview.");
         }
 
-        PowerPointPresentation presentation = Create();
+        PowerPointPresentation presentation = PowerPointPresentation.Create();
         try {
             IWorkCanvasSize? sourceSlideSize = projection.SlideSize;
             bool useSourceSlideSize = sourceSlideSize != null

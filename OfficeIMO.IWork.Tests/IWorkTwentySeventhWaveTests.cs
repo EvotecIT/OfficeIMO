@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_text_boxes_normalize_iwork_break_controls(char separator) {
         using MemoryStream package = CreateNumbersPackageWithTextBox("Before" + separator + "After");
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Before\nAfter", Assert.Single(Assert.Single(

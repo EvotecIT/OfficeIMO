@@ -10,9 +10,10 @@ using OpenXmlNumberingProperties = DocumentFormat.OpenXml.Wordprocessing.Numberi
 using OpenXmlParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
 using DrawingWordprocessing = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
-namespace OfficeIMO.Word;
+namespace OfficeIMO.Word.IWork;
 
-public partial class WordDocument {
+/// <summary>Projects Apple Pages sources into editable OfficeIMO Word documents.</summary>
+public static class WordIWorkConverter {
     /// <summary>Loads a Pages source into the normal editable Word model, using a visual preview only when requested or necessary.</summary>
     public static WordDocument LoadPages(string path, IWorkReadOptions? options = null) =>
         LoadPagesWithReport(path, options).Document;
@@ -63,7 +64,7 @@ public partial class WordDocument {
             throw new NotSupportedException("The Pages source has no supported editable content or embedded raster preview.");
         }
 
-        WordDocument document = Create();
+        WordDocument document = WordDocument.Create();
         try {
             if (projection.PageLayout is { } pageLayout && CanApplyPageLayout(pageLayout)) {
                 ApplyPageLayout(document.Sections[0], pageLayout);

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, text: "Item", listLabel: marker);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Single(result.Document.Slides);
@@ -26,7 +26,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithStorageReferences(
             field2StorageId: 6, field4StorageId: 7);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithStorageReferences(
             field2StorageId: 6, field4StorageId: 6);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Primary", Assert.Single(
@@ -50,7 +50,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithStorageReferences(
             field2StorageId: 6, field4StorageId: 6, duplicateField2: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
                 hasFormula: formula, duration: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
         double expected = seconds / 86_400d;
 
         Assert.False(result.IsVisualFallback);
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Ordered_keynote_fields_determine_placeholder_stacking(int placeholderField) {
         using MemoryStream package = CreateKeynotePackageWithOrderedPlaceholder(placeholderField);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         IWorkKeynoteSlide sourceSlide = Assert.Single(result.Projection.Slides);
         PowerPointSlide targetSlide = Assert.Single(result.Document.Slides);
 

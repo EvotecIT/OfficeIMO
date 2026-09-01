@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Underflow", 1, 1, 0d, decimal128Underflow: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

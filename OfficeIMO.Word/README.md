@@ -57,29 +57,6 @@ document.AsFluent()
 document.Save();
 ```
 
-## Import Apple Pages sources
-
-Modern IWA-based `.pages` packages load through the Word semantic owner. The short API returns an editable DOCX model; the report API retains the bounded source and exact loss boundary:
-
-```csharp
-using OfficeIMO.IWork;
-using OfficeIMO.Word;
-using OfficeIMO.Word.IWork;
-
-using IWorkPagesLoadResult result = WordDocument.LoadPagesWithReport(
-    "source.pages",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
-
-Console.WriteLine(result.ImportReport.ProjectionKind);
-foreach (IWorkArchiveRecord record in result.ImportReport.UnsupportedRecords) {
-    Console.WriteLine($"Unprojected IWA type {record.MessageType}");
-}
-
-result.Document.Save("converted.docx");
-```
-
-Supported body, header/footer, and text-box text becomes normal Word content. `Auto` uses a raster preview only when editable reconstruction is unavailable; `EditableOnly` rejects that fallback, while `VisualOnly` requests it explicitly. The report distinguishes both outcomes. OfficeIMO preserves unsupported source records for inspection but does not write Pages files. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md).
-
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.

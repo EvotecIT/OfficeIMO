@@ -4,16 +4,16 @@
 
 ## Reference from a source checkout
 
-For source-based development, reference the bounded reader and the semantic owner you need:
+For source-based development, reference the bounded reader and the opt-in adapter you need:
 
 ```xml
 <ItemGroup>
   <ProjectReference Include="../OfficeIMO.IWork/OfficeIMO.IWork.csproj" />
-  <ProjectReference Include="../OfficeIMO.Excel/OfficeIMO.Excel.csproj" />
+  <ProjectReference Include="../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj" />
 </ItemGroup>
 ```
 
-Use `OfficeIMO.Word` for Pages or `OfficeIMO.PowerPoint` for Keynote in place of the Excel owner. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
+Use `OfficeIMO.Word.IWork` for Pages or `OfficeIMO.PowerPoint.IWork` for Keynote in place of the Excel adapter. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
 
 ## Read and inspect a source
 
@@ -54,16 +54,15 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
 IWorkNumbersProjection workbook = source.ReadNumbers();
 ```
 
-## Project into OfficeIMO owners
+## Opt in to an Office destination adapter
 
-The public destination APIs live on their semantic owners:
+Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.
 
 ```csharp
-using OfficeIMO.Excel;
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-using IWorkNumbersLoadResult result = ExcelDocument.LoadNumbersWithReport(
+using IWorkNumbersLoadResult result = ExcelIWorkConverter.LoadNumbersWithReport(
     "budget.numbers",
     new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
 
@@ -73,7 +72,7 @@ Console.WriteLine(result.HasConversionLoss);
 workbook.Save("budget.xlsx");
 ```
 
-The equivalent entry points are `WordDocument.LoadPages*` and `PowerPointPresentation.LoadKeynote*`. The short overload returns the destination document. The `WithReport` overload also returns the bounded source, typed projection, preserved records, diagnostics, producer build history, and the exact projection kind.
+The equivalent entry points are `WordIWorkConverter.LoadPages*` from `OfficeIMO.Word.IWork` and `PowerPointIWorkConverter.LoadKeynote*` from `OfficeIMO.PowerPoint.IWork`. The short overload returns the destination document. The `WithReport` overload also returns the bounded source, typed projection, preserved records, diagnostics, producer build history, and the exact projection kind.
 
 This is extended semantic reconstruction rather than plain-text extraction:
 
@@ -97,4 +96,4 @@ See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for th
 
 ## Target frameworks and dependencies
 
-`OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. It depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations.
+`OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.

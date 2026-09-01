@@ -2,7 +2,7 @@ using OfficeIMO.IWork;
 
 namespace OfficeIMO.Word.IWork;
 
-/// <summary>Contains a Word projection and the Pages source/report that produced it.</summary>
+/// <summary>Contains an opt-in Word projection and the Pages source/report that produced it.</summary>
 public sealed class IWorkPagesLoadResult : IDisposable {
     internal IWorkPagesLoadResult(WordDocument document, IWorkSourceDocument source,
         IWorkPagesProjection projection, IWorkImportReport report) {

@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, bodyText: "Before\ufffcAfter");
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Odd offsets", 1, 1, 42d, oddCurrentOffsets: true)
         }, includePreview: true);
 
-        using var result = OfficeIMO.Excel.ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "First\u2028Second", slideName: "Named slide", listLabel: "10.");
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointSlide slide = Assert.Single(result.Document.Slides);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(slide.TextBoxes).Paragraphs);
 
@@ -102,7 +102,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Accessible box",
             includePreview: false, textBoxDrawable: Message(StringField(8, "Source description")));
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         Assert.Equal("Source description", Assert.Single(result.Document.TextBoxes).Description);
         using var saved = new MemoryStream();
         result.Document.Save(saved);

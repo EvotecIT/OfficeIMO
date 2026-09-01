@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_owner_preserves_cross_type_drawable_stacking(bool imageFirst) {
         using MemoryStream package = CreatePagesPackageWithRestackedImageAndTextBox(imageFirst);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         IWorkPagesDrawable[] drawables = result.Projection.Drawables.ToArray();
         WordTextBox textBox = Assert.Single(result.Document.TextBoxes);
         WordImage image = Assert.Single(result.Document.Images);
@@ -43,7 +43,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         WordSection section = Assert.Single(result.Document.Sections);
         WordImage preview = Assert.Single(result.Document.Images);
 
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue, slideWidth: 720f, slideHeight: 360f);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointPicture preview = Assert.Single(Assert.Single(result.Document.Slides).Pictures);
 
         Assert.True(result.IsVisualFallback);

@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithUnlabeledList(
             nested: true, includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_inline_breaks_keep_run_styling_on_each_segment() {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             bodyText: "First\u2028Second", bold: true);
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         using var saved = new MemoryStream();
         result.Document.Save(saved);
         saved.Position = 0;
@@ -89,7 +89,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointPresentation.LoadKeynoteWithReport(package,
+            PowerPointIWorkConverter.LoadKeynoteWithReport(package,
                 new IWorkReadOptions { ImportMode = IWorkImportMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,
@@ -101,7 +101,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithLargeTables(tableCount: 11);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordDocument.LoadPagesWithReport(package,
+            WordIWorkConverter.LoadPagesWithReport(package,
                 new IWorkReadOptions { ImportMode = IWorkImportMode.EditableOnly }));
 
         Assert.Contains("destination cell budget", exception.Message,

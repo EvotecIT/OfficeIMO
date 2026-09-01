@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(
             Array.Empty<TableSpec>(), includePreview: true, sheetReferenceCount: 2);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package,
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package,
             new IWorkReadOptions {
                 ImportMode = IWorkImportMode.VisualOnly,
                 MaximumProjectedSheets = 1
@@ -28,7 +28,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointPresentation.LoadKeynoteWithReport(package,
+            PowerPointIWorkConverter.LoadKeynoteWithReport(package,
                 new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordDocument.LoadPagesWithReport(package,
+            WordIWorkConverter.LoadPagesWithReport(package,
                 new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,

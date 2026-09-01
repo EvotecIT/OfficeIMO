@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Crossing", 1, 2, 42d, cellCrossesNextOffset: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

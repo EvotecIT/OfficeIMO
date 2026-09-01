@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
                 textValue: "Cached", completeFormula: true, missingStringEntry: true)
         }, includePreview: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables).Cells);
 
@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
             rows: 2, columns: 2, defaultRowHeight: 5d, defaultColumnWidth: 10d,
             tableDrawable: GeometryDrawable(10f, 20f, 60f, 40f));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointTable table = Assert.Single(Assert.Single(result.Document.Slides).Tables);
 
         Assert.False(result.IsVisualFallback);
@@ -122,7 +122,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_pages_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(10000);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -133,7 +133,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_numbers_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(1);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_keynote_roots_use_visual_fallback() {
         using MemoryStream package = CreateMalformedRootPackage(1);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

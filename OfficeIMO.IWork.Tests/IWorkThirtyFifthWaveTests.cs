@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("◆")]
     public void Pages_owner_preserves_custom_bullet_glyphs(string glyph) {
         using MemoryStream package = CreatePagesPackageWithListLabel(glyph);
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         using var saved = new MemoryStream();
         result.Document.Save(saved);
         saved.Position = 0;
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         using var saved = new MemoryStream();
         result.Document.Save(saved);
         saved.Position = 0;

@@ -1,18 +1,18 @@
 # Apple iWork source-reader support
 
-OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through one bounded `OfficeIMO.IWork` package layer. It then projects supported semantics into the existing Word, Excel, and PowerPoint owners. The source layer is read-only.
+OfficeIMO reads modern IWA-based Pages, Numbers, and Keynote sources through the bounded `OfficeIMO.IWork` package. Opt-in adapter packages project supported semantics into the existing Word, Excel, and PowerPoint owners. The source layer is read-only, and the default destination packages do not depend on iWork.
 
 The current level is **extended semantic reconstruction**. Normal document content becomes editable destination objects with recovered structure, typography, sizing, and geometry where the corpus proves those fields. It is not a pixel-identical renderer or a claim that every application-only feature can be translated.
 
 ## Public ownership
 
-| Source | Typed source projection | Editable destination owner | Entry points |
+| Source | Typed source projection | Opt-in adapter | Entry points |
 |---|---|---|---|
-| Pages | `IWorkPagesProjection` | `WordDocument` | `LoadPages`, `LoadPagesWithReport` |
-| Numbers | `IWorkNumbersProjection` | `ExcelDocument` | `LoadNumbers`, `LoadNumbersWithReport` |
-| Keynote | `IWorkKeynoteProjection` | `PowerPointPresentation` | `LoadKeynote`, `LoadKeynoteWithReport` |
+| Pages | `IWorkPagesProjection` | `OfficeIMO.Word.IWork` | `WordIWorkConverter.LoadPages`, `LoadPagesWithReport` |
+| Numbers | `IWorkNumbersProjection` | `OfficeIMO.Excel.IWork` | `ExcelIWorkConverter.LoadNumbers`, `LoadNumbersWithReport` |
+| Keynote | `IWorkKeynoteProjection` | `OfficeIMO.PowerPoint.IWork` | `PowerPointIWorkConverter.LoadKeynote`, `LoadKeynoteWithReport` |
 
-`IWorkSourceDocument.Open` is the advanced inspection entry point. It exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections. The owner `WithReport` APIs retain that same source model beside the generated Office document.
+`IWorkSourceDocument.Open` is the advanced inspection entry point. It exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections. The adapter `WithReport` APIs retain that same source model beside the generated Office document.
 
 ## Package and IWA boundary
 
@@ -42,7 +42,7 @@ Editable reconstruction means the supported content is represented as normal DOC
 
 `IWorkImportMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview.
 
-Every owner report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current owner adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
+Every adapter report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
 
 ## Corpus evidence
 

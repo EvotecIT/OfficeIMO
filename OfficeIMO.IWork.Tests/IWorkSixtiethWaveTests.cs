@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: 960.0001f, slideHeight: 540f);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -62,7 +62,7 @@ public sealed partial class IWorkBoundaryTests {
             defaultRowHeight: 0.5d / PowerPointUnits.EmusPerPoint,
             defaultColumnWidth: 30d, includePreview: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_image_extents_below_half_an_emu_remain_editable() {
         using MemoryStream package = CreateKeynotePackageWithTinyImageExtent();
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

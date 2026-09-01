@@ -1,9 +1,10 @@
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-namespace OfficeIMO.Excel;
+namespace OfficeIMO.Excel.IWork;
 
-public partial class ExcelDocument {
+/// <summary>Projects Apple Numbers sources into editable OfficeIMO Excel workbooks.</summary>
+public static class ExcelIWorkConverter {
     /// <summary>Loads a Numbers source into the normal editable Excel model, using a visual preview only when requested or necessary.</summary>
     public static ExcelDocument LoadNumbers(string path, IWorkReadOptions? options = null) =>
         LoadNumbersWithReport(path, options).Document;
@@ -54,7 +55,7 @@ public partial class ExcelDocument {
             throw new NotSupportedException("The Numbers source has no supported editable content or embedded raster preview.");
         }
 
-        ExcelDocument document = Create();
+        ExcelDocument document = ExcelDocument.Create();
         try {
             if (editable) {
                 foreach (IWorkNumbersSheet sourceSheet in projection.Sheets) {

@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_internal_slide_links_round_trip_for_shapes_runs_and_notes() {
         using MemoryStream package = CreateKeynotePackageWithInternalSlideLinks();
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Document.Slides.Count);

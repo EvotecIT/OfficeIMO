@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(1_048_577, false)]
     public void Numbers_text_box_projection_respects_the_xlsx_row_limit(
         int textBoxCount, bool expected) {
-        Assert.Equal(expected, ExcelDocument.FitsTextBoxesInWorksheet(textBoxCount));
+        Assert.Equal(expected, ExcelIWorkConverter.FitsTextBoxesInWorksheet(textBoxCount));
     }
 
     [Fact]
@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "مرحبا بالعالم", naturalAlignment: true);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(
             Assert.Single(result.Document.Slides).TextBoxes).Paragraphs);
 
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(
             depth: 1, naturalAlignment: true, bodyText: "مرحبا بالعالم");
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
         WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
             candidate => candidate.Text == "مرحبا بالعالم");
 
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: label);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithListLabel(label,
             includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.LoadPagesWithReport(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
