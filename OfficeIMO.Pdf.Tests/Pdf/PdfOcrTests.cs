@@ -520,6 +520,26 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task MakeSearchableAsync_DoesNotDuplicateAnExistingInvisibleSearchLayer() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Already searchable", 42, 160, 120, 14)
+        }));
+
+        PdfSearchableOcrResult first = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        PdfSearchableOcrResult second = await first.Document.Ocr.MakeSearchableAsync(provider);
+
+        Assert.True(first.WasModified);
+        Assert.False(second.WasModified);
+        Assert.Equal(0, second.AddedWordCount);
+        Assert.Equal(1, second.Ocr.Pages[0].RejectedNativeOverlapCount);
+        Assert.Empty(second.ModifiedPages);
+        Assert.Same(first.Document, second.Document);
+    }
+
+    [Fact]
     public async Task MakeSearchableAsync_LeavesDocumentUnchangedWhenNoWordsAreAccepted() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Already searchable")).ToBytes();
         var provider = new StubOcrProvider(_ => new PdfOcrResponse(Array.Empty<PdfOcrWord>()));

@@ -67,13 +67,15 @@ public sealed class PdfPageInteractionMap {
         return new PdfPageInteractionMap(pageNumber, size.Width, size.Height, regions.AsReadOnly());
     }
 
-    internal static IReadOnlyList<PdfSelectionQuad> GetVisibleTextSpanBounds(PdfReadPage page) {
+    internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page) {
         IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
         (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
         var bounds = new List<PdfSelectionQuad>(spans.Count);
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
-            if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) continue;
+            // Rendering mode 3 is the standard invisible searchable-text layer. Include it
+            // for OCR deduplication without allowing other concealed/clipped text to mask pixels.
+            if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && span.TextRenderingMode != 3)) continue;
 
             TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(span.Text);
             int elementCount = 0;

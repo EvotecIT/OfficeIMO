@@ -33,7 +33,7 @@ public sealed class ReaderOcrTesseractTests {
     }
 
     [Fact]
-    public void TesseractOcrEngine_BuildsOptionsBeforeTsvOutputConfig() {
+    public void TesseractOcrEngine_EnablesTsvWithoutAConfigFileDependency() {
         var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
             TessdataDirectory = "/models",
             EngineMode = 1,
@@ -49,14 +49,17 @@ public sealed class ReaderOcrTesseractTests {
         Assert.Contains("eng+pol", arguments);
         Assert.Contains("/models", arguments);
         Assert.Contains("300", arguments);
-        Assert.Equal("quiet", arguments[arguments.Count - 2]);
-        Assert.Equal("tsv", arguments[arguments.Count - 1]);
+        Assert.Equal("quiet", arguments[arguments.Count - 3]);
+        Assert.Equal("-c", arguments[arguments.Count - 2]);
+        Assert.Equal("tessedit_create_tsv=1", arguments[arguments.Count - 1]);
+        Assert.DoesNotContain("tsv", arguments);
     }
 
     [Fact]
     public void TesseractOcrEngine_AdvertisesRasterFormatsOnly() {
         var engine = new TesseractOcrEngine();
 
+        Assert.Equal("tesseract", engine.ExecutablePath);
         Assert.Contains("image/png", engine.Capabilities.SupportedMediaTypes);
         Assert.Contains("image/jpeg", engine.Capabilities.SupportedMediaTypes);
         Assert.DoesNotContain("image/*", engine.Capabilities.SupportedMediaTypes);
@@ -87,6 +90,32 @@ public sealed class ReaderOcrTesseractTests {
             Assert.Equal(Path.GetFullPath(executable), engine.ExecutablePath);
             Assert.Equal("eng+pol", engine.DefaultLanguage);
         } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void TesseractRuntime_DefaultOptionsPreserveEnvironmentDiscovery() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-tesseract-default-runtime-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string executable = Path.Combine(directory, Environment.OSVersion.Platform == PlatformID.Win32NT ? "tesseract.exe" : "tesseract");
+        File.WriteAllBytes(executable, Array.Empty<byte>());
+#if NET8_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) {
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+#endif
+        string? previous = Environment.GetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH");
+        var options = new TesseractOcrEngineOptions();
+        try {
+            Environment.SetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH", executable);
+
+            TesseractOcrEngine engine = TesseractOcrEngine.CreateDefault(options);
+
+            Assert.Null(options.ExecutablePath);
+            Assert.Equal(Path.GetFullPath(executable), engine.ExecutablePath);
+        } finally {
+            Environment.SetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH", previous);
             Directory.Delete(directory, recursive: true);
         }
     }
@@ -163,6 +192,9 @@ public sealed class ReaderOcrTesseractTests {
             Assert.False(TesseractRuntime.TryDiscover("missing-tesseract-command", out TesseractRuntimeInfo? runtime));
             Assert.Null(runtime);
             Assert.Throws<FileNotFoundException>(() => TesseractRuntime.Discover("missing-tesseract-command"));
+            Assert.Throws<FileNotFoundException>(() => TesseractOcrEngine.CreateDefault(new TesseractOcrEngineOptions {
+                ExecutablePath = "missing-tesseract-command"
+            }));
         } finally {
             Environment.SetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH", previous);
             Directory.Delete(root, recursive: true);

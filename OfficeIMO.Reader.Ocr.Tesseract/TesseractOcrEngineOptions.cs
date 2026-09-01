@@ -2,8 +2,11 @@ namespace OfficeIMO.Reader.Ocr.Tesseract;
 
 /// <summary>Configures the optional Tesseract command-line OCR engine.</summary>
 public sealed class TesseractOcrEngineOptions {
-    /// <summary>Executable path or name. Defaults to <c>tesseract</c>.</summary>
-    public string ExecutablePath { get; set; } = "tesseract";
+    /// <summary>
+    /// Optional executable path or name. Leave null for environment, PATH, and known-location discovery.
+    /// Direct engine construction uses <c>tesseract</c> when no resolved path is supplied.
+    /// </summary>
+    public string? ExecutablePath { get; set; }
 
     /// <summary>Default Tesseract language expression, such as <c>eng</c> or <c>eng+pol</c>.</summary>
     public string? Language { get; set; } = "eng";
@@ -20,7 +23,7 @@ public sealed class TesseractOcrEngineOptions {
     /// <summary>Optional input DPI passed through <c>--dpi</c>.</summary>
     public int? Dpi { get; set; }
 
-    /// <summary>Additional direct Tesseract arguments inserted before the <c>tsv</c> output config.</summary>
+    /// <summary>Additional direct Tesseract arguments inserted before the explicit TSV output setting.</summary>
     public IReadOnlyList<string> AdditionalArguments { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional parent directory for isolated per-request temporary folders.</summary>

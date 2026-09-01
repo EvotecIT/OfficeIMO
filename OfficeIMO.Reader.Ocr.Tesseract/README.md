@@ -37,8 +37,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler()
     .Build();
 OfficeDocumentReadResult source = reader.ReadDocument("scanned.pdf");
-var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
-    ExecutablePath = "tesseract",
+var engine = TesseractOcrEngine.CreateDefault(new TesseractOcrEngineOptions {
     Language = "eng+pol",
     PageSegmentationMode = 3,
     Timeout = TimeSpan.FromMinutes(1)

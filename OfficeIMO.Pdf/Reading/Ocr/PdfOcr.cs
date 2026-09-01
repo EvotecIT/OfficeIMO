@@ -49,7 +49,7 @@ internal static class PdfOcr {
             PdfLogicalPage nativePage = logical.Pages.First(page => page.PageNumber == render.PageNumber);
             PdfReadPage readPage = readDocument.Pages[render.PageNumber - 1];
             PdfReadPage overlapReadPage = overlapReadDocument.Pages[render.PageNumber - 1];
-            IReadOnlyList<PdfSelectionQuad> nativeTextBounds = PdfPageInteractionMap.GetVisibleTextSpanBounds(overlapReadPage);
+            IReadOnlyList<PdfSelectionQuad> nativeTextBounds = PdfPageInteractionMap.GetOcrOverlapTextSpanBounds(overlapReadPage);
             (double visualWidth, double visualHeight) = readPage.GetInteractionPageSize();
             double scale = effectiveOptions.Dpi / 72D;
             var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, visualWidth, visualHeight, scale);
