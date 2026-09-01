@@ -59,7 +59,11 @@ a second logical model.
 | selected `pdf.Read.TryImages(selection)` / `TryImagePlacements(selection)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ExtractImages)`, then call `pdf.Images.Extract(selection)` / `Placements(selection)` inside the application's exception or result boundary |
 | `pdf.Read.SaveImages(...)` | Call `pdf.Images.Extract(...)`; for each result where `IsImageFile` is true, write `Bytes` using a caller-owned deterministic name and `FileExtension`. The caller now owns overwrite policy. |
 | `pdf.Read.Fonts(...)` / `pdf.Read.RawStructure(...)` | `pdf.Resources.Fonts(...)` / `pdf.Resources.RawStructure(...)` |
+| `pdf.Read.TryFonts()` / `pdf.Read.TryRawStructure()` | `pdf.Resources.TryFonts()` / `pdf.Resources.TryRawStructure()` for all-page non-throwing results |
+| selected `pdf.Read.TryFonts(selection)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Resources.Fonts(selection)` inside the application's exception or result boundary; `pdf.Resources.TryFonts()` is intentionally all-page only |
 | `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
+| `pdf.Read.ExportImages(...)` | `pdf.Render.ExportImages(...)` |
+| `pdf.Read.LayoutDebugOverlay(...)` / `pdf.Read.RenderCapabilityDiagnostics(...)` | `pdf.Render.LayoutDebugOverlay(...)` / `pdf.Render.CapabilityDiagnostics(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
 | `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
 | `pdf.Read.LinksByUri(...)` and other link filters | `result.GetLinksByUri(...)` and the matching `result.GetLinksBy...(...)` helper |

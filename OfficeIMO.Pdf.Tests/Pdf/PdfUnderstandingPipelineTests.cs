@@ -712,6 +712,44 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void CachedSourceRead_RechecksCancellationAfterWaitingForTheParseLock() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("lock contention")).ToBytes();
+        PdfDocumentSource source = PdfDocumentSource.FromCallerBytes(pdf, options: null);
+        System.Reflection.FieldInfo field = Assert.IsAssignableFrom<System.Reflection.FieldInfo>(
+            typeof(PdfDocumentSource).GetField(
+                "_readLock",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic));
+        object syncRoot = Assert.IsType<object>(field.GetValue(source));
+        using var cancellation = new CancellationTokenSource();
+        using var started = new ManualResetEventSlim(false);
+        Exception? failure = null;
+        var readerThread = new Thread(() => {
+            started.Set();
+            try {
+                source.Read(cancellationToken: cancellation.Token);
+            } catch (Exception exception) {
+                failure = exception;
+            }
+        });
+
+        Monitor.Enter(syncRoot);
+        try {
+            readerThread.Start();
+            Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+            Assert.True(SpinWait.SpinUntil(
+                () => (readerThread.ThreadState & ThreadState.WaitSleepJoin) != 0,
+                TimeSpan.FromSeconds(5)));
+            cancellation.Cancel();
+        } finally {
+            Monitor.Exit(syncRoot);
+        }
+
+        Assert.True(readerThread.Join(TimeSpan.FromSeconds(5)));
+        Assert.IsAssignableFrom<OperationCanceledException>(failure);
+        Assert.Single(source.Read().Pages);
+    }
+
+    [Fact]
     public void Pipeline_ObservesCancellationInsideAStage() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         using var cancellation = new CancellationTokenSource();

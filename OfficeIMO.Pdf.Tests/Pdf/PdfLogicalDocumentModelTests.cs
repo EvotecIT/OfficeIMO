@@ -104,6 +104,36 @@ public partial class PdfDocumentReadResultTests {
     }
 
     [Fact]
+    public async System.Threading.Tasks.Task Sections_PublishCompleteOwnershipIndexesDuringConcurrentFirstAccess() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Operations")
+            .Paragraph(paragraph => paragraph.Text("Operations overview."))
+            .H2("North region")
+            .Paragraph(paragraph => paragraph.Text("North region details."))
+            .ToBytes();
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
+        PdfLogicalParagraph paragraph = result.Paragraphs.Last();
+        using var start = new System.Threading.ManualResetEventSlim(false);
+        System.Threading.Tasks.Task<(IReadOnlyList<PdfLogicalSection> Roots, IReadOnlyList<PdfLogicalSection> All, PdfLogicalSection? Owner)>[] readers =
+            Enumerable.Range(0, 32)
+                .Select(_ => System.Threading.Tasks.Task.Run(() => {
+                    start.Wait();
+                    return (result.Sections, result.AllSections, result.GetOwningSection(paragraph));
+                }))
+                .ToArray();
+
+        start.Set();
+        (IReadOnlyList<PdfLogicalSection> Roots, IReadOnlyList<PdfLogicalSection> All, PdfLogicalSection? Owner)[] snapshots =
+            await System.Threading.Tasks.Task.WhenAll(readers);
+
+        Assert.All(snapshots, snapshot => {
+            Assert.Single(snapshot.Roots);
+            Assert.Equal(2, snapshot.All.Count);
+            Assert.Same(snapshot.All[1], snapshot.Owner);
+        });
+    }
+
+    [Fact]
     public void Read_AssignsLinksAndFormWidgetsToHeadingOwnedSections() {
         byte[] source = PdfDocument.Create()
             .H1("Interactive section")

@@ -181,6 +181,26 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfDocument_ToPowerPointPresentation_PropagatesRaisedPageLimitIntoSemanticReading() {
+        const int selectedPageCount = 1_001;
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Repeated source page"))
+            .ToBytes();
+        var options = new PdfPowerPointImportOptions {
+            Mode = PdfPowerPointImportMode.EditableTables,
+            MaxPages = selectedPageCount,
+            PageSelection = PdfCore.PdfPageSelection.From(Enumerable.Repeat(1, selectedPageCount).ToArray())
+        };
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            Assert.Single(result.Value.Slides);
+        }
+    }
+
+    [Fact]
     public void PdfDocument_ToPowerPointPresentation_EditableObjectLimitReportsTextAndTableLoss() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Limit contract")

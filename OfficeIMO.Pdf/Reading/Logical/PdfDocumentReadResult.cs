@@ -67,6 +67,7 @@ public sealed partial class PdfDocumentReadResult {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByNamedAction;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByRemoteFile;
     private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
+    private readonly object _sectionsLock = new object();
     private IReadOnlyList<PdfLogicalSection>? _sections;
     private IReadOnlyList<PdfLogicalSection>? _allSections;
     private Dictionary<PdfLogicalTextBlock, PdfLogicalSection>? _textBlockSections;
@@ -948,105 +949,118 @@ public sealed partial class PdfDocumentReadResult {
     }
 
     private void EnsureSections() {
-        if (_sections is not null) return;
+        if (Volatile.Read(ref _sections) is not null) return;
 
-        var roots = new List<PdfLogicalSection>();
-        var all = new List<PdfLogicalSection>();
-        var stack = new Stack<PdfLogicalSection>();
-        _textBlockSections = new Dictionary<PdfLogicalTextBlock, PdfLogicalSection>();
-        _paragraphSections = new Dictionary<PdfLogicalParagraph, PdfLogicalSection>();
-        _listItemSections = new Dictionary<PdfLogicalListItem, PdfLogicalSection>();
-        _tableSections = new Dictionary<PdfLogicalTable, PdfLogicalSection>();
-        _imageSections = new Dictionary<PdfLogicalImage, PdfLogicalSection>();
-        _imageResourceSections = new Dictionary<PdfLogicalImage, List<PdfLogicalSection>>();
-        _imageResourceOwnedPlacementCounts = new Dictionary<PdfLogicalImage, int>();
-        _linkSections = new Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>();
-        _formWidgetSections = new Dictionary<PdfLogicalFormWidget, PdfLogicalSection>();
-        PdfLogicalSection? current = null;
+        lock (_sectionsLock) {
+            if (_sections is not null) return;
 
-        for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++) {
-            PdfLogicalPage page = Pages[pageIndex];
-            IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder = PdfLogicalReadingOrderAnalysis.Analyze(page);
-            for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
-                PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
-                if (item.Kind == PdfLogicalReadingOrderKind.Heading) {
-                    PdfLogicalHeading heading = page.Headings[item.SourceIndex];
-                    int level = Math.Max(1, heading.Level);
-                    while (stack.Count > 0 && stack.Peek().Level >= level) stack.Pop();
-                    PdfLogicalSection? parent = stack.Count == 0 ? null : stack.Peek();
-                    current = new PdfLogicalSection(all.Count, heading, parent);
-                    all.Add(current);
-                    if (parent is null) roots.Add(current);
-                    else parent.AddChild(current);
-                    stack.Push(current);
-                    continue;
-                }
+            var roots = new List<PdfLogicalSection>();
+            var all = new List<PdfLogicalSection>();
+            var stack = new Stack<PdfLogicalSection>();
+            var textBlockSections = new Dictionary<PdfLogicalTextBlock, PdfLogicalSection>();
+            var paragraphSections = new Dictionary<PdfLogicalParagraph, PdfLogicalSection>();
+            var listItemSections = new Dictionary<PdfLogicalListItem, PdfLogicalSection>();
+            var tableSections = new Dictionary<PdfLogicalTable, PdfLogicalSection>();
+            var imageSections = new Dictionary<PdfLogicalImage, PdfLogicalSection>();
+            var imageResourceSections = new Dictionary<PdfLogicalImage, List<PdfLogicalSection>>();
+            var imageResourceOwnedPlacementCounts = new Dictionary<PdfLogicalImage, int>();
+            var linkSections = new Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>();
+            var formWidgetSections = new Dictionary<PdfLogicalFormWidget, PdfLogicalSection>();
+            PdfLogicalSection? current = null;
 
-                if (current is null) continue;
-                switch (item.Kind) {
-                    case PdfLogicalReadingOrderKind.TextBlock: {
-                        PdfLogicalTextBlock value = page.TextBlocks[item.SourceIndex];
-                        current.Add(value);
-                        _textBlockSections[value] = current;
-                        break;
+            for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++) {
+                PdfLogicalPage page = Pages[pageIndex];
+                IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder = PdfLogicalReadingOrderAnalysis.Analyze(page);
+                for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
+                    PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
+                    if (item.Kind == PdfLogicalReadingOrderKind.Heading) {
+                        PdfLogicalHeading heading = page.Headings[item.SourceIndex];
+                        int level = Math.Max(1, heading.Level);
+                        while (stack.Count > 0 && stack.Peek().Level >= level) stack.Pop();
+                        PdfLogicalSection? parent = stack.Count == 0 ? null : stack.Peek();
+                        current = new PdfLogicalSection(all.Count, heading, parent);
+                        all.Add(current);
+                        if (parent is null) roots.Add(current);
+                        else parent.AddChild(current);
+                        stack.Push(current);
+                        continue;
                     }
-                    case PdfLogicalReadingOrderKind.Paragraph: {
-                        PdfLogicalParagraph value = page.Paragraphs[item.SourceIndex];
-                        current.Add(value);
-                        _paragraphSections[value] = current;
-                        for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
-                            _textBlockSections[value.Lines[lineIndex]] = current;
+
+                    if (current is null) continue;
+                    switch (item.Kind) {
+                        case PdfLogicalReadingOrderKind.TextBlock: {
+                            PdfLogicalTextBlock value = page.TextBlocks[item.SourceIndex];
+                            current.Add(value);
+                            textBlockSections[value] = current;
+                            break;
                         }
-                        break;
-                    }
-                    case PdfLogicalReadingOrderKind.ListItem: {
-                        PdfLogicalListItem value = page.ListItems[item.SourceIndex];
-                        current.Add(value);
-                        _listItemSections[value] = current;
-                        for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
-                            _textBlockSections[value.Lines[lineIndex]] = current;
+                        case PdfLogicalReadingOrderKind.Paragraph: {
+                            PdfLogicalParagraph value = page.Paragraphs[item.SourceIndex];
+                            current.Add(value);
+                            paragraphSections[value] = current;
+                            for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
+                                textBlockSections[value.Lines[lineIndex]] = current;
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case PdfLogicalReadingOrderKind.Table: {
-                        PdfLogicalTable value = page.Tables[item.SourceIndex];
-                        current.Add(value);
-                        _tableSections[value] = current;
-                        break;
-                    }
-                    case PdfLogicalReadingOrderKind.Image: {
-                        PdfLogicalImage resource = page.Images[item.SourceIndex];
-                        PdfLogicalImage value = item.PlacementIndex >= 0
-                            ? resource.ForPlacement(item.PlacementIndex)
-                            : resource;
-                        if (current.Add(value)) _imageSections[value] = current;
-                        if (!_imageResourceSections.TryGetValue(resource, out List<PdfLogicalSection>? owners)) {
-                            owners = new List<PdfLogicalSection>();
-                            _imageResourceSections.Add(resource, owners);
+                        case PdfLogicalReadingOrderKind.ListItem: {
+                            PdfLogicalListItem value = page.ListItems[item.SourceIndex];
+                            current.Add(value);
+                            listItemSections[value] = current;
+                            for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
+                                textBlockSections[value.Lines[lineIndex]] = current;
+                            }
+                            break;
                         }
-                        if (!owners.Contains(current)) owners.Add(current);
-                        _imageResourceOwnedPlacementCounts.TryGetValue(resource, out int ownedPlacements);
-                        _imageResourceOwnedPlacementCounts[resource] = ownedPlacements + 1;
-                        break;
-                    }
-                    case PdfLogicalReadingOrderKind.Link: {
-                        PdfLogicalLinkAnnotation value = page.Links[item.SourceIndex];
-                        current.Add(value);
-                        _linkSections[value] = current;
-                        break;
-                    }
-                    case PdfLogicalReadingOrderKind.FormWidget: {
-                        PdfLogicalFormWidget value = page.FormWidgets[item.SourceIndex];
-                        current.Add(value);
-                        _formWidgetSections[value] = current;
-                        break;
+                        case PdfLogicalReadingOrderKind.Table: {
+                            PdfLogicalTable value = page.Tables[item.SourceIndex];
+                            current.Add(value);
+                            tableSections[value] = current;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Image: {
+                            PdfLogicalImage resource = page.Images[item.SourceIndex];
+                            PdfLogicalImage value = item.PlacementIndex >= 0
+                                ? resource.ForPlacement(item.PlacementIndex)
+                                : resource;
+                            if (current.Add(value)) imageSections[value] = current;
+                            if (!imageResourceSections.TryGetValue(resource, out List<PdfLogicalSection>? owners)) {
+                                owners = new List<PdfLogicalSection>();
+                                imageResourceSections.Add(resource, owners);
+                            }
+                            if (!owners.Contains(current)) owners.Add(current);
+                            imageResourceOwnedPlacementCounts.TryGetValue(resource, out int ownedPlacements);
+                            imageResourceOwnedPlacementCounts[resource] = ownedPlacements + 1;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Link: {
+                            PdfLogicalLinkAnnotation value = page.Links[item.SourceIndex];
+                            current.Add(value);
+                            linkSections[value] = current;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.FormWidget: {
+                            PdfLogicalFormWidget value = page.FormWidgets[item.SourceIndex];
+                            current.Add(value);
+                            formWidgetSections[value] = current;
+                            break;
+                        }
                     }
                 }
             }
-        }
 
-        _sections = roots.AsReadOnly();
-        _allSections = all.AsReadOnly();
+            _textBlockSections = textBlockSections;
+            _paragraphSections = paragraphSections;
+            _listItemSections = listItemSections;
+            _tableSections = tableSections;
+            _imageSections = imageSections;
+            _imageResourceSections = imageResourceSections;
+            _imageResourceOwnedPlacementCounts = imageResourceOwnedPlacementCounts;
+            _linkSections = linkSections;
+            _formWidgetSections = formWidgetSections;
+            _allSections = all.AsReadOnly();
+            Volatile.Write(ref _sections, roots.AsReadOnly());
+        }
     }
 
     private static System.Collections.ObjectModel.ReadOnlyDictionary<TKey, IReadOnlyList<T>> ToReadOnlyLookup<TKey, T>(Dictionary<TKey, List<T>> grouped) where TKey : notnull {

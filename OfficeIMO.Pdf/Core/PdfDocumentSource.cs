@@ -144,6 +144,7 @@ internal sealed class PdfDocumentSource {
         }
 
         lock (_readLock) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (_readDocument is not null) return _readDocument;
             _readFailure?.Throw();
             try {

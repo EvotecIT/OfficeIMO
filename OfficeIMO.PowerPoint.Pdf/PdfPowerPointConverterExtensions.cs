@@ -56,7 +56,8 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfDocumentReadResult logical = document.Read(new PdfCore.PdfReadOptions {
-            PageSelection = options.PageSelection
+            PageSelection = options.PageSelection,
+            Pipeline = new PdfCore.PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages }
         });
         ValidateLogicalPageCount(logical, options);
         return logical;
@@ -324,7 +325,8 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions options) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options);
         PdfCore.PdfDocumentReadResult logical = document.Read(new PdfCore.PdfReadOptions {
-            PageSelection = options.PageSelection
+            PageSelection = options.PageSelection,
+            Pipeline = new PdfCore.PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages }
         });
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         ConfigureSlideSize(presentation, rendered);
