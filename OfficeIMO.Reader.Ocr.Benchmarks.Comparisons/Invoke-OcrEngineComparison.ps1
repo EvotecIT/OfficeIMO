@@ -68,7 +68,7 @@ foreach ($model in $lockedModels) {
     }
 }
 
-$fixtures = Join-Path $EnvironmentRoot 'fixtures'
+$fixtures = Join-Path $PSScriptRoot 'fixtures'
 $fixtureManifest = Join-Path $fixtures 'cases.json'
 $prepareScript = Join-Path $PSScriptRoot 'tools\prepare_fixtures.py'
 $runnerScript = Join-Path $PSScriptRoot 'tools\run_ocr.py'
@@ -88,7 +88,7 @@ if ($RefreshFixtures.IsPresent -or -not (Test-Path -LiteralPath $fixtureManifest
     $pythonPath = ConvertTo-WslPath $requiredPaths.RapidPackages
     $preparePath = ConvertTo-WslPath $prepareScript
     $fixturePath = ConvertTo-WslPath $fixtures
-    & wsl.exe -- env "PYTHONPATH=$pythonPath" python3 $preparePath $fixturePath
+    & wsl.exe -- env "PYTHONPATH=$pythonPath" "PYTHONDONTWRITEBYTECODE=1" python3 $preparePath $fixturePath
     if ($LASTEXITCODE -ne 0) {
         throw 'OCR comparison fixture generation failed.'
     }
@@ -118,11 +118,33 @@ if ($treeParts.Count -ne 2 -or
     throw "Tesseract extracted payload does not match the locked whole-tree SHA-256 provenance."
 }
 
+$rapidTreeEvidence = @(& wsl.exe -- python3 $treeHashWsl $rapidPackagesWsl)
+if ($LASTEXITCODE -ne 0 -or $rapidTreeEvidence.Count -ne 1) {
+    throw 'Could not calculate RapidOCR payload provenance.'
+}
+$rapidTreeParts = ([string] $rapidTreeEvidence[0]).Trim().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+if ($rapidTreeParts.Count -ne 2 -or
+    $rapidTreeParts[0] -ne [string] $environmentLock.rapidOcr.payloadSha256 -or
+    [int] $rapidTreeParts[1] -ne [int] $environmentLock.rapidOcr.payloadEntryCount) {
+    throw "RapidOCR Python payload does not match the locked whole-tree SHA-256 provenance."
+}
+
+$fixtureTreeEvidence = @(& wsl.exe -- python3 $treeHashWsl $fixturesWsl)
+if ($LASTEXITCODE -ne 0 -or $fixtureTreeEvidence.Count -ne 1) {
+    throw 'Could not calculate OCR fixture provenance.'
+}
+$fixtureTreeParts = ([string] $fixtureTreeEvidence[0]).Trim().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+if ($fixtureTreeParts.Count -ne 2 -or
+    $fixtureTreeParts[0] -ne [string] $environmentLock.fixtures.payloadSha256 -or
+    [int] $fixtureTreeParts[1] -ne [int] $environmentLock.fixtures.payloadEntryCount) {
+    throw "OCR fixture payload does not match the locked whole-tree SHA-256 provenance."
+}
+
 $tesseractVersion = (& wsl.exe -- env `
     "LD_LIBRARY_PATH=$tesseractRootWsl/usr/lib/x86_64-linux-gnu" `
     "TESSDATA_PREFIX=$tesseractRootWsl/usr/share/tesseract-ocr/5/tessdata" `
     "$tesseractRootWsl/usr/bin/tesseract" --version | Select-Object -First 1).Trim()
-$pythonVersions = & wsl.exe -- env "PYTHONPATH=$rapidPackagesWsl" python3 -c `
+$pythonVersions = & wsl.exe -- env "PYTHONPATH=$rapidPackagesWsl" "PYTHONDONTWRITEBYTECODE=1" python3 -c `
     "import importlib.metadata; print(importlib.metadata.version('rapidocr')); print(importlib.metadata.version('onnxruntime'))"
 if ($LASTEXITCODE -ne 0 -or @($pythonVersions).Count -ne 2) {
     throw 'Could not resolve RapidOCR and ONNX Runtime versions.'

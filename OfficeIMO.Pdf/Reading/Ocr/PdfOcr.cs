@@ -17,6 +17,9 @@ internal static class PdfOcr {
         PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        PdfReadDocument overlapReadDocument = readOptions?.IncludeArtifactText == true
+            ? readDocument
+            : PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions), cancellationToken);
         int[] selectedPages = effectiveOptions.Selection?.ToPageNumbers(
             readDocument.Pages.Count,
             nameof(effectiveOptions.Selection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
@@ -45,12 +48,14 @@ internal static class PdfOcr {
             PdfPageRenderResult render = rendered[i];
             PdfLogicalPage nativePage = logical.Pages.First(page => page.PageNumber == render.PageNumber);
             PdfReadPage readPage = readDocument.Pages[render.PageNumber - 1];
+            PdfReadPage overlapReadPage = overlapReadDocument.Pages[render.PageNumber - 1];
+            IReadOnlyList<PdfSelectionQuad> nativeTextBounds = PdfPageInteractionMap.GetVisibleTextSpanBounds(overlapReadPage);
             (double visualWidth, double visualHeight) = readPage.GetInteractionPageSize();
             double scale = effectiveOptions.Dpi / 72D;
             var request = new PdfOcrRequest(render.PageNumber, render.Bytes!, render.Width, render.Height, visualWidth, visualHeight, scale);
             PdfOcrResponse response = await provider.RecognizeAsync(request, cancellationToken).ConfigureAwait(false)
                 ?? throw new InvalidOperationException("OCR provider returned a null response.");
-            pages.Add(MergePage(nativePage, readPage, response, request, effectiveOptions, cancellationToken));
+            pages.Add(MergePage(nativePage, nativeTextBounds, readPage, response, request, effectiveOptions, cancellationToken));
         }
 
         IReadOnlyList<PdfOcrPageMergeResult> mergedPages = pages.AsReadOnly();
@@ -67,7 +72,7 @@ internal static class PdfOcr {
         return new PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages };
     }
 
-    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
+    private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, IReadOnlyList<PdfSelectionQuad> nativeTextBounds, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {
         ValidateProviderResponse(nativePage, response, options);
         var diagnostics = new List<string>(response.Diagnostics);
         var accepted = new List<PdfRecognizedWord>();
@@ -90,8 +95,7 @@ internal static class PdfOcr {
             var normalized = new PdfRecognizedWord(word.Text, word.X / request.Scale, word.Y / request.Scale, word.Width / request.Scale, word.Height / request.Scale, word.Confidence);
             if (OverlapsNativeText(
                     normalized,
-                    nativePage.TextBlocks,
-                    readPage,
+                    nativeTextBounds,
                     options.NativeTextOverlapThreshold,
                     options.MaxNativeTextOverlapComparisonsPerPage,
                     ref overlapComparisons,
@@ -118,26 +122,19 @@ internal static class PdfOcr {
 
     private static bool OverlapsNativeText(
         PdfRecognizedWord word,
-        IReadOnlyList<PdfLogicalTextBlock> blocks,
-        PdfReadPage readPage,
+        IReadOnlyList<PdfSelectionQuad> nativeTextBounds,
         double threshold,
         long maximumComparisons,
         ref long comparisons,
         CancellationToken cancellationToken) {
         double wordArea = word.Width * word.Height;
-        for (int i = 0; i < blocks.Count; i++) {
+        for (int i = 0; i < nativeTextBounds.Count; i++) {
             comparisons = checked(comparisons + 1L);
             if (comparisons > maximumComparisons) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumComparisons, comparisons);
             }
             if ((i & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
-            PdfLogicalTextBlock block = blocks[i];
-            double blockHeight = Math.Max(block.FontSize * 1.2D, 1D);
-            PdfVisualBounds bounds = readPage.TransformBoundsToVisual(
-                Math.Min(block.XStart, block.XEnd),
-                block.BaselineY,
-                Math.Max(block.XStart, block.XEnd),
-                block.BaselineY + blockHeight);
+            PdfSelectionQuad bounds = nativeTextBounds[i];
             double overlapWidth = Math.Max(0D, Math.Min(word.X + word.Width, bounds.Right) - Math.Max(word.X, bounds.Left));
             double overlapHeight = Math.Max(0D, Math.Min(word.Y + word.Height, bounds.Bottom) - Math.Max(word.Y, bounds.Top));
             if ((overlapWidth * overlapHeight) / wordArea >= threshold) return true;

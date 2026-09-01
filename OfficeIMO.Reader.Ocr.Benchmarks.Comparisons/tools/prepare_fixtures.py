@@ -4,10 +4,19 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
+import PIL
 from PIL import Image, ImageDraw, ImageFont
+
+
+EXPECTED_PILLOW_VERSION = "11.0.0"
+EXPECTED_FONTS = {
+    "DejaVuSans.ttf": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+    "DejaVuSans-Bold.ttf": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895",
+}
 
 
 CASES = (
@@ -53,25 +62,39 @@ CASES = (
 )
 
 
-def font_path(bold: bool) -> str:
-    names = ("DejaVuSans-Bold.ttf", "DejaVuSans.ttf") if bold else ("DejaVuSans.ttf",)
-    roots = (
-        Path("/usr/share/fonts/truetype/dejavu"),
-        Path("C:/Windows/Fonts"),
-    )
-    for root in roots:
-        for name in names:
-            candidate = root / name
-            if candidate.is_file():
-                return str(candidate)
-    raise FileNotFoundError("DejaVu Sans is required to create deterministic OCR fixtures.")
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def font_path(bold: bool) -> Path:
+    name = "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf"
+    candidate = Path("/usr/share/fonts/truetype/dejavu") / name
+    if not candidate.is_file():
+        raise FileNotFoundError(f"Pinned fixture font was not found: {candidate}")
+    actual = sha256(candidate)
+    if actual != EXPECTED_FONTS[name]:
+        raise RuntimeError(f"Pinned fixture font failed SHA-256 verification: {candidate}")
+    return candidate
+
+
+def verify_renderer() -> None:
+    if PIL.__version__ != EXPECTED_PILLOW_VERSION:
+        raise RuntimeError(
+            f"Fixture generation requires Pillow {EXPECTED_PILLOW_VERSION}, found {PIL.__version__}."
+        )
+    font_path(False)
+    font_path(True)
 
 
 def render(case: dict, output: Path) -> None:
     image = Image.new("RGB", (1800, 1040), case["background"])
     draw = ImageDraw.Draw(image)
-    title_font = ImageFont.truetype(font_path(True), 58)
-    body_font = ImageFont.truetype(font_path(False), 46)
+    title_font = ImageFont.truetype(str(font_path(True)), 58)
+    body_font = ImageFont.truetype(str(font_path(False)), 46)
     y = 115
     for index, line in enumerate(case["lines"]):
         draw.text((115, y), line, font=title_font if index == 0 else body_font, fill=case["foreground"])
@@ -85,6 +108,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
+    verify_renderer()
     args.output.mkdir(parents=True, exist_ok=True)
     manifest = []
     for case in CASES:
@@ -95,6 +119,8 @@ def main() -> None:
             "language": case["language"],
             "image": image_path.name,
             "expected": "\n".join(case["lines"]),
+            "sha256": sha256(image_path),
+            "byteCount": image_path.stat().st_size,
         })
     (args.output / "cases.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
 

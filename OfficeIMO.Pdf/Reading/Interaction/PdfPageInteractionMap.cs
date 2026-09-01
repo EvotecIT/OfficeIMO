@@ -67,6 +67,40 @@ public sealed class PdfPageInteractionMap {
         return new PdfPageInteractionMap(pageNumber, size.Width, size.Height, regions.AsReadOnly());
     }
 
+    internal static IReadOnlyList<PdfSelectionQuad> GetVisibleTextSpanBounds(PdfReadPage page) {
+        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
+        (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
+        var bounds = new List<PdfSelectionQuad>(spans.Count);
+        for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+            PdfTextSpan span = spans[spanIndex];
+            if (string.IsNullOrEmpty(span.Text) || !span.IsVisible) continue;
+
+            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(span.Text);
+            int elementCount = 0;
+            while (enumerator.MoveNext()) elementCount++;
+            if (elementCount == 0) continue;
+
+            double totalAdvance = Math.Max(Math.Abs(span.Advance), elementCount * Math.Max(1D, span.FontSize * 0.5D));
+            double radians = span.RotationDegrees * Math.PI / 180D;
+            double directionX = Math.Cos(radians);
+            double directionY = Math.Sin(radians);
+            double normalX = -directionY;
+            double normalY = directionX;
+            PdfSelectionQuad quad = FromVisualBaseline(
+                span.X,
+                span.Y,
+                span.X + directionX * totalAdvance,
+                span.Y + directionY * totalAdvance,
+                normalX,
+                normalY,
+                Math.Max(1D, span.FontSize),
+                Math.Max(0.5D, span.FontSize * 0.2D),
+                pageHeight);
+            if (quad.Intersects(0D, 0D, pageWidth, pageHeight)) bounds.Add(quad);
+        }
+        return bounds.Count == 0 ? Array.Empty<PdfSelectionQuad>() : bounds.AsReadOnly();
+    }
+
     /// <summary>Returns all regions containing a visual top-left page coordinate.</summary>
     public IReadOnlyList<PdfPageInteractionRegion> HitTest(double x, double y, double tolerance = 0D) {
         if (!IsFinite(x) || !IsFinite(y)) {

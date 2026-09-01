@@ -36,6 +36,13 @@ rapid-packages/   rapidocr and onnxruntime Python target directory
 rapid-models/     downloaded ONNX models
 ```
 
+The exact PNG inputs and expected text are checked in under [`fixtures`](fixtures). `-RefreshFixtures` is a maintainer-only regeneration path and fails unless Pillow 11.0.0 and the pinned DejaVu font bytes match their recorded SHA-256 values.
+Install the isolated Python payload from [`requirements.lock.txt`](requirements.lock.txt); the benchmark wrapper additionally requires its complete tree to match the digest in `environment.lock.json`, so version-equivalent but modified files fail closed.
+
+```powershell
+wsl.exe -- python3 -m pip install --no-compile --target /mnt/c/path/to/rapid-packages --requirement /mnt/c/path/to/requirements.lock.txt
+```
+
 No benchmark dependency belongs in the solution or a runtime project. After preparing that ignored environment:
 
 ```powershell
@@ -44,4 +51,4 @@ No benchmark dependency belongs in the solution or a runtime project. After prep
 .\OfficeIMO.Reader.Ocr.Benchmarks.Comparisons\Invoke-OcrEngineComparison.ps1 -IterationCount 3
 ```
 
-Before planning or measuring, the wrapper fails closed unless the live Tesseract, RapidOCR, and ONNX Runtime versions match `environment.lock.json`. The complete extracted Tesseract payload—including native dependencies, language data, files, and symbolic-link targets—is covered by a deterministic whole-tree SHA-256 digest. Every ONNX model is verified separately by SHA-256 and models are never populated by the runner. The wrapper then uses PSPublishModule/PowerForge for matrix expansion, rotated ordering, measurement, validation, metrics, and JSON/CSV/Markdown artifacts. Successful lanes must emit non-empty text and positive geometry, and must remain below a 50% normalized character-error validity ceiling.
+Before planning or measuring, the wrapper fails closed unless the live Tesseract, RapidOCR, and ONNX Runtime versions match `environment.lock.json`. The complete extracted Tesseract payload and RapidOCR Python payload—including source, bytecode, native dependencies, and symbolic-link targets—are covered by deterministic whole-tree SHA-256 digests. The locked install uses `--no-compile`, every Python invocation disables bytecode writes, and an unexpected cache file changes the digest. The checked-in fixture tree is hashed as a second immutable input boundary. Every ONNX model is verified separately by SHA-256 and models are never populated by the runner. The wrapper then uses PSPublishModule/PowerForge for matrix expansion, rotated ordering, measurement, validation, metrics, and JSON/CSV/Markdown artifacts. Successful lanes must emit non-empty text and positive geometry, and must remain below a 50% normalized character-error validity ceiling.

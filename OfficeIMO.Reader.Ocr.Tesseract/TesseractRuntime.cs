@@ -149,9 +149,9 @@ public static class TesseractRuntime {
         string? prefix = Environment.GetEnvironmentVariable("TESSDATA_PREFIX");
         if (!string.IsNullOrWhiteSpace(prefix)) {
             string direct = Path.GetFullPath(Environment.ExpandEnvironmentVariables(prefix!.Trim().Trim('"')));
-            if (Directory.Exists(direct)) return direct;
             string nested = Path.Combine(direct, "tessdata");
             if (Directory.Exists(nested)) return nested;
+            if (Directory.Exists(direct)) return direct;
         }
         foreach (string candidate in new[] { "/usr/share/tesseract-ocr/5/tessdata", "/usr/share/tesseract-ocr/4.00/tessdata", "/usr/share/tessdata" }) {
             if (Directory.Exists(candidate)) return candidate;

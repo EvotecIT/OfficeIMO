@@ -64,7 +64,7 @@ function Invoke-OcrComparisonLane {
     )
 
     $imagePath = $fixtureRoot.TrimEnd('/') + '/' + $Case.Image
-    $output = @(& $wslExecutable -- python3 $runnerPath `
+    $output = @(& $wslExecutable -- env "PYTHONDONTWRITEBYTECODE=1" python3 $runnerPath `
         --engine $Engine `
         --image $imagePath `
         --language $Case.Language `

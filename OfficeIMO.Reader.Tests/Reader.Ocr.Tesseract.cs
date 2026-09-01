@@ -9,6 +9,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection(TesseractEnvironmentCollection.Name)]
 public sealed class ReaderOcrTesseractTests {
     [Fact]
     public void TesseractTsvParser_MapsLinesWordsConfidenceAndPixelGeometry() {
@@ -117,6 +118,34 @@ public sealed class ReaderOcrTesseractTests {
     }
 
     [Fact]
+    public void TesseractRuntime_PrefersNestedTessdataDirectoryWhenPrefixIsAnInstallationRoot() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-tesseract-prefix-" + Guid.NewGuid().ToString("N"));
+        string bin = Path.Combine(root, "bin");
+        string tessdata = Path.Combine(root, "tessdata");
+        Directory.CreateDirectory(bin);
+        Directory.CreateDirectory(tessdata);
+        File.WriteAllBytes(Path.Combine(tessdata, "eng.traineddata"), Array.Empty<byte>());
+        string executable = Path.Combine(bin, Environment.OSVersion.Platform == PlatformID.Win32NT ? "tesseract.exe" : "tesseract");
+        File.WriteAllBytes(executable, Array.Empty<byte>());
+#if NET8_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) {
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+#endif
+        string? previous = Environment.GetEnvironmentVariable("TESSDATA_PREFIX");
+        try {
+            Environment.SetEnvironmentVariable("TESSDATA_PREFIX", root);
+
+            TesseractRuntimeInfo runtime = TesseractRuntime.Discover(executable);
+
+            Assert.Equal(tessdata, runtime.TessdataDirectory);
+        } finally {
+            Environment.SetEnvironmentVariable("TESSDATA_PREFIX", previous);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task TesseractLanguageData_VerifiesDownloadsAndReusesValidCache() {
         byte[] payload = Encoding.UTF8.GetBytes("pinned-language-model");
         string hash;
@@ -177,4 +206,9 @@ public sealed class ReaderOcrTesseractTests {
             };
         }
     }
+}
+
+[CollectionDefinition(Name, DisableParallelization = true)]
+public sealed class TesseractEnvironmentCollection {
+    public const string Name = "Tesseract environment";
 }

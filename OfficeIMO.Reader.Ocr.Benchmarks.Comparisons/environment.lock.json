@@ -1,6 +1,17 @@
 {
   "schemaVersion": 1,
   "platform": "Ubuntu 24.04 amd64 under WSL",
+  "fixtures": {
+    "payloadSha256": "cf72995964468c6de90cb52a542e43da1a45c66605da44c5471a7699b6154de3",
+    "payloadEntryCount": 4,
+    "renderer": {
+      "pillowVersion": "11.0.0",
+      "fonts": {
+        "DejaVuSans.ttf": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+        "DejaVuSans-Bold.ttf": "5c1247acef7f2b8522a31742c76d6adcb5569bacc0be7ceaa4dc39dd252ce895"
+      }
+    }
+  },
   "tesseract": {
     "version": "5.3.4",
     "payloadSha256": "f41a03d8b72fc0bcbda7224970076317c598947d109006188188b53af50da92f",
@@ -19,6 +30,31 @@
   "rapidOcr": {
     "version": "3.9.2",
     "onnxRuntimeVersion": "1.29.0",
+    "payloadSha256": "035549b42953db6c7edde4193bbf916ff4c12616319de5feb576aeafb99354a6",
+    "payloadEntryCount": 2154,
+    "distributions": {
+      "PyYAML": "6.0.3",
+      "antlr4-python3-runtime": "4.9.3",
+      "certifi": "2026.7.22",
+      "charset-normalizer": "3.5.1",
+      "colorlog": "6.12.0",
+      "flatbuffers": "25.12.19",
+      "idna": "3.19",
+      "numpy": "2.5.2",
+      "omegaconf": "2.3.1",
+      "onnxruntime": "1.29.0",
+      "opencv-python": "5.0.0.93",
+      "packaging": "26.3",
+      "pillow": "11.0.0",
+      "protobuf": "7.36.1",
+      "pyclipper": "1.4.0",
+      "rapidocr": "3.9.2",
+      "requests": "2.34.2",
+      "shapely": "2.1.2",
+      "six": "1.17.0",
+      "tqdm": "4.70.0",
+      "urllib3": "2.7.0"
+    },
     "models": {
       "PP-OCRv6_det_small.onnx": "090f04abcd9d9a7498bc4ebf677e4cb9bdce1fe4197ddb7e529f1ef44e1ff94f",
       "ch_ppocr_mobile_v2.0_cls_mobile.onnx": "e47acedf663230f8863ff1ab0e64dd2d82b838fceb5957146dab185a89d6215c",

@@ -182,6 +182,40 @@ public class PdfOcrTests {
         Assert.Equal(1, exception.Limit);
     }
 
+    [Fact]
+    public async Task MakeSearchableAsync_RejectsOcrOverVisibleArtifactTextWithoutExposingArtifactsInTheLogicalResult() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Artifact(artifact => artifact.Text("Footer", 50D, 700D, 100D, 20D)))
+            .ToBytes();
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(
+            source,
+            1,
+            readOptions: new PdfLoadOptions { IncludeArtifactText = true });
+        PdfSelectionQuad[] glyphs = map.TextRegions.Select(static region => region.Quad).ToArray();
+        Assert.NotEmpty(glyphs);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord(
+                "Footer",
+                left * request.Scale,
+                top * request.Scale,
+                (right - left) * request.Scale,
+                (bottom - top) * request.Scale,
+                0.99D)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Ocr.Pages);
+        Assert.Empty(page.Words);
+        Assert.Equal(1, page.RejectedNativeOverlapCount);
+        Assert.Empty(result.Ocr.NativeDocument.TextBlocks);
+        Assert.False(result.WasModified);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(270)]
