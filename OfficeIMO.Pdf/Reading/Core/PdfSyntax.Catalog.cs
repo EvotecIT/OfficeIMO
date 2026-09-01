@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
@@ -456,6 +458,40 @@ internal static partial class PdfSyntax {
             }
         }
 
+        return false;
+    }
+
+    internal static bool ContainsAnyPdfName(
+        string text,
+        CancellationToken cancellationToken,
+        params string[] names) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!cancellationToken.CanBeCanceled) return ContainsAnyPdfName(text, names);
+        for (int i = 0; i < names.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ContainsPdfName(text, names[i], cancellationToken)) return true;
+        }
+        return false;
+    }
+
+    private static bool ContainsPdfName(
+        string text,
+        string name,
+        CancellationToken cancellationToken) {
+        if (string.IsNullOrEmpty(text)) return false;
+        string token = "/" + name;
+        int maximumStart = text.Length - token.Length;
+        for (int index = 0; index <= maximumStart; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (text[index] != '/' ||
+                string.CompareOrdinal(text, index, token, 0, token.Length) != 0) {
+                continue;
+            }
+
+            int after = index + token.Length;
+            if (after >= text.Length || IsPdfDelimiter(text[after]) || char.IsWhiteSpace(text[after])) return true;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         return false;
     }
 

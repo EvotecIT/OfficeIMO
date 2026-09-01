@@ -330,15 +330,28 @@ public sealed class OfficeOutputWorkflowTests {
         using (ZipArchive archive = ZipFile.Open(archivePath, ZipArchiveMode.Create)) {
             ZipArchiveEntry html = archive.CreateEntry("page/source.html");
             await using (StreamWriter writer = new(html.Open())) {
-                await writer.WriteAsync("<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+                await writer.WriteAsync("<!doctype html><html><head><link rel=\"icon\" href=\"style.css\"><link rel=\"stylesheet\" href=\"style.css\"><script src=\"script-decoy.png\"></script></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
             }
             ZipArchiveEntry stylesheet = archive.CreateEntry("page/style.css");
             await using (StreamWriter writer = new(stylesheet.Open())) {
-                await writer.WriteAsync("body { color: #123456; }");
+                await writer.WriteAsync("body { color: #123456; background-image: url('background.png'); }");
             }
             ZipArchiveEntry image = archive.CreateEntry("page/pixel.png");
-            await using Stream imageStream = image.Open();
-            await imageStream.WriteAsync(pixel);
+            await using (Stream imageStream = image.Open()) {
+                await imageStream.WriteAsync(pixel);
+            }
+            ZipArchiveEntry cover = archive.CreateEntry("page/cover.png");
+            await using (Stream coverStream = cover.Open()) {
+                await coverStream.WriteAsync(pixel);
+            }
+            ZipArchiveEntry background = archive.CreateEntry("page/background.png");
+            await using (Stream backgroundStream = background.Open()) {
+                await backgroundStream.WriteAsync(pixel);
+            }
+            ZipArchiveEntry scriptDecoy = archive.CreateEntry("page/script-decoy.png");
+            await using (Stream scriptDecoyStream = scriptDecoy.Open()) {
+                await scriptDecoyStream.WriteAsync(pixel);
+            }
         }
 
         string output = Path.Combine(scope.Path, "assembled.pdf");
@@ -351,8 +364,13 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.True(result.Succeeded, result.Summary + " | " +
             string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
-        Assert.Equal(1, result.SourceCount);
-        Assert.Single(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Equal(3, result.SourceCount);
+        Assert.Equal(3, result.PageCount);
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "cover.png"));
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "script-decoy.png"));
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "source.html"));
+        Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "pixel.png"));
+        Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "background.png"));
         Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
     }
 
@@ -365,9 +383,12 @@ public sealed class OfficeOutputWorkflowTests {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         await File.WriteAllTextAsync(
             Path.Combine(folder, "source.html"),
-            "<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
-        await File.WriteAllTextAsync(Path.Combine(folder, "style.css"), "body { color: #123456; }");
+            "<!doctype html><html><head><link rel=\"icon\" href=\"style.css\"><link rel=\"stylesheet\" href=\"style.css\"><script src=\"script-decoy.png\"></script></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+        await File.WriteAllTextAsync(Path.Combine(folder, "style.css"), "body { color: #123456; background-image: url('background.png'); }");
         await File.WriteAllBytesAsync(Path.Combine(folder, "pixel.png"), pixel);
+        await File.WriteAllBytesAsync(Path.Combine(folder, "cover.png"), pixel);
+        await File.WriteAllBytesAsync(Path.Combine(folder, "background.png"), pixel);
+        await File.WriteAllBytesAsync(Path.Combine(folder, "script-decoy.png"), pixel);
 
         string output = Path.Combine(scope.Path, "assembled.pdf");
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
@@ -379,9 +400,76 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.True(result.Succeeded, result.Summary + " | " +
             string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
-        Assert.Equal(1, result.SourceCount);
-        Assert.Single(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Equal(3, result.SourceCount);
+        Assert.Equal(3, result.PageCount);
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "cover.png"));
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "script-decoy.png"));
+        Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "source.html"));
+        Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "pixel.png"));
+        Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "background.png"));
         Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
+    public async Task StrictZipAssemblyRejectsUnreferencedDependencyExtensionFiles() {
+        using var scope = new TestDirectory();
+        string archivePath = Path.Combine(scope.Path, "strict-html.zip");
+        using (ZipArchive archive = ZipFile.Open(archivePath, ZipArchiveMode.Create)) {
+            ZipArchiveEntry html = archive.CreateEntry("page/source.html");
+            await using (StreamWriter writer = new(html.Open())) {
+                await writer.WriteAsync("<!doctype html><html><body>Strict resources</body></html>");
+            }
+            ZipArchiveEntry unused = archive.CreateEntry("page/unused.css");
+            await using StreamWriter unusedWriter = new(unused.Open());
+            await unusedWriter.WriteAsync("body { color: red; }");
+        }
+
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [archivePath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
+        Assert.Contains("unused.css", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task RepeatedFolderAssemblyExcludesTheEntireRenamedOutputFamily() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "sources");
+        Directory.CreateDirectory(folder);
+        CreatePdf(folder, "source.pdf", "Stable source");
+        string requestedOutput = Path.Combine(folder, "assembled.pdf");
+        var runner = new OfficeWorkflowRunner();
+
+        PdfAssemblyResult first = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = requestedOutput
+        });
+        PdfAssemblyResult second = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = requestedOutput
+        });
+        PdfAssemblyResult third = await runner.AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = requestedOutput
+        });
+
+        Assert.All([first, second, third], result => {
+            Assert.True(result.Succeeded, result.Summary);
+            Assert.Equal(1, result.SourceCount);
+            Assert.Equal(1, result.PageCount);
+        });
+        Assert.Equal(requestedOutput, first.OutputPath);
+        Assert.Equal(Path.Combine(folder, "assembled (1).pdf"), second.OutputPath);
+        Assert.Equal(Path.Combine(folder, "assembled (2).pdf"), third.OutputPath);
+        Assert.All([first.OutputPath!, second.OutputPath!, third.OutputPath!], path =>
+            Assert.Equal("Stable source", PdfReadDocument.Open(File.ReadAllBytes(path)).Pages.Single().ExtractText().Trim()));
     }
 
     [Fact]
@@ -891,6 +979,16 @@ public sealed class OfficeOutputWorkflowTests {
             }
         }).Save(path);
         return path;
+    }
+
+    private static bool IsNormalizedAssemblySource(OfficeWorkflowDiagnostic diagnostic, string fileName) {
+        if (!string.Equals(diagnostic.Code, "AssemblySourceNormalized", StringComparison.Ordinal) ||
+            !diagnostic.Details.TryGetValue("name", out string? name)) {
+            return false;
+        }
+        return string.Equals(name, fileName, StringComparison.Ordinal) ||
+            name.EndsWith("/" + fileName, StringComparison.Ordinal) ||
+            name.EndsWith("\\" + fileName, StringComparison.Ordinal);
     }
 
     private static byte[] CreatePng(string text) => PdfDocument.Create(compose =>

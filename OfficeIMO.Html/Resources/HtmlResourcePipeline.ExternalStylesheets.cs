@@ -33,6 +33,36 @@ internal sealed class HtmlExternalStylesheetImport {
 }
 
 public static partial class HtmlResourcePipeline {
+    /// <summary>
+    /// Parses an external stylesheet and builds the same policy-aware resource manifest used by
+    /// the HTML renderer for imports, fonts, and images.
+    /// </summary>
+    /// <param name="css">Stylesheet source text.</param>
+    /// <param name="baseUri">Absolute URI used to resolve relative stylesheet references.</param>
+    /// <param name="options">Optional resource policy and media-context settings.</param>
+    /// <returns>A manifest containing applicable imports and referenced font and image resources.</returns>
+    public static HtmlResourceManifest BuildStylesheetManifest(
+        string css,
+        Uri baseUri,
+        HtmlResourcePipelineOptions? options = null) {
+        if (css == null) throw new ArgumentNullException(nameof(css));
+        if (baseUri == null) throw new ArgumentNullException(nameof(baseUri));
+        if (!baseUri.IsAbsoluteUri) throw new ArgumentException("The stylesheet base URI must be absolute.", nameof(baseUri));
+
+        HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        limits.Validate();
+        new HtmlCssByteBudget(limits).ReserveOrThrow(css);
+        HtmlExternalStylesheetAnalysis analysis = AnalyzeExternalStylesheet(css, baseUri, resolved);
+        var manifest = new HtmlResourceManifest();
+        foreach (HtmlExternalStylesheetImport import in analysis.Imports) {
+            if (import.IsApplicable) manifest.Add(import.Reference);
+        }
+        foreach (HtmlResourceReference resource in analysis.FontResources) manifest.Add(resource);
+        foreach (HtmlResourceReference resource in analysis.ImageResources) manifest.Add(resource);
+        return manifest;
+    }
+
     internal static HtmlExternalStylesheetAnalysis AnalyzeExternalStylesheet(string css, Uri baseUri, HtmlResourcePipelineOptions options) {
         string normalized = StripCssCommentsOutsideStrings(css ?? string.Empty);
         var imports = new List<HtmlExternalStylesheetImport>();

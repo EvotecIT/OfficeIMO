@@ -415,10 +415,10 @@ internal static class PdfInspector {
             ex is not OutOfMemoryException &&
             ex is not StackOverflowException) {
             cancellationToken.ThrowIfCancellationRequested();
-            return ProbeFromRawBytes(pdf, security, options);
+            return ProbeFromRawBytes(pdf, security, cancellationToken);
         } catch (PdfEncryptionException) when (options?.Password is null) {
             cancellationToken.ThrowIfCancellationRequested();
-            return ProbeFromRawBytes(pdf, security, options);
+            return ProbeFromRawBytes(pdf, security, cancellationToken);
         }
     }
 
@@ -482,28 +482,34 @@ internal static class PdfInspector {
     private static PdfDocumentProbe ProbeFromRawBytes(
         byte[] pdf,
         PdfDocumentSecurityInfo security,
-        PdfLoadOptions? options) =>
-        new PdfDocumentProbe(
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string text = PdfEncoding.Latin1GetString(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
+        bool Has(params string[] names) => PdfSyntax.ContainsAnyPdfName(text, cancellationToken, names);
+
+        return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
             security.HasEncryption,
-            PdfSyntax.HasSignatureMarkers(pdf),
-            PdfSyntax.HasFormMarkers(pdf),
-            PdfSyntax.HasAnnotationMarkers(pdf),
-            PdfSyntax.HasOutlineMarkers(pdf),
-            PdfSyntax.HasCatalogViewSettingMarkers(pdf),
-            PdfSyntax.HasPageLabelMarkers(pdf),
-            PdfSyntax.HasCatalogNameTreeMarkers(pdf),
-            PdfSyntax.HasNamedDestinationMarkers(pdf),
-            PdfSyntax.HasOpenActionMarkers(pdf),
-            PdfSyntax.HasViewerPreferenceMarkers(pdf),
-            PdfSyntax.HasTaggedContentMarkers(pdf),
-            PdfSyntax.HasXmpMetadataMarkers(pdf),
-            PdfSyntax.HasCatalogUriMarkers(pdf, options),
-            PdfSyntax.HasOutputIntentMarkers(pdf),
-            PdfSyntax.HasEmbeddedFileMarkers(pdf),
-            PdfSyntax.HasOptionalContentMarkers(pdf),
-            PdfSyntax.HasActiveContentMarkers(pdf),
+            Has("ByteRange", "SigFlags", "Sig"),
+            Has("AcroForm", "Fields", "FT", "XFA"),
+            Has("Annots", "Annot"),
+            Has("Outlines", "UseOutlines"),
+            Has("PageMode", "PageLayout"),
+            Has("PageLabels"),
+            Has("Names"),
+            Has("Dests"),
+            Has("OpenAction"),
+            Has("ViewerPreferences"),
+            Has("MarkInfo", "StructTreeRoot", "ParentTree", "StructElem"),
+            Has("Metadata"),
+            Has("URI"),
+            Has("OutputIntents", "OutputIntent"),
+            Has("EmbeddedFiles", "Filespec", "EmbeddedFile", "AF"),
+            Has("OCProperties", "OCGs", "OCG", "OCMD"),
+            Has(PdfActiveContentPolicy.MarkerNames),
             security);
+    }
 
     /// <summary>
     /// Reads lightweight PDF markers from a file path without full document parsing.

@@ -27,7 +27,8 @@ public sealed partial class OfficeWorkflowRunner {
         ValidatedRequest request,
         byte[] input,
         List<OfficeWorkflowDiagnostic> diagnostics,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool emitHtmlTaggedStructure = true) {
         ArgumentNullException.ThrowIfNull(input);
         OfficeWorkflowRoute route = request.Route!;
         cancellationToken.ThrowIfCancellationRequested();
@@ -70,6 +71,9 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             case "html-pdf": {
                 HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(request.InputPath);
+                if (!emitHtmlTaggedStructure) {
+                    options.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
+                }
                 PdfDocumentConversionResult conversion = ParseHtmlInput(input, request.InputPath)
                     .ToPdfDocumentResultAsync(options, cancellationToken)
                     .GetAwaiter()

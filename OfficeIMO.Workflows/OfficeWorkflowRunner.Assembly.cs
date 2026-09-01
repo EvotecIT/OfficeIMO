@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.IO.Compression;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Html;
 using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Workflows;
@@ -250,22 +251,17 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new IOException("A source folder could not be enumerated safely: " + input, ex);
                 }
                 StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(input);
-                StringComparison pathComparison = OfficeWorkflowPathIdentity.GetComparison(input);
-                string[] htmlResourceRoots = files
-                    .Where(static file => {
-                        string extension = Path.GetExtension(file);
-                        return string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
-                            string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
-                    })
-                    .Select(static file => Path.GetDirectoryName(Path.GetFullPath(file)) ?? string.Empty)
-                    .Distinct(pathComparer)
-                    .ToArray();
+                HashSet<string> referencedDependencies = FindReferencedHtmlDependencies(
+                    files,
+                    physicalRoot,
+                    request.Limits.MaximumInputBytes,
+                    pathComparer,
+                    cancellationToken);
                 foreach (string file in files
                              .OrderBy(static path => path, pathComparer)
                              .ThenBy(static path => path, StringComparer.Ordinal)) {
-                    if (OfficeWorkflowPathIdentity.AreEquivalent(file, request.OutputPath)) continue;
-                    if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(file) &&
-                        IsWithinHtmlResourceRoot(Path.GetFullPath(file), htmlResourceRoots, pathComparison)) continue;
+                    if (IsAssemblyOutputCandidate(file, request.OutputPath, request.ConflictPolicy)) continue;
+                    if (referencedDependencies.Contains(Path.GetFullPath(file))) continue;
                     AddDiscoveredSource(file, input, discovered: true, physicalRoot);
                 }
             } else {
@@ -330,17 +326,9 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new InvalidDataException("The ZIP entry count changed after bounded central-directory preflight.");
             }
 
-            string[] htmlResourceRoots = archive.Entries
-                .Where(static item => !string.IsNullOrEmpty(item.Name))
-                .Where(static item => {
-                    string extension = Path.GetExtension(item.Name);
-                    return string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
-                })
-                .Select(static item => Path.GetDirectoryName(
-                    item.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar)) ?? string.Empty)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToArray();
+            var extractedFiles = new List<string>();
+            var archiveSources = new List<AssemblySource>();
+            var archiveDependencyOnlyEntries = new List<(string Path, string DisplayName)>();
             int observedArchiveEntries = 0;
             foreach (ZipArchiveEntry entry in archive.Entries
                          .OrderBy(static item => item.FullName, StringComparer.OrdinalIgnoreCase)
@@ -358,13 +346,11 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 bool isAssemblySource = TryClassifyAssemblySource(entry.Name, out AssemblySourceKind kind, out OfficeWorkflowRoute? route);
-                bool isHtmlDependency = OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(entry.Name) &&
-                    IsWithinHtmlResourceRoot(normalizedName, htmlResourceRoots, StringComparison.OrdinalIgnoreCase);
-                if (isHtmlDependency) isAssemblySource = false;
-                if (!isAssemblySource && !isHtmlDependency && !request.Options.IgnoreDiscoveredUnsupportedFiles) {
+                bool isPotentialHtmlDependency = OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(entry.Name);
+                if (!isAssemblySource && !isPotentialHtmlDependency && !request.Options.IgnoreDiscoveredUnsupportedFiles) {
                     throw new NotSupportedException("No PDF assembly intake route is available for archive entry '" + entry.FullName + "'.");
                 }
-                if (!isAssemblySource && !isHtmlDependency) continue;
+                if (!isAssemblySource && !isPotentialHtmlDependency) continue;
                 if (entry.Length > request.Options.MaximumArchiveEntryBytes) {
                     throw new InvalidDataException("An archive entry exceeds the configured uncompressed-size limit.");
                 }
@@ -387,12 +373,32 @@ public sealed partial class OfficeWorkflowRunner {
                 using (FileStream target = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                     CopyBounded(source, target, entry.Length, request.Options.MaximumArchiveEntryBytes, cancellationToken);
                 }
+                extractedFiles.Add(destination);
                 if (isAssemblySource) {
-                    Add(CaptureSource(destination, origin, entry.FullName, kind, route, physicalDestinationRoot));
+                    archiveSources.Add(CaptureSource(destination, origin, entry.FullName, kind, route, physicalDestinationRoot));
+                } else {
+                    archiveDependencyOnlyEntries.Add((destination, entry.FullName));
                 }
             }
             if (observedArchiveEntries != preflight.EntryCount) {
                 throw new InvalidDataException("The ZIP produced fewer entries than its bounded central-directory preflight declared.");
+            }
+            HashSet<string> referencedDependencies = FindReferencedHtmlDependencies(
+                extractedFiles,
+                physicalDestinationRoot,
+                request.Limits.MaximumInputBytes,
+                OfficeWorkflowPathIdentity.GetComparer(destinationRoot),
+                cancellationToken);
+            if (!request.Options.IgnoreDiscoveredUnsupportedFiles) {
+                foreach ((string path, string displayName) in archiveDependencyOnlyEntries) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!referencedDependencies.Contains(Path.GetFullPath(path))) {
+                        throw new NotSupportedException("No PDF assembly intake route is available for archive entry '" + displayName + "'.");
+                    }
+                }
+            }
+            foreach (AssemblySource source in archiveSources) {
+                if (!referencedDependencies.Contains(Path.GetFullPath(source.Path))) Add(source);
             }
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "ArchiveExpanded",
@@ -402,21 +408,6 @@ public sealed partial class OfficeWorkflowRunner {
                     ["archive"] = Path.GetFileName(archivePath),
                     ["entryCount"] = archive.Entries.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
-        }
-
-        static bool IsWithinHtmlResourceRoot(
-            string normalizedEntryName,
-            IReadOnlyList<string> htmlResourceRoots,
-            StringComparison comparison) {
-            for (int i = 0; i < htmlResourceRoots.Count; i++) {
-                string root = htmlResourceRoots[i];
-                if (root.Length == 0 || normalizedEntryName.StartsWith(
-                        root + Path.DirectorySeparatorChar,
-                        comparison)) {
-                    return true;
-                }
-            }
-            return false;
         }
 
         void Add(AssemblySource source) {
@@ -452,6 +443,113 @@ public sealed partial class OfficeWorkflowRunner {
                     $"Discovered entry count exceeds the configured {request.Options.MaximumDiscoveredEntries:N0}-item limit.");
             }
         }
+    }
+
+    private static HashSet<string> FindReferencedHtmlDependencies(
+        IReadOnlyCollection<string> files,
+        string physicalRoot,
+        long maximumInputBytes,
+        StringComparer pathComparer,
+        CancellationToken cancellationToken) {
+        var candidates = new Dictionary<string, string>(pathComparer);
+        var htmlFiles = new List<string>();
+        foreach (string file in files) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string fullPath = Path.GetFullPath(file);
+            if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath)) {
+                candidates[fullPath] = fullPath;
+            }
+            string extension = Path.GetExtension(fullPath);
+            if (string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase)) {
+                htmlFiles.Add(fullPath);
+            }
+        }
+
+        var referenced = new HashSet<string>(pathComparer);
+        var pendingStylesheets = new Queue<string>();
+        var processedStylesheets = new HashSet<string>(pathComparer);
+        foreach (string htmlPath in htmlFiles) {
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] htmlBytes = ReadDependencyBytes(htmlPath);
+            AddManifestReferences(
+                ParseHtmlInput(htmlBytes, htmlPath).ResourceManifest,
+                pendingStylesheets);
+        }
+        while (pendingStylesheets.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string stylesheetPath = pendingStylesheets.Dequeue();
+            if (!processedStylesheets.Add(stylesheetPath)) continue;
+            byte[] cssBytes = ReadDependencyBytes(stylesheetPath);
+            using var source = new MemoryStream(cssBytes, writable: false);
+            using var reader = new StreamReader(source, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
+                reader.ReadToEnd(),
+                new Uri(stylesheetPath),
+                new HtmlResourcePipelineOptions { ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy() });
+            AddManifestReferences(manifest, pendingStylesheets);
+        }
+        return referenced;
+
+        byte[] ReadDependencyBytes(string path) {
+            using FileStream stream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
+                path,
+                physicalRoot,
+                AssemblyInputBufferSize);
+            return OfficeWorkflowInputReader.ReadAllBytes(
+                stream,
+                Path.GetFileName(path),
+                maximumInputBytes,
+                cancellationToken);
+        }
+
+        void AddManifestReferences(HtmlResourceManifest manifest, Queue<string> stylesheets) {
+            foreach (HtmlResourceReference resource in manifest.Resources) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!resource.IsAllowed || !IsLoadableHtmlDependency(resource.Kind) ||
+                    !Uri.TryCreate(resource.ResolvedSource, UriKind.Absolute, out Uri? uri) ||
+                    !uri.IsFile) {
+                    continue;
+                }
+                string fullPath = Path.GetFullPath(uri.LocalPath);
+                if (!candidates.TryGetValue(fullPath, out string? candidate)) continue;
+                referenced.Add(candidate);
+                if (resource.Kind == HtmlResourceKind.Stylesheet &&
+                    string.Equals(Path.GetExtension(candidate), ".css", StringComparison.OrdinalIgnoreCase)) {
+                    stylesheets.Enqueue(candidate);
+                }
+            }
+        }
+
+        static bool IsLoadableHtmlDependency(HtmlResourceKind kind) =>
+            kind is HtmlResourceKind.Image or HtmlResourceKind.Stylesheet or HtmlResourceKind.Font;
+    }
+
+    private static bool IsAssemblyOutputCandidate(
+        string path,
+        string requestedOutputPath,
+        OfficeWorkflowConflictPolicy conflictPolicy) {
+        if (OfficeWorkflowPathIdentity.AreEquivalent(path, requestedOutputPath)) return true;
+        if (conflictPolicy != OfficeWorkflowConflictPolicy.Rename) return false;
+
+        string fullPath = Path.GetFullPath(path);
+        string outputPath = Path.GetFullPath(requestedOutputPath);
+        string? parent = Path.GetDirectoryName(outputPath);
+        if (parent is null || !OfficeWorkflowPathIdentity.AreEquivalent(Path.GetDirectoryName(fullPath)!, parent)) return false;
+        if (!string.Equals(Path.GetExtension(fullPath), Path.GetExtension(outputPath), OfficeWorkflowPathIdentity.GetComparison(parent))) return false;
+
+        string outputStem = Path.GetFileNameWithoutExtension(outputPath);
+        string candidateStem = Path.GetFileNameWithoutExtension(fullPath);
+        if (!candidateStem.StartsWith(outputStem + " (", OfficeWorkflowPathIdentity.GetComparison(parent)) ||
+            !candidateStem.EndsWith(")", StringComparison.Ordinal)) {
+            return false;
+        }
+        ReadOnlySpan<char> suffix = candidateStem.AsSpan(outputStem.Length + 2, candidateStem.Length - outputStem.Length - 3);
+        return int.TryParse(
+            suffix,
+            System.Globalization.NumberStyles.None,
+            System.Globalization.CultureInfo.InvariantCulture,
+            out int value) && value > 0;
     }
 
     private static PdfDocument NormalizeAssemblySource(
@@ -504,7 +602,12 @@ public sealed partial class OfficeWorkflowRunner {
                     request.PdfLoadOptions,
                     request.PdfLoadOptions,
                     CreatePdfLoadOptions(request.PdfLoadOptions.Password, maximumNormalizedBytes));
-                OperationArtifact artifact = Convert(conversionRequest, input, diagnostics, cancellationToken);
+                OperationArtifact artifact = Convert(
+                    conversionRequest,
+                    input,
+                    diagnostics,
+                    cancellationToken,
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf");
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);
                 return PdfDocument.Load(artifact.Bytes, conversionRequest.OutputPdfLoadOptions);

@@ -32,16 +32,16 @@ internal static partial class PdfSyntax {
         // The detailed path below already parses the object graph and derives signature
         // fields and values from it. Keep this initial fallback marker scan raw so a
         // cancellation-aware caller does not pay for a second, tokenless parse.
-        bool hasSignatures = ContainsAnyPdfName(text, "ByteRange", "SigFlags", "Sig");
+        bool hasSignatures = ContainsAnyPdfName(text, cancellationToken, "ByteRange", "SigFlags", "Sig");
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
         IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
-        bool hasXrefStreams = ContainsPdfName(text, "XRef") && ContainsPdfName(text, "W");
-        bool hasObjectStreams = ContainsPdfName(text, "ObjStm");
-        bool hasTrailerId = ContainsPdfName(text, "ID");
+        bool hasXrefStreams = ContainsPdfName(text, "XRef", cancellationToken) && ContainsPdfName(text, "W", cancellationToken);
+        bool hasObjectStreams = ContainsPdfName(text, "ObjStm", cancellationToken);
+        bool hasTrailerId = ContainsPdfName(text, "ID", cancellationToken);
 
         PdfReference? rootReference = TryReadLastReference(text, "Root");
         int? rootObjectNumber = rootReference?.ObjectNumber;
@@ -235,7 +235,7 @@ internal static partial class PdfSyntax {
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),
             signatures.Count == 0 ? Array.Empty<PdfSignatureInfo>() : signatures.AsReadOnly(),
             signatureValueCount,
-            byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange"),
+            byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange", cancellationToken),
             byteRangeValueCount,
             acroFormSignatureFlags,
             hasDocMDPPermissions,
