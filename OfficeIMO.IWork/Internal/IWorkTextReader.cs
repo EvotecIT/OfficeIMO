@@ -313,8 +313,8 @@ internal static class IWorkTextReader {
             || message.HasUnexpectedWireKind(3, IWorkWireKind.Fixed32)) complete = false;
         else if (size.HasValue && IsFinitePositive(size.Value)) data.FontSizePoints = size.Value;
         else if (message.HasField(3)) complete = false;
-        ulong? clearFont = ReadUnsigned(message, 4, ref complete);
-        if (clearFont == 1) {
+        bool? clearFont = ReadBoolean(message, 4, ref complete);
+        if (clearFont == true) {
             if (message.HasField(5)) complete = false;
             data.FontName = null;
         }
@@ -324,14 +324,14 @@ internal static class IWorkTextReader {
                 || !TryDecodeUtf8(message.GetBytes(5)!, projectionBudget, out string fontName)) complete = false;
             else data.FontName = fontName;
         }
-        ulong? clearColor = ReadUnsigned(message, 6, ref complete);
-        if (clearColor == 1) {
+        bool? clearColor = ReadBoolean(message, 6, ref complete);
+        if (clearColor == true) {
             if (message.HasField(7)) complete = false;
             data.Color = null;
         }
         else if (TryColor(message, 7, out IWorkColor? color, ref complete)) data.Color = color;
-        ulong? clearBackground = ReadUnsigned(message, 25, ref complete);
-        if (clearBackground == 1) {
+        bool? clearBackground = ReadBoolean(message, 25, ref complete);
+        if (clearBackground == true) {
             if (message.HasField(26)) complete = false;
             data.BackgroundColor = null;
         }
@@ -526,8 +526,17 @@ internal static class IWorkTextReader {
 
     private static void OverlayFlag(IWorkWireMessage message, int field, Action<bool> apply,
         ref bool complete) {
+        bool? value = ReadBoolean(message, field, ref complete);
+        if (value.HasValue) apply(value.Value);
+    }
+
+    private static bool? ReadBoolean(IWorkWireMessage message, int field, ref bool complete) {
         ulong? value = ReadUnsigned(message, field, ref complete);
-        if (value.HasValue) apply(value.Value != 0);
+        if (value > 1) {
+            complete = false;
+            return null;
+        }
+        return value.HasValue ? value.Value == 1 : null;
     }
 
     private static IEnumerable<TextSpan> ParagraphSpans(string text) {

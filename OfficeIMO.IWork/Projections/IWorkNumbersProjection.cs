@@ -153,9 +153,20 @@ internal static class IWorkNumbersReader {
                     sheetRecord.EntryPath, sheetRecord.Identifier));
                 continue;
             }
-            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
-                sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount));
+            try {
+                IWorkProtobuf.CountFields(sheetRecord.Payload, 2, int.MaxValue);
+            } catch (InvalidDataException) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_SHEET_MALFORMED",
+                    "A Numbers sheet is malformed; editable reconstruction is incomplete.",
+                    sheetRecord.EntryPath, sheetRecord.Identifier));
+                continue;
+            }
+            int drawableReferenceCount = IWorkProtobuf.CountFields(
+                sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
+            projectionBudget.AddDrawableReferences(drawableReferenceCount);
             var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();
             IReadOnlyList<IWorkArchiveRecord> drawables = index.DereferenceAll(

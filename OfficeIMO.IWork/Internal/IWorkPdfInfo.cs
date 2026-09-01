@@ -7,7 +7,8 @@ internal static class IWorkPdfInfo {
         int eof = LastIndexOf(bytes, "%%EOF");
         if (eof < 0 || !ContainsOnlyTrailingWhitespace(bytes, eof + 5)) return false;
         int startXref = LastIndexOf(bytes, "startxref", eof);
-        if (startXref < 0) return false;
+        if (startXref < 0 || startXref + 9 >= eof
+            || !IsWhitespace(bytes[startXref + 9])) return false;
 
         int offset = startXref + 9;
         SkipWhitespace(bytes, ref offset, eof);
@@ -66,7 +67,8 @@ internal static class IWorkPdfInfo {
             || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
         var visited = new HashSet<(long Object, long Generation)>();
         return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
-            pagesObject, pagesGeneration, parent: null, visited, depth: 0, out _);
+            pagesObject, pagesGeneration, parent: null, hasInheritedMediaBox: false,
+            visited, depth: 0, out _);
     }
 
     private static bool TryReadClassicXref(byte[] bytes, int offset, int limit,
@@ -113,8 +115,9 @@ internal static class IWorkPdfInfo {
         }
         if (!hasSubsection || !StartsWith(bytes, offset, "trailer")) return false;
         trailerOffset = offset;
-        int dictionaryStart = IndexOf(bytes, "<<", offset + 7, Math.Min(limit, offset + 65536));
-        if (dictionaryStart < 0) return false;
+        int dictionaryStart = offset + 7;
+        if (!SkipWhitespaceAndComments(bytes, ref dictionaryStart, limit)
+            || !StartsWith(bytes, dictionaryStart, "<<")) return false;
         int dictionaryEnd = FindDictionaryEnd(bytes, dictionaryStart,
             Math.Min(limit, dictionaryStart + 65536));
         if (dictionaryEnd < 0
@@ -124,6 +127,11 @@ internal static class IWorkPdfInfo {
             || IndexOfDictionaryName(bytes, "/Encrypt", dictionaryStart, dictionaryEnd) >= 0) {
             return false;
         }
+        int afterDictionary = dictionaryEnd + 2;
+        if (!SkipWhitespaceAndComments(bytes, ref afterDictionary, limit)
+            || !StartsWith(bytes, afterDictionary, "startxref")
+            || afterDictionary + 9 >= bytes.Length
+            || !IsWhitespace(bytes[afterDictionary + 9])) return false;
         int rootName = FindDictionaryName(bytes, "/Root", dictionaryStart, dictionaryEnd,
             out int rootCount);
         if (rootCount > 1) return false;
@@ -196,14 +204,18 @@ internal static class IWorkPdfInfo {
         int[] orderedObjectOffsets,
         int offset, int limit, long expectedObject, long expectedGeneration,
         (long Object, long Generation)? parent,
+        bool hasInheritedMediaBox,
         ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
         pageCount = 0;
         if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
         int objectLimit = GetObjectLimit(orderedObjectOffsets, offset, limit);
         if (!TryGetObjectDictionary(bytes, ref offset, objectLimit, expectedObject, expectedGeneration,
                 out int dictionaryStart, out int dictionaryEnd)) return false;
+        if (!TryResolveMediaBox(bytes, dictionaryStart, dictionaryEnd,
+                hasInheritedMediaBox, out bool hasMediaBox)) return false;
         if (HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Page")) {
             if (!parent.HasValue
+                || !hasMediaBox
                 || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
                     out long parentObject, out long parentGeneration)
                 || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
@@ -227,12 +239,59 @@ internal static class IWorkPdfInfo {
             if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
                 || !IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, childOffset, limit,
                     childObject, childGeneration, (expectedObject, expectedGeneration),
-                    visited, depth + 1, out long childCount)
+                    hasMediaBox, visited, depth + 1, out long childCount)
                 || total > long.MaxValue - childCount) return false;
             total += childCount;
         }
         pageCount = total;
         return total == declaredCount;
+    }
+
+    private static bool TryResolveMediaBox(byte[] bytes, int start, int end,
+        bool inherited, out bool resolved) {
+        resolved = inherited;
+        int offset = FindDictionaryName(bytes, "/MediaBox", start, end, out int count);
+        if (count == 0) return true;
+        if (count != 1 || offset < 0) return false;
+        offset += 9;
+        if (!SkipWhitespaceAndComments(bytes, ref offset, end)) return false;
+        if (offset >= end || bytes[offset++] != (byte)'[') return false;
+        var values = new double[4];
+        for (int index = 0; index < values.Length; index++) {
+            if (!SkipWhitespaceAndComments(bytes, ref offset, end)) return false;
+            if (!TryReadPdfNumber(bytes, ref offset, end, out values[index])) return false;
+        }
+        if (!SkipWhitespaceAndComments(bytes, ref offset, end)) return false;
+        if (offset >= end || bytes[offset++] != (byte)']'
+            || offset < end && !IsDelimiter(bytes[offset])
+            || values[2] <= values[0] || values[3] <= values[1]) return false;
+        resolved = true;
+        return true;
+    }
+
+    private static bool TryReadPdfNumber(byte[] bytes, ref int offset, int limit,
+        out double value) {
+        value = 0;
+        int start = offset;
+        if (offset < limit && bytes[offset] is (byte)'+' or (byte)'-') offset++;
+        bool hasDigit = false;
+        while (offset < limit && bytes[offset] >= (byte)'0' && bytes[offset] <= (byte)'9') {
+            hasDigit = true;
+            offset++;
+        }
+        if (offset < limit && bytes[offset] == (byte)'.') {
+            offset++;
+            while (offset < limit && bytes[offset] >= (byte)'0' && bytes[offset] <= (byte)'9') {
+                hasDigit = true;
+                offset++;
+            }
+        }
+        if (!hasDigit) return false;
+        string token = System.Text.Encoding.ASCII.GetString(bytes, start, offset - start);
+        return double.TryParse(token, System.Globalization.NumberStyles.AllowLeadingSign
+            | System.Globalization.NumberStyles.AllowDecimalPoint,
+            System.Globalization.CultureInfo.InvariantCulture, out value)
+            && !double.IsNaN(value) && !double.IsInfinity(value);
     }
 
     private static bool HasCompletePageContents(byte[] bytes,

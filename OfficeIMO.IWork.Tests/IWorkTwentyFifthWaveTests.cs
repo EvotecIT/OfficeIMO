@@ -157,7 +157,7 @@ public sealed partial class IWorkBoundaryTests {
         bool selfReferentialPrevious = false, bool freeRoot = false) {
         const string header = "%PDF-1.4\n";
         const string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
-        const string pages = "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n";
+        const string pages = "2 0 obj\n<< /Type /Pages /MediaBox [0 0 612 792] /Count 1 /Kids [3 0 R] >>\nendobj\n";
         const string page = "3 0 obj\n<< /Type /Page /Parent 2 0 R >>\nendobj\n";
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);

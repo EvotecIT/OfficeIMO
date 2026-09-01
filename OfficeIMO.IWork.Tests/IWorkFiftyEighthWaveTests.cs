@@ -126,7 +126,7 @@ public sealed partial class IWorkBoundaryTests {
         string contents = contentArray ? "[4 0 R]" : "4 0 R";
         var objects = new List<string> {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
-            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n",
+            "2 0 obj\n<< /Type /Pages /MediaBox [0 0 612 792] /Count 1 /Kids [3 0 R] >>\nendobj\n",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents "
                 + contents + " >>\nendobj\n",
             indirectLength

@@ -257,15 +257,16 @@ public sealed partial class IWorkBoundaryTests {
         bool omitCatalogEndObject = false, bool omitPagesEndObject = false,
         bool omitPageEndObject = false, bool trailCatalogDictionary = false,
         bool trailPagesDictionary = false, bool trailPageDictionary = false,
-        bool commentCatalogDictionary = false) {
+        bool commentCatalogDictionary = false, bool omitMediaBox = false,
+        string trailerPrefix = "", string trailerSuffix = "") {
         const string header = "%PDF-1.4\n";
         string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\n"
             + (trailCatalogDictionary ? "42\n" : string.Empty)
             + (commentCatalogDictionary ? "% valid comment\n" : string.Empty)
             + (omitCatalogEndObject ? string.Empty : "endobj\n");
         string pages = validKids
-            ? "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\n"
-            : "2 0 obj\n<< /Type /Pages /Count 1 /Kids [] >>\n";
+            ? "2 0 obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [3 0 R] >>\n"
+            : "2 0 obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [] >>\n";
         if (trailPagesDictionary) pages += "42\n";
         if (!omitPagesEndObject) pages += "endobj\n";
         string page = "3 0 obj\n<< /Type /Page " + pageDictionaryPrefix
@@ -281,8 +282,8 @@ public sealed partial class IWorkBoundaryTests {
             + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
             + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
             + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
-            + "trailer\n<< " + trailerDictionaryPrefix
-            + "/Size 4 /Root 1 0 R >>\nstartxref\n"
+            + "trailer\n" + trailerPrefix + "<< " + trailerDictionaryPrefix
+            + "/Size 4 /Root 1 0 R >>" + trailerSuffix + "\nstartxref\n"
             + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n%%EOF\n";
         return Encoding.ASCII.GetBytes(prefix + suffix);
