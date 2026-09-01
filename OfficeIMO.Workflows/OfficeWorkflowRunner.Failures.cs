@@ -1,7 +1,11 @@
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
-    private static OfficeWorkflowFailureKind ClassifyFailure(Exception exception, WorkflowFailureStage stage) {
+    internal static OfficeWorkflowFailureKind ClassifyFailure(Exception exception, WorkflowFailureStage stage) {
+        if (stage == WorkflowFailureStage.Output &&
+            exception is IOException or UnauthorizedAccessException) {
+            return OfficeWorkflowFailureKind.OutputFailed;
+        }
         if (exception is FileNotFoundException or DirectoryNotFoundException) {
             return OfficeWorkflowFailureKind.InputNotFound;
         }
@@ -11,14 +15,10 @@ public sealed partial class OfficeWorkflowRunner {
         if (stage == WorkflowFailureStage.Validation || exception is ArgumentException) {
             return OfficeWorkflowFailureKind.ValidationFailed;
         }
-        if (stage == WorkflowFailureStage.Output &&
-            exception is IOException or UnauthorizedAccessException) {
-            return OfficeWorkflowFailureKind.OutputFailed;
-        }
         return OfficeWorkflowFailureKind.OperationFailed;
     }
 
-    private enum WorkflowFailureStage {
+    internal enum WorkflowFailureStage {
         Validation,
         Input,
         Output,

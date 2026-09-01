@@ -7,6 +7,15 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageInteractionMapTests {
     [Fact]
+    public void InteractionKind_PreservesPublishedNumericValues() {
+        Assert.Equal(0, (int) PdfInteractionKind.Text);
+        Assert.Equal(1, (int) PdfInteractionKind.Link);
+        Assert.Equal(2, (int) PdfInteractionKind.Annotation);
+        Assert.Equal(3, (int) PdfInteractionKind.FormWidget);
+        Assert.Equal(4, (int) PdfInteractionKind.Image);
+    }
+
+    [Fact]
     public void InteractionMap_ProjectsTextLinksAnnotationsAndWidgets() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Selectable text ").Link("project", "https://officeimo.net/"))

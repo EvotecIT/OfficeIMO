@@ -102,7 +102,7 @@ internal static partial class PdfAnnotationFlattener {
         return options.Subtype == null || string.Equals(options.Subtype, subtype, StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool IsSupportedVisualAnnotation(string subtype) {
+    internal static bool IsSupportedVisualAnnotation(string subtype) {
         return string.Equals(subtype, "Text", StringComparison.Ordinal) ||
             string.Equals(subtype, "FreeText", StringComparison.Ordinal) ||
             string.Equals(subtype, "Highlight", StringComparison.Ordinal) ||

@@ -101,7 +101,7 @@ public sealed partial class OfficeWorkflowRunner {
         StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(parent);
         foreach (string retiredDirectory in Directory
             .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => Path.GetFileName(path).StartsWith(retiredPrefix, pathComparison))
+            .Where(path => IsOwnedPublicationDirectory(path, retiredPrefix, pathComparison))
             .OrderBy(static path => path, pathComparer)
             .ThenBy(static path => path, StringComparer.Ordinal)) {
             Exception? cleanupFailure = TryDeleteDirectory(retiredDirectory);
@@ -112,7 +112,7 @@ public sealed partial class OfficeWorkflowRunner {
 
         string[] recoveryDirectories = Directory
             .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => Path.GetFileName(path).StartsWith(recoveryPrefix, pathComparison))
+            .Where(path => IsOwnedPublicationDirectory(path, recoveryPrefix, pathComparison))
             .OrderBy(static path => path, pathComparer)
             .ThenBy(static path => path, StringComparer.Ordinal)
             .ToArray();
@@ -127,6 +127,16 @@ public sealed partial class OfficeWorkflowRunner {
             "A prior interrupted output replacement requires recovery before this destination can be replaced.",
             requestedDirectory,
             recoveryDirectories);
+    }
+
+    private static bool IsOwnedPublicationDirectory(
+        string path,
+        string prefix,
+        StringComparison comparison) {
+        string name = Path.GetFileName(path);
+        if (!name.StartsWith(prefix, comparison)) return false;
+        string suffix = name[prefix.Length..];
+        return suffix.Length == 32 && Guid.TryParseExact(suffix, "N", out _);
     }
 
     private static OfficeWorkflowDiagnostic CreateRetainedOutputDiagnostic(

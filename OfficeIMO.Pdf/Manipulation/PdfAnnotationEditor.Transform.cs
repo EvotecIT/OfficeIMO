@@ -48,6 +48,7 @@ internal static partial class PdfAnnotationEditor {
 
         double scaleX = target.Width / sourceWidth;
         double scaleY = target.Height / sourceHeight;
+        bool canRegenerateAppearance = PdfAnnotationFlattener.IsSupportedVisualAnnotation(annotation.Subtype);
         var options = new PdfAnnotationUpdateOptions {
             Rectangle = new[] { target.Left, target.Bottom, target.Right, target.Top },
             QuadPoints = TransformPairs(annotation.QuadPoints, annotation, target, scaleX, scaleY),
@@ -56,7 +57,8 @@ internal static partial class PdfAnnotationEditor {
             InkPaths = annotation.InkList.Count == 0
                 ? null
                 : annotation.InkList.Select(path => (IReadOnlyList<double>)TransformPairs(path, annotation, target, scaleX, scaleY)!).ToArray(),
-            RegenerateAppearance = true
+            RegenerateAppearance = canRegenerateAppearance,
+            PreserveAppearance = !canRegenerateAppearance
         };
         return UpdateAnnotation(pdf, objectNumber, options, readOptions);
     }

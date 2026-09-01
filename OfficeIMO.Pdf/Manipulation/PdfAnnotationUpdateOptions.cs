@@ -68,6 +68,8 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Regenerates a supported normal appearance stream after applying the update.</summary>
     public bool RegenerateAppearance { get; set; }
 
+    internal bool PreserveAppearance { get; set; }
+
     /// <summary>
     /// Allows append-only updates even though prior revisions retain replaced annotation data.
     /// Disabled by default because append-only output is not a sanitization boundary.

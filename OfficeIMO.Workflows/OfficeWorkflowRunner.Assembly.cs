@@ -43,6 +43,12 @@ public sealed partial class OfficeWorkflowRunner {
             extractionRoot = Path.Combine(Path.GetTempPath(), "officeimo-assembly-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(extractionRoot);
             IReadOnlyList<AssemblySource> sources = ExpandAssemblySources(validated, extractionRoot, diagnostics, cancellationToken);
+            if (validated.OutputProfile != OfficeWorkflowOutputProfile.Faithful &&
+                sources.Any(static source => source.Route?.Id == "html-pdf")) {
+                throw new ArgumentException(
+                    "HTML assembly sources currently support only the Faithful output profile.",
+                    nameof(request));
+            }
             sourceCount = sources.Count;
             inputBytes = sources.Sum(static source => source.SizeBytes);
             if (inputBytes > validated.Limits.MaximumInputBytes) {

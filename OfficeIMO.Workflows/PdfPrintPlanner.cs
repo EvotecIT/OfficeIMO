@@ -176,7 +176,8 @@ public static class PdfPrintPlanner {
             cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(request.PagesPerSheet, pages.Length - offset);
             PdfPageInfo firstPage = info.Pages[pages[offset] - 1];
-            PageSize paper = ResolvePaper(request, firstPage.Width > firstPage.Height);
+            (double firstPageWidth, double firstPageHeight) = GetVisualPageSize(firstPage);
+            PageSize paper = ResolvePaper(request, firstPageWidth > firstPageHeight);
             if (paper.Width <= request.Margin * 2D || paper.Height <= request.Margin * 2D) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
@@ -219,17 +220,18 @@ public static class PdfPrintPlanner {
             cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pages[offset + index];
             PdfPageInfo source = info.Pages[pageNumber - 1];
+            (double sourceWidth, double sourceHeight) = GetVisualPageSize(source);
             int column = index % columns;
             int row = index / columns;
-            double fitScale = Math.Min(slotWidth / source.Width, slotHeight / source.Height);
-            double fillScale = Math.Max(slotWidth / source.Width, slotHeight / source.Height);
+            double fitScale = Math.Min(slotWidth / sourceWidth, slotHeight / sourceHeight);
+            double fillScale = Math.Max(slotWidth / sourceWidth, slotHeight / sourceHeight);
             double scale = request.ScaleMode switch {
                 PdfPrintScaleMode.ActualSize => Math.Min(1D, fitScale),
                 PdfPrintScaleMode.Fill => fillScale,
                 _ => fitScale
             };
-            double width = source.Width * scale;
-            double height = source.Height * scale;
+            double width = sourceWidth * scale;
+            double height = sourceHeight * scale;
             double slotX = request.Margin + column * slotWidth;
             double slotY = request.Margin + row * slotHeight;
             placements.Add(new PdfPrintPlacement(
@@ -246,5 +248,12 @@ public static class PdfPrintPlanner {
                 slotHeight));
         }
         return placements;
+    }
+
+    private static (double Width, double Height) GetVisualPageSize(PdfPageInfo page) {
+        int rotation = ((page.RotationDegrees % 360) + 360) % 360;
+        return rotation is 90 or 270
+            ? (page.Height, page.Width)
+            : (page.Width, page.Height);
     }
 }

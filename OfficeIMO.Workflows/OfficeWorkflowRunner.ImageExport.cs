@@ -34,6 +34,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             }
 
             string parent = Path.GetDirectoryName(validated.OutputDirectory)!;
+            failureStage = WorkflowFailureStage.Output;
             Directory.CreateDirectory(parent);
             stagingDirectory = Path.Combine(parent, "." + Path.GetFileName(validated.OutputDirectory) + "." + Guid.NewGuid().ToString("N") + ".tmp");
 
@@ -43,7 +44,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 MaximumOutputCount = validated.MaximumPages,
                 MaximumTotalEncodedBytes = validated.Limits.MaximumOutputBytes
             };
-            var exportProgress = new Progress<OfficeImageExportProgress>(item => {
+            var exportProgress = new InlineProgress<OfficeImageExportProgress>(item => {
                 double fraction = pageNumbers.Length == 0 ? 0D : (double)item.CompletedCount / pageNumbers.Length;
                 Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D + fraction * 0.58D);
             });
@@ -58,8 +59,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 .SaveFilesAsync(stagingDirectory, cancellationToken)
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
-            failureStage = WorkflowFailureStage.Output;
-
             long outputBytes = 0L;
             for (int index = 0; index < saved.Files.Count; index++) {
                 OfficeImageExportSavedFile file = saved.Files[index];

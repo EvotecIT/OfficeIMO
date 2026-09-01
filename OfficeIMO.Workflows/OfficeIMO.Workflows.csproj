@@ -36,4 +36,8 @@
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Workflows.Tests" />
+  </ItemGroup>
+
 </Project>

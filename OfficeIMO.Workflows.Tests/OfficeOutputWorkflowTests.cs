@@ -39,7 +39,7 @@ public sealed class OfficeOutputWorkflowTests {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
         string output = Path.Combine(scope.Path, "pages");
-        string recovery = output + ".officeimo-recovery-interrupted";
+        string recovery = output + ".officeimo-recovery-" + new string('1', 32);
         Directory.CreateDirectory(recovery);
         await File.WriteAllTextAsync(Path.Combine(recovery, "previous.txt"), "previous output");
 
@@ -63,7 +63,7 @@ public sealed class OfficeOutputWorkflowTests {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
         string output = Path.Combine(scope.Path, "pages");
-        string retired = output + ".officeimo-retired-interrupted";
+        string retired = output + ".officeimo-retired-" + new string('2', 32);
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(retired);
         await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
@@ -82,11 +82,36 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportPreservesSimilarlyNamedUserDirectoriesDuringRecovery() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
+        string output = Path.Combine(scope.Path, "pages");
+        string userRecovery = output + ".officeimo-recovery-backup";
+        string userRetired = output + ".officeimo-retired-notes";
+        Directory.CreateDirectory(output);
+        Directory.CreateDirectory(userRecovery);
+        Directory.CreateDirectory(userRetired);
+        await File.WriteAllTextAsync(Path.Combine(userRecovery, "keep.txt"), "user recovery data");
+        await File.WriteAllTextAsync(Path.Combine(userRetired, "keep.txt"), "user retired data");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(File.Exists(Path.Combine(userRecovery, "keep.txt")));
+        Assert.True(File.Exists(Path.Combine(userRetired, "keep.txt")));
+    }
+
+    [Fact]
     public async Task PageImageExportRefusesAmbiguousInterruptedReplacementWithRecoveryDetails() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
         string output = Path.Combine(scope.Path, "pages");
-        string recovery = output + ".officeimo-recovery-interrupted";
+        string recovery = output + ".officeimo-recovery-" + new string('3', 32);
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(recovery);
         await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
@@ -166,6 +191,28 @@ public sealed class OfficeOutputWorkflowTests {
                 .Select(static item => item.Details["name"]));
         Assert.Contains(result.Diagnostics, static item => item.Code == "RouteContract" && item.Details["route"] == "docx-pdf");
         Assert.Contains(result.Diagnostics, static item => item.Code == "AssemblyReopened");
+    }
+
+    [Fact]
+    public async Task AssemblyRejectsUnsupportedOutputProfileForDiscoveredHtmlSource() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "sources");
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "source.html"),
+            "<!doctype html><html><body>Assembly</body></html>");
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = output,
+            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.Contains("Faithful", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]
@@ -415,6 +462,79 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public void PrintPlannerUsesVisualDimensionsForRotatedPages() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "rotated-print.pdf", "Rotated");
+        File.WriteAllBytes(input, PdfDocument.Load(input).Pages.Rotate(90, 1).ToBytes());
+
+        PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+            InputPath = input,
+            PaperSize = PageSizes.A4,
+            Orientation = PdfPrintOrientation.Automatic,
+            ScaleMode = PdfPrintScaleMode.Fit,
+            Margin = 18D
+        });
+
+        PdfPrintSheet sheet = Assert.Single(plan.Sheets);
+        PdfPrintPlacement placement = Assert.Single(sheet.Placements);
+        Assert.True(sheet.PaperSize.Width > sheet.PaperSize.Height);
+        Assert.True(placement.Width > placement.Height);
+        Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
+        Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+    }
+
+    [Fact]
+    public async Task PageImageExportReportsRenderProgressBeforePublishAndComplete() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "progress.pdf", "One", "Two");
+        var updates = new List<OfficeWorkflowProgress>();
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = Path.Combine(scope.Path, "pages")
+            },
+            new InlineProgress<OfficeWorkflowProgress>(updates.Add));
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("complete", updates[^1].Stage);
+        int lastRender = updates.FindLastIndex(static item => item.Stage == "render");
+        int publish = updates.FindIndex(static item => item.Stage == "publish");
+        Assert.True(lastRender >= 0);
+        Assert.True(publish > lastRender);
+    }
+
+    [Fact]
+    public async Task PageImageExportClassifiesDestinationCreationFailureAsOutputFailure() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Output failure");
+        string occupiedParent = Path.Combine(scope.Path, "occupied");
+        await File.WriteAllTextAsync(occupiedParent, "not a directory");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = Path.Combine(occupiedParent, "pages")
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+    }
+
+    [Fact]
+    public void DirectoryNotFoundClassifiesByFailureStage() {
+        OfficeWorkflowFailureKind outputResult = OfficeWorkflowRunner.ClassifyFailure(
+            new DirectoryNotFoundException("Unavailable output root"),
+            OfficeWorkflowRunner.WorkflowFailureStage.Output);
+        OfficeWorkflowFailureKind inputResult = OfficeWorkflowRunner.ClassifyFailure(
+            new DirectoryNotFoundException("Missing input folder"),
+            OfficeWorkflowRunner.WorkflowFailureStage.Input);
+
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, outputResult);
+        Assert.Equal(OfficeWorkflowFailureKind.InputNotFound, inputResult);
+    }
+
+    [Fact]
     public async Task AssemblyBoundsNormalizedDocumentsBeforeMergeAndPublication() {
         using var scope = new TestDirectory();
         string first = CreatePdf(scope.Path, "first.pdf", new string('A', 1024));
@@ -493,6 +613,10 @@ public sealed class OfficeOutputWorkflowTests {
         writer.Write(0U);
         writer.Write(0U);
         writer.Write((ushort)0);
+    }
+
+    private sealed class InlineProgress<T>(Action<T> report) : IProgress<T> {
+        public void Report(T value) => report(value);
     }
 
     private sealed class TestDirectory : IDisposable {

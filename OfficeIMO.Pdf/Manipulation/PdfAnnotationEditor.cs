@@ -332,7 +332,7 @@ internal static partial class PdfAnnotationEditor {
 
         if (options.RegenerateAppearance) {
             changedObjects.Add(PdfAnnotationFlattener.RegenerateNormalAppearance(objects, annotation));
-        } else if (invalidateAppearance) {
+        } else if (invalidateAppearance && !options.PreserveAppearance) {
             annotation.Items.Remove("AP");
         }
         return changedObjects.AsReadOnly();

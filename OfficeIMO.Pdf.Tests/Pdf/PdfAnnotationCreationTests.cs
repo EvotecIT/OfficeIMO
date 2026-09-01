@@ -68,6 +68,46 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void LinkAnnotation_MoveAndResizeUpdateRectangleWithoutAppearanceRegeneration() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+        PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link",
+            Rectangle = new[] { 40D, 50D, 180D, 80D },
+            LinkUri = "https://officeimo.com"
+        });
+        PdfAnnotation annotation = Assert.Single(added.ToDocument().Inspect().GetAnnotationsBySubtype("Link"));
+
+        PdfAnnotationEditResult moved = added.ToDocument().Annotations.Move(annotation.ObjectNumber!.Value, 10D, 15D);
+        PdfAnnotation movedAnnotation = Assert.Single(moved.ToDocument().Inspect().GetAnnotationsBySubtype("Link"));
+        PdfAnnotationEditResult resized = moved.ToDocument().Annotations.Resize(
+            movedAnnotation.ObjectNumber!.Value,
+            new PdfPageRectangle(25D, 35D, 225D, 75D));
+        PdfLinkAnnotation link = Assert.Single(
+            PdfInspector.Inspect(resized.Bytes).GetLinkAnnotationsByUri("https://officeimo.com"));
+
+        Assert.Equal(25D, link.X1, 3);
+        Assert.Equal(35D, link.Y1, 3);
+        Assert.Equal(225D, link.X2, 3);
+        Assert.Equal(75D, link.Y2, 3);
+    }
+
+    [Fact]
+    public void LinkAnnotation_MoveAndResizePreserveCustomNormalAppearance() {
+        byte[] source = BuildLinkAppearanceAnnotationPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Link"));
+
+        PdfAnnotationEditResult moved = PdfDocument.Load(source).Annotations.Move(annotation.ObjectNumber!.Value, 10D, 15D);
+        PdfAnnotation movedAnnotation = Assert.Single(moved.ToDocument().Inspect().GetAnnotationsBySubtype("Link"));
+        PdfAnnotationEditResult resized = moved.ToDocument().Annotations.Resize(
+            movedAnnotation.ObjectNumber!.Value,
+            new PdfPageRectangle(25D, 35D, 225D, 75D));
+        PdfAnnotation result = Assert.Single(resized.ToDocument().Inspect().GetAnnotationsBySubtype("Link"));
+
+        Assert.True(result.HasNormalAppearance);
+        Assert.Contains("1 0 0 RG", Encoding.ASCII.GetString(resized.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
@@ -318,6 +358,16 @@ public class PdfAnnotationCreationTests {
 
         Assert.Equal(4096, Assert.Single(result.ToDocument().Reader.Annotations()).Contents!.Length);
     }
+
+    private static byte[] BuildLinkAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Link /Rect [20 20 80 40] /A << /S /URI /URI (https://officeimo.com) >> /AP << /N 6 0 R >> >>\nendobj\n" +
+        "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 60 20] /Length 8 >>\nstream\n1 0 0 RG\nendstream\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
 
     private static byte[] BuildEmptyAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
         "%PDF-1.7\n" +
