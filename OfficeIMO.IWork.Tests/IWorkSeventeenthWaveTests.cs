@@ -259,7 +259,8 @@ public sealed partial class IWorkBoundaryTests {
         bool trailPagesDictionary = false, bool trailPageDictionary = false,
         bool commentCatalogDictionary = false, bool omitMediaBox = false,
         string trailerPrefix = "", string trailerSuffix = "", int generation = 0,
-        string pagesDictionaryPrefix = "", string resourceObjectDictionary = "") {
+        string pagesDictionaryPrefix = "", string resourceObjectDictionary = "",
+        int resourceObjectHeaderNumber = 4, string resourceTargetObjectBody = "") {
         const string header = "%PDF-1.4\n";
         string generationText = generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string xrefGeneration = generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture);
@@ -279,14 +280,21 @@ public sealed partial class IWorkBoundaryTests {
             + (omitPageEndObject ? string.Empty : "endobj\n");
         string resourceObject = resourceObjectDictionary.Length == 0
             ? string.Empty
-            : "4 " + generationText + " obj\n<< " + resourceObjectDictionary + " >>\nendobj\n";
+            : resourceObjectHeaderNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " " + generationText + " obj\n<< " + resourceObjectDictionary + " >>\nendobj\n";
+        string resourceTargetObject = resourceTargetObjectBody.Length == 0
+            ? string.Empty
+            : "5 " + generationText + " obj\n" + resourceTargetObjectBody + "endobj\n";
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);
         int pageOffset = Encoding.ASCII.GetByteCount(header + catalog + pages);
         int resourceObjectOffset = Encoding.ASCII.GetByteCount(header + catalog + pages + page);
-        string prefix = header + catalog + pages + page + resourceObject;
+        int resourceTargetObjectOffset = Encoding.ASCII.GetByteCount(
+            header + catalog + pages + page + resourceObject);
+        string prefix = header + catalog + pages + page + resourceObject + resourceTargetObject;
         int xrefOffset = Encoding.ASCII.GetByteCount(prefix);
-        int objectCount = resourceObject.Length == 0 ? 4 : 5;
+        int objectCount = resourceTargetObject.Length > 0 ? 6
+            : resourceObject.Length > 0 ? 5 : 4;
         string suffix = "xref\n0 "
             + objectCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n0000000000 65535 f \n"
@@ -295,6 +303,9 @@ public sealed partial class IWorkBoundaryTests {
             + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
             + (resourceObject.Length == 0 ? string.Empty
                 : resourceObjectOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)
+                    + " " + xrefGeneration + " n \n")
+            + (resourceTargetObject.Length == 0 ? string.Empty
+                : resourceTargetObjectOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)
                     + " " + xrefGeneration + " n \n")
             + "trailer\n" + trailerPrefix + "<< " + trailerDictionaryPrefix
             + "/Size " + objectCount.ToString(System.Globalization.CultureInfo.InvariantCulture)

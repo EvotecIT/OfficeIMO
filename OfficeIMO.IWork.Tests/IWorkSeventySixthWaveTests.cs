@@ -70,6 +70,39 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(IWorkPdfInfo.IsComplete(pdf));
     }
 
+    [Fact]
+    public void Pdf_resource_xrefs_require_matching_object_headers() {
+        byte[] pdf = CreateOnePageClassicPdf(validKids: true,
+            pageDictionaryPrefix: "/Resources 4 0 R ",
+            resourceObjectDictionary: "/ProcSet [/PDF]",
+            resourceObjectHeaderNumber: 5);
+
+        Assert.False(IWorkPdfInfo.IsComplete(pdf));
+    }
+
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(1, false)]
+    public void Pdf_resource_streams_require_complete_object_envelopes(
+        int declaredLength, bool expected) {
+        byte[] pdf = CreateOnePageClassicPdf(validKids: true,
+            pageDictionaryPrefix: "/Resources 4 0 R ",
+            resourceObjectDictionary: "/XObject << /Im1 5 0 R >>",
+            resourceTargetObjectBody: $"<< /Length {declaredLength} >>\nstream\n\nendstream\n");
+
+        Assert.Equal(expected, IWorkPdfInfo.IsComplete(pdf));
+    }
+
+    [Fact]
+    public void Pdf_resource_arrays_are_structurally_validated() {
+        byte[] pdf = CreateOnePageClassicPdf(validKids: true,
+            pageDictionaryPrefix: "/Resources 4 0 R ",
+            resourceObjectDictionary: "/ColorSpace << /CS1 5 0 R >>",
+            resourceTargetObjectBody: "[/DeviceRGB]\n");
+
+        Assert.True(IWorkPdfInfo.IsComplete(pdf));
+    }
+
     private static MemoryStream CreatePackageWithMalformedTableCatalog(
         IWorkDocumentKind kind, bool formula) {
         const ulong tableId = 10;

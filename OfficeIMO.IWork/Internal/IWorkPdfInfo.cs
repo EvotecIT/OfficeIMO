@@ -69,7 +69,8 @@ internal static partial class IWorkPdfInfo {
         var visited = new HashSet<(long Object, long Generation)>();
         return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
             pagesObject, pagesGeneration, parent: null, hasInheritedMediaBox: false,
-            inheritedResources: default, visited, depth: 0, out _);
+            inheritedResources: default, new ResourceValidationState(), visited,
+            depth: 0, out _);
     }
 
     private static bool HasValidHeader(byte[] bytes) {
@@ -218,6 +219,7 @@ internal static partial class IWorkPdfInfo {
         (long Object, long Generation)? parent,
         bool hasInheritedMediaBox,
         ResourceDictionary inheritedResources,
+        ResourceValidationState resourceValidation,
         ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
         pageCount = 0;
         if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
@@ -233,8 +235,8 @@ internal static partial class IWorkPdfInfo {
             if (!parent.HasValue
                 || !hasMediaBox
                 || resources.IsDeclared && (!resources.IsValid
-                    || !HasResolvableDictionaryReferences(bytes, resources.Start,
-                        resources.End, inUseOffsets))
+                    || !HasCompleteResourceSpan(bytes, resources.Start, resources.End,
+                        inUseOffsets, orderedObjectOffsets, limit, resourceValidation))
                 || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
                     out long parentObject, out long parentGeneration)
                 || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
@@ -258,7 +260,8 @@ internal static partial class IWorkPdfInfo {
             if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
                 || !IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, childOffset, limit,
                     childObject, childGeneration, (expectedObject, expectedGeneration),
-                    hasMediaBox, resources, visited, depth + 1, out long childCount)
+                    hasMediaBox, resources, resourceValidation, visited,
+                    depth + 1, out long childCount)
                 || total > long.MaxValue - childCount) return false;
             total += childCount;
         }
