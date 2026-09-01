@@ -1,6 +1,7 @@
 using OfficeIMO.Core.Internal;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -199,7 +200,7 @@ internal static partial class PdfOptimizer {
                 continue;
             }
 
-            byte[] compressed = CompressFlate(stream.Data);
+            byte[] compressed = CompressFlate(stream.Data, options.CancellationToken);
             if (compressed.Length >= stream.Data.Length) {
                 skippedActions.Add(new PdfOptimizationSkippedAction(
                     "CompressStream",
@@ -240,15 +241,20 @@ internal static partial class PdfOptimizer {
         return dictionary;
     }
 
-    private static byte[] CompressFlate(byte[] data) {
+    private static byte[] CompressFlate(byte[] data, CancellationToken cancellationToken) {
+        const int chunkSize = 64 * 1024;
+        cancellationToken.ThrowIfCancellationRequested();
         using var output = new MemoryStream();
         output.WriteByte(0x78);
         output.WriteByte(0x9C);
         using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
-            deflate.Write(data, 0, data.Length);
+            for (int offset = 0; offset < data.Length; offset += chunkSize) {
+                cancellationToken.ThrowIfCancellationRequested();
+                deflate.Write(data, offset, Math.Min(chunkSize, data.Length - offset));
+            }
         }
 
-        uint adler = Adler32(data);
+        uint adler = Adler32(data, cancellationToken);
         output.WriteByte((byte)((adler >> 24) & 0xFF));
         output.WriteByte((byte)((adler >> 16) & 0xFF));
         output.WriteByte((byte)((adler >> 8) & 0xFF));
@@ -256,11 +262,13 @@ internal static partial class PdfOptimizer {
         return output.ToArray();
     }
 
-    private static uint Adler32(byte[] data) {
+    private static uint Adler32(byte[] data, CancellationToken cancellationToken) {
+        const int chunkSize = 64 * 1024;
         const uint mod = 65521;
         uint a = 1;
         uint b = 0;
         for (int i = 0; i < data.Length; i++) {
+            if (i % chunkSize == 0) cancellationToken.ThrowIfCancellationRequested();
             a = (a + data[i]) % mod;
             b = (b + a) % mod;
         }

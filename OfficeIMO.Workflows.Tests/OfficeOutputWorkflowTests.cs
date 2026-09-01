@@ -322,6 +322,41 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task ZipAssemblyPreservesRelativeHtmlDependenciesWithoutAddingThemAsDocuments() {
+        using var scope = new TestDirectory();
+        string archivePath = Path.Combine(scope.Path, "html.zip");
+        byte[] pixel = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        using (ZipArchive archive = ZipFile.Open(archivePath, ZipArchiveMode.Create)) {
+            ZipArchiveEntry html = archive.CreateEntry("page/source.html");
+            await using (StreamWriter writer = new(html.Open())) {
+                await writer.WriteAsync("<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+            }
+            ZipArchiveEntry stylesheet = archive.CreateEntry("page/style.css");
+            await using (StreamWriter writer = new(stylesheet.Open())) {
+                await writer.WriteAsync("body { color: #123456; }");
+            }
+            ZipArchiveEntry image = archive.CreateEntry("page/pixel.png");
+            await using Stream imageStream = image.Open();
+            await imageStream.WriteAsync(pixel);
+        }
+
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [archivePath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
+        });
+
+        Assert.True(result.Succeeded, result.Summary + " | " +
+            string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
+        Assert.Equal(1, result.SourceCount);
+        Assert.Single(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
     public async Task FolderDiscoveryLimitCountsUnsupportedFilesBeforeFiltering() {
         using var scope = new TestDirectory();
         string folder = Path.Combine(scope.Path, "folder");

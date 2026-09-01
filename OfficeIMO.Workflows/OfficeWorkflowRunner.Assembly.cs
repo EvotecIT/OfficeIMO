@@ -318,6 +318,17 @@ public sealed partial class OfficeWorkflowRunner {
                 throw new InvalidDataException("The ZIP entry count changed after bounded central-directory preflight.");
             }
 
+            string[] htmlResourceRoots = archive.Entries
+                .Where(static item => !string.IsNullOrEmpty(item.Name))
+                .Where(static item => {
+                    string extension = Path.GetExtension(item.Name);
+                    return string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
+                })
+                .Select(static item => Path.GetDirectoryName(
+                    item.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar)) ?? string.Empty)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
             int observedArchiveEntries = 0;
             foreach (ZipArchiveEntry entry in archive.Entries
                          .OrderBy(static item => item.FullName, StringComparer.OrdinalIgnoreCase)
@@ -333,10 +344,15 @@ public sealed partial class OfficeWorkflowRunner {
                 if (string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase)) {
                     throw new InvalidDataException("Nested ZIP archives are not expanded.");
                 }
-                if (!TryClassifyAssemblySource(entry.Name, out AssemblySourceKind kind, out OfficeWorkflowRoute? route)) {
-                    if (request.Options.IgnoreDiscoveredUnsupportedFiles) continue;
+                string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+                bool isAssemblySource = TryClassifyAssemblySource(entry.Name, out AssemblySourceKind kind, out OfficeWorkflowRoute? route);
+                bool isHtmlDependency = OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(entry.Name) &&
+                    IsWithinHtmlResourceRoot(normalizedName, htmlResourceRoots);
+                if (isHtmlDependency) isAssemblySource = false;
+                if (!isAssemblySource && !isHtmlDependency && !request.Options.IgnoreDiscoveredUnsupportedFiles) {
                     throw new NotSupportedException("No PDF assembly intake route is available for archive entry '" + entry.FullName + "'.");
                 }
+                if (!isAssemblySource && !isHtmlDependency) continue;
                 if (entry.Length > request.Options.MaximumArchiveEntryBytes) {
                     throw new InvalidDataException("An archive entry exceeds the configured uncompressed-size limit.");
                 }
@@ -350,7 +366,6 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new InvalidDataException("Expanded archive content exceeds the configured aggregate input limit.");
                 }
 
-                string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 string destination = Path.GetFullPath(Path.Combine(destinationRoot, normalizedName));
                 if (!destination.StartsWith(canonicalDestinationRoot, destinationComparison)) {
                     throw new InvalidDataException("An archive entry resolves outside its extraction directory.");
@@ -360,7 +375,9 @@ public sealed partial class OfficeWorkflowRunner {
                 using (FileStream target = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                     CopyBounded(source, target, entry.Length, request.Options.MaximumArchiveEntryBytes, cancellationToken);
                 }
-                Add(CaptureSource(destination, origin, entry.FullName, kind, route, physicalDestinationRoot));
+                if (isAssemblySource) {
+                    Add(CaptureSource(destination, origin, entry.FullName, kind, route, physicalDestinationRoot));
+                }
             }
             if (observedArchiveEntries != preflight.EntryCount) {
                 throw new InvalidDataException("The ZIP produced fewer entries than its bounded central-directory preflight declared.");
@@ -373,6 +390,18 @@ public sealed partial class OfficeWorkflowRunner {
                     ["archive"] = Path.GetFileName(archivePath),
                     ["entryCount"] = archive.Entries.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
+        }
+
+        static bool IsWithinHtmlResourceRoot(string normalizedEntryName, IReadOnlyList<string> htmlResourceRoots) {
+            for (int i = 0; i < htmlResourceRoots.Count; i++) {
+                string root = htmlResourceRoots[i];
+                if (root.Length == 0 || normalizedEntryName.StartsWith(
+                        root + Path.DirectorySeparatorChar,
+                        StringComparison.OrdinalIgnoreCase)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         void Add(AssemblySource source) {

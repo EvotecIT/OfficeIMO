@@ -5,6 +5,13 @@ namespace OfficeIMO.Workflows;
 
 internal static class OfficeWorkflowHtmlResourceResolver {
     private const int BufferSize = 81920;
+    private static readonly HashSet<string> SupportedDependencyExtensions = new(StringComparer.OrdinalIgnoreCase) {
+        ".css", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff",
+        ".woff", ".woff2", ".ttf", ".otf"
+    };
+
+    internal static bool IsSupportedDependency(string path) =>
+        SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
     internal static HtmlPdfSaveOptions CreateOptions(string inputPath) {
         if (string.IsNullOrWhiteSpace(inputPath)) {

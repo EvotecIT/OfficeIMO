@@ -80,6 +80,39 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByUnredactedAnnotations() {
+        byte[] source = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Same page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Same page")))));
+        }).ToBytes();
+        byte[] firstAnnotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = 1,
+            Subtype = "Link",
+            Rectangle = new[] { 100D, 100D, 120D, 120D },
+            Contents = "Same annotation",
+            LinkUri = "https://example.test/first"
+        }).Bytes;
+        byte[] annotated = PdfDocument.Load(firstAnnotated).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = 2,
+            Subtype = "Link",
+            Rectangle = new[] { 100D, 100D, 120D, 120D },
+            Contents = "Same annotation",
+            LinkUri = "https://example.test/second"
+        }).Bytes;
+        PdfRedactionPlan plan = PdfDocument.Load(annotated).Redactions.Plan([
+            new PdfRedactionArea(1, 10D, 10D, 20D, 20D, "reviewed area")
+        ]);
+        byte[] rewritten = PdfPageExtractor.ExtractPages(annotated, 2, 1);
+
+        PdfRedactionVerificationReport report = PdfDocument.Load(rewritten).Redactions.VerifyAppliedPlan(
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationAcceptsPageObjectRenumbering() {
         byte[] source = BuildSparsePageObjectPdf();
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([

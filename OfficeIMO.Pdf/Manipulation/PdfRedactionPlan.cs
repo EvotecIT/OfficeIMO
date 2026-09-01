@@ -85,6 +85,8 @@ public sealed class PdfRedactionPlan {
             }));
             AppendUnredactedTextIdentity(identity, page, pageAreas);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas);
+            AppendUnredactedAnnotationIdentity(identity, page, pageAreas);
+            AppendUnredactedLinkIdentity(identity, page, pageAreas);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
@@ -143,6 +145,113 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(placement.E))
                 .Append(',').Append(FormatIdentityNumber(placement.F))
                 .Append(':').Append(imageBytes is null ? "none" : ComputeIdentityHash(imageBytes));
+        }
+    }
+
+    private static void AppendUnredactedAnnotationIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadPage page,
+        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
+        for (int i = 0; i < annotations.Count; i++) {
+            PdfAnnotation annotation = annotations[i];
+            if (IntersectsReviewedArea(pageAreas, annotation.X1, annotation.Y1, annotation.Width, annotation.Height)) continue;
+
+            identity.Append("|A:");
+            AppendIdentityString(identity, annotation.Subtype);
+            identity.Append(':').Append(FormatIdentityNumber(annotation.X1))
+                .Append(',').Append(FormatIdentityNumber(annotation.Y1))
+                .Append(',').Append(FormatIdentityNumber(annotation.X2))
+                .Append(',').Append(FormatIdentityNumber(annotation.Y2));
+            AppendIdentityString(identity, annotation.Contents);
+            AppendIdentityString(identity, annotation.Name);
+            AppendIdentityString(identity, annotation.Title);
+            AppendIdentityString(identity, annotation.ActionType);
+            identity.Append(':').Append(annotation.Flags?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
+                .Append(':').Append(annotation.HasNormalAppearance ? '1' : '0');
+            AppendIdentityNumbers(identity, annotation.Color);
+            AppendIdentityNumbers(identity, annotation.InteriorColor);
+            AppendIdentityNumbers(identity, annotation.QuadPoints);
+            AppendIdentityNumbers(identity, annotation.LineCoordinates);
+            AppendIdentityNumbers(identity, annotation.Vertices);
+            for (int pathIndex = 0; pathIndex < annotation.InkList.Count; pathIndex++) {
+                AppendIdentityNumbers(identity, annotation.InkList[pathIndex]);
+            }
+            for (int actionIndex = 0; actionIndex < annotation.AdditionalActions.Count; actionIndex++) {
+                PdfAnnotationAdditionalAction action = annotation.AdditionalActions[actionIndex];
+                AppendIdentityString(identity, action.TriggerName);
+                AppendIdentityString(identity, action.ActionType);
+            }
+            for (int actionIndex = 0; actionIndex < annotation.ChainedActions.Count; actionIndex++) {
+                PdfAnnotationChainedAction action = annotation.ChainedActions[actionIndex];
+                AppendIdentityString(identity, action.SourceName);
+                AppendIdentityString(identity, action.ActionPath);
+                AppendIdentityString(identity, action.ActionType);
+            }
+            if (annotation.Review != null) {
+                AppendIdentityString(identity, annotation.Review.ReplyType);
+                AppendIdentityString(identity, annotation.Review.State);
+                AppendIdentityString(identity, annotation.Review.StateModel);
+                AppendIdentityString(identity, annotation.Review.Subject);
+                AppendIdentityString(identity, annotation.Review.Intent);
+            }
+        }
+    }
+
+    private static void AppendUnredactedLinkIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadPage page,
+        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfLinkAnnotation> links = page.GetLinkAnnotations();
+        for (int i = 0; i < links.Count; i++) {
+            PdfLinkAnnotation link = links[i];
+            if (IntersectsReviewedArea(pageAreas, link.X1, link.Y1, link.Width, link.Height)) continue;
+
+            identity.Append("|L:")
+                .Append(FormatIdentityNumber(link.X1)).Append(',')
+                .Append(FormatIdentityNumber(link.Y1)).Append(',')
+                .Append(FormatIdentityNumber(link.X2)).Append(',')
+                .Append(FormatIdentityNumber(link.Y2));
+            AppendIdentityString(identity, link.Contents);
+            AppendIdentityString(identity, link.Uri);
+            AppendIdentityString(identity, link.DestinationName);
+            AppendIdentityString(identity, link.NamedAction);
+            AppendIdentityString(identity, link.RemoteFile);
+            AppendIdentityString(identity, link.RemoteDestinationName);
+            identity.Append(':').Append(link.DestinationPageNumber?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
+                .Append(':').Append(link.DestinationMode?.ToString() ?? "null")
+                .Append(':').Append(link.RemoteDestinationPageNumber?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
+                .Append(':').Append(link.RemoteDestinationMode?.ToString() ?? "null");
+            AppendIdentityNullableNumber(identity, link.DestinationLeft);
+            AppendIdentityNullableNumber(identity, link.DestinationTop);
+            AppendIdentityNullableNumber(identity, link.DestinationBottom);
+            AppendIdentityNullableNumber(identity, link.DestinationRight);
+            AppendIdentityNullableNumber(identity, link.RemoteDestinationLeft);
+            AppendIdentityNullableNumber(identity, link.RemoteDestinationTop);
+            AppendIdentityNullableNumber(identity, link.RemoteDestinationBottom);
+            AppendIdentityNullableNumber(identity, link.RemoteDestinationRight);
+        }
+    }
+
+    private static void AppendIdentityNullableNumber(System.Text.StringBuilder identity, double? value) =>
+        identity.Append(':').Append(value.HasValue ? FormatIdentityNumber(value.Value) : "null");
+
+    private static void AppendIdentityString(System.Text.StringBuilder identity, string? value) {
+        if (value == null) {
+            identity.Append(":null");
+            return;
+        }
+        identity.Append(':')
+            .Append(value.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Append(':').Append(value);
+    }
+
+    private static void AppendIdentityNumbers(
+        System.Text.StringBuilder identity,
+        IReadOnlyList<double> values) {
+        identity.Append(':').Append(values.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        for (int i = 0; i < values.Count; i++) {
+            identity.Append(',').Append(FormatIdentityNumber(values[i]));
         }
     }
 

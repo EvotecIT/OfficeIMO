@@ -20,6 +20,20 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void StreamCompressionHonorsItsCancellationToken() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        MethodInfo method = typeof(PdfOptimizer).GetMethod(
+            "CompressFlate",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
+            method.Invoke(null, new object[] { new byte[128 * 1024], cancellation.Token }));
+
+        Assert.IsType<OperationCanceledException>(exception.InnerException);
+    }
+
+    [Fact]
     public void Optimize_CompressesUnfilteredStreamsAndPreservesText() {
         byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
 
