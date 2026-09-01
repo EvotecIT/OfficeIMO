@@ -189,7 +189,7 @@ internal static class IWorkPagesReader {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_LAYOUT_UNSUPPORTED",
-                "The Pages document declares invalid page measurements; editable reconstruction is incomplete.",
+                "The Pages document declares invalid page-layout metadata; editable reconstruction is incomplete.",
                 document.EntryPath, document.Identifier));
         }
         bool bodyReferenceComplete = documentMessage.FieldCount(4) == 1
@@ -464,18 +464,20 @@ internal static class IWorkPagesReader {
         double bottom = document.GetFloat(35) ?? 0;
         double header = document.GetFloat(36) ?? 0;
         double footer = document.GetFloat(37) ?? 0;
+        ulong? landscape = document.GetUnsigned(42);
         if (fields.Any(field => document.FieldCount(field) > 1
                 || document.HasUnexpectedWireKind(field, IWorkWireKind.Fixed32)
                 || document.HasField(field) && !document.GetFloat(field).HasValue)
             || document.FieldCount(42) > 1
             || document.HasUnexpectedWireKind(42, IWorkWireKind.Varint)
+            || landscape > 1
             || width <= 0 || height <= 0 || new[] { width, height, left, right, top, bottom, header, footer }
                 .Any(value => double.IsNaN(value) || double.IsInfinity(value) || value < 0)) {
             complete = false;
             return null;
         }
         return new IWorkPageLayout(width, height, left, right, top, bottom, header, footer,
-            document.GetUnsigned(42).GetValueOrDefault() != 0);
+            landscape == 1);
     }
 
     private static void ReadHeadersAndFooters(IWorkObjectIndex index, IWorkArchiveRecord body,

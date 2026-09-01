@@ -2,7 +2,7 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static class IWorkPdfInfo {
     internal static bool IsComplete(byte[] bytes) {
-        if (bytes.Length < 20 || !StartsWith(bytes, 0, "%PDF-")) return false;
+        if (bytes.Length < 20 || !HasValidHeader(bytes)) return false;
 
         int eof = LastIndexOf(bytes, "%%EOF");
         if (eof < 0 || !ContainsOnlyTrailingWhitespace(bytes, eof + 5)) return false;
@@ -58,6 +58,7 @@ internal static class IWorkPdfInfo {
         }
         if (!chainComplete || !size.HasValue || !rootObject.HasValue
             || rootObject.Value <= 0 || rootObject.Value >= size.Value
+            || seenObjects.Any(objectNumber => objectNumber >= size.Value)
             || !inUseOffsets.TryGetValue((rootObject.Value, rootGeneration), out int rootOffset)) return false;
         int[] orderedObjectOffsets = inUseOffsets.Values.Concat(visitedXrefs)
             .Distinct().OrderBy(value => value).ToArray();
@@ -69,6 +70,15 @@ internal static class IWorkPdfInfo {
         return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
             pagesObject, pagesGeneration, parent: null, hasInheritedMediaBox: false,
             visited, depth: 0, out _);
+    }
+
+    private static bool HasValidHeader(byte[] bytes) {
+        if (bytes.Length < 9 || !StartsWith(bytes, 0, "%PDF-")
+            || bytes[5] < (byte)'0' || bytes[5] > (byte)'9'
+            || bytes[6] != (byte)'.'
+            || bytes[7] < (byte)'0' || bytes[7] > (byte)'9') return false;
+        int offset = 8;
+        return ConsumeLineEnd(bytes, ref offset, bytes.Length);
     }
 
     private static bool TryReadClassicXref(byte[] bytes, int offset, int limit,

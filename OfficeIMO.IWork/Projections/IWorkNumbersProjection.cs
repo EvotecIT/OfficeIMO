@@ -551,6 +551,7 @@ internal static class IWorkNumbersReader {
                     || rowInfo.FieldCount(6) > 1
                     || rowInfo.FieldCount(7) > 1
                     || rowInfo.FieldCount(8) > 1
+                    || rowInfo.GetUnsigned(8) > 1
                     || (currentBuffer == null) != (currentOffsets == null)
                     || currentOffsets != null && currentOffsets.Length % 2 != 0) {
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
@@ -1004,6 +1005,7 @@ internal static class IWorkNumbersReader {
             case 3:
                 if (hasString) {
                     if (strings.TryGetValue(stringIdentifier, out string? text)) {
+                        projectionBudget.AddTextCharacters(text.Length);
                         return hasFormula
                             ? Formula(row, column, formulaIdentifier, formulas, options,
                                 projectionBudget, text, IWorkCellKind.Text)

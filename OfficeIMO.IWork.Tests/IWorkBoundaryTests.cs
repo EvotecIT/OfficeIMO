@@ -1233,6 +1233,7 @@ public sealed partial class IWorkBoundaryTests {
         fields.Add(BytesField(6, buffer));
         if (!table.OmitCurrentOffsets) fields.Add(BytesField(7, offsets));
         if (table.WideOffsets) fields.Add(VarintField(8, 1));
+        else if (table.InvalidWideOffsetFlag) fields.Add(VarintField(8, 2));
         return Message(fields.ToArray());
     }
 
@@ -1552,7 +1553,8 @@ public sealed partial class IWorkBoundaryTests {
             int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
             bool duplicateRowIndex = false, bool conflictingNumberValue = false,
             byte decimal128SpecialHighByte = 0, bool emptyTile = false,
-            bool duplicatePopulatedOffset = false, bool missingStringEntry = false) {
+            bool duplicatePopulatedOffset = false, bool missingStringEntry = false,
+            bool invalidWideOffsetFlag = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1604,6 +1606,7 @@ public sealed partial class IWorkBoundaryTests {
             EmptyTile = emptyTile;
             DuplicatePopulatedOffset = duplicatePopulatedOffset;
             MissingStringEntry = missingStringEntry;
+            InvalidWideOffsetFlag = invalidWideOffsetFlag;
         }
 
         internal string Name { get; }
@@ -1657,5 +1660,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool EmptyTile { get; }
         internal bool DuplicatePopulatedOffset { get; }
         internal bool MissingStringEntry { get; }
+        internal bool InvalidWideOffsetFlag { get; }
     }
 }

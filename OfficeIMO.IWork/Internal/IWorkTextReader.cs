@@ -35,6 +35,7 @@ internal static class IWorkTextReader {
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
                 projectionBudget, listStyleCache, ref complete);
+            if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
             AddBoundaries(boundaries, hyperlinks, paragraph.Start, paragraph.End);
@@ -55,6 +56,9 @@ internal static class IWorkTextReader {
                 IWorkTextStyle characterStyle = ResolveTextStyle(index, characterStyleId,
                     paragraphStyle.TextStyle, projectionBudget,
                     textStyleCache, ref complete);
+                if (characterStyle.FontName != null) {
+                    projectionBudget.AddTextCharacters(characterStyle.FontName.Length);
+                }
                 string? hyperlink = ResolveHyperlink(index,
                     ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget,
                     hyperlinkCache, ref complete);

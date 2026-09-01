@@ -373,7 +373,12 @@ internal static class IWorkFormulaReader {
             return null;
         }
         int value = (int)decoded;
-        absolute = (message.GetUnsigned(2) ?? 0) != 0;
+        ulong? rawAbsolute = message.GetUnsigned(2);
+        if (rawAbsolute > 1) {
+            complete = false;
+            return null;
+        }
+        absolute = rawAbsolute == 1;
         long resolved = absolute ? value : (long)origin + value;
         if (resolved is >= int.MinValue and <= int.MaxValue) return (int)resolved;
         complete = false;

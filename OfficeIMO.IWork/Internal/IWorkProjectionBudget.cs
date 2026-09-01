@@ -118,11 +118,16 @@ internal sealed class IWorkProjectionBudget {
         foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
             foreach (IWorkTextRun run in paragraph.Runs) {
                 count++;
-                if (includeCharacters) characterCount += run.Text.Length;
+                if (includeCharacters) {
+                    characterCount += run.Text.Length;
+                    characterCount += run.Style.FontName?.Length ?? 0;
+                    characterCount += run.Hyperlink?.Length ?? 0;
+                }
                 foreach (char character in run.Text) {
                     if (character == '\n') count++;
                 }
             }
+            if (includeCharacters) characterCount += paragraph.ListLabel?.Length ?? 0;
         }
         if (count > int.MaxValue) {
             throw new InvalidDataException(

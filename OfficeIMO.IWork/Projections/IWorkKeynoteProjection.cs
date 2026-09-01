@@ -184,7 +184,17 @@ internal static class IWorkKeynoteReader {
                 "The Keynote document root does not reference exactly one supported show object.", document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
-        IWorkWireMessage showMessage = index.Message(show);
+        IWorkWireMessage showMessage;
+        try {
+            showMessage = index.Message(show);
+        } catch (InvalidDataException) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_SHOW_MALFORMED",
+                "The Keynote show object is malformed; editable reconstruction is unavailable.",
+                show.EntryPath, show.Identifier));
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics,
+                supportsEditableReconstruction: false);
+        }
         byte[]? slideTreeBytes = showMessage.FieldCount(3) == 1
             ? showMessage.GetBytes(3)
             : null;
