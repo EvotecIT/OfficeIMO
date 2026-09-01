@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,22 +11,19 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
-    private readonly Lazy<PdfReadDocument> _readDocument;
+    private readonly object _readLock = new object();
+    private PdfReadDocument? _readDocument;
+    private ExceptionDispatchInfo? _readFailure;
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options) {
         _bytes = bytes;
         Options = options;
-        _readDocument = new Lazy<PdfReadDocument>(
-            () => PdfReadDocument.Open(_bytes, Options),
-            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
     private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, PdfReadDocument readDocument) {
         _bytes = bytes;
         Options = options;
-        _readDocument = new Lazy<PdfReadDocument>(
-            () => readDocument,
-            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        _readDocument = readDocument;
     }
 
     /// <summary>Immutable read settings captured when the source is opened.</summary>
@@ -137,12 +135,28 @@ internal sealed class PdfDocumentSource {
     }
 
     /// <summary>Returns the cached canonical parse or a one-off parse for explicit override settings.</summary>
-    internal PdfReadDocument Read(PdfLoadOptions? options = null) {
-        if (options is null || ReferenceEquals(options, Options)) {
-            return _readDocument.Value;
+    internal PdfReadDocument Read(
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options is not null && !ReferenceEquals(options, Options)) {
+            return PdfReadDocument.Open(_bytes, options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(_bytes, options);
+        lock (_readLock) {
+            if (_readDocument is not null) return _readDocument;
+            _readFailure?.Throw();
+            try {
+                _readDocument = PdfReadDocument.Open(_bytes, Options, cancellationToken);
+                return _readDocument;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                // A caller's cancellation must not poison the reusable source cache.
+                throw;
+            } catch (Exception exception) {
+                _readFailure = ExceptionDispatchInfo.Capture(exception);
+                throw;
+            }
+        }
     }
 
     /// <summary>

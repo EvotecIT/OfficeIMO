@@ -868,10 +868,7 @@ public static partial class PdfHtmlConverterExtensions {
             blockLeft = Math.Min(blockBounds.Left, blockBounds.Right);
             blockRight = Math.Max(blockBounds.Left, blockBounds.Right);
         } else {
-            if (block.VisualBounds is not null || table.VisualBounds is not null) {
-                return false;
-            }
-
+            if (table.VisualBounds is not null) return false;
             double top = Math.Max(table.YTop, table.YBottom);
             double bottom = Math.Min(table.YTop, table.YBottom);
             if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {

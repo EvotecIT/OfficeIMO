@@ -277,12 +277,14 @@ public sealed partial class PdfDocument {
 
     internal byte[] GetBytesForOperation() => _source?.Bytes ?? RenderBytesCore();
 
-    internal PdfReadDocument GetReadDocument(PdfLoadOptions? options = null) {
+    internal PdfReadDocument GetReadDocument(
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (_source is not null) {
-            return _source.Read(options);
+            return _source.Read(options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(RenderBytesCore(), options);
+        return PdfReadDocument.Open(RenderBytesCore(), options, cancellationToken);
     }
 
     /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>

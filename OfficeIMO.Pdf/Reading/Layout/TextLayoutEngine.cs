@@ -567,24 +567,30 @@ public static class PdfReadPageExtensions {
         this PdfReadPage page,
         IReadOnlyList<PdfTextSpan> spans,
         PdfTextLayoutOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
         cancellationToken.ThrowIfCancellationRequested();
+        cancellationCheck?.Invoke();
         var (_, pageHeight) = page.GetPageSize();
         if (options is not null) {
             spans = TextLayoutEngine.FilterIgnoredPageBands(
                 spans,
                 page,
                 options,
-                consumeWork: null,
-                cancellationToken.ThrowIfCancellationRequested);
+                consumeWork,
+                cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested);
         }
 
         var engineOpts = options?.ToEngineOptions();
         StructuredPage result = ContentStructureExtractor.Extract(
             spans,
             engineOpts ?? new TextLayoutEngine.Options(),
-            pageHeight);
+            pageHeight,
+            consumeWork,
+            cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested);
         cancellationToken.ThrowIfCancellationRequested();
+        cancellationCheck?.Invoke();
         return result;
     }
 }

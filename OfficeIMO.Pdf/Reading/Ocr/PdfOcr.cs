@@ -16,7 +16,7 @@ internal static class PdfOcr {
         Guard.NotNull(provider, nameof(provider));
         PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
-        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         int[] selectedPages = effectiveOptions.Selection?.ToPageNumbers(
             readDocument.Pages.Count,
             nameof(effectiveOptions.Selection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();

@@ -161,7 +161,18 @@ internal sealed class PdfUnderstandingPipeline {
         EnsureCount(elements.Count, _limits.MaxRegionsPerPage);
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("semantic-classification", _semanticClassification.GetType(), ordered.Count, elements.Count));
-        return new PdfUnderstandingPageResult(pageNumber, runs, words, lines, regions, ordered, readingOrderEvidence, elements, trace.AsReadOnly());
+        return new PdfUnderstandingPageResult(
+            pageNumber,
+            runs,
+            words,
+            lines,
+            regions,
+            ordered,
+            readingOrderEvidence,
+            elements,
+            trace.AsReadOnly(),
+            context.ConsumeWork,
+            context.ThrowIfCancellationRequested);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {

@@ -244,7 +244,12 @@ public sealed partial class PdfLogicalPage {
         PdfPageGeometry geometry = page.GetGeometry();
         var structured = analysis is null
             ? page.ExtractStructured(options)
-            : page.ExtractStructured(analysis.DecodedRuns, options, cancellationToken);
+            : page.ExtractStructured(
+                analysis.DecodedRuns,
+                options,
+                cancellationToken,
+                analysis.ConsumeWork,
+                analysis.CancellationCheck);
         if (analysis is not null) {
             ReplaceProjectionLines(page, structured, analysis.Lines, cancellationToken);
         }

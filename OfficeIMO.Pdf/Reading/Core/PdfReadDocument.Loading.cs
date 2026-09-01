@@ -1,16 +1,33 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
     /// <summary>Opens a PDF from bytes into the canonical typed object model.</summary>
-    public static PdfReadDocument Open(byte[] pdf, PdfLoadOptions? options = null) {
+    public static PdfReadDocument Open(byte[] pdf, PdfLoadOptions? options = null) =>
+        Open(pdf, options, CancellationToken.None);
+
+    internal static PdfReadDocument Open(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(
             pdf,
             effectiveOptions,
             includeParsedDetails: false);
-        var (map, trailer) = PdfSyntax.ParseObjects(pdf, effectiveOptions, out PdfRepairReport repairReport, out long decodedStreamBytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        var (map, trailer) = PdfSyntax.ParseObjects(
+            pdf,
+            effectiveOptions,
+            out PdfRepairReport repairReport,
+            out long decodedStreamBytes,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         security = PdfSyntax.ReadDocumentSecurityInfo(pdf, map, trailer, security, effectiveOptions);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes);
     }

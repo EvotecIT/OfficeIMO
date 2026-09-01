@@ -12,7 +12,7 @@ internal static class PdfDocumentReadEngine {
         Guard.NotNull(options, nameof(options));
         cancellationToken.ThrowIfCancellationRequested();
 
-        return Read(source.GetReadDocument(), options, cancellationToken);
+        return Read(source.GetReadDocument(cancellationToken: cancellationToken), options, cancellationToken);
     }
 
     internal static PdfDocumentReadResult Read(

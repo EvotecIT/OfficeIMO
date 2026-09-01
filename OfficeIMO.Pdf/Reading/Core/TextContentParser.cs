@@ -301,6 +301,7 @@ internal static class TextContentParser {
         Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         int? contentStreamObjectNumber = null,
+        Func<int, int?>? contentStreamObjectNumberAtOffset = null,
         Action? cancellationCheck = null) {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
@@ -377,8 +378,11 @@ internal static class TextContentParser {
         var pendingPersistentTextStates = new List<PendingPersistentTextState>();
         var sbOutGlobal = new StringBuilder();
         var markedContentStack = new Stack<MarkedContentState>();
+        int? currentContentStreamObjectNumber = contentStreamObjectNumber;
         PdfContentStreamInterpreter.Interpret(content, maxOperations, operation => {
             cancellationCheck?.Invoke();
+            currentContentStreamObjectNumber = contentStreamObjectNumberAtOffset?.Invoke(operation.OperatorOffset)
+                ?? contentStreamObjectNumber;
             args.Clear();
             args.AddRange(operation.Operands);
             double paintOrder = GetPaintOrder(operation.OperatorOffset);
@@ -992,7 +996,7 @@ internal static class TextContentParser {
                     paintedText,
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
                     GetActiveMcid(),
-                    contentStreamObjectNumber));
+                    currentContentStreamObjectNumber));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

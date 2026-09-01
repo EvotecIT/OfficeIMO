@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -28,7 +29,9 @@ internal static partial class PdfSyntax {
         byte[] pdf,
         PdfLoadOptions? options,
         out PdfRepairReport repairReport,
-        out long decodedStreamBytes) {
+        out long decodedStreamBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         decodedStreamBytes = 0;
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
@@ -44,6 +47,7 @@ internal static partial class PdfSyntax {
 
         var parseTimer = System.Diagnostics.Stopwatch.StartNew();
         string text = PdfEncoding.Latin1GetString(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
         var map = new Dictionary<int, PdfIndirectObject>();
         var parsedOffsets = new Dictionary<int, int>();
         var definitionCounts = new Dictionary<(int Id, int Generation), int>();
@@ -51,6 +55,7 @@ internal static partial class PdfSyntax {
         var streamDataRanges = new List<(int Start, int End)>();
         List<IndirectObjectHeader> matches = FindIndirectObjectHeaders(text, parseTimer, limits);
 
+        cancellationToken.ThrowIfCancellationRequested();
         ThrowIfParsingTimeExceeded(parseTimer, limits);
         Dictionary<(int ObjectNumber, int Generation), int> declaredLengthValues =
             BuildDeclaredLengthValueIndex(
@@ -59,8 +64,10 @@ internal static partial class PdfSyntax {
                 parseTimer,
                 limits,
                 out Dictionary<int, PdfDictionary> preparsedDictionaries);
+        cancellationToken.ThrowIfCancellationRequested();
 
         for (int i = 0; i < matches.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if ((i & 127) == 0) {
                 ThrowIfParsingTimeExceeded(parseTimer, limits);
             }
@@ -205,13 +212,17 @@ internal static partial class PdfSyntax {
                 }
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateActiveCrossReference(text, map, parsedOffsets, parsingMode, repairDiagnostics);
+        cancellationToken.ThrowIfCancellationRequested();
         ResolveIndirectStreamLengths(map, pdf, streamLocations, limits);
         var activeClassicObjectNumbers = new HashSet<int>();
         var xrefScanBudget = new XrefObjectScanBudget(limits);
         var decodedStreamBudget = new PdfDecodedStreamBudget(limits);
         bool appliedXrefStreamEntries = ApplyClassicXrefEntries(map, pdf, text, parsedOffsets, activeClassicObjectNumbers, limits, xrefScanBudget, decodedStreamBudget, out bool appliedClassicEntries);
+        cancellationToken.ThrowIfCancellationRequested();
         appliedXrefStreamEntries = ApplyXrefStreamEntries(map, pdf, parsedOffsets, limits, xrefScanBudget, decodedStreamBudget) || appliedXrefStreamEntries;
+        cancellationToken.ThrowIfCancellationRequested();
         string trailerRaw = GetActiveTrailerRaw(text, map, parsedOffsets, limits.MaxObjectCharacters);
         if (trailerRaw.IndexOf("/Prev", StringComparison.Ordinal) < 0) {
             foreach (KeyValuePair<(int Id, int Generation), int> definition in definitionCounts) {
@@ -226,6 +237,7 @@ internal static partial class PdfSyntax {
             TryCreateDecryptor(map, trailerRaw, options, out decryptor);
             if (decryptor is not null) {
                 DecryptObjects(map, decryptor, encryptObjectNumber.Value);
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
 
@@ -238,6 +250,7 @@ internal static partial class PdfSyntax {
             // Compatibility fallback for simple parser-supported files whose compressed objects are only discoverable by scanning.
             ExpandObjectStreams(map, pdf, parsedOffsets, appliedClassicEntries ? activeClassicObjectNumbers : null, limits, decodedStreamBudget);
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (decryptor is null) {
             ThrowIfEncryptedXrefStream(map);

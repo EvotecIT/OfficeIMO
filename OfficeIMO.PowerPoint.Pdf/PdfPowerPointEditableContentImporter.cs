@@ -376,8 +376,9 @@ public static partial class PowerPointPdfConverterExtensions {
     private static bool CanReconstructEditableTextBlock(
         PdfCore.PdfLogicalTextBlock block,
         double pageHeight) =>
-        block.VisualBounds != null ||
-        (block.Spans.Count > 0 && block.Spans.All(span => span.CanProjectCompleteText(pageHeight)));
+        block.Spans.Count == 0
+            ? block.VisualBounds != null
+            : block.Spans.All(span => span.CanProjectCompleteText(pageHeight));
 
     private static void ApplyEditableTextRuns(
         PptCore.PowerPointTextBox textBox,

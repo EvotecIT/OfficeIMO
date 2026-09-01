@@ -253,7 +253,10 @@ public static class PdfImageExportExtensions {
         return PdfImageExportEngine.Export(
             token => {
                 token.ThrowIfCancellationRequested();
-                PdfReadDocument document = PdfReadDocument.Open(conversion.ToBytes());
+                PdfReadDocument document = PdfReadDocument.Open(
+                    conversion.ToBytes(),
+                    options: null,
+                    cancellationToken: token);
                 token.ThrowIfCancellationRequested();
                 return document;
             },

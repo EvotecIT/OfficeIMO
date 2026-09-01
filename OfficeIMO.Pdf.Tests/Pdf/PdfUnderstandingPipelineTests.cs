@@ -417,7 +417,7 @@ public class PdfUnderstandingPipelineTests {
 
         PdfTextSpan pageRun = Assert.Single(page.DecodedRuns, static run => run.Text == "Page heading");
         PdfTextSpan formRun = Assert.Single(page.DecodedRuns, static run => run.Text == "Form paragraph");
-        Assert.Null(pageRun.ContentStreamObjectNumber);
+        Assert.Equal(4, pageRun.ContentStreamObjectNumber);
         Assert.Equal(6, formRun.ContentStreamObjectNumber);
         PdfMarkedContentReference formReference = Assert.Single(
             result.TaggedContent!.StructureElements,
@@ -607,16 +607,54 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void Pipeline_WorkBudgetAcceptsExactLimitAndRejectsNextUnit() {
+    public void Pipeline_WorkBudgetRejectsAStageChargeAboveTheLimit() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
-        PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10));
+        PdfDocumentReadResult accepted = Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 100));
         Assert.Single(accepted.Pages);
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(11), 10)));
+            Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(101), 100)));
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(100, exception.Limit);
+        Assert.Equal(101, exception.Actual);
+    }
+
+    [Fact]
+    public void LogicalProjection_SharesThePipelinePageWorkBudget() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(10), 10)));
+
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(10, exception.Limit);
         Assert.Equal(11, exception.Actual);
+    }
+
+    [Fact]
+    public void TextSimilarity_ChargesEveryEditDistanceCell() {
+        long consumed = 0;
+
+        double similarity = PdfTextSimilarity.NormalizedSimilarity(
+            "abc",
+            "axc",
+            units => consumed += units);
+
+        Assert.Equal(2D / 3D, similarity, precision: 8);
+        Assert.Equal(9, consumed);
+    }
+
+    [Fact]
+    public void CanceledSourceParse_DoesNotPoisonTheCanonicalParseCache() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("retry after cancellation")).ToBytes();
+        PdfDocumentSource source = PdfDocumentSource.FromCallerBytes(pdf, options: null);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            source.Read(cancellationToken: cancellation.Token));
+
+        Assert.Single(source.Read().Pages);
     }
 
     [Fact]
@@ -1485,7 +1523,8 @@ public class PdfUnderstandingPipelineTests {
             BuildStreamBody("/Type /XObject /Subtype /Form /BBox [0 0 612 792] /StructParent 1 " +
                 "/Resources << /Font << /F1 5 0 R >> >>", formContent),
             "<< /Type /StructTreeRoot /K [8 0 R 9 0 R] /ParentTree 10 0 R /ParentTreeNextKey 2 >>",
-            "<< /Type /StructElem /S /H1 /P 7 0 R /Pg 3 0 R /K 0 >>",
+            "<< /Type /StructElem /S /H1 /P 7 0 R /Pg 3 0 R " +
+                "/K << /Type /MCR /Pg 3 0 R /Stm 4 0 R /MCID 0 >> >>",
             "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R " +
                 "/K << /Type /MCR /Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");

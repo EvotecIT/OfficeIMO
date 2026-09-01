@@ -155,7 +155,8 @@ public sealed partial class PdfReadPage {
         double pageHeight = GetPageSize().Height;
         var pageContentBudget = new PageContentBudget(this);
 
-        string content = GetContentStreamContent(pageContentBudget);
+        PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
+        string content = contentSequence.Content;
         if (content.Length > 0) {
             CollectTextAndForms(
                 content,
@@ -168,6 +169,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 includeArtifactText: includeArtifactText,
                 pageContentBudget: pageContentBudget,
+                contentStreamObjectNumberAtOffset: contentSequence.GetObjectNumber,
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
                     : null);
@@ -494,7 +496,8 @@ public sealed partial class PdfReadPage {
         bool mayContainForms = MayContainFormXObjects(pageResources);
         System.Text.StringBuilder? content = mayContainForms ? new System.Text.StringBuilder() : null;
         bool canInspectFormInvocations = mayContainForms;
-        foreach (var stream in GetContentStreamObjects()) {
+        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
+            PdfStream stream = entry.Stream;
             AddUnsupportedFilters(stream, unsupported);
             if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
                 canInspectFormInvocations = false;
@@ -625,6 +628,7 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         int? contentStreamObjectNumber = null,
+        Func<int, int?>? contentStreamObjectNumberAtOffset = null,
         Action? cancellationCheck = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
@@ -694,6 +698,7 @@ public sealed partial class PdfReadPage {
             inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             contentStreamObjectNumber: contentStreamObjectNumber,
+            contentStreamObjectNumberAtOffset: contentStreamObjectNumberAtOffset,
             cancellationCheck: cancellationCheck));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
@@ -778,7 +783,8 @@ public sealed partial class PdfReadPage {
                     invocation.FillColorSelection,
                     invocation.StrokeColorSelection,
                     formObjectNumber,
-                    cancellationCheck);
+                    contentStreamObjectNumberAtOffset: null,
+                    cancellationCheck: cancellationCheck);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1738,23 +1744,33 @@ public sealed partial class PdfReadPage {
     /// Returns decoded page content with stream arrays concatenated in PDF processing order.
     /// </summary>
     private string GetContentStreamContent(PageContentBudget? pageContentBudget = null) {
-        pageContentBudget ??= new PageContentBudget(this);
-        var builder = new System.Text.StringBuilder();
-        foreach (var stream in GetContentStreamObjects()) {
-            builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream)));
-        }
-
-        return builder.ToString();
+        return GetContentStreamSequence(pageContentBudget).Content;
     }
 
-    private List<PdfStream> GetContentStreamObjects() {
-        var result = new List<PdfStream>();
+    private PageContentStreamSequence GetContentStreamSequence(PageContentBudget? pageContentBudget = null) {
+        pageContentBudget ??= new PageContentBudget(this);
+        var builder = new System.Text.StringBuilder();
+        var entries = new List<PageContentStreamOffset>();
+        foreach (PageContentStreamEntry entry in GetContentStreamObjects()) {
+            if (builder.Length > 0) builder.Append('\n');
+            entries.Add(new PageContentStreamOffset(builder.Length, entry.ObjectNumber));
+            builder.Append(PdfEncoding.Latin1GetString(pageContentBudget.Decode(entry.Stream)));
+        }
+
+        return new PageContentStreamSequence(builder.ToString(), entries.ToArray());
+    }
+
+    private List<PageContentStreamEntry> GetContentStreamObjects() {
+        var result = new List<PageContentStreamEntry>();
         var contents = _pageDict.Items.TryGetValue("Contents", out var obj) ? obj : null;
         if (contents is PdfReference r) {
             if (PdfObjectLookup.TryGet(_objects, r, out var ind) && ind.Value is PdfStream s) {
-                result.Add(s);
+                result.Add(new PageContentStreamEntry(s, r.ObjectNumber));
                 return result;
             }
+        } else if (contents is PdfStream directStream) {
+            result.Add(new PageContentStreamEntry(directStream, null));
+            return result;
         }
 
         var contentArray = ResolveArray(contents);
@@ -1766,13 +1782,60 @@ public sealed partial class PdfReadPage {
             if (item is PdfReference rr &&
                 PdfObjectLookup.TryGet(_objects, rr, out var ind2) &&
                 ind2.Value is PdfStream s2) {
-                result.Add(s2);
+                result.Add(new PageContentStreamEntry(s2, rr.ObjectNumber));
             } else if (item is PdfStream directStream) {
-                result.Add(directStream);
+                result.Add(new PageContentStreamEntry(directStream, null));
             }
         }
 
         return result;
+    }
+
+    internal bool IsPageContentStreamObjectNumber(int? objectNumber) {
+        if (!objectNumber.HasValue) return true;
+        List<PageContentStreamEntry> streams = GetContentStreamObjects();
+        for (int index = 0; index < streams.Count; index++) {
+            if (streams[index].ObjectNumber == objectNumber) return true;
+        }
+        return false;
+    }
+
+    private readonly struct PageContentStreamEntry {
+        internal PageContentStreamEntry(PdfStream stream, int? objectNumber) {
+            Stream = stream;
+            ObjectNumber = objectNumber;
+        }
+
+        internal PdfStream Stream { get; }
+        internal int? ObjectNumber { get; }
+    }
+
+    private readonly struct PageContentStreamOffset {
+        internal PageContentStreamOffset(int startOffset, int? objectNumber) {
+            StartOffset = startOffset;
+            ObjectNumber = objectNumber;
+        }
+
+        internal int StartOffset { get; }
+        internal int? ObjectNumber { get; }
+    }
+
+    private sealed class PageContentStreamSequence {
+        private readonly PageContentStreamOffset[] _offsets;
+
+        internal PageContentStreamSequence(string content, PageContentStreamOffset[] offsets) {
+            Content = content;
+            _offsets = offsets;
+        }
+
+        internal string Content { get; }
+
+        internal int? GetObjectNumber(int operatorOffset) {
+            for (int index = _offsets.Length - 1; index >= 0; index--) {
+                if (operatorOffset >= _offsets[index].StartOffset) return _offsets[index].ObjectNumber;
+            }
+            return null;
+        }
     }
 
     private static bool ContainsFilter(List<string> filters, string filterName) {

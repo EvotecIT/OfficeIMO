@@ -32,7 +32,7 @@ internal static partial class PdfPageImageRenderer {
             byte[] pdf = getPdf();
             Guard.NotNull(pdf, nameof(pdf));
             execution.Token.ThrowIfCancellationRequested();
-            PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+            PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, execution.Token);
             execution.Token.ThrowIfCancellationRequested();
             int[] pages = resolvePages(document.Pages.Count);
             execution.Token.ThrowIfCancellationRequested();

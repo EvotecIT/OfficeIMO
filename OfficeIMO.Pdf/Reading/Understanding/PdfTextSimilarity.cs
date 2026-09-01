@@ -43,7 +43,12 @@ internal static class PdfTextSimilarity {
         return result.ToString().Trim();
     }
 
-    internal static double NormalizedSimilarity(string left, string right) {
+    internal static double NormalizedSimilarity(
+        string left,
+        string right,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
         if (string.Equals(left, right, StringComparison.Ordinal)) return 1D;
         if (left.Length == 0 || right.Length == 0) return 0D;
         if (left.Length > MaximumSignatureLength) left = left.Substring(0, MaximumSignatureLength);
@@ -52,6 +57,8 @@ internal static class PdfTextSimilarity {
         int[] previous = Enumerable.Range(0, left.Length + 1).ToArray();
         int[] current = new int[left.Length + 1];
         for (int row = 1; row <= right.Length; row++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(left.Length);
             current[0] = row;
             for (int column = 1; column <= left.Length; column++) {
                 int substitution = previous[column - 1] + (left[column - 1] == right[row - 1] ? 0 : 1);
@@ -59,6 +66,7 @@ internal static class PdfTextSimilarity {
             }
             (previous, current) = (current, previous);
         }
+        cancellationCheck?.Invoke();
         return 1D - (double)previous[left.Length] / Math.Max(left.Length, right.Length);
     }
 }

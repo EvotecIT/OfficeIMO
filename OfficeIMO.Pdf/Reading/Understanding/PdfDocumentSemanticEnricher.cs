@@ -61,7 +61,9 @@ internal static class PdfDocumentSemanticEnricher {
                 readingOrder,
                 readingOrderEvidence,
                 elements[pageIndex].AsReadOnly(),
-                page.Trace);
+                page.Trace,
+                page.ConsumeWork,
+                page.CancellationCheck);
         }
         return Array.AsReadOnly(result);
     }
@@ -137,7 +139,11 @@ internal static class PdfDocumentSemanticEnricher {
                     Math.Abs(left.NormalizedWidth - right.NormalizedWidth) > 0.12D) continue;
                 if (left.RequiresExactSignature || right.RequiresExactSignature) {
                     if (!string.Equals(left.Signature, right.Signature, StringComparison.Ordinal)) continue;
-                } else if (PdfTextSimilarity.NormalizedSimilarity(left.Signature, right.Signature) < 0.8D) {
+                } else if (PdfTextSimilarity.NormalizedSimilarity(
+                    left.Signature,
+                    right.Signature,
+                    workBudget.Consume,
+                    workBudget.ThrowIfCancellationRequested) < 0.8D) {
                     continue;
                 }
                 Union(parent, leftIndex, rightIndex);
@@ -191,7 +197,9 @@ internal static class PdfDocumentSemanticEnricher {
                         if (usedLines.Contains(key)) continue;
                         double score = PdfTextSimilarity.NormalizedSimilarity(
                             PdfTextSimilarity.NormalizeSignaturePreservingDigits(line.Text),
-                            outlineText);
+                            outlineText,
+                            workBudget.Consume,
+                            workBudget.ThrowIfCancellationRequested);
                         if (score < 0.9D) continue;
                         var current = new OutlineLineCandidate(
                             element,
@@ -255,6 +263,7 @@ internal static class PdfDocumentSemanticEnricher {
         }
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             int pageNumber = pageNumbers[pageIndex];
+            PdfReadPage readPage = document.Pages[pageNumber - 1];
             var rolesByMarkedContent = new Dictionary<MarkedContentKey, List<string>>();
             foreach (PdfStructureElementInfo structureElement in tagged.StructureElements) {
                 if (structureElement.MarkedContentReferences.Count == 0) continue;
@@ -293,8 +302,7 @@ internal static class PdfDocumentSemanticEnricher {
                     if (markedContent.Length == 0) continue;
                     workBudget.Consume(markedContent.Length);
                     TaggedRole? bestRole = markedContent
-                        .Where(rolesByMarkedContent.ContainsKey)
-                        .SelectMany(key => rolesByMarkedContent[key])
+                        .SelectMany(GetRoles)
                         .Select(TryMapTaggedRole)
                         .Where(static role => role.HasValue)
                         .OrderBy(static role => role!.Value.Priority)
@@ -325,6 +333,19 @@ internal static class PdfDocumentSemanticEnricher {
                 }
             }
             elements[pageIndex] = enriched;
+
+            IEnumerable<string> GetRoles(MarkedContentKey key) {
+                if (rolesByMarkedContent.TryGetValue(key, out List<string>? exactRoles)) {
+                    for (int index = 0; index < exactRoles.Count; index++) yield return exactRoles[index];
+                    yield break;
+                }
+                if (!key.ContentStreamObjectNumber.HasValue ||
+                    !readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) yield break;
+                var pageKey = new MarkedContentKey(null, key.MarkedContentId);
+                if (rolesByMarkedContent.TryGetValue(pageKey, out List<string>? pageRoles)) {
+                    for (int index = 0; index < pageRoles.Count; index++) yield return pageRoles[index];
+                }
+            }
         }
     }
 

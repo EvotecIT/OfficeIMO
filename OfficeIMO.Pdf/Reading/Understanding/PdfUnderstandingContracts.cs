@@ -207,8 +207,29 @@ public sealed class PdfUnderstandingStageTrace {
 
 /// <summary>All intermediate and final artifacts for one page.</summary>
 public sealed class PdfUnderstandingPageResult {
-    internal PdfUnderstandingPageResult(int pageNumber, IReadOnlyList<PdfTextSpan> runs, IReadOnlyList<PdfUnderstandingWord> words, IReadOnlyList<PdfUnderstandingLine> lines, IReadOnlyList<PdfUnderstandingRegion> regions, IReadOnlyList<PdfUnderstandingRegion> readingOrder, IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence, IReadOnlyList<PdfUnderstandingSemanticElement> elements, IReadOnlyList<PdfUnderstandingStageTrace> trace) {
-        PageNumber = pageNumber; DecodedRuns = runs; Words = words; Lines = lines; Regions = regions; ReadingOrder = readingOrder; ReadingOrderEvidence = readingOrderEvidence; Elements = elements; Trace = trace;
+    internal PdfUnderstandingPageResult(
+        int pageNumber,
+        IReadOnlyList<PdfTextSpan> runs,
+        IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines,
+        IReadOnlyList<PdfUnderstandingRegion> regions,
+        IReadOnlyList<PdfUnderstandingRegion> readingOrder,
+        IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence,
+        IReadOnlyList<PdfUnderstandingSemanticElement> elements,
+        IReadOnlyList<PdfUnderstandingStageTrace> trace,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        PageNumber = pageNumber;
+        DecodedRuns = runs;
+        Words = words;
+        Lines = lines;
+        Regions = regions;
+        ReadingOrder = readingOrder;
+        ReadingOrderEvidence = readingOrderEvidence;
+        Elements = elements;
+        Trace = trace;
+        ConsumeWork = consumeWork;
+        CancellationCheck = cancellationCheck;
     }
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
@@ -228,6 +249,8 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
+    internal Action<long>? ConsumeWork { get; }
+    internal Action? CancellationCheck { get; }
 
     internal static PdfUnderstandingPageResult Empty(int pageNumber) => new PdfUnderstandingPageResult(
         pageNumber,
