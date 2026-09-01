@@ -9,6 +9,8 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
 
+Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `OfficeIMO.Word.Legacy` or `OfficeIMO.Excel.Legacy`. Their public namespaces and types now ship from `OfficeIMO.Word` and `OfficeIMO.Excel`; there are no separate 3.3 legacy packages. Do not retain an earlier preview package alongside the 3.3 main package because the duplicate fully qualified types can cause `CS0433` compile errors.
+
 ## OfficeIMO 3.3: opt-in Apple iWork adapters
 
 `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` no longer depend on `OfficeIMO.IWork`. Applications that import Apple Pages, Numbers, or Keynote files must reference the matching adapter package explicitly:

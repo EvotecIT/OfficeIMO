@@ -9,7 +9,7 @@
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42248
+    "conceptualWordCount": 42275
   },
   "categories": [
     {
@@ -352,7 +352,7 @@
       "description": "Opt-in Apple Numbers to OfficeIMO Excel conversion adapter with bounded source and loss reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": null,
@@ -885,7 +885,7 @@
       "description": "Opt-in Apple Keynote to OfficeIMO PowerPoint conversion adapter with bounded source and loss reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint.IWork/OfficeIMO.PowerPoint.IWork.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": null,
@@ -1444,7 +1444,7 @@
       "description": "Opt-in Apple Pages to OfficeIMO Word conversion adapter with bounded source and loss reports.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.IWork/OfficeIMO.Word.IWork.csproj",
-      "sourceFileCount": 2,
+      "sourceFileCount": 3,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/iwork/",
       "apiUrl": null,

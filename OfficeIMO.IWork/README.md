@@ -35,13 +35,12 @@ foreach (IWorkArchiveRecord record in report.UnsupportedRecords) {
 }
 ```
 
-Path and stream entry points use the same bounded parser. Streams require an explicit `IWorkDocumentKind` because they have no reliable filename:
+Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:
 
 ```csharp
 using FileStream stream = File.OpenRead("budget.numbers");
 IWorkSourceDocument source = IWorkSourceDocument.Open(
     stream,
-    IWorkDocumentKind.Numbers,
     new IWorkReadOptions {
         MaximumPackageBytes = 64 * 1024 * 1024,
         MaximumArchiveReferenceCount = 1_000_000,
@@ -53,6 +52,8 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
 
 IWorkNumbersProjection workbook = source.ReadNumbers();
 ```
+
+The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
 
 ## Opt in to an Office destination adapter
 
@@ -74,7 +75,7 @@ Advanced charts, vector effects, animations, comments/change tracking, masks/cro
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
-`Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
+All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 ## Preservation and authoring boundary
 
