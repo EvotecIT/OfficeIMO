@@ -112,6 +112,49 @@ namespace OfficeIMO.Internal {
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
         }
 
+        internal static SafeFileHandle OpenDirectoryForIdentity(string path, out string physicalPath) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            string fullPath = Path.GetFullPath(path);
+            SafeFileHandle handle;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                handle = OpenWindowsDirectoryForIdentity(fullPath);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                       RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                handle = OpenUnixDirectoryForIdentity(fullPath);
+            } else {
+                throw new PlatformNotSupportedException("Directory identity is not supported on this platform.");
+            }
+            try {
+                physicalPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? GetWindowsFinalPath(handle)
+                    : GetUnixOpenedPath(handle) ?? ResolvePhysicalPath(fullPath);
+                EnsurePathMatchesOpenedDirectory(fullPath, handle);
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
+        internal static void EnsurePathMatchesOpenedDirectory(string path, SafeFileHandle handle) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            OfficeFileMetadata opened = GetMetadata(path, handle);
+            if (!opened.IsDirectory) {
+                throw new InvalidDataException("The opened filesystem entry is not a directory.");
+            }
+            try {
+                OfficeFileMetadata current = GetMetadata(path);
+                if (!current.IsDirectory || !AreIdentitiesEquivalent(current.Identity, opened.Identity)) {
+                    throw new InvalidDataException("The source directory changed while it was being read.");
+                }
+            } catch (InvalidDataException) {
+                throw;
+            } catch (Exception exception) when (exception is IOException ||
+                                                 exception is UnauthorizedAccessException) {
+                throw new InvalidDataException("The source directory changed while it was being read.", exception);
+            }
+        }
+
         internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize) {
             if (path == null) throw new ArgumentNullException(nameof(path));
             if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));

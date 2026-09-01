@@ -1,5 +1,6 @@
 using OfficeIMO.Excel;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -1276,10 +1277,10 @@ public sealed partial class IWorkBoundaryTests {
         if (includeBody) records.Add(ArchiveRecord(bodyId, 2001, Message(
             bodyBytes != null ? BytesField(3, bodyBytes) : StringField(3, bodyText))));
         if (textBox != null) {
-            var shapeFields = new List<byte[]>();
-            if (textBoxDrawable != null) {
-                shapeFields.Add(BytesField(1, Message(BytesField(1, textBoxDrawable))));
-            }
+            byte[] drawable = EnsureDrawableGeometry(textBoxDrawable);
+            var shapeFields = new List<byte[]> {
+                BytesField(1, Message(BytesField(1, drawable)))
+            };
             shapeFields.Add(ReferenceField(2, shapeStorageId));
             if (duplicateTextBoxStorageField) shapeFields.Add(ReferenceField(2, shapeStorageId));
             if (alternateTextBox != null) shapeFields.Add(ReferenceField(4, alternateShapeStorageId));
@@ -1363,6 +1364,16 @@ public sealed partial class IWorkBoundaryTests {
         Message(BytesField(1, Message(
             BytesField(1, Message(FloatField(1, left), FloatField(2, top))),
             BytesField(2, Message(FloatField(1, width), FloatField(2, height))))));
+
+    private static byte[] EnsureDrawableGeometry(byte[]? drawable) {
+        byte[] fields = drawable ?? Array.Empty<byte>();
+        try {
+            if (IWorkProtobuf.Parse(fields, new IWorkReadOptions()).HasField(1)) return fields;
+        } catch (InvalidDataException) {
+            return fields;
+        }
+        return Message(GeometryDrawable(10f, 10f, 100f, 50f), fields);
+    }
 
     private static byte[] PageLayoutFields(float topMargin) => Message(
         FloatField(30, 612f), FloatField(31, 792f), FloatField(32, 72f),

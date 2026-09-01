@@ -41,10 +41,8 @@ internal static class IWorkContainerReader {
     }
 
     private static IWorkPackageData ReadDirectory(string path, IWorkReadOptions options) {
-        if ((File.GetAttributes(path) & FileAttributes.ReparsePoint) != 0) {
-            throw new InvalidDataException("Directory bundles cannot be symbolic links or reparse points.");
-        }
-        string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(path);
+        using var rootHandle = OfficePathIdentity.OpenDirectoryForIdentity(path,
+            out string physicalRoot);
         string root = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
@@ -57,9 +55,15 @@ internal static class IWorkContainerReader {
             : StringComparison.Ordinal;
         while (directories.Count > 0) {
             string directory = directories.Pop();
-            foreach (string fileSystemEntry in Directory.EnumerateFileSystemEntries(directory, "*", SearchOption.TopDirectoryOnly)) {
+            OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
+            string[] fileSystemEntries = Directory.EnumerateFileSystemEntries(
+                directory, "*", SearchOption.TopDirectoryOnly).ToArray();
+            OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
+            foreach (string fileSystemEntry in fileSystemEntries) {
                 EnforceEntryCount(ref nodeCount, options);
+                OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 FileAttributes attributes = File.GetAttributes(fileSystemEntry);
+                OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 if ((attributes & FileAttributes.ReparsePoint) != 0) {
                     throw new InvalidDataException($"Directory bundles cannot contain symbolic-link entries: {fileSystemEntry}.");
                 }
@@ -86,10 +90,12 @@ internal static class IWorkContainerReader {
                 using (FileStream input = OfficePathIdentity.OpenRegularFileForRead(full, physicalRoot, 81920)) {
                     bytes = ReadBounded(input, readLimit, relative);
                 }
+                OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);
                 AddEntry(entries, relative, bytes);
             }
         }
+        OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         ExpandNestedIndex(entries, ref total, ref nodeCount, options);
         return new IWorkPackageData(IWorkContainerKind.DirectoryBundle,
             entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());

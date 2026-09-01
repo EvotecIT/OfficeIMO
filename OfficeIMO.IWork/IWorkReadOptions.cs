@@ -74,6 +74,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of projected images across one iWork source.</summary>
     public int MaximumProjectedImages { get; set; } = 4096;
 
+    /// <summary>Gets or sets the maximum number of package image-metadata entries decoded across one iWork source.</summary>
+    public int MaximumImageMetadataEntries { get; set; } = 16_384;
+
     /// <summary>Gets or sets the maximum combined encoded image bytes emitted by one semantic projection, counting repeated uses.</summary>
     public long MaximumProjectedImageBytes { get; set; } = 512L * 1024 * 1024;
 
@@ -127,6 +130,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));
         ValidatePositive(MaximumProjectedImages, nameof(MaximumProjectedImages));
+        ValidatePositive(MaximumImageMetadataEntries, nameof(MaximumImageMetadataEntries));
         ValidatePositive(MaximumProjectedImageBytes, nameof(MaximumProjectedImageBytes));
         ValidatePositive(MaximumTableMergedRanges, nameof(MaximumTableMergedRanges));
         ValidatePositive(MaximumFormulaNodes, nameof(MaximumFormulaNodes));

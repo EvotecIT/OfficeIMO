@@ -481,19 +481,11 @@ internal static class IWorkKeynoteReader {
                 }
             }
             bool geometryComplete = true;
+            bool hasDeclaredGeometry = drawableMessage?.HasField(1) == true;
             IWorkGeometry? geometry = drawableMessage == null
                 ? null
                 : IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete,
-                    requirePositiveSize: true);
-            if (drawableMessage != null && !geometryComplete) {
-                supportsEditableReconstruction = false;
-                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
-                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                        "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
-                        "A Keynote drawable contains malformed geometry; editable reconstruction is incomplete.",
-                        drawable.EntryPath, drawable.Identifier));
-                }
-            }
+                    requirePositiveSize: hasDeclaredGeometry);
             if (titlePlaceholder != null && drawable.Identifier == titlePlaceholder.Identifier && title == null) {
                 if (IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedTitleGeometry)
                     is IWorkWireMessage titleGeometry) {
@@ -515,11 +507,15 @@ internal static class IWorkKeynoteReader {
                 }
                 if (text.PlainText.Length == 0 && hyperlink == null
                     && accessibilityDescription == null) continue;
+                if (!geometryComplete) {
+                    MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                }
                 if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
                 title = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 drawables.Add(new IWorkKeynoteDrawable(title, isTitlePlaceholder: true));
             } else {
-                if (bodyPlaceholder?.Identifier == drawable.Identifier) {
+                bool isBodyPlaceholder = bodyPlaceholder?.Identifier == drawable.Identifier;
+                if (isBodyPlaceholder) {
                     IWorkWireMessage? bodyGeometry = IWorkObjectIndex.TryGetMessage(
                         message, 14, out bool malformedBodyGeometry);
                     if (bodyGeometry != null) {
@@ -542,6 +538,10 @@ internal static class IWorkKeynoteReader {
                 }
                 if (text.PlainText.Length == 0 && hyperlink == null
                     && accessibilityDescription == null) continue;
+                if (!geometryComplete || !isBodyPlaceholder
+                    && !IWorkDrawingReader.HasPositiveSize(geometry)) {
+                    MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                }
                 if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
                 var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
                 textBoxes.Add(textBox);

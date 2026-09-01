@@ -218,17 +218,6 @@ internal static class IWorkNumbersReader {
                         projectionBudget, ref metadataComplete);
                     string? accessibilityDescription = IWorkDrawingReader.ReadOptionalString(
                         drawableMessage, 8, projectionBudget, ref metadataComplete);
-                    if (!drawableComplete || !geometryComplete || !metadataComplete || hyperlink != null
-                        || accessibilityDescription != null) {
-                        supportsEditableReconstruction = false;
-                        if (!diagnostics.Any(diagnostic =>
-                                diagnostic.Code == "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED")) {
-                            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                                "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED",
-                                "A Numbers text shape contains malformed or unsupported drawable metadata; editable reconstruction is incomplete.",
-                                drawable.EntryPath, drawable.Identifier));
-                        }
-                    }
                     bool storageReferenceComplete = storageOwner != null
                         && storageOwner.FieldCount(2) == 1
                         && !storageOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
@@ -252,6 +241,19 @@ internal static class IWorkNumbersReader {
                                     "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED",
                                     "A Numbers text storage contains an invalid UTF-8 run; editable reconstruction is incomplete.",
                                     storage.EntryPath, storage.Identifier));
+                            }
+                        }
+                        if (text.Length > 0 || hyperlink != null || accessibilityDescription != null) {
+                            if (!drawableComplete || !geometryComplete || !metadataComplete || hyperlink != null
+                                || accessibilityDescription != null) {
+                                supportsEditableReconstruction = false;
+                                if (!diagnostics.Any(diagnostic =>
+                                        diagnostic.Code == "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED")) {
+                                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                                        "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED",
+                                        "A Numbers text shape contains malformed or unsupported drawable metadata; editable reconstruction is incomplete.",
+                                        drawable.EntryPath, drawable.Identifier));
+                                }
                             }
                         }
                         if (text.Length > 0) {
@@ -449,15 +451,11 @@ internal static class IWorkNumbersReader {
             return CreateTable();
         }
 
-        int remainingMaterializedCells = source.Options.MaximumMaterializedCells - materializedCellCount;
-        int remainingCatalogEntries = projectionBudget.RemainingTableCatalogEntries;
-        int maximumCatalogEntries = Math.Min(remainingMaterializedCells, remainingCatalogEntries);
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
-            projectionBudget, source.Options, maximumCatalogEntries,
+            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool stringStorageComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
-            projectionBudget, source.Options,
-            Math.Min(remainingMaterializedCells, projectionBudget.RemainingTableCatalogEntries),
+            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;

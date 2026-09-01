@@ -47,6 +47,7 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
         MaximumArchiveReferenceCount = 1_000_000,
         MaximumMaterializedCells = 1_000_000,
         MaximumTableCatalogEntries = 100_000,
+        MaximumImageMetadataEntries = 16_384,
         MaximumFormulaRenderingOperations = 64L * 1024 * 1024
     });
 

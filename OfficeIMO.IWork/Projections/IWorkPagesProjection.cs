@@ -304,15 +304,6 @@ internal static class IWorkPagesReader {
                 ? null
                 : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete,
                     requirePositiveSize: true);
-            if (drawable != null && !geometryComplete) {
-                supportsEditableReconstruction = false;
-                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
-                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                        "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
-                        "A Pages drawable contains malformed geometry; editable reconstruction is incomplete.",
-                        shape.EntryPath, shape.Identifier));
-                }
-            }
             bool metadataComplete = true;
             string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawable, 4,
                 projectionBudget, ref metadataComplete);
@@ -329,6 +320,15 @@ internal static class IWorkPagesReader {
             }
             if (text.PlainText.Length == 0 && hyperlink == null
                 && accessibilityDescription == null) continue;
+            if (!geometryComplete || !IWorkDrawingReader.HasPositiveSize(geometry)) {
+                supportsEditableReconstruction = false;
+                if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                        "A Pages drawable contains malformed geometry; editable reconstruction is incomplete.",
+                        shape.EntryPath, shape.Identifier));
+                }
+            }
             if (text.Paragraphs.Count == 0) projectionBudget.AddTextItem();
             var textBox = new IWorkTextBox(text, geometry, hyperlink, accessibilityDescription);
             textBoxes.Add(textBox);

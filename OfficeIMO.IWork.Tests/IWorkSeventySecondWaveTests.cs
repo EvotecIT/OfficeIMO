@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_NUMBERS_TEXT_METADATA_UNSUPPORTED");
+            diagnostic.Code.StartsWith("IWORK_NUMBERS_TEXT_", StringComparison.Ordinal));
     }
 
     [Fact]

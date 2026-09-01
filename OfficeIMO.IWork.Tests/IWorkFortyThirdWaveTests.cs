@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         const ulong bodyId = 2;
         const ulong zOrderId = 3;
         const ulong shapeId = 4;
-        byte[] drawable = Message(
+        byte[] drawable = Message(GeometryDrawable(10f, 10f, 100f, 50f),
             StringField(4, "https://example.test/body-alias"),
             StringField(8, "Aliased body text box"));
         byte[] records = Message(

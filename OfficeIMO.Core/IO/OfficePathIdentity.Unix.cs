@@ -55,6 +55,25 @@ namespace OfficeIMO.Internal {
             }
         }
 
+        private static SafeFileHandle OpenUnixDirectoryForIdentity(string path) {
+            int directory = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00100000 : 0x00010000;
+            int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
+            int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+            int descriptor = LinuxOpen(path, directory | closeOnExec | noFollow);
+            if (descriptor < 0) throw UnixIdentityError(path);
+
+            var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+            try {
+                if (!GetUnixMetadata(handle).IsDirectory) {
+                    throw new InvalidDataException("The filesystem entry is not a directory.");
+                }
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
         private static string? GetUnixOpenedPath(SafeFileHandle handle) {
             int descriptor = checked((int)handle.DangerousGetHandle().ToInt64());
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {

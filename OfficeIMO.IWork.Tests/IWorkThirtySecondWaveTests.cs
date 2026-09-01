@@ -124,7 +124,9 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(BytesField(1, Message(StringField(8, "First"))))),
             ReferenceField(2, emptyStorageId));
         byte[] secondShape = Message(
-            BytesField(1, Message(BytesField(1, Message(StringField(8, "Second"))))),
+            BytesField(1, Message(BytesField(1,
+                Message(GeometryDrawable(10f, 10f, 100f, 50f),
+                    StringField(8, "Second"))))),
             ReferenceField(2, emptyStorageId));
         byte[] records = Message(
             ArchiveRecord(documentId, 10000, Message(ReferenceField(4, bodyId)),
@@ -149,7 +151,9 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(BytesField(1, Message(StringField(8, "First"))))),
             ReferenceField(2, emptyStorageId));
         byte[] secondShape = Message(
-            BytesField(1, Message(BytesField(1, Message(StringField(8, "Second"))))),
+            BytesField(1, Message(BytesField(1,
+                Message(GeometryDrawable(10f, 10f, 100f, 50f),
+                    StringField(8, "Second"))))),
             ReferenceField(2, emptyStorageId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),

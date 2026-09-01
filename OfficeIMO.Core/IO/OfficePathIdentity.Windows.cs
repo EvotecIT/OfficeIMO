@@ -29,6 +29,32 @@ namespace OfficeIMO.Internal {
             }
         }
 
+        private static SafeFileHandle OpenWindowsDirectoryForIdentity(string path) {
+            SafeFileHandle handle = CreateFile(path, 0,
+                FileShare.Read | FileShare.Write | FileShare.Delete,
+                IntPtr.Zero, OpenExisting,
+                FileFlagBackupSemantics | FileFlagOpenReparsePoint, IntPtr.Zero);
+            if (handle.IsInvalid) {
+                handle.Dispose();
+                throw WindowsIdentityError(path, "open");
+            }
+            try {
+                if (!GetFileInformationByHandle(handle, out ByHandleFileInformation information)) {
+                    throw WindowsIdentityError(path, "inspect");
+                }
+                if ((information.FileAttributes & FileAttributeDirectory) == 0 ||
+                    (information.FileAttributes & FileAttributeReparsePoint) != 0 ||
+                    GetFileType(handle) != FileTypeDisk) {
+                    throw new InvalidDataException("The filesystem entry is not a regular directory.");
+                }
+                _ = GetWindowsMetadata(path, handle);
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
         private const int FileIdInfo = 18;
         private const int FileCaseSensitiveInfo = 23;
         private const uint FileCaseSensitiveDirectory = 0x00000001;

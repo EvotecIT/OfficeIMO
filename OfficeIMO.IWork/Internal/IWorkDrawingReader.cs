@@ -26,12 +26,18 @@ internal static class IWorkDrawingReader {
         complete = !malformedGeometry
             && !drawable.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             && (!drawable.HasField(1) || geometry != null);
-        if (geometry == null) return null;
+        if (geometry == null) {
+            if (requirePositiveSize) complete = false;
+            return null;
+        }
         IWorkGeometry? result = ReadGeometryArchive(geometry, out bool archiveComplete,
             requirePositiveSize);
         if (!archiveComplete || result == null) complete = false;
         return result;
     }
+
+    internal static bool HasPositiveSize(IWorkGeometry? geometry) => geometry != null
+        && geometry.WidthPoints > 0 && geometry.HeightPoints > 0;
 
     internal static IWorkGeometry? ReadGeometryArchive(IWorkWireMessage geometry) {
         return ReadGeometryArchive(geometry, out _);
@@ -218,13 +224,13 @@ internal static class IWorkDrawingReader {
         if (metadata == null) return new Dictionary<ulong, DataEntry>();
         int metadataEntryCount = IWorkProtobuf.CountFields(metadata.Payload, 4,
             source.Options.MaximumProtobufFieldCount);
-        if (metadataEntryCount > source.Options.MaximumProjectedImages) {
+        if (metadataEntryCount > source.Options.MaximumImageMetadataEntries) {
             throw new InvalidDataException(
-                $"iWork image metadata exceeds the configured projection limit of {source.Options.MaximumProjectedImages} entries.");
+                $"iWork image metadata exceeds the configured catalog limit of {source.Options.MaximumImageMetadataEntries} entries.");
         }
         var result = new Dictionary<ulong, DataEntry>();
         IReadOnlyList<IWorkWireMessage> messages = IWorkProtobuf.ParseRepeatedMessages(
-            metadata.Payload, 4, source.Options.MaximumProjectedImages,
+            metadata.Payload, 4, source.Options.MaximumImageMetadataEntries,
             source.Options, out bool malformedEntries);
         metadataComplete = !malformedEntries;
         foreach (IWorkWireMessage message in messages) {

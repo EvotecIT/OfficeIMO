@@ -86,7 +86,9 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(zOrderId, 9000,
                 Message(ReferenceField(1, shapeId)), new[] { shapeId }),
             ArchiveRecord(shapeId, 2011,
-                Message(ReferenceField(2, storageId)), new[] { storageId }));
+                Message(BytesField(1, Message(BytesField(1,
+                            GeometryDrawable(10f, 10f, 100f, 50f)))),
+                    ReferenceField(2, storageId)), new[] { storageId }));
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
