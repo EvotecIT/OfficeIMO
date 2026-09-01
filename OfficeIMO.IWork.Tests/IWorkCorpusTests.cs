@@ -297,8 +297,8 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("Product", table.GetCell(0, 0).Text);
         Assert.Equal("24000", table.GetCell(1, 2).Text);
         Assert.InRange(table.LeftPoints, 94.99d, 95.01d);
-        double expectedWidth = sourceTable.DefaultColumnWidth!.Value * sourceTable.ColumnCount;
-        double expectedHeight = sourceTable.DefaultRowHeight!.Value * sourceTable.RowCount;
+        double expectedWidth = sourceTable.Geometry!.WidthPoints;
+        double expectedHeight = sourceTable.Geometry.HeightPoints;
         Assert.InRange(table.WidthPoints, expectedWidth - 0.001d, expectedWidth + 0.001d);
         Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
 

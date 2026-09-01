@@ -284,6 +284,15 @@ internal static class IWorkNumbersReader {
             if (sheetName != null) projectionBudget.AddTextCharacters(sheetName.Length);
             sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes));
         }
+        if (sheets.Count == 0) {
+            supportsEditableReconstruction = false;
+            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_SHEET_MISSING")) {
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_SHEET_MISSING",
+                    "No supported Numbers sheet was resolved; editable reconstruction is unavailable.",
+                    document.EntryPath, document.Identifier));
+            }
+        }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction);
     }
 
@@ -1014,7 +1023,7 @@ internal static class IWorkNumbersReader {
         }
 
         bool hasConflictingValueFields = type switch {
-            0 => hasDecimal || hasDouble || hasDate || hasString,
+            0 => hasDecimal || hasDouble || hasDate || hasString || hasFormula,
             2 or 10 => hasDecimal && hasDouble || hasDate || hasString,
             3 => hasDecimal || hasDouble || hasDate,
             5 => hasDecimal || hasDouble || hasString,

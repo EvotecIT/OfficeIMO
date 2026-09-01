@@ -115,6 +115,7 @@ internal static class IWorkPdfInfo {
                 SkipHorizontalWhitespace(bytes, ref offset, limit);
                 if (offset >= limit || bytes[offset] != (byte)'n' && bytes[offset] != (byte)'f') return false;
                 bool inUse = bytes[offset++] == (byte)'n';
+                if (generation > (inUse ? 65534 : 65535)) return false;
                 if (!ConsumeLineEnd(bytes, ref offset, limit)) return false;
                 long objectNumber = checked(firstObject + index);
                 if (!tableObjects.Add(objectNumber)) return false;
@@ -191,6 +192,7 @@ internal static class IWorkPdfInfo {
         if (!TryReadDecimal(bytes, ref offset, end, out objectNumber)) return false;
         SkipWhitespace(bytes, ref offset, end);
         if (!TryReadDecimal(bytes, ref offset, end, out generation)) return false;
+        if (generation > 65534) return false;
         SkipWhitespace(bytes, ref offset, end);
         if (offset >= end || bytes[offset++] != (byte)'R') return false;
         return offset >= end || IsDelimiter(bytes[offset]);
@@ -429,6 +431,7 @@ internal static class IWorkPdfInfo {
             if (!TryReadDecimal(bytes, ref offset, end, out long objectNumber)) return false;
             SkipWhitespace(bytes, ref offset, end);
             if (!TryReadDecimal(bytes, ref offset, end, out long generation)) return false;
+            if (generation > 65534) return false;
             SkipWhitespace(bytes, ref offset, end);
             if (offset >= end || bytes[offset++] != (byte)'R'
                 || objectNumber <= 0 || result.Count >= 1_000_000) return false;

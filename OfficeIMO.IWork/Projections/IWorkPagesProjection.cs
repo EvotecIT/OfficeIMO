@@ -472,8 +472,9 @@ internal static class IWorkPagesReader {
                     if (malformedEntries) complete = false;
                     foreach (IWorkWireMessage entry in entries) {
                         IWorkArchiveRecord? record = index.Dereference(entry, 1);
-                        if (entry.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                            || entry.HasField(1) && record == null) complete = false;
+                        if (entry.FieldCount(1) != 1
+                            || entry.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
+                            || record == null) complete = false;
                         else if (record != null) {
                             if (!fieldOccurrences.Add(record.Identifier)) complete = false;
                             if (pages.TryGetValue(record.Identifier, out int existingPageIndex)

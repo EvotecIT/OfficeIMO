@@ -258,19 +258,22 @@ public sealed partial class IWorkBoundaryTests {
         bool omitPageEndObject = false, bool trailCatalogDictionary = false,
         bool trailPagesDictionary = false, bool trailPageDictionary = false,
         bool commentCatalogDictionary = false, bool omitMediaBox = false,
-        string trailerPrefix = "", string trailerSuffix = "") {
+        string trailerPrefix = "", string trailerSuffix = "", int generation = 0) {
         const string header = "%PDF-1.4\n";
-        string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\n"
+        string generationText = generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string xrefGeneration = generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture);
+        string catalog = "1 " + generationText + " obj\n<< /Type /Catalog /Pages 2 "
+            + generationText + " R >>\n"
             + (trailCatalogDictionary ? "42\n" : string.Empty)
             + (commentCatalogDictionary ? "% valid comment\n" : string.Empty)
             + (omitCatalogEndObject ? string.Empty : "endobj\n");
         string pages = validKids
-            ? "2 0 obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [3 0 R] >>\n"
-            : "2 0 obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [] >>\n";
+            ? "2 " + generationText + " obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [3 " + generationText + " R] >>\n"
+            : "2 " + generationText + " obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [] >>\n";
         if (trailPagesDictionary) pages += "42\n";
         if (!omitPagesEndObject) pages += "endobj\n";
-        string page = "3 0 obj\n<< /Type /Page " + pageDictionaryPrefix
-            + "/Parent 2 0 R >>\n"
+        string page = "3 " + generationText + " obj\n<< /Type /Page " + pageDictionaryPrefix
+            + "/Parent 2 " + generationText + " R >>\n"
             + (trailPageDictionary ? "42\n" : string.Empty)
             + (omitPageEndObject ? string.Empty : "endobj\n");
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
@@ -279,11 +282,11 @@ public sealed partial class IWorkBoundaryTests {
         string prefix = header + catalog + pages + page;
         int xrefOffset = Encoding.ASCII.GetByteCount(prefix);
         string suffix = "xref\n0 4\n0000000000 65535 f \n"
-            + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
-            + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
-            + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " 00000 n \n"
+            + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
+            + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
+            + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
             + "trailer\n" + trailerPrefix + "<< " + trailerDictionaryPrefix
-            + "/Size 4 /Root 1 0 R >>" + trailerSuffix + "\nstartxref\n"
+            + "/Size 4 /Root 1 " + generationText + " R >>" + trailerSuffix + "\nstartxref\n"
             + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n%%EOF\n";
         return Encoding.ASCII.GetBytes(prefix + suffix);

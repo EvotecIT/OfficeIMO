@@ -182,6 +182,7 @@ internal sealed class IWorkWireMessage {
 
 internal static class IWorkProtobuf {
     private const string FieldLimitMarker = "OfficeIMO.IWork.ProtobufFieldLimit";
+    private const ulong MaximumFieldNumber = (1UL << 29) - 1;
 
     internal static bool IsFieldLimitException(InvalidDataException exception) =>
         exception.Data.Contains(FieldLimitMarker);
@@ -198,7 +199,7 @@ internal static class IWorkProtobuf {
         while (offset < data.Length) {
             int keyOffset = offset;
             ulong key = ReadVarint(data, ref offset);
-            if (key >> 3 == 0 || key >> 3 > int.MaxValue) {
+            if (key >> 3 == 0 || key >> 3 > MaximumFieldNumber) {
                 throw new InvalidDataException($"Invalid protobuf field number at offset {keyOffset}.");
             }
             int field = (int)(key >> 3);
@@ -253,7 +254,7 @@ internal static class IWorkProtobuf {
         while (offset < data.Length) {
             int keyOffset = offset;
             ulong key = ReadVarint(data, ref offset);
-            if (key >> 3 == 0 || key >> 3 > int.MaxValue) {
+            if (key >> 3 == 0 || key >> 3 > MaximumFieldNumber) {
                 throw new InvalidDataException($"Invalid protobuf field number at offset {keyOffset}.");
             }
             int field = (int)(key >> 3);
@@ -321,7 +322,7 @@ internal static class IWorkProtobuf {
         while (offset < data.Length) {
             int keyOffset = offset;
             ulong key = ReadVarint(data, ref offset);
-            if (key >> 3 == 0 || key >> 3 > int.MaxValue) {
+            if (key >> 3 == 0 || key >> 3 > MaximumFieldNumber) {
                 throw new InvalidDataException($"Invalid protobuf field number at offset {keyOffset}.");
             }
 

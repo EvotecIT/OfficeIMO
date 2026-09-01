@@ -1170,20 +1170,21 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] CreateBncRow(TableSpec table) {
         if (table.CellCrossesNextOffset) return CreateCrossingBncRow(table.Value);
         int cellOffset = table.WideOffsets ? 4 : 0;
-        int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
+        int valueBytes = table.FormulaWithoutCachedValue || table.EmptyCellWithFormula || table.Error ? 0
             : table.ConflictingNumberValue ? 24
             : table.Decimal128HighBit || table.Decimal128Underflow
                 || table.Decimal128SpecialHighByte != 0 ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
-        buffer[cellOffset + 1] = table.Error ? (byte)8
+        buffer[cellOffset + 1] = table.EmptyCellWithFormula ? (byte)0
+            : table.Error ? (byte)8
             : table.FormulaWithoutCachedValue ? (byte)9
             : table.TextValue != null ? (byte)3
             : table.Date ? (byte)5
             : table.Duration ? (byte)7
             : table.Boolean ? (byte)6
             : (byte)2;
-        uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
+        uint valueFlag = table.FormulaWithoutCachedValue || table.EmptyCellWithFormula || table.Error ? 0
             : table.TextValue != null ? 1u << 3
             : table.ConflictingNumberValue ? (1u << 0) | (1u << 1)
             : table.Decimal128HighBit || table.Decimal128Underflow
@@ -1193,7 +1194,7 @@ public sealed partial class IWorkBoundaryTests {
         WriteUInt32(buffer, cellOffset + 8, valueFlag
             | (table.HasFormula ? 1u << 9 : 0)
             | (table.UnknownCellValueFlag ? 1u << 21 : 0));
-        if (!table.FormulaWithoutCachedValue && !table.Error) {
+        if (!table.FormulaWithoutCachedValue && !table.EmptyCellWithFormula && !table.Error) {
             if (table.TextValue != null) WriteUInt32(buffer, cellOffset + 12, 1);
             else if (table.ConflictingNumberValue) {
                 buffer[cellOffset + 12] = 1;
@@ -1569,7 +1570,7 @@ public sealed partial class IWorkBoundaryTests {
             bool duplicateRowIndex = false, bool conflictingNumberValue = false,
             byte decimal128SpecialHighByte = 0, bool emptyTile = false,
             bool duplicatePopulatedOffset = false, bool missingStringEntry = false,
-            bool invalidWideOffsetFlag = false) {
+            bool invalidWideOffsetFlag = false, bool emptyCellWithFormula = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1622,6 +1623,7 @@ public sealed partial class IWorkBoundaryTests {
             DuplicatePopulatedOffset = duplicatePopulatedOffset;
             MissingStringEntry = missingStringEntry;
             InvalidWideOffsetFlag = invalidWideOffsetFlag;
+            EmptyCellWithFormula = emptyCellWithFormula;
         }
 
         internal string Name { get; }
@@ -1676,5 +1678,6 @@ public sealed partial class IWorkBoundaryTests {
         internal bool DuplicatePopulatedOffset { get; }
         internal bool MissingStringEntry { get; }
         internal bool InvalidWideOffsetFlag { get; }
+        internal bool EmptyCellWithFormula { get; }
     }
 }

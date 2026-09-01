@@ -152,15 +152,15 @@ public sealed partial class PowerPointPresentation {
         double? rowHeight = source.DefaultRowHeight is > 0
             ? QuantizePositiveEmuPoints(source.DefaultRowHeight.Value)
             : null;
-        double width = columnWidth.HasValue
-            ? columnWidth.Value * source.ColumnCount
-            : QuantizePositiveEmuPoints(source.Geometry is { WidthPoints: > 0 }
-                ? source.Geometry.WidthPoints
+        double width = QuantizePositiveEmuPoints(source.Geometry is { WidthPoints: > 0 }
+            ? source.Geometry.WidthPoints
+            : columnWidth.HasValue
+                ? columnWidth.Value * source.ColumnCount
                 : Math.Max(144d, 72d * source.ColumnCount));
-        double height = rowHeight.HasValue
-            ? rowHeight.Value * source.RowCount
-            : QuantizePositiveEmuPoints(source.Geometry is { HeightPoints: > 0 }
-                ? source.Geometry.HeightPoints
+        double height = QuantizePositiveEmuPoints(source.Geometry is { HeightPoints: > 0 }
+            ? source.Geometry.HeightPoints
+            : rowHeight.HasValue
+                ? rowHeight.Value * source.RowCount
                 : Math.Max(36d, 24d * source.RowCount));
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
@@ -181,12 +181,12 @@ public sealed partial class PowerPointPresentation {
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - 1, merge.LastColumn - 1);
         }
-        if (columnWidth.HasValue) {
+        if (columnWidth.HasValue && source.Geometry is not { WidthPoints: > 0 }) {
             for (int column = 0; column < source.ColumnCount; column++) {
                 table.SetColumnWidthPoints(column, columnWidth.Value);
             }
         }
-        if (rowHeight.HasValue) {
+        if (rowHeight.HasValue && source.Geometry is not { HeightPoints: > 0 }) {
             for (int row = 0; row < source.RowCount; row++) {
                 table.SetRowHeightPoints(row, rowHeight.Value);
             }
@@ -339,12 +339,8 @@ public sealed partial class PowerPointPresentation {
                 double fallbackHeight = table.DefaultRowHeight is > 0
                     ? table.DefaultRowHeight.Value * table.RowCount
                     : Math.Max(36d, 24d * table.RowCount);
-                double projectedWidth = table.DefaultColumnWidth is > 0
-                    ? fallbackWidth
-                    : table.Geometry?.WidthPoints ?? fallbackWidth;
-                double projectedHeight = table.DefaultRowHeight is > 0
-                    ? fallbackHeight
-                    : table.Geometry?.HeightPoints ?? fallbackHeight;
+                double projectedWidth = table.Geometry?.WidthPoints ?? fallbackWidth;
+                double projectedHeight = table.Geometry?.HeightPoints ?? fallbackHeight;
                 if (!FitsPositiveMeasurement(projectedWidth, MaximumPointMeasurement)
                     || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
@@ -396,8 +392,10 @@ public sealed partial class PowerPointPresentation {
 
     private static bool TableSizingRequiresEmuRounding(IWorkTable table) {
         if (table.RowCount <= 0 || table.ColumnCount <= 0) return false;
-        return table.DefaultColumnWidth is > 0 && !IsExactEmu(table.DefaultColumnWidth.Value)
-            || table.DefaultRowHeight is > 0 && !IsExactEmu(table.DefaultRowHeight.Value);
+        return table.Geometry is not { WidthPoints: > 0 }
+                && table.DefaultColumnWidth is > 0 && !IsExactEmu(table.DefaultColumnWidth.Value)
+            || table.Geometry is not { HeightPoints: > 0 }
+                && table.DefaultRowHeight is > 0 && !IsExactEmu(table.DefaultRowHeight.Value);
     }
 
     private static bool IsExactEmu(double points) {

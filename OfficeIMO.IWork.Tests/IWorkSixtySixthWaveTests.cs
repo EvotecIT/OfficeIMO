@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Keynote_table_defaults_override_conflicting_drawable_extents() {
+    public void Keynote_table_geometry_preserves_authored_extent_when_defaults_differ() {
         using MemoryStream package = CreateKeynotePackageWithTableDefaults(
             rows: 2, columns: 2, defaultRowHeight: 5d, defaultColumnWidth: 10d,
             tableDrawable: GeometryDrawable(10f, 20f, 60f, 40f));
@@ -97,10 +97,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(10d, table.LeftPoints, 5);
         Assert.Equal(20d, table.TopPoints, 5);
-        Assert.Equal(20d, table.WidthPoints, 5);
-        Assert.Equal(10d, table.HeightPoints, 5);
-        Assert.Equal(10d, table.GetColumnWidthPoints(0), 5);
-        Assert.Equal(5d, table.GetRowHeightPoints(0), 5);
+        Assert.Equal(60d, table.WidthPoints, 5);
+        Assert.Equal(40d, table.HeightPoints, 5);
+        Assert.Equal(30d, table.GetColumnWidthPoints(0), 5);
+        Assert.Equal(20d, table.GetRowHeightPoints(0), 5);
     }
 
     [Fact]
