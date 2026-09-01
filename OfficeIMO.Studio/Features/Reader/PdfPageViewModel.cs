@@ -54,7 +54,10 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     private PdfEditorTool _editorTool;
 
     [ObservableProperty]
-    private int? _selectedAnnotationObjectNumber;
+    private PdfEditorSelection? _selectedObject;
+
+    [ObservableProperty]
+    private PdfEditorSelectionMode _selectionMode;
 
     [ObservableProperty]
     private Rect? _pendingRedactionArea;
@@ -93,7 +96,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
 
-    internal event Action<PdfEditorSelection?>? AnnotationSelected;
+    internal event Action<PdfEditorSelection?>? ObjectSelected;
 
     internal void AttachToViewport() {
         if (_disposed || _isAttached) return;
@@ -130,7 +133,7 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
 
     internal void CompleteEditorGesture(PdfEditorGesture gesture) => EditorGestureCompleted?.Invoke(gesture);
 
-    internal void SelectAnnotation(PdfEditorSelection? selection) => AnnotationSelected?.Invoke(selection);
+    internal void SelectObject(PdfEditorSelection? selection) => ObjectSelected?.Invoke(selection);
 
     internal async Task EnsureRenderedAsync() {
         if (_disposed || !_isAttached) return;

@@ -6,6 +6,50 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAnnotationCreationTests {
     [Fact]
+    public void MoveAnnotation_TranslatesRectangleAndLineGeometryTogether() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Move annotation")).ToBytes();
+        PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Line",
+            Rectangle = new[] { 40D, 50D, 180D, 100D },
+            Line = new[] { 45D, 55D, 175D, 95D },
+            GenerateAppearance = true
+        });
+        PdfAnnotation annotation = Assert.Single(added.ToDocument().Inspect().GetAnnotationsBySubtype("Line"));
+
+        PdfAnnotationEditResult moved = added.ToDocument().Annotations.Move(annotation.ObjectNumber!.Value, 25D, -10D);
+        PdfAnnotation result = Assert.Single(moved.ToDocument().Inspect().GetAnnotationsBySubtype("Line"));
+
+        Assert.Equal(65D, result.X1, 3);
+        Assert.Equal(40D, result.Y1, 3);
+        Assert.Equal(205D, result.X2, 3);
+        Assert.Equal(90D, result.Y2, 3);
+        Assert.Equal(new[] { 70D, 45D, 200D, 85D }, result.LineCoordinates);
+        Assert.True(result.HasNormalAppearance);
+    }
+
+    [Fact]
+    public void ResizeAnnotation_ScalesRectangleAndMarkupGeometryTogether() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Resize annotation")).ToBytes();
+        PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Highlight",
+            Rectangle = new[] { 40D, 50D, 140D, 70D },
+            QuadPoints = new[] { 40D, 70D, 140D, 70D, 40D, 50D, 140D, 50D },
+            GenerateAppearance = true
+        });
+        PdfAnnotation annotation = Assert.Single(added.ToDocument().Inspect().GetAnnotationsBySubtype("Highlight"));
+
+        PdfAnnotationEditResult resized = added.ToDocument().Annotations.Resize(
+            annotation.ObjectNumber!.Value,
+            new PdfPageRectangle(20D, 30D, 220D, 70D));
+        PdfAnnotation result = Assert.Single(resized.ToDocument().Inspect().GetAnnotationsBySubtype("Highlight"));
+
+        Assert.Equal(200D, result.Width, 3);
+        Assert.Equal(40D, result.Height, 3);
+        Assert.Equal(new[] { 20D, 70D, 220D, 70D, 20D, 30D, 220D, 30D }, result.QuadPoints);
+        Assert.True(result.HasNormalAppearance);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesUriLinkWithReadback() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 

@@ -11,7 +11,7 @@ public sealed partial class PdfPageView : UserControl {
         InitializeComponent();
         PageCanvas.LinkActivated += OnLinkActivated;
         PageCanvas.EditorGestureCompleted += OnEditorGestureCompleted;
-        PageCanvas.AnnotationSelected += OnAnnotationSelected;
+        PageCanvas.ObjectSelected += OnObjectSelected;
         DataContextChanged += OnDataContextChanged;
         AttachedToVisualTree += (_, _) => {
             _attached = true;
@@ -27,7 +27,7 @@ public sealed partial class PdfPageView : UserControl {
 
     private void OnEditorGestureCompleted(PdfEditorGesture gesture) => _viewModel?.CompleteEditorGesture(gesture);
 
-    private void OnAnnotationSelected(PdfEditorSelection? selection) => _viewModel?.SelectAnnotation(selection);
+    private void OnObjectSelected(PdfEditorSelection? selection) => _viewModel?.SelectObject(selection);
 
     private void OnDataContextChanged(object? sender, EventArgs e) {
         UpdateViewModel();

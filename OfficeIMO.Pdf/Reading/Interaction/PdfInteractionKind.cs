@@ -5,6 +5,9 @@ public enum PdfInteractionKind {
     /// <summary>Approximate geometry for one extracted Unicode text element.</summary>
     Text,
 
+    /// <summary>One exact image placement invocation on the page.</summary>
+    Image,
+
     /// <summary>Link annotation hit region.</summary>
     Link,
 

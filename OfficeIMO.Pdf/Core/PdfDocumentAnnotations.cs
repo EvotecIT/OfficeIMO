@@ -8,6 +8,10 @@ public sealed class PdfDocumentAnnotations {
     public PdfAnnotationEditResult Add(PdfAnnotationCreateOptions options) => PdfAnnotationEditor.AddAnnotation(_document.GetBytesForOperation(), options, _document.ReadOptions);
     /// <summary>Updates one indirect annotation.</summary>
     public PdfAnnotationEditResult Update(int objectNumber, PdfAnnotationUpdateOptions options) => PdfAnnotationEditor.UpdateAnnotation(_document.GetBytesForOperation(), objectNumber, options, _document.ReadOptions);
+    /// <summary>Moves one annotation and all supported subtype geometry by a user-space offset.</summary>
+    public PdfAnnotationEditResult Move(int objectNumber, double deltaX, double deltaY) => PdfAnnotationEditor.MoveAnnotation(_document.GetBytesForOperation(), objectNumber, deltaX, deltaY, _document.ReadOptions);
+    /// <summary>Resizes one annotation and proportionally transforms all supported subtype geometry.</summary>
+    public PdfAnnotationEditResult Resize(int objectNumber, PdfPageRectangle rectangle) => PdfAnnotationEditor.ResizeAnnotation(_document.GetBytesForOperation(), objectNumber, rectangle, _document.ReadOptions);
     /// <summary>Adds a reply to one indirect annotation.</summary>
     public PdfAnnotationEditResult AddReply(int parentObjectNumber, string contents, PdfAnnotationReplyOptions? options = null) => PdfAnnotationReviewEditor.AddReply(_document.GetBytesForOperation(), parentObjectNumber, contents, options, _document.ReadOptions);
     /// <summary>Sets the standard review state on one indirect annotation.</summary>

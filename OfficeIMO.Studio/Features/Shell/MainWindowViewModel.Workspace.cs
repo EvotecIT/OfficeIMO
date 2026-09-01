@@ -411,7 +411,7 @@ public sealed partial class MainWindowViewModel {
     private void RefreshWorkspacePresentation(IReadOnlyCollection<int>? organizerSelection = null) {
         if (_workspace is null) return;
         CancelPendingRedaction();
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         int selectedPage = Math.Clamp(SelectedPage?.PageNumber ?? 1, 1, _workspace.Pages.Count);
         PdfDocumentSession session = PdfDocumentSession.FromWorkspace(_workspace);
         var sceneCoordinator = new PageSceneCoordinator(session.LoadPageSceneAsync);
@@ -449,6 +449,9 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanDeleteSelection));
         OnPropertyChanged(nameof(CanEditAnnotations));
         OnPropertyChanged(nameof(CanEditPageContent));
+        OnPropertyChanged(nameof(CanReplaceSelectedText));
+        OnPropertyChanged(nameof(CanReplaceSelectedImage));
+        OnPropertyChanged(nameof(CanResizeSelectedAnnotation));
         OnPropertyChanged(nameof(CanRedact));
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFlattenForms));

@@ -91,7 +91,7 @@ public sealed class MainWindowViewModelTests {
             await viewModel.OpenDocumentAsync(path);
             viewModel.ShowEditModeCommand.Execute(null);
             int objectNumber = Assert.Single(PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
-            viewModel.Pages[0].SelectAnnotation(new PdfEditorSelection(1, objectNumber, "Text"));
+            viewModel.Pages[0].SelectObject(CreateAnnotationSelection(objectNumber));
             Assert.True(viewModel.HasSelectedAnnotation);
             viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Redact);
             viewModel.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1, 36D, 48D, 240D, 92D, Array.Empty<PdfEditorVisualPoint>()));
@@ -126,7 +126,7 @@ public sealed class MainWindowViewModelTests {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await viewModel.OpenDocumentAsync(path);
             int objectNumber = Assert.Single(PdfDocument.Load(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
-            viewModel.Pages[0].SelectAnnotation(new PdfEditorSelection(1, objectNumber, "Text"));
+            viewModel.Pages[0].SelectObject(CreateAnnotationSelection(objectNumber));
             viewModel.SelectedAnnotationContents = "Edited contents";
             viewModel.SelectedAnnotationAuthor = "Edited author";
 
@@ -141,6 +141,13 @@ public sealed class MainWindowViewModelTests {
             Directory.Delete(root, recursive: true);
         }
     }
+
+    private static PdfEditorSelection CreateAnnotationSelection(int objectNumber) => new(
+        PdfEditorSelectionKind.Annotation,
+        1,
+        new PdfEditorVisualBounds(40D, 730D, 60D, 750D),
+        ObjectNumber: objectNumber,
+        Subtype: "Text");
 
     [Fact]
     public async Task AddImagePromptsForEachPlacementAndDoesNotReuseRetainedBytes() {

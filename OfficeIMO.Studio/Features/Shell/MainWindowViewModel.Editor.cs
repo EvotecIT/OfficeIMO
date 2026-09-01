@@ -75,8 +75,18 @@ public sealed partial class MainWindowViewModel {
     private string _formFieldValue = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasSelectedObject))]
     [NotifyPropertyChangedFor(nameof(HasSelectedAnnotation))]
-    private int? _selectedAnnotationObjectNumber;
+    [NotifyPropertyChangedFor(nameof(HasSelectedImage))]
+    [NotifyPropertyChangedFor(nameof(HasSelectedText))]
+    [NotifyPropertyChangedFor(nameof(SelectedAnnotationObjectNumber))]
+    [NotifyPropertyChangedFor(nameof(CanReplaceSelectedText))]
+    [NotifyPropertyChangedFor(nameof(CanReplaceSelectedImage))]
+    [NotifyPropertyChangedFor(nameof(CanResizeSelectedAnnotation))]
+    private PdfEditorSelection? _selectedObject;
+
+    [ObservableProperty]
+    private string? _selectedObjectSummary;
 
     [ObservableProperty]
     private string? _selectedAnnotationSummary;
@@ -102,7 +112,15 @@ public sealed partial class MainWindowViewModel {
 
     public bool HasFormFields => FormFields.Count > 0;
 
-    public bool HasSelectedAnnotation => SelectedAnnotationObjectNumber.HasValue;
+    public bool HasSelectedObject => SelectedObject is not null;
+
+    public bool HasSelectedAnnotation => SelectedObject?.Kind == PdfEditorSelectionKind.Annotation;
+
+    public bool HasSelectedImage => SelectedObject?.Kind == PdfEditorSelectionKind.Image;
+
+    public bool HasSelectedText => SelectedObject?.Kind == PdfEditorSelectionKind.Text;
+
+    public int? SelectedAnnotationObjectNumber => HasSelectedAnnotation ? SelectedObject?.ObjectNumber : null;
 
     public bool CanEditAnnotations => _workspace?.CanEditAnnotations == true;
 
@@ -200,23 +218,43 @@ public sealed partial class MainWindowViewModel {
         }
     }
 
-    private void OnPageAnnotationSelected(PdfEditorSelection? selection) {
+    private void OnPageObjectSelected(PdfEditorSelection? selection) {
         if (_workspace is null || selection is null) {
-            ClearAnnotationSelection();
+            ClearObjectSelection();
             return;
         }
-        PdfAnnotation? annotation = _workspace.DocumentInfo.Annotations.FirstOrDefault(candidate =>
-            candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
-        if (annotation is null) {
-            ClearAnnotationSelection();
-            return;
+
+        if (selection.Kind == PdfEditorSelectionKind.Annotation) {
+            PdfAnnotation? annotation = _workspace.DocumentInfo.Annotations.FirstOrDefault(candidate =>
+                candidate.ObjectNumber == selection.ObjectNumber && candidate.PageNumber == selection.PageNumber);
+            if (annotation is null) {
+                ClearObjectSelection();
+                return;
+            }
+            SelectedAnnotationSummary = $"{selection.Subtype ?? "Annotation"} · page {selection.PageNumber} · object {selection.ObjectNumber}";
+            SelectedAnnotationContents = annotation.Contents ?? string.Empty;
+            SelectedAnnotationAuthor = annotation.Title ?? string.Empty;
+            SelectedAnnotationX = annotation.X1;
+            SelectedAnnotationY = annotation.Y1;
+            SelectedAnnotationWidth = annotation.Width;
+            SelectedAnnotationHeight = annotation.Height;
+            if (annotation.Color.Count >= 3) EditorColorHex = FormatColor(annotation.Color);
+        } else {
+            SelectedAnnotationSummary = null;
+            SelectedAnnotationContents = string.Empty;
+            SelectedAnnotationAuthor = string.Empty;
         }
-        SelectedAnnotationObjectNumber = selection.ObjectNumber;
-        SelectedAnnotationSummary = $"{selection.Subtype} · page {selection.PageNumber} · object {selection.ObjectNumber}";
-        SelectedAnnotationContents = annotation.Contents ?? string.Empty;
-        SelectedAnnotationAuthor = annotation.Title ?? string.Empty;
+
+        SelectedObjectText = selection.Text ?? string.Empty;
+
+        SelectedObject = selection;
+        SelectedObjectSummary = selection.Kind switch {
+            PdfEditorSelectionKind.Text => $"Text · page {selection.PageNumber} · {selection.Text?.Length ?? 0} character(s)",
+            PdfEditorSelectionKind.Image => $"Image · page {selection.PageNumber} · {selection.ImagePlacement?.Width:0.#} × {selection.ImagePlacement?.Height:0.#} pt",
+            _ => SelectedAnnotationSummary
+        };
         foreach (PdfPageViewModel page in Pages) {
-            page.SelectedAnnotationObjectNumber = page.PageNumber == selection.PageNumber ? selection.ObjectNumber : null;
+            page.SelectedObject = page.PageNumber == selection.PageNumber ? selection : null;
         }
     }
 
@@ -312,7 +350,7 @@ public sealed partial class MainWindowViewModel {
         PdfColor color = ParseColor(EditorColorHex);
         string contents = SelectedAnnotationContents;
         string author = SelectedAnnotationAuthor;
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         await RunMutationAsync(
             token => _workspace.UpdateAnnotationAsync(objectNumber, contents, author, color, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
@@ -323,7 +361,7 @@ public sealed partial class MainWindowViewModel {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         string reply = AnnotationReplyText;
         PdfColor color = ParseColor(EditorColorHex);
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
@@ -333,7 +371,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task FlattenSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         await RunMutationAsync(
             token => _workspace.FlattenAnnotationAsync(objectNumber, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
@@ -342,7 +380,7 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task RemoveSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         await RunMutationAsync(
             token => _workspace.RemoveAnnotationAsync(objectNumber, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
@@ -377,12 +415,14 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
     }
 
-    private void ClearAnnotationSelection() {
-        SelectedAnnotationObjectNumber = null;
+    private void ClearObjectSelection() {
+        SelectedObject = null;
+        SelectedObjectSummary = null;
         SelectedAnnotationSummary = null;
         SelectedAnnotationContents = string.Empty;
         SelectedAnnotationAuthor = string.Empty;
-        foreach (PdfPageViewModel page in Pages) page.SelectedAnnotationObjectNumber = null;
+        SelectedObjectText = string.Empty;
+        foreach (PdfPageViewModel page in Pages) page.SelectedObject = null;
     }
 
     private static PdfColor ParseColor(string? value) {
@@ -395,4 +435,10 @@ public sealed partial class MainWindowViewModel {
         }
         return PdfColor.FromRgb(red, green, blue);
     }
+
+    private static string FormatColor(IReadOnlyList<double> color) => string.Create(
+        System.Globalization.CultureInfo.InvariantCulture,
+        $"#{ToColorByte(color[0]):X2}{ToColorByte(color[1]):X2}{ToColorByte(color[2]):X2}");
+
+    private static byte ToColorByte(double value) => (byte)Math.Round(Math.Clamp(value, 0D, 1D) * 255D);
 }

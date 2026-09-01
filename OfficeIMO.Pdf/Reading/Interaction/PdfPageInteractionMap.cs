@@ -29,7 +29,7 @@ public sealed class PdfPageInteractionMap {
     /// <summary>Visual page height in PDF points after page rotation.</summary>
     public double Height { get; }
 
-    /// <summary>All text, link, annotation, and form-widget regions.</summary>
+    /// <summary>All text, image, link, annotation, and form-widget regions.</summary>
     public IReadOnlyList<PdfPageInteractionRegion> Regions { get; }
 
     /// <summary>Text-element regions in content extraction order.</summary>
@@ -50,6 +50,9 @@ public sealed class PdfPageInteractionMap {
         if (effective.MaxTextRegions <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum text regions must be positive.");
         }
+        if (effective.MaxImageRegions <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum image regions must be positive.");
+        }
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (pageNumber > document.Pages.Count) {
@@ -61,10 +64,40 @@ public sealed class PdfPageInteractionMap {
         PdfPageInfo pageInfo = PdfInspector.Inspect(pdf, readOptions).Pages[pageNumber - 1];
         var regions = new List<PdfPageInteractionRegion>();
         AddTextRegions(page, size.Width, size.Height, effective, regions);
+        AddImageRegions(document, pdf, page, pageNumber, size.Width, size.Height, effective, regions);
         AddLinkRegions(page, pageInfo, size.Height, regions);
         AddAnnotationRegions(page, pageInfo, size.Height, regions);
         AddFormWidgetRegions(page, pageInfo, size.Height, regions);
         return new PdfPageInteractionMap(pageNumber, size.Width, size.Height, regions.AsReadOnly());
+    }
+
+    private static void AddImageRegions(
+        PdfReadDocument document,
+        byte[] pdf,
+        PdfReadPage page,
+        int pageNumber,
+        double pageWidth,
+        double pageHeight,
+        PdfPageInteractionOptions options,
+        List<PdfPageInteractionRegion> regions) {
+        IReadOnlyList<PdfImagePlacement> placements = PdfImageEditor.Placements(document, pdf, pageNumber);
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        int emitted = 0;
+        for (int i = 0; i < placements.Count; i++) {
+            PdfImagePlacement placement = placements[i];
+            PdfSelectionQuad quad = FromImagePlacement(page, placement, originX, originY, pageHeight);
+            if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) continue;
+            if (emitted >= options.MaxImageRegions) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxImageRegions, emitted + 1L);
+            }
+            regions.Add(new PdfPageInteractionRegion(
+                PdfInteractionKind.Image,
+                quad,
+                subtype: "Image",
+                objectNumber: placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+                imagePlacement: placement));
+            emitted++;
+        }
     }
 
     /// <summary>Returns all regions containing a visual top-left page coordinate.</summary>
@@ -276,6 +309,27 @@ public sealed class PdfPageInteractionMap {
             ToTopLeft((endX + normalX * ascent, endY + normalY * ascent), pageHeight),
             ToTopLeft((endX - normalX * descent, endY - normalY * descent), pageHeight),
             ToTopLeft((startX - normalX * descent, startY - normalY * descent), pageHeight));
+    }
+
+    private static PdfSelectionQuad FromImagePlacement(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        double originX,
+        double originY,
+        double pageHeight) {
+        double e = placement.E + originX;
+        double f = placement.F + originY;
+        (double X, double Y) bottomLeft = page.TransformPointToVisual(e, f);
+        (double X, double Y) bottomRight = page.TransformPointToVisual(placement.A + e, placement.B + f);
+        (double X, double Y) topRight = page.TransformPointToVisual(
+            placement.A + placement.C + e,
+            placement.B + placement.D + f);
+        (double X, double Y) topLeft = page.TransformPointToVisual(placement.C + e, placement.D + f);
+        return new PdfSelectionQuad(
+            ToTopLeft(topLeft, pageHeight),
+            ToTopLeft(topRight, pageHeight),
+            ToTopLeft(bottomRight, pageHeight),
+            ToTopLeft(bottomLeft, pageHeight));
     }
 
     private static PdfSelectionPoint ToTopLeft((double X, double Y) point, double pageHeight) =>

@@ -15,7 +15,8 @@
         <reader:PdfPageCanvas x:Name="PageCanvas"
                               Scene="{Binding Scene}"
                               EditorTool="{Binding EditorTool}"
-                              SelectedAnnotationObjectNumber="{Binding SelectedAnnotationObjectNumber}"
+                              SelectedObject="{Binding SelectedObject}"
+                              SelectionMode="{Binding SelectionMode}"
                               PendingRedactionArea="{Binding PendingRedactionArea}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />

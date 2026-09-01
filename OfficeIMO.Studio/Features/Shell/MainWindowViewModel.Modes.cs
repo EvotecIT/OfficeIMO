@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Workflows;
 using System.ComponentModel;
@@ -66,7 +67,18 @@ public sealed partial class MainWindowViewModel {
             SelectedEditorToolChoice.Tool != PdfEditorTool.Select) {
             SelectedEditorToolChoice = EditorTools[0];
         }
+        foreach (PdfPageViewModel page in Pages) page.SelectionMode = GetEditorSelectionMode();
+        if ((value == StudioDocumentMode.Annotate && SelectedObject?.Kind != PdfEditorSelectionKind.Annotation) ||
+            value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit) {
+            ClearObjectSelection();
+        }
     }
+
+    private PdfEditorSelectionMode GetEditorSelectionMode() => DocumentMode switch {
+        StudioDocumentMode.Annotate => PdfEditorSelectionMode.Annotations,
+        StudioDocumentMode.Edit => PdfEditorSelectionMode.PageContent,
+        _ => PdfEditorSelectionMode.None
+    };
 
     [RelayCommand]
     private void ShowHome() => WorkspaceMode = StudioWorkspaceMode.Home;

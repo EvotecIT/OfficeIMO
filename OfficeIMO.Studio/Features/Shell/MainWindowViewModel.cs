@@ -369,7 +369,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IReadOnlyCollection<int>? organizerSelection = null) {
         bool isDocumentTransition = !ReferenceEquals(_workspace, workspace);
         CancelPendingRedaction();
-        ClearAnnotationSelection();
+        ClearObjectSelection();
         foreach (PdfPageViewModel page in Pages) page.Dispose();
         foreach (PdfOrganizerPageViewModel page in OrganizerPages) page.Dispose();
         Pages.Clear();
@@ -400,8 +400,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         foreach (PdfPageViewModel page in pages) {
             page.LinkActivated += OnPageLinkActivated;
             page.EditorGestureCompleted += OnPageEditorGestureCompleted;
-            page.AnnotationSelected += OnPageAnnotationSelected;
+            page.ObjectSelected += OnPageObjectSelected;
             page.EditorTool = ActiveEditorTool;
+            page.SelectionMode = GetEditorSelectionMode();
             Pages.Add(page);
         }
         if (organizerSelection is not null) {

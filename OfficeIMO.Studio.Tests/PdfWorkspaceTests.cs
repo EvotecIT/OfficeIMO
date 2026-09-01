@@ -6,6 +6,75 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class PdfWorkspaceTests {
     [Fact]
+    public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "text.pdf");
+        CreateTextSource(source, "Alpha target Omega");
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            PdfEditorSelection selection = CreateTextSelection(workspace.CopyBytes(), "target");
+
+            await workspace.ReplaceSelectedTextAsync(selection, "replacement", options: null, CancellationToken.None);
+            string replacedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            Assert.Contains("Alpha", replacedText, StringComparison.Ordinal);
+            Assert.Contains("replacement", replacedText, StringComparison.Ordinal);
+            Assert.Contains("Omega", replacedText, StringComparison.Ordinal);
+            Assert.Equal(PdfWorkspaceOperationKind.TextEdit, workspace.Journal[^1].Kind);
+
+            PdfEditorSelection movedSelection = CreateTextSelection(workspace.CopyBytes(), "replacement");
+            await workspace.MoveSelectedTextAsync(movedSelection, 12D, -30D, CancellationToken.None);
+            string movedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            Assert.Contains("Alpha", movedText, StringComparison.Ordinal);
+            Assert.Contains("replacement", movedText, StringComparison.Ordinal);
+            Assert.Contains("Omega", movedText, StringComparison.Ordinal);
+
+            await workspace.ReplaceAllTextAsync("replacement", "final", matchCase: true, wholeWords: true, CancellationToken.None);
+            Assert.Contains("final", PdfDocument.Load(workspace.CopyBytes()).Read().Text, StringComparison.Ordinal);
+
+            PdfEditorSelection deleteSelection = CreateTextSelection(workspace.CopyBytes(), "final");
+            await workspace.ReplaceSelectedTextAsync(deleteSelection, string.Empty, options: null, CancellationToken.None);
+            string deletedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            Assert.Contains("Alpha", deletedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("final", deletedText, StringComparison.Ordinal);
+            Assert.Contains("Omega", deletedText, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ExactImageSelectionSupportsMoveReplaceAndDelete() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-image-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "image.pdf");
+        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        baseDocument.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            PdfEditorSelection selection = CreateImageSelection(workspace.CopyBytes());
+
+            await workspace.MoveSelectedImageAsync(selection, 15D, 5D, CancellationToken.None);
+            PdfImagePlacement moved = Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+            Assert.Equal(65D, moved.X, 3);
+            Assert.Equal(65D, moved.Y, 3);
+
+            PdfEditorSelection replacementSelection = CreateImageSelection(workspace.CopyBytes());
+            await workspace.ReplaceSelectedImageAsync(replacementSelection, TinyPng, CancellationToken.None);
+            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+
+            PdfEditorSelection removalSelection = CreateImageSelection(workspace.CopyBytes());
+            await workspace.RemoveSelectedImageAsync(removalSelection, CancellationToken.None);
+            Assert.Empty(PdfDocument.Load(workspace.CopyBytes()).Images.Placements());
+            Assert.Equal(PdfWorkspaceOperationKind.ImageEdit, workspace.Journal[^1].Kind);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task EditorMutationParticipatesInRecoveryUndoRedoAndJournal() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-editor-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -620,6 +689,46 @@ public sealed class PdfWorkspaceTests {
                     item.Paragraph(paragraph => paragraph.Text(text)))));
             }
         }).Save(path);
+
+    private static PdfEditorSelection CreateTextSelection(byte[] pdf, string text) {
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(pdf, 1);
+        int firstIndex = FindSequence(map.TextRegions.Select(static region => region.Text).ToArray(), text);
+        PdfPageInteractionRegion[] regions = map.TextRegions
+            .Where((_, index) => index >= firstIndex)
+            .Take(text.Length)
+            .ToArray();
+        Assert.Equal(text, string.Concat(regions.Select(static region => region.Text)));
+        return new PdfEditorSelection(
+            PdfEditorSelectionKind.Text,
+            1,
+            new PdfEditorVisualBounds(
+                regions.Min(static region => region.Quad.Left),
+                regions.Min(static region => region.Quad.Top),
+                regions.Max(static region => region.Quad.Right),
+                regions.Max(static region => region.Quad.Bottom)),
+            Text: text);
+    }
+
+    private static PdfEditorSelection CreateImageSelection(byte[] pdf) {
+        PdfPageInteractionRegion region = Assert.Single(
+            PdfPageInteractionMap.Create(pdf, 1).Regions,
+            candidate => candidate.Kind == PdfInteractionKind.Image);
+        return new PdfEditorSelection(
+            PdfEditorSelectionKind.Image,
+            1,
+            new PdfEditorVisualBounds(region.Quad.Left, region.Quad.Top, region.Quad.Right, region.Quad.Bottom),
+            ImagePlacement: region.ImagePlacement);
+    }
+
+    private static int FindSequence(IReadOnlyList<string?> elements, string text) {
+        string joined = string.Concat(elements);
+        int characterIndex = joined.IndexOf(text, StringComparison.Ordinal);
+        Assert.True(characterIndex >= 0, "Expected text was not present in the interaction map.");
+        return characterIndex;
+    }
+
+    private static readonly byte[] TinyPng = Convert.FromBase64String(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
     private sealed class InlineProgress<T>(Action<T> report) : IProgress<T> {
         public void Report(T value) => report(value);

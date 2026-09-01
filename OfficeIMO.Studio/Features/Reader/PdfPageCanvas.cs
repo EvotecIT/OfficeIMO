@@ -21,8 +21,11 @@ public sealed class PdfPageCanvas : Control, IDisposable {
     public static readonly StyledProperty<PdfEditorTool> EditorToolProperty =
         AvaloniaProperty.Register<PdfPageCanvas, PdfEditorTool>(nameof(EditorTool), PdfEditorTool.Select);
 
-    public static readonly StyledProperty<int?> SelectedAnnotationObjectNumberProperty =
-        AvaloniaProperty.Register<PdfPageCanvas, int?>(nameof(SelectedAnnotationObjectNumber));
+    public static readonly StyledProperty<PdfEditorSelection?> SelectedObjectProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, PdfEditorSelection?>(nameof(SelectedObject));
+
+    public static readonly StyledProperty<PdfEditorSelectionMode> SelectionModeProperty =
+        AvaloniaProperty.Register<PdfPageCanvas, PdfEditorSelectionMode>(nameof(SelectionMode));
 
     public static readonly StyledProperty<Rect?> PendingRedactionAreaProperty =
         AvaloniaProperty.Register<PdfPageCanvas, Rect?>(nameof(PendingRedactionArea));
@@ -44,7 +47,8 @@ public sealed class PdfPageCanvas : Control, IDisposable {
             SceneProperty,
             FallbackImageProperty,
             EditorToolProperty,
-            SelectedAnnotationObjectNumberProperty,
+            SelectedObjectProperty,
+            SelectionModeProperty,
             PendingRedactionAreaProperty);
     }
 
@@ -68,9 +72,14 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         set => SetValue(EditorToolProperty, value);
     }
 
-    public int? SelectedAnnotationObjectNumber {
-        get => GetValue(SelectedAnnotationObjectNumberProperty);
-        set => SetValue(SelectedAnnotationObjectNumberProperty, value);
+    public PdfEditorSelection? SelectedObject {
+        get => GetValue(SelectedObjectProperty);
+        set => SetValue(SelectedObjectProperty, value);
+    }
+
+    public PdfEditorSelectionMode SelectionMode {
+        get => GetValue(SelectionModeProperty);
+        set => SetValue(SelectionModeProperty, value);
     }
 
     public Rect? PendingRedactionArea {
@@ -91,7 +100,7 @@ public sealed class PdfPageCanvas : Control, IDisposable {
 
     internal event Action<PdfEditorGesture>? EditorGestureCompleted;
 
-    internal event Action<PdfEditorSelection?>? AnnotationSelected;
+    internal event Action<PdfEditorSelection?>? ObjectSelected;
 
     public override void Render(DrawingContext context) {
         base.Render(context);
@@ -110,7 +119,7 @@ public sealed class PdfPageCanvas : Control, IDisposable {
 
         DrawSelection(context, scene);
         DrawInteractionOverlay(context);
-        DrawSelectedAnnotation(context, scene);
+        DrawSelectedObject(context);
         DrawPendingRedaction(context);
         DrawEditorPreview(context);
     }
@@ -218,7 +227,9 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         double horizontalDistance = _selectionEnd.Value.X - _selectionStart.Value.X;
         double verticalDistance = _selectionEnd.Value.Y - _selectionStart.Value.Y;
         if (Math.Sqrt((horizontalDistance * horizontalDistance) + (verticalDistance * verticalDistance)) < 4D) {
-            if (!SelectAnnotation(_selectionEnd.Value)) ActivateLink(_selectionEnd.Value);
+            if (!SelectObjectAt(_selectionEnd.Value)) ActivateLink(_selectionEnd.Value);
+        } else if (SelectionMode == PdfEditorSelectionMode.PageContent) {
+            SelectTextObject();
         }
         InvalidateVisual();
     }
@@ -243,6 +254,7 @@ public sealed class PdfPageCanvas : Control, IDisposable {
             _editorPath.Clear();
             _selectionStart = null;
             _selectionEnd = null;
+            ObjectSelected?.Invoke(null);
             InvalidateVisual();
             e.Handled = true;
         }
@@ -266,20 +278,63 @@ public sealed class PdfPageCanvas : Control, IDisposable {
             .FirstOrDefault(static region => region.Kind != PdfInteractionKind.Text);
     }
 
-    private bool SelectAnnotation(Point controlPoint) {
+    private bool SelectObjectAt(Point controlPoint) {
         PdfPageScene? scene = Scene;
         if (scene is null) return false;
         Point point = ToPagePoint(controlPoint);
-        PdfPageInteractionRegion? annotation = scene.Interactions
-            .HitTest(point.X, point.Y, tolerance: 2D)
-            .FirstOrDefault(static region => region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue);
-        if (annotation?.ObjectNumber is not int objectNumber) {
-            AnnotationSelected?.Invoke(null);
+        IReadOnlyList<PdfPageInteractionRegion> matches = scene.Interactions.HitTest(point.X, point.Y, tolerance: 2D);
+        PdfPageInteractionRegion? selected = SelectionMode switch {
+            PdfEditorSelectionMode.Annotations => matches.FirstOrDefault(static region =>
+                region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue),
+            PdfEditorSelectionMode.PageContent => matches.FirstOrDefault(static region =>
+                (region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber.HasValue) ||
+                (region.Kind == PdfInteractionKind.Image && region.ImagePlacement is not null) ||
+                region.Kind == PdfInteractionKind.Text),
+            _ => null
+        };
+        if (selected is null) {
+            ObjectSelected?.Invoke(null);
             return false;
         }
-        AnnotationSelected?.Invoke(new PdfEditorSelection(scene.PageNumber, objectNumber, annotation.Subtype ?? "Annotation"));
+
+        ObjectSelected?.Invoke(CreateSelection(scene.PageNumber, selected));
         return true;
     }
+
+    private void SelectTextObject() {
+        PdfPageScene? scene = Scene;
+        if (scene is null || !_selectionStart.HasValue || !_selectionEnd.HasValue) return;
+        Point start = ToPagePoint(_selectionStart.Value);
+        Point end = ToPagePoint(_selectionEnd.Value);
+        IReadOnlyList<PdfPageInteractionRegion> regions = scene.Interactions.SelectText(start.X, start.Y, end.X, end.Y);
+        if (regions.Count == 0) {
+            ObjectSelected?.Invoke(null);
+            return;
+        }
+
+        double left = regions.Min(static region => region.Quad.Left);
+        double top = regions.Min(static region => region.Quad.Top);
+        double right = regions.Max(static region => region.Quad.Right);
+        double bottom = regions.Max(static region => region.Quad.Bottom);
+        ObjectSelected?.Invoke(new PdfEditorSelection(
+            PdfEditorSelectionKind.Text,
+            scene.PageNumber,
+            new PdfEditorVisualBounds(left, top, right, bottom),
+            Text: string.Concat(regions.Select(static region => region.Text))));
+    }
+
+    private static PdfEditorSelection CreateSelection(int pageNumber, PdfPageInteractionRegion region) => new(
+        region.Kind switch {
+            PdfInteractionKind.Image => PdfEditorSelectionKind.Image,
+            PdfInteractionKind.Annotation => PdfEditorSelectionKind.Annotation,
+            _ => PdfEditorSelectionKind.Text
+        },
+        pageNumber,
+        new PdfEditorVisualBounds(region.Quad.Left, region.Quad.Top, region.Quad.Right, region.Quad.Bottom),
+        Text: region.Text,
+        ObjectNumber: region.ObjectNumber,
+        Subtype: region.Subtype,
+        ImagePlacement: region.ImagePlacement);
 
     private async Task CopySelectionAsync() {
         IClipboard? clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
@@ -304,6 +359,7 @@ public sealed class PdfPageCanvas : Control, IDisposable {
         Color color = _hoverRegion.Kind switch {
             PdfInteractionKind.Link => Color.FromRgb(53, 106, 230),
             PdfInteractionKind.FormWidget => Color.FromRgb(16, 185, 129),
+            PdfInteractionKind.Image => Color.FromRgb(124, 58, 237),
             _ => Color.FromRgb(245, 158, 11)
         };
         var fill = new SolidColorBrush(Color.FromArgb(28, color.R, color.G, color.B));
@@ -314,14 +370,40 @@ public sealed class PdfPageCanvas : Control, IDisposable {
             new Rect(_hoverRegion.Quad.Left, _hoverRegion.Quad.Top, _hoverRegion.Quad.Width, _hoverRegion.Quad.Height));
     }
 
-    private void DrawSelectedAnnotation(DrawingContext context, PdfPageScene scene) {
-        if (!SelectedAnnotationObjectNumber.HasValue) return;
-        PdfPageInteractionRegion? selected = scene.Interactions.Regions.FirstOrDefault(region =>
-            region.Kind == PdfInteractionKind.Annotation && region.ObjectNumber == SelectedAnnotationObjectNumber.Value);
-        if (selected is null) return;
+    private void DrawSelectedObject(DrawingContext context) {
+        if (SelectedObject is not PdfEditorSelection selected) return;
+        PdfEditorVisualBounds bounds = selected.Bounds;
+        if (bounds.Width <= 0D || bounds.Height <= 0D) return;
+        Color accent = selected.Kind switch {
+            PdfEditorSelectionKind.Image => Color.FromRgb(124, 58, 237),
+            PdfEditorSelectionKind.Annotation => Color.FromRgb(245, 158, 11),
+            _ => Color.FromRgb(53, 106, 230)
+        };
         var fill = new SolidColorBrush(Color.FromArgb(32, 53, 106, 230));
-        var stroke = new Pen(new SolidColorBrush(Color.FromRgb(53, 106, 230)), 2D);
-        context.DrawRectangle(fill, stroke, new Rect(selected.Quad.Left, selected.Quad.Top, selected.Quad.Width, selected.Quad.Height));
+        var stroke = new Pen(new SolidColorBrush(accent), 2D);
+        var area = new Rect(bounds.Left, bounds.Top, bounds.Width, bounds.Height);
+        context.DrawRectangle(fill, stroke, area);
+        DrawSelectionHandles(context, area, accent);
+    }
+
+    private static void DrawSelectionHandles(DrawingContext context, Rect area, Color accent) {
+        const double handleSize = 7D;
+        double half = handleSize / 2D;
+        var fill = new SolidColorBrush(Colors.White);
+        var stroke = new Pen(new SolidColorBrush(accent), 1.5D);
+        Point[] handles = {
+            area.TopLeft,
+            new(area.Center.X, area.Top),
+            area.TopRight,
+            new(area.Right, area.Center.Y),
+            area.BottomRight,
+            new(area.Center.X, area.Bottom),
+            area.BottomLeft,
+            new(area.Left, area.Center.Y)
+        };
+        foreach (Point handle in handles) {
+            context.DrawRectangle(fill, stroke, new Rect(handle.X - half, handle.Y - half, handleSize, handleSize));
+        }
     }
 
     private void DrawPendingRedaction(DrawingContext context) {

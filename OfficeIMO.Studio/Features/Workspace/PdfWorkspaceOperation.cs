@@ -9,6 +9,8 @@ internal enum PdfWorkspaceOperationKind {
     Crop,
     InsertBlank,
     Annotation,
+    TextEdit,
+    ImageEdit,
     AddedContent,
     FormFill,
     FormFlatten,

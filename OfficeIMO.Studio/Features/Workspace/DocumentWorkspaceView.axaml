@@ -180,24 +180,77 @@
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsAnnotateDocumentMode}" Spacing="8">
-              <TextBlock Text="{Binding SelectedEditorToolChoice.Label}" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock Text="{Binding EditorInstruction}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
-              <TextBlock Text="Color" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
-              <TextBlock Text="Opacity" FontSize="11" /><Slider Minimum="0" Maximum="1" Value="1" />
-              <TextBlock Text="Author" FontSize="11" /><TextBox Text="{Binding EditorAuthor}" />
-              <TextBlock Text="Text / comment" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+              <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="8">
+                <TextBlock Text="{Binding SelectedEditorToolChoice.Label}" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="{Binding EditorInstruction}" Classes="muted" TextWrapping="Wrap" FontSize="11" />
+                <TextBlock Text="Color" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
+                <TextBlock Text="Opacity" FontSize="11" /><Slider Minimum="0" Maximum="1" Value="1" />
+                <TextBlock Text="Author" FontSize="11" /><TextBox Text="{Binding EditorAuthor}" />
+                <TextBlock Text="Text / comment" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+              </StackPanel>
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsEditDocumentMode}" Spacing="8">
-              <TextBlock Text="Edit properties" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock Text="Tool" FontSize="11" />
-              <ComboBox ItemsSource="{Binding EditorTools}" SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}">
-                <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfEditorToolChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
-              </ComboBox>
-              <TextBlock Text="Text" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" />
-              <TextBlock Text="Font size" FontSize="11" /><NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" />
-              <TextBlock Text="Watermark text" FontSize="11" /><TextBox Text="{Binding WatermarkText}" />
-              <Button Classes="tool" Content="Add watermark" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
+              <StackPanel IsVisible="{Binding !HasSelectedObject}" Spacing="8">
+                <TextBlock Text="Edit properties" FontSize="15" FontWeight="SemiBold" />
+                <TextBlock Text="Select existing text, an image, or an annotation on the page to inspect and edit it." Classes="muted" TextWrapping="Wrap" />
+                <TextBlock Text="Tool" FontSize="11" />
+                <ComboBox ItemsSource="{Binding EditorTools}" SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfEditorToolChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="Text" FontSize="11" /><TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="62" />
+                <TextBlock Text="Font size" FontSize="11" /><NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" />
+                <TextBlock Text="Watermark text" FontSize="11" /><TextBox Text="{Binding WatermarkText}" />
+                <Button Classes="tool" Content="Add watermark" Command="{Binding ApplyWatermarkCommand}" IsEnabled="{Binding CanEditPageContent}" />
+                <Separator Margin="0,4" />
+                <TextBlock Text="Find and replace" FontWeight="SemiBold" />
+                <TextBox Text="{Binding ReplaceAllFindText}" PlaceholderText="Find in document" />
+                <TextBox Text="{Binding ReplaceAllReplacementText}" PlaceholderText="Replace with" />
+                <CheckBox IsChecked="{Binding ReplaceAllMatchCase}" Content="Match case" />
+                <CheckBox IsChecked="{Binding ReplaceAllWholeWords}" Content="Whole words" />
+                <Button Classes="tool" Content="Replace all" Command="{Binding ReplaceAllDocumentTextCommand}" IsEnabled="{Binding CanEditPageContent}" />
+              </StackPanel>
+            </StackPanel>
+
+            <StackPanel IsVisible="{Binding HasSelectedObject}" Spacing="8">
+              <TextBlock Text="Selected object" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock Text="{Binding SelectedObjectSummary}" Classes="muted" TextWrapping="Wrap" />
+
+              <StackPanel IsVisible="{Binding HasSelectedText}" Spacing="7">
+                <TextBlock Text="Text" FontSize="11" />
+                <TextBox Text="{Binding SelectedObjectText}" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap" />
+                <Button Classes="primary" Content="Replace text" Command="{Binding ReplaceSelectedTextCommand}" IsEnabled="{Binding CanReplaceSelectedText}" />
+              </StackPanel>
+
+              <StackPanel IsVisible="{Binding HasSelectedImage}" Spacing="7">
+                <TextBlock Text="The replacement keeps this placement's position, size, and rotation." Classes="muted" TextWrapping="Wrap" />
+                <Button Classes="primary" Content="Replace image…" Command="{Binding ReplaceSelectedImageCommand}" IsEnabled="{Binding CanReplaceSelectedImage}" />
+              </StackPanel>
+
+              <StackPanel IsVisible="{Binding HasSelectedAnnotation}" Spacing="7">
+                <TextBlock Text="Comment" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+                <TextBlock Text="Author" FontSize="11" /><TextBox Text="{Binding SelectedAnnotationAuthor}" />
+                <TextBlock Text="Color" FontSize="11" /><TextBox Text="{Binding EditorColorHex}" />
+                <Button Classes="primary" Content="Apply properties" Command="{Binding UpdateSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="5">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="X" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Y" FontSize="11" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding SelectedAnnotationX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SelectedAnnotationY}" />
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="Width" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Height" FontSize="11" />
+                  <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding SelectedAnnotationWidth}" Minimum="0.1" /><NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SelectedAnnotationHeight}" Minimum="0.1" />
+                </Grid>
+                <Button Classes="tool" Content="Apply geometry" Command="{Binding ResizeSelectedAnnotationCommand}" IsEnabled="{Binding CanResizeSelectedAnnotation}" />
+                <TextBox Text="{Binding AnnotationReplyText}" PlaceholderText="Reply" AcceptsReturn="True" MinHeight="50" />
+                <Button Classes="tool" Content="Add reply" Command="{Binding ReplyToSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+                <Button Classes="tool" Content="Flatten annotation" Command="{Binding FlattenSelectedAnnotationCommand}" IsEnabled="{Binding CanEditAnnotations}" />
+              </StackPanel>
+
+              <Separator Margin="0,4" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="6" RowSpacing="5">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Move X" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Move Y" FontSize="11" />
+                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding ObjectMoveX}" /><NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding ObjectMoveY}" />
+              </Grid>
+              <Button Classes="tool" Content="Move object" Command="{Binding MoveSelectedObjectCommand}" />
+              <Button Classes="danger" Content="Delete object" Command="{Binding DeleteSelectedObjectCommand}" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Spacing="8">
