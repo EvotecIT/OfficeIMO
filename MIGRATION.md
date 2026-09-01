@@ -47,11 +47,15 @@ a second logical model.
 | OfficeIMO 3.2 | OfficeIMO 3.3 |
 | --- | --- |
 | `PdfDocument.Open(...)` | `PdfDocument.Load(...)` |
+| `PdfDocument.OpenAsync(pathOrStream, ..., cancellationToken)` | `PdfDocument.LoadAsync(pathOrStream, loadOptions, cancellationToken)`; parser, limit, credential, and buffering settings belong in `PdfLoadOptions` |
 | parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
 | `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
+| selected `pdf.Read.Logical(selection, ...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection, LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions() })` |
+| `pdf.Read.TryLogical(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary |
 | `PdfLogicalDocument` | `PdfDocumentReadResult` |
 | `pdf.Read.Text()` | `pdf.Read().Text`; this is canonical semantic text rather than the former direct extraction surface |
 | selected `pdf.Read.Text(...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection }).Text` |
+| `pdf.Read.TextBlocks(...)` | `result.TextBlocks`; for a selection, set `PdfReadOptions.PageSelection` before reading |
 | `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
 | `pdf.Read.TryText(...)` / `TryTextByPage(...)` / `TryMarkdown(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary and use `result.Text`, project `result.Pages[*].TextBlocks`, or call `result.ToMarkdown()` |
 | `pdf.Read.ExportStructured(format)` | `pdf.Read().ExportStructured(format)`; pass semantic options to `Read(...)` and load/security options to `Load(...)` |
@@ -68,24 +72,31 @@ a second logical model.
 | `pdf.Read.ExportImages(...)` | `pdf.Render.ExportImages(...)` |
 | `pdf.Read.LayoutDebugOverlay(...)` / `pdf.Read.RenderCapabilityDiagnostics(...)` | `pdf.Render.LayoutDebugOverlay(...)` / `pdf.Render.CapabilityDiagnostics(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
-| `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.Attachments()` / `TryAttachments()` | `pdf.Attachments.Extract()` / `pdf.Attachments.TryExtract()`; metadata remains on `result.Attachments` |
 | `pdf.Read.JavaScripts()` | `pdf.JavaScript.List()` |
 | `pdf.Read.TryJavaScripts()` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.JavaScript.List()` inside the application's existing exception or result boundary |
-| `pdf.Read.LinksByUri(...)` and other link filters | `result.GetLinksByUri(...)` and the matching `result.GetLinksBy...(...)` helper |
-| `pdf.Read.FormFields()` | `result.FormFields` |
-| `pdf.Read.FormWidgets(...)` and widget filters | `result.GetFormWidgets(fieldName)` or `result.GetFormWidgets(pageNumber)` |
+| `pdf.Read.Links()` / `LinksByUri(...)` and other link filters | `result.Links`, `result.GetLinksByUri(...)`, and the matching `result.GetLinksBy...(...)` helper |
+| `pdf.Read.FormField(name)` / `FormFields(...)` | `result.TryGetFormField(name, out PdfFormField? field)`, `result.FormFields`, `result.GetFormFields(kind)`, or `result.GetFormFields(pageNumber)` |
+| `pdf.Read.FormWidgets(...)` and widget filters | `result.FormWidgets`, `result.GetFormWidgets(fieldName)`, or `result.GetFormWidgets(pageNumber)` |
 | `pdf.Read.Outlines()` | `result.Outlines` |
 | `pdf.Read.PageLabels()` | `result.PageLabels` |
 | `pdf.Read.NamedDestinations()` | `result.NamedDestinations` |
+| `pdf.Read.TryTextBlocks(...)`, `TryLinks...(...)`, `TryFormFields(...)`, `TryFormWidgets(...)`, `TryOutlines()`, `TryPageLabels()`, or `TryNamedDestinations()` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the corresponding result property or filter helper above |
 | `pdf.Read.DocumentInfo()` / `pdf.Read.Pages()` / `pdf.Read.Annotations()` | `PdfDocumentInfo info = pdf.Inspect()`; use `info`, `info.Pages`, and `info.Annotations` |
+| `pdf.Read.Page(pageNumber)` | `pdf.Inspect().Pages.FirstOrDefault(page => page.PageNumber == pageNumber)` |
+| `pdf.Read.AnnotationsBySubtype(...)` / `AnnotationsByActionType(...)` | `info.GetAnnotationsBySubtype(...)` / `info.GetAnnotationsByActionType(...)` |
 | `pdf.Read.Metadata()` / `Security()` / `HeaderVersion()` / `EffectiveVersion()` / `IsPdf20OrLater()` | use `info.Metadata`, `info.Security`, `info.HeaderVersion`, `info.EffectiveVersion`, and `info.IsPdf20OrLater` |
 | `pdf.Read.XmpMetadata()` / `TaggedContent()` / `OptionalContent()` / `OptionalContentGroups()` | use `info.XmpMetadata`, `info.TaggedContent`, `info.OptionalContent`, and `info.OptionalContentGroups`; use `info.GetOptionalContentGroupsByName(...)` for name filtering |
 | `pdf.Read.OutputIntents()` and output-intent filters | use `info.OutputIntents`, `info.GetOutputIntentsBySubtype(...)`, or `info.GetOutputIntentsByOutputConditionIdentifier(...)` |
 | `pdf.Read.AttachmentMetadata()` and attachment-metadata filters | use `info.Attachments` and the matching `info.GetAttachmentsByName(...)`, `GetAttachmentsByFileName(...)`, `GetAttachmentsBySource(...)`, or `GetAttachmentsByRelationship(...)` helper |
 | `pdf.Read.CatalogActions()` / `PageActions()` and action filters | use `info.CatalogActions`, `info.PageActions`, `info.GetCatalogActionsByActionType(...)`, `GetCatalogActionsBySource(...)`, or the corresponding `GetPageActions...(...)` helper |
+| `pdf.Read.OpenAction()` / `ViewerPreferences()` | use `result.OpenAction` / `result.ViewerPreferences`, or the matching `info` properties when already using `pdf.Inspect()` |
+| `pdf.Read.CatalogPageMode()` / `CatalogPageLayout()` / `CatalogVersion()` / `CatalogLanguage()` | use `result.CatalogPageMode`, `result.CatalogPageLayout`, `result.CatalogVersion`, and `result.CatalogLanguage`, or the matching `info` properties |
 | `pdf.Read.TryDocumentInfo()` / `TryPages()` / `TryAnnotations()` and other inspection `Try*` calls | There is no parallel `Try*` inspection surface. Use `PdfDocument.Preflight(...)` for non-throwing capability diagnosis, then call `pdf.Inspect()` inside the application's existing exception or result boundary. |
 | `pdf.Read.ParagraphContinuations(...)` | `result.GetParagraphContinuationGroups(...)` |
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
+| `pdf.Read.TryParagraphContinuations(...)` / `TryTableContinuations(...)` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the matching continuation helper |
+| `pdf.Read.Interactions(pageNumber, ...)` | `PdfPageInteractionMap.Create(pdf.ToBytes(), pageNumber, interactionOptions, loadOptions)` |
 | `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
 | `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
 
