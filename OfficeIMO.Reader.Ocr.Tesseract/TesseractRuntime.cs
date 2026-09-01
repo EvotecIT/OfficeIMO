@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices;
+
 namespace OfficeIMO.Reader.Ocr.Tesseract;
 
 /// <summary>How a Tesseract executable was located.</summary>
@@ -75,14 +77,18 @@ public static class TesseractRuntime {
         } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException || exception is PathTooLongException) {
             return false;
         }
-        if (!File.Exists(fullPath)) return false;
+        if (!IsExecutableFile(fullPath)) return false;
         runtime = new TesseractRuntimeInfo(fullPath, FindTessdataDirectory(fullPath), source);
         return true;
     }
 
     private static bool TryFindOnPath(string executableName, out string? result) {
+        return TryFindOnPath(executableName, Environment.GetEnvironmentVariable("PATH"), out result);
+    }
+
+    /// <summary>Searches one path value and skips files that the current Unix process cannot execute.</summary>
+    internal static bool TryFindOnPath(string executableName, string? path, out string? result) {
         result = null;
-        string? path = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrWhiteSpace(path)) return false;
         string[] extensions = IsWindows()
             ? GetWindowsExecutableExtensions(executableName)
@@ -96,7 +102,7 @@ public static class TesseractRuntime {
                 } catch (ArgumentException) {
                     continue;
                 }
-                if (File.Exists(candidate)) {
+                if (IsExecutableFile(candidate)) {
                     result = candidate;
                     return true;
                 }
@@ -167,4 +173,12 @@ public static class TesseractRuntime {
 
     private static bool IsWindows() => Environment.OSVersion.Platform == PlatformID.Win32NT;
     private static bool IsMacOS() => Environment.OSVersion.Platform == PlatformID.MacOSX || Directory.Exists("/Applications") && Directory.Exists("/System");
+
+    private static bool IsExecutableFile(string path) =>
+        File.Exists(path) && (IsWindows() || Access(path, ExecutePermission) == 0);
+
+    private const int ExecutePermission = 1;
+
+    [DllImport("libc", EntryPoint = "access", SetLastError = true)]
+    private static extern int Access(string path, int mode);
 }

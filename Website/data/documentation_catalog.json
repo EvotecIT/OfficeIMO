@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 212,
-    "productionComponentCount": 112,
+    "projectCount": 213,
+    "productionComponentCount": 113,
     "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41893
+    "conceptualWordCount": 41922
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 29
+      "componentCount": 30
     },
     {
       "name": "Formats and interoperability",
@@ -300,7 +300,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 993,
+      "sourceFileCount": 994,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -508,7 +508,7 @@
       "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
       "kind": "package",
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "sourceFileCount": 29,
+      "sourceFileCount": 30,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -833,7 +833,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1066,
+      "sourceFileCount": 1076,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1100,6 +1100,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook"
     },
     {
+      "name": "OfficeIMO.Reader.Ocr",
+      "packageId": "OfficeIMO.Reader.Ocr",
+      "category": "Extraction and ingestion",
+      "description": "Easy local OCR facade for OfficeIMO images and searchable PDFs.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr"
+    },
+    {
       "name": "OfficeIMO.Reader.Ocr.Process",
       "packageId": "OfficeIMO.Reader.Ocr.Process",
       "category": "Extraction and ingestion",
@@ -1119,7 +1132,7 @@
       "description": "Optional Tesseract CLI OCR engine for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Ocr.Tesseract/OfficeIMO.Reader.Ocr.Tesseract.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1171,7 +1184,7 @@
       "description": "PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "sourceFileCount": 17,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

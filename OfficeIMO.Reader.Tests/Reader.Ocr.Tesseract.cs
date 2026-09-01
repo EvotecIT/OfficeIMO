@@ -70,6 +70,11 @@ public sealed class ReaderOcrTesseractTests {
         Directory.CreateDirectory(directory);
         string executable = Path.Combine(directory, Environment.OSVersion.Platform == PlatformID.Win32NT ? "tesseract.exe" : "tesseract");
         File.WriteAllBytes(executable, Array.Empty<byte>());
+#if NET8_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) {
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+#endif
         var options = new TesseractOcrEngineOptions { ExecutablePath = executable, Language = "eng+pol" };
         try {
             TesseractRuntimeInfo runtime = TesseractRuntime.Discover(executable);
@@ -86,6 +91,32 @@ public sealed class ReaderOcrTesseractTests {
     }
 
     [Fact]
+    public void TesseractRuntime_PathSearchSkipsNonExecutableUnixFiles() {
+#if NET8_0_OR_GREATER
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-tesseract-path-" + Guid.NewGuid().ToString("N"));
+        string blockedDirectory = Path.Combine(root, "blocked");
+        string executableDirectory = Path.Combine(root, "executable");
+        Directory.CreateDirectory(blockedDirectory);
+        Directory.CreateDirectory(executableDirectory);
+        string blocked = Path.Combine(blockedDirectory, "tesseract");
+        string executable = Path.Combine(executableDirectory, "tesseract");
+        File.WriteAllBytes(blocked, Array.Empty<byte>());
+        File.WriteAllBytes(executable, Array.Empty<byte>());
+        File.SetUnixFileMode(blocked, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        try {
+            string searchPath = blockedDirectory + Path.PathSeparator + executableDirectory;
+
+            Assert.True(TesseractRuntime.TryFindOnPath("tesseract", searchPath, out string? discovered));
+            Assert.Equal(executable, discovered);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+#endif
+    }
+
+    [Fact]
     public async Task TesseractLanguageData_VerifiesDownloadsAndReusesValidCache() {
         byte[] payload = Encoding.UTF8.GetBytes("pinned-language-model");
         string hash;
@@ -98,14 +129,16 @@ public sealed class ReaderOcrTesseractTests {
         var package = new TesseractLanguageData.Package("fixture", hash, payload.LongLength, new Uri("https://example.test/fixture.traineddata"));
         var options = new TesseractLanguageDataOptions { CacheDirectory = directory, HttpClient = client };
         try {
-            TesseractLanguageDataResult first = await TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
-            TesseractLanguageDataResult second = await TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
+            Task<TesseractLanguageDataResult> firstTask = TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
+            Task<TesseractLanguageDataResult> secondTask = TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
+            TesseractLanguageDataResult[] results = await Task.WhenAll(firstTask, secondTask);
 
-            Assert.True(first.Downloaded);
-            Assert.False(second.Downloaded);
+            Assert.Single(results, static result => result.Downloaded);
+            Assert.Single(results, static result => !result.Downloaded);
             Assert.Equal(1, handler.CallCount);
-            Assert.Equal(hash, first.Files[0].Sha256);
-            Assert.Equal(payload, File.ReadAllBytes(first.Files[0].Path));
+            Assert.All(results, result => Assert.Equal(hash, result.Files[0].Sha256));
+            Assert.Equal(payload, File.ReadAllBytes(results[0].Files[0].Path));
+            Assert.Empty(Directory.GetFiles(directory, "*.download-*"));
         } finally {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
@@ -132,14 +165,16 @@ public sealed class ReaderOcrTesseractTests {
     private sealed class StaticHttpHandler : HttpMessageHandler {
         private readonly byte[] _payload;
         internal StaticHttpHandler(byte[] payload) => _payload = payload;
-        internal int CallCount { get; private set; }
+        private int _callCount;
+        internal int CallCount => Volatile.Read(ref _callCount);
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
-            CallCount++;
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+            Interlocked.Increment(ref _callCount);
+            await Task.Yield();
+            return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new ByteArrayContent(_payload)
-            });
+            };
         }
     }
 }

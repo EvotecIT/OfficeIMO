@@ -218,6 +218,26 @@ public sealed class PdfLogicalReadingOrderTests {
     }
 
     [Fact]
+    public void Analyze_TreatsAFullWidthInlineImageAsAColumnBandDivider() {
+        byte[] pdf = BuildPositionedTextAndImagePdf(
+            "BT /F1 11 Tf\n" +
+            "1 0 0 1 30 350 Tm (Upper left) Tj\n" +
+            "1 0 0 1 230 340 Tm (Upper right) Tj\n" +
+            "1 0 0 1 30 110 Tm (Lower left) Tj\n" +
+            "1 0 0 1 230 100 Tm (Lower right) Tj ET\n" +
+            "q 380 0 0 60 20 170 cm /Im1 Do Q");
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
+
+        PdfLogicalReadingOrderItem[] ordered = PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent)
+            .Where(static item => item.Kind is PdfLogicalReadingOrderKind.TextBlock or PdfLogicalReadingOrderKind.Heading or PdfLogicalReadingOrderKind.Paragraph or PdfLogicalReadingOrderKind.ListItem or PdfLogicalReadingOrderKind.Image)
+            .ToArray();
+        string[] labels = ordered.Select(item => item.Kind == PdfLogicalReadingOrderKind.Image ? "[image]" : GetText(page, item)).ToArray();
+
+        Assert.Equal(new[] { "Upper left", "Upper right", "[image]", "Lower left", "Lower right" }, labels);
+        Assert.True(Assert.Single(ordered, static item => item.Kind == PdfLogicalReadingOrderKind.Image).SpansColumns);
+    }
+
+    [Fact]
     public void CanonicalText_PreservesBlocksOmittedByATableProjection() {
         var style = new PdfTableStyle {
             HeaderRowCount = 1,
@@ -247,6 +267,16 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.Contains(logical.TextBlocks, static block => block.Text == "Identity systems");
         Assert.Contains("Identity systems", logical.Text, StringComparison.Ordinal);
         Assert.Contains("Follow-up", logical.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TableOwnership_RecognizesCompleteWordSequencesWithinWrappedCellText() {
+        string[] cells = { "this wrapped table cell contains multiple visual lines" };
+
+        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "this wrapped table cell"));
+        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "contains multiple visual lines"));
+        Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "wrapped table cell contains multiple visual" + "x"));
+        Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "rap"));
     }
 
     private static void AssertInOrder(string value, params string[] markers) {
@@ -294,4 +324,15 @@ public sealed class PdfLogicalReadingOrderTests {
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
     }
+
+    private static byte[] BuildPositionedTextAndImagePdf(string content) => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 420 400] /Resources << /Font << /F1 5 0 R >> /XObject << /Im1 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(content) + " >>", "stream", content, "endstream", "endobj",
+        "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+        "6 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+    }));
 }

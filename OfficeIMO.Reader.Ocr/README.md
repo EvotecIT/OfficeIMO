@@ -30,16 +30,16 @@ PdfSearchableOcrResult result = await OfficeOcr.MakePdfSearchableAsync(
 Console.WriteLine($"Added {result.AddedWordCount} OCR words.");
 ```
 
-English is the default. Language choices are typed and discoverable, so callers do not need to know Tesseract language codes. English, Polish, and orientation data can be downloaded on demand from an immutable official `tessdata_fast` commit. Every file is checked against a package-pinned size and SHA-256 digest before it enters the versioned user cache.
+English is the default. Language choices are typed and discoverable, so callers do not need to know Tesseract language codes. The curated catalog contains 28 typed languages across Latin, Cyrillic, Arabic, Hebrew, Devanagari, Chinese, Japanese, Korean, Greek, and Vietnamese text. Requested language data is downloaded on demand from an immutable official `tessdata_fast` commit. Every file is checked against a package-pinned size and SHA-256 digest before it enters the versioned user cache.
 
 ```csharp
 var options = new OfficeOcrOptions();
-options.Languages = OfficeOcrLanguage.English | OfficeOcrLanguage.Polish;
+options.Languages = OfficeOcrLanguage.English | OfficeOcrLanguage.Polish | OfficeOcrLanguage.German;
 
 await OfficeOcr.MakePdfSearchableAsync("scan.pdf", "searchable.pdf", options);
 ```
 
-Callers with their own trained-data files can set `CustomLanguageExpression`. That advanced escape hatch accepts raw Tesseract identifiers; ordinary English and Polish use should stay on the typed property. The earlier `Tesseract.Language` configuration route remains supported for compatibility. Combining multiple non-default language routes is rejected instead of silently choosing one.
+Use `OfficeOcrLanguages.Supported` to populate a UI without maintaining another language list. Callers with their own trained-data files can set `CustomLanguageExpression`. That advanced escape hatch accepts raw Tesseract identifiers; ordinary use should stay on the typed property. The earlier `Tesseract.Language` configuration route remains supported for compatibility. Combining multiple non-default language routes is rejected instead of silently choosing one.
 
 ## Reuse a session
 

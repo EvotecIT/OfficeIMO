@@ -143,9 +143,9 @@ public static class PdfLogicalReadingOrderAnalysis {
             consumeWork,
             cancellationCheck);
         Candidate[] spanning = positioned
-            .Where(item => CanDivideBands(item.Kind) &&
+            .Where(item => CanDivideBands(item, pageWidth, pageHeight) &&
                 (item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
-                IsCenteredBandDivider(item, pageColumnAnchors, pageWidth)))
+                item.Kind != PdfLogicalReadingOrderKind.Image && IsCenteredBandDivider(item, pageColumnAnchors, pageWidth)))
             .OrderBy(static item => item.Top)
             .ThenBy(static item => item.Left)
             .ToArray();
@@ -239,6 +239,7 @@ public static class PdfLogicalReadingOrderAnalysis {
         PdfLogicalReadingOrderItem[] items) {
         if (page.RotationDegrees != 0 ||
             page.Analysis.ReadingOrder.Count == 0 ||
+            items.Any(static item => item.SpansColumns && item.Kind is PdfLogicalReadingOrderKind.Table or PdfLogicalReadingOrderKind.Image) ||
             items.Length < 2) return items;
 
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
@@ -448,7 +449,7 @@ public static class PdfLogicalReadingOrderAnalysis {
                 consumeWork?.Invoke(1);
                 string signature = PdfTextSimilarity.NormalizeSignature(block.Text);
                 if (signature.Length > 0 &&
-                    tableText[tableIndex].Contains(signature) &&
+                    IsRepresentedByTableCell(tableText[tableIndex], signature) &&
                     tableBounds[tableIndex] is PdfVisualBounds bounds &&
                     IsOwnedByTable(block, blockBounds, bounds)) {
                     representedTextBlocks.Add(block);
@@ -643,12 +644,35 @@ public static class PdfLogicalReadingOrderAnalysis {
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
     }
 
-    private static bool CanDivideBands(PdfLogicalReadingOrderKind kind) =>
-        kind is PdfLogicalReadingOrderKind.TextBlock or
+    internal static bool IsRepresentedByTableCell(IEnumerable<string> cellSignatures, string blockSignature) {
+        foreach (string cellSignature in cellSignatures) {
+            if (string.Equals(cellSignature, blockSignature, StringComparison.Ordinal)) return true;
+            int offset = cellSignature.IndexOf(blockSignature, StringComparison.Ordinal);
+            while (offset >= 0) {
+                int end = offset + blockSignature.Length;
+                bool startsAtBoundary = offset == 0 || cellSignature[offset - 1] == ' ';
+                bool endsAtBoundary = end == cellSignature.Length || cellSignature[end] == ' ';
+                if (startsAtBoundary && endsAtBoundary) return true;
+                offset = cellSignature.IndexOf(blockSignature, offset + 1, StringComparison.Ordinal);
+            }
+        }
+        return false;
+    }
+
+    private static bool CanDivideBands(Candidate item, double pageWidth, double pageHeight) {
+        if (item.Kind == PdfLogicalReadingOrderKind.Image) {
+            double width = item.Right - item.Left;
+            double height = item.Bottom - item.Top;
+            bool coversPageBackground = width >= Math.Max(1D, pageWidth) * 0.9D &&
+                height >= Math.Max(1D, pageHeight) * 0.8D;
+            return !coversPageBackground;
+        }
+        return item.Kind is PdfLogicalReadingOrderKind.TextBlock or
             PdfLogicalReadingOrderKind.Heading or
             PdfLogicalReadingOrderKind.Paragraph or
             PdfLogicalReadingOrderKind.ListItem or
             PdfLogicalReadingOrderKind.Table;
+    }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 

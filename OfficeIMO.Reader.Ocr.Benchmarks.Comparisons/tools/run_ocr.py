@@ -47,6 +47,12 @@ def tesseract_result(args: argparse.Namespace) -> dict:
 
 
 def rapid_result(args: argparse.Namespace) -> dict:
+    if "+" in args.language:
+        raise ValueError(
+            "RapidOCR comparison lanes accept one recognition language model; "
+            "mixed-language requests require an equivalent pinned multilingual model."
+        )
+
     sys.path.insert(0, str(args.rapid_packages.resolve()))
     from rapidocr import RapidOCR
 

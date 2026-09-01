@@ -61,7 +61,7 @@ foreach (OfficeDocumentOcrRecognition recognition in execution.Recognitions) {
 
 The provider parses Tesseract TSV into line and word spans with pixel bounding boxes and normalized confidence. Tesseract TSV does not expose character boxes, so `SupportsCharacterSpans` is false. A process or delegate engine can still return character spans through the shared core contract.
 
-`GetVersionAsync()` and `GetLanguagesAsync()` provide explicit installation evidence. `TesseractLanguageData.EnsureAsync("eng+pol")` can provision the built-in English, Polish, and orientation models into a versioned user cache. Downloads come from one immutable official `tessdata_fast` commit and must match package-pinned lengths and SHA-256 digests. Missing executables, unavailable trained data, unsupported input formats, and nonzero process exits surface as engine failures; `ApplyOcrAsync` converts them to structured diagnostics when `ContinueOnError` is enabled.
+`GetVersionAsync()` and `GetLanguagesAsync()` provide explicit installation evidence. `TesseractLanguageData.EnsureAsync("eng+pol")` can provision any model in the facade's 28-language catalog, plus orientation data, into a versioned user cache. Downloads come from one immutable official `tessdata_fast` commit and must match package-pinned lengths and SHA-256 digests. Missing executables, unavailable trained data, unsupported input formats, and nonzero process exits surface as engine failures; `ApplyOcrAsync` converts them to structured diagnostics when `ContinueOnError` is enabled.
 
 Per-request payload and output files use owner-only Unix directories and permissions. Temporary files are deleted by default; enable `KeepTemporaryFiles` only for controlled diagnostics.
 

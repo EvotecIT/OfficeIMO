@@ -984,7 +984,7 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core` and OpenDocument; no LibreO
 
 - [x] One-call image recognition and searchable-PDF creation with a reusable session API
 - [x] Installed Tesseract discovery with explicit runtime and language evidence
-- [x] Checksum-pinned English, Polish, and orientation-data provisioning into a versioned user cache
+- [x] Checksum-pinned provisioning for 28 typed OCR languages plus orientation data in a versioned user cache
 
 _Dependency footprint:_ `OfficeIMO.Reader.Ocr.Tesseract` and `OfficeIMO.Reader.Pdf`; the native OCR executable remains external.
 

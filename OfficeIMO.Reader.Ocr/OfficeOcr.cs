@@ -55,6 +55,7 @@ public static class OfficeOcr {
         if (string.IsNullOrWhiteSpace(imagePath)) throw new ArgumentException("Image path cannot be empty.", nameof(imagePath));
         string fullPath = Path.GetFullPath(imagePath);
         OfficeOcrOptions effective = options ?? new OfficeOcrOptions();
+        if (effective.Tesseract == null) throw new ArgumentException("Tesseract options cannot be null.", nameof(options));
         var info = new FileInfo(fullPath);
         if (info.Length > effective.Tesseract.MaxInputBytes) {
             throw new IOException("OCR image exceeds the configured Tesseract MaxInputBytes limit.");

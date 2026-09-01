@@ -36,7 +36,7 @@ public sealed class OfficeOcrOptions {
 
     /// <summary>
     /// Downloads checksum-pinned OfficeIMO catalog language data when the installed runtime lacks a requested language.
-    /// Enabled by default for the curated English, Polish, and orientation-data catalog.
+    /// Enabled by default for every typed language and orientation data in the curated catalog.
     /// </summary>
     public bool ProvisionMissingLanguageData { get; set; } = true;
 }

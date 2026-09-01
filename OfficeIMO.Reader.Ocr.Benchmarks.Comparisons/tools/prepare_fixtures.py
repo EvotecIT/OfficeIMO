@@ -25,19 +25,6 @@ CASES = (
         "rotation": 0.0,
     },
     {
-        "name": "mixed-polish",
-        "language": "eng+pol",
-        "lines": (
-            "ZAŻÓŁĆ GĘŚLĄ JAŹŃ",
-            "Faktura numer 2026/09/01",
-            "Kwota brutto: 1 234,56 PLN",
-            "OfficeIMO rozpoznaje tekst po polsku.",
-        ),
-        "foreground": (12, 20, 32),
-        "background": (255, 255, 255),
-        "rotation": 0.0,
-    },
-    {
         "name": "dense-table",
         "language": "eng",
         "lines": (

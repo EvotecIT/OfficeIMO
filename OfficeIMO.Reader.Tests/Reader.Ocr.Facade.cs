@@ -14,6 +14,9 @@ public sealed class ReaderOcrFacadeTests {
     [InlineData(OfficeOcrLanguage.English, "eng")]
     [InlineData(OfficeOcrLanguage.Polish, "pol")]
     [InlineData(OfficeOcrLanguage.English | OfficeOcrLanguage.Polish, "eng+pol")]
+    [InlineData(OfficeOcrLanguage.French | OfficeOcrLanguage.German | OfficeOcrLanguage.Spanish, "fra+deu+spa")]
+    [InlineData(OfficeOcrLanguage.Arabic | OfficeOcrLanguage.Hebrew | OfficeOcrLanguage.Hindi, "ara+heb+hin")]
+    [InlineData(OfficeOcrLanguage.ChineseSimplified | OfficeOcrLanguage.Japanese | OfficeOcrLanguage.Korean, "chi_sim+jpn+kor")]
     public void Languages_MapDiscoverableValuesToStableProviderExpressions(OfficeOcrLanguage languages, string expected) {
         Assert.Equal(expected, languages.ToTesseractExpression());
     }
@@ -21,7 +24,17 @@ public sealed class ReaderOcrFacadeTests {
     [Fact]
     public void Languages_RejectEmptyAndUndefinedSelections() {
         Assert.Throws<ArgumentOutOfRangeException>(() => ((OfficeOcrLanguage) 0).ToTesseractExpression());
-        Assert.Throws<ArgumentOutOfRangeException>(() => ((OfficeOcrLanguage) 8).ToTesseractExpression());
+        Assert.Throws<ArgumentOutOfRangeException>(() => ((OfficeOcrLanguage) (1UL << 40)).ToTesseractExpression());
+    }
+
+    [Fact]
+    public void Languages_ExposeOneTypedEntryForEveryProvisionedFacadeModel() {
+        Assert.Equal(28, OfficeOcrLanguages.Supported.Count);
+        Assert.Equal(OfficeOcrLanguages.Supported.Count, OfficeOcrLanguages.Supported.Distinct().Count());
+        Assert.All(OfficeOcrLanguages.Supported, language => {
+            string code = language.ToTesseractExpression();
+            Assert.Contains(code, TesseractLanguageData.SupportedLanguages);
+        });
     }
 
     [Fact]
@@ -49,6 +62,17 @@ public sealed class ReaderOcrFacadeTests {
             Languages = OfficeOcrLanguage.Polish,
             CustomLanguageExpression = "deu"
         }));
+    }
+
+    [Fact]
+    public async Task ReadTextAsync_RejectsNullNestedTesseractOptionsBeforeReadingTheFile() {
+        var options = new OfficeOcrOptions { Tesseract = null! };
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            OfficeOcr.ReadTextAsync("missing-image.png", options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("Tesseract options", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -431,7 +431,7 @@ public class PdfOcrTests {
         PdfPageInteractionRegion[] word = interactions.TextRegions.Take("Searchable".Length).ToArray();
         Assert.Equal("Searchable", string.Concat(word.Select(static region => region.Text)));
         Assert.Equal(42D, word[0].Quad.Left, 2);
-        Assert.Equal(88D, word[^1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.Equal(88D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
         Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
         Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
         Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
@@ -497,7 +497,7 @@ public class PdfOcrTests {
         Assert.Equal("Rotated", string.Concat(word.Select(static region => region.Text)));
         Assert.Equal(24D, word[0].Quad.Left, 2);
         Assert.Equal(180D, word[0].Quad.Top, 2);
-        Assert.Equal(64D, word[^1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.Equal(64D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
         Assert.True(PdfVisualComparer.Compare(source, result.Document.ToBytes()).IsMatch);
     }
 
