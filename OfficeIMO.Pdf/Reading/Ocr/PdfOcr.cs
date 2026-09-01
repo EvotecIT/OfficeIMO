@@ -108,7 +108,7 @@ internal static class PdfOcr {
             return y != 0 ? y : left.X.CompareTo(right.X);
         });
         string text = BuildMergedText(nativePage, readPage, accepted, options.MaxMergedTextCharactersPerPage);
-        return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text);
+        return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text, response.Provider, response.Model, response.Language);
     }
 
     private static bool IsValid(PdfOcrWord word, PdfOcrRequest request) =>

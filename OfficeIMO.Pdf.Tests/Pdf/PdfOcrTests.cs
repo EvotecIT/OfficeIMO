@@ -23,7 +23,7 @@ public class PdfOcrTests {
             new PdfOcrWord("Scanned", 150, 400, 120, 32, 0.95),
             new PdfOcrWord("Weak", 300, 400, 80, 30, 0.2),
             new PdfOcrWord("Outside", request.PixelWidth, 0, 20, 20, 0.99)
-        }, new[] { "provider-proof" }));
+        }, new[] { "provider-proof" }, provider: "fixture", model: "fixture-v1", language: "eng"));
 
         PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
         PdfOcrPageMergeResult page = Assert.Single(result.Pages);
@@ -37,6 +37,9 @@ public class PdfOcrTests {
         Assert.Equal(1, page.RejectedLowConfidenceCount);
         Assert.Equal(1, page.RejectedNativeOverlapCount);
         Assert.Contains("provider-proof", page.Diagnostics);
+        Assert.Equal("fixture", page.Provider);
+        Assert.Equal("fixture-v1", page.Model);
+        Assert.Equal("eng", page.Language);
         Assert.Contains(page.Diagnostics, diagnostic => diagnostic.StartsWith("InvalidWordGeometry:", StringComparison.Ordinal));
         Assert.Contains("Native text", page.Text, StringComparison.Ordinal);
         Assert.Contains("Scanned", page.Text, StringComparison.Ordinal);

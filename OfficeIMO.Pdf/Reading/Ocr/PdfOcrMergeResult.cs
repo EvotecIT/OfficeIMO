@@ -29,8 +29,9 @@ public sealed class PdfOcrMergeResult {
 
 /// <summary>Accepted OCR words and evidence for one page.</summary>
 public sealed class PdfOcrPageMergeResult {
-    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text) {
+    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null) {
         PageNumber = pageNumber; Words = words; RejectedLowConfidenceCount = rejectedLowConfidenceCount; RejectedNativeOverlapCount = rejectedNativeOverlapCount; Diagnostics = diagnostics; Text = text;
+        Provider = provider; Model = model; Language = language;
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
@@ -44,6 +45,12 @@ public sealed class PdfOcrPageMergeResult {
     public IReadOnlyList<string> Diagnostics { get; }
     /// <summary>Native and accepted OCR text in approximate visual order.</summary>
     public string Text { get; }
+    /// <summary>OCR provider identifier reported for this page, when available.</summary>
+    public string? Provider { get; }
+    /// <summary>OCR model or trained-data identifier reported for this page, when available.</summary>
+    public string? Model { get; }
+    /// <summary>Detected or requested OCR language reported for this page, when available.</summary>
+    public string? Language { get; }
 }
 
 /// <summary>OCR word normalized to top-left visual PDF-point coordinates after crop and page rotation.</summary>
