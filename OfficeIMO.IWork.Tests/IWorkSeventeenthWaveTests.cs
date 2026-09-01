@@ -253,14 +253,19 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static byte[] CreateOnePageClassicPdf(bool validKids,
-        string pageDictionaryPrefix = "", string trailerDictionaryPrefix = "") {
+        string pageDictionaryPrefix = "", string trailerDictionaryPrefix = "",
+        bool omitCatalogEndObject = false, bool omitPagesEndObject = false,
+        bool omitPageEndObject = false) {
         const string header = "%PDF-1.4\n";
-        const string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+        string catalog = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\n"
+            + (omitCatalogEndObject ? string.Empty : "endobj\n");
         string pages = validKids
-            ? "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n"
-            : "2 0 obj\n<< /Type /Pages /Count 1 /Kids [] >>\nendobj\n";
+            ? "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\n"
+            : "2 0 obj\n<< /Type /Pages /Count 1 /Kids [] >>\n";
+        if (!omitPagesEndObject) pages += "endobj\n";
         string page = "3 0 obj\n<< /Type /Page " + pageDictionaryPrefix
-            + "/Parent 2 0 R >>\nendobj\n";
+            + "/Parent 2 0 R >>\n"
+            + (omitPageEndObject ? string.Empty : "endobj\n");
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);
         int pageOffset = Encoding.ASCII.GetByteCount(header + catalog + pages);

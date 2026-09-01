@@ -925,7 +925,8 @@ public sealed partial class IWorkBoundaryTests {
         bool invalidFontName = false, bool malformedColor = false, bool wrongWireBold = false,
         bool invalidAlignment = false, bool includePreview = false,
         bool naturalAlignment = false, string bodyText = "Styled", bool bold = false,
-        float? fontSize = null) {
+        float? fontSize = null, bool conflictingFont = false,
+        bool conflictingColor = false, bool conflictingBackground = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong firstStyleId = 10;
@@ -954,6 +955,17 @@ public sealed partial class IWorkBoundaryTests {
             }
             if (index == 0 && fontSize.HasValue) {
                 fields.Add(BytesField(11, Message(FloatField(3, fontSize.Value))));
+            }
+            if (index == 0 && conflictingFont) {
+                fields.Add(BytesField(11, Message(VarintField(4, 1), StringField(5, "Conflict"))));
+            }
+            if (index == 0 && conflictingColor) {
+                fields.Add(BytesField(11, Message(VarintField(6, 1),
+                    BytesField(7, Message(FloatField(3, 1f), FloatField(4, 0f), FloatField(5, 0f))))));
+            }
+            if (index == 0 && conflictingBackground) {
+                fields.Add(BytesField(11, Message(VarintField(25, 1),
+                    BytesField(26, Message(FloatField(3, 0f), FloatField(4, 0f), FloatField(5, 1f))))));
             }
             if (index == 0 && invalidAlignment) {
                 fields.Add(BytesField(12, Message(VarintField(1, 99))));
@@ -1029,7 +1041,9 @@ public sealed partial class IWorkBoundaryTests {
             byte[] rowInfo = table.LegacyStorage
                 ? Message(VarintField(1, 0), BytesField(3, new byte[] { 1 }), BytesField(4, new byte[] { 1 }))
                 : CreateBncRow(table);
-            byte[] tilePayload = table.MalformedSecondTileRow
+            byte[] tilePayload = table.EmptyTile
+                ? Message()
+                : table.MalformedSecondTileRow
                 ? Message(BytesField(5, rowInfo), BytesField(5, new byte[] { 0x80 }))
                 : table.DuplicateTileRow
                     ? Message(BytesField(5, rowInfo), BytesField(5, rowInfo))
@@ -1155,7 +1169,8 @@ public sealed partial class IWorkBoundaryTests {
         int cellOffset = table.WideOffsets ? 4 : 0;
         int valueBytes = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.ConflictingNumberValue ? 24
-            : table.Decimal128HighBit || table.Decimal128Underflow ? 16 : 8;
+            : table.Decimal128HighBit || table.Decimal128Underflow
+                || table.Decimal128SpecialHighByte != 0 ? 16 : 8;
         var buffer = new byte[cellOffset + 12 + valueBytes + (table.HasFormula ? 4 : 0)];
         buffer[cellOffset] = 5;
         buffer[cellOffset + 1] = table.Error ? (byte)8
@@ -1168,7 +1183,8 @@ public sealed partial class IWorkBoundaryTests {
         uint valueFlag = table.FormulaWithoutCachedValue || table.Error ? 0
             : table.TextValue != null ? 1u << 3
             : table.ConflictingNumberValue ? (1u << 0) | (1u << 1)
-            : table.Decimal128HighBit || table.Decimal128Underflow ? 1u
+            : table.Decimal128HighBit || table.Decimal128Underflow
+                || table.Decimal128SpecialHighByte != 0 ? 1u
             : table.Date ? 1u << 2
             : 1u << 1;
         WriteUInt32(buffer, cellOffset + 8, valueFlag
@@ -1186,6 +1202,8 @@ public sealed partial class IWorkBoundaryTests {
                 buffer[cellOffset + 27] = 0x30;
             } else if (table.Decimal128Underflow) {
                 buffer[cellOffset + 12] = 1;
+            } else if (table.Decimal128SpecialHighByte != 0) {
+                buffer[cellOffset + 27] = table.Decimal128SpecialHighByte;
             } else {
                 Buffer.BlockCopy(BitConverter.GetBytes(table.Value), 0, buffer, cellOffset + 12, 8);
             }
@@ -1526,7 +1544,8 @@ public sealed partial class IWorkBoundaryTests {
             int unexpectedStringCatalogFieldCount = 0,
             int unexpectedFormulaCatalogFieldCount = 0,
             int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
-            bool duplicateRowIndex = false, bool conflictingNumberValue = false) {
+            bool duplicateRowIndex = false, bool conflictingNumberValue = false,
+            byte decimal128SpecialHighByte = 0, bool emptyTile = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1574,6 +1593,8 @@ public sealed partial class IWorkBoundaryTests {
             DuplicateTableStore = duplicateTableStore;
             DuplicateRowIndex = duplicateRowIndex;
             ConflictingNumberValue = conflictingNumberValue;
+            Decimal128SpecialHighByte = decimal128SpecialHighByte;
+            EmptyTile = emptyTile;
         }
 
         internal string Name { get; }
@@ -1623,5 +1644,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool DuplicateTableStore { get; }
         internal bool DuplicateRowIndex { get; }
         internal bool ConflictingNumberValue { get; }
+        internal byte Decimal128SpecialHighByte { get; }
+        internal bool EmptyTile { get; }
     }
 }

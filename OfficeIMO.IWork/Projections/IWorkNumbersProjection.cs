@@ -1077,6 +1077,7 @@ internal static class IWorkNumbersReader {
     }
 
     private static double? ReadDecimal128(byte[] buffer, int offset) {
+        if ((buffer[offset + 15] & 0x78) == 0x78) return null;
         int exponent = (((buffer[offset + 15] & 0x7f) << 7) | (buffer[offset + 14] >> 1)) - 0x1820;
         BigInteger coefficient = BigInteger.Zero;
         for (int index = 13; index >= 0; index--) {

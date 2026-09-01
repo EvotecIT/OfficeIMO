@@ -167,6 +167,9 @@ public partial class ExcelDocument {
                 if (!TryAddExactSheetName(tableSheetName, destinationSheetNames)) {
                     return $"Numbers table '{table.Name}' cannot be preserved as an exact unique XLSX worksheet name.";
                 }
+                if (table.RowCount == 0 || table.ColumnCount == 0) {
+                    return $"Numbers table '{table.Name}' has no rows or columns and cannot be represented by the XLSX owner.";
+                }
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }

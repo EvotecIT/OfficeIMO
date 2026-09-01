@@ -314,7 +314,10 @@ internal static class IWorkTextReader {
         else if (size.HasValue && IsFinitePositive(size.Value)) data.FontSizePoints = size.Value;
         else if (message.HasField(3)) complete = false;
         ulong? clearFont = ReadUnsigned(message, 4, ref complete);
-        if (clearFont == 1) data.FontName = null;
+        if (clearFont == 1) {
+            if (message.HasField(5)) complete = false;
+            data.FontName = null;
+        }
         else if (message.HasField(5)) {
             if (message.FieldCount(5) != 1
                 || message.HasUnexpectedWireKind(5, IWorkWireKind.Bytes)
@@ -322,10 +325,16 @@ internal static class IWorkTextReader {
             else data.FontName = fontName;
         }
         ulong? clearColor = ReadUnsigned(message, 6, ref complete);
-        if (clearColor == 1) data.Color = null;
+        if (clearColor == 1) {
+            if (message.HasField(7)) complete = false;
+            data.Color = null;
+        }
         else if (TryColor(message, 7, out IWorkColor? color, ref complete)) data.Color = color;
         ulong? clearBackground = ReadUnsigned(message, 25, ref complete);
-        if (clearBackground == 1) data.BackgroundColor = null;
+        if (clearBackground == 1) {
+            if (message.HasField(26)) complete = false;
+            data.BackgroundColor = null;
+        }
         else if (TryColor(message, 26, out IWorkColor? background, ref complete)) data.BackgroundColor = background;
     }
 

@@ -58,11 +58,14 @@ internal static class IWorkPdfInfo {
         if (!chainComplete || !size.HasValue || !rootObject.HasValue
             || rootObject.Value <= 0 || rootObject.Value >= size.Value
             || !inUseOffsets.TryGetValue((rootObject.Value, rootGeneration), out int rootOffset)) return false;
-        if (!IsCatalogObjectAt(bytes, rootOffset, objectLimit, rootObject.Value, rootGeneration,
+        int[] orderedObjectOffsets = inUseOffsets.Values.Concat(visitedXrefs)
+            .Distinct().OrderBy(value => value).ToArray();
+        if (!IsCatalogObjectAt(bytes, orderedObjectOffsets, rootOffset, objectLimit,
+                rootObject.Value, rootGeneration,
                 out long pagesObject, out long pagesGeneration)
             || !inUseOffsets.TryGetValue((pagesObject, pagesGeneration), out int pagesOffset)) return false;
         var visited = new HashSet<(long Object, long Generation)>();
-        return IsCompletePageTree(bytes, inUseOffsets, pagesOffset, objectLimit,
+        return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
             pagesObject, pagesGeneration, parent: null, visited, depth: 0, out _);
     }
 
@@ -173,11 +176,13 @@ internal static class IWorkPdfInfo {
         return offset >= end || IsDelimiter(bytes[offset]);
     }
 
-    private static bool IsCatalogObjectAt(byte[] bytes, int offset, int limit,
+    private static bool IsCatalogObjectAt(byte[] bytes, int[] orderedObjectOffsets,
+        int offset, int limit,
         long expectedObject, long expectedGeneration, out long pagesObject, out long pagesGeneration) {
         pagesObject = 0;
         pagesGeneration = 0;
-        if (!TryGetObjectDictionary(bytes, ref offset, limit, expectedObject, expectedGeneration,
+        int objectLimit = GetObjectLimit(orderedObjectOffsets, offset, limit);
+        if (!TryGetObjectDictionary(bytes, ref offset, objectLimit, expectedObject, expectedGeneration,
                 out int dictionaryStart, out int dictionaryEnd)) return false;
         return HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Catalog")
             && TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Pages",
@@ -186,19 +191,22 @@ internal static class IWorkPdfInfo {
 
     private static bool IsCompletePageTree(byte[] bytes,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int[] orderedObjectOffsets,
         int offset, int limit, long expectedObject, long expectedGeneration,
         (long Object, long Generation)? parent,
         ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
         pageCount = 0;
         if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
-        if (!TryGetObjectDictionary(bytes, ref offset, limit, expectedObject, expectedGeneration,
+        int objectLimit = GetObjectLimit(orderedObjectOffsets, offset, limit);
+        if (!TryGetObjectDictionary(bytes, ref offset, objectLimit, expectedObject, expectedGeneration,
                 out int dictionaryStart, out int dictionaryEnd)) return false;
         if (HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Page")) {
             if (!parent.HasValue
                 || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
                     out long parentObject, out long parentGeneration)
                 || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
-                || !HasCompletePageContents(bytes, inUseOffsets, dictionaryStart, dictionaryEnd, limit)) {
+                || !HasCompletePageContents(bytes, inUseOffsets, orderedObjectOffsets,
+                    dictionaryStart, dictionaryEnd, limit)) {
                 return false;
             }
             pageCount = 1;
@@ -215,7 +223,7 @@ internal static class IWorkPdfInfo {
         long total = 0;
         foreach ((long childObject, long childGeneration) in children) {
             if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
-                || !IsCompletePageTree(bytes, inUseOffsets, childOffset, limit,
+                || !IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, childOffset, limit,
                     childObject, childGeneration, (expectedObject, expectedGeneration),
                     visited, depth + 1, out long childCount)
                 || total > long.MaxValue - childCount) return false;
@@ -227,6 +235,7 @@ internal static class IWorkPdfInfo {
 
     private static bool HasCompletePageContents(byte[] bytes,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int[] orderedObjectOffsets,
         int dictionaryStart, int dictionaryEnd, int limit) {
         int contentsOffset = FindDictionaryName(bytes, "/Contents", dictionaryStart,
             dictionaryEnd, out int contentsCount);
@@ -246,7 +255,8 @@ internal static class IWorkPdfInfo {
         foreach ((long referencedObject, long referencedGeneration) in references) {
             if (!inUseOffsets.TryGetValue((referencedObject, referencedGeneration), out int contentOffset)
                 || validated.Add((referencedObject, referencedGeneration))
-                && !IsCompleteStreamObject(bytes, inUseOffsets, contentOffset, limit,
+                && !IsCompleteStreamObject(bytes, inUseOffsets, orderedObjectOffsets,
+                    contentOffset, limit,
                     referencedObject, referencedGeneration)) return false;
         }
         return true;
@@ -254,7 +264,10 @@ internal static class IWorkPdfInfo {
 
     private static bool IsCompleteStreamObject(byte[] bytes,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
+        int[] orderedObjectOffsets,
         int offset, int limit, long expectedObject, long expectedGeneration) {
+        int packageLimit = limit;
+        limit = GetObjectLimit(orderedObjectOffsets, offset, packageLimit);
         SkipWhitespace(bytes, ref offset, limit);
         if (!TryReadDecimal(bytes, ref offset, limit, out long objectNumber)
             || objectNumber != expectedObject) return false;
@@ -276,7 +289,8 @@ internal static class IWorkPdfInfo {
             if (!TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Length",
                     out long lengthObject, out long lengthGeneration)
                 || !inUseOffsets.TryGetValue((lengthObject, lengthGeneration), out int lengthOffset)
-                || !TryReadIndirectIntegerObject(bytes, lengthOffset, limit,
+                || !TryReadIndirectIntegerObject(bytes, orderedObjectOffsets, lengthOffset,
+                    packageLimit,
                     lengthObject, lengthGeneration, out streamLength)) return false;
         }
         if (streamLength < 0 || streamLength > int.MaxValue) return false;
@@ -295,9 +309,11 @@ internal static class IWorkPdfInfo {
         return StartsWith(bytes, offset, "endobj");
     }
 
-    private static bool TryReadIndirectIntegerObject(byte[] bytes, int offset, int limit,
+    private static bool TryReadIndirectIntegerObject(byte[] bytes, int[] orderedObjectOffsets,
+        int offset, int limit,
         long expectedObject, long expectedGeneration, out long value) {
         value = 0;
+        limit = GetObjectLimit(orderedObjectOffsets, offset, limit);
         SkipWhitespace(bytes, ref offset, limit);
         if (!TryReadDecimal(bytes, ref offset, limit, out long objectNumber)
             || objectNumber != expectedObject) return false;
@@ -311,6 +327,15 @@ internal static class IWorkPdfInfo {
         if (!TryReadDecimal(bytes, ref offset, limit, out value)) return false;
         SkipWhitespace(bytes, ref offset, limit);
         return StartsWith(bytes, offset, "endobj");
+    }
+
+    private static int GetObjectLimit(int[] orderedObjectOffsets, int offset, int defaultLimit) {
+        int index = Array.BinarySearch(orderedObjectOffsets, offset);
+        index = index < 0 ? ~index : index + 1;
+        while (index < orderedObjectOffsets.Length && orderedObjectOffsets[index] <= offset) index++;
+        return index < orderedObjectOffsets.Length && orderedObjectOffsets[index] < defaultLimit
+            ? orderedObjectOffsets[index]
+            : defaultLimit;
     }
 
     private static bool TryReadDictionaryReferenceArray(byte[] bytes, int start, int end,

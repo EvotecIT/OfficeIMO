@@ -203,9 +203,10 @@ internal static class IWorkImageInfo {
 
         uint expectedAdler = ReadBigEndianUInt32(data, data.Length - 4);
         using var compressed = new MemoryStream(data, 2, data.Length - 6, writable: false);
+        using var exactInput = new ExactTailReadStream(compressed);
         long decoded = 0;
         try {
-            using var inflater = new DeflateStream(compressed, CompressionMode.Decompress, leaveOpen: true);
+            using var inflater = new DeflateStream(exactInput, CompressionMode.Decompress, leaveOpen: true);
             uint first = 1;
             uint second = 0;
             var buffer = new byte[8192];
@@ -234,7 +235,8 @@ internal static class IWorkImageInfo {
                                    ref first, ref second, ref decoded)) return false;
                 }
             }
-            if (decoded != decodedLength || inflater.ReadByte() != -1) return false;
+            if (decoded != decodedLength || inflater.ReadByte() != -1
+                || compressed.Position != compressed.Length) return false;
             return ((second << 16) | first) == expectedAdler;
         } catch (Exception exception) when (exception is InvalidDataException or IOException) {
             return false;
@@ -344,6 +346,40 @@ internal static class IWorkImageInfo {
         if (first >= modulus) first -= modulus;
         second += first;
         if (second >= modulus) second -= modulus;
+    }
+
+    private sealed class ExactTailReadStream : Stream {
+        private const int ExactTailLength = 65_536;
+        private readonly Stream _inner;
+        private readonly long _exactTailStart;
+
+        internal ExactTailReadStream(Stream inner) {
+            _inner = inner;
+            _exactTailStart = Math.Max(0, inner.Length - ExactTailLength);
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => _inner.Length;
+        public override long Position {
+            get => _inner.Position;
+            set => throw new NotSupportedException();
+        }
+
+        public override int Read(byte[] buffer, int offset, int count) {
+            long beforeTail = _exactTailStart - _inner.Position;
+            int bounded = beforeTail > 0
+                ? (int)Math.Min(count, beforeTail)
+                : Math.Min(count, 1);
+            return _inner.Read(buffer, offset, bounded);
+        }
+
+        public override int ReadByte() => _inner.ReadByte();
+        public override void Flush() { }
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 
     private static bool IsChunk(byte[] bytes, int offset, char first, char second, char third, char fourth) =>
