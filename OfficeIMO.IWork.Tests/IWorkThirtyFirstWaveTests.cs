@@ -12,8 +12,8 @@ public sealed partial class IWorkBoundaryTests {
         bool presenterNotes) {
         using MemoryStream package = CreateKeynotePackageWithNestedList(presenterNotes);
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
-        PowerPointSlide slide = Assert.Single(result.Document.Slides);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        PowerPointSlide slide = Assert.Single(result.Value.Slides);
         PowerPointParagraph[] paragraphs = (presenterNotes
                 ? slide.Notes.Paragraphs
                 : Assert.Single(slide.TextBoxes).Paragraphs)
@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(1, paragraphs[1].Level);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
         PowerPointSlide persistedSlide = Assert.Single(reopened.Slides);
@@ -48,11 +48,11 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_container_breaks_use_visual_fallback(char separator) {
         using MemoryStream package = CreatePagesPackageWithHeaderBreak(separator);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
-        Assert.Single(result.Document.Images);
+        Assert.Single(result.Value.Images);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true,
             textBox: "Before\u000cAfter", includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Before\u000cAfter");
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

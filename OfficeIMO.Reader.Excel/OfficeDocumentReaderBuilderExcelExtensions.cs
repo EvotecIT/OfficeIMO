@@ -29,6 +29,16 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         }, replaceExisting);
     }
 
+    /// <summary>Adds the normal and legacy spreadsheet handlers with one immutable option set for every legacy route.</summary>
+    public static OfficeDocumentReaderBuilder AddExcelAndLegacyHandlers(
+        this OfficeDocumentReaderBuilder builder,
+        global::OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions? legacyImportOptions = null,
+        ReaderExcelOptions? options = null,
+        bool replaceExisting = false) {
+        AddExcelHandler(builder, options, replaceExisting);
+        return AddLegacySpreadsheetHandler(builder, legacyImportOptions, options, replaceExisting);
+    }
+
     /// <summary>Adds safe read-only handlers for selected legacy spreadsheet families.</summary>
     public static OfficeDocumentReaderBuilder AddLegacySpreadsheetHandler(
         this OfficeDocumentReaderBuilder builder,

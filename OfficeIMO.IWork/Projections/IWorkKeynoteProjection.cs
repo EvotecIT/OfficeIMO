@@ -103,11 +103,11 @@ public sealed class IWorkKeynoteProjection {
     /// <summary>Gets whether at least one editable slide was recovered and all required slide references were resolved.</summary>
     public bool HasEditableContent => Slides.Count > 0 && _supportsEditableReconstruction;
 
-    /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
-    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
-        CreateImportReport(kind, preview, Array.Empty<IWorkDiagnostic>());
+    /// <summary>Creates a conversion report for an OfficeIMO semantic-owner projection.</summary>
+    public IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
+        CreateConversionReport(kind, preview, Array.Empty<IWorkDiagnostic>());
 
-    internal IWorkImportReport CreateImportReport(IWorkProjectionKind kind,
+    internal IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind,
         IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
         ValidateReportRequest(kind, preview);
         return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
@@ -129,13 +129,9 @@ public sealed class IWorkKeynoteProjection {
 }
 
 public sealed partial class IWorkSourceDocument {
-    /// <summary>Reads a Keynote package into a bounded semantic source projection, or returns a diagnostic-only projection in visual-only mode.</summary>
+    /// <summary>Reads a Keynote package into a bounded semantic source projection.</summary>
     public IWorkKeynoteProjection ReadKeynote() {
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
-        if (RequestedImportMode == IWorkImportMode.VisualOnly) {
-            return new IWorkKeynoteProjection(this, Array.Empty<IWorkKeynoteSlide>(), null,
-                new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
-        }
         return IWorkKeynoteReader.Read(this);
     }
 }

@@ -37,8 +37,6 @@ public sealed partial class IWorkSourceDocument {
     public IReadOnlyList<string> BuildVersions { get; }
     /// <summary>Gets embedded raster or PDF previews ordered from most useful to least useful.</summary>
     public IReadOnlyList<IWorkPreviewAsset> Previews { get; }
-    /// <summary>Gets the snapshotted projection mode requested when the source was opened.</summary>
-    public IWorkImportMode RequestedImportMode => _options.ImportMode;
     /// <summary>Gets package-level diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets the preferred raster asset for a visual fallback.</summary>
@@ -57,18 +55,40 @@ public sealed partial class IWorkSourceDocument {
     }
 
     /// <summary>Opens a ZIP-based iWork stream using the supplied application kind.</summary>
-    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind kind,
+    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options = null) {
-        ValidateDocumentKind(kind, nameof(kind));
+        ValidateDocumentKind(expectedKind, nameof(expectedKind));
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
-        return Create(package, kind, resolved, expectedKind: kind);
+        return Create(package, hint: expectedKind, options: resolved, expectedKind: expectedKind);
+    }
+
+    /// <summary>Opens a ZIP-based iWork stream and detects its application kind.</summary>
+    public static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options = null) {
+        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
+        return Create(package, hint: null, resolved, expectedKind: null);
+    }
+
+    /// <summary>Opens iWork package bytes and detects the application kind.</summary>
+    public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options = null) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, options);
+    }
+
+    /// <summary>Opens iWork package bytes and verifies the expected application kind.</summary>
+    public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
+        IWorkReadOptions? options = null) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, expectedKind, options);
     }
 
     internal IWorkObjectIndex Index => _index;
     internal IWorkReadOptions Options => _options;
 
-    internal IWorkImportReport CreateReport(IWorkProjectionKind projectionKind,
+    internal IWorkConversionReport CreateReport(IWorkProjectionKind projectionKind,
         IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
         IWorkPreviewAsset? preview, int reconstructedItemCount) {
         if (projectionKind is not (IWorkProjectionKind.EditableReconstruction
@@ -80,7 +100,7 @@ public sealed partial class IWorkSourceDocument {
         IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
             ? allUnsupported
             : Array.Empty<IWorkArchiveRecord>();
-        return new IWorkImportReport(
+        return new IWorkConversionReport(
             Kind,
             projectionKind,
             BuildVersions,
@@ -155,8 +175,7 @@ public sealed partial class IWorkSourceDocument {
             } catch (InvalidDataException) {
                 continue;
             }
-            if (options.ImportMode != IWorkImportMode.VisualOnly
-                && declaredSheetCount > options.MaximumProjectedSheets) {
+            if (declaredSheetCount > options.MaximumProjectedSheets) {
                 throw new InvalidDataException(
                     $"Numbers sheet count exceeds the configured projection limit of {options.MaximumProjectedSheets}.");
             }
@@ -167,10 +186,6 @@ public sealed partial class IWorkSourceDocument {
                 continue;
             }
             if (message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) continue;
-            if (options.ImportMode == IWorkImportMode.VisualOnly) {
-                if (declaredSheetCount > 0 && message.HasBytes(1)) return true;
-                continue;
-            }
             IReadOnlyList<IWorkArchiveRecord> sheets = index.DereferenceAll(
                 message, 1, out int unresolved);
             if (unresolved == 0 && sheets.Count > 0

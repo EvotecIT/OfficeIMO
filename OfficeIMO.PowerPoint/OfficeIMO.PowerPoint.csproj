@@ -63,7 +63,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-        <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     </ItemGroup>
 
     <ItemGroup>
@@ -97,6 +96,7 @@
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.GoogleSlides" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.PowerPoint" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
     </ItemGroup>
 
   <ItemGroup>

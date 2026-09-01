@@ -1,10 +1,7 @@
 namespace OfficeIMO.IWork;
 
-/// <summary>Bounds and projection preferences applied while reading an iWork source.</summary>
+/// <summary>Bounds and preservation preferences applied while reading an iWork source.</summary>
 public sealed class IWorkReadOptions {
-    /// <summary>Gets or sets the requested semantic projection mode.</summary>
-    public IWorkImportMode ImportMode { get; set; } = IWorkImportMode.Auto;
-
     /// <summary>Gets or sets whether raw records not losslessly represented by a typed projection remain available on the result.</summary>
     public bool PreserveUnsupportedRecords { get; set; } = true;
 
@@ -102,12 +99,6 @@ public sealed class IWorkReadOptions {
     public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
 
     internal IWorkReadOptions Snapshot() {
-        if (ImportMode is not (IWorkImportMode.Auto
-                or IWorkImportMode.EditableOnly
-                or IWorkImportMode.VisualOnly)) {
-            throw new ArgumentOutOfRangeException(nameof(ImportMode),
-                "The import mode is not a defined iWork projection mode.");
-        }
         ValidatePositive(MaximumPackageBytes, nameof(MaximumPackageBytes));
         ValidatePositive(MaximumEntryCount, nameof(MaximumEntryCount));
         ValidatePositive(MaximumEntryBytes, nameof(MaximumEntryBytes));

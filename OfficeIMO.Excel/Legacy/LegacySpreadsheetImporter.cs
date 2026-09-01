@@ -24,6 +24,12 @@ public static class LegacySpreadsheetImporter {
         return Detect(OfficeLegacyImportBuffer.ReadAll(path, effective.Limits, cancellationToken), effective, cancellationToken);
     }
 
+    /// <summary>Detects a legacy spreadsheet stream.</summary>
+    public static LegacySpreadsheetDetection Detect(Stream stream, LegacySpreadsheetImportOptions? options = null, CancellationToken cancellationToken = default) {
+        LegacySpreadsheetImportOptions effective = Prepare(options, options?.SourceName);
+        return Detect(OfficeLegacyImportBuffer.ReadAll(stream, effective.Limits, cancellationToken), effective, cancellationToken);
+    }
+
     /// <summary>Detects legacy spreadsheet bytes.</summary>
     public static LegacySpreadsheetDetection Detect(byte[] data, LegacySpreadsheetImportOptions? options = null, CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));

@@ -8,7 +8,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_text_boxes_follow_recovered_z_order() {
         using MemoryStream package = CreatePagesPackageWithRestackedTextBoxes();
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent,
             string.Join("; ", result.Projection.Diagnostics.Select(diagnostic =>
@@ -17,10 +17,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },
             result.Projection.TextBoxObjects.Select(textBox => textBox.Content.PlainText));
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },
-            result.Document.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\n')));
+            result.Value.TextBoxes.Select(textBox => textBox.Paragraphs[0].Text.TrimEnd('\n')));
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         Assert.Equal(new[] { "Higher identifier", "Lower identifier" },

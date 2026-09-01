@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -92,12 +92,12 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Single(Assert.Single(result.Document.Slides).Pictures);
-        Assert.Contains(result.ImportReport.Diagnostics, diagnostic =>
+        Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED");
     }
 }

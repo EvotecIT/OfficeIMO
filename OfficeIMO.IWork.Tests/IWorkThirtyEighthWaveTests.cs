@@ -12,10 +12,10 @@ public sealed partial class IWorkBoundaryTests {
                 formulaWithoutCachedValue: true, completeFormula: true)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell projectedCell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
-        ExcelCellData ownerCell = result.Document.Sheets[0].CellAt(1, 1).GetValue();
+        ExcelCellData ownerCell = result.Value.Sheets[0].CellAt(1, 1).GetValue();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(projectedCell.FormulaIsComplete);
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Null(ownerCell.Value);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         ExcelCellData persisted = reopened.Sheets[0].CellAt(1, 1).GetValue();
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "First",
             includePreview: true, alternateTextBox: "Second");
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Repeated",
             includePreview: true, duplicateTextBoxStorageField: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -63,10 +63,10 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Aliased",
             includePreview: true, aliasTextBoxStorageFields: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "Aliased");
+        Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.Text == "Aliased");
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
     }
@@ -76,7 +76,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Repeated",
             includePreview: true, duplicateTextBoxStorageReference: true);
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

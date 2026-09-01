@@ -1,50 +1,32 @@
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-namespace OfficeIMO.Excel;
+namespace OfficeIMO.Excel.IWork;
 
-public partial class ExcelDocument {
-    /// <summary>Loads a Numbers source into the normal editable Excel model, using a visual preview only when requested or necessary.</summary>
-    public static ExcelDocument LoadNumbers(string path, IWorkReadOptions? options = null) =>
-        LoadNumbersWithReport(path, options).Document;
-
-    /// <summary>Loads a Numbers stream into the normal editable Excel model, using a visual preview only when requested or necessary.</summary>
-    public static ExcelDocument LoadNumbers(Stream stream, IWorkReadOptions? options = null) =>
-        LoadNumbersWithReport(stream, options).Document;
-
-    /// <summary>Loads a Numbers source and returns its Excel projection, bounded source model, and loss report.</summary>
-    public static IWorkNumbersLoadResult LoadNumbersWithReport(string path, IWorkReadOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        return ProjectNumbers(IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers, options));
-    }
-
-    /// <summary>Loads a Numbers stream and returns its Excel projection, bounded source model, and loss report.</summary>
-    public static IWorkNumbersLoadResult LoadNumbersWithReport(Stream stream, IWorkReadOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        return ProjectNumbers(IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options));
-    }
-
-    private static IWorkNumbersLoadResult ProjectNumbers(IWorkSourceDocument source) {
-        IWorkImportMode mode = source.RequestedImportMode;
-        IWorkPreviewAsset? preview = mode == IWorkImportMode.VisualOnly
+/// <summary>Projects Apple Numbers sources into editable OfficeIMO Excel workbooks.</summary>
+public static partial class ExcelIWorkConverter {
+    private static NumbersToExcelResult ProjectNumbers(IWorkSourceDocument source,
+        IWorkConversionOptions? options = null) {
+        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
-        if (mode == IWorkImportMode.VisualOnly && preview == null) {
+        if (mode == IWorkConversionMode.VisualOnly && preview == null) {
             throw new NotSupportedException("The Numbers source has no embedded raster preview.");
         }
 
         IWorkNumbersProjection projection = source.ReadNumbers();
-        string? destinationLimitation = mode == IWorkImportMode.VisualOnly
+        string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
             : FindExcelProjectionLimitation(projection);
-        bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
+        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
         IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !projection.HasEditableContent
                 || destinationLimitation == null
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (!editable && mode == IWorkImportMode.EditableOnly) {
+        if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Numbers source has no supported editable content.");
         }
@@ -54,7 +36,7 @@ public partial class ExcelDocument {
             throw new NotSupportedException("The Numbers source has no supported editable content or embedded raster preview.");
         }
 
-        ExcelDocument document = Create();
+        ExcelDocument document = ExcelDocument.Create();
         try {
             if (editable) {
                 foreach (IWorkNumbersSheet sourceSheet in projection.Sheets) {
@@ -149,8 +131,8 @@ public partial class ExcelDocument {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkNumbersLoadResult(document, source, projection,
-                projection.CreateImportReport(kind, preview, destinationDiagnostics));
+            return new NumbersToExcelResult(document, source, projection,
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
         } catch {
             document.Dispose();
             throw;

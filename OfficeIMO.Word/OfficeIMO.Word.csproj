@@ -71,7 +71,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
-        <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
@@ -108,7 +107,8 @@
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Rtf" />
-        <InternalsVisibleTo Include="OfficeIMO.Word.Legacy" />
+        <InternalsVisibleTo Include="OfficeIMO.LegacyImport.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
         <InternalsVisibleTo Include="OfficeIMO.VerifyTests" />
     </ItemGroup>
 

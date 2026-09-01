@@ -11,11 +11,11 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Width", 1, 1, 1d, defaultColumnWidth: 73d)
         });
 
-        using var result = ExcelDocument.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
         double width = Assert.IsType<double>(
-            result.Document.Sheets[0].DefaultColumnWidth);
+            result.Value.Sheets[0].DefaultColumnWidth);
         Assert.Equal(13.19047619047619d, width, 12);
     }
 
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithListLabel(
             "Ab.", includePreview: true);
 
-        using var result = WordDocument.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
