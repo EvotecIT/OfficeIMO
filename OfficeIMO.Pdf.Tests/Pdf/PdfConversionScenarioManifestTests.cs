@@ -1314,8 +1314,10 @@ public sealed class PdfConversionScenarioManifestTests {
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-hostile-table-corpus.pdf",
             pdfOptions: new ReaderPdfOptions {
-                LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                    ForceSingleColumn = true
+                ReadOptions = new PdfCore.PdfReadOptions {
+                    LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                        ForceSingleColumn = true
+                    }
                 }
             },
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());

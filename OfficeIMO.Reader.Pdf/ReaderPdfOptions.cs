@@ -19,20 +19,10 @@ public sealed class ReaderPdfOptions {
     };
 
     /// <summary>
-    /// Optional PDF text layout options used by the logical read model.
+    /// Canonical semantic read settings. Null uses <see cref="PdfReadOptions.Default"/>.
+    /// When the adapter receives an already reconstructed PDF result, only its page selection is applied.
     /// </summary>
-    public PdfTextLayoutOptions? LayoutOptions { get; set; }
-
-    /// <summary>
-    /// Optional inclusive one-based source page ranges. Null reads the full document.
-    /// </summary>
-    public IReadOnlyList<PdfPageRange>? PageRanges { get; set; }
-
-    /// <summary>
-    /// Maximum selected pages processed by the canonical semantic pipeline.
-    /// Increase this explicitly when ingesting larger PDF documents.
-    /// </summary>
-    public int MaxPages { get; set; } = PdfUnderstandingPipelineOptions.DefaultMaxPages;
+    public PdfReadOptions? ReadOptions { get; set; }
 
     /// <summary>
     /// Markdown rendering options used for page chunk content.
@@ -57,33 +47,12 @@ public sealed class ReaderPdfOptions {
     /// Creates a defensive copy for handler registration reuse.
     /// </summary>
     public ReaderPdfOptions Clone() => new ReaderPdfOptions {
-        LayoutOptions = CloneLayoutOptions(LayoutOptions),
-        PageRanges = PageRanges?.ToArray(),
-        MaxPages = MaxPages,
+        ReadOptions = ReadOptions?.Clone(),
         MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
         IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,
         ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),
         ChunkByPage = ChunkByPage
     };
-
-    internal static PdfTextLayoutOptions? CloneLayoutOptions(PdfTextLayoutOptions? options) {
-        if (options is null) return null;
-
-        return new PdfTextLayoutOptions {
-            MarginLeft = options.MarginLeft,
-            MarginRight = options.MarginRight,
-            BinWidth = options.BinWidth,
-            MinGutterWidth = options.MinGutterWidth,
-            LineMergeToleranceEm = options.LineMergeToleranceEm,
-            LineMergeMaxPoints = options.LineMergeMaxPoints,
-            ForceSingleColumn = options.ForceSingleColumn,
-            JoinHyphenationAcrossLines = options.JoinHyphenationAcrossLines,
-            IgnoreHeaderHeight = options.IgnoreHeaderHeight,
-            IgnoreFooterHeight = options.IgnoreFooterHeight,
-            GapSpaceThresholdEm = options.GapSpaceThresholdEm,
-            GapGlyphFactor = options.GapGlyphFactor
-        };
-    }
 
     internal static PdfLogicalParagraphContinuationOptions? CloneParagraphContinuationOptions(PdfLogicalParagraphContinuationOptions? options) {
         if (options is null) return null;

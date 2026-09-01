@@ -75,13 +75,22 @@ IReadOnlyList<OfficeDocumentMetadataEntry> continuations = document.Metadata
 ```
 
 The semantic reader processes at most 1,000 selected pages by default. Set the
-adapter limit explicitly when a larger document is expected:
+semantic pipeline limit explicitly when a larger document is expected:
 
 ```csharp
 OfficeDocumentReader largePdfReader = new OfficeDocumentReaderBuilder()
-    .AddPdfHandler(new ReaderPdfOptions { MaxPages = 2_500 })
+    .AddPdfHandler(new ReaderPdfOptions {
+        ReadOptions = new PdfReadOptions {
+            Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 2_500 }
+        }
+    })
     .Build();
 ```
+
+`ReaderPdfOptions.ReadOptions` is the canonical PDF semantic configuration. Use
+it for `Profile`, `PageSelection`, `LayoutOptions`, custom stages, and semantic
+work limits; the Reader adapter does not maintain a second set of PDF parsing
+options.
 
 ### Read a stream with input limits
 

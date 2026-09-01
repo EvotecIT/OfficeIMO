@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
 using Xunit;
@@ -113,7 +114,9 @@ public sealed class PdfBridgeApiContracts {
             typeof(PdfWordImportOptions),
             typeof(PdfExcelTableImportOptions),
             typeof(PdfRtfImportOptions),
-            typeof(PdfHtmlSaveOptions)
+            typeof(PdfHtmlSaveOptions),
+            typeof(PdfPowerPointImportOptions),
+            typeof(ReaderPdfOptions)
         }) {
             PropertyInfo property = Assert.IsAssignableFrom<PropertyInfo>(optionType.GetProperty("ReadOptions"));
             Assert.Equal(typeof(PdfReadOptions), property.PropertyType);
@@ -142,6 +145,11 @@ public sealed class PdfBridgeApiContracts {
             document.ToRtfDocument(new PdfRtfImportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
             document.ToHtml(new PdfHtmlSaveOptions { ReadOptions = readOptions }));
+        Assert.Throws<PdfReadLimitException>(() =>
+            document.ToPowerPointPresentation(new PdfPowerPointImportOptions { ReadOptions = readOptions }));
+        using var stream = new MemoryStream(pdf, writable: false);
+        Assert.Throws<PdfReadLimitException>(() =>
+            PdfReaderAdapter.ReadDocument(stream, pdfOptions: new ReaderPdfOptions { ReadOptions = readOptions }));
     }
 
     [Fact]

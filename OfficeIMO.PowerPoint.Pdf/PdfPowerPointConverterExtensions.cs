@@ -49,16 +49,13 @@ public static partial class PowerPointPdfConverterExtensions {
             throw new ArgumentOutOfRangeException(nameof(options.MaxPages), "The page limit must be positive.");
         }
 
-        int selectedPageCount = options.PageSelection?.PageCount ?? document.Inspect().PageCount;
+        int selectedPageCount = options.ReadOptions?.PageSelection?.PageCount ?? document.Inspect().PageCount;
         if (selectedPageCount > options.MaxPages) {
             throw new InvalidOperationException(
                 $"PDF import page count {selectedPageCount} exceeded the configured limit of {options.MaxPages}.");
         }
 
-        PdfCore.PdfDocumentReadResult logical = document.Read(new PdfCore.PdfReadOptions {
-            PageSelection = options.PageSelection,
-            Pipeline = new PdfCore.PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages }
-        });
+        PdfCore.PdfDocumentReadResult logical = document.Read(options.ReadOptions);
         ValidateLogicalPageCount(logical, options);
         return logical;
     }
@@ -324,10 +321,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfDocument document,
         PdfPowerPointImportOptions options) {
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered = RenderPages(document, options);
-        PdfCore.PdfDocumentReadResult logical = document.Read(new PdfCore.PdfReadOptions {
-            PageSelection = options.PageSelection,
-            Pipeline = new PdfCore.PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages }
-        });
+        PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options);
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         ConfigureSlideSize(presentation, rendered);
         var visualEntries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
@@ -484,7 +478,7 @@ public static partial class PowerPointPdfConverterExtensions {
             TextShapingLanguage = options.TextShapingLanguage
         };
         return document.Render.Pages(
-            options.PageSelection,
+            options.ReadOptions?.PageSelection,
             renderOptions);
     }
 
