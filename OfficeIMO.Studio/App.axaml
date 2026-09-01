@@ -75,6 +75,8 @@
       <StreamGeometry x:Key="IconRectangle">M4,5 20,5 20,19 4,19ZM6,7 6,17 18,17 18,7Z</StreamGeometry>
       <StreamGeometry x:Key="IconLine">M4,19 18,5 20,7 6,21Z</StreamGeometry>
       <StreamGeometry x:Key="IconMore">M5,10A2,2 0 1 0 5,14A2,2 0 1 0 5,10M12,10A2,2 0 1 0 12,14A2,2 0 1 0 12,10M19,10A2,2 0 1 0 19,14A2,2 0 1 0 19,10</StreamGeometry>
+      <StreamGeometry x:Key="IconPrint">M6,3 18,3 18,8 20,8A2,2 0 0 1 22,10L22,17 18,17 18,21 6,21 6,17 2,17 2,10A2,2 0 0 1 4,8L6,8ZM8,5 8,9 16,9 16,5ZM8,15 8,19 16,19 16,15ZM18,11A1,1 0 1 0 18,13A1,1 0 1 0 18,11</StreamGeometry>
+      <StreamGeometry x:Key="IconExport">M5,3 14,3 19,8 19,12 17,12 17,9 13,9 13,5 7,5 7,19 13,19 13,21 5,21ZM15,4.5 17.5,7 15,7ZM14,14 18,14 18,11 22,15 18,19 18,16 14,16Z</StreamGeometry>
     </ResourceDictionary>
   </Application.Resources>
 

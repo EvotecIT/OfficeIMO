@@ -10,9 +10,18 @@
       <StackPanel Spacing="10">
         <TextBlock Text="Organize" Classes="sectionTitle" />
         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
-          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Merge PDFs" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Combine and reorder pages visually." /></StackPanel></Grid></Button>
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowAssemblyCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Assemble PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Combine PDFs, images, Office files, folders, and ZIPs." /></StackPanel></Grid></Button>
           <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Split PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Extract ranges into verified files." /></StackPanel></Grid></Button>
           <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconTools}" Width="22" Height="22" Foreground="#7047EB" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Organize pages" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Rotate, crop, duplicate, and move." /></StackPanel></Grid></Button>
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Spacing="10">
+        <TextBlock Text="Output" Classes="sectionTitle" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPrintPreviewCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconPrint}" Width="22" Height="22" Foreground="#2587A0" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Print preview" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Plan paper, scaling, and multi-page sheets." /></StackPanel></Grid></Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageExportCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconExport}" Width="22" Height="22" Foreground="#7047EB" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Export pages" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Create validated PNG, JPEG, WebP, TIFF, or SVG files." /></StackPanel></Grid></Button>
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowAssemblyCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Mixed-source PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Build an ordered PDF from files, folders, and archives." /></StackPanel></Grid></Button>
         </Grid>
       </StackPanel>
 

@@ -35,6 +35,22 @@ public sealed class MainWindowSmokeTests {
                 Assert.True(window.ViewModel.IsConversionMode);
                 Assert.True(window.IsConversionCompact);
 
+                window.ViewModel.ShowPrintPreviewCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1050, 560));
+                window.Arrange(new Avalonia.Rect(0, 0, 1050, 560));
+                Assert.True(window.ViewModel.IsOutputMode);
+                Assert.True(window.ViewModel.OutputWorkbench.IsPrintPreview);
+
+                window.ViewModel.ShowPageExportCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1600, 1000));
+                window.Arrange(new Avalonia.Rect(0, 0, 1600, 1000));
+                Assert.True(window.ViewModel.OutputWorkbench.IsPageExport);
+
+                window.ViewModel.ShowAssemblyCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1280, 820));
+                window.Arrange(new Avalonia.Rect(0, 0, 1280, 820));
+                Assert.True(window.ViewModel.OutputWorkbench.IsAssembly);
+
                 window.ViewModel.ShowDocumentHealthCommand.Execute(null);
                 window.Measure(new Avalonia.Size(1050, 560));
                 window.Arrange(new Avalonia.Rect(0, 0, 1050, 560));

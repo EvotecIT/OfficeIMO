@@ -82,7 +82,8 @@ public sealed partial class MainWindow : Window {
             recentDocumentStore: JsonRecentDocumentStore.CreateDefault(),
             promptPdfPassword: PromptPdfPasswordAsync,
             canSaveAsPath: path => TabHost.CanActiveDocumentOwnPath(path),
-            openDocumentInTab: openDocumentInTab);
+            openDocumentInTab: openDocumentInTab,
+            pickAssemblyFolder: PickAssemblyFolderAsync);
 
     private void ActivateDocument(MainWindowViewModel document) {
         if (ReferenceEquals(ViewModel, document)) return;
@@ -284,16 +285,31 @@ public sealed partial class MainWindow : Window {
         if (!StorageProvider.CanOpen) return Array.Empty<string>();
 
         IReadOnlyList<IStorageFile> files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
-            Title = "Add documents to conversion queue",
+            Title = "Add documents or images",
             AllowMultiple = true,
             FileTypeFilter = [
-                new FilePickerFileType("Office, PDF, and HTML documents") {
-                    Patterns = ["*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm"]
+                new FilePickerFileType("Supported documents, images, and archives") {
+                    Patterns = [
+                        "*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
+                        "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
+                        "*.webp", "*.ico", "*.pcx", "*.zip"
+                    ]
                 }
             ]
         });
         cancellationToken.ThrowIfCancellationRequested();
         return files.Select(static file => file.Path.LocalPath).ToArray();
+    }
+
+    private async Task<string?> PickAssemblyFolderAsync(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!StorageProvider.CanPickFolder) return null;
+        IReadOnlyList<IStorageFolder> folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions {
+            Title = "Add source folder",
+            AllowMultiple = false
+        });
+        cancellationToken.ThrowIfCancellationRequested();
+        return folders.FirstOrDefault()?.Path.LocalPath;
     }
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {

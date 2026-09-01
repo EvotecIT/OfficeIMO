@@ -77,7 +77,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         IRecentDocumentStore? recentDocumentStore = null,
         Func<string, bool, CancellationToken, Task<string?>>? promptPdfPassword = null,
         Func<string, bool>? canSaveAsPath = null,
-        Func<string, CancellationToken, Task>? openDocumentInTab = null) {
+        Func<string, CancellationToken, Task>? openDocumentInTab = null,
+        Func<CancellationToken, Task<string?>>? pickAssemblyFolder = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -93,8 +94,15 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder);
+        OutputWorkbench = new OutputIntakeWorkbenchViewModel(
+            _pickPdf,
+            _pickOutputFolder,
+            pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
+            pickAssemblyFolder ?? _pickOutputFolder,
+            _pickSavePdf);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder);
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
+        OutputWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
         foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
@@ -141,7 +149,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanStartDocumentTransition => !IsWorkspaceBusy && !IsOpening;
 
-    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || DocumentHealth.IsBusy;
+    public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy ||
+                                      OutputWorkbench.IsBusy || DocumentHealth.IsBusy;
 
     internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
 
@@ -369,8 +378,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (_disposed) return;
         _disposed = true;
         ConversionWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
+        OutputWorkbench.PropertyChanged -= OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged -= OnWorkflowPropertyChanged;
         ConversionWorkbench.Dispose();
+        OutputWorkbench.Dispose();
         DocumentHealth.Dispose();
         CancelCurrentOperation();
         if (IsWorkspaceBusy) {

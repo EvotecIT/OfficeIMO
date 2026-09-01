@@ -132,6 +132,7 @@
         <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="Jobs" Classes="pageTitle" /><TextBlock Text="Prepare, run, and inspect conversion jobs." Classes="muted" /></StackPanel></Border>
         <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
       </Grid>
+      <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
       <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
     </Grid>
   </Grid>

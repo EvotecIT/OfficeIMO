@@ -13,6 +13,7 @@ public enum StudioWorkspaceMode {
     PdfWorkspace,
     Tools,
     Convert,
+    Output,
     DocumentHealth
 }
 
@@ -31,6 +32,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsPdfWorkspaceMode))]
     [NotifyPropertyChangedFor(nameof(IsToolsMode))]
     [NotifyPropertyChangedFor(nameof(IsConversionMode))]
+    [NotifyPropertyChangedFor(nameof(IsOutputMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
     [NotifyPropertyChangedFor(nameof(ShowPdfDocumentControls))]
     private StudioWorkspaceMode _workspaceMode;
@@ -46,6 +48,8 @@ public sealed partial class MainWindowViewModel {
 
     public ConversionWorkbenchViewModel ConversionWorkbench { get; private set; } = null!;
 
+    public OutputIntakeWorkbenchViewModel OutputWorkbench { get; private set; } = null!;
+
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
     public bool IsHomeMode => WorkspaceMode == StudioWorkspaceMode.Home;
@@ -53,6 +57,7 @@ public sealed partial class MainWindowViewModel {
     public bool IsToolsMode => WorkspaceMode == StudioWorkspaceMode.Tools;
     public bool ShowPdfDocumentControls => IsPdfWorkspaceMode && HasDocument;
     public bool IsConversionMode => WorkspaceMode == StudioWorkspaceMode.Convert;
+    public bool IsOutputMode => WorkspaceMode == StudioWorkspaceMode.Output;
     public bool IsDocumentHealthMode => WorkspaceMode == StudioWorkspaceMode.DocumentHealth;
     public bool IsJobsMode => IsConversionMode;
     public bool IsViewDocumentMode => DocumentMode == StudioDocumentMode.View;
@@ -94,6 +99,24 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void ShowConversionWorkbench() => WorkspaceMode = StudioWorkspaceMode.Convert;
+
+    [RelayCommand]
+    private void ShowPrintPreview() {
+        OutputWorkbench.Prepare(OutputWorkbenchSection.PrintPreview, DocumentPath);
+        WorkspaceMode = StudioWorkspaceMode.Output;
+    }
+
+    [RelayCommand]
+    private void ShowPageExport() {
+        OutputWorkbench.Prepare(OutputWorkbenchSection.ExportPages, DocumentPath);
+        WorkspaceMode = StudioWorkspaceMode.Output;
+    }
+
+    [RelayCommand]
+    private void ShowAssembly() {
+        OutputWorkbench.Prepare(OutputWorkbenchSection.AssemblePdf, DocumentPath);
+        WorkspaceMode = StudioWorkspaceMode.Output;
+    }
 
     [RelayCommand]
     private void ShowDocumentHealth() {
@@ -182,6 +205,7 @@ public sealed partial class MainWindowViewModel {
 
     private void OnWorkflowPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(ConversionWorkbenchViewModel.IsBusy) ||
+            e.PropertyName == nameof(OutputIntakeWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(DocumentHealthViewModel.IsBusy)) {
             OnPropertyChanged(nameof(CanCancelOperation));
         }

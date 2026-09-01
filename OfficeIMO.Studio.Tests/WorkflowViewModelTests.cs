@@ -7,6 +7,51 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WorkflowViewModelTests {
     [Fact]
+    public async Task PrintPreviewBuildsRenderedMultiPageSheets() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "print.pdf");
+        PdfDocument.Create(document => {
+            document.Page(page => page.Size(400, 600).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("First")))));
+            document.Page(page => page.Size(600, 400).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second")))));
+            document.Page(page => page.Size(420, 620).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Third")))));
+        }).Save(input);
+
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            using var viewModel = new PrintPreviewViewModel(_ => Task.FromResult<string?>(input));
+            await viewModel.ChooseInputCommand.ExecuteAsync(null);
+            viewModel.SelectedPagesPerSheet = viewModel.PagesPerSheetChoices.Single(choice => choice.Value == 2);
+            await viewModel.BuildPreviewCommand.ExecuteAsync(null);
+
+            Assert.True(viewModel.HasPreview);
+            Assert.Equal(2, viewModel.Sheets.Count);
+            Assert.Equal(2, viewModel.Sheets[0].Placements.Count);
+            Assert.Single(viewModel.Sheets[1].Placements);
+            Assert.All(viewModel.Sheets.SelectMany(sheet => sheet.Placements), placement => Assert.NotNull(placement.Image));
+            Assert.Equal("Print preview ready", viewModel.Status);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task PrintPreviewRejectsAnUnboundedAllPagesRequest() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "large-print.pdf");
+        PdfDocument.Create(document => {
+            for (int pageNumber = 0; pageNumber <= PrintPreviewViewModel.MaximumPreviewPages; pageNumber++) {
+                document.Page(page => page.Size(400, 600));
+            }
+        }).Save(input);
+
+        using var viewModel = new PrintPreviewViewModel(_ => Task.FromResult<string?>(input)) { InputPath = input };
+        await viewModel.BuildPreviewCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.HasPreview);
+        Assert.Empty(viewModel.Sheets);
+        Assert.Contains("limited", viewModel.Status, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ShellSwitchesBetweenPrimaryDestinationsAndDocumentModesWithoutChangingDocumentState() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
 
@@ -25,6 +70,14 @@ public sealed class WorkflowViewModelTests {
         viewModel.ShowConversionWorkbenchCommand.Execute(null);
         Assert.True(viewModel.IsConversionMode);
         Assert.False(viewModel.IsPdfWorkspaceMode);
+        viewModel.ShowPrintPreviewCommand.Execute(null);
+        Assert.True(viewModel.IsOutputMode);
+        Assert.True(viewModel.OutputWorkbench.IsPrintPreview);
+        viewModel.ShowPageExportCommand.Execute(null);
+        Assert.True(viewModel.IsOutputMode);
+        Assert.True(viewModel.OutputWorkbench.IsPageExport);
+        viewModel.ShowAssemblyCommand.Execute(null);
+        Assert.True(viewModel.OutputWorkbench.IsAssembly);
         viewModel.ShowDocumentHealthCommand.Execute(null);
         Assert.True(viewModel.IsDocumentHealthMode);
         Assert.Equal(OfficeWorkflowOperation.Repair, viewModel.DocumentHealth.SelectedOperation.Value);
@@ -39,6 +92,42 @@ public sealed class WorkflowViewModelTests {
         Assert.False(viewModel.HasDocument);
         viewModel.ShowHomeCommand.Execute(null);
         Assert.True(viewModel.IsHomeMode);
+    }
+
+    [Fact]
+    public async Task OutputWorkbenchExportsPagesAndAssemblesOrderedPdfs() {
+        using var scope = new TestDirectory();
+        string first = Path.Combine(scope.Path, "first.pdf");
+        string second = Path.Combine(scope.Path, "second.pdf");
+        string imageFolder = Path.Combine(scope.Path, "images");
+        string assembled = Path.Combine(scope.Path, "assembled.pdf");
+        PdfDocument.Create(document => {
+            document.Page(page => page.Size(400, 600));
+            document.Page(page => page.Size(420, 600));
+        }).Save(first);
+        PdfDocument.Create(document => document.Page(page => page.Size(500, 700))).Save(second);
+
+        using var pageExport = new PageImageExportViewModel(
+            _ => Task.FromResult<string?>(first),
+            _ => Task.FromResult<string?>(imageFolder));
+        await pageExport.ChooseInputCommand.ExecuteAsync(null);
+        await pageExport.ChooseOutputDirectoryCommand.ExecuteAsync(null);
+        pageExport.Pages = "2";
+        await pageExport.ExportCommand.ExecuteAsync(null);
+
+        Assert.True(pageExport.HasOutput);
+        Assert.Single(Directory.GetFiles(pageExport.PublishedDirectory!, "*.png"));
+
+        using var assembly = new PdfAssemblyViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([first, second]),
+            _ => Task.FromResult<string?>(null),
+            _ => Task.FromResult<string?>(assembled));
+        await assembly.AddFilesCommand.ExecuteAsync(null);
+        await assembly.ChooseOutputCommand.ExecuteAsync(null);
+        await assembly.RunCommand.ExecuteAsync(null);
+
+        Assert.True(assembly.HasOutput);
+        Assert.Equal(3, PdfReadDocument.Open(File.ReadAllBytes(assembly.PublishedPath!)).Pages.Count);
     }
 
     [Fact]
