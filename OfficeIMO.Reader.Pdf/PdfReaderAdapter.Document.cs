@@ -750,8 +750,10 @@ internal static partial class PdfReaderAdapter {
         return null;
     }
 
-    private static string ToDocumentBlockKind(PdfLogicalElementKind kind) {
+    internal static string ToDocumentBlockKind(PdfLogicalElementKind kind) {
         switch (kind) {
+            case PdfLogicalElementKind.TextBlock:
+                return "text-block";
             case PdfLogicalElementKind.Heading:
                 return "heading";
             case PdfLogicalElementKind.ListItem:
@@ -760,8 +762,22 @@ internal static partial class PdfReaderAdapter {
                 return "leader-row";
             case PdfLogicalElementKind.Table:
                 return "table";
+            case PdfLogicalElementKind.Image:
+                return "image";
+            case PdfLogicalElementKind.LinkAnnotation:
+                return "link";
+            case PdfLogicalElementKind.FormWidget:
+                return "form-widget";
+            case PdfLogicalElementKind.Header:
+                return "header";
+            case PdfLogicalElementKind.Footer:
+                return "footer";
+            case PdfLogicalElementKind.Caption:
+                return "caption";
+            case PdfLogicalElementKind.Footnote:
+                return "footnote";
             default:
-                return "text-block";
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown PDF logical element kind.");
         }
     }
 

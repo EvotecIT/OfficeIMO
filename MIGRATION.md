@@ -97,6 +97,7 @@ a second logical model.
 | `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
 | `pdf.Read.TryParagraphContinuations(...)` / `TryTableContinuations(...)` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the matching continuation helper |
 | `pdf.Read.Interactions(pageNumber, ...)` | `PdfPageInteractionMap.Create(pdf.ToBytes(), pageNumber, interactionOptions, loadOptions)` |
+| `pdf.Read.Understand(options, selection, readOptions)` | `pdf.Read(new PdfReadOptions { Pipeline = options, PageSelection = selection })`; move the former parser, limit, credential, and buffering settings to `PdfLoadOptions` when calling `PdfDocument.Load(...)` |
 | `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
 | `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
 

@@ -261,6 +261,71 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void AdvancedPipeline_KeepsTableOfContentsHeadingWhileRecognizingNumberedCaption() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        var glyphs = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Table of Contents", "F1", 20D, 50D, 700D, 180D),
+            new PdfTextSpan("Introduction body", "F1", 10D, 50D, 650D, 120D),
+            new PdfTextSpan("Supporting body", "F1", 10D, 50D, 630D, 120D),
+            new PdfTextSpan("Table 1. Revenue", "F1", 10D, 50D, 580D, 130D)
+        });
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = glyphs;
+        options.PageSegmentation = new EachLineRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+
+        PdfDocumentReadResult result = Read(pdf, options);
+
+        Assert.Contains(result.Headings, heading => heading.Text == "Table of Contents");
+        Assert.Contains(result.Sections, section => section.Title == "Table of Contents");
+        Assert.Contains(Assert.Single(result.Pages).Captions, caption => caption.Text == "Table 1. Revenue");
+    }
+
+    [Fact]
+    public void PdfReaderAdapter_PropagatesConfiguredSemanticPageLimit() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+
+        Assert.Throws<PdfReadLimitException>(() => PdfReaderAdapter.ReadDocument(
+            new MemoryStream(pdf, writable: false),
+            "limited.pdf",
+            pdfOptions: new ReaderPdfOptions { MaxPages = 1 }));
+
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
+            new MemoryStream(pdf, writable: false),
+            "expanded.pdf",
+            pdfOptions: new ReaderPdfOptions { MaxPages = 2 });
+
+        Assert.Equal(2, result.Pages.Count);
+    }
+
+    [Theory]
+    [InlineData(PdfLogicalElementKind.TextBlock, "text-block")]
+    [InlineData(PdfLogicalElementKind.Heading, "heading")]
+    [InlineData(PdfLogicalElementKind.ListItem, "list-item")]
+    [InlineData(PdfLogicalElementKind.LeaderRow, "leader-row")]
+    [InlineData(PdfLogicalElementKind.Table, "table")]
+    [InlineData(PdfLogicalElementKind.Image, "image")]
+    [InlineData(PdfLogicalElementKind.LinkAnnotation, "link")]
+    [InlineData(PdfLogicalElementKind.FormWidget, "form-widget")]
+    [InlineData(PdfLogicalElementKind.Header, "header")]
+    [InlineData(PdfLogicalElementKind.Footer, "footer")]
+    [InlineData(PdfLogicalElementKind.Caption, "caption")]
+    [InlineData(PdfLogicalElementKind.Footnote, "footnote")]
+    public void PdfReaderAdapter_MapsEveryLogicalElementKind(PdfLogicalElementKind kind, string expected) {
+        Assert.Equal(expected, PdfReaderAdapter.ToDocumentBlockKind(kind));
+    }
+
+    [Fact]
+    public void PdfReaderAdapter_RejectsUnknownLogicalElementKind() {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfReaderAdapter.ToDocumentBlockKind((PdfLogicalElementKind)int.MaxValue));
+    }
+
+    [Fact]
     public void AdvancedSemanticClassification_UsesVisualCoordinatesForRotatedFootnotes() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
         pdf = PdfPageEditor.SetCropBox(pdf, 100D, 0D, 500D, 600D);
@@ -2070,6 +2135,13 @@ public class PdfUnderstandingPipelineTests {
     private sealed class WholePageRegionStage : IPdfPageSegmentationStage {
         public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) =>
             lines.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : new[] { new PdfUnderstandingRegion(lines) };
+    }
+
+    private sealed class EachLineRegionStage : IPdfPageSegmentationStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Segment(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingLine> lines) =>
+            lines.Select(static line => new PdfUnderstandingRegion(new[] { line })).ToArray();
     }
 
     private sealed class FirstLineOnlySegmentationStage : IPdfPageSegmentationStage {

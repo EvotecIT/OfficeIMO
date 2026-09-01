@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Configures independently replaceable PDF understanding stages.</summary>
 public sealed class PdfUnderstandingPipelineOptions {
+    /// <summary>Default maximum selected pages processed by one semantic read.</summary>
+    public const int DefaultMaxPages = 1000;
+
     /// <summary>Creates the built-in structured semantic profile.</summary>
     public static PdfUnderstandingPipelineOptions Structured() => new PdfUnderstandingPipelineOptions {
         GlyphDecoding = PdfAdvancedUnderstandingStages.GlyphDecoding,
@@ -27,7 +30,7 @@ public sealed class PdfUnderstandingPipelineOptions {
     /// <summary>Semantic classification stage.</summary>
     public IPdfSemanticClassificationStage? SemanticClassification { get; set; }
     /// <summary>Maximum selected pages processed by one run.</summary>
-    public int MaxPages { get; set; } = 1000;
+    public int MaxPages { get; set; } = DefaultMaxPages;
     /// <summary>Maximum decoded text runs retained for one page.</summary>
     public int MaxRunsPerPage { get; set; } = 100_000;
     /// <summary>Maximum decoded text characters retained for one page.</summary>

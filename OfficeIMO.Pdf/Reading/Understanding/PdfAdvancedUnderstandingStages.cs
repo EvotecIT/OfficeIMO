@@ -454,7 +454,7 @@ public static class PdfAdvancedUnderstandingStages {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
-            if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
+            if (HasConventionalCaptionPrefix(text)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional labeled figure or table caption prefix.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
             if (IsCenteredAtVisualPageTop(context, region)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-page-title", "Centered text occupies the top eight percent of the page and is treated as a page title.");
@@ -467,6 +467,34 @@ public static class PdfAdvancedUnderstandingStages {
                     IsCompactRunningEdge(context, region, rejectLowercaseStart: false, rejectSentenceEnd: true)) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "Compact text occupies the bottom eight percent of the page and has no stronger semantic signal.");
             }
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
+        }
+
+        private static bool HasConventionalCaptionPrefix(string text) {
+            int labelStart;
+            if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase)) {
+                labelStart = "Figure ".Length;
+            } else if (text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase)) {
+                labelStart = "Fig. ".Length;
+            } else if (text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) {
+                labelStart = "Table ".Length;
+            } else {
+                return false;
+            }
+
+            int labelEnd = labelStart;
+            while (labelEnd < text.Length &&
+                   text[labelEnd] != ' ' &&
+                   text[labelEnd] != '\t' &&
+                   text[labelEnd] != ':' &&
+                   text[labelEnd] != ';') {
+                labelEnd++;
+            }
+            string label = text.Substring(labelStart, labelEnd - labelStart)
+                .TrimEnd('.', ',', ':', ';', '-');
+            if (label.Length == 0) return false;
+            if (label.Any(static character => char.IsDigit(character))) return true;
+            if (label.Length == 1 && char.IsLetter(label[0])) return true;
+            return label.All(static character => char.ToUpperInvariant(character) is 'I' or 'V' or 'X' or 'L' or 'C' or 'D' or 'M');
         }
 
         private static bool IsCompactRunningEdge(

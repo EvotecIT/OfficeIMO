@@ -909,7 +909,10 @@ internal static partial class PdfReaderAdapter {
             PageSelection = ranges is { Length: > 0 }
                 ? PdfPageSelection.FromRanges(ranges)
                 : null,
-            LayoutOptions = options.LayoutOptions ?? new PdfTextLayoutOptions()
+            LayoutOptions = options.LayoutOptions ?? new PdfTextLayoutOptions(),
+            Pipeline = new PdfUnderstandingPipelineOptions {
+                MaxPages = options.MaxPages
+            }
         }, cancellationToken);
     }
 

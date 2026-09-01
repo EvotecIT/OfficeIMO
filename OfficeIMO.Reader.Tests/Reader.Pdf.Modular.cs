@@ -2265,6 +2265,7 @@ public sealed class ReaderPdfModularTests {
             MarginLeft = 12
         };
         options.PageRanges = new[] { PdfPageRange.From(1, 1) };
+        options.MaxPages = 2_048;
         options.MarkdownOptions!.AlignNumericTableColumns = false;
         options.ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
             MinimumConfidence = 0.85,
@@ -2279,6 +2280,7 @@ public sealed class ReaderPdfModularTests {
         Assert.NotSame(options.ParagraphContinuationOptions, clone.ParagraphContinuationOptions);
         Assert.Equal(options.LayoutOptions.MarginLeft, clone.LayoutOptions!.MarginLeft);
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
+        Assert.Equal(2_048, clone.MaxPages);
         Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
         Assert.Equal(options.PageRanges.Single(), clone.PageRanges!.Single());
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
