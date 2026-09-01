@@ -128,7 +128,13 @@ public sealed partial class MainWindowViewModel {
     private async Task SaveAsAsync(CancellationToken cancellationToken) {
         if (_workspace is null) return;
         string? path = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
-        if (!string.IsNullOrWhiteSpace(path)) await RunSaveAsync(path, cancellationToken).ConfigureAwait(true);
+        if (string.IsNullOrWhiteSpace(path)) return;
+        string fullPath = Path.GetFullPath(path);
+        if (!_canSaveAsPath(fullPath)) {
+            OperationStatus = "That PDF is already open in another tab. Close it or choose a different file name.";
+            return;
+        }
+        await RunSaveAsync(fullPath, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -376,6 +382,7 @@ public sealed partial class MainWindowViewModel {
     internal void CancelCurrentOperation() {
         _operationCancellation?.Cancel();
         _openCancellation?.Cancel();
+        CancelComparisonOpen();
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (CanCancelOperation) OperationStatus = "Cancelling operation";
@@ -495,33 +502,50 @@ public sealed partial class MainWindowViewModel {
 
     private async void OnPageLinkActivated(string target) => await ActivatePageLinkAsync(target).ConfigureAwait(true);
 
-    internal async Task ActivatePageLinkAsync(string target) {
+    private async void OnComparisonPageLinkActivated(string target) =>
+        await ActivateComparisonPageLinkAsync(target).ConfigureAwait(true);
+
+    internal Task ActivatePageLinkAsync(string target) =>
+        ActivatePageLinkAsync(target, _session?.DocumentInfo.NamedDestinations ?? [], Pages, NavigateToPage);
+
+    internal Task ActivateComparisonPageLinkAsync(string target) =>
+        ActivatePageLinkAsync(
+            target,
+            _comparisonSession?.DocumentInfo.NamedDestinations ?? [],
+            ComparisonPages,
+            NavigateToComparisonPage);
+
+    private async Task ActivatePageLinkAsync(
+        string target,
+        IReadOnlyList<PdfNamedDestination> namedDestinations,
+        IReadOnlyList<PdfPageViewModel> pages,
+        Action<int> navigateToPage) {
         if (target.StartsWith("page:", StringComparison.OrdinalIgnoreCase) &&
             int.TryParse(target.AsSpan(5), out int pageNumber)) {
-            NavigateToPage(pageNumber);
+            navigateToPage(pageNumber);
             return;
         }
 
-        PdfNamedDestination? destination = _workspace?.DocumentInfo.NamedDestinations
+        PdfNamedDestination? destination = namedDestinations
             .FirstOrDefault(item => string.Equals(item.Name, target, StringComparison.Ordinal));
         if (destination?.PageNumber is int destinationPage) {
-            NavigateToPage(destinationPage);
+            navigateToPage(destinationPage);
             return;
         }
 
         switch (target.ToUpperInvariant()) {
             case "NEXTPAGE":
-                NextPageCommand.Execute(null);
+                navigateToPage(Math.Min(pages.Count, GetSelectedPageNumber(pages) + 1));
                 return;
             case "PREVPAGE":
             case "PREVIOUSPAGE":
-                PreviousPageCommand.Execute(null);
+                navigateToPage(Math.Max(1, GetSelectedPageNumber(pages) - 1));
                 return;
             case "FIRSTPAGE":
-                NavigateToPage(1);
+                navigateToPage(1);
                 return;
             case "LASTPAGE":
-                NavigateToPage(Pages.Count);
+                navigateToPage(pages.Count);
                 return;
         }
 
@@ -536,5 +560,15 @@ public sealed partial class MainWindowViewModel {
         }
 
         OperationStatus = $"This link target is not supported: {target}";
+    }
+
+    private int GetSelectedPageNumber(IReadOnlyList<PdfPageViewModel> pages) =>
+        ReferenceEquals(pages, ComparisonPages)
+            ? ComparisonSelectedPage?.PageNumber ?? 1
+            : SelectedPage?.PageNumber ?? 1;
+
+    private void NavigateToComparisonPage(int pageNumber) {
+        if (pageNumber < 1 || pageNumber > ComparisonPages.Count) return;
+        ComparisonSelectedPage = ComparisonPages[pageNumber - 1];
     }
 }

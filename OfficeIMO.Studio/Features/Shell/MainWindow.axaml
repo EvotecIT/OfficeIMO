@@ -21,22 +21,50 @@
   <Grid RowDefinitions="42,*" ColumnDefinitions="58,*">
     <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="170,Auto,*,Auto" Margin="12,0,138,0">
+      <Grid ColumnDefinitions="170,*,260,Auto" Margin="12,0,138,0">
 
         <Border Grid.Column="0" Background="Transparent"
                 WindowDecorationProperties.ElementRole="TitleBar" />
 
-        <Border Grid.Column="1" IsVisible="{Binding HasDocument}" Margin="22,6,0,0" Padding="12,5"
-                MinWidth="210" MaxWidth="330" Background="{DynamicResource StudioWindowBrush}"
-                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,1,1,0" CornerRadius="7,7,0,0">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
-            <TextBlock Text="{Binding DocumentName}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseDocumentCommand}" Content="×" Padding="4,0"
-                    />
-          </Grid>
-        </Border>
+        <Grid Grid.Column="1" ColumnDefinitions="*,Auto" Margin="22,5,10,0">
+          <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
+                   Grid.Column="0" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+                   IsVisible="{Binding HasTabs}" SelectionMode="Single"
+                   Background="Transparent" BorderThickness="0"
+                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+            <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="Margin" Value="0,0,4,0" />
+                <Setter Property="Background" Value="Transparent" />
+              </Style>
+              <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+                <Setter Property="Background" Value="Transparent" />
+              </Style>
+            </ListBox.Styles>
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
+                <Border MinWidth="150" MaxWidth="250" Height="37" Padding="11,4,5,4"
+                        Background="{DynamicResource StudioWindowBrush}"
+                        BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,1,1,0"
+                        CornerRadius="7,7,0,0">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7">
+                    <TextBlock Text="{Binding Title}" FontSize="11" FontWeight="SemiBold"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseCommand}"
+                            Content="×" Padding="4,0" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <Button x:Name="OpenDocumentTabButton" Grid.Column="1" Classes="ghost" x:DataType="shell:StudioDocumentTabHost"
+                  Command="{Binding OpenNewTabCommand}" Content="+" FontSize="18" Padding="8,1"
+                  ToolTip.Tip="Open another document" />
+        </Grid>
 
-        <Border Grid.Column="2" IsVisible="{Binding ShowPdfDocumentControls}" Width="260" Height="28"
+        <Border Grid.Column="2" IsVisible="{Binding ShowPdfDocumentControls}" Width="250" Height="28"
                 HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="6"
                 Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
                 >

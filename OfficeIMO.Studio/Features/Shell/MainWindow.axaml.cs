@@ -3,8 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Home;
+using OfficeIMO.Studio.Features.Reader;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -19,34 +21,34 @@ public sealed partial class MainWindow : Window {
     private PdfOrganizerPageViewModel? _organizerDragPage;
     private Point _organizerDragStart;
     private bool _organizerDragStarted;
+    private bool _changingActiveDocument;
 
     public MainWindow() {
+        TabHost = new StudioDocumentTabHost(CreateDocumentViewModel, ActivateDocument);
+        ViewModel = TabHost.ActiveDocument;
         InitializeComponent();
-        ViewModel = new MainWindowViewModel(
-            pickPdf: PickPdfAsync,
-            pickSavePdf: PickSavePdfAsync,
-            pickImportPdfs: PickPdfsAsync,
-            pickOutputFolder: PickOutputFolderAsync,
-            openUri: OpenUriAsync,
-            confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
-            pickImage: PickImageAsync,
-            confirmPageDeletion: ConfirmPageDeletionAsync,
-            pickWorkflowFiles: PickWorkflowFilesAsync,
-            recentDocumentStore: JsonRecentDocumentStore.CreateDefault(),
-            promptPdfPassword: PromptPdfPasswordAsync);
+        DocumentTabs.DataContext = TabHost;
+        OpenDocumentTabButton.DataContext = TabHost;
         DataContext = ViewModel;
 
         SizeChanged += OnWindowSizeChanged;
+        KeyDown += OnWindowKeyDown;
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
         PagesList.SizeChanged += (_, _) =>
             ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
         PagesList.SelectionChanged += (_, _) => {
-            if (ViewModel.SelectedPage is not null) {
-                PagesList.ScrollIntoView(ViewModel.SelectedPage);
+            if (_changingActiveDocument || PagesList.SelectedItem is not PdfPageViewModel page) return;
+            if (!ReferenceEquals(ViewModel.SelectedPage, page)) ViewModel.SelectedPage = page;
+            PagesList.ScrollIntoView(page);
+        };
+        GridPagesList.SelectionChanged += (_, _) => {
+            if (!_changingActiveDocument && GridPagesList.SelectedItem is ReaderGridRowViewModel row) {
+                GridPagesList.ScrollIntoView(row);
             }
         };
         OrganizerList.SelectionChanged += (_, eventArgs) => {
+            if (_changingActiveDocument) return;
             ViewModel.UpdateOrganizerSelection(
                 eventArgs.AddedItems.OfType<PdfOrganizerPageViewModel>(),
                 eventArgs.RemovedItems.OfType<PdfOrganizerPageViewModel>());
@@ -59,10 +61,41 @@ public sealed partial class MainWindow : Window {
         OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => ViewModel.Dispose();
+        Closed += (_, _) => TabHost.Dispose();
     }
 
-    internal MainWindowViewModel ViewModel { get; }
+    public StudioDocumentTabHost TabHost { get; }
+
+    internal MainWindowViewModel ViewModel { get; private set; }
+
+    private MainWindowViewModel CreateDocumentViewModel(Func<string, CancellationToken, Task> openDocumentInTab) =>
+        new(
+            pickPdf: PickPdfAsync,
+            pickSavePdf: PickSavePdfAsync,
+            pickImportPdfs: PickPdfsAsync,
+            pickOutputFolder: PickOutputFolderAsync,
+            openUri: OpenUriAsync,
+            confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
+            pickImage: PickImageAsync,
+            confirmPageDeletion: ConfirmPageDeletionAsync,
+            pickWorkflowFiles: PickWorkflowFilesAsync,
+            recentDocumentStore: JsonRecentDocumentStore.CreateDefault(),
+            promptPdfPassword: PromptPdfPasswordAsync,
+            canSaveAsPath: path => TabHost.CanActiveDocumentOwnPath(path),
+            openDocumentInTab: openDocumentInTab);
+
+    private void ActivateDocument(MainWindowViewModel document) {
+        if (ReferenceEquals(ViewModel, document)) return;
+        _changingActiveDocument = true;
+        try {
+            ViewModel = document;
+            DataContext = document;
+            ClearOrganizerDrag();
+            document.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
+        } finally {
+            _changingActiveDocument = false;
+        }
+    }
 
     internal bool IsCompactLayout { get; private set; }
 
@@ -72,9 +105,15 @@ public sealed partial class MainWindow : Window {
 
     internal bool IsDocumentHealthCompact => DocumentHealthView.IsCompactLayout;
 
+    internal ListBox ReaderPagesListControl => PagesList;
+
+    internal ListBox ReaderGridPagesListControl => GridPagesList;
+
     private ListBox PagesList => DocumentWorkspace.PagesListControl;
 
     private ListBox OrganizerList => DocumentWorkspace.OrganizerListControl;
+
+    private ListBox GridPagesList => DocumentWorkspace.GridPagesListControl;
 
     private Button FitWidthButton => DocumentWorkspace.FitWidthButtonControl;
 
@@ -98,6 +137,93 @@ public sealed partial class MainWindow : Window {
             : ThemeVariant.Dark;
     }
 
+    private async void OnWindowKeyDown(object? sender, KeyEventArgs e) {
+        bool primaryModifier = e.KeyModifiers.HasFlag(KeyModifiers.Control) ||
+                               e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        if (primaryModifier && e.Key == Key.F) {
+            DocumentWorkspace.FocusSearch();
+            e.Handled = true;
+            return;
+        }
+
+        if (primaryModifier && e.Key == Key.Tab) {
+            TabHost.SelectRelativeTab(e.KeyModifiers.HasFlag(KeyModifiers.Shift));
+            e.Handled = true;
+            return;
+        }
+        if (primaryModifier && e.Key == Key.W) {
+            await TabHost.CloseSelectedTabAsync();
+            e.Handled = true;
+            return;
+        }
+        if (primaryModifier && e.Key == Key.O) {
+            await TabHost.OpenNewTabCommand.ExecuteAsync(null);
+            e.Handled = true;
+            return;
+        }
+
+        if (IsTextEntryFocused()) return;
+
+        if (primaryModifier) {
+            switch (e.Key) {
+                case Key.D0:
+                case Key.NumPad0:
+                    ViewModel.FitPageCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case Key.D1:
+                case Key.NumPad1:
+                    ViewModel.ActualSizeCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case Key.D2:
+                case Key.NumPad2:
+                    ViewModel.FitWidthCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case Key.OemPlus:
+                case Key.Add:
+                    ViewModel.ZoomInCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+                case Key.OemMinus:
+                case Key.Subtract:
+                    ViewModel.ZoomOutCommand.Execute(null);
+                    e.Handled = true;
+                    return;
+            }
+        }
+
+        switch (e.Key) {
+            case Key.PageUp:
+            case Key.Left:
+                ViewModel.PreviousPageCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.PageDown:
+            case Key.Right:
+                ViewModel.NextPageCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.Home:
+                ViewModel.FirstPageCommand.Execute(null);
+                e.Handled = true;
+                break;
+            case Key.End:
+                ViewModel.LastPageCommand.Execute(null);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private bool IsTextEntryFocused() {
+        Control? focused = FocusManager?.GetFocusedElement() as Control;
+        return focused is TextBox or ComboBox or NumericUpDown ||
+               focused?.FindAncestorOfType<TextBox>() is not null ||
+               focused?.FindAncestorOfType<ComboBox>() is not null ||
+               focused?.FindAncestorOfType<NumericUpDown>() is not null;
+    }
+
     internal void OpenInitialDocument(string[]? args) {
         string? candidate = args?.FirstOrDefault(static argument => !string.IsNullOrWhiteSpace(argument));
         if (candidate is null) return;
@@ -112,7 +238,7 @@ public sealed partial class MainWindow : Window {
         ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
         if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;
         _initialDocumentOpened = true;
-        await ViewModel.OpenDocumentAsync(_initialDocumentPath);
+        await TabHost.OpenDocumentAsync(_initialDocumentPath);
     }
 
     private async Task<string?> PickPdfAsync(CancellationToken cancellationToken) {
@@ -172,17 +298,17 @@ public sealed partial class MainWindow : Window {
 
     private async void OnClosing(object? sender, WindowClosingEventArgs e) {
         if (_allowClose) return;
-        if (ViewModel.CanCancelOperation) {
+        if (TabHost.HasBusyDocuments) {
             e.Cancel = true;
-            ViewModel.CancelCurrentOperation();
+            TabHost.CancelAllOperations();
             return;
         }
-        if (!ViewModel.IsDirty) return;
+        if (!TabHost.HasDirtyDocuments) return;
         e.Cancel = true;
         if (_closePromptOpen) return;
         _closePromptOpen = true;
         try {
-            if (!await ViewModel.RequestCloseDocumentAsync()) return;
+            if (!await TabHost.RequestCloseAllAsync()) return;
             _allowClose = true;
             Close();
         } finally {
@@ -351,7 +477,7 @@ public sealed partial class MainWindow : Window {
     private async void OnDrop(object? sender, DragEventArgs e) {
         e.Handled = true;
         if (TryGetPdfPath(e, out string? path) && path is not null) {
-            await ViewModel.OpenDocumentAsync(path);
+            await TabHost.OpenDocumentAsync(path);
         }
     }
 

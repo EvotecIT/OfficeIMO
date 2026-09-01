@@ -91,10 +91,28 @@
           <TextBlock Classes="muted" Text="Sensitive operations require explicit review and verification." VerticalAlignment="Center" Margin="8,0" />
         </StackPanel>
 
-        <StackPanel IsVisible="{Binding IsViewDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
-          <TextBlock Text="Reading mode" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <TextBlock Classes="muted" Text="Select text, follow links, search, and navigate bookmarks." VerticalAlignment="Center" />
-        </StackPanel>
+        <Grid IsVisible="{Binding IsViewDocumentMode}" ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,*" ColumnSpacing="8" Margin="10,6">
+          <TextBlock Text="Layout" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <ComboBox Grid.Column="1" Width="150"
+                    ItemsSource="{Binding ReaderLayoutChoices}"
+                    SelectedItem="{Binding SelectedReaderLayoutChoice, Mode=TwoWay}"
+                    IsEnabled="{Binding !IsComparisonOpen}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="reader:ReaderLayoutChoice">
+                <TextBlock Text="{Binding Label}" ToolTip.Tip="{Binding Description}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <ToggleButton Grid.Column="2" Classes="tool" Content="Page night mode"
+                        IsChecked="{Binding IsPageNightMode, Mode=TwoWay}" />
+          <Button Grid.Column="3" Classes="tool" Content="Compare side by side…"
+                  Command="{Binding OpenComparisonCommand}" />
+          <Button Grid.Column="4" Classes="tool" Content="Close comparison"
+                  Command="{Binding CloseComparisonCommand}" IsVisible="{Binding IsComparisonOpen}" />
+          <TextBlock Grid.Column="5" Classes="muted"
+                     Text="Select text, follow links, search, and navigate bookmarks."
+                     VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        </Grid>
       </Grid>
     </Border>
 
@@ -114,7 +132,7 @@
 
       <Border Grid.Column="0" IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
-        <TabControl>
+        <TabControl x:Name="NavigationTabs">
           <TabItem Header="Pages">
             <Grid RowDefinitions="Auto,*">
               <StackPanel IsVisible="{Binding IsPagesDocumentMode}" Margin="8,6" Spacing="5">
@@ -150,7 +168,7 @@
           </TabItem>
           <TabItem Header="Search">
             <Grid RowDefinitions="Auto,*" Margin="8">
-              <Grid ColumnDefinitions="*,Auto"><TextBox Text="{Binding SearchQuery}" PlaceholderText="Find in PDF" /><Button Grid.Column="1" Classes="tool" Content="Find" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
+              <Grid ColumnDefinitions="*,Auto"><TextBox x:Name="SearchBox" Text="{Binding SearchQuery}" PlaceholderText="Find in PDF" /><Button Grid.Column="1" Classes="tool" Content="Find" Command="{Binding SearchCommand}" Margin="6,0,0,0" /></Grid>
               <ListBox Grid.Row="1" Margin="0,8,0,0" ItemsSource="{Binding SearchResults}" SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}" BorderThickness="0" Background="Transparent">
                 <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfSearchHit"><TextBlock Text="{Binding Label}" Margin="6" TextWrapping="Wrap" FontSize="11" /></DataTemplate></ListBox.ItemTemplate>
               </ListBox>
@@ -159,17 +177,86 @@
         </TabControl>
       </Border>
 
-      <ListBox x:Name="PagesList" Grid.Column="1" IsVisible="{Binding HasDocument}"
-               ItemsSource="{Binding Pages}" SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
-               Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
-        <ListBox.ItemsPanel><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
-        <ListBox.Styles>
-          <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
-          <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
-        </ListBox.Styles>
-        <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView /></DataTemplate></ListBox.ItemTemplate>
-      </ListBox>
+      <Grid Grid.Column="1" IsVisible="{Binding HasDocument}" ColumnDefinitions="*,6,*">
+        <ListBox x:Name="PagesList" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 IsVisible="{Binding !IsGridReaderLayout}"
+                 ItemsSource="{Binding ReaderPages}" SelectedItem="{Binding SelectedPage, Mode=OneWay}"
+                 Classes.readerSingle="{Binding IsSinglePageReaderLayout}"
+                 Classes.readerContinuous="{Binding IsContinuousReaderLayout}"
+                 Classes.readerTwoPage="{Binding IsTwoPageReaderLayout}"
+                 Classes.readerGrid="{Binding IsGridReaderLayout}"
+                 Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+          <ListBox.Styles>
+            <Style Selector="ListBox.readerContinuous">
+              <Setter Property="ItemsPanel"><ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate></Setter>
+            </Style>
+            <Style Selector="ListBox.readerSingle">
+              <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel HorizontalAlignment="Center" /></ItemsPanelTemplate></Setter>
+            </Style>
+            <Style Selector="ListBox.readerTwoPage">
+              <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" /></ItemsPanelTemplate></Setter>
+            </Style>
+            <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
+            <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+          </ListBox.Styles>
+          <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Left" /></DataTemplate></ListBox.ItemTemplate>
+        </ListBox>
+
+        <ListBox x:Name="GridPagesList" Grid.Column="0" Grid.ColumnSpan="{Binding PrimaryReaderColumnSpan}"
+                 IsVisible="{Binding IsGridReaderLayout}"
+                 ItemsSource="{Binding ReaderGridRows}"
+                 SelectedItem="{Binding SelectedReaderGridRow, Mode=OneWay}"
+                 Background="{DynamicResource StudioCanvasBrush}" BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 PointerPressed="OnGridPagePointerPressed">
+          <ListBox.ItemsPanel>
+            <ItemsPanelTemplate><VirtualizingStackPanel CacheLength="1" /></ItemsPanelTemplate>
+          </ListBox.ItemsPanel>
+          <ListBox.Styles>
+            <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Margin" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
+            <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+          </ListBox.Styles>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="reader:ReaderGridRowViewModel">
+              <ItemsControl ItemsSource="{Binding Pages}">
+                <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" HorizontalAlignment="Center" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView HorizontalAlignment="Left" /></DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <GridSplitter Grid.Column="1" IsVisible="{Binding IsComparisonOpen}"
+                      Background="{DynamicResource StudioBorderBrush}" ResizeDirection="Columns" />
+
+        <Border Grid.Column="2" IsVisible="{Binding IsComparisonOpen}"
+                Background="{DynamicResource StudioCanvasBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
+          <Grid RowDefinitions="38,*">
+            <Border Background="{DynamicResource StudioPanelBrush}"
+                    BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="10,0">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                <TextBlock Text="{Binding ComparisonDocumentName}" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Text="{Binding ComparisonPagePosition}" Classes="muted" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+            <ListBox Grid.Row="1" ItemsSource="{Binding ComparisonReaderPages}"
+                     SelectedItem="{Binding ComparisonSelectedPage, Mode=OneWay}"
+                     Background="Transparent" BorderThickness="0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Auto">
+              <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel HorizontalAlignment="Center" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+              <ListBox.Styles>
+                <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="Padding" Value="0" /><Setter Property="Background" Value="Transparent" /></Style>
+                <Style Selector="ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /></Style>
+              </ListBox.Styles>
+              <ListBox.ItemTemplate><DataTemplate x:DataType="reader:PdfPageViewModel"><reader:PdfPageView /></DataTemplate></ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Border>
+      </Grid>
 
       <Border Grid.Column="2" IsVisible="{Binding HasDocument}" Background="{DynamicResource StudioPanelBrush}"
               BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">

@@ -3,7 +3,7 @@
              xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
              x:Class="OfficeIMO.Studio.Features.Reader.PdfPageView"
              x:DataType="reader:PdfPageViewModel">
-  <StackPanel Margin="24,14" HorizontalAlignment="Center" Spacing="8">
+  <StackPanel Width="{Binding DisplayWidth}" Margin="24,14" HorizontalAlignment="Center" Spacing="8">
     <Border Width="{Binding DisplayWidth}"
             Height="{Binding DisplayHeight}"
             Background="White"
@@ -20,6 +20,11 @@
                               PendingRedactionArea="{Binding PendingRedactionArea}"
                               FallbackImage="{Binding PageImage}"
                               IsVisible="{Binding HasScene}" />
+
+        <Border IsVisible="{Binding IsNightMode}"
+                IsHitTestVisible="False"
+                Background="White"
+                RenderOptions.BitmapBlendingMode="Difference" />
 
         <StackPanel IsVisible="{Binding IsRendering}"
                     HorizontalAlignment="Center"

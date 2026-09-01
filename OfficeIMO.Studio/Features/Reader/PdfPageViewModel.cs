@@ -62,6 +62,9 @@ public sealed partial class PdfPageViewModel : ObservableObject, IDisposable {
     [ObservableProperty]
     private Rect? _pendingRedactionArea;
 
+    [ObservableProperty]
+    private bool _isNightMode;
+
     private double _zoom;
 
     internal PdfPageViewModel(

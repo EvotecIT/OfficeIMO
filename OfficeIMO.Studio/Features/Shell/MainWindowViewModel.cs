@@ -21,6 +21,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
     private readonly Func<string, bool, CancellationToken, Task<string?>> _promptPdfPassword;
+    private readonly Func<string, bool> _canSaveAsPath;
+    private readonly Func<string, CancellationToken, Task>? _openDocumentInTab;
     private readonly IRecentDocumentStore? _recentDocumentStore;
     private PdfWorkspace? _workspace;
     private PdfDocumentSession? _session;
@@ -73,7 +75,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<int, Task<bool>>? confirmPageDeletion = null,
         Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null,
         IRecentDocumentStore? recentDocumentStore = null,
-        Func<string, bool, CancellationToken, Task<string?>>? promptPdfPassword = null) {
+        Func<string, bool, CancellationToken, Task<string?>>? promptPdfPassword = null,
+        Func<string, bool>? canSaveAsPath = null,
+        Func<string, CancellationToken, Task>? openDocumentInTab = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -83,6 +87,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
         _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
+        _canSaveAsPath = canSaveAsPath ?? (_ => true);
+        _openDocumentInTab = openDocumentInTab;
         _recentDocumentStore = recentDocumentStore;
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
@@ -137,12 +143,17 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     public bool CanCancelOperation => IsWorkspaceBusy || IsOpening || ConversionWorkbench.IsBusy || DocumentHealth.IsBusy;
 
+    internal string? DocumentPath => _workspace?.Path ?? _session?.Path;
+
     partial void OnIsOpeningChanged(bool value) {
         OnPropertyChanged(nameof(CanStartDocumentTransition));
         OnPropertyChanged(nameof(CanCancelOperation));
     }
 
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
+        RefreshReaderPages();
+        OnPropertyChanged(nameof(SelectedReaderGridRow));
+        SynchronizeComparisonToPrimary(value);
         if (value is not null && _zoomMode != ViewerZoomMode.Custom) {
             ApplyFitZoom();
         }
@@ -152,9 +163,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private async Task OpenAsync(CancellationToken cancellationToken) {
         string? path = await _pickPdf(cancellationToken).ConfigureAwait(true);
         if (!string.IsNullOrWhiteSpace(path)) {
-            await OpenDocumentAsync(path, cancellationToken).ConfigureAwait(true);
+            await OpenRequestedDocumentAsync(path, cancellationToken).ConfigureAwait(true);
         }
     }
+
+    private Task OpenRequestedDocumentAsync(string path, CancellationToken cancellationToken) =>
+        _openDocumentInTab is null
+            ? OpenDocumentAsync(path, cancellationToken)
+            : _openDocumentInTab(path, cancellationToken);
 
     internal async Task OpenDocumentAsync(string path, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -286,7 +302,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             ErrorMessage = "That recent document is no longer available.";
             return;
         }
-        await OpenDocumentAsync(document.Path, cancellationToken).ConfigureAwait(true);
+        await OpenRequestedDocumentAsync(document.Path, cancellationToken).ConfigureAwait(true);
     }
 
     [RelayCommand]
@@ -340,8 +356,12 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
     internal void SetViewportSize(double width, double height) {
         if (width <= 0 || height <= 0) return;
+        int previousGridColumns = GetReaderGridColumnCount();
         _viewportWidth = width;
         _viewportHeight = height;
+        if (ReaderLayout == ReaderLayoutMode.Grid && previousGridColumns != GetReaderGridColumnCount()) {
+            RefreshReaderPages();
+        }
         if (_zoomMode != ViewerZoomMode.Custom) ApplyFitZoom();
     }
 
@@ -412,6 +432,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _renderCoordinator = renderCoordinator;
 
         if (isDocumentTransition) {
+            CloseComparisonSession(restoreLayout: true);
             ResetDocumentSecurityState();
             SearchQuery = string.Empty;
             SearchResults.Clear();
@@ -427,6 +448,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             page.ObjectSelected += OnPageObjectSelected;
             page.EditorTool = ActiveEditorTool;
             page.SelectionMode = GetEditorSelectionMode();
+            page.IsNightMode = IsPageNightMode;
             Pages.Add(page);
         }
         if (organizerSelection is not null) {
@@ -461,17 +483,39 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         double unscaledHeight = page.DisplayHeight / Math.Max(Zoom, 0.01D);
         double availableWidth = Math.Max(200D, _viewportWidth - 72D);
         double availableHeight = Math.Max(200D, _viewportHeight - 72D);
-        double target = _zoomMode == ViewerZoomMode.FitPage
-            ? Math.Min(availableWidth / unscaledWidth, availableHeight / unscaledHeight)
-            : availableWidth / unscaledWidth;
+        double target = _zoomMode switch {
+            ViewerZoomMode.FitPage when ReaderLayout == ReaderLayoutMode.TwoPage =>
+                GetTwoPageFitZoom(availableWidth, availableHeight),
+            ViewerZoomMode.FitPage => Math.Min(availableWidth / unscaledWidth, availableHeight / unscaledHeight),
+            ViewerZoomMode.Grid => GetGridFitZoom(availableWidth, unscaledWidth),
+            _ => availableWidth / unscaledWidth
+        };
         ApplyZoom(Math.Clamp(target, 0.25D, 3D));
     }
+
+    private double GetTwoPageFitZoom(double availableWidth, double availableHeight) {
+        IReadOnlyList<PdfPageViewModel> spread = ReaderPages.Count > 0 ? ReaderPages : [SelectedPage ?? Pages[0]];
+        double totalWidth = spread.Sum(current => current.DisplayWidth / Math.Max(Zoom, 0.01D));
+        double maximumHeight = spread.Max(current => current.DisplayHeight / Math.Max(Zoom, 0.01D));
+        const double spreadSpacing = 96D;
+        return Math.Min(availableWidth / (totalWidth + spreadSpacing), availableHeight / maximumHeight);
+    }
+
+    private double GetGridFitZoom(double availableWidth, double unscaledWidth) {
+        int columns = GetGridColumnCount(availableWidth);
+        double itemWidth = Math.Max(120D, (availableWidth - ((columns + 1) * 24D)) / columns);
+        return itemWidth / unscaledWidth;
+    }
+
+    private static int GetGridColumnCount(double availableWidth) =>
+        availableWidth >= 980D ? 4 : availableWidth >= 680D ? 3 : 2;
 
     private void ApplyZoom(double zoom) {
         zoom = Math.Round(zoom, 2);
         if (Math.Abs(Zoom - zoom) < 0.001D) return;
         Zoom = zoom;
         foreach (PdfPageViewModel page in Pages) page.SetZoom(zoom);
+        foreach (PdfPageViewModel page in ComparisonPages) page.SetZoom(zoom);
     }
 
     private static string FormatByteSize(long bytes) {
@@ -507,6 +551,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private enum ViewerZoomMode {
         Custom,
         FitWidth,
-        FitPage
+        FitPage,
+        Grid
     }
 }
