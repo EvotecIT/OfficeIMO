@@ -80,6 +80,20 @@ internal static partial class PdfAnnotationEditor {
         if (options.Subtype == "Link") {
             Guard.NotNullOrWhiteSpace(options.LinkUri, nameof(options.LinkUri));
             Guard.UriAction(options.LinkUri!, nameof(options.LinkUri));
+            if (options.Title != null ||
+                options.IconName != null ||
+                options.InReplyToObjectNumber.HasValue ||
+                options.ReplyType != null ||
+                options.ReviewState.HasValue ||
+                options.Subject != null ||
+                options.Intent != null ||
+                options.CreatePopup ||
+                options.PopupRectangle != null ||
+                options.PopupOpen) {
+                throw new ArgumentException(
+                    "Link annotations do not support markup-only author, popup, reply, review, subject, intent, or icon options.",
+                    nameof(options));
+            }
         } else if (options.LinkUri != null) {
             throw new ArgumentException("LinkUri can be used only with Link annotations.", nameof(options));
         }

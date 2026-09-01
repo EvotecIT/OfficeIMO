@@ -74,7 +74,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, request.Id, "validate-output", "Reopening the staged artifact", 0.72D);
-            ValidateStagedArtifact(stagingPath, validated.OutputPath!, validated.PdfLoadOptions);
+            ValidateStagedArtifact(stagingPath, validated.OutputPath!, validated.OutputPdfLoadOptions);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "OutputReopened",
                 "The staged file was reopened successfully through its first-party OfficeIMO document API.",
@@ -249,7 +249,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Lossless optimization preservation verification failed; no artifact will be published.");
         }
         byte[] output = optimization.Bytes;
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.OutputPdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["originalBytes"] = optimization.OriginalLengthBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["candidateBytes"] = optimization.CandidateLengthBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -294,7 +294,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Repair artifact verification failed; no artifact will be published.");
         }
         byte[] output = repair.ToBytes();
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.OutputPdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["recoveredDefects"] = repair.SourceRepairReport.RepairCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["detectedOnlyDefects"] = repair.SourceRepairReport.DetectionOnlyCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -368,7 +368,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");
         }
         byte[] output = sanitization.ToBytes();
-        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.PdfLoadOptions, cancellationToken);
+        PdfHealthSnapshot after = CreateHealthSnapshot(output, request.OutputPdfLoadOptions, cancellationToken);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["removedFindings"] = sanitization.RemovedFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["remainingFindings"] = sanitization.RemainingFindings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -493,8 +493,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             request.ConflictPolicy,
             request.OutputProfile,
             limits,
-            new PdfLoadOptions { Password = request.PdfPassword },
-            new PdfLoadOptions { Password = request.ComparisonPdfPassword ?? request.PdfPassword });
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
+            CreatePdfLoadOptions(request.ComparisonPdfPassword ?? request.PdfPassword, limits.MaximumInputBytes),
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes));
+    }
+
+    internal static PdfLoadOptions CreatePdfLoadOptions(string? password, long maximumInputBytes) {
+        return new PdfLoadOptions {
+            Password = password,
+            Limits = new PdfReadLimits { MaxInputBytes = maximumInputBytes }
+        };
     }
 
     private static void ValidateStagedArtifact(string stagingPath, string outputPath, PdfLoadOptions loadOptions) {
@@ -708,5 +716,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowOutputProfile OutputProfile,
         OfficeWorkflowLimits Limits,
         PdfLoadOptions PdfLoadOptions,
-        PdfLoadOptions ComparisonPdfLoadOptions);
+        PdfLoadOptions ComparisonPdfLoadOptions,
+        PdfLoadOptions OutputPdfLoadOptions);
 }

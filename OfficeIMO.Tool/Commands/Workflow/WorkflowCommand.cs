@@ -25,9 +25,12 @@ Existing output is refused unless --force is supplied.
         TextWriter standardOutput,
         TextWriter standardError,
         CancellationToken cancellationToken = default,
-        IOfficeOutputWorkflowRunner? runner = null) {
+        IOfficeOutputWorkflowRunner? runner = null,
+        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>>? printPlanner = null) {
+        WorkflowCommandKind activeCommand = WorkflowCommandKind.Help;
         try {
             WorkflowArguments parsed = WorkflowArguments.Parse(args);
+            activeCommand = parsed.Command;
             if (parsed.Command == WorkflowCommandKind.Help) {
                 await standardOutput.WriteLineAsync(Usage).ConfigureAwait(false);
                 return (int)OfficeImoToolExitCode.Success;
@@ -35,7 +38,11 @@ Existing output is refused unless --force is supplied.
             return parsed.Command switch {
                 WorkflowCommandKind.ExportPages => await ExportPagesAsync(parsed, runner ?? new OfficeWorkflowRunner(), standardOutput, standardError, cancellationToken).ConfigureAwait(false),
                 WorkflowCommandKind.Assemble => await AssembleAsync(parsed, runner ?? new OfficeWorkflowRunner(), standardOutput, standardError, cancellationToken).ConfigureAwait(false),
-                WorkflowCommandKind.PrintPlan => await PrintPlanAsync(parsed, standardOutput, cancellationToken).ConfigureAwait(false),
+                WorkflowCommandKind.PrintPlan => await PrintPlanAsync(
+                    parsed,
+                    standardOutput,
+                    printPlanner ?? PdfPrintPlanner.CreateAsync,
+                    cancellationToken).ConfigureAwait(false),
                 _ => (int)OfficeImoToolExitCode.Usage
             };
         } catch (WorkflowUsageException exception) {
@@ -49,11 +56,19 @@ Existing output is refused unless --force is supplied.
             await standardError.WriteLineAsync(exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.InputNotFound;
         } catch (UnauthorizedAccessException exception) {
-            await standardError.WriteLineAsync("Access failed: " + exception.Message).ConfigureAwait(false);
-            return (int)OfficeImoToolExitCode.OutputFailed;
+            bool inputOnlyCommand = activeCommand == WorkflowCommandKind.PrintPlan;
+            await standardError.WriteLineAsync(
+                (inputOnlyCommand ? "Input access failed: " : "Output access failed: ") + exception.Message).ConfigureAwait(false);
+            return inputOnlyCommand
+                ? (int)OfficeImoToolExitCode.OperationFailed
+                : (int)OfficeImoToolExitCode.OutputFailed;
         } catch (IOException exception) {
-            await standardError.WriteLineAsync("I/O failed: " + exception.Message).ConfigureAwait(false);
-            return (int)OfficeImoToolExitCode.OutputFailed;
+            bool inputOnlyCommand = activeCommand == WorkflowCommandKind.PrintPlan;
+            await standardError.WriteLineAsync(
+                (inputOnlyCommand ? "Input I/O failed: " : "Output I/O failed: ") + exception.Message).ConfigureAwait(false);
+            return inputOnlyCommand
+                ? (int)OfficeImoToolExitCode.OperationFailed
+                : (int)OfficeImoToolExitCode.OutputFailed;
         } catch (Exception exception) {
             await standardError.WriteLineAsync("Workflow failed: " + exception.GetType().Name + ": " + exception.Message).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.OperationFailed;
@@ -106,8 +121,9 @@ Existing output is refused unless --force is supplied.
     private static async Task<int> PrintPlanAsync(
         WorkflowArguments parsed,
         TextWriter output,
+        Func<PdfPrintPlanRequest, CancellationToken, Task<PdfPrintPlan>> printPlanner,
         CancellationToken cancellationToken) {
-        PdfPrintPlan plan = await PdfPrintPlanner.CreateAsync(new PdfPrintPlanRequest {
+        PdfPrintPlan plan = await printPlanner(new PdfPrintPlanRequest {
             InputPath = Path.GetFullPath(parsed.Inputs[0]),
             Pages = parsed.Pages,
             PaperSize = parsed.PaperSize,

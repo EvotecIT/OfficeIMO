@@ -285,7 +285,8 @@ public static partial class PowerPointPdfConverterExtensions {
             options.MergePageContinuations,
             options.SuppressRepeatedBodyHeaderRows,
             options.MaximumContinuationSegments,
-            options.ContinuationGeometryTolerancePoints);
+            options.ContinuationGeometryTolerancePoints,
+            cancellationToken);
         if (tables.Count == 0) {
             AddEmptyPresentationSlide(presentation, options);
             return Array.Empty<PdfPowerPointTableImportEntry>();

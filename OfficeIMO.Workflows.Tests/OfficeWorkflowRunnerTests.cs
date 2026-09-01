@@ -10,6 +10,16 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeWorkflowRunnerTests {
     [Fact]
+    public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
+        const long budget = 768L * 1024L * 1024L;
+
+        PdfLoadOptions options = OfficeWorkflowRunner.CreatePdfLoadOptions("open", budget);
+
+        Assert.Equal("open", options.Password);
+        Assert.Equal(budget, options.Limits.MaxInputBytes);
+    }
+
+    [Fact]
     public void CatalogProjectsExactlyTheEightOfficePdfRoutes() {
         Assert.Equal(8, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(

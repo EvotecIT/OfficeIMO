@@ -1,4 +1,6 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Tool.Commands.Workflow;
+using OfficeIMO.Workflows;
 using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
@@ -81,6 +83,33 @@ public sealed class WorkflowCommandTests {
 
         Assert.Equal((int)OfficeImoToolExitCode.InputNotFound, result.ExitCode);
         Assert.Contains("does not exist", result.Error, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task PrintPlanAccessFailureIsNotClassifiedAsAnOutputFailure() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await WorkflowCommand.RunAsync(
+            ["print-plan", "source.pdf"],
+            output,
+            error,
+            printPlanner: static (_, _) => Task.FromException<PdfPrintPlan>(
+                new UnauthorizedAccessException("Input denied.")));
+
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
+        Assert.Contains("Input access failed", error.ToString(), StringComparison.Ordinal);
+
+        error.GetStringBuilder().Clear();
+        exitCode = await WorkflowCommand.RunAsync(
+            ["print-plan", "source.pdf"],
+            output,
+            error,
+            printPlanner: static (_, _) => Task.FromException<PdfPrintPlan>(
+                new IOException("Input read failed.")));
+
+        Assert.Equal((int)OfficeImoToolExitCode.OperationFailed, exitCode);
+        Assert.Contains("Input I/O failed", error.ToString(), StringComparison.Ordinal);
     }
 
     [Theory]

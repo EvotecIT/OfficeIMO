@@ -188,7 +188,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             request.MaximumPages,
             request.ConflictPolicy,
             limits,
-            new PdfLoadOptions { Password = request.PdfPassword });
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes));
     }
 
     private static int[] ResolvePageNumbers(string? selector, int pageCount) {

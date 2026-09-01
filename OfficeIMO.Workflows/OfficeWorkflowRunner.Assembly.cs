@@ -108,7 +108,7 @@ public sealed partial class OfficeWorkflowRunner {
             long stagedOutputBytes = new FileInfo(stagingPath).Length;
 
             Report(progress, validated.Id, "validate-output", "Reopening the assembled PDF", 0.84D);
-            PdfDocumentInfo info = PdfDocument.Load(stagingPath, validated.PdfLoadOptions).Inspect();
+            PdfDocumentInfo info = PdfDocument.Load(stagingPath, validated.OutputPdfLoadOptions).Inspect();
             pageCount = info.PageCount;
             if (pageCount < 1) throw new InvalidOperationException("The assembled PDF has no pages.");
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -215,7 +215,8 @@ public sealed partial class OfficeWorkflowRunner {
             request.OutputProfile,
             options,
             limits,
-            new PdfLoadOptions { Password = request.PdfPassword });
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes),
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumOutputBytes));
     }
 
     private static IReadOnlyList<AssemblySource> ExpandAssemblySources(
@@ -420,11 +421,12 @@ public sealed partial class OfficeWorkflowRunner {
                         MaximumOutputBytes = maximumNormalizedBytes
                     },
                     request.PdfLoadOptions,
-                    request.PdfLoadOptions);
+                    request.PdfLoadOptions,
+                    CreatePdfLoadOptions(request.PdfLoadOptions.Password, maximumNormalizedBytes));
                 OperationArtifact artifact = Convert(conversionRequest, diagnostics, cancellationToken);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);
-                return PdfDocument.Load(artifact.Bytes);
+                return PdfDocument.Load(artifact.Bytes, conversionRequest.OutputPdfLoadOptions);
             default:
                 throw new ArgumentOutOfRangeException(nameof(source));
         }
@@ -515,5 +517,6 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowOutputProfile OutputProfile,
         PdfAssemblyOptions Options,
         OfficeWorkflowLimits Limits,
-        PdfLoadOptions PdfLoadOptions);
+        PdfLoadOptions PdfLoadOptions,
+        PdfLoadOptions OutputPdfLoadOptions);
 }

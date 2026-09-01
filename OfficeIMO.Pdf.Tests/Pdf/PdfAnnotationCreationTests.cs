@@ -67,6 +67,43 @@ public class PdfAnnotationCreationTests {
         Assert.Equal(80D, link.Y2);
     }
 
+    [Theory]
+    [InlineData("Title")]
+    [InlineData("IconName")]
+    [InlineData("InReplyToObjectNumber")]
+    [InlineData("ReplyType")]
+    [InlineData("ReviewState")]
+    [InlineData("Subject")]
+    [InlineData("Intent")]
+    [InlineData("CreatePopup")]
+    [InlineData("PopupRectangle")]
+    [InlineData("PopupOpen")]
+    public void AddLinkAnnotation_RejectsMarkupOnlyOptions(string optionName) {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Link validation")).ToBytes();
+        var options = new PdfAnnotationCreateOptions {
+            Subtype = "Link",
+            Rectangle = new[] { 40D, 50D, 180D, 80D },
+            LinkUri = "https://officeimo.com"
+        };
+        switch (optionName) {
+            case "Title": options.Title = "Author"; break;
+            case "IconName": options.IconName = "Comment"; break;
+            case "InReplyToObjectNumber": options.InReplyToObjectNumber = 1; break;
+            case "ReplyType": options.ReplyType = "R"; break;
+            case "ReviewState": options.ReviewState = PdfAnnotationReviewState.Accepted; break;
+            case "Subject": options.Subject = "Review"; break;
+            case "Intent": options.Intent = "Link"; break;
+            case "CreatePopup": options.CreatePopup = true; break;
+            case "PopupRectangle": options.PopupRectangle = new[] { 10D, 10D, 30D, 30D }; break;
+            case "PopupOpen": options.PopupOpen = true; break;
+            default: throw new ArgumentOutOfRangeException(nameof(optionName));
+        }
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Load(source).Annotations.Add(options));
+        Assert.Contains("markup-only", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void LinkAnnotation_MoveAndResizeUpdateRectangleWithoutAppearanceRegeneration() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
