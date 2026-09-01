@@ -17,6 +17,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
     private readonly LinkedList<Snapshot> _redo = new();
     private readonly List<PdfWorkspaceOperation> _journal = new();
     private readonly PdfWorkspaceRecoveryStore _recoveryStore;
+    private readonly PdfLoadOptions _readOptions;
     private byte[] _bytes;
     private string _baseFingerprint;
     private PdfDocumentInfo _documentInfo;
@@ -34,6 +35,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         string baseFingerprint,
         PdfDocumentInfo documentInfo,
         PdfDocumentPreflight preflight,
+        PdfLoadOptions readOptions,
         PdfWorkspaceRecoveryStore recoveryStore,
         string? recoveryPath) {
         Path = path;
@@ -41,6 +43,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         _baseFingerprint = baseFingerprint;
         _documentInfo = documentInfo;
         _preflight = preflight;
+        _readOptions = readOptions;
         _recoveryStore = recoveryStore;
         RecoveryPath = recoveryPath;
     }
@@ -87,6 +90,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     internal bool CanFlattenForms => _preflight.CanFlattenSimpleFormFields;
 
+    internal bool CanAuthorForms => CanPlan(PdfMutationOperation.ModifyAcroForm);
+
     internal string? SecurityWarning {
         get {
             PdfDocumentSecurityInfo security = _documentInfo.Security;
@@ -111,7 +116,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
     internal static async Task<PdfWorkspace> OpenAsync(
         string path,
         CancellationToken cancellationToken,
-        PdfWorkspaceRecoveryStore? recoveryStore = null) {
+        PdfWorkspaceRecoveryStore? recoveryStore = null,
+        string? password = null) {
         string fullPath = System.IO.Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The selected PDF no longer exists.", fullPath);
         if (!string.Equals(System.IO.Path.GetExtension(fullPath), ".pdf", StringComparison.OrdinalIgnoreCase)) {
@@ -119,8 +125,9 @@ internal sealed partial class PdfWorkspace : IDisposable {
         }
 
         byte[] bytes = await File.ReadAllBytesAsync(fullPath, cancellationToken).ConfigureAwait(false);
+        var readOptions = new PdfLoadOptions { Password = password };
         (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
-            () => Analyze(bytes),
+            () => Analyze(bytes, readOptions),
             cancellationToken).ConfigureAwait(false);
         PdfWorkspaceRecoveryStore store = recoveryStore ?? new PdfWorkspaceRecoveryStore();
         string baseFingerprint = PdfWorkspaceRecoveryStore.Fingerprint(bytes);
@@ -130,13 +137,14 @@ internal sealed partial class PdfWorkspace : IDisposable {
             baseFingerprint,
             analysis.Info,
             analysis.Preflight,
+            readOptions,
             store,
             store.Find(fullPath, baseFingerprint));
     }
 
     internal PdfDocument CreateDocumentSnapshot() {
         ThrowIfDisposed();
-        return PdfDocument.Load(_bytes);
+        return LoadDocument(_bytes);
     }
 
     internal byte[] CopyBytes() {
@@ -246,42 +254,6 @@ internal sealed partial class PdfWorkspace : IDisposable {
         }, cancellationToken);
     }
 
-    internal Task FillFormFieldAsync(
-        string fieldName,
-        string value,
-        bool flatten,
-        CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) {
-        if (string.IsNullOrWhiteSpace(fieldName)) throw new ArgumentException("Choose a form field.", nameof(fieldName));
-        string normalizedName = fieldName.Trim();
-        IReadOnlyDictionary<string, string> values = new Dictionary<string, string>(StringComparer.Ordinal) { [normalizedName] = value ?? string.Empty };
-        return MutateBytesAsync(
-            flatten ? PdfWorkspaceOperationKind.FormFlatten : PdfWorkspaceOperationKind.FormFill,
-            flatten ? "Filled and flattened form field " + normalizedName : "Filled form field " + normalizedName,
-            Array.Empty<int>(),
-            bytes => {
-                PdfDocument document = PdfDocument.Load(bytes);
-                if (flatten) return document.Forms.FillAndFlatten(values).ToBytes();
-                PdfMutationPlan plan = document.PlanMutation(PdfMutationOperation.FillFormFields, values.Keys);
-                return (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly
-                    ? document.Forms.AppendRevision(values)
-                    : document.Forms.Fill(values)).ToBytes();
-            },
-            cancellationToken,
-            progress);
-    }
-
-    internal Task FlattenFormFieldsAsync(
-        CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress = null) =>
-        MutateBytesAsync(
-            PdfWorkspaceOperationKind.FormFlatten,
-            "Flattened form fields",
-            Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Forms.Flatten().ToBytes(),
-            cancellationToken,
-            progress);
-
     internal Task ApplyWatermarkAsync(
         string text,
         CancellationToken cancellationToken,
@@ -291,7 +263,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.Watermark,
             "Added text watermark",
             Enumerable.Range(1, Pages.Count).ToArray(),
-            bytes => PdfDocument.Load(bytes).Stamp.TextWatermark(text.Trim(), new PdfTextStampOptions {
+            bytes => LoadDocument(bytes).Stamp.TextWatermark(text.Trim(), new PdfTextStampOptions {
                 FontSize = 42D,
                 RotationDegrees = -35D,
                 Color = PdfColor.FromRgb(148, 163, 184)
@@ -307,7 +279,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.PageNumbers,
             "Added page numbers",
             Enumerable.Range(1, Pages.Count).ToArray(),
-            bytes => PdfDocument.Load(bytes).Stamp.Content(
+            bytes => LoadDocument(bytes).Stamp.Content(
                 (canvas, context) => canvas.Text(
                     context.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " / " + context.PageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     20D,
@@ -332,7 +304,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.Annotation,
             "Updated annotation",
             Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Annotations.Update(objectNumber, new PdfAnnotationUpdateOptions {
+            bytes => LoadDocument(bytes).Annotations.Update(objectNumber, new PdfAnnotationUpdateOptions {
                 Contents = contents ?? string.Empty,
                 Title = author ?? string.Empty,
                 Color = new[] { color.R, color.G, color.B },
@@ -353,7 +325,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.Annotation,
             "Added annotation reply",
             Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Annotations.AddReply(objectNumber, contents.Trim(), new PdfAnnotationReplyOptions {
+            bytes => LoadDocument(bytes).Annotations.AddReply(objectNumber, contents.Trim(), new PdfAnnotationReplyOptions {
                 Author = author,
                 Color = new[] { color.R, color.G, color.B },
                 CreatePopup = true
@@ -370,7 +342,18 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.Annotation,
             "Flattened annotation",
             Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = objectNumber }).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = objectNumber }).Bytes,
+            cancellationToken,
+            progress);
+
+    internal Task FlattenAllAnnotationsAsync(
+        CancellationToken cancellationToken,
+        IProgress<PdfWorkspaceProgress>? progress = null) =>
+        MutateBytesAsync(
+            PdfWorkspaceOperationKind.Annotation,
+            "Flattened all supported annotations",
+            Enumerable.Range(1, Pages.Count).ToArray(),
+            bytes => LoadDocument(bytes).Annotations.Flatten().Bytes,
             cancellationToken,
             progress);
 
@@ -382,7 +365,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             PdfWorkspaceOperationKind.Annotation,
             "Removed annotation",
             Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Annotations.Remove(new PdfAnnotationRemovalOptions { ObjectNumber = objectNumber }).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Remove(new PdfAnnotationRemovalOptions { ObjectNumber = objectNumber }).Bytes,
             cancellationToken,
             progress);
 
@@ -393,7 +376,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         try {
             string previousPath = Path;
             progress?.Report(new PdfWorkspaceProgress("Saving PDF", 0.2D));
-            await PdfDocument.Load(_bytes).SaveAsync(destination, cancellationToken).ConfigureAwait(false);
+            await LoadDocument(_bytes).SaveAsync(destination, cancellationToken).ConfigureAwait(false);
             Path = destination;
             _baseFingerprint = PdfWorkspaceRecoveryStore.Fingerprint(_bytes);
             _savedRevision = _revision;
@@ -418,7 +401,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
         try {
             byte[] recovered = await File.ReadAllBytesAsync(RecoveryPath, cancellationToken).ConfigureAwait(false);
             (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
-                () => Analyze(recovered),
+                () => Analyze(recovered, _readOptions),
                 cancellationToken).ConfigureAwait(false);
             PushHistory(_undo, new Snapshot(_bytes, _revision));
             ClearHistory(_redo);
@@ -469,7 +452,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
             kind,
             description,
             pageNumbers,
-            bytes => mutation(PdfDocument.Load(bytes)).ToBytes(),
+            bytes => mutation(LoadDocument(bytes)).ToBytes(),
             cancellationToken,
             progress).ConfigureAwait(false);
     }
@@ -480,18 +463,23 @@ internal sealed partial class PdfWorkspace : IDisposable {
         IReadOnlyList<int> pageNumbers,
         Func<byte[], byte[]> mutation,
         CancellationToken cancellationToken,
-        IProgress<PdfWorkspaceProgress>? progress) {
+        IProgress<PdfWorkspaceProgress>? progress,
+        bool detachCpuWorkOnCancellation = true) {
         ThrowIfDisposed();
         await _operationGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
             progress?.Report(new PdfWorkspaceProgress(description, 0.1D));
             byte[] previousBytes = _bytes;
-            byte[] candidateBytes = await RunCancellableCpuWorkAsync(
-                () => mutation(previousBytes),
-                cancellationToken).ConfigureAwait(false);
+            byte[] candidateBytes = detachCpuWorkOnCancellation
+                ? await RunCancellableCpuWorkAsync(
+                    () => mutation(previousBytes),
+                    cancellationToken).ConfigureAwait(false)
+                : await RunNonDetachableCpuWorkAsync(
+                    () => mutation(previousBytes),
+                    cancellationToken).ConfigureAwait(false);
             progress?.Report(new PdfWorkspaceProgress("Validating changed document", 0.75D));
             (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) candidateAnalysis = await RunCancellableCpuWorkAsync(
-                () => Analyze(candidateBytes),
+                () => Analyze(candidateBytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -517,7 +505,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     private bool CanPlan(PdfMutationOperation operation) {
         try {
-            return PdfDocument.Load(_bytes).PlanMutation(operation).CanExecute;
+            return LoadDocument(_bytes).PlanMutation(operation).CanExecute;
         } catch {
             return false;
         }
@@ -551,7 +539,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
             Snapshot restore = source.Last.Value;
             (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) analysis = await Task.Run(
-                () => Analyze(restore.Bytes),
+                () => Analyze(restore.Bytes, _readOptions),
                 cancellationToken).ConfigureAwait(false);
 
             if (restore.Revision != _savedRevision) {
@@ -605,8 +593,10 @@ internal sealed partial class PdfWorkspace : IDisposable {
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
-    private static (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) Analyze(byte[] bytes) {
-        PdfDocument document = PdfDocument.Load(bytes);
+    private PdfDocument LoadDocument(byte[] bytes) => PdfDocument.Load(bytes, _readOptions);
+
+    private static (PdfDocumentInfo Info, PdfDocumentPreflight Preflight) Analyze(byte[] bytes, PdfLoadOptions readOptions) {
+        PdfDocument document = PdfDocument.Load(bytes, readOptions);
         return (document.Inspect(), document.Preflight());
     }
 

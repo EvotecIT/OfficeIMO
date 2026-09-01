@@ -60,6 +60,7 @@
           <Button Classes="ghost" Command="{Binding SelectEditorToolCommand}" CommandParameter="Line">
             <StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconLine}" Width="17" Height="17" /><TextBlock Text="Line" FontSize="10" /></StackPanel>
           </Button>
+          <Button Classes="tool" Content="Flatten all" Command="{Binding FlattenAllAnnotationsCommand}" IsEnabled="{Binding CanEditAnnotations}" Margin="8,0,0,0" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsEditDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
@@ -79,12 +80,14 @@
 
         <StackPanel IsVisible="{Binding IsFormsDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
           <TextBlock Text="Form fields" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Classes="tool" Content="Flatten field" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
           <Button Classes="tool" Content="Flatten all" Command="{Binding FlattenAllFormFieldsCommand}" IsEnabled="{Binding CanFlattenForms}" />
         </StackPanel>
 
         <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Orientation="Horizontal" Spacing="6" Margin="10,7">
           <Button Classes="tool" Content="Redact" Command="{Binding BeginRedactionCommand}" />
-          <Button Classes="tool" Content="Signature appearance" Command="{Binding BeginSignatureAppearanceCommand}" />
+          <Button Classes="tool" Content="Validate signatures" Command="{Binding ValidateSignaturesCommand}" />
+          <Button Classes="tool" Content="Bates numbers" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
           <TextBlock Classes="muted" Text="Sensitive operations require explicit review and verification." VerticalAlignment="Center" Margin="8,0" />
         </StackPanel>
 
@@ -263,15 +266,79 @@
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsFormsDocumentMode}" Spacing="8">
-              <TextBlock Text="Form field" FontSize="15" FontWeight="SemiBold" />
-              <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="This PDF has no supported named form fields." TextWrapping="Wrap" />
+              <TextBlock Text="Fill fields" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock IsVisible="{Binding !HasFormFields}" Classes="muted" Text="This PDF has no named form fields yet." TextWrapping="Wrap" />
               <ComboBox IsVisible="{Binding HasFormFields}" ItemsSource="{Binding FormFields}" SelectedItem="{Binding SelectedFormField, Mode=TwoWay}">
                 <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldViewModel"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
               </ComboBox>
-              <TextBox IsVisible="{Binding HasFormFields}" Text="{Binding FormFieldValue}" />
-              <Button IsVisible="{Binding HasFormFields}" Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
-              <Button IsVisible="{Binding HasFormFields}" Classes="tool" Content="Fill and flatten" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
+              <StackPanel IsVisible="{Binding HasFormFields}" Spacing="8">
+                <TextBlock Text="{Binding SelectedFormField.PageLabel}" Classes="muted" FontSize="11" />
+                <TextBox IsVisible="{Binding SelectedFormField.IsPlainTextEditor}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+                         AcceptsReturn="{Binding SelectedFormField.IsMultiline}" MinHeight="34" TextWrapping="Wrap" />
+                <TextBox IsVisible="{Binding SelectedFormField.IsPassword}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+                         PasswordChar="●" />
+                <CheckBox IsVisible="{Binding SelectedFormField.IsCheckBoxEditor}" IsChecked="{Binding SelectedFormField.IsChecked, Mode=TwoWay}"
+                          Content="Checked" />
+                <ComboBox IsVisible="{Binding SelectedFormField.IsSingleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}"
+                          SelectedItem="{Binding SelectedFormField.SelectedChoice, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormChoiceViewModel"><TextBlock Text="{Binding DisplayText}" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox IsVisible="{Binding SelectedFormField.IsEditableChoice}" Text="{Binding SelectedFormField.TextValue, Mode=TwoWay}"
+                         PlaceholderText="Custom value" />
+                <ItemsControl IsVisible="{Binding SelectedFormField.IsMultipleChoiceEditor}" ItemsSource="{Binding SelectedFormField.Choices}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="editor:PdfFormChoiceViewModel">
+                      <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Content="{Binding DisplayText}" Margin="0,2" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <TextBlock IsVisible="{Binding SelectedFormField.IsSignature}" Classes="muted"
+                           Text="This is a signature field. Use the signing section in Protect mode to apply a certificate signature." TextWrapping="Wrap" />
+                <TextBlock IsVisible="{Binding SelectedFormField.IsUnsupported}" Classes="muted"
+                           Text="This field is not directly fillable from this inspector." TextWrapping="Wrap" />
+                <Button Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
+                <Button Classes="tool" Content="Fill and flatten" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
+                <Button Classes="tool" Content="Flatten selected field" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+              </StackPanel>
               <TextBlock Classes="muted" Text="Flattening is explicit and makes supported widgets permanent page content." TextWrapping="Wrap" />
+
+              <Separator Margin="0,5" />
+              <TextBlock Text="Create field" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock IsVisible="{Binding !CanAuthorForms}" Classes="muted" Text="Field authoring is unavailable under this document's current security policy." TextWrapping="Wrap" />
+              <ComboBox ItemsSource="{Binding FormFieldCreationChoices}" SelectedItem="{Binding SelectedFormFieldCreationChoice, Mode=TwoWay}" IsEnabled="{Binding CanAuthorForms}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfFormFieldCreationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+              <TextBlock Text="Name" FontSize="11" /><TextBox Text="{Binding NewFormFieldName}" IsEnabled="{Binding CanAuthorForms}" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Page" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Left" FontSize="11" />
+                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding NewFormFieldPageNumber}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding NewFormFieldX}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bottom" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Width" FontSize="11" />
+                <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding NewFormFieldY}" Minimum="0" IsEnabled="{Binding CanAuthorForms}" />
+                <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding NewFormFieldWidth}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Height" FontSize="11" />
+                <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding NewFormFieldHeight}" Minimum="1" IsEnabled="{Binding CanAuthorForms}" />
+              </Grid>
+              <StackPanel IsVisible="{Binding IsCreatingTextField}" Spacing="5">
+                <TextBlock Text="Initial value" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
+                <CheckBox IsChecked="{Binding NewFormFieldIsMultiline}" Content="Multiline" />
+                <CheckBox IsChecked="{Binding NewFormFieldIsPassword}" Content="Password field" />
+              </StackPanel>
+              <CheckBox IsVisible="{Binding IsCreatingCheckBox}" IsChecked="{Binding NewFormFieldIsChecked}" Content="Initially checked" />
+              <StackPanel IsVisible="{Binding IsCreatingChoiceField}" Spacing="5">
+                <TextBlock Text="Options (one per line)" FontSize="11" />
+                <TextBox Text="{Binding NewFormFieldOptions}" AcceptsReturn="True" MinHeight="62" TextWrapping="Wrap" />
+                <TextBlock Text="Initial value" FontSize="11" /><TextBox Text="{Binding NewFormFieldValue}" />
+                <StackPanel IsVisible="{Binding IsCreatingChoiceList}" Spacing="5">
+                  <CheckBox IsChecked="{Binding NewFormFieldIsComboBox}" Content="Drop-down" />
+                  <CheckBox IsChecked="{Binding NewFormFieldAllowsCustomValue}" Content="Allow a custom value" />
+                  <CheckBox IsChecked="{Binding NewFormFieldAllowsMultipleSelection}" Content="Allow multiple selections" />
+                </StackPanel>
+              </StackPanel>
+              <StackPanel IsVisible="{Binding IsCreatingButton}" Spacing="5">
+                <TextBlock Text="Caption" FontSize="11" /><TextBox Text="{Binding NewFormFieldCaption}" />
+              </StackPanel>
+              <Button Classes="primary" Content="Create field" Command="{Binding CreateFormFieldCommand}" IsEnabled="{Binding CanAuthorForms}" />
             </StackPanel>
 
             <StackPanel IsVisible="{Binding IsProtectDocumentMode}" Spacing="8">
@@ -287,6 +354,78 @@
                   <Button Classes="tool" Content="Cancel" Command="{Binding CancelPendingRedactionCommand}" />
                 </StackPanel>
               </Border>
+
+              <Separator Margin="0,5" />
+              <TextBlock Text="Password protection" FontSize="15" FontWeight="SemiBold" />
+              <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Classes="muted"
+                         Text="This document is already protected. Enter its owner password below only if owner authorization was not used when opening it." TextWrapping="Wrap" />
+              <TextBlock Text="Document-open password" FontSize="11" />
+              <TextBox Text="{Binding ProtectUserPassword}" PasswordChar="●" />
+              <TextBlock Text="Confirm password" FontSize="11" />
+              <TextBox Text="{Binding ProtectConfirmPassword}" PasswordChar="●" />
+              <TextBlock Text="New owner password (optional)" FontSize="11" />
+              <TextBox Text="{Binding ProtectOwnerPassword}" PasswordChar="●" />
+              <TextBlock IsVisible="{Binding IsDocumentEncrypted}" Text="Current owner password" FontSize="11" />
+              <TextBox IsVisible="{Binding IsDocumentEncrypted}" Text="{Binding CurrentOwnerPassword}" PasswordChar="●" />
+              <TextBlock Text="Allowed operations" FontSize="11" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="5">
+                <CheckBox Grid.Row="0" Grid.Column="0" IsChecked="{Binding ProtectAllowPrint}" Content="Print" />
+                <CheckBox Grid.Row="0" Grid.Column="1" IsChecked="{Binding ProtectAllowHighQualityPrint}" Content="High-quality print" />
+                <CheckBox Grid.Row="1" Grid.Column="0" IsChecked="{Binding ProtectAllowCopy}" Content="Copy content" />
+                <CheckBox Grid.Row="1" Grid.Column="1" IsChecked="{Binding ProtectAllowAccessibility}" Content="Accessibility" />
+                <CheckBox Grid.Row="2" Grid.Column="0" IsChecked="{Binding ProtectAllowAnnotations}" Content="Annotations" />
+                <CheckBox Grid.Row="2" Grid.Column="1" IsChecked="{Binding ProtectAllowFormFill}" Content="Fill forms" />
+                <CheckBox Grid.Row="3" Grid.Column="0" IsChecked="{Binding ProtectAllowDocumentAssembly}" Content="Assemble pages" />
+                <CheckBox Grid.Row="3" Grid.Column="1" IsChecked="{Binding ProtectAllowContentChanges}" Content="Change content" />
+              </Grid>
+              <CheckBox IsChecked="{Binding ProtectEncryptMetadata}" Content="Encrypt document metadata" />
+              <Button Classes="primary" Content="Save protected copy…" Command="{Binding SaveProtectedCopyCommand}" IsEnabled="{Binding CanChangeProtection}" />
+              <Button IsVisible="{Binding IsDocumentEncrypted}" Classes="tool" Content="Save decrypted copy…" Command="{Binding SaveDecryptedCopyCommand}" IsEnabled="{Binding CanRemoveProtection}" />
+
+              <Separator Margin="0,5" />
+              <TextBlock Text="Certificate signature" FontSize="15" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="5">
+                <ComboBox ItemsSource="{Binding SigningCertificates}" SelectedItem="{Binding SelectedSigningCertificate, Mode=TwoWay}">
+                  <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfSigningCertificateViewModel"><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" /></DataTemplate></ComboBox.ItemTemplate>
+                </ComboBox>
+                <Button Grid.Column="1" Classes="tool" Content="Refresh" Command="{Binding RefreshSigningCertificatesCommand}" />
+              </Grid>
+              <TextBlock IsVisible="{Binding !CanApplyCertificateSignature}" Classes="muted"
+                         Text="Choose a valid certificate with an accessible private key to sign this PDF." TextWrapping="Wrap" />
+              <TextBlock Text="Signature field" FontSize="11" /><TextBox Text="{Binding SignatureFieldName}" />
+              <TextBlock Text="Reason" FontSize="11" /><TextBox Text="{Binding SignatureReason}" />
+              <TextBlock Text="Location" FontSize="11" /><TextBox Text="{Binding SignatureLocation}" />
+              <CheckBox IsChecked="{Binding SignatureIsVisible}" Content="Show signature on the page" />
+              <Grid IsVisible="{Binding SignatureIsVisible}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Page" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Left" FontSize="11" />
+                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding SignaturePageNumber}" Minimum="1" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SignatureX}" Minimum="0" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Bottom" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Width" FontSize="11" />
+                <NumericUpDown Grid.Row="3" Grid.Column="0" Value="{Binding SignatureY}" Minimum="0" />
+                <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SignatureWidth}" Minimum="1" />
+                <TextBlock Grid.Row="4" Grid.Column="0" Text="Height" FontSize="11" />
+                <NumericUpDown Grid.Row="5" Grid.Column="0" Value="{Binding SignatureHeight}" Minimum="1" />
+              </Grid>
+              <Button Classes="primary" Content="Sign document" Command="{Binding ApplyCertificateSignatureCommand}" IsEnabled="{Binding CanApplyCertificateSignature}" />
+              <Button Classes="tool" Content="Validate signatures" Command="{Binding ValidateSignaturesCommand}" />
+              <TextBlock IsVisible="{Binding HasSignatureValidationSummary}" Text="{Binding SignatureValidationSummary}" FontWeight="SemiBold" TextWrapping="Wrap" />
+              <ItemsControl ItemsSource="{Binding SignatureValidationFindings}">
+                <ItemsControl.ItemTemplate><DataTemplate><TextBlock Text="{Binding}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,2" /></DataTemplate></ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <Separator Margin="0,5" />
+              <TextBlock Text="Bates numbering" FontSize="15" FontWeight="SemiBold" />
+              <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="6" RowSpacing="4">
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Start" FontSize="11" /><TextBlock Grid.Row="0" Grid.Column="1" Text="Digits" FontSize="11" />
+                <NumericUpDown Grid.Row="1" Grid.Column="0" Value="{Binding BatesStartNumber}" Minimum="0" />
+                <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding BatesMinimumDigits}" Minimum="1" Maximum="18" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Prefix" FontSize="11" /><TextBlock Grid.Row="2" Grid.Column="1" Text="Suffix" FontSize="11" />
+                <TextBox Grid.Row="3" Grid.Column="0" Text="{Binding BatesPrefix}" /><TextBox Grid.Row="3" Grid.Column="1" Text="{Binding BatesSuffix}" />
+              </Grid>
+              <ComboBox ItemsSource="{Binding BatesPositions}" SelectedItem="{Binding SelectedBatesPosition, Mode=TwoWay}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="editor:PdfBatesPositionChoice"><TextBlock Text="{Binding Label}" /></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+              <Button Classes="primary" Content="Apply Bates numbers" Command="{Binding ApplyBatesNumberingCommand}" IsEnabled="{Binding CanEditPageContent}" />
             </StackPanel>
           </StackPanel>
         </ScrollViewer>

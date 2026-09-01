@@ -16,7 +16,7 @@ internal sealed partial class PdfWorkspace {
             "Replaced selected text on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
             bytes => {
-                PdfDocument document = PdfDocument.Load(bytes);
+                PdfDocument document = LoadDocument(bytes);
                 PdfTextMatch match = ResolveTextMatch(document, selection);
                 return document.Text.Replace(match, replacement ?? string.Empty, options).Document.ToBytes();
             },
@@ -36,7 +36,7 @@ internal sealed partial class PdfWorkspace {
             "Moved selected text on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
             bytes => {
-                PdfDocument document = PdfDocument.Load(bytes);
+                PdfDocument document = LoadDocument(bytes);
                 PdfTextMatch match = ResolveTextMatch(document, selection);
                 return document.Text.Move(match, deltaX, deltaY).Document.ToBytes();
             },
@@ -56,7 +56,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.TextEdit,
             "Replaced all matching document text",
             Array.Empty<int>(),
-            bytes => PdfDocument.Load(bytes).Text.ReplaceAll(
+            bytes => LoadDocument(bytes).Text.ReplaceAll(
                 search,
                 replacement ?? string.Empty,
                 new PdfTextSearchOptions { MatchCase = matchCase, WholeWords = wholeWords }).Document.ToBytes(),
@@ -75,7 +75,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.ImageEdit,
             "Moved image on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
-            bytes => PdfDocument.Load(bytes).Images.Move(placement, deltaX, deltaY).Document.ToBytes(),
+            bytes => LoadDocument(bytes).Images.Move(placement, deltaX, deltaY).Document.ToBytes(),
             cancellationToken,
             progress);
     }
@@ -91,7 +91,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.ImageEdit,
             "Replaced image on page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
-            bytes => PdfDocument.Load(bytes).Images.Replace(placement, imageBytes).Document.ToBytes(),
+            bytes => LoadDocument(bytes).Images.Replace(placement, imageBytes).Document.ToBytes(),
             cancellationToken,
             progress);
     }
@@ -105,7 +105,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.ImageEdit,
             "Removed image from page " + selection.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { selection.PageNumber },
-            bytes => PdfDocument.Load(bytes).Images.Remove(placement).Document.ToBytes(),
+            bytes => LoadDocument(bytes).Images.Remove(placement).Document.ToBytes(),
             cancellationToken,
             progress);
     }
@@ -121,7 +121,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.Annotation,
             "Moved annotation on page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { pageNumber },
-            bytes => PdfDocument.Load(bytes).Annotations.Move(objectNumber, deltaX, deltaY).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Move(objectNumber, deltaX, deltaY).Bytes,
             cancellationToken,
             progress);
 
@@ -135,7 +135,7 @@ internal sealed partial class PdfWorkspace {
             PdfWorkspaceOperationKind.Annotation,
             "Resized annotation on page " + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
             new[] { pageNumber },
-            bytes => PdfDocument.Load(bytes).Annotations.Resize(objectNumber, rectangle).Bytes,
+            bytes => LoadDocument(bytes).Annotations.Resize(objectNumber, rectangle).Bytes,
             cancellationToken,
             progress);
 

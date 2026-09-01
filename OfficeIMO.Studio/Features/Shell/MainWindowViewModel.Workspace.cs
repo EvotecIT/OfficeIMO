@@ -330,7 +330,10 @@ public sealed partial class MainWindowViewModel {
         CancellationToken cancellationToken,
         IReadOnlyCollection<int>? organizerSelection = null) {
         bool succeeded = await RunStandaloneAsync(operation, cancellationToken).ConfigureAwait(true);
-        if (succeeded && _workspace is not null) RefreshWorkspacePresentation(organizerSelection);
+        if (succeeded && _workspace is not null) {
+            ClearSignatureValidation();
+            RefreshWorkspacePresentation(organizerSelection);
+        }
         return succeeded;
     }
 
@@ -456,6 +459,13 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFlattenForms));
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
+        OnPropertyChanged(nameof(CanAuthorForms));
+        OnPropertyChanged(nameof(CanFlattenSelectedFormField));
+        OnPropertyChanged(nameof(IsDocumentEncrypted));
+        OnPropertyChanged(nameof(HasDocumentSignatures));
+        OnPropertyChanged(nameof(CanChangeProtection));
+        OnPropertyChanged(nameof(CanRemoveProtection));
+        OnPropertyChanged(nameof(CanApplyCertificateSignature));
         OnPropertyChanged(nameof(SecurityWarning));
         OnPropertyChanged(nameof(HasSecurityWarning));
         if (_workspace is not null) {

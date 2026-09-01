@@ -32,7 +32,8 @@ public sealed partial class MainWindow : Window {
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
             pickWorkflowFiles: PickWorkflowFilesAsync,
-            recentDocumentStore: JsonRecentDocumentStore.CreateDefault());
+            recentDocumentStore: JsonRecentDocumentStore.CreateDefault(),
+            promptPdfPassword: PromptPdfPasswordAsync);
         DataContext = ViewModel;
 
         SizeChanged += OnWindowSizeChanged;
@@ -197,6 +198,17 @@ public sealed partial class MainWindow : Window {
     private async Task<bool> ConfirmPageDeletionAsync(int pageCount) {
         var dialog = new PageDeletionDialog(pageCount);
         return await dialog.ShowDialog<bool>(this);
+    }
+
+    private async Task<string?> PromptPdfPasswordAsync(
+        string documentName,
+        bool invalidPassword,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var dialog = new PdfPasswordDialog(documentName, invalidPassword);
+        string? password = await dialog.ShowDialog<string?>(this);
+        cancellationToken.ThrowIfCancellationRequested();
+        return password;
     }
 
     private async Task<string?> PickSavePdfAsync(CancellationToken cancellationToken) {

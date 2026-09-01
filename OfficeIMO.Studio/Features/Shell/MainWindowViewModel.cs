@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Editor;
 using OfficeIMO.Studio.Features.Home;
@@ -19,6 +20,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
+    private readonly Func<string, bool, CancellationToken, Task<string?>> _promptPdfPassword;
     private readonly IRecentDocumentStore? _recentDocumentStore;
     private PdfWorkspace? _workspace;
     private PdfDocumentSession? _session;
@@ -70,7 +72,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickImage = null,
         Func<int, Task<bool>>? confirmPageDeletion = null,
         Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null,
-        IRecentDocumentStore? recentDocumentStore = null) {
+        IRecentDocumentStore? recentDocumentStore = null,
+        Func<string, bool, CancellationToken, Task<string?>>? promptPdfPassword = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -79,6 +82,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
+        _promptPdfPassword = promptPdfPassword ?? ((_, _, _) => Task.FromResult<string?>(null));
         _recentDocumentStore = recentDocumentStore;
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
@@ -170,9 +174,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         bool installed = false;
 
         try {
-            candidateWorkspace = await PdfWorkspace
-                .OpenAsync(path, currentCancellation.Token)
-                .ConfigureAwait(true);
+            candidateWorkspace = await OpenWorkspaceWithPasswordAsync(path, currentCancellation.Token).ConfigureAwait(true);
+            if (candidateWorkspace is null) return;
             currentCancellation.Token.ThrowIfCancellationRequested();
 
             PdfDocumentSession session = PdfDocumentSession.FromWorkspace(candidateWorkspace);
@@ -238,6 +241,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     [RelayCommand]
     private async Task CloseDocumentAsync() {
         await RequestCloseDocumentAsync().ConfigureAwait(true);
+    }
+
+    private async Task<PdfWorkspace?> OpenWorkspaceWithPasswordAsync(string path, CancellationToken cancellationToken) {
+        string? password = null;
+        bool invalidPassword = false;
+        while (true) {
+            try {
+                return await PdfWorkspace.OpenAsync(path, cancellationToken, password: password).ConfigureAwait(true);
+            } catch (PdfPasswordRequiredException) {
+                invalidPassword = false;
+            } catch (PdfInvalidPasswordException) {
+                invalidPassword = true;
+            }
+
+            password = await _promptPdfPassword(
+                System.IO.Path.GetFileName(path),
+                invalidPassword,
+                cancellationToken).ConfigureAwait(true);
+            if (password is null) return null;
+        }
     }
 
     internal async Task<bool> RequestCloseDocumentAsync() {
@@ -389,6 +412,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _renderCoordinator = renderCoordinator;
 
         if (isDocumentTransition) {
+            ResetDocumentSecurityState();
             SearchQuery = string.Empty;
             SearchResults.Clear();
             SelectedSearchResult = null;

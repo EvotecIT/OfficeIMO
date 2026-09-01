@@ -156,10 +156,17 @@ public sealed partial class MainWindowViewModel {
     private void ShowPagesMode() => DocumentMode = StudioDocumentMode.Pages;
 
     [RelayCommand]
-    private void ShowFormsMode() => DocumentMode = StudioDocumentMode.Forms;
+    private void ShowFormsMode() {
+        if (SelectedPage is not null) NewFormFieldPageNumber = SelectedPage.PageNumber;
+        DocumentMode = StudioDocumentMode.Forms;
+    }
 
     [RelayCommand]
-    private void ShowProtectMode() => DocumentMode = StudioDocumentMode.Protect;
+    private void ShowProtectMode() {
+        if (SelectedPage is not null) SignaturePageNumber = SelectedPage.PageNumber;
+        if (SigningCertificates.Count == 0) RefreshSigningCertificatesCommand.Execute(null);
+        DocumentMode = StudioDocumentMode.Protect;
+    }
 
     [RelayCommand]
     private void BeginRedaction() {

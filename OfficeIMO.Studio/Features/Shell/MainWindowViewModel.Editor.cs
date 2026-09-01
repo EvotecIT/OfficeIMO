@@ -28,6 +28,14 @@ public sealed partial class MainWindowViewModel {
         new(PdfEditorTool.SignatureAppearance, "Signature appearance", "Draw a visual-only signature label; this does not cryptographically sign the PDF"),
         new(PdfEditorTool.Redact, "Redact", "Draw an area, review it, then permanently remove intersecting content")
     };
+    private static readonly PdfFormFieldCreationChoice[] AvailableFormFieldKinds = {
+        new(PdfFormFieldCreationKind.Text, "Text field"),
+        new(PdfFormFieldCreationKind.CheckBox, "Check box"),
+        new(PdfFormFieldCreationKind.Choice, "Choice field"),
+        new(PdfFormFieldCreationKind.RadioButtonGroup, "Radio group"),
+        new(PdfFormFieldCreationKind.Signature, "Signature field"),
+        new(PdfFormFieldCreationKind.PushButton, "Button")
+    };
 
     private PdfEditorGesture? _pendingRedaction;
     private PdfRedactionPlan? _pendingRedactionPlan;
@@ -72,7 +80,57 @@ public sealed partial class MainWindowViewModel {
     private PdfFormFieldViewModel? _selectedFormField;
 
     [ObservableProperty]
-    private string _formFieldValue = string.Empty;
+    [NotifyPropertyChangedFor(nameof(IsCreatingTextField))]
+    [NotifyPropertyChangedFor(nameof(IsCreatingCheckBox))]
+    [NotifyPropertyChangedFor(nameof(IsCreatingChoiceField))]
+    [NotifyPropertyChangedFor(nameof(IsCreatingChoiceList))]
+    [NotifyPropertyChangedFor(nameof(IsCreatingButton))]
+    private PdfFormFieldCreationChoice _selectedFormFieldCreationChoice = AvailableFormFieldKinds[0];
+
+    [ObservableProperty]
+    private string _newFormFieldName = "Field1";
+
+    [ObservableProperty]
+    private int _newFormFieldPageNumber = 1;
+
+    [ObservableProperty]
+    private double _newFormFieldX = 36D;
+
+    [ObservableProperty]
+    private double _newFormFieldY = 36D;
+
+    [ObservableProperty]
+    private double _newFormFieldWidth = 180D;
+
+    [ObservableProperty]
+    private double _newFormFieldHeight = 28D;
+
+    [ObservableProperty]
+    private string _newFormFieldValue = string.Empty;
+
+    [ObservableProperty]
+    private string _newFormFieldOptions = "Option 1\nOption 2";
+
+    [ObservableProperty]
+    private string _newFormFieldCaption = "Button";
+
+    [ObservableProperty]
+    private bool _newFormFieldIsMultiline;
+
+    [ObservableProperty]
+    private bool _newFormFieldIsPassword;
+
+    [ObservableProperty]
+    private bool _newFormFieldIsChecked;
+
+    [ObservableProperty]
+    private bool _newFormFieldIsComboBox = true;
+
+    [ObservableProperty]
+    private bool _newFormFieldAllowsCustomValue;
+
+    [ObservableProperty]
+    private bool _newFormFieldAllowsMultipleSelection;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasSelectedObject))]
@@ -104,6 +162,8 @@ public sealed partial class MainWindowViewModel {
 
     public ObservableCollection<PdfFormFieldViewModel> FormFields { get; } = new();
 
+    public ObservableCollection<PdfFormFieldCreationChoice> FormFieldCreationChoices { get; } = new(AvailableFormFieldKinds);
+
     public PdfEditorTool ActiveEditorTool => SelectedEditorToolChoice.Tool;
 
     public string EditorInstruction => SelectedEditorToolChoice.Hint;
@@ -128,11 +188,25 @@ public sealed partial class MainWindowViewModel {
 
     public bool CanRedact => _workspace?.CanRedact == true;
 
-    public bool CanFillForms => _workspace?.CanFillForms == true && SelectedFormField?.IsReadOnly == false;
+    public bool CanFillForms => _workspace?.CanFillForms == true && SelectedFormField?.CanFill == true;
 
     public bool CanFlattenForms => _workspace?.CanFlattenForms == true;
 
     public bool CanFillAndFlattenForms => CanFillForms && CanFlattenForms;
+
+    public bool CanFlattenSelectedFormField => CanFlattenForms && SelectedFormField is not null;
+
+    public bool CanAuthorForms => _workspace?.CanAuthorForms == true;
+
+    public bool IsCreatingTextField => SelectedFormFieldCreationChoice.Kind == PdfFormFieldCreationKind.Text;
+
+    public bool IsCreatingCheckBox => SelectedFormFieldCreationChoice.Kind == PdfFormFieldCreationKind.CheckBox;
+
+    public bool IsCreatingChoiceField => SelectedFormFieldCreationChoice.Kind is PdfFormFieldCreationKind.Choice or PdfFormFieldCreationKind.RadioButtonGroup;
+
+    public bool IsCreatingChoiceList => SelectedFormFieldCreationChoice.Kind == PdfFormFieldCreationKind.Choice;
+
+    public bool IsCreatingButton => SelectedFormFieldCreationChoice.Kind == PdfFormFieldCreationKind.PushButton;
 
     partial void OnSelectedEditorToolChoiceChanged(PdfEditorToolChoice value) {
         foreach (PdfPageViewModel page in Pages) page.EditorTool = value.Tool;
@@ -140,9 +214,9 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? value) {
-        FormFieldValue = value?.Value ?? string.Empty;
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
+        OnPropertyChanged(nameof(CanFlattenSelectedFormField));
     }
 
     [RelayCommand]
@@ -308,7 +382,7 @@ public sealed partial class MainWindowViewModel {
     private async Task FillFormFieldAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedFormField is null) return;
         await RunMutationAsync(
-            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, FormFieldValue, flatten: false, token, CreateProgress()),
+            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, SelectedFormField.CreateValue(), flatten: false, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
     }
 
@@ -316,7 +390,15 @@ public sealed partial class MainWindowViewModel {
     private async Task FillAndFlattenFormFieldAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedFormField is null) return;
         await RunMutationAsync(
-            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, FormFieldValue, flatten: true, token, CreateProgress()),
+            token => _workspace.FillFormFieldAsync(SelectedFormField.Name, SelectedFormField.CreateValue(), flatten: true, token, CreateProgress()),
+            cancellationToken).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task FlattenSelectedFormFieldAsync(CancellationToken cancellationToken) {
+        if (_workspace is null || SelectedFormField is null) return;
+        await RunMutationAsync(
+            token => _workspace.FlattenFormFieldAsync(SelectedFormField.Name, token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
     }
 
@@ -326,6 +408,47 @@ public sealed partial class MainWindowViewModel {
         await RunMutationAsync(
             token => _workspace.FlattenFormFieldsAsync(token, CreateProgress()),
             cancellationToken).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private async Task CreateFormFieldAsync(CancellationToken cancellationToken) {
+        if (_workspace is null) return;
+        string[] options = ParseFormFieldOptions(NewFormFieldOptions);
+        PdfFormFieldCreationKind kind = SelectedFormFieldCreationChoice.Kind;
+        bool allowsMultipleSelection = kind == PdfFormFieldCreationKind.Choice && NewFormFieldAllowsMultipleSelection;
+        bool isComboBox = kind == PdfFormFieldCreationKind.Choice && NewFormFieldIsComboBox && !allowsMultipleSelection;
+        double height = kind == PdfFormFieldCreationKind.RadioButtonGroup
+            ? Math.Max(NewFormFieldHeight, GetRequiredRadioGroupHeight(options.Length))
+            : NewFormFieldHeight;
+        var createOptions = new PdfFormFieldCreateOptions {
+            Name = NewFormFieldName?.Trim() ?? string.Empty,
+            Kind = kind,
+            PageNumber = NewFormFieldPageNumber,
+            X = NewFormFieldX,
+            Y = NewFormFieldY,
+            Width = NewFormFieldWidth,
+            Height = height,
+            Value = kind == PdfFormFieldCreationKind.CheckBox
+                ? NewFormFieldIsChecked ? "Yes" : "Off"
+                : NewFormFieldValue ?? string.Empty,
+            ChoiceOptions = options,
+            IsComboBox = isComboBox,
+            Caption = string.IsNullOrWhiteSpace(NewFormFieldCaption) ? "Button" : NewFormFieldCaption.Trim(),
+            FieldFlags = allowsMultipleSelection ? 2097152 : 0,
+            Style = new PdfFormFieldStyle {
+                IsMultiline = kind == PdfFormFieldCreationKind.Text && NewFormFieldIsMultiline,
+                IsPassword = kind == PdfFormFieldCreationKind.Text && NewFormFieldIsPassword,
+                IsEditableChoice = isComboBox && NewFormFieldAllowsCustomValue
+            }
+        };
+        bool succeeded = await RunMutationAsync(
+            token => _workspace.CreateFormFieldAsync(createOptions, token, CreateProgress()),
+            cancellationToken).ConfigureAwait(true);
+        if (succeeded) {
+            SelectedFormField = FormFields.FirstOrDefault(field => string.Equals(field.Name, createOptions.Name, StringComparison.Ordinal));
+            NewFormFieldHeight = createOptions.Height;
+            NewFormFieldName = GetNextFormFieldName();
+        }
     }
 
     [RelayCommand]
@@ -378,6 +501,15 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
+    private async Task FlattenAllAnnotationsAsync(CancellationToken cancellationToken) {
+        if (_workspace is null) return;
+        ClearObjectSelection();
+        await RunMutationAsync(
+            token => _workspace.FlattenAllAnnotationsAsync(token, CreateProgress()),
+            cancellationToken).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
     private async Task RemoveSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         ClearObjectSelection();
@@ -399,12 +531,7 @@ public sealed partial class MainWindowViewModel {
         FormFields.Clear();
         if (_workspace is not null) {
             foreach (PdfFormField field in _workspace.DocumentInfo.FormFields.Where(static field => !string.IsNullOrWhiteSpace(field.Name))) {
-                FormFields.Add(new PdfFormFieldViewModel(
-                    field.Name!,
-                    field.Kind.ToString(),
-                    field.Value ?? string.Empty,
-                    field.IsReadOnly,
-                    field.PageNumbers));
+                FormFields.Add(new PdfFormFieldViewModel(field));
             }
         }
         SelectedFormField = FormFields.FirstOrDefault(field => string.Equals(field.Name, selectedName, StringComparison.Ordinal))
@@ -413,6 +540,27 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanFillForms));
         OnPropertyChanged(nameof(CanFlattenForms));
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
+        OnPropertyChanged(nameof(CanFlattenSelectedFormField));
+        OnPropertyChanged(nameof(CanAuthorForms));
+    }
+
+    private static string[] ParseFormFieldOptions(string? value) => (value ?? string.Empty)
+        .Split(['\r', '\n', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Distinct(StringComparer.Ordinal)
+        .ToArray();
+
+    private static double GetRequiredRadioGroupHeight(int optionCount) {
+        int count = Math.Max(optionCount, 1);
+        const double buttonSize = 14D;
+        const double buttonGap = 6D;
+        return count * buttonSize + (count - 1) * buttonGap;
+    }
+
+    private string GetNextFormFieldName() {
+        HashSet<string> existing = FormFields.Select(static field => field.Name).ToHashSet(StringComparer.Ordinal);
+        int suffix = 1;
+        while (existing.Contains("Field" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture))) suffix++;
+        return "Field" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private void ClearObjectSelection() {

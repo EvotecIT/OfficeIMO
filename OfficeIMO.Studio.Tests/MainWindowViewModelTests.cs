@@ -225,6 +225,109 @@ public sealed class MainWindowViewModelTests {
     }
 
     [Fact]
+    public async Task EncryptedDocumentPromptsAgainAfterAnInvalidPasswordAndThenOpens() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-password-prompt-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string path = Path.Combine(root, "protected.pdf");
+        byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.Paragraph(paragraph => paragraph.Text("Prompted content")))))).ToBytes();
+        await File.WriteAllBytesAsync(path, PdfDocument.Load(plain).Security.Encrypt(
+            new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
+        var attempts = new List<bool>();
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                promptPdfPassword: (_, invalidPassword, _) => {
+                    attempts.Add(invalidPassword);
+                    return Task.FromResult<string?>(attempts.Count == 1 ? "wrong" : "open");
+                });
+
+            await viewModel.OpenDocumentAsync(path);
+
+            Assert.True(viewModel.HasDocument);
+            Assert.Null(viewModel.ErrorMessage);
+            Assert.Equal([false, true], attempts);
+            Assert.True(viewModel.IsDocumentEncrypted);
+            Assert.False(viewModel.CanChangeProtection);
+            Assert.False(viewModel.CanRemoveProtection);
+            viewModel.CurrentOwnerPassword = "owner";
+            Assert.True(viewModel.CanChangeProtection);
+            Assert.True(viewModel.CanRemoveProtection);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task DocumentTransitionClearsPasswordsAndSignatureEvidenceAndMutationInvalidatesEvidence() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-security-state-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string first = Path.Combine(root, "first.pdf");
+        string second = Path.Combine(root, "second.pdf");
+        CreateTextSource(first, "First");
+        CreateTextSource(second, "Second");
+
+        try {
+            using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+            await viewModel.OpenDocumentAsync(first);
+            viewModel.ProtectUserPassword = "user-a";
+            viewModel.ProtectConfirmPassword = "user-a";
+            viewModel.ProtectOwnerPassword = "owner-a";
+            viewModel.CurrentOwnerPassword = "current-owner-a";
+            viewModel.SignatureValidationSummary = "Document A validation";
+            viewModel.SignatureValidationFindings.Add("Document A finding");
+
+            await viewModel.OpenDocumentAsync(second);
+
+            Assert.Empty(viewModel.ProtectUserPassword);
+            Assert.Empty(viewModel.ProtectConfirmPassword);
+            Assert.Empty(viewModel.ProtectOwnerPassword);
+            Assert.Empty(viewModel.CurrentOwnerPassword);
+            Assert.Null(viewModel.SignatureValidationSummary);
+            Assert.Empty(viewModel.SignatureValidationFindings);
+
+            viewModel.SignatureValidationSummary = "Current validation";
+            viewModel.SignatureValidationFindings.Add("Current finding");
+            await viewModel.ApplyBatesNumberingCommand.ExecuteAsync(null);
+            Assert.Null(viewModel.SignatureValidationSummary);
+            Assert.Empty(viewModel.SignatureValidationFindings);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task DefaultRadioGroupAuthoringUsesValidGeometry() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-radio-authoring-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string saved = Path.Combine(root, "saved.pdf");
+        CreateTextSource(source, "Radio group");
+
+        try {
+            using var viewModel = new MainWindowViewModel(
+                _ => Task.FromResult<string?>(null),
+                pickSavePdf: _ => Task.FromResult<string?>(saved));
+            await viewModel.OpenDocumentAsync(source);
+            viewModel.SelectedFormFieldCreationChoice = viewModel.FormFieldCreationChoices.Single(choice =>
+                choice.Kind == PdfFormFieldCreationKind.RadioButtonGroup);
+            viewModel.NewFormFieldHeight = 28D;
+
+            await viewModel.CreateFormFieldCommand.ExecuteAsync(null);
+            await viewModel.SaveAsCommand.ExecuteAsync(null);
+
+            Assert.Null(viewModel.ErrorMessage);
+            PdfFormField field = Assert.Single(PdfDocument.Load(saved).Inspect().FormFields);
+            Assert.True(field.IsRadioButton);
+            Assert.Equal(2, field.Widgets.Count);
+            Assert.True(viewModel.NewFormFieldHeight >= 34D);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task OpenCommandLoadsPathReturnedByPicker() {
         string fixture = GetFixturePath();
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(fixture));

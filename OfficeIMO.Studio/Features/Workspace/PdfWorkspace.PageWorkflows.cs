@@ -149,7 +149,18 @@ internal sealed partial class PdfWorkspace {
 
     internal async Task<T> RunCancellableCpuWorkAsync<T>(
         Func<T> operation,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken) =>
+        await RunCpuWorkAsync(operation, cancellationToken, detachOnCancellation: true).ConfigureAwait(false);
+
+    internal async Task<T> RunNonDetachableCpuWorkAsync<T>(
+        Func<T> operation,
+        CancellationToken cancellationToken) =>
+        await RunCpuWorkAsync(operation, cancellationToken, detachOnCancellation: false).ConfigureAwait(false);
+
+    private async Task<T> RunCpuWorkAsync<T>(
+        Func<T> operation,
+        CancellationToken cancellationToken,
+        bool detachOnCancellation) {
         ArgumentNullException.ThrowIfNull(operation);
         cancellationToken.ThrowIfCancellationRequested();
         await ApplicationCpuWorkGate.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -168,7 +179,9 @@ internal sealed partial class PdfWorkspace {
         }
 
         _ = CompleteCpuWorkAsync(worker);
-        return await worker.WaitAsync(cancellationToken).ConfigureAwait(false);
+        return detachOnCancellation
+            ? await worker.WaitAsync(cancellationToken).ConfigureAwait(false)
+            : await worker.ConfigureAwait(false);
     }
 
     private async Task CompleteCpuWorkAsync(Task worker) {

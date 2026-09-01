@@ -1,6 +1,8 @@
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 
 namespace OfficeIMO.Studio.Tests;
 
@@ -136,6 +138,162 @@ public sealed class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task TypedFormEditingAuthoringAndSelectiveFlatteningUseCanonicalFieldContracts() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-typed-forms-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "forms.pdf");
+        CreateEditableSource(source);
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            await workspace.CreateFormFieldAsync(new PdfFormFieldCreateOptions {
+                Name = "Account.Secret",
+                Kind = PdfFormFieldCreationKind.Text,
+                PageNumber = 1,
+                X = 40,
+                Y = 650,
+                Width = 180,
+                Height = 24,
+                Style = new PdfFormFieldStyle { IsPassword = true }
+            }, CancellationToken.None);
+            await workspace.CreateFormFieldAsync(new PdfFormFieldCreateOptions {
+                Name = "Account.Enabled",
+                Kind = PdfFormFieldCreationKind.CheckBox,
+                PageNumber = 1,
+                X = 40,
+                Y = 610,
+                Width = 18,
+                Height = 18,
+                Value = "Off"
+            }, CancellationToken.None);
+            await workspace.CreateFormFieldAsync(new PdfFormFieldCreateOptions {
+                Name = "Account.Regions",
+                Kind = PdfFormFieldCreationKind.Choice,
+                PageNumber = 1,
+                X = 40,
+                Y = 520,
+                Width = 180,
+                Height = 60,
+                ChoiceOptions = ["EU", "US", "APAC"],
+                Value = "EU",
+                FieldFlags = 2097152
+            }, CancellationToken.None);
+
+            PdfDocumentInfo authored = PdfDocument.Load(workspace.CopyBytes()).Inspect();
+            Assert.Single(workspace.Pages);
+            Assert.True(authored.FormFieldsByName["Account.Secret"].IsPassword);
+            Assert.True(authored.FormFieldsByName["Account.Enabled"].IsCheckBox);
+            Assert.True(authored.FormFieldsByName["Account.Regions"].AllowsMultipleSelection);
+            Assert.Equal(PdfWorkspaceOperationKind.FormAuthor, workspace.Journal[^1].Kind);
+
+            var checkBox = new PdfFormFieldViewModel(authored.FormFieldsByName["Account.Enabled"]) { IsChecked = true };
+            await workspace.FillFormFieldAsync(checkBox.Name, checkBox.CreateValue(), flatten: false, CancellationToken.None);
+            Assert.Equal("Yes", PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName[checkBox.Name].Value);
+
+            var regions = new PdfFormFieldViewModel(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName["Account.Regions"]);
+            foreach (PdfFormChoiceViewModel choice in regions.Choices) {
+                choice.IsSelected = choice.ExportValue is "US" or "APAC";
+            }
+            await workspace.FillFormFieldAsync(regions.Name, regions.CreateValue(), flatten: false, CancellationToken.None);
+            PdfFormField persistedRegions = PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFieldsByName[regions.Name];
+            Assert.Equal(["US", "APAC"], persistedRegions.Values);
+            var reopenedRegions = new PdfFormFieldViewModel(persistedRegions);
+            Assert.Equal(2, reopenedRegions.Choices.Count(static choice => choice.IsSelected));
+            Assert.Equal(["US", "APAC"], reopenedRegions.CreateValue().Values);
+
+            await workspace.FlattenFormFieldAsync("Account.Enabled", CancellationToken.None);
+            PdfDocumentInfo selectivelyFlattened = PdfDocument.Load(workspace.CopyBytes()).Inspect();
+            Assert.DoesNotContain("Account.Enabled", selectivelyFlattened.FormFieldsByName.Keys);
+            Assert.Contains("Account.Secret", selectivelyFlattened.FormFieldsByName.Keys);
+            Assert.Contains("Account.Regions", selectivelyFlattened.FormFieldsByName.Keys);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task ProtectAndDecryptCopiesPreserveTheOpenWorkspaceAndApplyTypedPermissions() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-protection-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string protectedCopy = Path.Combine(root, "protected.pdf");
+        string decryptedCopy = Path.Combine(root, "decrypted.pdf");
+        CreateTextSource(source, "Protected copy source");
+
+        try {
+            using (PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None)) {
+                var encryption = new PdfStandardEncryptionOptions("open") {
+                    OwnerPassword = "owner",
+                    AllowedPermissions = PdfStandardPermissions.Print | PdfStandardPermissions.CopyContents |
+                                         PdfStandardPermissions.Accessibility | PdfStandardPermissions.FillForms
+                };
+                await workspace.SaveProtectedCopyAsync(protectedCopy, encryption, null, CancellationToken.None);
+
+                Assert.False(workspace.IsEncrypted);
+                Assert.False(workspace.IsDirty);
+                Assert.Equal(await File.ReadAllBytesAsync(source), workspace.CopyBytes());
+            }
+
+            Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(protectedCopy).Inspect());
+            PdfDocument protectedDocument = PdfDocument.Load(protectedCopy, new PdfLoadOptions { Password = "owner" });
+            Assert.True(protectedDocument.Inspect().Security.HasEncryption);
+            Assert.Equal(
+                PdfStandardPermissions.Print | PdfStandardPermissions.CopyContents |
+                PdfStandardPermissions.Accessibility | PdfStandardPermissions.FillForms,
+                protectedDocument.Inspect().Security.AllowedStandardPermissions);
+
+            using PdfWorkspace encryptedWorkspace = await PdfWorkspace.OpenAsync(
+                protectedCopy,
+                CancellationToken.None,
+                password: "open");
+            Assert.False(encryptedWorkspace.CanChangeEncryption(ownerPassword: null));
+            Assert.True(encryptedWorkspace.CanChangeEncryption("owner"));
+            await encryptedWorkspace.SaveDecryptedCopyAsync(decryptedCopy, "owner", CancellationToken.None);
+            Assert.False(PdfDocument.Load(decryptedCopy).Inspect().Security.HasEncryption);
+            Assert.Contains("Protected copy source", PdfDocument.Load(decryptedCopy).Read().Text, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task BatesNumberingAndCertificateSigningProduceInspectableCurrentArtifacts() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-security-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        CreateTextSource(source, "Page one", "Page two");
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            await workspace.ApplyBatesNumberingAsync(new PdfBatesNumberingOptions {
+                StartNumber = 42,
+                MinimumDigits = 4,
+                Prefix = "CASE-",
+                Position = PdfBatesPosition.BottomCenter
+            }, CancellationToken.None);
+            string numberedText = PdfDocument.Load(workspace.CopyBytes()).Read().Text;
+            Assert.Contains("CASE-0042", numberedText, StringComparison.Ordinal);
+            Assert.Contains("CASE-0043", numberedText, StringComparison.Ordinal);
+            Assert.Equal(PdfWorkspaceOperationKind.BatesNumbering, workspace.Journal[^1].Kind);
+
+            using X509Certificate2 certificate = CreateSigningCertificate();
+            await workspace.SignAsync(certificate, new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                Name = "Studio test signer",
+                Reason = "Verified workflow"
+            }, CancellationToken.None);
+            PdfSignatureValidationReport report = await workspace.ValidateSignaturesAsync(CancellationToken.None);
+            Assert.Single(report.Signatures);
+            Assert.True(report.IsStructurallyValid);
+            Assert.True(report.MathematicalSignaturesVerified);
+            Assert.True(report.DigestVerified);
+            Assert.Equal(PdfWorkspaceOperationKind.Signature, workspace.Journal[^1].Kind);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task WatermarkAndPageNumbersAreInspectableAndRenderableAfterSave() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-overlays-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -181,6 +339,7 @@ public sealed class PdfWorkspaceTests {
             using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
             Assert.True(workspace.CanEditAnnotations);
             Assert.False(workspace.CanEditPageContent);
+            Assert.False(workspace.CanChangeEncryption(ownerPassword: null));
 
             await workspace.ApplyEditorGestureAsync(PdfEditorTool.Note, gesture, properties, CancellationToken.None);
 
@@ -536,6 +695,37 @@ public sealed class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task NonDetachableCpuWorkKeepsItsCallerAttachedUntilTheWorkerFinishes() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-nondetachable-worker-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        CreateEditableSource(source);
+        using var started = new ManualResetEventSlim();
+        using var release = new ManualResetEventSlim();
+        using var cancellation = new CancellationTokenSource();
+
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Task<int> operation = workspace.RunNonDetachableCpuWorkAsync(() => {
+                started.Set();
+                release.Wait();
+                return 42;
+            }, cancellation.Token);
+
+            Assert.True(started.Wait(TimeSpan.FromSeconds(5)));
+            cancellation.Cancel();
+            await Task.Delay(100);
+            Assert.False(operation.IsCompleted);
+
+            release.Set();
+            Assert.Equal(42, await operation.WaitAsync(TimeSpan.FromSeconds(2)));
+        } finally {
+            release.Set();
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task PasswordProtectedPdfRequiresCredentialsBeforeWorkspaceCreation() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-encrypted-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -681,6 +871,17 @@ public sealed class PdfWorkspaceTests {
 
     private static void CreateEditableSource(string path) =>
         PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(path);
+
+    private static X509Certificate2 CreateSigningCertificate() {
+        using RSA rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=OfficeIMO Studio Test",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+        return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
+    }
 
     private static void CreateTextSource(string path, params string[] pageTexts) =>
         PdfDocument.Create(compose => {
