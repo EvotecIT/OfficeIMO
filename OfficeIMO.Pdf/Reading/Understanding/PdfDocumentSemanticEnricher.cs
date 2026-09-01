@@ -106,9 +106,11 @@ internal static class PdfDocumentSemanticEnricher {
                     region.YBottom,
                     region.XEnd,
                     region.YTop);
-                PageEdge edge = visual.Top <= height * 0.15D
+                double headerBandBottom = height * 0.15D;
+                double footerBandTop = height * 0.85D;
+                PageEdge edge = visual.Top <= headerBandBottom && visual.Bottom <= headerBandBottom
                     ? PageEdge.Header
-                    : visual.Bottom >= height * 0.85D
+                    : visual.Top >= footerBandTop && visual.Bottom >= footerBandTop
                         ? PageEdge.Footer
                         : PageEdge.None;
                 bool requiresExactSignature = element.Kind == PdfUnderstandingSemanticKind.Heading;

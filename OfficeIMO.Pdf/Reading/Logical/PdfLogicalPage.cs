@@ -242,16 +242,22 @@ public sealed partial class PdfLogicalPage {
         cancellationToken.ThrowIfCancellationRequested();
         var size = page.GetPageSize();
         PdfPageGeometry geometry = page.GetGeometry();
+        List<PdfUnderstandingLine>? retainedLines = analysis is null
+            ? null
+            : GetRetainedProjectionLines(analysis);
+        System.Collections.ObjectModel.ReadOnlyCollection<PdfTextSpan>? retainedRuns = retainedLines is null
+            ? null
+            : GetRetainedProjectionRuns(retainedLines, cancellationToken);
         var structured = analysis is null
             ? page.ExtractStructured(options)
             : page.ExtractStructured(
-                analysis.DecodedRuns,
+                retainedRuns!,
                 options,
                 cancellationToken,
                 analysis.ConsumeWork,
                 analysis.CancellationCheck);
         if (analysis is not null) {
-            ReplaceProjectionLines(page, structured, GetRetainedProjectionLines(analysis), cancellationToken);
+            ReplaceProjectionLines(page, structured, retainedLines!, cancellationToken);
         }
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
@@ -387,6 +393,24 @@ public sealed partial class PdfLogicalPage {
             }
         }
         return retained;
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextSpan> GetRetainedProjectionRuns(
+        List<PdfUnderstandingLine> sourceLines,
+        CancellationToken cancellationToken) {
+        var retained = new List<PdfTextSpan>();
+        var seen = new HashSet<PdfTextSpan>();
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            IReadOnlyList<PdfUnderstandingWord> words = sourceLines[lineIndex].Words;
+            for (int wordIndex = 0; wordIndex < words.Count; wordIndex++) {
+                IReadOnlyList<PdfTextSpan> runs = words[wordIndex].SourceRuns;
+                for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (seen.Add(runs[runIndex])) retained.Add(runs[runIndex]);
+                }
+            }
+        }
+        return retained.AsReadOnly();
     }
 
     private static void ReplaceProjectionLines(

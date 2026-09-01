@@ -1831,10 +1831,19 @@ public sealed partial class PdfReadPage {
         internal string Content { get; }
 
         internal int? GetObjectNumber(int operatorOffset) {
-            for (int index = _offsets.Length - 1; index >= 0; index--) {
-                if (operatorOffset >= _offsets[index].StartOffset) return _offsets[index].ObjectNumber;
+            int low = 0;
+            int high = _offsets.Length - 1;
+            int match = -1;
+            while (low <= high) {
+                int middle = low + ((high - low) / 2);
+                if (_offsets[middle].StartOffset <= operatorOffset) {
+                    match = middle;
+                    low = middle + 1;
+                } else {
+                    high = middle - 1;
+                }
             }
-            return null;
+            return match >= 0 ? _offsets[match].ObjectNumber : null;
         }
     }
 

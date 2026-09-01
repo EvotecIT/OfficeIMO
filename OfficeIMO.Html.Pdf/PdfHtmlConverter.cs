@@ -14,19 +14,19 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML.</summary>
     public static string ToHtml(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().ToHtml(options);
+        return ReadForHtml(document, options).ToHtml(options);
     }
 
     /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().SaveAsHtml(path, options);
+        return ReadForHtml(document, options).SaveAsHtml(path, options);
     }
 
     /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().SaveAsHtml(stream, options);
+        return ReadForHtml(document, options).SaveAsHtml(stream, options);
     }
 
     /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
@@ -36,7 +36,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().SaveAsHtmlAsync(path, options, cancellationToken);
+        return ReadForHtml(document, options, cancellationToken).SaveAsHtmlAsync(path, options, cancellationToken);
     }
 
     /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -46,7 +46,7 @@ public static partial class PdfHtmlConverterExtensions {
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().SaveAsHtmlAsync(stream, options, cancellationToken);
+        return ReadForHtml(document, options, cancellationToken).SaveAsHtmlAsync(stream, options, cancellationToken);
     }
 
     /// <summary>
@@ -106,6 +106,20 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         return copy;
+    }
+
+    private static PdfCore.PdfDocumentReadResult ReadForHtml(
+        PdfCore.PdfDocument document,
+        PdfHtmlSaveOptions? options,
+        CancellationToken cancellationToken = default) {
+        PdfCore.PdfPageRange[] ranges = options is null
+            ? Array.Empty<PdfCore.PdfPageRange>()
+            : CopyPageRanges(options);
+        return document.Read(new PdfCore.PdfReadOptions {
+            PageSelection = ranges.Length == 0
+                ? null
+                : PdfCore.PdfPageSelection.FromRanges(ranges)
+        }, cancellationToken);
     }
 
     private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {

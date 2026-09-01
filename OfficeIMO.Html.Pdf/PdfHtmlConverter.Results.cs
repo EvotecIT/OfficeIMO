@@ -7,7 +7,7 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
     public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return document.Read().ToHtmlResult(options);
+        return ReadForHtml(document, options).ToHtmlResult(options);
     }
 
     /// <summary>
@@ -26,7 +26,7 @@ public static partial class PdfHtmlConverterExtensions {
             PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
         };
-        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.PageCount), options.Report);
+        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
     }
 
     private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {

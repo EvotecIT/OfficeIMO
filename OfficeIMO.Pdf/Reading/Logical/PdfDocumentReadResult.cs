@@ -111,6 +111,7 @@ public sealed partial class PdfDocumentReadResult {
         string? catalogPageLayout,
         string? catalogVersion,
         string? catalogLanguage,
+        int sourcePageCount,
         PdfReadProfile profile) {
         Metadata = metadata;
         Pages = pages;
@@ -136,6 +137,7 @@ public sealed partial class PdfDocumentReadResult {
         CatalogPageLayout = catalogPageLayout;
         CatalogVersion = catalogVersion;
         CatalogLanguage = catalogLanguage;
+        SourcePageCount = sourcePageCount;
         Profile = profile;
     }
 
@@ -147,6 +149,9 @@ public sealed partial class PdfDocumentReadResult {
 
     /// <summary>Logical pages in document order.</summary>
     public IReadOnlyList<PdfLogicalPage> Pages { get; }
+
+    /// <summary>Total page count in the source PDF before caller page selection was applied.</summary>
+    public int SourcePageCount { get; }
 
     /// <summary>Logical pages grouped by one-based source page number. Range-based loads can contain the same source page more than once.</summary>
     public IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>> PagesBySourcePageNumber {
@@ -1278,6 +1283,7 @@ public sealed partial class PdfDocumentReadResult {
             document.CatalogPageLayout,
             document.CatalogVersion,
             document.CatalogLanguage,
+            document.Pages.Count,
             profile);
     }
 

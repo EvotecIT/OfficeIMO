@@ -450,6 +450,17 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_PreservesProvenanceAcrossManyPageContentStreams() {
+        const int streamCount = 256;
+        PdfDocumentReadResult result = PdfDocument.Load(CreateManyContentStreamsPdf(streamCount)).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        Assert.Equal(5, Assert.Single(page.DecodedRuns, static run => run.Text == "Stream000").ContentStreamObjectNumber);
+        Assert.Equal(5 + streamCount / 2, Assert.Single(page.DecodedRuns, static run => run.Text == "Stream128").ContentStreamObjectNumber);
+        Assert.Equal(5 + streamCount - 1, Assert.Single(page.DecodedRuns, static run => run.Text == "Stream255").ContentStreamObjectNumber);
+    }
+
+    [Fact]
     public void DocumentEnrichment_EnforcesSemanticElementLimitAfterOutlineProjection() {
         PdfReadDocument document = PdfReadDocument.Open(CreateNumberedOutlinePdf());
         PdfUnderstandingLine first = CreateUnderstandingLine("Section 1", 72D, 150D, 700D);
@@ -846,7 +857,10 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = new FixedGlyphStage(new[] {
             new PdfTextSpan("Retained by segmentation", "F1", 12D, 50D, 700D, 150D),
-            new PdfTextSpan("Excluded by segmentation", "F1", 12D, 50D, 650D, 150D)
+            new PdfTextSpan("Excluded metric", "F1", 12D, 50D, 650D, 100D),
+            new PdfTextSpan("Excluded value", "F1", 12D, 250D, 650D, 100D),
+            new PdfTextSpan("Excluded quality", "F1", 12D, 50D, 630D, 100D),
+            new PdfTextSpan("Excluded premium", "F1", 12D, 250D, 630D, 100D)
         });
         options.PageSegmentation = new FirstLineOnlySegmentationStage();
         options.ReadingOrder = new IdentityReadingOrderStage();
@@ -855,12 +869,38 @@ public class PdfUnderstandingPipelineTests {
         PdfDocumentReadResult result = Read(pdf, options);
         PdfLogicalPage page = Assert.Single(result.Pages);
 
-        Assert.Equal(2, page.Analysis.Lines.Count);
+        Assert.Equal(5, page.Analysis.Lines.Count);
         Assert.Equal("Retained by segmentation", Assert.Single(page.Analysis.ReadingOrder).Text);
         Assert.Equal("Retained by segmentation", Assert.Single(page.TextBlocks).Text);
+        Assert.Empty(page.Tables);
         Assert.Contains("Retained by segmentation", result.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Excluded by segmentation", result.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain("Excluded by segmentation", result.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", result.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", result.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StructuredRead_DoesNotClassifyTallRepeatedRegionsAsHeaders() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("first placeholder"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("second placeholder"))
+            .ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Repeated edge prefix", "F1", 10D, 50D, 770D, 130D),
+            new PdfTextSpan("Retained body tail", "F1", 10D, 50D, 400D, 110D)
+        });
+        options.PageSegmentation = new WholePageRegionStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+        options.SemanticClassification = new ParagraphClassificationStage();
+
+        PdfDocumentReadResult result = Read(pdf, options);
+
+        Assert.All(result.Pages, page => {
+            Assert.Empty(page.Headers);
+            Assert.Contains(page.Paragraphs, paragraph =>
+                paragraph.Text.Contains("Retained body tail", StringComparison.Ordinal));
+        });
     }
 
     [Fact]
@@ -1719,6 +1759,23 @@ public class PdfUnderstandingPipelineTests {
             "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R " +
                 "/K << /Type /MCR /Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
+    }
+
+    private static byte[] CreateManyContentStreamsPdf(int streamCount) {
+        string contentReferences = string.Join(" ", Enumerable.Range(0, streamCount)
+            .Select(static index => (5 + index).ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 R"));
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] " +
+                "/Resources << /Font << /F1 4 0 R >> >> /Contents [" + contentReferences + "] >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
+        };
+        for (int index = 0; index < streamCount; index++) {
+            string text = "Stream" + index.ToString("D3", System.Globalization.CultureInfo.InvariantCulture);
+            objects.Add(BuildStreamBody(string.Empty, "BT /F1 10 Tf 72 700 Td (" + text + ") Tj ET\n"));
+        }
+        return BuildClassicPdf(objects.ToArray());
     }
 
     private static byte[] CreateMultiLineTaggedListItemPdf() {
