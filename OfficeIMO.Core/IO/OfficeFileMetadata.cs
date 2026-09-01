@@ -15,6 +15,7 @@ namespace OfficeIMO.Internal {
         internal ulong LinkCount { get; }
         internal uint UnixMode { get; }
         internal bool IsDirectory { get; }
+        internal bool IsRegularFile => UnixMode == 0 ? !IsDirectory : (UnixMode & 0xf000U) == 0x8000U;
     }
 
     /// <summary>Identifies one file within a filesystem authority and volume.</summary>

@@ -139,6 +139,37 @@ dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmar
 
 The report records labelled-region character error rate, pairwise reading-order accuracy, Kendall tau, per-kind precision/recall/F1, heading detection and exact-level F1, logical-table detection F1, cell-adjacency structure F1, and cross-page continuation-pair F1. Its generated corpus is a regression gate, not an independent estimate of real-world accuracy. Cell adjacency is a labelled structure score, not a claim of full TEDS equivalence. Whole-document CER, full tree-edit-distance TEDS, and independent-producer generalization remain explicitly unmeasured until suitable corpus annotations exist.
 
+### External structured-parser validation
+
+Use the structured suites only for parsers that perform the same semantic work.
+The raw `PdfReadBenchmarks` and a save/rewrite benchmark are not comparable to
+layout reconstruction. A useful external result should record the exact source
+commit, runtime, machine, corpus hash, selected profile, failures, elapsed time,
+and managed allocations. Run the statistical suite and semantic scorecard
+separately:
+
+```powershell
+pwsh Build/Run-LibraryComparisonBenchmarks.ps1 `
+    -Workload pdfstructuredread `
+    -RunMode full `
+    -Framework net10.0
+
+dotnet run --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj `
+    -c Release `
+    -f net10.0 `
+    -- semantic-evidence `
+    --scale High `
+    --output Ignore/Benchmarks/PdfComparisons/semantic-accuracy-high.json
+```
+
+The generated fixture is suitable for repeatability and regression checks, but
+not for a general competitive accuracy claim. For that, run every parser on the
+same independently labelled, redistributable documents and require the same
+output contract: characters, pairwise reading order, heading kind and level,
+header/footer classification, table detection and cell adjacency or TEDS,
+cross-page continuation pairs, elapsed time, allocations, and failure rate by
+document class. Publish the annotation schema and corpus hashes with the result.
+
 Prepare and validate the real-document corpus before running its BenchmarkDotNet lane:
 
 ```powershell

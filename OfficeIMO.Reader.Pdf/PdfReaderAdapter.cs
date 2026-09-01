@@ -174,40 +174,9 @@ internal static partial class PdfReaderAdapter {
     }
 
     private static IReadOnlyList<PdfLogicalPage> GetReaderPages(PdfDocumentReadResult document, ReaderPdfOptions options) {
-        IReadOnlyList<PdfPageRange>? ranges = options.PageRanges;
-        if (ranges == null || ranges.Count == 0) {
-            return document.Pages;
-        }
-
-        int maxSourcePageNumber = 0;
-        for (int i = 0; i < document.Pages.Count; i++) {
-            maxSourcePageNumber = Math.Max(maxSourcePageNumber, document.Pages[i].PageNumber);
-        }
-
-        if (maxSourcePageNumber == 0) {
-            return Array.Empty<PdfLogicalPage>();
-        }
-
-        var pages = new List<PdfLogicalPage>();
-        for (int rangeIndex = 0; rangeIndex < ranges.Count; rangeIndex++) {
-            PdfPageRange range = ranges[rangeIndex];
-            if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
-                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
-            }
-
-            if (range.LastPage > maxSourcePageNumber) {
-                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.PageRanges), "Page range cannot exceed the document page count.");
-            }
-
-            for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
-                IReadOnlyList<PdfLogicalPage> sourcePages = document.GetPages(pageNumber);
-                for (int sourceIndex = 0; sourceIndex < sourcePages.Count; sourceIndex++) {
-                    pages.Add(sourcePages[sourceIndex]);
-                }
-            }
-        }
-
-        return pages.AsReadOnly();
+        return document.ProjectPages(
+            options.ReadOptions?.PageSelection,
+            nameof(ReaderPdfOptions.ReadOptions)).Pages;
     }
 
     private static string BuildMarkdown(IReadOnlyList<PdfLogicalPage> pages, PdfLogicalMarkdownOptions markdownOptions) {
@@ -904,16 +873,7 @@ internal static partial class PdfReaderAdapter {
 
     private static PdfDocumentReadResult LoadDocument(PdfDocument document, ReaderPdfOptions options, CancellationToken cancellationToken) {
         if (document is null) throw new ArgumentNullException(nameof(document));
-        var ranges = options.PageRanges?.ToArray();
-        return document.Read(new PdfReadOptions {
-            PageSelection = ranges is { Length: > 0 }
-                ? PdfPageSelection.FromRanges(ranges)
-                : null,
-            LayoutOptions = options.LayoutOptions ?? new PdfTextLayoutOptions(),
-            Pipeline = new PdfUnderstandingPipelineOptions {
-                MaxPages = options.MaxPages
-            }
-        }, cancellationToken);
+        return document.Read(options.ReadOptions, cancellationToken);
     }
 
     private static PdfLoadOptions? CreatePdfLoadOptions(ReaderOptions options) {

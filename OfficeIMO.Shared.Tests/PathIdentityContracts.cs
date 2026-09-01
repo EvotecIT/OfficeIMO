@@ -6,6 +6,29 @@ namespace OfficeIMO.Shared.Tests;
 
 public class PathIdentityContracts {
     [Fact]
+    public void Open_handle_identity_fallback_enforces_the_physical_root_without_procfs() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-open-identity-" + Guid.NewGuid().ToString("N"));
+        string root = Path.Combine(directory, "root");
+        string outside = Path.Combine(directory, "outside.txt");
+        Directory.CreateDirectory(root);
+        string inside = Path.Combine(root, "inside.txt");
+        try {
+            File.WriteAllText(inside, "inside");
+            File.WriteAllText(outside, "outside");
+            string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(root);
+            using FileStream insideStream = File.OpenRead(inside);
+            using FileStream outsideStream = File.OpenRead(outside);
+
+            Assert.True(OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                inside, physicalRoot, insideStream.SafeFileHandle));
+            Assert.False(OfficePathIdentity.IsOpenedFileWithinRootByIdentity(
+                outside, physicalRoot, outsideStream.SafeFileHandle));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void OrdinaryFilesHaveOnePhysicalLink() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-path-identity-" + Guid.NewGuid().ToString("N") + ".txt");
         try {

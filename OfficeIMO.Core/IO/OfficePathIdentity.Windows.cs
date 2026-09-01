@@ -6,11 +6,64 @@ using System.Text;
 
 namespace OfficeIMO.Internal {
     internal static partial class OfficePathIdentity {
+        private static FileStream OpenWindowsRegularFileForRead(string path, int bufferSize) {
+            SafeFileHandle handle = CreateFile(path, GenericRead, FileShare.Read,
+                IntPtr.Zero, OpenExisting, FileFlagOpenReparsePoint | FileFlagSequentialScan, IntPtr.Zero);
+            if (handle.IsInvalid) {
+                handle.Dispose();
+                throw WindowsIdentityError(path, "open");
+            }
+            try {
+                if (!GetFileInformationByHandle(handle, out ByHandleFileInformation information)) {
+                    throw WindowsIdentityError(path, "inspect");
+                }
+                if ((information.FileAttributes & (FileAttributeDirectory | FileAttributeReparsePoint)) != 0
+                    || GetFileType(handle) != FileTypeDisk) {
+                    throw new InvalidDataException("The filesystem entry is not a regular file.");
+                }
+                _ = GetWindowsMetadata(path, handle);
+                return new FileStream(handle, FileAccess.Read, bufferSize, isAsync: false);
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
+        private static SafeFileHandle OpenWindowsDirectoryForIdentity(string path) {
+            SafeFileHandle handle = CreateFile(path, 0,
+                FileShare.Read | FileShare.Write | FileShare.Delete,
+                IntPtr.Zero, OpenExisting,
+                FileFlagBackupSemantics | FileFlagOpenReparsePoint, IntPtr.Zero);
+            if (handle.IsInvalid) {
+                handle.Dispose();
+                throw WindowsIdentityError(path, "open");
+            }
+            try {
+                if (!GetFileInformationByHandle(handle, out ByHandleFileInformation information)) {
+                    throw WindowsIdentityError(path, "inspect");
+                }
+                if ((information.FileAttributes & FileAttributeDirectory) == 0 ||
+                    (information.FileAttributes & FileAttributeReparsePoint) != 0 ||
+                    GetFileType(handle) != FileTypeDisk) {
+                    throw new InvalidDataException("The filesystem entry is not a regular directory.");
+                }
+                _ = GetWindowsMetadata(path, handle);
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
         private const int FileIdInfo = 18;
         private const int FileCaseSensitiveInfo = 23;
         private const uint FileCaseSensitiveDirectory = 0x00000001;
         private const uint OpenExisting = 3;
+        private const uint GenericRead = 0x80000000;
         private const uint FileFlagBackupSemantics = 0x02000000;
+        private const uint FileFlagOpenReparsePoint = 0x00200000;
+        private const uint FileFlagSequentialScan = 0x08000000;
+        private const uint FileTypeDisk = 0x0001;
         private const uint InvalidFileAttributes = 0xffffffff;
         private const uint FileAttributeReparsePoint = 0x00000400;
         private const uint FileAttributeDirectory = 0x00000010;
@@ -227,6 +280,9 @@ namespace OfficeIMO.Internal {
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool GetFileInformationByHandle(SafeFileHandle file,
             out ByHandleFileInformation fileInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern uint GetFileType(SafeFileHandle file);
 
         [DllImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetFinalPathNameByHandle(SafeFileHandle file,

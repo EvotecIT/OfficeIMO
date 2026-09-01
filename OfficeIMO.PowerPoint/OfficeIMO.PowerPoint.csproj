@@ -63,6 +63,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+        <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     </ItemGroup>
 
     <ItemGroup>

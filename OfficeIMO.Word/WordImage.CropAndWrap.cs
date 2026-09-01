@@ -300,6 +300,14 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Gets or sets the native DrawingML anchor stacking order.</summary>
+        public uint ZOrder {
+            get => _Image.Anchor?.RelativeHeight?.Value ?? 0U;
+            set {
+                if (_Image.Anchor != null) _Image.Anchor.RelativeHeight = value;
+            }
+        }
+
         /// <summary>
         /// Gets or sets how the image should fill its bounding box. Default is Stretch.
         /// </summary>
