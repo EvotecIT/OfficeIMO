@@ -50,13 +50,21 @@ public sealed partial class OfficeWorkflowRunner {
             return requestedDirectory;
         }
 
-        string recoveryDirectory = requestedDirectory + ".officeimo-recovery-" + Guid.NewGuid().ToString("N");
-        Directory.Move(requestedDirectory, recoveryDirectory);
+        string transactionId = Guid.NewGuid().ToString("N");
+        string recoveryDirectory = requestedDirectory + ".officeimo-recovery-" + transactionId;
+        string ownershipMarker = CreateDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
+        try {
+            Directory.Move(requestedDirectory, recoveryDirectory);
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            TryDeleteFile(ownershipMarker);
+            throw;
+        }
         try {
             Directory.Move(stagingDirectory, requestedDirectory);
         } catch (Exception publicationException) when (publicationException is not OutOfMemoryException and not StackOverflowException) {
             try {
                 Directory.Move(recoveryDirectory, requestedDirectory);
+                TryDeleteFile(ownershipMarker);
             } catch (Exception rollbackException) when (rollbackException is not OutOfMemoryException and not StackOverflowException) {
                 throw new DirectoryPublicationRecoveryException(
                     "The new output could not be published and the previous output could not be restored automatically.",
@@ -67,7 +75,7 @@ public sealed partial class OfficeWorkflowRunner {
             throw;
         }
 
-        string retiredDirectory = requestedDirectory + ".officeimo-retired-" + Guid.NewGuid().ToString("N");
+        string retiredDirectory = requestedDirectory + ".officeimo-retired-" + transactionId;
         try {
             Directory.Move(recoveryDirectory, retiredDirectory);
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
@@ -86,6 +94,8 @@ public sealed partial class OfficeWorkflowRunner {
         Exception? retirementCleanupFailure = TryDeleteDirectory(retiredDirectory);
         if (retirementCleanupFailure is not null) {
             diagnostics.Add(CreateRetainedOutputDiagnostic(requestedDirectory, retiredDirectory, retirementCleanupFailure));
+        } else {
+            TryDeleteFile(ownershipMarker);
         }
         return requestedDirectory;
     }
@@ -101,25 +111,31 @@ public sealed partial class OfficeWorkflowRunner {
         StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(parent);
         foreach (string retiredDirectory in Directory
             .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => IsOwnedPublicationDirectory(path, retiredPrefix, pathComparison))
+            .Where(path => IsOwnedPublicationDirectory(requestedDirectory, path, retiredPrefix, pathComparison))
             .OrderBy(static path => path, pathComparer)
             .ThenBy(static path => path, StringComparer.Ordinal)) {
             Exception? cleanupFailure = TryDeleteDirectory(retiredDirectory);
             if (cleanupFailure is not null) {
                 diagnostics.Add(CreateRetainedOutputDiagnostic(requestedDirectory, retiredDirectory, cleanupFailure));
+            } else {
+                TryDeleteFile(GetDirectoryPublicationOwnershipMarker(requestedDirectory, GetPublicationTransactionId(retiredDirectory)));
             }
         }
 
         string[] recoveryDirectories = Directory
             .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => IsOwnedPublicationDirectory(path, recoveryPrefix, pathComparison))
+            .Where(path => IsOwnedPublicationDirectory(requestedDirectory, path, recoveryPrefix, pathComparison))
             .OrderBy(static path => path, pathComparer)
             .ThenBy(static path => path, StringComparer.Ordinal)
             .ToArray();
         if (recoveryDirectories.Length == 0) return;
 
         if (!Directory.Exists(requestedDirectory) && !File.Exists(requestedDirectory) && recoveryDirectories.Length == 1) {
+            string ownershipMarker = GetDirectoryPublicationOwnershipMarker(
+                requestedDirectory,
+                GetPublicationTransactionId(recoveryDirectories[0]));
             Directory.Move(recoveryDirectories[0], requestedDirectory);
+            TryDeleteFile(ownershipMarker);
             return;
         }
 
@@ -130,13 +146,54 @@ public sealed partial class OfficeWorkflowRunner {
     }
 
     private static bool IsOwnedPublicationDirectory(
+        string requestedDirectory,
         string path,
         string prefix,
         StringComparison comparison) {
         string name = Path.GetFileName(path);
         if (!name.StartsWith(prefix, comparison)) return false;
         string suffix = name[prefix.Length..];
-        return suffix.Length == 32 && Guid.TryParseExact(suffix, "N", out _);
+        if (suffix.Length != 32 || !Guid.TryParseExact(suffix, "N", out _)) return false;
+        string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, suffix);
+        try {
+            if (!File.Exists(markerPath) || new FileInfo(markerPath).Length > 4096L) return false;
+            return string.Equals(
+                File.ReadAllText(markerPath, Encoding.UTF8),
+                GetDirectoryPublicationOwnershipContents(requestedDirectory, suffix),
+                comparison);
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
+    internal static string CreateDirectoryPublicationOwnershipMarker(string requestedDirectory, string transactionId) {
+        if (!Guid.TryParseExact(transactionId, "N", out _)) {
+            throw new ArgumentException("Directory publication transaction id must be a 32-character GUID.", nameof(transactionId));
+        }
+        string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
+        using var stream = new FileStream(markerPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        writer.Write(GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId));
+        return markerPath;
+    }
+
+    private static string GetDirectoryPublicationOwnershipMarker(string requestedDirectory, string transactionId) =>
+        requestedDirectory + ".officeimo-publication-" + transactionId + ".owner";
+
+    private static string GetDirectoryPublicationOwnershipContents(string requestedDirectory, string transactionId) =>
+        "OfficeIMO.Workflows.DirectoryPublication.v1\n" + Path.GetFullPath(requestedDirectory) + "\n" + transactionId;
+
+    private static string GetPublicationTransactionId(string publicationDirectory) =>
+        Path.GetFileName(publicationDirectory)[^32..];
+
+    private static void TryDeleteFile(string path) {
+        try {
+            if (File.Exists(path)) File.Delete(path);
+        } catch (IOException) {
+            // A leftover marker is inert without its matching transaction directory.
+        } catch (UnauthorizedAccessException) {
+            // A leftover marker is inert without its matching transaction directory.
+        }
     }
 
     private static OfficeWorkflowDiagnostic CreateRetainedOutputDiagnostic(

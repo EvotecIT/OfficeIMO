@@ -299,6 +299,7 @@ internal static partial class PdfAnnotationEditor {
         }
 
         if (options.Rectangle is not null) { annotation.Items["Rect"] = CreateNumberArray(options.Rectangle); invalidateAppearance = true; }
+        if (options.RectangleDifferences is not null) { annotation.Items["RD"] = CreateNumberArray(options.RectangleDifferences); invalidateAppearance = true; }
         if (options.QuadPoints is not null) { annotation.Items["QuadPoints"] = CreateNumberArray(options.QuadPoints); invalidateAppearance = true; }
         if (options.Vertices is not null) { annotation.Items["Vertices"] = CreateNumberArray(options.Vertices); invalidateAppearance = true; }
         if (options.Line is not null) { annotation.Items["L"] = CreateNumberArray(options.Line); invalidateAppearance = true; }

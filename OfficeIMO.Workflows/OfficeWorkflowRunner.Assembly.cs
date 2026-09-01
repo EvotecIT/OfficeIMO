@@ -33,9 +33,10 @@ public sealed partial class OfficeWorkflowRunner {
         long inputBytes = 0L;
         long normalizedBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
+        ValidatedAssemblyRequest? validated = null;
 
         try {
-            ValidatedAssemblyRequest validated = ValidateAssemblyRequest(request);
+            validated = ValidateAssemblyRequest(request);
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "discover", "Discovering supported input documents", 0.04D);
             cancellationToken.ThrowIfCancellationRequested();
@@ -146,7 +147,7 @@ public sealed partial class OfficeWorkflowRunner {
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new PdfAssemblyResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
                 null,
@@ -165,7 +166,7 @@ public sealed partial class OfficeWorkflowRunner {
                 "execute",
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = ex.GetType().Name }));
             return new PdfAssemblyResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(ex, failureStage),
                 null,

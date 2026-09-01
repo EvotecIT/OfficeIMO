@@ -294,6 +294,53 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task CancellationReturnsTheValidatedIdentityWhenTheMutableRequestChanges() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        using var cancellation = new CancellationTokenSource();
+        var request = new OfficeWorkflowRequest {
+            Id = "original-request",
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = input
+        };
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage != "validate") return;
+            request.Id = "mutated-request";
+            request.Operation = OfficeWorkflowOperation.Repair;
+            cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal("original-request", result.RequestId);
+        Assert.Equal(OfficeWorkflowOperation.Inspect, result.Operation);
+    }
+
+    [Fact]
+    public async Task ThrowingFinalProgressObserverDoesNotTurnPublishedSuccessIntoFailure() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "optimized.pdf");
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "complete") throw new InvalidOperationException("Observer failed after publication.");
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Id = "published-request",
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        }, progress);
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("published-request", result.RequestId);
+        Assert.Equal(output, result.OutputPath);
+        Assert.True(File.Exists(output));
+    }
+
+    [Fact]
     public async Task CollisionPoliciesFailRenameAndReplaceWithoutPartialArtifacts() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf");

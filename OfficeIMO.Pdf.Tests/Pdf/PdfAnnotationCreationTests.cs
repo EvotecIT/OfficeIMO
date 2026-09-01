@@ -50,6 +50,22 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void ResizeAnnotation_ScalesFreeTextRectangleDifferences() {
+        byte[] source = BuildFreeTextRectangleDifferencePdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("FreeText"));
+
+        PdfAnnotationEditResult resized = PdfDocument.Load(source).Annotations.Resize(
+            annotation.ObjectNumber!.Value,
+            new PdfPageRectangle(10D, 20D, 210D, 100D));
+        PdfAnnotation result = Assert.Single(resized.ToDocument().Inspect().GetAnnotationsBySubtype("FreeText"));
+
+        Assert.Equal(200D, result.Width, 3);
+        Assert.Equal(80D, result.Height, 3);
+        Assert.Equal(new[] { 20D, 8D, 40D, 16D }, result.RectangleDifferences);
+        Assert.True(result.HasNormalAppearance);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesUriLinkWithReadback() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
@@ -442,6 +458,15 @@ public class PdfAnnotationCreationTests {
 
         Assert.Equal(4096, Assert.Single(result.ToDocument().Reader.Annotations()).Contents!.Length);
     }
+
+    private static byte[] BuildFreeTextRectangleDifferencePdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /FreeText /Rect [20 40 120 80] /RD [10 4 20 8] /Contents (Resize me) /DA (/Helvetica 10 Tf 0 g) >>\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n0\n%%EOF\n");
 
     private static byte[] BuildLinkAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
         "%PDF-1.7\n" +

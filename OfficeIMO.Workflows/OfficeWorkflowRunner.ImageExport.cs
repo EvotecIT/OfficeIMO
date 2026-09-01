@@ -16,9 +16,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string? stagingDirectory = null;
         long inputBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
+        ValidatedImageExportRequest? validated = null;
 
         try {
-            ValidatedImageExportRequest validated = ValidateImageExportRequest(request);
+            validated = ValidateImageExportRequest(request);
             failureStage = WorkflowFailureStage.Input;
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
@@ -126,7 +127,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new PdfPageImageExportResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
                 null,
@@ -145,7 +146,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 "execute",
                 details));
             return new PdfPageImageExportResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(ex, failureStage),
                 null,

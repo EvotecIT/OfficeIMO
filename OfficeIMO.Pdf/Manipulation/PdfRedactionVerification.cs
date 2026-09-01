@@ -98,7 +98,10 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
-        PdfRedactionPlan residualPlan = PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
+        PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0
+            ? null
+            : PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
+        PdfDocumentPreflight rewrittenPreflight = residualPlan?.Preflight ?? PdfInspector.Preflight(redactedPdf, readOptions);
         var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
         PdfDiagnosticFinding[] reviewedBlockingFindings = reviewedPlan.Findings
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -114,7 +117,7 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
         int? reviewedPageCount = reviewedPlan.Preflight.UncheckedDocumentInfo?.PageCount;
-        int? rewrittenPageCount = residualPlan.Preflight.UncheckedDocumentInfo?.PageCount;
+        int? rewrittenPageCount = rewrittenPreflight.UncheckedDocumentInfo?.PageCount;
         if (reviewedPageCount.HasValue &&
             rewrittenPageCount.HasValue &&
             reviewedPageCount.Value != rewrittenPageCount.Value) {
@@ -137,12 +140,12 @@ internal static partial class PdfRedactionVerification {
             }
         }
 
-        PdfDiagnosticFinding[] blockingFindings = residualPlan.Findings
+        PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
             .ToArray();
-        if (!residualPlan.Preflight.CanReadLogicalObjects || blockingFindings.Length > 0) {
+        if (!rewrittenPreflight.CanReadLogicalObjects || blockingFindings.Length > 0) {
             string detail = blockingFindings.Length == 0
-                ? string.Join(" ", residualPlan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects))
+                ? string.Join(" ", rewrittenPreflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects))
                 : string.Join(" ", blockingFindings.Select(static finding => finding.Message));
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanInspectionBlocked",
@@ -151,7 +154,7 @@ internal static partial class PdfRedactionVerification {
                 (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
         }
 
-        foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in residualPlan.Matches
+        foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in (residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>())
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
             string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             issues.Add(new PdfRedactionVerificationIssue(

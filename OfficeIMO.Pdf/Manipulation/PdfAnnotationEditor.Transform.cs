@@ -54,6 +54,7 @@ internal static partial class PdfAnnotationEditor {
             PdfAnnotationFlattener.IsSupportedVisualAnnotation(annotation.Subtype);
         var options = new PdfAnnotationUpdateOptions {
             Rectangle = new[] { target.Left, target.Bottom, target.Right, target.Top },
+            RectangleDifferences = TransformRectangleDifferences(annotation.RectangleDifferences, scaleX, scaleY),
             QuadPoints = TransformPairs(annotation.QuadPoints, annotation, target, scaleX, scaleY),
             Vertices = TransformPairs(annotation.Vertices, annotation, target, scaleX, scaleY),
             Line = TransformPairs(annotation.LineCoordinates, annotation, target, scaleX, scaleY),
@@ -65,6 +66,19 @@ internal static partial class PdfAnnotationEditor {
         };
         return UpdateAnnotation(pdf, objectNumber, options, readOptions);
     }
+
+    private static double[]? TransformRectangleDifferences(
+        IReadOnlyList<double> rectangleDifferences,
+        double scaleX,
+        double scaleY) =>
+        rectangleDifferences.Count == 0
+            ? null
+            : [
+                rectangleDifferences[0] * scaleX,
+                rectangleDifferences[1] * scaleY,
+                rectangleDifferences[2] * scaleX,
+                rectangleDifferences[3] * scaleY
+            ];
 
     private static double[]? TransformPairs(
         IReadOnlyList<double> coordinates,

@@ -26,6 +26,8 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Replacement annotation rectangle as left, bottom, right, top coordinates.</summary>
     public IReadOnlyList<double>? Rectangle { get; set; }
 
+    internal IReadOnlyList<double>? RectangleDifferences { get; set; }
+
     /// <summary>Replacement text-markup quadrilaterals as groups of eight coordinates.</summary>
     public IReadOnlyList<double>? QuadPoints { get; set; }
 

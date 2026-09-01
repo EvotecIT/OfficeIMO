@@ -41,6 +41,7 @@ public sealed class OfficeOutputWorkflowTests {
         string output = Path.Combine(scope.Path, "pages");
         string recovery = output + ".officeimo-recovery-" + new string('1', 32);
         Directory.CreateDirectory(recovery);
+        OfficeWorkflowRunner.CreateDirectoryPublicationOwnershipMarker(output, new string('1', 32));
         await File.WriteAllTextAsync(Path.Combine(recovery, "previous.txt"), "previous output");
 
         PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
@@ -56,6 +57,7 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.Single(Directory.GetFiles(output, "*.png"));
         Assert.False(File.Exists(Path.Combine(output, "previous.txt")));
         Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-recovery-*"));
+        Assert.Empty(Directory.GetFiles(scope.Path, "pages.officeimo-publication-*.owner"));
     }
 
     [Fact]
@@ -66,6 +68,7 @@ public sealed class OfficeOutputWorkflowTests {
         string retired = output + ".officeimo-retired-" + new string('2', 32);
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(retired);
+        OfficeWorkflowRunner.CreateDirectoryPublicationOwnershipMarker(output, new string('2', 32));
         await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
         await File.WriteAllTextAsync(Path.Combine(retired, "previous.txt"), "previous output");
 
@@ -79,6 +82,7 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.True(result.Succeeded, result.Summary);
         Assert.False(Directory.Exists(retired));
         Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-retired-*"));
+        Assert.Empty(Directory.GetFiles(scope.Path, "pages.officeimo-publication-*.owner"));
     }
 
     [Fact]
@@ -107,6 +111,31 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportPreservesUnownedDirectoriesThatMatchTheReservedNameShape() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
+        string output = Path.Combine(scope.Path, "pages");
+        string userRecovery = output + ".officeimo-recovery-" + new string('4', 32);
+        string userRetired = output + ".officeimo-retired-" + new string('5', 32);
+        Directory.CreateDirectory(output);
+        Directory.CreateDirectory(userRecovery);
+        Directory.CreateDirectory(userRetired);
+        await File.WriteAllTextAsync(Path.Combine(userRecovery, "keep.txt"), "user recovery data");
+        await File.WriteAllTextAsync(Path.Combine(userRetired, "keep.txt"), "user retired data");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(File.Exists(Path.Combine(userRecovery, "keep.txt")));
+        Assert.True(File.Exists(Path.Combine(userRetired, "keep.txt")));
+    }
+
+    [Fact]
     public async Task PageImageExportRefusesAmbiguousInterruptedReplacementWithRecoveryDetails() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
@@ -114,6 +143,7 @@ public sealed class OfficeOutputWorkflowTests {
         string recovery = output + ".officeimo-recovery-" + new string('3', 32);
         Directory.CreateDirectory(output);
         Directory.CreateDirectory(recovery);
+        OfficeWorkflowRunner.CreateDirectoryPublicationOwnershipMarker(output, new string('3', 32));
         await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
         await File.WriteAllTextAsync(Path.Combine(recovery, "previous.txt"), "previous output");
 
@@ -159,6 +189,7 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.All(results, result => Assert.True(result.Succeeded, result.Summary));
         Assert.Single(Directory.GetFiles(output, "*.png"));
         Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-recovery-*"));
+        Assert.Empty(Directory.GetFiles(scope.Path, "pages.officeimo-publication-*.owner"));
     }
 
     [Fact]

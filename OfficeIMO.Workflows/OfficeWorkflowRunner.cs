@@ -27,11 +27,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         long inputBytes = 0;
         string? stagingPath = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
+        ValidatedRequest? validated = null;
 
         try {
-            ValidatedRequest validated = ValidateRequest(request);
+            validated = ValidateRequest(request);
             failureStage = WorkflowFailureStage.Input;
-            Report(progress, request.Id, "validate", "Validating input and workflow limits", 0.05D);
+            Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
@@ -39,7 +40,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 EnforceInputLimit(validated.ComparisonPath, new FileInfo(validated.ComparisonPath).Length, validated.Limits);
             }
 
-            Report(progress, request.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
+            Report(progress, validated.Id, "execute", DescribeOperation(validated.Operation), 0.18D);
             failureStage = WorkflowFailureStage.Operation;
             OperationArtifact artifact = await Task.Run(
                 () => Execute(validated, diagnostics, cancellationToken),
@@ -47,7 +48,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             if (artifact.Bytes is null) {
-                Report(progress, request.Id, "complete", "Workflow report is ready", 1D);
+                Report(progress, validated.Id, "complete", "Workflow report is ready", 1D);
                 return CreateResult(
                     validated,
                     OfficeWorkflowStatus.Completed,
@@ -77,7 +78,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             await File.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
-            Report(progress, request.Id, "validate-output", "Reopening the staged artifact", 0.72D);
+            Report(progress, validated.Id, "validate-output", "Reopening the staged artifact", 0.72D);
             ValidateStagedArtifact(stagingPath, validated.OutputPath!, validated.OutputPdfLoadOptions);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "OutputReopened",
@@ -89,7 +90,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 }));
             cancellationToken.ThrowIfCancellationRequested();
 
-            Report(progress, request.Id, "publish", "Publishing the validated artifact", 0.9D);
+            Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
             string publishedPath = Publish(stagingPath, validated.OutputPath!, validated.ConflictPolicy);
             stagingPath = null;
             long outputBytes = new FileInfo(publishedPath).Length;
@@ -97,7 +98,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 "AtomicPublication",
                 "The artifact was staged in the destination directory and published with one filesystem move.",
                 stage: "publish"));
-            Report(progress, request.Id, "complete", "Workflow completed", 1D);
+            Report(progress, validated.Id, "complete", "Workflow completed", 1D);
             return CreateResult(
                 validated,
                 OfficeWorkflowStatus.Completed,
@@ -115,8 +116,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new OfficeWorkflowResult(
-                request.Id,
-                request.Operation,
+                validated?.Id ?? request.Id,
+                validated?.Operation ?? request.Operation,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
                 outputPath: null,
@@ -135,8 +136,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     ["exceptionType"] = ex.GetType().Name
                 }));
             return new OfficeWorkflowResult(
-                request.Id,
-                request.Operation,
+                validated?.Id ?? request.Id,
+                validated?.Operation ?? request.Operation,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(ex, failureStage),
                 outputPath: null,
@@ -688,8 +689,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             diagnostics,
             report);
 
-    private static void Report(IProgress<OfficeWorkflowProgress>? progress, string id, string stage, string message, double fraction) =>
-        progress?.Report(new OfficeWorkflowProgress(id, stage, message, fraction));
+    private static void Report(IProgress<OfficeWorkflowProgress>? progress, string id, string stage, string message, double fraction) {
+        try {
+            progress?.Report(new OfficeWorkflowProgress(id, stage, message, fraction));
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            // Progress observers cannot roll back publication, so observer failures must not change workflow truth.
+        }
+    }
 
     private static void EnforceInputLimit(string path, long size, OfficeWorkflowLimits limits) {
         if (size > limits.MaximumInputBytes) {

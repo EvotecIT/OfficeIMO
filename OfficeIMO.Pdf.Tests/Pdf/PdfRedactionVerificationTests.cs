@@ -45,6 +45,24 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationAcceptsAnEmptySearchDrivenPlan() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Nothing confidential")).ToBytes();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(
+            source,
+            new PdfRedactionSearchOptions().AddLiteral("absent secret"));
+        byte[] rewritten = PdfRedactionApplier.Apply(source, plan);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(plan.IsSearchDriven);
+        Assert.Empty(plan.Areas);
+        Assert.True(report.IsVerified);
+    }
+
+    [Fact]
     public void ReviewedPlanCannotBeAppliedToDifferentSourceBytes() {
         byte[] reviewed = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed source")).ToBytes();
         byte[] different = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Different source")).ToBytes();
