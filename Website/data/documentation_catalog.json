@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 215,
-    "productionComponentCount": 115,
+    "projectCount": 213,
+    "productionComponentCount": 113,
     "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42311
+    "conceptualWordCount": 42248
   },
   "categories": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "name": "Office documents",
-      "componentCount": 23
+      "componentCount": 21
     },
     {
       "name": "Publishing and conversion",
@@ -300,8 +300,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 992,
-      "referencingTestProjectCount": 9,
+      "sourceFileCount": 1003,
+      "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
@@ -357,19 +357,6 @@
       "docsUrl": "/docs/iwork/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.IWork"
-    },
-    {
-      "name": "OfficeIMO.Excel.Legacy",
-      "packageId": "OfficeIMO.Excel.Legacy",
-      "category": "Office documents",
-      "description": "Safe read-only import of selected legacy spreadsheet formats into the OfficeIMO.Excel model.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Excel.Legacy/OfficeIMO.Excel.Legacy.csproj",
-      "sourceFileCount": 11,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/excel/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel.Legacy"
     },
     {
       "name": "OfficeIMO.Excel.OpenDocument",
@@ -1418,8 +1405,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 657,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 670,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word"
@@ -1462,19 +1449,6 @@
       "docsUrl": "/docs/iwork/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.IWork"
-    },
-    {
-      "name": "OfficeIMO.Word.Legacy",
-      "packageId": "OfficeIMO.Word.Legacy",
-      "category": "Office documents",
-      "description": "Safe read-only import of selected legacy word-processing formats into the OfficeIMO.Word model.",
-      "kind": "package",
-      "projectPath": "OfficeIMO.Word.Legacy/OfficeIMO.Word.Legacy.csproj",
-      "sourceFileCount": 13,
-      "referencingTestProjectCount": 1,
-      "docsUrl": "/docs/word/",
-      "apiUrl": null,
-      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Legacy"
     },
     {
       "name": "OfficeIMO.Word.Markdown",

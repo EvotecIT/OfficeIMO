@@ -28,6 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
     <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
   </ItemGroup>

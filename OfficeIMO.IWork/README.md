@@ -58,21 +58,11 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.
 
-```csharp
-using OfficeIMO.Excel.IWork;
-using OfficeIMO.IWork;
+- [Pages to Word](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.IWork/README.md)
+- [Numbers to Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.IWork/README.md)
+- [Keynote to PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.IWork/README.md)
 
-using IWorkNumbersLoadResult result = ExcelIWorkConverter.LoadNumbersWithReport(
-    "budget.numbers",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
-
-ExcelDocument workbook = result.Document;
-Console.WriteLine(result.ImportReport.ProjectionKind);
-Console.WriteLine(result.HasConversionLoss);
-workbook.Save("budget.xlsx");
-```
-
-The equivalent entry points are `WordIWorkConverter.LoadPages*` from `OfficeIMO.Word.IWork` and `PowerPointIWorkConverter.LoadKeynote*` from `OfficeIMO.PowerPoint.IWork`. The short overload returns the destination document. The `WithReport` overload also returns the bounded source, typed projection, preserved records, diagnostics, producer build history, and the exact projection kind.
+Each adapter README owns its conversion API and example. The source reader remains useful on its own for inspection, extraction, and application-owned projection workflows.
 
 This is extended semantic reconstruction rather than plain-text extraction:
 
@@ -92,7 +82,7 @@ Every package entry and every decoded IWA payload remains available as defensive
 
 There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
 
-See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
+See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
 
 ## Target frameworks and dependencies
 

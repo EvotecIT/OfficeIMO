@@ -19,7 +19,7 @@ OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destina
 | Numbers | `OfficeIMO.Excel.IWork` | `ExcelDocument.LoadNumbers*` with `ExcelIWorkConverter.LoadNumbers*` |
 | Keynote | `OfficeIMO.PowerPoint.IWork` | `PowerPointPresentation.LoadKeynote*` with `PowerPointIWorkConverter.LoadKeynote*` |
 
-The result types and `IWorkReadOptions` contract are unchanged. Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
+The result-type namespaces, members, and `IWorkReadOptions` contract are unchanged, but the CLR assembly identities moved with the APIs: `IWorkPagesLoadResult` is now in `OfficeIMO.Word.IWork`, `IWorkNumbersLoadResult` in `OfficeIMO.Excel.IWork`, and `IWorkKeynoteLoadResult` in `OfficeIMO.PowerPoint.IWork`. Applications that persist assembly-qualified names in serializer metadata, reflection configuration, or plugin manifests must update those names. Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 
 ## OfficeIMO 3.3: one PDF load and semantic read contract
 

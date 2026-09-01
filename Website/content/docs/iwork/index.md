@@ -28,7 +28,7 @@ The default `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` pack
 ```csharp
 using OfficeIMO.IWork;
 
-using IWorkSourceDocument source = IWorkSourceDocument.Open("report.pages");
+IWorkSourceDocument source = IWorkSourceDocument.Open("report.pages");
 IWorkPagesProjection pages = source.ReadPages();
 
 Console.WriteLine(source.Kind);

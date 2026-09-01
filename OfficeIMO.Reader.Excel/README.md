@@ -15,7 +15,7 @@ For CSV import and export, install the separate `OfficeIMO.Excel.Csv` adapter.
 Keeping conversion outside the Reader package avoids pulling CSV behavior into
 applications that only need generic Excel document extraction.
 
-Selected Lotus 1-2-3, Quattro Pro, Multiplan, and Works spreadsheet sources are opt-in through the owning legacy package:
+Selected Lotus 1-2-3, Quattro Pro, Multiplan, and Works spreadsheet sources are included in `OfficeIMO.Excel` but remain opt-in at the Reader registration boundary:
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
@@ -31,5 +31,5 @@ Legacy warnings include the detected profile, structured-versus-salvage quality,
 ## Targets and dependencies
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
-- OfficeIMO dependencies: `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, `OfficeIMO.Excel.Legacy`, and `OfficeIMO.Core`.
+- OfficeIMO dependencies: `OfficeIMO.Reader.Core`, `OfficeIMO.Excel`, and `OfficeIMO.Core`.
 - License: MIT.
