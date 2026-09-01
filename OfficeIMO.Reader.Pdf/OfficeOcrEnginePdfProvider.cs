@@ -174,7 +174,7 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
                 throw new ArgumentOutOfRangeException(nameof(options), "Fallback confidence must be finite and between zero and one.");
             }
             return new OptionsSnapshot {
-                Language = string.IsNullOrWhiteSpace(source.Language) ? null : source.Language.Trim(),
+                Language = string.IsNullOrWhiteSpace(source.Language) ? null : source.Language!.Trim(),
                 SourceName = string.IsNullOrWhiteSpace(source.SourceName) ? null : source.SourceName,
                 SourceId = string.IsNullOrWhiteSpace(source.SourceId) ? null : source.SourceId,
                 UseLineSpansWhenWordsUnavailable = source.UseLineSpansWhenWordsUnavailable,

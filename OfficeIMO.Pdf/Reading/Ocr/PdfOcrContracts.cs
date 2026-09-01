@@ -38,13 +38,17 @@ public sealed class PdfOcrResponse {
     private const int AbsoluteMaximumWords = 1_000_000;
     private const int AbsoluteMaximumDiagnostics = 100_000;
     private const int AbsoluteMaximumTextCharacters = 16 * 1024 * 1024;
-    /// <summary>Creates a provider response.</summary>
+    /// <summary>Creates a provider response without optional provider provenance.</summary>
+    public PdfOcrResponse(IEnumerable<PdfOcrWord> words, IEnumerable<string>? diagnostics = null)
+        : this(words, diagnostics, null, null, null) { }
+
+    /// <summary>Creates a provider response with provider provenance.</summary>
     public PdfOcrResponse(
         IEnumerable<PdfOcrWord> words,
-        IEnumerable<string>? diagnostics = null,
-        string? provider = null,
-        string? model = null,
-        string? language = null) {
+        IEnumerable<string>? diagnostics,
+        string? provider,
+        string? model,
+        string? language) {
         Guard.NotNull(words as object, nameof(words));
         Words = MaterializeWords(words);
         Diagnostics = MaterializeDiagnostics(diagnostics);
@@ -102,7 +106,7 @@ public sealed class PdfOcrResponse {
 
     private static string? NormalizeMetadata(string? value, string parameterName) {
         if (string.IsNullOrWhiteSpace(value)) return null;
-        string normalized = value.Trim();
+        string normalized = value!.Trim();
         if (normalized.Length > 4096) throw new ArgumentException("OCR response metadata cannot exceed 4096 characters.", parameterName);
         return normalized;
     }

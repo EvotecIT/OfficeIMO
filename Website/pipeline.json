@@ -1267,6 +1267,7 @@
         "../OfficeIMO.Reader.Latex/OfficeIMO.Reader.Latex.csproj",
         "../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj",
         "../OfficeIMO.Reader.Notebook/OfficeIMO.Reader.Notebook.csproj",
+        "../OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
         "../OfficeIMO.Reader.Ocr.Process/OfficeIMO.Reader.Ocr.Process.csproj",
         "../OfficeIMO.Reader.Ocr.Tesseract/OfficeIMO.Reader.Ocr.Tesseract.csproj",
         "../OfficeIMO.Reader.OneNote/OfficeIMO.Reader.OneNote.csproj",

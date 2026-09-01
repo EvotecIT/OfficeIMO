@@ -1,5 +1,10 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Ocr.Tesseract;
+using System.Net;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -57,5 +62,84 @@ public sealed class ReaderOcrTesseractTests {
         Assert.DoesNotContain("image/svg+xml", engine.Capabilities.SupportedMediaTypes);
         Assert.DoesNotContain("image/x-emf", engine.Capabilities.SupportedMediaTypes);
         Assert.DoesNotContain("image/x-wmf", engine.Capabilities.SupportedMediaTypes);
+    }
+
+    [Fact]
+    public void TesseractRuntime_UsesExplicitExecutableWithoutMutatingCallerOptions() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-tesseract-runtime-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string executable = Path.Combine(directory, Environment.OSVersion.Platform == PlatformID.Win32NT ? "tesseract.exe" : "tesseract");
+        File.WriteAllBytes(executable, Array.Empty<byte>());
+        var options = new TesseractOcrEngineOptions { ExecutablePath = executable, Language = "eng+pol" };
+        try {
+            TesseractRuntimeInfo runtime = TesseractRuntime.Discover(executable);
+            TesseractOcrEngine engine = TesseractOcrEngine.CreateDefault(options);
+
+            Assert.Equal(Path.GetFullPath(executable), runtime.ExecutablePath);
+            Assert.Equal(TesseractRuntimeSource.Explicit, runtime.Source);
+            Assert.Equal(executable, options.ExecutablePath);
+            Assert.Equal(Path.GetFullPath(executable), engine.ExecutablePath);
+            Assert.Equal("eng+pol", engine.DefaultLanguage);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TesseractLanguageData_VerifiesDownloadsAndReusesValidCache() {
+        byte[] payload = Encoding.UTF8.GetBytes("pinned-language-model");
+        string hash;
+        using (SHA256 sha256 = SHA256.Create()) {
+            hash = string.Concat(sha256.ComputeHash(payload).Select(static value => value.ToString("x2", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-tessdata-" + Guid.NewGuid().ToString("N"));
+        var handler = new StaticHttpHandler(payload);
+        using var client = new HttpClient(handler);
+        var package = new TesseractLanguageData.Package("fixture", hash, payload.LongLength, new Uri("https://example.test/fixture.traineddata"));
+        var options = new TesseractLanguageDataOptions { CacheDirectory = directory, HttpClient = client };
+        try {
+            TesseractLanguageDataResult first = await TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
+            TesseractLanguageDataResult second = await TesseractLanguageData.EnsurePackagesAsync(new[] { package }, options, CancellationToken.None);
+
+            Assert.True(first.Downloaded);
+            Assert.False(second.Downloaded);
+            Assert.Equal(1, handler.CallCount);
+            Assert.Equal(hash, first.Files[0].Sha256);
+            Assert.Equal(payload, File.ReadAllBytes(first.Files[0].Path));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task TesseractLanguageData_FailsClosedOnChecksumMismatch() {
+        byte[] payload = Encoding.UTF8.GetBytes("untrusted-model");
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-tessdata-" + Guid.NewGuid().ToString("N"));
+        using var client = new HttpClient(new StaticHttpHandler(payload));
+        var package = new TesseractLanguageData.Package("fixture", new string('0', 64), payload.LongLength, new Uri("https://example.test/fixture.traineddata"));
+        try {
+            await Assert.ThrowsAsync<InvalidDataException>(() => TesseractLanguageData.EnsurePackagesAsync(
+                new[] { package },
+                new TesseractLanguageDataOptions { CacheDirectory = directory, HttpClient = client },
+                CancellationToken.None));
+            Assert.False(File.Exists(Path.Combine(directory, "fixture.traineddata")));
+            Assert.Empty(Directory.GetFiles(directory, "*.download-*"));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private sealed class StaticHttpHandler : HttpMessageHandler {
+        private readonly byte[] _payload;
+        internal StaticHttpHandler(byte[] payload) => _payload = payload;
+        internal int CallCount { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            CallCount++;
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(_payload)
+            });
+        }
     }
 }

@@ -39,6 +39,15 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
     /// <inheritdoc />
     public string Id => "tesseract-cli";
 
+    /// <summary>Resolved executable path or command captured by this engine.</summary>
+    public string ExecutablePath => _options.ExecutablePath;
+
+    /// <summary>Default language expression captured by this engine.</summary>
+    public string? DefaultLanguage => _options.Language;
+
+    /// <summary>Configured trained-data directory captured by this engine.</summary>
+    public string? TessdataDirectory => _options.TessdataDirectory;
+
     /// <inheritdoc />
     public OfficeOcrEngineCapabilities Capabilities => _capabilities.Clone();
 

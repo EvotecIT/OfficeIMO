@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>Optional Tesseract CLI OCR engine for OfficeIMO.Reader.</Description>
-    <AssemblyName>OfficeIMO.Reader.Ocr.Tesseract</AssemblyName>
-    <AssemblyTitle>OfficeIMO.Reader.Ocr.Tesseract</AssemblyTitle>
+    <Description>Easy local OCR facade for OfficeIMO images and searchable PDFs.</Description>
+    <AssemblyName>OfficeIMO.Reader.Ocr</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Reader.Ocr</AssemblyTitle>
     <VersionPrefix>3.3.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -11,8 +11,8 @@
     <IsPublishable>true</IsPublishable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageId>OfficeIMO.Reader.Ocr.Tesseract</PackageId>
-    <PackageTags>reader;ocr;tesseract;ingestion;officeimo</PackageTags>
+    <PackageId>OfficeIMO.Reader.Ocr</PackageId>
+    <PackageTags>reader;ocr;tesseract;pdf;searchable;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -24,17 +24,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\OfficeIMO.Reader.Core\OfficeIMO.Reader.Core.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
-    <InternalsVisibleTo Include="OfficeIMO.Reader.Ocr" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>
@@ -47,10 +42,8 @@
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />
-    <Using Include="System.Globalization" />
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
-    <Using Include="System.Text" />
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>

@@ -40,4 +40,21 @@ public sealed class TesseractOcrEngineOptions {
 
     /// <summary>Whether isolated temporary files are retained after recognition.</summary>
     public bool KeepTemporaryFiles { get; set; }
+
+    /// <summary>Creates an independent options snapshot.</summary>
+    public TesseractOcrEngineOptions Clone() => new TesseractOcrEngineOptions {
+        ExecutablePath = ExecutablePath,
+        Language = Language,
+        TessdataDirectory = TessdataDirectory,
+        EngineMode = EngineMode,
+        PageSegmentationMode = PageSegmentationMode,
+        Dpi = Dpi,
+        AdditionalArguments = (AdditionalArguments ?? Array.Empty<string>()).ToArray(),
+        TemporaryDirectory = TemporaryDirectory,
+        Timeout = Timeout,
+        MaxOutputBytes = MaxOutputBytes,
+        MaxInputBytes = MaxInputBytes,
+        MaxProcessOutputCharacters = MaxProcessOutputCharacters,
+        KeepTemporaryFiles = KeepTemporaryFiles
+    };
 }
