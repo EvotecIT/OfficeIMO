@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Preserves the original source-compatible form-operation calls without making
-/// an untyped <see langword="null"/> ambiguous with <see cref="PdfReadOptions"/>.
+/// an untyped <see langword="null"/> ambiguous with <see cref="PdfLoadOptions"/>.
 /// </summary>
 public static class PdfDocumentFormsCompatibilityExtensions {
     /// <summary>Attempts to fill string form values with explicit form options.</summary>

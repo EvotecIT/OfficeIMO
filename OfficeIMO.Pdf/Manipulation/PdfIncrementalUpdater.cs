@@ -13,7 +13,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Analyzes append-only mutation support using optional password and parsing settings.</summary>
-    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfReadOptions? readOptions) {
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions));
     }
@@ -58,7 +58,7 @@ internal static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         bool createXmpMetadata = false) {
         return UpdateMetadataCore(
             pdf,
@@ -81,7 +81,7 @@ internal static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         bool createXmpMetadata = true) {
         return UpdateMetadataCore(
             pdf,
@@ -100,7 +100,7 @@ internal static partial class PdfIncrementalUpdater {
         string? author,
         string? subject,
         string? keywords,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         bool createXmpMetadata,
         PdfMutationOperation operation) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -158,7 +158,7 @@ internal static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         bool createXmpMetadata = false) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
@@ -178,7 +178,7 @@ internal static partial class PdfIncrementalUpdater {
         string? author = null,
         string? subject = null,
         string? keywords = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         bool createXmpMetadata = false) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
@@ -243,7 +243,7 @@ internal static partial class PdfIncrementalUpdater {
         changedObjectNumbers.Add(metadataObjectNumber);
     }
 
-    internal static bool CanPreserveXmpMetadataAppendOnly(byte[] pdf, PdfReadOptions? readOptions) {
+    internal static bool CanPreserveXmpMetadataAppendOnly(byte[] pdf, PdfLoadOptions? readOptions) {
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions);
         if (!security.RootObjectNumber.HasValue) return false;
         var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);

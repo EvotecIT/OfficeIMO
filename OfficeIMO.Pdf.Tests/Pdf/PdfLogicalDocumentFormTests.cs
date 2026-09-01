@@ -4,10 +4,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ExposesSimpleAcroFormFields() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildHierarchicalFormPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildHierarchicalFormPdf());
 
         Assert.True(logical.HasFormFields);
         Assert.True(logical.HasAcroFormNeedAppearances);
@@ -54,7 +54,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesAcroFormFieldKindsAndFlags() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildFieldKindFormPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildFieldKindFormPdf());
 
         PdfFormField text = logical.FormFieldsByName["Notes"];
         Assert.Equal(PdfFormFieldKind.Text, text.Kind);
@@ -138,7 +138,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ExposesAcroFormWidgetGeometry() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildWidgetFormPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildWidgetFormPdf());
 
         PdfFormField field = Assert.Single(logical.FormFields);
         Assert.Equal("AcceptTerms", field.Name);

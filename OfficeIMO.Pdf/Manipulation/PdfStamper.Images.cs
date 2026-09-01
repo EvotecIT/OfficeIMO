@@ -4,7 +4,7 @@ internal static partial class PdfStamper {
     /// <summary>
     /// Adds an image stamp to selected pages, or every page when no page selection is supplied.
     /// </summary>
-    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static byte[] StampImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         return StampImageCore(pdf, imageBytes, options, watermarkDefaults: false, readOptions);
     }
 
@@ -57,7 +57,7 @@ internal static partial class PdfStamper {
         WriteOutput(outputStream, StampImage(stream, imageStream, options));
     }
 
-    private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfReadOptions? readOptions = null) {
+    private static byte[] StampImageCore(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options, bool watermarkDefaults, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfMutationPlanner.RequireCatalogPreservingPageContentRewrite(pdf, readOptions);
@@ -225,7 +225,7 @@ internal static partial class PdfStamper {
     /// Adds a centered image watermark to selected pages, or every page when no page selection is supplied.
     /// Simple PNG alpha and transparency soft masks are supported for compatible PNG inputs.
     /// </summary>
-    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static byte[] WatermarkImage(byte[] pdf, byte[] imageBytes, PdfImageStampOptions? options = null, PdfLoadOptions? readOptions = null) {
         var effectiveOptions = BuildImageWatermarkOptions(options);
         return StampImageCore(pdf, imageBytes, effectiveOptions, watermarkDefaults: true, readOptions);
     }

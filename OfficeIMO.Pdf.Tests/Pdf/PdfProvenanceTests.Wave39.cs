@@ -34,7 +34,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void ActiveEncryptionDictionaryCannotMasqueradeAsAProvenanceFileSpecification() {
         byte[] pdf = CreateEncryptedPdfWithEncryptionDictionaryCandidate();
-        var readOptions = new PdfReadOptions { Password = "open" };
+        var readOptions = new PdfLoadOptions { Password = "open" };
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(pdf, readOptions: readOptions);
         OfficeProvenanceEvidence evidence = Assert.Single(report.Evidence);

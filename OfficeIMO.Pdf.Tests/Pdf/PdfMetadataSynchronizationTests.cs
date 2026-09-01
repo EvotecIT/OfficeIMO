@@ -70,7 +70,7 @@ public class PdfMetadataSynchronizationTests {
             .Paragraph(paragraph => paragraph.Text("Create synchronized XMP"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Open(source)
+        PdfDocument updated = PdfDocument.Load(source)
             .SynchronizeMetadata(title: "Created XMP", keywords: "one; two");
         PdfDocumentInfo info = updated.Inspect();
 
@@ -137,7 +137,7 @@ public class PdfMetadataSynchronizationTests {
             .ToBytes();
         byte[] revised = PdfIncrementalUpdater.UpdateMetadata(source, author: "First revision");
 
-        PdfOperationResult<PdfDocument> result = PdfDocument.Open(revised)
+        PdfOperationResult<PdfDocument> result = PdfDocument.Load(revised)
             .TrySynchronizeMetadata(title: "Second revision", createXmpMetadata: true);
         PdfDocument updated = result.RequireValue();
         PdfDocumentInfo info = updated.Inspect();
@@ -147,7 +147,7 @@ public class PdfMetadataSynchronizationTests {
         Assert.Equal("Second revision", info.Metadata.Title);
         Assert.Equal("Second revision", info.XmpMetadata!.Title);
         Assert.Equal("First revision", info.XmpMetadata.Creator);
-        Assert.Contains("Existing revision body", updated.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Existing revision body", updated.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

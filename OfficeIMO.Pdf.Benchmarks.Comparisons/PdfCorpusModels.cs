@@ -32,7 +32,9 @@ internal sealed record PdfCorpusReadResult(
     int ExtractedCharacters,
     int OracleCharacters,
     double TokenRecall,
-    string? Error);
+    string? Error,
+    double ElapsedMilliseconds = 0D,
+    long AllocatedBytes = 0L);
 
 internal sealed record PdfCorpusManipulationResult(
     bool Success,
@@ -58,12 +60,28 @@ internal sealed record PdfCorpusResult(
     PdfCorpusReadResult Read,
     PdfCorpusManipulationResult Manipulation);
 
+internal sealed record PdfCorpusClassSummary(
+    string Dimension,
+    string Name,
+    int Documents,
+    int SuccessfulReads,
+    int FailedReads,
+    int BlockedManipulations,
+    int FailedManipulations,
+    int TotalPages,
+    double TotalReadMilliseconds,
+    long TotalAllocatedBytes,
+    double ReadFailureRate,
+    double MillisecondsPerPage,
+    double AllocatedBytesPerPage);
+
 internal sealed record PdfCorpusReport(
     int SchemaVersion,
     DateTimeOffset CreatedUtc,
     string Runtime,
     string OperatingSystem,
-    IReadOnlyList<PdfCorpusResult> Results) {
+    IReadOnlyList<PdfCorpusResult> Results,
+    IReadOnlyList<PdfCorpusClassSummary> Classes) {
     [JsonIgnore]
     internal bool Success => Results.All(static result => result.Read.Success && !result.Manipulation.IsFailure);
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -62,17 +63,28 @@ internal static class TextLayoutEngine {
     /// Split lines into horizontal bands (blocks) based on Y gaps.
     /// Useful for de-duplicating and for column/table detection within local neighborhoods.
     /// </summary>
-    public static List<List<TextLine>> BandLines(List<TextLine> lines, Options? options = null) {
+    public static List<List<TextLine>> BandLines(List<TextLine> lines, Options? options = null) =>
+        BandLines(lines, options, consumeWork: null, cancellationCheck: null);
+
+    internal static List<List<TextLine>> BandLines(
+        List<TextLine> lines,
+        Options? options,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         options ??= new Options();
         var result = new List<List<TextLine>>();
         if (lines.Count == 0) return result;
+        cancellationCheck?.Invoke();
+        consumeWork?.Invoke(lines.Count);
         // Work on lines sorted by Y desc
         var ordered = lines.OrderByDescending(l => l.Y).ToList();
+        cancellationCheck?.Invoke();
         // Band gap: larger than intra-line tolerance to group adjacent lines sensibly
         double baseGap = Math.Max(8.0, options.LineMergeMaxPoints * 3.0);
         var current = new List<TextLine>();
         double currentY = ordered[0].Y;
         foreach (var ln in ordered) {
+            cancellationCheck?.Invoke();
             if (current.Count == 0) { current.Add(ln); currentY = ln.Y; continue; }
             if (Math.Abs(ln.Y - currentY) <= baseGap) {
                 current.Add(ln);
@@ -87,11 +99,21 @@ internal static class TextLayoutEngine {
     }
 
     /// <summary>Builds text lines from spans using Y-clustering and X-sorting.</summary>
-    public static List<TextLine> BuildLines(IReadOnlyList<PdfTextSpan> spans, Options? options = null) {
+    public static List<TextLine> BuildLines(IReadOnlyList<PdfTextSpan> spans, Options? options = null) =>
+        BuildLines(spans, options, consumeWork: null, cancellationCheck: null);
+
+    internal static List<TextLine> BuildLines(
+        IReadOnlyList<PdfTextSpan> spans,
+        Options? options,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         options ??= new Options();
         if (spans.Count == 0) return new List<TextLine>();
+        cancellationCheck?.Invoke();
+        consumeWork?.Invoke(spans.Count);
         // Sort by Y desc, then X asc
         var ordered = spans.OrderByDescending(s => s.Y).ThenBy(s => s.X).ToList();
+        cancellationCheck?.Invoke();
         // Estimate avg font size (robust median)
         double medianSize = Median(ordered.Select(s => s.FontSize));
         var lines = new List<TextLine>();
@@ -99,6 +121,7 @@ internal static class TextLayoutEngine {
         double currentY = ordered[0].Y;
         double currentFont = ordered[0].FontSize;
         foreach (var s in ordered) {
+            cancellationCheck?.Invoke();
             if (current.Count == 0) { current.Add(s); currentY = s.Y; continue; }
             double tolAbs = Math.Min(options.LineMergeMaxPoints, Math.Min(currentFont, s.FontSize) * options.LineMergeToleranceEm);
             if (tolAbs < 0.5) tolAbs = 0.5;
@@ -114,8 +137,41 @@ internal static class TextLayoutEngine {
         }
         if (current.Count > 0) AddBuiltLines(lines, current, options);
         // Drop obvious duplicate lines drawn twice at the same Y (e.g., shadow/overprint)
-        lines = DeduplicateLines(lines);
+        lines = DeduplicateLines(lines, consumeWork, cancellationCheck);
+        cancellationCheck?.Invoke();
         return lines;
+    }
+
+    internal static IReadOnlyList<PdfTextSpan> FilterIgnoredPageBands(
+        IReadOnlyList<PdfTextSpan> spans,
+        PdfReadPage page,
+        PdfTextLayoutOptions options) =>
+        FilterIgnoredPageBands(spans, page, options, consumeWork: null, cancellationCheck: null);
+
+    internal static IReadOnlyList<PdfTextSpan> FilterIgnoredPageBands(
+        IReadOnlyList<PdfTextSpan> spans,
+        PdfReadPage page,
+        PdfTextLayoutOptions options,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        if (options.IgnoreHeaderHeight <= 0D && options.IgnoreFooterHeight <= 0D) return spans;
+        double visualHeight = page.GetVisualPageSize().Height;
+        Matrix2D visualTransform = page.GetVisualPageTransform();
+        double bodyTop = options.IgnoreHeaderHeight;
+        double bodyBottom = visualHeight - options.IgnoreFooterHeight;
+        var filtered = new List<PdfTextSpan>(spans.Count);
+        for (int index = 0; index < spans.Count; index++) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
+            PdfTextSpan span = spans[index];
+            double visualBaselineFromBottom = visualTransform.Transform(span.X, span.Y).Y;
+            double visualBaselineFromTop = visualHeight - visualBaselineFromBottom;
+            if ((options.IgnoreHeaderHeight <= 0D || visualBaselineFromTop > bodyTop) &&
+                (options.IgnoreFooterHeight <= 0D || visualBaselineFromTop < bodyBottom)) {
+                filtered.Add(span);
+            }
+        }
+        return Array.AsReadOnly(filtered.ToArray());
     }
 
     /// <summary>Attempts to detect a two-column layout by finding a vertical low-coverage gutter.</summary>
@@ -344,15 +400,21 @@ internal static class TextLayoutEngine {
 
     private static int Clamp(int v, int min, int max) => v < min ? min : (v > max ? max : v);
 
-    private static List<TextLine> DeduplicateLines(List<TextLine> lines) {
+    private static List<TextLine> DeduplicateLines(
+        List<TextLine> lines,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         if (lines.Count <= 1) return lines;
         var result = new List<TextLine>(lines.Count);
         var used = new bool[lines.Count];
         for (int i = 0; i < lines.Count; i++) {
+            cancellationCheck?.Invoke();
             if (used[i]) continue;
             var a = lines[i];
             result.Add(a);
             for (int j = i + 1; j < lines.Count; j++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(1);
                 if (used[j]) continue;
                 var b = lines[j];
                 // Near-identical baseline
@@ -477,6 +539,9 @@ public static class PdfReadPageExtensions {
     /// <returns>Plain text for this page in inferred reading order.</returns>
     public static string ExtractTextWithColumns(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
+        if (options is not null) {
+            spans = TextLayoutEngine.FilterIgnoredPageBands(spans, page, options);
+        }
         var engineOpts = options?.ToEngineOptions() ?? new TextLayoutEngine.Options();
         if (!engineOpts.ForceSingleColumn) {
             engineOpts.SplitWideSameBaselineRuns = true;
@@ -484,14 +549,6 @@ public static class PdfReadPageExtensions {
 
         var lines = TextLayoutEngine.BuildLines(spans, engineOpts);
         var (w, _) = page.GetPageSize();
-        // Optional header/footer filtering
-        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
-            var (_, h) = page.GetPageSize();
-            double topCut = h - options.IgnoreHeaderHeight;
-            double bottomCut = options.IgnoreFooterHeight;
-            lines = lines.Where(l => (options.IgnoreHeaderHeight <= 0 || l.Y < topCut)
-                                  && (options.IgnoreFooterHeight <= 0 || l.Y > bottomCut)).ToList();
-        }
         var layout = TextLayoutEngine.DetectColumns(lines, w, engineOpts);
         return TextLayoutEngine.EmitText(lines, layout, options);
     }
@@ -503,19 +560,37 @@ public static class PdfReadPageExtensions {
     /// <param name="options">Optional layout options.</param>
     public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
-        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
-            var (_, h) = page.GetPageSize();
-            double topCut = h - options.IgnoreHeaderHeight;
-            double bottomCut = options.IgnoreFooterHeight;
-            spans = spans.Where(span => (options.IgnoreHeaderHeight <= 0 || span.Y < topCut)
-                                     && (options.IgnoreFooterHeight <= 0 || span.Y > bottomCut)).ToList();
+        return ExtractStructured(page, spans, options, CancellationToken.None);
+    }
+
+    internal static StructuredPage ExtractStructured(
+        this PdfReadPage page,
+        IReadOnlyList<PdfTextSpan> spans,
+        PdfTextLayoutOptions? options,
+        CancellationToken cancellationToken,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        cancellationToken.ThrowIfCancellationRequested();
+        cancellationCheck?.Invoke();
+        var (_, pageHeight) = page.GetPageSize();
+        if (options is not null) {
+            spans = TextLayoutEngine.FilterIgnoredPageBands(
+                spans,
+                page,
+                options,
+                consumeWork,
+                cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested);
         }
 
         var engineOpts = options?.ToEngineOptions();
-        var (_, pageHeight) = page.GetPageSize();
-        return ContentStructureExtractor.Extract(
+        StructuredPage result = ContentStructureExtractor.Extract(
             spans,
             engineOpts ?? new TextLayoutEngine.Options(),
-            pageHeight);
+            pageHeight,
+            consumeWork,
+            cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested);
+        cancellationToken.ThrowIfCancellationRequested();
+        cancellationCheck?.Invoke();
+        return result;
     }
 }

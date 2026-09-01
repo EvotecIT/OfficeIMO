@@ -11,7 +11,7 @@ internal static class PdfStructuredExportEngine {
     private const string PageNamespace = "http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15";
 
     /// <summary>Exports an already parsed logical document without rerunning extraction.</summary>
-    public static string Export(PdfLogicalDocument document, PdfStructuredExportFormat format) {
+    public static string Export(PdfDocumentReadResult document, PdfStructuredExportFormat format) {
         Guard.NotNull(document, nameof(document));
         switch (format) {
             case PdfStructuredExportFormat.Json:
@@ -34,15 +34,15 @@ internal static class PdfStructuredExportEngine {
         Export(pdf, format, layoutOptions, readOptions: null);
 
     /// <summary>Loads PDF bytes with explicit read limits or credentials and exports the requested format.</summary>
-    public static string Export(byte[] pdf, PdfStructuredExportFormat format, PdfTextLayoutOptions? layoutOptions, PdfReadOptions? readOptions) {
+    public static string Export(byte[] pdf, PdfStructuredExportFormat format, PdfTextLayoutOptions? layoutOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return Export(PdfLogicalDocument.Load(pdf, layoutOptions, readOptions), format);
+        return Export(PdfDocumentReadResult.Load(pdf, layoutOptions, readOptions), format);
     }
 
     /// <summary>
     /// Exports one schema-valid PAGE XML document per logical page. PAGE XML is image/page scoped and does not define a multi-page root.
     /// </summary>
-    public static IReadOnlyList<string> ExportPageXmlDocuments(PdfLogicalDocument document) {
+    public static IReadOnlyList<string> ExportPageXmlDocuments(PdfDocumentReadResult document) {
         Guard.NotNull(document, nameof(document));
         var results = new List<string>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -52,7 +52,7 @@ internal static class PdfStructuredExportEngine {
         return results.AsReadOnly();
     }
 
-    private static string ToJson(PdfLogicalDocument document) {
+    private static string ToJson(PdfDocumentReadResult document) {
         var builder = new StringBuilder();
         builder.Append("{\"schema\":\"").Append(JsonSchema).Append("\",\"pages\":[");
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -83,7 +83,7 @@ internal static class PdfStructuredExportEngine {
         return builder.ToString();
     }
 
-    private static string ToAltoXml(PdfLogicalDocument document) {
+    private static string ToAltoXml(PdfDocumentReadResult document) {
         XNamespace alto = AltoNamespace;
         var layout = new XElement(alto + "Layout");
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -122,7 +122,7 @@ internal static class PdfStructuredExportEngine {
         return documentElement.ToString(SaveOptions.DisableFormatting);
     }
 
-    private static string ToHocr(PdfLogicalDocument document) {
+    private static string ToHocr(PdfDocumentReadResult document) {
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
         var body = new XElement(xhtml + "body");
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
@@ -154,7 +154,7 @@ internal static class PdfStructuredExportEngine {
                 body)).ToString(SaveOptions.DisableFormatting);
     }
 
-    private static string ToPageXml(PdfLogicalDocument document) {
+    private static string ToPageXml(PdfDocumentReadResult document) {
         if (document.Pages.Count != 1) {
             throw new InvalidOperationException(
                 "PAGE XML is page scoped. Use ToPageXmlDocuments to export one schema-valid document per logical page.");

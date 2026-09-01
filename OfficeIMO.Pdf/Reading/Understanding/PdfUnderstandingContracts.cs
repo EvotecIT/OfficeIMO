@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Semantic classifications produced by a PDF understanding pipeline.</summary>
@@ -24,8 +26,12 @@ public enum PdfUnderstandingSemanticKind {
 
 /// <summary>Page and option context shared by understanding stages.</summary>
 public sealed class PdfUnderstandingPageContext {
+    private readonly PdfUnderstandingWorkBudget _workBudget;
+
     internal PdfUnderstandingPageContext(PdfReadPage page, int pageNumber, PdfTextLayoutOptions options,
-        int maxTextCharactersPerPage, int maxWordsPerPage) {
+        int maxTextCharactersPerPage, int maxWordsPerPage,
+        long maxWorkUnitsPerPage = 10_000_000,
+        CancellationToken cancellationToken = default) {
         Page = page;
         PageNumber = pageNumber;
         LayoutOptions = options;
@@ -34,6 +40,7 @@ public sealed class PdfUnderstandingPageContext {
         Height = height;
         MaxTextCharactersPerPage = maxTextCharactersPerPage;
         MaxWordsPerPage = maxWordsPerPage;
+        _workBudget = new PdfUnderstandingWorkBudget(maxWorkUnitsPerPage, cancellationToken);
     }
 
     /// <summary>Parsed source page.</summary>
@@ -50,6 +57,17 @@ public sealed class PdfUnderstandingPageContext {
     public int MaxTextCharactersPerPage { get; }
     /// <summary>Maximum word artifacts accepted for this page.</summary>
     public int MaxWordsPerPage { get; }
+    /// <summary>Cancellation token observed by built-in and cooperative custom stages.</summary>
+    public CancellationToken CancellationToken => _workBudget.CancellationToken;
+    /// <summary>Maximum comparison and traversal work units available to this page.</summary>
+    public long MaxWorkUnitsPerPage => _workBudget.Maximum;
+    /// <summary>Work units consumed so far by semantic reconstruction for this page.</summary>
+    public long WorkUnitsConsumed => _workBudget.Consumed;
+    /// <summary>Charges comparison or traversal work and observes cancellation.</summary>
+    public void ConsumeWork(long units = 1) => _workBudget.Consume(units);
+    /// <summary>Throws when semantic reconstruction has been cancelled.</summary>
+    public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
+    internal void CompleteOperation() => _workBudget.CompleteOperation();
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
 }
 
@@ -83,11 +101,16 @@ public sealed class PdfUnderstandingWord {
 /// <summary>One grouped text line.</summary>
 public sealed class PdfUnderstandingLine {
     /// <summary>Creates a line from words in local reading order.</summary>
-    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null) {
+    public PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, double? confidence = null, IEnumerable<PdfInferenceEvidence>? evidence = null)
+        : this(words, JoinWords(words), confidence, evidence) {
+    }
+
+    internal PdfUnderstandingLine(IReadOnlyList<PdfUnderstandingWord> words, string text, double? confidence, IEnumerable<PdfInferenceEvidence>? evidence) {
         Guard.NotNull(words, nameof(words));
+        Guard.NotNull(text, nameof(text));
         if (words.Count == 0) throw new ArgumentException("A line requires at least one word.", nameof(words));
         Words = words;
-        Text = string.Join(" ", words.Select(static word => word.Text));
+        Text = text;
         XStart = words.Min(static word => word.XStart);
         XEnd = words.Max(static word => word.XEnd);
         BaselineY = words.Average(static word => word.BaselineY);
@@ -95,6 +118,11 @@ public sealed class PdfUnderstandingLine {
         RotationDegrees = words.Average(static word => word.RotationDegrees);
         Confidence = PdfInference.Clamp(confidence ?? words.Average(static word => word.Confidence));
         Evidence = PdfInference.Snapshot(evidence);
+    }
+
+    private static string JoinWords(IReadOnlyList<PdfUnderstandingWord> words) {
+        Guard.NotNull(words, nameof(words));
+        return string.Join(" ", words.Select(static word => word.Text));
     }
     /// <summary>Words in line order.</summary>
     public IReadOnlyList<PdfUnderstandingWord> Words { get; }
@@ -152,7 +180,7 @@ public sealed class PdfUnderstandingRegion {
 /// <summary>Semantic classification of one ordered region.</summary>
 public sealed class PdfUnderstandingSemanticElement {
     /// <summary>Creates a semantic classification for a region.</summary>
-    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null) { Guard.NotNull(region, nameof(region)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); }
+    public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null, int? level = null) { Guard.NotNull(region, nameof(region)); if (level <= 0) throw new ArgumentOutOfRangeException(nameof(level)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); Level = level; }
     /// <summary>Classified region.</summary>
     public PdfUnderstandingRegion Region { get; }
     /// <summary>Semantic kind selected by the active stage.</summary>
@@ -161,6 +189,8 @@ public sealed class PdfUnderstandingSemanticElement {
     public double Confidence { get; }
     /// <summary>Evidence supporting the semantic classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+    /// <summary>Best-evidence hierarchy level for headings or list items, when known.</summary>
+    public int? Level { get; }
 }
 
 /// <summary>Trace record proving which stage implementation produced an artifact set.</summary>
@@ -178,8 +208,37 @@ public sealed class PdfUnderstandingStageTrace {
 
 /// <summary>All intermediate and final artifacts for one page.</summary>
 public sealed class PdfUnderstandingPageResult {
-    internal PdfUnderstandingPageResult(int pageNumber, IReadOnlyList<PdfTextSpan> runs, IReadOnlyList<PdfUnderstandingWord> words, IReadOnlyList<PdfUnderstandingLine> lines, IReadOnlyList<PdfUnderstandingRegion> regions, IReadOnlyList<PdfUnderstandingRegion> readingOrder, IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence, IReadOnlyList<PdfUnderstandingSemanticElement> elements, IReadOnlyList<PdfUnderstandingStageTrace> trace) {
-        PageNumber = pageNumber; DecodedRuns = runs; Words = words; Lines = lines; Regions = regions; ReadingOrder = readingOrder; ReadingOrderEvidence = readingOrderEvidence; Elements = elements; Trace = trace;
+    private readonly Action? _completeOperation;
+
+    internal PdfUnderstandingPageResult(
+        int pageNumber,
+        IReadOnlyList<PdfTextSpan> runs,
+        IReadOnlyList<PdfUnderstandingWord> words,
+        IReadOnlyList<PdfUnderstandingLine> lines,
+        IReadOnlyList<PdfUnderstandingRegion> regions,
+        IReadOnlyList<PdfUnderstandingRegion> readingOrder,
+        IReadOnlyList<PdfReadingOrderEvidence> readingOrderEvidence,
+        IReadOnlyList<PdfUnderstandingSemanticElement> elements,
+        IReadOnlyList<PdfUnderstandingStageTrace> trace,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null,
+        Action? completeOperation = null,
+        IReadOnlyList<PdfUnderstandingLine>? logicalProjectionLines = null,
+        bool restrictLogicalProjectionToReadingOrder = false) {
+        PageNumber = pageNumber;
+        DecodedRuns = runs;
+        Words = words;
+        Lines = lines;
+        Regions = regions;
+        ReadingOrder = readingOrder;
+        ReadingOrderEvidence = readingOrderEvidence;
+        Elements = elements;
+        Trace = trace;
+        LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
+        RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
+        ConsumeWork = consumeWork;
+        CancellationCheck = cancellationCheck;
+        _completeOperation = completeOperation;
     }
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
@@ -199,13 +258,37 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
-}
+    internal Action<long>? ConsumeWork { get; }
+    internal Action? CancellationCheck { get; }
+    /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
+    internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
+    /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
+    internal bool RestrictLogicalProjectionToReadingOrder { get; }
+    internal void CompleteOperation() => _completeOperation?.Invoke();
 
-/// <summary>Document-wide understanding result.</summary>
-public sealed class PdfUnderstandingResult {
-    internal PdfUnderstandingResult(IReadOnlyList<PdfUnderstandingPageResult> pages) { Pages = pages; }
-    /// <summary>Page results in caller-selected order.</summary>
-    public IReadOnlyList<PdfUnderstandingPageResult> Pages { get; }
+    private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(
+        IReadOnlyList<PdfUnderstandingRegion> readingOrder) {
+        var result = new List<PdfUnderstandingLine>();
+        var seen = new HashSet<PdfUnderstandingLine>();
+        for (int regionIndex = 0; regionIndex < readingOrder.Count; regionIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> lines = readingOrder[regionIndex].Lines;
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                if (seen.Add(lines[lineIndex])) result.Add(lines[lineIndex]);
+            }
+        }
+        return result.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : result.AsReadOnly();
+    }
+
+    internal static PdfUnderstandingPageResult Empty(int pageNumber) => new PdfUnderstandingPageResult(
+        pageNumber,
+        Array.Empty<PdfTextSpan>(),
+        Array.Empty<PdfUnderstandingWord>(),
+        Array.Empty<PdfUnderstandingLine>(),
+        Array.Empty<PdfUnderstandingRegion>(),
+        Array.Empty<PdfUnderstandingRegion>(),
+        Array.Empty<PdfReadingOrderEvidence>(),
+        Array.Empty<PdfUnderstandingSemanticElement>(),
+        Array.Empty<PdfUnderstandingStageTrace>());
 }
 
 /// <summary>Decodes page glyph/text content into positioned runs.</summary>

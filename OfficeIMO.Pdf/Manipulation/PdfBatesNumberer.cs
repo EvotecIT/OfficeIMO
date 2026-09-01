@@ -34,7 +34,7 @@ public sealed class PdfBatesDocument {
     public string? Name { get; }
 
     /// <summary>Optional parser, password, permission, and resource-budget settings for this document.</summary>
-    public PdfReadOptions? ReadOptions { get; set; }
+    public PdfLoadOptions? ReadOptions { get; set; }
 
     /// <summary>Optional document-specific page selection. Overrides <see cref="PdfBatesNumberingOptions.TargetPages"/>.</summary>
     public PdfPageSelector? TargetPages { get; set; }
@@ -106,7 +106,7 @@ public sealed class PdfBatesAssignment {
 /// <summary>Numbered output and preservation evidence for one input document.</summary>
 public sealed class PdfBatesDocumentResult {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
     internal PdfBatesDocumentResult(
         int documentIndex,
@@ -114,7 +114,7 @@ public sealed class PdfBatesDocumentResult {
         byte[] pdf,
         IReadOnlyList<PdfBatesAssignment> assignments,
         PdfRewritePreservationReport preservation,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         DocumentIndex = documentIndex;
         DocumentName = documentName;
         _pdf = (byte[])pdf.Clone();
@@ -134,7 +134,7 @@ public sealed class PdfBatesDocumentResult {
     /// <summary>Returns an independent copy of the numbered PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the numbered PDF through the public document API.</summary>
-    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Continuous Bates-numbering outputs and assignments for a complete batch.</summary>
@@ -206,7 +206,7 @@ public static class PdfBatesNumberer {
                         TargetPages = PdfPageSelector.Parse(string.Join(",", selectedPages.Select(static page => page.ToString(CultureInfo.InvariantCulture))))
                     },
                     input.ReadOptions);
-            PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(input.ReadOptions, source, output, generatedGrowth);
+            PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(input.ReadOptions, source, output, generatedGrowth);
             PdfRewritePreservationReport preservation = PdfRewritePreservation.Assess(
                 source,
                 output,

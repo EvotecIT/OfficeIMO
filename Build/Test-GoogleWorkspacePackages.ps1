@@ -1,5 +1,5 @@
 param(
-    [string] $Version = '3.1.0'
+    [string] $Version = '3.3.0'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,6 +17,7 @@ $configPath = Join-Path $workingPath 'NuGet.Config'
 try {
     New-Item -ItemType Directory -Path $feed | Out-Null
     $projects = @(
+        'OfficeIMO.Core/OfficeIMO.Core.csproj',
         'OfficeIMO.GoogleWorkspace/OfficeIMO.GoogleWorkspace.csproj',
         'OfficeIMO.GoogleWorkspace.Drive/OfficeIMO.GoogleWorkspace.Drive.csproj',
         'OfficeIMO.GoogleWorkspace.Sync/OfficeIMO.GoogleWorkspace.Sync.csproj',
@@ -52,7 +53,7 @@ try {
 
     @"
 <?xml version="1.0" encoding="utf-8"?>
-<configuration><packageSources><clear /><add key="OfficeIMOLocal" value="$feed" /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" /></packageSources><packageSourceMapping><packageSource key="OfficeIMOLocal"><package pattern="OfficeIMO.GoogleWorkspace*" /></packageSource><packageSource key="nuget.org"><package pattern="*" /></packageSource></packageSourceMapping></configuration>
+<configuration><packageSources><clear /><add key="OfficeIMOLocal" value="$feed" /><add key="nuget.org" value="https://api.nuget.org/v3/index.json" /></packageSources><packageSourceMapping><packageSource key="OfficeIMOLocal"><package pattern="OfficeIMO.Core" /><package pattern="OfficeIMO.GoogleWorkspace*" /></packageSource><packageSource key="nuget.org"><package pattern="*" /></packageSource></packageSourceMapping></configuration>
 "@ | Set-Content -LiteralPath $configPath -Encoding utf8
 
     $project = Join-Path $repositoryRoot 'Build/PackageSmoke/OfficeIMO.GoogleWorkspace/OfficeIMO.GoogleWorkspace.PackageSmoke.csproj'

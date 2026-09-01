@@ -136,7 +136,7 @@ public sealed class HtmlPdfWorkbenchContractTests {
         Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(result.PdfBytes, 0, 8), StringComparison.Ordinal);
         Assert.Equal("Managed", result.Evidence.Engine);
         Assert.Equal(result.PdfBytes.Length, result.Evidence.PdfBytes);
-        Assert.True(PdfDocument.Open(result.PdfBytes).Inspect().PageCount > 0);
+        Assert.True(PdfDocument.Load(result.PdfBytes).Inspect().PageCount > 0);
         using JsonDocument evidence = JsonDocument.Parse(result.EvidenceBytes);
         Assert.Equal("officeimo.html-pdf-workbench/v1", evidence.RootElement.GetProperty("schema").GetString());
         Assert.Equal(result.Evidence.OutputSha256, evidence.RootElement.GetProperty("outputSha256").GetString());
@@ -219,7 +219,7 @@ public sealed class HtmlPdfWorkbenchContractTests {
         Assert.NotNull(result.Evidence.Browser);
         Assert.False(string.IsNullOrWhiteSpace(result.Evidence.Browser!.BrowserVersion));
         Assert.Equal(0, result.Evidence.Browser.BlockedRequestCount);
-        Assert.True(PdfDocument.Open(result.PdfBytes).Inspect().PageCount > 0);
+        Assert.True(PdfDocument.Load(result.PdfBytes).Inspect().PageCount > 0);
     }
 
     [Fact]

@@ -139,7 +139,7 @@ public sealed partial class HtmlRenderingTests {
         };
         byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
-        PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri(link));
+        PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfDocumentReadResult.Load(pdf).GetLinksByUri(link));
 
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(5, 5));
         Assert.True(raster.GetPixel(105, 10).A > 0);
@@ -490,7 +490,7 @@ public sealed partial class HtmlRenderingTests {
         };
 
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Single(logical.GetLinksByUri("https://example.com/inside"));
         Assert.Empty(logical.GetLinksByUri("https://example.com/outside"));

@@ -12,7 +12,7 @@ public class PdfDebuggerTests {
             .ToBytes();
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(source, title: "Debugger updated");
 
-        PdfDebuggerReport report = PdfDocument.Open(updated).Debug(new PdfDebuggerOptions {
+        PdfDebuggerReport report = PdfDocument.Load(updated).Debug(new PdfDebuggerOptions {
             IncludeDecodedStreamPreviews = true
         });
         PdfDebugPage page = Assert.Single(report.Pages);
@@ -45,19 +45,19 @@ public class PdfDebuggerTests {
         PdfDebuggerReport report = PdfDebugger.Dump(
             encrypted,
             new PdfDebuggerOptions { MaxContentOperatorsPerPage = 2 },
-            new PdfReadOptions { Password = "open" });
+            new PdfLoadOptions { Password = "open" });
 
         PdfDebugPage page = Assert.Single(report.Pages);
         Assert.Equal(2, page.ContentOperators.Count);
         Assert.True(page.ContentOperatorsTruncated);
         Assert.Throws<PdfPasswordRequiredException>(() => PdfDebugger.Dump(encrypted));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDebugger.Dump(encrypted, new PdfDebuggerOptions { MaxContentOperatorsPerPage = 0 }, new PdfReadOptions { Password = "open" }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDebugger.Dump(encrypted, new PdfDebuggerOptions { MaxContentOperatorsPerPage = 0 }, new PdfLoadOptions { Password = "open" }));
     }
 
     [Fact]
     public void Dump_PathAndStreamEnforceParserInputBudgetBeforeBuffering() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Bounded debugger")).ToBytes();
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = source.Length - 1L }
         };
 
@@ -93,7 +93,7 @@ public class PdfDebuggerTests {
 
         PdfDebuggerReport report = PdfDebugger.Dump(
             stream,
-            readOptions: new PdfReadOptions {
+            readOptions: new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxInputBytes = source.Length }
             });
 

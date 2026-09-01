@@ -66,7 +66,7 @@ public class PdfColorRenderingFinalReviewTests {
             new byte[] { 255, 0, 0 },
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8",
             outputProfile: PdfIccProfiles.SrgbIec6196621);
-        PdfDocument document = PdfDocument.Open(pdf);
+        PdfDocument document = PdfDocument.Load(pdf);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Move(Assert.Single(document.Images.Placements()), 10, 0));

@@ -18,7 +18,7 @@ public class PdfEncryptedWriteTests {
         Assert.DoesNotContain("AES default source", raw, StringComparison.Ordinal);
         Assert.Contains(
             "AES default source",
-            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" }),
+            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" }),
             StringComparison.Ordinal);
     }
 
@@ -39,7 +39,7 @@ public class PdfEncryptedWriteTests {
         Assert.Contains("/CFM /AESV2", raw, StringComparison.Ordinal);
         Assert.Contains(
             "AES-128 interoperability source",
-            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "owner" }),
+            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "owner" }),
             StringComparison.Ordinal);
     }
 
@@ -60,7 +60,7 @@ public class PdfEncryptedWriteTests {
         Assert.DoesNotContain("/AESV2", raw, StringComparison.Ordinal);
         Assert.Contains(
             "Legacy RC4 source",
-            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" }),
+            PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" }),
             StringComparison.Ordinal);
     }
 
@@ -77,7 +77,7 @@ public class PdfEncryptedWriteTests {
             .Paragraph(paragraph => paragraph.Text("Permission source"))
             .ToBytes();
 
-        PdfDocumentInfo info = PdfInspector.Inspect(pdf, new PdfReadOptions { Password = "open" });
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" });
 
         Assert.Equal(PdfStandardPermissions.Print | PdfStandardPermissions.FillForms, info.Security.AllowedStandardPermissions);
         Assert.True(info.Security.AllowsPrinting);
@@ -100,7 +100,7 @@ public class PdfEncryptedWriteTests {
         Assert.False(preflight.CanRead);
         Assert.Contains(preflight.ReadBlockers, blocker => blocker.Kind == PdfReadBlockerKind.Encryption);
         Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(pdf));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfLoadOptions { Password = "wrong" }));
     }
 
     [Fact]
@@ -109,12 +109,12 @@ public class PdfEncryptedWriteTests {
             .Paragraph(paragraph => paragraph.Text("Generated Secret PDF Text"))
             .ToBytes();
 
-        var readOptions = new PdfReadOptions { Password = "open" };
+        var readOptions = new PdfLoadOptions { Password = "open" };
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, readOptions);
-        PdfDocument opened = PdfDocument.Open(pdf, readOptions);
-        string fluentText = opened.Read.Text();
-        PdfOperationResult<string> tryText = opened.Read.TryText();
+        PdfDocument opened = PdfDocument.Load(pdf, readOptions);
+        string fluentText = opened.Reader.Text();
+        PdfOperationResult<string> tryText = opened.Reader.TryText();
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
@@ -133,13 +133,13 @@ public class PdfEncryptedWriteTests {
             .TextField("Name", width: 180, height: 24, value: "Ada")
             .ToBytes();
 
-        var userOptions = new PdfReadOptions { Password = "open" };
+        var userOptions = new PdfLoadOptions { Password = "open" };
         PdfDocumentPreflight userPreflight = PdfInspector.Preflight(pdf, userOptions);
         Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
+            PdfDocument.Load(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
                 ["Name"] = "Blocked"
             }));
-        PdfDocument ownerFilled = PdfDocument.Open(pdf, new PdfReadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
+        PdfDocument ownerFilled = PdfDocument.Load(pdf, new PdfLoadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
             ["Name"] = "Grace"
         });
 
@@ -158,7 +158,7 @@ public class PdfEncryptedWriteTests {
             .Paragraph(paragraph => paragraph.Text("Generated UTF8 Password Secret"))
             .ToBytes();
 
-        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "owner" });
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "owner" });
 
         Assert.Contains("Generated UTF8 Password Secret", text, StringComparison.Ordinal);
     }
@@ -174,7 +174,7 @@ public class PdfEncryptedWriteTests {
         string text = PdfTextExtractor.ExtractAllText(
             pdf,
             (PdfTextLayoutOptions?)null,
-            new PdfReadOptions { Password = decomposed });
+            new PdfLoadOptions { Password = decomposed });
 
         Assert.Contains("Normalized Unicode password", text, StringComparison.Ordinal);
     }
@@ -189,7 +189,7 @@ public class PdfEncryptedWriteTests {
         string text = PdfTextExtractor.ExtractAllText(
             pdf,
             (PdfTextLayoutOptions?)null,
-            new PdfReadOptions { Password = sharedPrefix + "second" });
+            new PdfLoadOptions { Password = sharedPrefix + "second" });
 
         Assert.Contains("Truncated Unicode password", text, StringComparison.Ordinal);
     }
@@ -201,7 +201,7 @@ public class PdfEncryptedWriteTests {
             .Paragraph(paragraph => paragraph.Text("Fluent Encryption Secret"))
             .ToBytes();
 
-        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" });
 
         Assert.Contains("Fluent Encryption Secret", text, StringComparison.Ordinal);
     }
@@ -212,7 +212,7 @@ public class PdfEncryptedWriteTests {
             .Paragraph(paragraph => paragraph.Text("Owner Password Secret"))
             .ToBytes();
 
-        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "owner" });
+        string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "owner" });
 
         Assert.Contains("Owner Password Secret", text, StringComparison.Ordinal);
     }
@@ -229,7 +229,7 @@ public class PdfEncryptedWriteTests {
         text = text.Replace("/Encrypt " + objectNumber + " 0 R", "/Encrypt " + objectNumber + " 2 R")
             .Replace("\n" + objectNumber + " 0 obj", "\n" + objectNumber + " 2 obj");
 
-        string extracted = PdfTextExtractor.ExtractAllText(PdfEncoding.Latin1GetBytes(text), (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" });
+        string extracted = PdfTextExtractor.ExtractAllText(PdfEncoding.Latin1GetBytes(text), (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" });
 
         Assert.Contains("Generation Encryption Secret", extracted, StringComparison.Ordinal);
     }

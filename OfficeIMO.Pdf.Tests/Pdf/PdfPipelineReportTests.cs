@@ -56,7 +56,7 @@ public sealed class PdfPipelineReportTests {
         Assert.Equal(1, result.Pipeline.Output?.PageCount);
         Assert.Equal(
             1,
-            PdfInspector.Inspect(result.Bytes, new PdfReadOptions { Password = "open" }).PageCount);
+            PdfInspector.Inspect(result.Bytes, new PdfLoadOptions { Password = "open" }).PageCount);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("Pipeline mutation"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Open(source).UpdateMetadata(title: "After");
+        PdfDocument updated = PdfDocument.Load(source).UpdateMetadata(title: "After");
         using var stream = new MemoryStream();
 
         PdfSaveResult result = updated.Save(stream);
@@ -95,7 +95,7 @@ public sealed class PdfPipelineReportTests {
             .Paragraph(paragraph => paragraph.Text("Append-only pipeline"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Open(source)
+        PdfDocument updated = PdfDocument.Load(source)
             .AppendMetadataRevision(title: "After");
 
         PdfPipelineStep mutation = Assert.Single(
@@ -189,7 +189,7 @@ public sealed class PdfPipelineReportTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Third"))
             .ToBytes();
-        PdfDocument opened = PdfDocument.Open(source);
+        PdfDocument opened = PdfDocument.Load(source);
 
         IReadOnlyList<PdfDocument> pages = opened.Pages.Split();
         PdfDocument range = Assert.Single(opened.Pages.Split(new[] { PdfPageRange.From(1, 2) }));

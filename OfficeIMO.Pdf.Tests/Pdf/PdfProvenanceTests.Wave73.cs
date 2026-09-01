@@ -9,11 +9,11 @@ public sealed partial class PdfProvenanceTests {
     public void ExplicitLowerAggregateDecodeLimitRemainsAuthoritative() {
         const long explicitLimit = 32L * 1024L * 1024L;
         var options = new OfficeProvenanceOptions { MaxExpandedContainerBytes = 512L * 1024L * 1024L };
-        var requested = new PdfReadOptions {
+        var requested = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalDecodedStreamBytes = explicitLimit }
         };
 
-        PdfReadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
+        PdfLoadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
 
         Assert.Equal(explicitLimit, effective.Limits.MaxTotalDecodedStreamBytes);
     }
@@ -22,11 +22,11 @@ public sealed partial class PdfProvenanceTests {
     public void ExplicitHigherAggregateDecodeLimitIsCappedByProvenanceLimit() {
         const long provenanceLimit = 256L * 1024L * 1024L;
         var options = new OfficeProvenanceOptions { MaxExpandedContainerBytes = provenanceLimit };
-        var requested = new PdfReadOptions {
+        var requested = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalDecodedStreamBytes = 768L * 1024L * 1024L }
         };
 
-        PdfReadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
+        PdfLoadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
 
         Assert.Equal(provenanceLimit, effective.Limits.MaxTotalDecodedStreamBytes);
     }

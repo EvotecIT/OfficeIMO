@@ -15,9 +15,9 @@ public class PdfAttachmentEditorTests {
             .ToBytes();
         var created = new DateTimeOffset(2026, 7, 11, 12, 30, 45, TimeSpan.FromHours(2));
         var modified = created.AddHours(1);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
 
-        PdfAttachmentEditResult result = PdfDocument.Open(source, readOptions).Attachments.Edit(attachments => attachments
+        PdfAttachmentEditResult result = PdfDocument.Load(source, readOptions).Attachments.Edit(attachments => attachments
             .Rename("alpha.txt", "renamed.txt")
             .Replace("beta.txt", new PdfEmbeddedFile("beta.txt", Encoding.UTF8.GetBytes("new beta"), "text/plain", description: "replacement"))
             .Remove("obsolete.bin")
@@ -183,7 +183,7 @@ public class PdfAttachmentEditorTests {
     [Fact]
     public void ReadDocument_AppliesDecodedStreamLimitToPageAssociatedFiles() {
         byte[] source = PdfAssociatedFileTestSupport.BuildPageAssociatedFilePdf();
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 8 } };
 
         PdfReadDocument document = PdfReadDocument.Open(source, options);
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => document.ExtractAttachments());

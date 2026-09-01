@@ -175,11 +175,11 @@ public sealed class PdfImageExportContractTests {
 
     [Fact]
     public void FluentDocumentReaderUsesTheSharedImageExportContract() {
-        PdfDocument document = PdfDocument.Open(PdfDocument.Create()
+        PdfDocument document = PdfDocument.Load(PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Fluent image export"))
             .ToBytes());
 
-        OfficeImageExportResult result = Assert.Single(document.Read.ExportImages(
+        OfficeImageExportResult result = Assert.Single(document.Reader.ExportImages(
             OfficeImageExportFormat.Svg));
 
         Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
@@ -218,7 +218,7 @@ public sealed class PdfImageExportContractTests {
         Assert.ThrowsAny<OperationCanceledException>(() =>
             document.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         Assert.ThrowsAny<OperationCanceledException>(() =>
-            document.Read.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
+            document.Reader.ExportImages(OfficeImageExportFormat.Png, cancellationToken: cancellation.Token));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => builder.ExportAsync(cancellation.Token));
         Assert.False(materialized);
     }

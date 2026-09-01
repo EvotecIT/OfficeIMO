@@ -15,7 +15,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .H1("Quarterly summary")
             .Paragraph(paragraph => paragraph.Text("Revenue increased."))
             .ToBytes();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Open(source);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
         PdfOdtConversionResult result = pdf.ToOdtDocumentResult();
         byte[] odt = result.Value.ToBytes();
@@ -33,7 +33,7 @@ public sealed class PdfOpenDocumentBridgeTests {
         byte[] source = PdfCore.PdfDocument.Create()
             .TextField("Approval", width: 120, value: "Ready")
             .ToBytes();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Open(source);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
         PdfOdtConversionResult result = pdf.ToOdtDocumentResult();
 
@@ -53,7 +53,7 @@ public sealed class PdfOpenDocumentBridgeTests {
                 PdfCore.PdfKeyValueRow.Text("Customer", "Evotec")
             })
             .ToBytes();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Open(source);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
         PdfOdsConversionResult result = pdf.ToOdsDocumentResult();
 
@@ -89,7 +89,7 @@ public sealed class PdfOpenDocumentBridgeTests {
             .PageBreak()
             .H1("Second page")
             .ToBytes();
-        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Open(source);
+        PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Load(source);
 
         PdfOdpConversionResult result = pdf.ToOdpPresentationResult();
 

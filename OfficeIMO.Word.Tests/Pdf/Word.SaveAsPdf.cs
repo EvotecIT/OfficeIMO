@@ -530,7 +530,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(File.ReadAllBytes(pdfPath), new PdfCore.PdfTextLayoutOptions {
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(File.ReadAllBytes(pdfPath), new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         Assert.Contains(logical.NamedDestinations, destination => destination.Name == "TargetBookmark");

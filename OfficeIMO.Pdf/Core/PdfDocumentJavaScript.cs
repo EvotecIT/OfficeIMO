@@ -7,7 +7,7 @@ public sealed class PdfDocumentJavaScript {
     internal PdfDocumentJavaScript(PdfDocument document) { _document = document; }
 
     /// <summary>Lists named document-level scripts and their exact source text.</summary>
-    public IReadOnlyList<PdfJavaScript> List() => _document.Read.JavaScripts();
+    public IReadOnlyList<PdfJavaScript> List() => _document.Reader.JavaScripts();
 
     /// <summary>
     /// Applies a transactional named-script collection edit. JavaScript is active content and may execute in capable PDF viewers.

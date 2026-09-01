@@ -107,10 +107,10 @@ public class PdfAdapterSecurityComplianceTests {
         Assert.Equal(256, probe.Security.EncryptionLengthBits);
         Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfReadDocument.Open(pdf));
         Assert.Throws<PdfCore.PdfInvalidPasswordException>(() =>
-            PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfReadOptions { Password = "wrong" }));
+            PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfLoadOptions { Password = "wrong" }));
         Assert.Contains(
             Marker(route),
-            PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfReadOptions { Password = "open" }).ExtractText(),
+            PdfCore.PdfReadDocument.Open(pdf, new PdfCore.PdfLoadOptions { Password = "open" }).ExtractText(),
             StringComparison.Ordinal);
     }
 
@@ -154,7 +154,7 @@ public class PdfAdapterSecurityComplianceTests {
             AesCryptographyProvider = OfficeIMO.Security.OfficeManagedAesCryptographyProvider.Default
         };
 
-        PdfCore.PdfSecurityMutationResult protectedPdf = PdfCore.PdfDocument.Open(archivalPdf).Security.Encrypt(encryption);
+        PdfCore.PdfSecurityMutationResult protectedPdf = PdfCore.PdfDocument.Load(archivalPdf).Security.Encrypt(encryption);
         PdfCore.PdfSecurityMutationResult unlockedPdf = protectedPdf.ToDocument().Security.Decrypt("owner");
 
         Assert.True(PdfCore.PdfInspector.Probe(protectedPdf.Pdf).HasEncryption);

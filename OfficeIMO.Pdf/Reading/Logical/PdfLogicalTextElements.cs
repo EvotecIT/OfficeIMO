@@ -225,21 +225,30 @@ public sealed class PdfLogicalTextRun {
 /// Heuristic heading line inferred from text size and geometry.
 /// </summary>
 public sealed class PdfLogicalHeading {
-    internal PdfLogicalHeading(int pageNumber, int level, string text, double fontSize, PdfLogicalTextBlock line) {
+    internal PdfLogicalHeading(
+        int pageNumber,
+        int level,
+        string text,
+        double fontSize,
+        PdfLogicalTextBlock line,
+        double confidence = 0.82D,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) {
         PageNumber = pageNumber;
         Level = level;
         Text = text;
         FontSize = fontSize;
         Line = line;
-        Confidence = 0.82D;
-        Evidence = new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) };
+        Confidence = PdfInference.Clamp(confidence);
+        Evidence = evidence is null
+            ? new[] { new PdfInferenceEvidence("heading.font-tier", "The line was assigned to a larger-font heading tier relative to nearby body text.", 0.8D) }
+            : PdfInference.Snapshot(evidence);
     }
 
     /// <summary>One-based source page number.</summary>
     public int PageNumber { get; }
 
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
-    public int Level { get; }
+    public int Level { get; private set; }
 
     /// <summary>Heading text.</summary>
     public string Text { get; }
@@ -253,21 +262,53 @@ public sealed class PdfLogicalHeading {
     public double Confidence { get; }
     /// <summary>Evidence supporting the heading classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+
+    internal bool CanApplyDocumentFontTier => !Evidence.Any(static item =>
+        string.Equals(item.Code, "semantic.outline-heading", StringComparison.Ordinal) ||
+        string.Equals(item.Code, "semantic.tagged-pdf-role", StringComparison.Ordinal));
+
+    internal void ApplyDocumentFontTier(int level) {
+        if (!CanApplyDocumentFontTier) return;
+        Level = Math.Min(6, Math.Max(1, level));
+    }
 }
 
 /// <summary>
 /// Detected bullet or numbered list item.
 /// </summary>
 public sealed class PdfLogicalListItem {
-    internal PdfLogicalListItem(int pageNumber, int level, string marker, string text, PdfLogicalTextBlock line) {
+    internal PdfLogicalListItem(
+        int pageNumber,
+        int level,
+        string marker,
+        string text,
+        PdfLogicalTextBlock line,
+        double? confidence = null,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) :
+        this(pageNumber, level, marker, text, new[] { line }, new[] { text }, confidence, evidence) { }
+
+    internal PdfLogicalListItem(
+        int pageNumber,
+        int level,
+        string marker,
+        string text,
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        IReadOnlyList<string> lineTexts,
+        double? confidence = null,
+        IEnumerable<PdfInferenceEvidence>? evidence = null) {
+        if (lines.Count == 0) throw new ArgumentException("A logical list item requires at least one source line.", nameof(lines));
+        if (lineTexts.Count != lines.Count) throw new ArgumentException("Each logical list source line requires corresponding item text.", nameof(lineTexts));
         PageNumber = pageNumber;
         Level = level;
         Marker = marker;
         Text = text;
-        Line = line;
-        Runs = SliceRuns(line, text);
-        Confidence = string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D;
-        Evidence = new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) };
+        Lines = Array.AsReadOnly(lines.ToArray());
+        Line = Lines[0];
+        Runs = BuildRuns(Lines, lineTexts);
+        Confidence = PdfInference.Clamp(confidence ?? (string.IsNullOrWhiteSpace(marker) ? 0.55D : 0.9D));
+        Evidence = evidence is null
+            ? new[] { new PdfInferenceEvidence(string.IsNullOrWhiteSpace(marker) ? "list.indentation" : "list.marker", string.IsNullOrWhiteSpace(marker) ? "List membership was inferred from indentation and neighboring items." : "The line begins with a recognized list marker: " + marker + ".", string.IsNullOrWhiteSpace(marker) ? 0.3D : 0.9D) }
+            : PdfInference.Snapshot(evidence);
     }
 
     /// <summary>One-based source page number.</summary>
@@ -282,8 +323,11 @@ public sealed class PdfLogicalListItem {
     /// <summary>List item text without the marker.</summary>
     public string Text { get; }
 
-    /// <summary>Line-level text block that produced the list item.</summary>
+    /// <summary>First line-level text block that produced the list item.</summary>
     public PdfLogicalTextBlock Line { get; }
+
+    /// <summary>Line-level text blocks that produced the list item, in reading order.</summary>
+    public IReadOnlyList<PdfLogicalTextBlock> Lines { get; }
 
     /// <summary>List item text segmented into semantic runs, excluding the detected marker.</summary>
     public IReadOnlyList<PdfLogicalTextRun> Runs { get; }
@@ -292,6 +336,24 @@ public sealed class PdfLogicalListItem {
     public double Confidence { get; }
     /// <summary>Evidence supporting the list classification.</summary>
     public IReadOnlyList<PdfInferenceEvidence> Evidence { get; }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalTextRun> BuildRuns(
+        IReadOnlyList<PdfLogicalTextBlock> lines,
+        IReadOnlyList<string> lineTexts) {
+        var result = new List<PdfLogicalTextRun>();
+        for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+            string lineText = lineTexts[lineIndex];
+            IReadOnlyList<PdfLogicalTextRun> lineRuns = SliceRuns(lines[lineIndex], lineText);
+            if (lineText.Length == 0) continue;
+            if (result.Count > 0) result.Add(new PdfLogicalTextRun(" ", sourceSpan: null));
+            if (lineRuns.Count == 0) {
+                result.Add(new PdfLogicalTextRun(lineText, sourceSpan: null));
+            } else {
+                result.AddRange(lineRuns);
+            }
+        }
+        return result.AsReadOnly();
+    }
 
     private static IReadOnlyList<PdfLogicalTextRun> SliceRuns(PdfLogicalTextBlock line, string text) {
         if (string.IsNullOrEmpty(text)) {
@@ -379,6 +441,19 @@ public sealed class PdfLogicalParagraph {
             paragraph.XEnd,
             paragraph.YTop,
             paragraph.YBottom);
+    }
+
+    internal static PdfLogicalParagraph From(int pageNumber, IReadOnlyList<PdfLogicalTextBlock> lines) {
+        Guard.NotNull(lines, nameof(lines));
+        if (lines.Count == 0) throw new ArgumentException("At least one logical line is required.", nameof(lines));
+        return new PdfLogicalParagraph(
+            pageNumber,
+            string.Join(" ", lines.Select(static line => line.Text)),
+            lines.ToArray(),
+            lines.Min(static line => line.XStart),
+            lines.Max(static line => line.XEnd),
+            lines.Max(static line => line.BaselineY),
+            lines.Min(static line => line.BaselineY));
     }
 
     internal static PdfLogicalParagraph FromOcr(int pageNumber, PdfLogicalTextBlock line) {

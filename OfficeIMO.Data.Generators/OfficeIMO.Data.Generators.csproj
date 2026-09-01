@@ -3,7 +3,7 @@
     <Description>Incremental source generators for AOT-safe OfficeIMO tabular row mappings.</Description>
     <AssemblyName>OfficeIMO.Data.Generators</AssemblyName>
     <AssemblyTitle>OfficeIMO.Data.Generators</AssemblyTitle>
-    <VersionPrefix>3.2.7</VersionPrefix>
+    <VersionPrefix>3.3.0</VersionPrefix>
     <TargetFramework>netstandard2.0</TargetFramework>
     <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <EnableTrimAnalyzer>false</EnableTrimAnalyzer>

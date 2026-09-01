@@ -4,7 +4,7 @@ internal static partial class PdfSyntax {
     internal static bool TryCreateDecryptor(
         Dictionary<int, PdfIndirectObject> map,
         string trailerRaw,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         out PdfStandardSecurityHandler? decryptor) {
         decryptor = null;
         PdfReference? encryptReference = ReadTrailerReference(trailerRaw, "Encrypt", options?.Limits);

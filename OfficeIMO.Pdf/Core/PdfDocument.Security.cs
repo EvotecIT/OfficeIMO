@@ -28,7 +28,7 @@ public sealed partial class PdfDocument {
     /// <summary>Attempts to remove Standard password security using the current owner password.</summary>
     internal PdfOperationResult<PdfSecurityMutationResult> TryDecrypt(string ownerPassword) {
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
-        PdfReadOptions readOptions = PdfReadOptions.WithPassword(ReadOptions, ownerPassword);
+        PdfLoadOptions readOptions = PdfLoadOptions.WithPassword(ReadOptions, ownerPassword);
         return TryMutationOperation(
             "Decrypt document",
             PdfPreflightCapability.ManipulatePages,
@@ -53,7 +53,7 @@ public sealed partial class PdfDocument {
         PdfStandardEncryptionOptions newEncryption) {
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));
         Guard.NotNull(newEncryption, nameof(newEncryption));
-        PdfReadOptions readOptions = PdfReadOptions.WithPassword(ReadOptions, currentOwnerPassword);
+        PdfLoadOptions readOptions = PdfLoadOptions.WithPassword(ReadOptions, currentOwnerPassword);
         return TryMutationOperation(
             "Re-encrypt document",
             PdfPreflightCapability.ManipulatePages,

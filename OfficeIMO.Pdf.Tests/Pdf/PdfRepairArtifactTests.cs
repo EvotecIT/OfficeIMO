@@ -14,7 +14,7 @@ public class PdfRepairArtifactTests {
         Assert.True(result.IsVerified);
         Assert.Contains(result.SourceRepairReport.Diagnostics, static diagnostic => diagnostic.Code == "IncorrectStreamLength" && diagnostic.WasRecovered);
         Assert.Empty(result.StrictOutputRepairReport.Diagnostics);
-        Assert.Contains("Recovered stream text", PdfReadDocument.Open(result.ToBytes(), new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Recovered stream text", PdfReadDocument.Open(result.ToBytes(), new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }).ExtractText(), StringComparison.Ordinal);
         Assert.True(result.Preservation.IsPreserved);
     }
 
@@ -35,7 +35,7 @@ public class PdfRepairArtifactTests {
     [Fact]
     public void Create_PreservesTheCallerSourceInputByteLimit() {
         byte[] source = BuildStreamPdf("/Length 999");
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = source.LongLength - 1L }
         };
 
@@ -49,7 +49,7 @@ public class PdfRepairArtifactTests {
     public void Create_ReservesCanonicalRewriteObjectGrowth() {
         const string catalogBody = "<</Type/Catalog/Pages 2 0 R/A[]/B[]/C[]/D[]/E[]/F[]/G[]/H[]/I[]/J[]>>";
         byte[] source = BuildStreamPdf("/Length 999", catalogBody);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxObjectCharacters = catalogBody.Length,
                 MaxTokensPerObject = catalogBody.Length
@@ -59,7 +59,7 @@ public class PdfRepairArtifactTests {
         PdfRepairArtifactResult result = PdfRepairArtifact.Create(source, readOptions: readOptions);
 
         Assert.True(result.IsVerified);
-        Assert.Single(result.ToDocument().Read.Pages());
+        Assert.Single(result.ToDocument().Reader.Pages());
     }
 
     private static byte[] BuildStreamPdf(

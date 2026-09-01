@@ -56,7 +56,7 @@ internal static partial class PdfComplianceAnalyzer {
         PdfComplianceReadinessReport readiness,
         byte[] artifact,
         IEnumerable<PdfExternalValidationResult>? externalValidations,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(readiness, nameof(readiness));
         Guard.NotNull(artifact, nameof(artifact));
 

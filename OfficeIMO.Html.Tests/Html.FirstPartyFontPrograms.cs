@@ -80,7 +80,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
         Assert.False(first.HasLoss, FormatWarnings(first));
         HtmlPdfAccessibilityValidationResult validation = HtmlPdfAccessibilityValidator.Validate(source, firstPdf);
         Assert.True(validation.IsValid, string.Join(" | ", validation.Issues.Select(issue => issue.Code + ": " + issue.Message)));
-        var outlineShapes = PdfCore.PdfDocument.Open(firstPdf).Read.Drawing(1).Shapes;
+        var outlineShapes = PdfCore.PdfDocument.Load(firstPdf).Render.Drawing(1).Shapes;
         Assert.NotEmpty(outlineShapes);
         Assert.All(outlineShapes, shape => Assert.Equal(OfficeFillRule.NonZero, shape.Shape.FillRule));
     }
@@ -101,7 +101,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("StaticPdfEmbeddable", out string? staticEmbeddable)
             && staticEmbeddable == "false");
-        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes);
+        Assert.NotEmpty(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes);
         Assert.True(HtmlPdfAccessibilityValidator.Validate(source, pdf).IsValid);
     }
 
@@ -126,7 +126,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
             warning.Code == HtmlPdfDiagnosticCodes.FontProgramOutlined
             && warning.Details.TryGetValue("Representation", out string? representation)
             && representation == "vector-outlines-plus-actual-text");
-        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes);
+        Assert.NotEmpty(PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes);
     }
 
     [Fact]
@@ -159,11 +159,11 @@ public sealed class HtmlFirstPartyFontProgramTests {
 
         byte[] unshapedPdf = source.ToPdfDocumentResult(unshapedOptions).ToBytes();
         byte[] shapedPdf = source.ToPdfDocumentResult(shapedOptions).ToBytes();
-        int unshapedCommandCount = PdfCore.PdfDocument.Open(unshapedPdf)
-            .Read.Drawing(1).Shapes
+        int unshapedCommandCount = PdfCore.PdfDocument.Load(unshapedPdf)
+            .Render.Drawing(1).Shapes
             .Sum(shape => shape.Shape.PathCommands.Count);
-        int shapedCommandCount = PdfCore.PdfDocument.Open(shapedPdf)
-            .Read.Drawing(1).Shapes
+        int shapedCommandCount = PdfCore.PdfDocument.Load(shapedPdf)
+            .Render.Drawing(1).Shapes
             .Sum(shape => shape.Shape.PathCommands.Count);
 
         Assert.True(shapedCommandCount < unshapedCommandCount);
@@ -274,9 +274,9 @@ public sealed class HtmlFirstPartyFontProgramTests {
         HtmlConversionDocument requested = HtmlConversionDocument.Parse(prefix + ";font-weight:700;font-style:italic}</style><p>Ω</p></html>");
 
         IReadOnlyList<OfficePathCommand> regularCommands = Assert.Single(
-            PdfCore.PdfDocument.Open(regular.ToPdfDocumentResult().ToBytes()).Read.Drawing(1).Shapes).Shape.PathCommands;
+            PdfCore.PdfDocument.Load(regular.ToPdfDocumentResult().ToBytes()).Render.Drawing(1).Shapes).Shape.PathCommands;
         IReadOnlyList<OfficePathCommand> requestedCommands = Assert.Single(
-            PdfCore.PdfDocument.Open(requested.ToPdfDocumentResult().ToBytes()).Read.Drawing(1).Shapes).Shape.PathCommands;
+            PdfCore.PdfDocument.Load(requested.ToPdfDocumentResult().ToBytes()).Render.Drawing(1).Shapes).Shape.PathCommands;
 
         Assert.Equal(regularCommands.Count * 2, requestedCommands.Count);
         Assert.True(OutlinedPathWidth(requestedCommands) > OutlinedPathWidth(regularCommands));
@@ -410,7 +410,7 @@ public sealed class HtmlFirstPartyFontProgramTests {
     }
 
     private static double OutlinedPathWidth(byte[] pdf) => OutlinedPathWidth(Assert.Single(
-        PdfCore.PdfDocument.Open(pdf).Read.Drawing(1).Shapes).Shape.PathCommands);
+        PdfCore.PdfDocument.Load(pdf).Render.Drawing(1).Shapes).Shape.PathCommands);
 
     private static double OutlinedPathWidth(IReadOnlyList<OfficePathCommand> commands) {
         double minimum = commands.Where(command => command.Kind != OfficePathCommandKind.Close).Min(command => command.Point.X);

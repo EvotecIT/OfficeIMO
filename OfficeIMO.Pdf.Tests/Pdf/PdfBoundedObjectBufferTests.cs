@@ -123,7 +123,7 @@ public class PdfBoundedObjectBufferTests {
         byte[] bytes = output.ToArray();
         Assert.Contains(
             "Bounded encrypted output",
-            PdfTextExtractor.ExtractAllText(bytes, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" }),
+            PdfTextExtractor.ExtractAllText(bytes, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" }),
             StringComparison.Ordinal);
     }
 

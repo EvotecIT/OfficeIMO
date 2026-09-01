@@ -28,7 +28,7 @@ internal static class PdfBenchmarkValidation {
     }
 
     internal static void ValidateTaggedStructure(byte[] bytes, string engine, PdfBenchmarkScenario scenario) {
-        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
+        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect();
         PdfTaggedContentInfo? tagged = info.TaggedContent;
         if (!info.HasTaggedContent ||
             tagged == null ||

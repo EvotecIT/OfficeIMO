@@ -7,7 +7,7 @@ internal static partial class PdfSanitizer {
         return Analyze(pdf, options, readOptions: null);
     }
 
-    internal static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options, PdfReadOptions? readOptions) {
+    internal static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         var parsed = PdfSyntax.ParseObjects(pdf, readOptions);
         return Scan(parsed.Map, options ?? new PdfSanitizationOptions());
@@ -21,7 +21,7 @@ internal static partial class PdfSanitizer {
         return Sanitize(pdf, options, readOptions: null);
     }
 
-    internal static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options, PdfReadOptions? readOptions) {
+    internal static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
@@ -43,7 +43,7 @@ internal static partial class PdfSanitizer {
                     ? security.InfoObjectNumber
                     : null;
             });
-        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
+        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
         IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
         if (remaining.Count > 0) {
             throw new InvalidOperationException(

@@ -12,7 +12,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         byte[] pdf = BuildSingleStreamPdf(
             "BT /F1 12 Tf 72 720 Td (Visible text) Tj 3 Tr 0 -24 Td (Hidden OCR text) Tj 0 Tr ET");
 
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ToPowerPointPresentationResult();
 
         Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.Mode);
@@ -47,7 +47,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "ET"
         }));
 
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ToPowerPointPresentationResult();
 
         Assert.Equal(PdfPowerPointImportMode.EditableContent, result.Report.Mode);
@@ -79,7 +79,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "BT /F1 10 Tf 50 640 Td (Gamma) Tj 100 0 Td (84) Tj 100 0 Td (Done) Tj ET"
         }));
 
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ToPowerPointPresentationResult();
 
         using var presentation = new MemoryStream();
@@ -107,7 +107,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "BT /F1 10 Tf 50 640 Td (Gamma) Tj 100 0 Td (84) Tj 100 0 Td (Done) Tj ET"
         }));
 
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ToPowerPointPresentationResult();
 
         Assert.True(result.HasLoss);
@@ -132,7 +132,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             .TextField("Decision", width: 140, value: "Ready")
             .ToBytes();
 
-        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(pdf)
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
             .ToPowerPointPresentationResult();
 
         Assert.True(result.Report.HasOmittedPageContent);
@@ -167,7 +167,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
                 CellPaddingY = 4
             })
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(
             pdf,
             new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true });
 

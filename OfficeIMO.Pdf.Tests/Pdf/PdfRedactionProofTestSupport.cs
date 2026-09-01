@@ -36,7 +36,7 @@ internal static class PdfRedactionProofTestSupport {
     }
 
     private static PdfRedactionArea FindAreaForText(byte[] pdf, string text) {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 

@@ -24,14 +24,14 @@ public static partial class PdfRewritePreservation {
         byte[] originalPdf,
         byte[] rewrittenPdf,
         PdfRewritePreservationOptions? options,
-        PdfReadOptions? originalReadOptions,
-        PdfReadOptions? rewrittenReadOptions) {
+        PdfLoadOptions? originalReadOptions,
+        PdfLoadOptions? rewrittenReadOptions) {
         Guard.NotNull(originalPdf, nameof(originalPdf));
         Guard.NotNull(rewrittenPdf, nameof(rewrittenPdf));
 
         options ??= new PdfRewritePreservationOptions();
-        PdfReadOptions? effectiveOriginalReadOptions = options.OriginalReadOptions ?? originalReadOptions;
-        PdfReadOptions? effectiveRewrittenReadOptions = options.RewrittenReadOptions ?? rewrittenReadOptions;
+        PdfLoadOptions? effectiveOriginalReadOptions = options.OriginalReadOptions ?? originalReadOptions;
+        PdfLoadOptions? effectiveRewrittenReadOptions = options.RewrittenReadOptions ?? rewrittenReadOptions;
         PdfDocumentInfo original = InspectReportInput(originalPdf, effectiveOriginalReadOptions, "original");
         PdfDocumentInfo rewritten = InspectReportInput(rewrittenPdf, effectiveRewrittenReadOptions, "rewritten");
         var issues = new List<PdfRewritePreservationIssue>();
@@ -66,7 +66,7 @@ public static partial class PdfRewritePreservation {
         return new PdfRewritePreservationReport(original, rewritten, issues.AsReadOnly());
     }
 
-    private static PdfDocumentInfo InspectReportInput(byte[] pdf, PdfReadOptions? readOptions, string inputName) {
+    private static PdfDocumentInfo InspectReportInput(byte[] pdf, PdfLoadOptions? readOptions, string inputName) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         document.DemandContentExtraction(inputName + " rewrite-preservation report");
         return PdfInspector.Inspect(pdf, document);
@@ -92,8 +92,8 @@ public static partial class PdfRewritePreservation {
         byte[] originalPdf,
         byte[] rewrittenPdf,
         PdfRewritePreservationOptions? options,
-        PdfReadOptions? originalReadOptions,
-        PdfReadOptions? rewrittenReadOptions) {
+        PdfLoadOptions? originalReadOptions,
+        PdfLoadOptions? rewrittenReadOptions) {
         PdfRewritePreservationReport report = Assess(originalPdf, rewrittenPdf, options, originalReadOptions, rewrittenReadOptions);
         report.ThrowIfFailed();
         return report;
@@ -494,7 +494,7 @@ public static partial class PdfRewritePreservation {
         List<PdfRewritePreservationIssue> issues,
         byte[] rewrittenPdf,
         IEnumerable<string> requiredTextMarkers,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         string text = string.Empty;
         bool loaded = false;
 

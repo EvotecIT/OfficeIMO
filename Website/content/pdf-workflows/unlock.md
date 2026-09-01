@@ -35,8 +35,8 @@ Unlocking decrypts an authorized PDF and writes a new document without Standard 
 using OfficeIMO.Pdf;
 
 const string ownerPassword = "owner-password";
-var readOptions = new PdfReadOptions { Password = ownerPassword };
-PdfDocument source = PdfDocument.Open("statement.protected.pdf", readOptions);
+var readOptions = new PdfLoadOptions { Password = ownerPassword };
+PdfDocument source = PdfDocument.Load("statement.protected.pdf", readOptions);
 
 PdfSecurityMutationResult result = source.Security.Decrypt(ownerPassword);
 File.WriteAllBytes("statement.unlocked.pdf", result.Pdf);

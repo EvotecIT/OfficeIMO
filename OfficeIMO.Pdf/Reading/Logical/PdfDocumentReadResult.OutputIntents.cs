@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Catalog output intent metadata discovered from /OutputIntents.</summary>
     public IReadOnlyList<PdfOutputIntentInfo> OutputIntents { get; }
 

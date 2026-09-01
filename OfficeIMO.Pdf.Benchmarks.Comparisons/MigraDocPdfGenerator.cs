@@ -45,7 +45,7 @@ internal static class MigraDocPdfGenerator {
             }
         }
 
-        var renderer = new PdfDocumentRenderer { Document = document };
+        var renderer = new MigraDoc.Rendering.PdfDocumentRenderer { Document = document };
         renderer.RenderDocument();
         using var output = new MemoryStream();
         renderer.PdfDocument.Save(output, closeStream: false);

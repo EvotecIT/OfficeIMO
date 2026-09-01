@@ -7,7 +7,7 @@ internal static class PdfRtfConverter {
     private const int BulletListId = 1;
     private const int DecimalListId = 2;
 
-    public static RtfDocument Convert(PdfCore.PdfLogicalDocument source, PdfRtfImportOptions? options) {
+    public static RtfDocument Convert(PdfCore.PdfDocumentReadResult source, PdfRtfImportOptions? options) {
         if (source == null) {
             throw new ArgumentNullException(nameof(source));
         }
@@ -37,7 +37,7 @@ internal static class PdfRtfConverter {
     }
 
     private static void AddUnsupportedContentDiagnostics(
-        PdfCore.PdfLogicalDocument source,
+        PdfCore.PdfDocumentReadResult source,
         PdfRtfImportOptions options) {
         AddOmissionWarning(options, "TABLES_NOT_IMPORTED", "Table", source.Tables.Count,
             "Detected PDF tables are not reconstructed by the semantic RTF importer.");

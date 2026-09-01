@@ -25,7 +25,7 @@ public sealed class PdfLogicalTableValueAnalysisTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(Assert.Single(PdfLogicalDocument.Load(pdf).Pages).Tables);
+        PdfLogicalTable table = Assert.Single(Assert.Single(PdfDocumentReadResult.Load(pdf).Pages).Tables);
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
 
         Assert.Equal(

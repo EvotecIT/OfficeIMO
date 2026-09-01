@@ -415,7 +415,7 @@ public sealed class OfficeVisualIntegrationTests {
                 .ToBytes();
             Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
             Assert.Contains("/Subtype /Image", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-            PdfExtractedImage embedded = Assert.Single(PdfDocument.Open(pdf).Read.Images());
+            PdfExtractedImage embedded = Assert.Single(PdfDocument.Load(pdf).Images.Extract());
             Assert.True(OfficeRasterImageDecoder.TryDecode(embedded.Bytes, out OfficeRasterImage? actual));
             Assert.NotNull(actual);
             Assert.Equal(expected.Width, actual!.Width);

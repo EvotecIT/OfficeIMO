@@ -34,7 +34,7 @@ Splitting creates consecutive page groups: a 10-page source split at three pages
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("book.pdf");
+PdfDocument source = PdfDocument.Load("book.pdf");
 int pageCount = source.Inspect().PageCount;
 const int pagesPerPart = 10;
 

@@ -129,7 +129,7 @@ The general PDF route reconstructs supported page content as native slide object
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("handout.pdf");
+PdfDocument pdf = PdfDocument.Load("handout.pdf");
 PdfPowerPointConversionReport report = pdf.SaveAsPowerPoint("handout-editable.pptx");
 
 foreach (var page in report.EditablePages) {
@@ -192,7 +192,7 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 ## Current limits
 
 - Presentation content comes from `OfficeIMO.PowerPoint`; layout and PDF writing use `OfficeIMO.Pdf`.
-- `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfLogicalDocument` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
+- `PdfPowerPointImportMode.Auto` is the options default. It resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`; use `CreateVisualPages()` only when one rendered page image per slide is the intended output.
 - `PdfPowerPointImportMode.EditableContent` reconstructs text blocks, detected tables, safe vector primitives, and supported images as native slide objects and reports anything it cannot represent safely.
 - `PdfPowerPointImportMode.EditableTables` reconstructs detected tables and uses `SourceScope` / `HasOmittedPageContent` to expose unrelated page content.
 - `PdfPowerPointImportMode.HybridVisualAndEditableTables` retains each selected page as a visual layer and overlays bounded editable table segments at source-relative geometry.

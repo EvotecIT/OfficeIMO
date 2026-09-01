@@ -14,11 +14,11 @@ public sealed partial class PdfProvenanceTests {
             MaxManifestBytes = manifestLimit,
             MaxExpandedContainerBytes = 256L * 1024L * 1024L
         };
-        var requested = new PdfReadOptions {
+        var requested = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = explicitLimit }
         };
 
-        PdfReadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
+        PdfLoadOptions effective = PdfProvenance.CreateReadOptionsForInspection(options, requested);
 
         Assert.Equal(explicitLimit, effective.Limits.MaxDecodedStreamBytes);
     }

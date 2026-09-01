@@ -11,12 +11,12 @@ public class PdfImageEditorTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Keep this text"))
             .ToBytes();
-        byte[] annotated = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        byte[] annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
             Subtype = "Square",
             Rectangle = new[] { 35D, 75D, 75D, 105D }
         }).Bytes;
-        PdfDocument first = PdfDocument.Open(annotated).Images.Add(
+        PdfDocument first = PdfDocument.Load(annotated).Images.Add(
             new PdfPageRegion(1, 40D, 80D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
         PdfDocument second = first.Images.Add(
@@ -29,15 +29,15 @@ public class PdfImageEditorTests {
 
         Assert.Equal(1, removed.AffectedCount);
         Assert.InRange(remaining.X, 119.99D, 120.01D);
-        Assert.Contains("Keep this text", removed.Document.Read.Text(), StringComparison.Ordinal);
-        Assert.Single(removed.Document.Read.AnnotationsBySubtype("Square"));
+        Assert.Contains("Keep this text", removed.Document.Reader.Text(), StringComparison.Ordinal);
+        Assert.Single(removed.Document.Reader.AnnotationsBySubtype("Square"));
     }
 
     [Fact]
     public void AddInFrontIsolatesTheExistingPageGraphicsState() {
         byte[] source = BuildRawImagePdf("2 0 0 2 15 10 cm 0 0 5 5 re W n\n");
 
-        byte[] result = PdfDocument.Open(source).Images.Add(
+        byte[] result = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 40D, 40D, 20D, 20D),
             PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document.ToBytes();
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result).Map;
@@ -67,13 +67,13 @@ public class PdfImageEditorTests {
                 Height = 30D,
                 RotationDegrees = 30D
             });
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement original = Assert.Single(document.Images.Placements());
-        byte[] originalPayload = Assert.Single(document.Read.Images()).Bytes;
+        byte[] originalPayload = Assert.Single(document.Reader.Images()).Bytes;
 
         PdfImageEditResult result = document.Images.Replace(original, PdfPngTestImages.CreateRgbPng(0, 0, 255));
         PdfImagePlacement replacement = Assert.Single(result.Document.Images.Placements());
-        byte[] replacementPayload = Assert.Single(result.Document.Read.Images()).Bytes;
+        byte[] replacementPayload = Assert.Single(result.Document.Reader.Images()).Bytes;
 
         Assert.Equal(original.A, replacement.A, 2);
         Assert.Equal(original.B, replacement.B, 2);
@@ -82,12 +82,12 @@ public class PdfImageEditorTests {
         Assert.Equal(original.E, replacement.E, 2);
         Assert.Equal(original.F, replacement.F, 2);
         Assert.NotEqual(Convert.ToBase64String(originalPayload), Convert.ToBase64String(replacementPayload));
-        Assert.Contains("Image editor proof", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Image editor proof", result.Document.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void MovePreservesPortableTransformAndMovesByRequestedOffset() {
-        PdfDocument source = PdfDocument.Open(CreateTextPdf()).Images.Add(
+        PdfDocument source = PdfDocument.Load(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 50D, 90D, 40D, 25D),
             PdfPngTestImages.CreateRgbPng(10, 80, 160)).Document;
         PdfImagePlacement original = Assert.Single(source.Images.Placements());
@@ -101,7 +101,7 @@ public class PdfImageEditorTests {
         Assert.Equal(original.F - 15D, moved.F, 2);
         Assert.Equal(original.A, moved.A, 2);
         Assert.Equal(original.D, moved.D, 2);
-        Assert.Contains("Image editor proof", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Image editor proof", result.Document.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n" +
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement selected = document.Images.Placements()[0];
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Images.Remove(selected));
@@ -122,8 +122,8 @@ public class PdfImageEditorTests {
     public void ReplaceAndMoveFailClosedWhenPlacementSemanticsCannotBeReproduced() {
         byte[] clipped = BuildRawImagePdf("q 0 0 15 15 re W n 40 0 0 20 20 30 cm /Im0 Do Q\n");
         byte[] skewed = BuildRawImagePdf("q 40 5 0 20 20 30 cm /Im0 Do Q\n");
-        PdfDocument clippedDocument = PdfDocument.Open(clipped);
-        PdfDocument skewedDocument = PdfDocument.Open(skewed);
+        PdfDocument clippedDocument = PdfDocument.Load(clipped);
+        PdfDocument skewedDocument = PdfDocument.Load(skewed);
 
         Assert.Throws<NotSupportedException>(() => clippedDocument.Images.Replace(
             Assert.Single(clippedDocument.Images.Placements()),
@@ -138,8 +138,8 @@ public class PdfImageEditorTests {
     public void RemoveSupportsSkewedXObjectsButInlineImagesFailClosed() {
         byte[] skewed = BuildRawImagePdf("q 40 5 0 20 20 30 cm /Im0 Do Q\n");
         byte[] inline = BuildRawInlineImagePdf("q 40 0 0 20 20 30 cm BI /W 1 /H 1 /BPC 8 /CS /RGB ID ", new byte[] { 255, 0, 0 }, " EI Q\n");
-        PdfDocument skewedDocument = PdfDocument.Open(skewed);
-        PdfDocument inlineDocument = PdfDocument.Open(inline);
+        PdfDocument skewedDocument = PdfDocument.Load(skewed);
+        PdfDocument inlineDocument = PdfDocument.Load(inline);
 
         PdfImageEditResult removed = skewedDocument.Images.Remove(Assert.Single(skewedDocument.Images.Placements()));
 
@@ -150,7 +150,7 @@ public class PdfImageEditorTests {
     [Fact]
     public void RemoveClonesARepeatedFormAndKeepsTheOtherImageInvocation() {
         byte[] source = BuildRepeatedFormImagePdf();
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement left = document.Images.Placements().OrderBy(static placement => placement.X).First();
 
         PdfImageEditResult result = document.Images.Remove(left);
@@ -161,13 +161,13 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ExactRemovalKeepsSameNamedImageFromAnotherFormResourceContext() {
-        PdfDocument document = PdfDocument.Open(BuildCollidingFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildCollidingFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.ObjectNumber == 8);
 
         PdfImageEditResult result = document.Images.Remove(selected);
         PdfImagePlacement remaining = Assert.Single(result.Document.Images.Placements());
 
-        Assert.Equal(2, Assert.Single(result.Document.Read.Images()).Width);
+        Assert.Equal(2, Assert.Single(result.Document.Reader.Images()).Width);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 40 20 30 cm /Im0 Do Q\n" +
             "q 0 40 -40 0 60 30 cm /Im0 Do Q\n");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => Math.Abs(placement.A - 40D) < 0.01D);
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -194,7 +194,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ExactRemovalCarriesGraphicsStateAcrossContentStreamArray() {
-        PdfDocument document = PdfDocument.Open(BuildSplitContentImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSplitContentImagePdf());
 
         PdfImageEditResult result = document.Images.Remove(Assert.Single(document.Images.Placements()));
 
@@ -203,7 +203,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void DestructiveEditsCarryMarkedContentAcrossContentStreamArray() {
-        PdfDocument document = PdfDocument.Open(BuildSplitMarkedContentImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSplitMarkedContentImagePdf());
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Remove(Assert.Single(document.Images.Placements())));
@@ -220,8 +220,8 @@ public class PdfImageEditorTests {
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageBytes: new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 },
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Decode [1 0 1 0 1 0]");
-        PdfDocument blendedDocument = PdfDocument.Open(blended);
-        PdfDocument jpegDocument = PdfDocument.Open(decodedJpeg);
+        PdfDocument blendedDocument = PdfDocument.Load(blended);
+        PdfDocument jpegDocument = PdfDocument.Load(decodedJpeg);
 
         Assert.Throws<NotSupportedException>(() => blendedDocument.Images.Replace(
             Assert.Single(blendedDocument.Images.Placements()),
@@ -234,7 +234,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void MoveRejectsSourceInterpolationThatRestampingCannotPreserve() {
-        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Interpolate true"));
 
@@ -249,7 +249,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             additionalResources: "/ExtGState << /GS1 << /BM /ProducerSpecific >> >>");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         Assert.Throws<NotSupportedException>(() => document.Images.Replace(
             Assert.Single(document.Images.Placements()),
@@ -261,7 +261,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "/GS1 gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             additionalResources: "/ExtGState << /GS1 << /op true /OPM 1 >> >>");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
@@ -274,7 +274,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "/GSActive gs /GSClear gs q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             additionalResources: "/ExtGState << /GSActive << /SMask << >> >> /GSClear << /SMask /None >> >>");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         PdfImageEditResult result = document.Images.Replace(
             Assert.Single(document.Images.Placements()),
@@ -285,7 +285,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void DegeneratePlacementCannotReportSuccessfulRemoval() {
-        PdfDocument document = PdfDocument.Open(BuildRawImagePdf("q 0 0 0 20 20 30 cm /Im0 Do Q\n"));
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf("q 0 0 0 20 20 30 cm /Im0 Do Q\n"));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Remove(Assert.Single(document.Images.Placements())));
@@ -295,10 +295,10 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void PlacementFromAnotherDocumentIsRejected() {
-        PdfDocument first = PdfDocument.Open(CreateTextPdf()).Images.Add(
+        PdfDocument first = PdfDocument.Load(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 20D, 30D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
-        PdfDocument second = PdfDocument.Open(CreateTextPdf()).Images.Add(
+        PdfDocument second = PdfDocument.Load(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 120D, 130D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
 
@@ -310,11 +310,11 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ReplacementRejectsImageMasksAndOptionalContentMembership() {
-        PdfDocument imageMask = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument imageMask = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageBytes: new byte[] { 0x80 },
             imageEntries: "/ImageMask true /BitsPerComponent 1"));
-        PdfDocument optionalContent = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument optionalContent = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /OC << /Type /OCG /Name (Layer) >>"));
 
@@ -328,9 +328,9 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void DestructiveEditsRejectTaggedAndHiddenOptionalContentContexts() {
-        PdfDocument tagged = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument tagged = PdfDocument.Load(BuildRawImagePdf(
             "/Figure << /MCID 0 >> BDC q 40 0 0 20 20 30 cm /Im0 Do Q EMC\n"));
-        PdfDocument hiddenSibling = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument hiddenSibling = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n/OC /Hidden BDC q 40 0 0 20 120 30 cm /Im0 Do Q EMC\n"));
 
         Assert.Throws<NotSupportedException>(() => tagged.Images.Remove(Assert.Single(tagged.Images.Placements())));
@@ -340,7 +340,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void DestructiveEditsRejectMarkedContentThatInvokesAContainingForm() {
-        PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildMarkedFormImagePdf());
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Remove(Assert.Single(document.Images.Placements())));
@@ -350,7 +350,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void MoveRejectsOptionalContentInheritedFromContainingForm() {
-        PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf("/OC << /Type /OCG /Name (Layer) >>"));
+        PdfDocument document = PdfDocument.Load(BuildMarkedFormImagePdf("/OC << /Type /OCG /Name (Layer) >>"));
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Move(Assert.Single(document.Images.Placements()), 10D, 0D));
@@ -360,7 +360,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void PortableImageEditsRejectImagesInsideTransparencyGroups() {
-        PdfDocument document = PdfDocument.Open(BuildMarkedFormImagePdf(
+        PdfDocument document = PdfDocument.Load(BuildMarkedFormImagePdf(
             "/Group << /S /Transparency /I true /CS /DeviceRGB >>"));
 
         Assert.Throws<NotSupportedException>(() =>
@@ -369,7 +369,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void MarkedContentCheckUsesTheSelectedResourceScope() {
-        PdfDocument document = PdfDocument.Open(BuildCollidingFormImagePdf(markSecondImage: true));
+        PdfDocument document = PdfDocument.Load(BuildCollidingFormImagePdf(markSecondImage: true));
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.ObjectNumber == 8);
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -380,9 +380,9 @@ public class PdfImageEditorTests {
     [Fact]
     public void ImageValidationHonorsConfiguredDecodedStreamLimit() {
         byte[] source = BuildRawImagePdf(new string(' ', 96) + "q 40 0 0 20 20 30 cm /Im0 Do Q\n");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             document.Images.Move(placement, 10D, 0D, readOptions: options));
@@ -397,9 +397,9 @@ public class PdfImageEditorTests {
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageBytes: encodedImage,
             imageEntries: "/ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /ASCIIHexDecode");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
         };
 
@@ -419,8 +419,8 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             additionalObjects: unusedForm);
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 256 } };
-        PdfDocument document = PdfDocument.Open(source, options);
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentNestingDepth = 256 } };
+        PdfDocument document = PdfDocument.Load(source, options);
 
         PdfImageEditResult result = document.Images.Move(
             Assert.Single(document.Images.Placements()),
@@ -438,8 +438,8 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             additionalObjects: unusedStream);
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 48 } };
-        PdfDocument document = PdfDocument.Open(source, options);
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 48 } };
+        PdfDocument document = PdfDocument.Load(source, options);
 
         PdfImageEditResult result = document.Images.Move(
             Assert.Single(document.Images.Placements()),
@@ -452,9 +452,9 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ImageValidationBoundsDocumentWideRetainedContentSeparately() {
-        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSharedResourceLessFormImagePdf());
         PdfImagePlacement placement = document.Images.Placements().First();
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 100, MaxRetainedContentBytes = 40 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 100, MaxRetainedContentBytes = 40 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             document.Images.Move(placement, 10D, 0D, readOptions: options));
@@ -466,9 +466,9 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ImageValidationAppliesContentByteBudgetPerPage() {
-        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSharedResourceLessFormImagePdf());
         PdfImagePlacement placement = document.Images.Placements().First();
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 45 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxPageContentBytes = 45 } };
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
             document.Images.Move(placement, 10D, 0D, readOptions: options));
@@ -481,7 +481,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Intent /Perceptual");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
 
         NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
@@ -498,7 +498,7 @@ public class PdfImageEditorTests {
         byte[] source = BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /Alternates []");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
 
         NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
@@ -512,7 +512,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void RemovingPageImageRetainsSharedImageInvokedByTilingPattern() {
-        PdfDocument document = PdfDocument.Open(BuildPatternSharedImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildPatternSharedImagePdf());
         PdfImagePlacement selected = Assert.Single(document.Images.Placements());
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -523,7 +523,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void RemovingPageImageRetainsSharedImageInvokedByType3CharProc() {
-        PdfDocument document = PdfDocument.Open(BuildType3SharedImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildType3SharedImagePdf());
         PdfImagePlacement selected = Assert.Single(document.Images.Placements());
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -536,7 +536,7 @@ public class PdfImageEditorTests {
     public void PortableImageEditsRejectContentRenderingIntent() {
         byte[] source = BuildRawImagePdf(
             "q /Perceptual ri 40 0 0 20 20 30 cm /Im0 Do Q\n");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfImagePlacement placement = Assert.Single(document.Images.Placements());
 
         NotSupportedException moveException = Assert.Throws<NotSupportedException>(() =>
@@ -550,7 +550,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void DestructiveEditsRejectStructParentOnSelectedImage() {
-        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
             "q 40 0 0 20 20 30 cm /Im0 Do Q\n",
             imageEntries: "/ColorSpace /DeviceRGB /BitsPerComponent 8 /StructParent 0"));
 
@@ -562,7 +562,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void XObjectRemovalSkipsUnrelatedInlineImagePayloadOperators() {
-        PdfDocument document = PdfDocument.Open(BuildRawImagePdf(
+        PdfDocument document = PdfDocument.Load(BuildRawImagePdf(
             "BI /W 11 /H 1 /BPC 8 /CS /G ID q /Im0 Do Q EI\nq 40 0 0 20 20 30 cm /Im0 Do Q\n"));
         PdfImagePlacement xObject = document.Images.Placements().Single(static placement => placement.ObjectNumber > 0);
 
@@ -574,7 +574,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void SharedFormAcrossContentStreamsFailsClosed() {
-        PdfDocument document = PdfDocument.Open(BuildCrossStreamRepeatedFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildCrossStreamRepeatedFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().OrderBy(static placement => placement.X).First();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
@@ -584,7 +584,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void SharedPageContentStreamThatInvokesAFormFailsClosed() {
-        PdfDocument document = PdfDocument.Open(BuildSharedPageContentFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSharedPageContentFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.PageNumber == 1);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
@@ -594,7 +594,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void SharedOuterFormThatInvokesImageFormFailsClosed() {
-        PdfDocument document = PdfDocument.Open(BuildSharedOuterFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSharedOuterFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.PageNumber == 1);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
@@ -604,7 +604,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void SharedResourceLessFormUsesEachInvokingPageResourceContextAndFailsClosed() {
-        PdfDocument document = PdfDocument.Open(BuildSharedResourceLessFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildSharedResourceLessFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.PageNumber == 1);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Images.Remove(selected));
@@ -614,7 +614,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void RemovePreservesImageResourceUsedByResourceLessDescendantForm() {
-        PdfDocument document = PdfDocument.Open(BuildDirectAndInheritedFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildDirectAndInheritedFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.X < 50D);
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -625,7 +625,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void RemoveFromResourceLessFormPreservesDirectPageImageResource() {
-        PdfDocument document = PdfDocument.Open(BuildDirectAndInheritedFormImagePdf());
+        PdfDocument document = PdfDocument.Load(BuildDirectAndInheritedFormImagePdf());
         PdfImagePlacement selected = document.Images.Placements().Single(static placement => placement.X > 50D);
 
         PdfImageEditResult result = document.Images.Remove(selected);
@@ -640,7 +640,7 @@ public class PdfImageEditorTests {
             string.Empty,
             pageEntries: "/CropBox [100 100 500 700]");
 
-        PdfDocument added = PdfDocument.Open(source).Images.Add(
+        PdfDocument added = PdfDocument.Load(source).Images.Add(
             new PdfPageRegion(1, 0D, 0D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
         PdfImagePlacement placement = Assert.Single(added.Images.Placements());
@@ -654,7 +654,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ImageEditsRecordPageContentMutation() {
-        PdfImageEditResult result = PdfDocument.Open(CreateTextPdf()).Images.Add(
+        PdfImageEditResult result = PdfDocument.Load(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 20D, 30D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0));
 
@@ -665,7 +665,7 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ImageMutationsPreserveAnExistingAcroFormCatalogGraph() {
-        byte[] form = PdfDocument.Open(CreateTextPdf()).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] form = PdfDocument.Load(CreateTextPdf()).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "customer.notes",
             Kind = PdfFormFieldCreationKind.Text,
             X = 72D,
@@ -675,7 +675,7 @@ public class PdfImageEditorTests {
             Value = "kept"
         })).ToBytes();
 
-        PdfDocument added = PdfDocument.Open(form).Images.Add(
+        PdfDocument added = PdfDocument.Load(form).Images.Add(
             new PdfPageRegion(1, 40D, 80D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
         PdfDocument replaced = added.Images.Replace(
@@ -693,24 +693,24 @@ public class PdfImageEditorTests {
 
     [Fact]
     public void ReplaceCarriesExactInputBudgetAcrossRemovalAndStamping() {
-        PdfDocument prepared = PdfDocument.Open(CreateTextPdf()).Images.Add(
+        PdfDocument prepared = PdfDocument.Load(CreateTextPdf()).Images.Add(
             new PdfPageRegion(1, 40D, 80D, 30D, 20D),
             PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
         byte[] source = prepared.ToBytes();
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
-        PdfDocument bounded = PdfDocument.Open(source, readOptions);
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
+        PdfDocument bounded = PdfDocument.Load(source, readOptions);
 
         PdfImageEditResult result = bounded.Images.Replace(
             Assert.Single(bounded.Images.Placements()),
             PdfPngTestImages.CreateRgbPng(32, 32));
 
         Assert.Single(result.Document.Images.Placements());
-        Assert.Single(result.Document.Read.Images());
+        Assert.Single(result.Document.Reader.Images());
     }
 
     [Fact]
     public void PublicOptionsValidateCoordinatesAndPageSelection() {
-        PdfDocument document = PdfDocument.Open(CreateTextPdf());
+        PdfDocument document = PdfDocument.Load(CreateTextPdf());
 
         Assert.Throws<ArgumentOutOfRangeException>(() => document.Images.Find(new PdfPageRegion(2, 0D, 0D, 10D, 10D)));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.Images.Move(

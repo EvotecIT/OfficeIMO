@@ -1329,7 +1329,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             "BT /F1 12 Tf (A) Tj ET",
             resources: "/Font << /F1 5 0 R >>",
             extraObjects: extraObjects.ToString());
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
         };
         PdfReadDocument document = PdfReadDocument.Open(pdf, options);
@@ -1360,7 +1360,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
             "/Deep Do",
             resources: "/XObject << /Deep 5 0 R >>",
             extraObjects: extraObjects.ToString());
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
         };
 

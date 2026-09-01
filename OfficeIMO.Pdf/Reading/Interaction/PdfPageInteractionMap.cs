@@ -40,7 +40,7 @@ public sealed class PdfPageInteractionMap {
         byte[] pdf,
         int pageNumber,
         PdfPageInteractionOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         if (pageNumber <= 0) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), "Page number must be positive.");

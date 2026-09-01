@@ -285,7 +285,7 @@ public sealed partial class PdfProvenanceTests {
 
         OfficeProvenanceReport report = PdfProvenance.Inspect(
             deeplyLinked,
-            readOptions: new PdfReadOptions {
+            readOptions: new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxObjectParsingTime = TimeSpan.FromMinutes(2) }
             });
 
@@ -383,7 +383,7 @@ public sealed partial class PdfProvenanceTests {
             page.Items["Annots"] = annotations;
             return security.InfoObjectNumber;
         });
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxAnnotationsPerPage = 1 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxAnnotationsPerPage = 1 } };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             PdfProvenance.Inspect(withAnnotations, readOptions: readOptions));
@@ -1082,7 +1082,7 @@ public sealed partial class PdfProvenanceTests {
         OfficeProvenanceReport report = PdfProvenance.Inspect(
             deeplyLinked,
             new OfficeProvenanceOptions { MaxContainerEntries = 30_000 },
-            new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
 
         Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
     }
@@ -1111,7 +1111,7 @@ public sealed partial class PdfProvenanceTests {
         OfficeProvenanceReport report = PdfProvenance.Inspect(
             deeplyLinked,
             new OfficeProvenanceOptions { MaxContainerEntries = 50_000 },
-            new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
+            new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 20_000 } });
 
         Assert.True(Assert.Single(report.Evidence).IsStructurallyValid);
     }
@@ -1143,7 +1143,7 @@ public sealed partial class PdfProvenanceTests {
     public void ProvenanceContainerEntryLimitCapsPdfStructuralParsing() {
         byte[] pdf = CreatePdfWithCandidateAndRetainedAttachment();
         var options = new OfficeProvenanceOptions { MaxContainerEntries = 1 };
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxIndirectObjects = 500_000 }
         };
 

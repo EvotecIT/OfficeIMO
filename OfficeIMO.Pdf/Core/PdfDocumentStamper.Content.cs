@@ -9,7 +9,7 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument Content(
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(build, nameof(build));
         return _document.ApplyMutation(input => PdfStamper.StampCanvas(input, build, options, readOptions ?? _document.ReadOptions));
     }
@@ -18,7 +18,7 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument Content(
         Action<PdfPageCanvas> build,
         PdfCanvasStampOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(build, nameof(build));
         return Content((canvas, _) => build(canvas), options, readOptions);
     }
@@ -27,7 +27,7 @@ public sealed partial class PdfDocumentStamper {
     public PdfOperationResult<PdfDocument> TryContent(
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? stampOptions = null,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNull(build, nameof(build));
         return _document.TryMutationOperation(
             "Stamp visual canvas content",

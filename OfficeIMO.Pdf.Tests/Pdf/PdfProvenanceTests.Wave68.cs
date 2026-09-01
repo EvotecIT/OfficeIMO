@@ -69,7 +69,7 @@ public sealed partial class PdfProvenanceTests {
         var limits = new PdfReadLimits { MaxTotalDecodedStreamBytes = 768L * 1024L * 1024L };
         Assert.Equal(768L * 1024L * 1024L, limits.MaxTotalDecodedStreamBytes);
 
-        var invalidOptions = new PdfReadOptions {
+        var invalidOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalDecodedStreamBytes = 0 }
         };
         Assert.Throws<ArgumentOutOfRangeException>(() =>

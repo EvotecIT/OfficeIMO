@@ -4,7 +4,7 @@ internal static class PdfProvenanceGraphEditor {
     internal static byte[] RemoveFileSpecifications(
         byte[] pdf,
         HashSet<int> fileSpecificationObjectNumbers,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         long maximumOutputBytes) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));

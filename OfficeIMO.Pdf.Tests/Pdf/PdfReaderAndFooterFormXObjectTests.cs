@@ -80,10 +80,10 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
-    public void PdfLogicalDocument_Load_ReadsImagesReferencedByFormXObjects() {
+    public void PdfDocumentReadResult_Load_ReadsImagesReferencedByFormXObjects() {
         byte[] bytes = BuildPdfWithFormXObjectImage();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         PdfLogicalImage image = Assert.Single(logical.Images);
         PdfImagePlacement placement = Assert.Single(image.Placements);
@@ -94,28 +94,28 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
-    public void PdfLogicalDocument_Load_DoesNotExposeImagesFromUnusedFormXObjects() {
+    public void PdfDocumentReadResult_Load_DoesNotExposeImagesFromUnusedFormXObjects() {
         byte[] bytes = BuildPdfWithUnusedFormXObjectImage();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         Assert.Empty(logical.Images);
     }
 
     [Fact]
-    public void PdfLogicalDocument_Load_DoesNotExposeImagesFromUnusedPageResources() {
+    public void PdfDocumentReadResult_Load_DoesNotExposeImagesFromUnusedPageResources() {
         byte[] bytes = BuildPdfWithUnusedPageImageResource();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         Assert.Empty(logical.Images);
     }
 
     [Fact]
-    public void PdfLogicalDocument_Load_DoesNotExposeUnusedImageResourceAliases() {
+    public void PdfDocumentReadResult_Load_DoesNotExposeUnusedImageResourceAliases() {
         byte[] bytes = BuildPdfWithImageResourceAlias();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         PdfLogicalImage image = Assert.Single(logical.Images);
         Assert.Equal("ImUsed", image.ResourceName);
@@ -124,10 +124,10 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
-    public void PdfLogicalDocument_Load_DeduplicatesImagesDiscoveredThroughRepeatedForms() {
+    public void PdfDocumentReadResult_Load_DeduplicatesImagesDiscoveredThroughRepeatedForms() {
         byte[] bytes = BuildPdfWithRepeatedFormImageResource();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         PdfLogicalImage image = Assert.Single(logical.Images);
         Assert.Equal("ImShared", image.ResourceName);
@@ -137,7 +137,7 @@ public partial class PdfReaderAndFooterRegressionTests {
     [Fact]
     public void PdfLogicalReadingOrder_EmitsEveryPlacementOfAReusedImageResource() {
         PdfLogicalPage page = Assert.Single(
-            PdfLogicalDocument.Load(BuildPdfWithRepeatedFormImageResource()).Pages);
+            PdfDocumentReadResult.Load(BuildPdfWithRepeatedFormImageResource()).Pages);
 
         PdfLogicalReadingOrderItem[] placements = PdfLogicalReadingOrderAnalysis.Analyze(page)
             .Where(static item => item.Kind == PdfLogicalReadingOrderKind.Image)

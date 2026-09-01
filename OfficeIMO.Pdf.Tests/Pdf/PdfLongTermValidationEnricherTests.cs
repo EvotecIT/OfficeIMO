@@ -74,7 +74,7 @@ public class PdfLongTermValidationEnricherTests {
         var evidence = new PdfLongTermValidationEvidence(
             signatureObjectNumber,
             certificates: new[] { certificate.RawData });
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxInputBytes = signedPdf.LongLength,
                 MaxRevisions = PdfInspector.Probe(signedPdf).Security.RevisionCount

@@ -14,7 +14,7 @@ public class PdfDestructiveCropTests {
             .AttachFile("proof.txt", Encoding.UTF8.GetBytes("attachment proof"), "text/plain")
             .ToBytes();
 
-        PdfDestructiveCropResult result = PdfDocument.Open(source).Pages.DestructiveCrop(
+        PdfDestructiveCropResult result = PdfDocument.Load(source).Pages.DestructiveCrop(
             0, 350, 612, 792,
             new PdfDestructiveCropOptions { Dpi = 96 },
             1);

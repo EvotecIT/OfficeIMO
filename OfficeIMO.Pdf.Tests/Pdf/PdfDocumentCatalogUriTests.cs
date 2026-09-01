@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
 
         Assert.Contains("/URI << /Base (https://officeimo.net/docs/) >>", raw, StringComparison.Ordinal);
         Assert.Contains("/URI (assets/report.html#summary)", raw, StringComparison.Ordinal);

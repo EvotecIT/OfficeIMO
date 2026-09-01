@@ -20,6 +20,14 @@ public enum PdfLogicalReadingOrderKind {
     FormWidget
 }
 
+/// <summary>Controls which logical page content participates in shared reading-order analysis.</summary>
+public enum PdfLogicalReadingOrderScope {
+    /// <summary>Orders the semantic body while excluding classified running headers and footers.</summary>
+    SemanticBody,
+    /// <summary>Orders all page content, including classified running headers and footers.</summary>
+    PageContent
+}
+
 /// <summary>
 /// One logical page item in crop-, rotation-, and column-aware reading order.
 /// </summary>
@@ -105,9 +113,25 @@ public static class PdfLogicalReadingOrderAnalysis {
     /// <summary>
     /// Orders semantic page items using visible crop geometry, page rotation, spanning bands, and columns.
     /// </summary>
-    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(PdfLogicalPage page) {
+    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(PdfLogicalPage page) =>
+        Analyze(page, PdfLogicalReadingOrderScope.SemanticBody);
+
+    /// <summary>
+    /// Orders logical page items using visible crop geometry, page rotation, spanning bands, and columns.
+    /// </summary>
+    /// <param name="page">Logical page to analyze.</param>
+    /// <param name="scope">Whether to return semantic body content or all page content.</param>
+    public static IReadOnlyList<PdfLogicalReadingOrderItem> Analyze(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderScope scope) {
         Guard.NotNull(page, nameof(page));
-        var candidates = BuildCandidates(page);
+        if (scope is not (PdfLogicalReadingOrderScope.SemanticBody or PdfLogicalReadingOrderScope.PageContent)) {
+            throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported logical reading-order scope.");
+        }
+        Action<long>? consumeWork = page.Analysis.ConsumeWork;
+        Action? cancellationCheck = page.Analysis.CancellationCheck;
+        cancellationCheck?.Invoke();
+        var candidates = BuildCandidates(page, scope, consumeWork, cancellationCheck);
         if (candidates.Count == 0) return Array.Empty<PdfLogicalReadingOrderItem>();
 
         (double pageWidth, double pageHeight) = page.GetVisualPageSize();
@@ -115,7 +139,9 @@ public static class PdfLogicalReadingOrderAnalysis {
         var unpositioned = candidates.Where(static item => !item.HasGeometry).OrderBy(static item => item.Sequence).ToArray();
         double[] pageColumnAnchors = FindRepeatedColumnAnchors(
             positioned.Where(item => item.Right - item.Left < Math.Max(1D, pageWidth) * SpanningWidthRatio),
-            pageWidth);
+            pageWidth,
+            consumeWork,
+            cancellationCheck);
         Candidate[] spanning = positioned
             .Where(item => item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
                 IsCenteredBandDivider(item, pageColumnAnchors, pageWidth))
@@ -163,12 +189,16 @@ public static class PdfLogicalReadingOrderAnalysis {
                 item.HasGeometry, item.IsClipped, item.Left, item.Top, item.Right, item.Bottom,
                 confidence, evidence.AsReadOnly());
         }
-        return Array.AsReadOnly(result);
+        return ApplyCanonicalOrder(page, result);
 
         void AddBand(IEnumerable<Candidate> source, List<Candidate> destination, HashSet<Candidate> seen) {
             Candidate[] band = source.OrderBy(static item => item.Left).ThenBy(static item => item.Top).ToArray();
             if (band.Length == 0) return;
-            double[] anchors = FindRepeatedColumnAnchors(band, pageWidth);
+            double[] anchors = FindRepeatedColumnAnchors(
+                band,
+                pageWidth,
+                consumeWork,
+                cancellationCheck);
             if (anchors.Length < 2) {
                 foreach (Candidate item in band.OrderBy(static item => item.Top).ThenBy(static item => item.Left).ThenBy(static item => item.Sequence)) {
                     item.ColumnIndex = 0;
@@ -199,30 +229,235 @@ public static class PdfLogicalReadingOrderAnalysis {
         }
     }
 
-    private static List<Candidate> BuildCandidates(PdfLogicalPage page) {
-        var result = new List<Candidate>();
-        var semanticTextBlocks = new HashSet<PdfLogicalTextBlock>();
-        for (int index = 0; index < page.Headings.Count; index++) semanticTextBlocks.Add(page.Headings[index].Line);
-        for (int index = 0; index < page.Paragraphs.Count; index++) {
-            foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) semanticTextBlocks.Add(line);
+    private static IReadOnlyList<PdfLogicalReadingOrderItem> ApplyCanonicalOrder(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderItem[] items) {
+        if (page.RotationDegrees != 0 ||
+            page.Analysis.ReadingOrder.Count == 0 ||
+            items.Length < 2) return items;
+
+        Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
+            IndexCanonicalLines(page.Analysis.ReadingOrder);
+        var ranked = new CanonicalRank[items.Length];
+        var matchedIndexes = new List<int>();
+        for (int index = 0; index < items.Length; index++) {
+            bool matched = TryGetCanonicalPosition(page, items[index], canonicalLines, out long position);
+            ranked[index] = new CanonicalRank(items[index], index, matched, matched ? position : 0D);
+            if (matched) matchedIndexes.Add(index);
         }
-        for (int index = 0; index < page.ListItems.Count; index++) semanticTextBlocks.Add(page.ListItems[index].Line);
+        if (matchedIndexes.Count == 0) return items;
+
+        for (int index = 0; index < ranked.Length; index++) {
+            if (ranked[index].Matched) continue;
+            int previous = -1;
+            int next = -1;
+            for (int matchIndex = 0; matchIndex < matchedIndexes.Count; matchIndex++) {
+                int candidate = matchedIndexes[matchIndex];
+                if (candidate < index) previous = candidate;
+                else if (candidate > index) { next = candidate; break; }
+            }
+
+            double position;
+            if (previous >= 0 && next >= 0 && ranked[previous].Position < ranked[next].Position) {
+                double fraction = (double)(index - previous) / (next - previous);
+                position = ranked[previous].Position + ((ranked[next].Position - ranked[previous].Position) * fraction);
+            } else if (previous >= 0) {
+                position = ranked[previous].Position + 50_000D + (index - previous);
+            } else if (next >= 0) {
+                position = ranked[next].Position - 50_000D - (next - index);
+            } else {
+                position = items[index].OrderIndex;
+            }
+            ranked[index] = ranked[index].WithPosition(position);
+        }
+
+        CanonicalRank[] ordered = ranked
+            .OrderBy(static value => value.Position)
+            .ThenBy(static value => value.OriginalIndex)
+            .ToArray();
+        var result = new PdfLogicalReadingOrderItem[ordered.Length];
+        for (int index = 0; index < ordered.Length; index++) {
+            PdfLogicalReadingOrderItem item = ordered[index].Item;
+            IReadOnlyList<PdfInferenceEvidence> evidence = item.Evidence;
+            if (ordered[index].Matched) {
+                evidence = item.Evidence.Concat(new[] {
+                    new PdfInferenceEvidence(
+                        "reading-order.canonical-understanding",
+                        "The item's position is owned by the canonical PDF understanding pipeline.",
+                        0.9D)
+                }).ToArray();
+            }
+            result[index] = new PdfLogicalReadingOrderItem(
+                item.Kind,
+                item.SourceIndex,
+                item.PlacementIndex,
+                index,
+                item.ColumnIndex,
+                item.SpansColumns,
+                item.HasGeometry,
+                item.IsClipped,
+                item.Left,
+                item.Top,
+                item.Right,
+                item.Bottom,
+                item.Confidence,
+                evidence);
+        }
+        return Array.AsReadOnly(result);
+    }
+
+    private static bool TryGetCanonicalPosition(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderItem item,
+        Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines,
+        out long position) {
+        position = 0L;
+        IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
+            PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
+            PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+            PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
+            PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
+            _ => null
+        };
+        if (lines is null || lines.Count == 0) return false;
+
+        long best = long.MaxValue;
+        for (int logicalLineIndex = 0; logicalLineIndex < lines.Count; logicalLineIndex++) {
+            PdfLogicalTextBlock block = lines[logicalLineIndex];
+            string text = PdfTextSimilarity.NormalizeSignature(block.Text);
+            long baselineBucket = GetCanonicalBucket(block.BaselineY, 0.25D);
+            long xBucket = GetCanonicalBucket(block.XStart, 0.5D);
+            for (long baselineOffset = -1; baselineOffset <= 1; baselineOffset++) {
+                for (long xOffset = -1; xOffset <= 1; xOffset++) {
+                    if (!canonicalLines.TryGetValue(
+                            (baselineBucket + baselineOffset, xBucket + xOffset, text),
+                            out IReadOnlyList<CanonicalLinePosition>? candidates)) continue;
+                    for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                        CanonicalLinePosition candidate = candidates[candidateIndex];
+                        if (Math.Abs(candidate.BaselineY - block.BaselineY) > 0.25D ||
+                            Math.Abs(candidate.XStart - block.XStart) > 0.5D) continue;
+                        best = Math.Min(best, candidate.Position);
+                    }
+                }
+            }
+        }
+        if (best == long.MaxValue) return false;
+        position = best;
+        return true;
+    }
+
+    private static Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>>
+        IndexCanonicalLines(IReadOnlyList<PdfUnderstandingRegion> regions) {
+        var index = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<CanonicalLinePosition>>();
+        for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> lines = regions[regionIndex].Lines;
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                PdfUnderstandingLine line = lines[lineIndex];
+                var key = (
+                    GetCanonicalBucket(line.BaselineY, 0.25D),
+                    GetCanonicalBucket(line.XStart, 0.5D),
+                    PdfTextSimilarity.NormalizeSignature(line.Text));
+                if (!index.TryGetValue(key, out List<CanonicalLinePosition>? positions)) {
+                    positions = new List<CanonicalLinePosition>();
+                    index.Add(key, positions);
+                }
+                positions.Add(new CanonicalLinePosition(
+                    line.BaselineY,
+                    line.XStart,
+                    checked((long)regionIndex * 100_000L + lineIndex)));
+            }
+        }
+        return index.ToDictionary(
+            static pair => pair.Key,
+            static pair => (IReadOnlyList<CanonicalLinePosition>)pair.Value.AsReadOnly());
+    }
+
+    private static long GetCanonicalBucket(double value, double width) {
+        if (double.IsNaN(value)) return 0L;
+        double bucket = Math.Floor(value / width);
+        if (bucket <= long.MinValue) return long.MinValue + 1;
+        if (bucket >= long.MaxValue) return long.MaxValue - 1;
+        return (long)bucket;
+    }
+
+    private readonly struct CanonicalLinePosition {
+        internal CanonicalLinePosition(double baselineY, double xStart, long position) {
+            BaselineY = baselineY;
+            XStart = xStart;
+            Position = position;
+        }
+
+        internal double BaselineY { get; }
+        internal double XStart { get; }
+        internal long Position { get; }
+    }
+
+    private readonly struct CanonicalRank {
+        internal CanonicalRank(PdfLogicalReadingOrderItem item, int originalIndex, bool matched, double position) {
+            Item = item;
+            OriginalIndex = originalIndex;
+            Matched = matched;
+            Position = position;
+        }
+
+        internal PdfLogicalReadingOrderItem Item { get; }
+        internal int OriginalIndex { get; }
+        internal bool Matched { get; }
+        internal double Position { get; }
+        internal CanonicalRank WithPosition(double position) => new CanonicalRank(Item, OriginalIndex, Matched, position);
+    }
+
+    private static List<Candidate> BuildCandidates(
+        PdfLogicalPage page,
+        PdfLogicalReadingOrderScope scope,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        var result = new List<Candidate>();
+        var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
+        var tableBounds = new PdfVisualBounds?[page.Tables.Count];
+        for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+            cancellationCheck?.Invoke();
+            PdfLogicalTable table = page.Tables[tableIndex];
+            consumeWork?.Invoke(Math.Max(1, table.Columns.Count));
+            if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
+        }
+        for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
+        for (int index = 0; index < page.Paragraphs.Count; index++) {
+            foreach (PdfLogicalTextBlock line in page.Paragraphs[index].Lines) representedTextBlocks.Add(line);
+        }
+        for (int index = 0; index < page.ListItems.Count; index++) {
+            foreach (PdfLogicalTextBlock line in page.ListItems[index].Lines) representedTextBlocks.Add(line);
+        }
+        for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
+            PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
+            cancellationCheck?.Invoke();
+            if (!TryGetVisualBounds(page, block, out PdfVisualBounds blockBounds)) continue;
+            for (int tableIndex = 0; tableIndex < tableBounds.Length; tableIndex++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(1);
+                if (tableBounds[tableIndex] is PdfVisualBounds bounds && IsOwnedByTable(block, blockBounds, bounds)) {
+                    representedTextBlocks.Add(block);
+                    break;
+                }
+            }
+        }
         int sequence = 0;
         for (int index = 0; index < page.TextBlocks.Count; index++) {
-            if (!semanticTextBlocks.Contains(page.TextBlocks[index])) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { page.TextBlocks[index] });
+            PdfLogicalTextBlock block = page.TextBlocks[index];
+            if (scope == PdfLogicalReadingOrderScope.SemanticBody &&
+                block.Kind is (PdfLogicalElementKind.Header or PdfLogicalElementKind.Footer)) continue;
+            if (!representedTextBlocks.Contains(block)) AddText(PdfLogicalReadingOrderKind.TextBlock, index, new[] { block });
         }
         for (int index = 0; index < page.Headings.Count; index++) AddText(PdfLogicalReadingOrderKind.Heading, index, new[] { page.Headings[index].Line });
         for (int index = 0; index < page.Paragraphs.Count; index++) AddText(PdfLogicalReadingOrderKind.Paragraph, index, page.Paragraphs[index].Lines);
-        for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, new[] { page.ListItems[index].Line });
+        for (int index = 0; index < page.ListItems.Count; index++) AddText(PdfLogicalReadingOrderKind.ListItem, index, page.ListItems[index].Lines);
         for (int index = 0; index < page.Tables.Count; index++) {
-            PdfLogicalTable table = page.Tables[index];
-            if (table.VisualBounds is PdfLogicalVisualBounds visualBounds) {
-                AddVisual(PdfLogicalReadingOrderKind.Table, index, -1, visualBounds.Left, visualBounds.Top, visualBounds.Right, visualBounds.Bottom);
-                continue;
+            cancellationCheck?.Invoke();
+            if (tableBounds[index] is PdfVisualBounds bounds) {
+                AddVisual(PdfLogicalReadingOrderKind.Table, index, -1, bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+            } else {
+                AddMissing(PdfLogicalReadingOrderKind.Table, index, -1);
             }
-            double left = table.Columns.Count == 0 ? 0D : table.Columns.Min(static column => Math.Min(column.From, column.To));
-            double right = table.Columns.Count == 0 ? 0D : table.Columns.Max(static column => Math.Max(column.From, column.To));
-            Add(PdfLogicalReadingOrderKind.Table, index, -1, left, Math.Min(table.YTop, table.YBottom), right, Math.Max(table.YTop, table.YBottom));
         }
         for (int index = 0; index < page.Images.Count; index++) {
             PdfLogicalImage image = page.Images[index];
@@ -307,20 +542,67 @@ public static class PdfLogicalReadingOrderAnalysis {
             result.Add(new Candidate(kind, sourceIndex, placementIndex, sequence++, 0D, 0D, 0D, 0D, hasGeometry: false, isClipped: false));
     }
 
-    private static double[] FindRepeatedColumnAnchors(IEnumerable<Candidate> source, double pageWidth) {
+    private static bool IsOwnedByTable(PdfLogicalTextBlock block, PdfVisualBounds blockBounds, PdfVisualBounds tableBounds) {
+        double blockWidth = blockBounds.Right - blockBounds.Left;
+        if (blockWidth <= 0.001D) return false;
+        double horizontalOverlap = Math.Max(0D, Math.Min(blockBounds.Right, tableBounds.Right) - Math.Max(blockBounds.Left, tableBounds.Left));
+        if (horizontalOverlap + 0.001D < blockWidth * 0.5D) return false;
+        double verticalPadding = Math.Max(1D, block.FontSize);
+        double blockCenter = (blockBounds.Top + blockBounds.Bottom) / 2D;
+        return blockCenter >= tableBounds.Top - verticalPadding && blockCenter <= tableBounds.Bottom + verticalPadding;
+    }
+
+    private static bool TryGetVisualBounds(PdfLogicalPage page, PdfLogicalTextBlock block, out PdfVisualBounds bounds) {
+        if (block.VisualBounds is PdfLogicalVisualBounds visual) {
+            bounds = new PdfVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            return visual.Right > visual.Left && visual.Bottom > visual.Top;
+        }
+        if (block.XEnd <= block.XStart) { bounds = default; return false; }
+        double bottom = block.BaselineY - Math.Max(1D, block.FontSize * 0.25D);
+        double top = block.BaselineY + Math.Max(1D, block.FontSize);
+        bounds = page.TransformBoundsToVisual(block.XStart, bottom, block.XEnd, top);
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+    }
+
+    private static bool TryGetVisualBounds(PdfLogicalPage page, PdfLogicalTable table, out PdfVisualBounds bounds) {
+        if (table.VisualBounds is PdfLogicalVisualBounds visual) {
+            bounds = new PdfVisualBounds(visual.Left, visual.Top, visual.Right, visual.Bottom);
+            return visual.Right > visual.Left && visual.Bottom > visual.Top;
+        }
+        if (table.Columns.Count == 0) { bounds = default; return false; }
+        double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
+        double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
+        double bottom = Math.Min(table.YBottom, table.YTop);
+        double top = Math.Max(table.YBottom, table.YTop);
+        if (right <= left || top <= bottom) { bounds = default; return false; }
+        bounds = page.TransformBoundsToVisual(left, bottom, right, top);
+        return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
+    }
+
+    private static double[] FindRepeatedColumnAnchors(
+        IEnumerable<Candidate> source,
+        double pageWidth,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
         Candidate[] candidates = source.OrderBy(static item => item.Left).ToArray();
+        if (candidates.Length > 0) consumeWork?.Invoke(candidates.Length);
         if (candidates.Length < 4) return Array.Empty<double>();
         double[] widths = candidates.Select(static item => Math.Max(1D, item.Right - item.Left)).OrderBy(static width => width).ToArray();
         double tolerance = Math.Max(18D, Math.Min(pageWidth * 0.12D, widths[widths.Length / 2] * 0.25D));
-        var clusters = new List<List<Candidate>>();
+        var clusters = new List<ColumnAnchorCluster>();
         for (int index = 0; index < candidates.Length; index++) {
+            cancellationCheck?.Invoke();
             Candidate item = candidates[index];
-            List<Candidate>? cluster = clusters.FirstOrDefault(existing => Math.Abs(existing.Average(static candidate => candidate.Left) - item.Left) <= tolerance);
-            if (cluster is null) { cluster = new List<Candidate>(); clusters.Add(cluster); }
-            cluster.Add(item);
+            ColumnAnchorCluster? cluster = clusters.Count == 0 ? null : clusters[clusters.Count - 1];
+            if (cluster is null || Math.Abs(cluster.Centroid - item.Left) > tolerance) {
+                cluster = new ColumnAnchorCluster();
+                clusters.Add(cluster);
+            }
+            cluster.Add(item.Left);
         }
         double[] repeated = clusters.Where(static cluster => cluster.Count >= 2)
-            .Select(static cluster => cluster.Average(static item => item.Left))
+            .Select(static cluster => cluster.Centroid)
             .OrderBy(static left => left)
             .ToArray();
         double minimumSeparation = Math.Max(72D, pageWidth * 0.2D);
@@ -347,6 +629,18 @@ public static class PdfLogicalReadingOrderAnalysis {
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private sealed class ColumnAnchorCluster {
+        private double _leftSum;
+
+        internal int Count { get; private set; }
+        internal double Centroid => Count == 0 ? 0D : _leftSum / Count;
+
+        internal void Add(double left) {
+            _leftSum += left;
+            Count++;
+        }
+    }
 
     private sealed class Candidate {
         internal Candidate(PdfLogicalReadingOrderKind kind, int sourceIndex, int placementIndex, int sequence, double left, double top, double right, double bottom, bool hasGeometry, bool isClipped) {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Creates and transactionally edits AcroForm fields in existing PDFs.</summary>
 internal static partial class PdfAcroFormEditor {
     /// <summary>Applies field-tree, widget, calculation-order, tab-order, and selective-flatten edits as one validated full rewrite.</summary>
-    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfReadOptions? readOptions = null, PdfFormFillerOptions? appearanceOptions = null) {
+    public static PdfAcroFormEditResult Edit(byte[] pdf, Action<PdfAcroFormEditSession> edit, PdfLoadOptions? readOptions = null, PdfFormFillerOptions? appearanceOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
         PdfReadDocument source = PdfReadDocument.Open(pdf, readOptions);
@@ -25,7 +25,7 @@ internal static partial class PdfAcroFormEditor {
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
 
-        PdfReadOptions savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        PdfLoadOptions savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         _ = PdfReadDocument.Open(output, savedReadOptions).FormWidgetJavaScriptCount;
         if (refillValues.Count > 0) {
             IReadOnlyDictionary<string, PdfFormField> rewrittenFields = PdfInspector.Inspect(output, savedReadOptions).FormFieldsByName;
@@ -37,11 +37,11 @@ internal static partial class PdfAcroFormEditor {
         }
         if (refillValues.Count > 0) {
             output = PdfFormFiller.FillFieldsWithinPlannedRewrite(output, ToFieldValues(refillValues), appearanceOptions, savedReadOptions);
-            savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+            savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
         if (flattenNames.Count > 0) {
             output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames, readOptions: savedReadOptions);
-            savedReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+            savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
 
         PdfDocumentInfo saved = PdfInspector.Inspect(output, savedReadOptions);
@@ -64,7 +64,7 @@ internal static partial class PdfAcroFormEditor {
     private static bool RequiresDocumentVersionUpgrade(
         byte[] sourcePdf,
         byte[] outputPdf,
-        PdfReadOptions outputReadOptions) {
+        PdfLoadOptions outputReadOptions) {
         PdfFileVersion sourceVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(outputPdf, outputReadOptions).Map;
         bool hasOpenType = objects.Values.Any(indirect =>

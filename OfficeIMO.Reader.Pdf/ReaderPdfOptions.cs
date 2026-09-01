@@ -29,6 +29,12 @@ public sealed class ReaderPdfOptions {
     public IReadOnlyList<PdfPageRange>? PageRanges { get; set; }
 
     /// <summary>
+    /// Maximum selected pages processed by the canonical semantic pipeline.
+    /// Increase this explicitly when ingesting larger PDF documents.
+    /// </summary>
+    public int MaxPages { get; set; } = PdfUnderstandingPipelineOptions.DefaultMaxPages;
+
+    /// <summary>
     /// Markdown rendering options used for page chunk content.
     /// </summary>
     public PdfLogicalMarkdownOptions? MarkdownOptions { get; set; }
@@ -53,6 +59,7 @@ public sealed class ReaderPdfOptions {
     public ReaderPdfOptions Clone() => new ReaderPdfOptions {
         LayoutOptions = CloneLayoutOptions(LayoutOptions),
         PageRanges = PageRanges?.ToArray(),
+        MaxPages = MaxPages,
         MarkdownOptions = CloneMarkdownOptions(MarkdownOptions),
         IncludeParagraphContinuationMetadata = IncludeParagraphContinuationMetadata,
         ParagraphContinuationOptions = CloneParagraphContinuationOptions(ParagraphContinuationOptions),

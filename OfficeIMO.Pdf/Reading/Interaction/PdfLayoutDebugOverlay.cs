@@ -10,7 +10,7 @@ internal static class PdfLayoutDebugOverlay {
         int pageNumber,
         PdfLayoutDebugOverlayOptions? options = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfLayoutDebugOverlayOptions effective = options ?? new PdfLayoutDebugOverlayOptions();
         if (effective.MaxElements <= 0) {
@@ -48,7 +48,7 @@ internal static class PdfLayoutDebugOverlay {
         int pageNumber,
         PdfLayoutDebugOverlayOptions? options = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return OfficeDrawingSvgExporter.ToSvg(CreateDrawing(pdf, pageNumber, options, layoutOptions, readOptions));
     }
 
@@ -59,7 +59,7 @@ internal static class PdfLayoutDebugOverlay {
         double scale = 1D,
         PdfLayoutDebugOverlayOptions? options = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         PdfLayoutDebugOverlayOptions effective = options ?? new PdfLayoutDebugOverlayOptions();
         if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Overlay PNG scale must be positive and finite.");

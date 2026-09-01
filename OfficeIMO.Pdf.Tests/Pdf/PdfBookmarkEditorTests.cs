@@ -15,9 +15,9 @@ public class PdfBookmarkEditorTests {
             .H2("Detail")
             .Paragraph(p => p.Text("Page two"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17 } };
 
-        PdfBookmarkEditResult edited = PdfDocument.Open(source, readOptions).Bookmarks.Edit(session => {
+        PdfBookmarkEditResult edited = PdfDocument.Load(source, readOptions).Bookmarks.Edit(session => {
             PdfBookmarkNode first = session.Roots[0];
             PdfBookmarkNode second = session.Roots[1];
             session.Rename(first.Id, "Renamed first");

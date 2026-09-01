@@ -9,7 +9,7 @@ public class PdfAnnotationCreationTests {
     public void AddAnnotation_CreatesLineGeometryAppearanceAndPopupOnExistingPage() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
-        PdfAnnotationEditResult result = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Line",
             Rectangle = new[] { 40D, 50D, 180D, 100D },
             Line = new[] { 40D, 50D, 180D, 100D },
@@ -113,7 +113,7 @@ public class PdfAnnotationCreationTests {
             ReservedSignatureContentsBytes = 512
         });
         byte[] signed = PdfIncrementalUpdater.ApplyExternalSignature(preparation, new byte[] { 0x30, 0x01, 0x00 });
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = signed.Length }
         };
 
@@ -135,9 +135,9 @@ public class PdfAnnotationCreationTests {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted annotations"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Password = "owner" };
+        var readOptions = new PdfLoadOptions { Password = "owner" };
 
-        PdfAnnotationEditResult added = PdfDocument.Open(source, readOptions).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult added = PdfDocument.Load(source, readOptions).Annotations.Add(new PdfAnnotationCreateOptions {
             Subtype = "Text",
             Contents = "Encrypted note"
         });
@@ -165,7 +165,7 @@ public class PdfAnnotationCreationTests {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Static encrypted annotation"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Password = "owner" };
+        var readOptions = new PdfLoadOptions { Password = "owner" };
 
         PdfAnnotationEditResult result = PdfAnnotationEditor.AddAnnotation(
             source,
@@ -190,7 +190,7 @@ public class PdfAnnotationCreationTests {
             .ToBytes();
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(source, new PdfReadOptions { Password = "owner" }).Annotations.Flatten());
+            PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" }).Annotations.Flatten());
 
         Assert.True(exception.Plan.Preflight.CanRead);
         Assert.True(exception.Plan.Preflight.Probe.Security.HasOwnerAuthorization);
@@ -206,7 +206,7 @@ public class PdfAnnotationCreationTests {
             .ToBytes();
         int freeTextObject = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("FreeText")).ObjectNumber!.Value;
 
-        PdfAnnotationEditResult result = PdfDocument.Open(source).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = freeTextObject });
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Flatten(new PdfAnnotationFlattenOptions { ObjectNumber = freeTextObject });
         PdfDocumentInfo info = PdfInspector.Inspect(result.Bytes);
 
         Assert.Equal(1, result.AffectedAnnotationCount);
@@ -218,7 +218,7 @@ public class PdfAnnotationCreationTests {
     [Fact]
     public void FlattenAnnotations_ReservesGeneratedContentBudgets() {
         byte[] source = BuildEmptyAppearanceAnnotationPdf();
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxInputBytes = source.LongLength,
                 MaxRawStreamBytes = 1,
@@ -234,7 +234,7 @@ public class PdfAnnotationCreationTests {
         PdfAnnotationEditResult result = PdfAnnotationEditor.FlattenAnnotations(source, options: null, readOptions);
 
         Assert.Equal(1, result.AffectedAnnotationCount);
-        Assert.Empty(result.ToDocument().Read.Annotations());
+        Assert.Empty(result.ToDocument().Reader.Annotations());
     }
 
     [Fact]
@@ -244,7 +244,7 @@ public class PdfAnnotationCreationTests {
             .Paragraph(paragraph => paragraph.Text("Annotation update"))
             .ToBytes();
         int objectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectCharacters = 512, MaxTokensPerObject = 512 }
         };
 
@@ -254,7 +254,7 @@ public class PdfAnnotationCreationTests {
             new PdfAnnotationUpdateOptions { Contents = new string('x', 4096) },
             readOptions);
 
-        Assert.Equal(4096, Assert.Single(result.ToDocument().Read.Annotations()).Contents!.Length);
+        Assert.Equal(4096, Assert.Single(result.ToDocument().Reader.Annotations()).Contents!.Length);
     }
 
     private static byte[] BuildEmptyAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(

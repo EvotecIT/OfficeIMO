@@ -82,7 +82,7 @@ public class PdfFormCreationTests {
 
         string raw = Encoding.ASCII.GetString(pdf);
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
         PdfFormField field = Assert.Single(info.FormFields);
 
         Assert.Contains("/AcroForm", raw);

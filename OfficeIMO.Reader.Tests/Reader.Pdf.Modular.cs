@@ -4,12 +4,28 @@ using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Tests.Pdf;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderPdfModularTests {
+    [Fact]
+    public void DocumentReaderPdf_PropagatesCancellationIntoSemanticRead() {
+        byte[] pdf = BuildTwoPagePdf();
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-pdf-cancel-" + Guid.NewGuid().ToString("N") + ".pdf");
+        File.WriteAllBytes(path, pdf);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        try {
+            Assert.Throws<OperationCanceledException>((Action)(() =>
+                PdfReaderAdapter.Read(path, cancellationToken: cancellation.Token).ToList()));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     [Fact]
     public void DocumentReaderPdf_ReadPdfStream_EmitsPageAwareChunks() {
         byte[] pdf = BuildTwoPagePdf();
@@ -137,8 +153,8 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfLogicalDocument_CanSelectPageRanges() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
+    public void DocumentReaderPdf_ReadPdfDocumentReadResult_CanSelectPageRanges() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildTwoPagePdf());
 
         var chunks = PdfReaderAdapter.Read(
             logical,
@@ -154,7 +170,7 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfLogicalDocument_FiltersOpenActionToSelectedPages() {
+    public void DocumentReaderPdf_ReadPdfDocumentReadResult_FiltersOpenActionToSelectedPages() {
         byte[] pdf = PdfDocument.Create()
             .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
             .H1("Reader PDF page one")
@@ -163,7 +179,7 @@ public sealed class ReaderPdfModularTests {
             .H1("Reader PDF page two")
             .Paragraph(p => p.Text("Second page body."))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
@@ -425,7 +441,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_PreservesLogicalPageRangeOrder() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildTwoPagePdf());
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
@@ -827,7 +843,7 @@ public sealed class ReaderPdfModularTests {
             .Bookmark("SecondDest")
             .Paragraph(p => p.Text("Second page body."))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
@@ -858,7 +874,7 @@ public sealed class ReaderPdfModularTests {
             .H1("Second")
             .TextField("Second.Only", value: "hidden")
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
@@ -1136,8 +1152,8 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfLogicalDocument_RangedReadRetainsCatalogActions() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPageCatalogActionsPdf());
+    public void DocumentReaderPdf_ReadPdfDocumentReadResult_RangedReadRetainsCatalogActions() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildTwoPageCatalogActionsPdf());
 
         ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
@@ -1161,8 +1177,8 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfLogicalDocument_DuplicateRangesRetainCatalogActionsOnlyOnce() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPageCatalogActionsPdf());
+    public void DocumentReaderPdf_ReadPdfDocumentReadResult_DuplicateRangesRetainCatalogActionsOnlyOnce() {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildTwoPageCatalogActionsPdf());
 
         List<ReaderChunk> chunks = PdfReaderAdapter.Read(
             logical,
@@ -1489,7 +1505,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfDocument_ExposesAcroFormXfaMetadataWithoutRenderingXfa() {
         byte[] pdf = BuildAcroFormXfaPdf();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
         Assert.NotNull(logical.AcroFormXfa);
         Assert.True(logical.HasAcroFormXfa);
         Assert.Equal("array", logical.AcroFormXfa!.ObjectKind);
@@ -2249,6 +2265,7 @@ public sealed class ReaderPdfModularTests {
             MarginLeft = 12
         };
         options.PageRanges = new[] { PdfPageRange.From(1, 1) };
+        options.MaxPages = 2_048;
         options.MarkdownOptions!.AlignNumericTableColumns = false;
         options.ParagraphContinuationOptions = new PdfLogicalParagraphContinuationOptions {
             MinimumConfidence = 0.85,
@@ -2263,6 +2280,7 @@ public sealed class ReaderPdfModularTests {
         Assert.NotSame(options.ParagraphContinuationOptions, clone.ParagraphContinuationOptions);
         Assert.Equal(options.LayoutOptions.MarginLeft, clone.LayoutOptions!.MarginLeft);
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
+        Assert.Equal(2_048, clone.MaxPages);
         Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
         Assert.Equal(options.PageRanges.Single(), clone.PageRanges!.Single());
         Assert.Equal(0.85, clone.ParagraphContinuationOptions!.MinimumConfidence);
@@ -2305,7 +2323,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ParagraphContinuationsRespectSelectedPageOrder() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildParagraphContinuationPdf());
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
@@ -2323,7 +2341,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ParagraphContinuationsPreserveRepeatedPageOccurrences() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildParagraphContinuationPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildParagraphContinuationPdf());
 
         OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,

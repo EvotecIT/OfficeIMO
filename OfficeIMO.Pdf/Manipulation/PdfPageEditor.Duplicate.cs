@@ -9,7 +9,7 @@ internal static partial class PdfPageEditor {
         return DuplicatePagesWithReadOptions(pdf, null, pageNumbers);
     }
 
-    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] DuplicatePagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);

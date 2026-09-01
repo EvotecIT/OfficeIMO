@@ -1,11 +1,11 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfDocumentReader {
+internal sealed partial class PdfDocumentReader {
     /// <summary>Builds text-selection and interactive hit regions for one page in visual top-left coordinates.</summary>
     public PdfPageInteractionMap Interactions(
         int pageNumber,
         PdfPageInteractionOptions? interactionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return PdfPageInteractionMap.Create(
             _document.GetBytesForOperation(),
             pageNumber,
@@ -18,7 +18,7 @@ public sealed partial class PdfDocumentReader {
         int pageNumber,
         PdfLayoutDebugOverlayOptions? overlayOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return PdfLayoutDebugOverlay.CreateDrawing(
             _document.GetBytesForOperation(),
             pageNumber,
@@ -37,7 +37,7 @@ public sealed partial class PdfDocumentReader {
     public string ExportStructured(
         PdfStructuredExportFormat format,
         PdfTextLayoutOptions? layoutOptions,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         return PdfStructuredExportEngine.Export(_document.GetBytesForOperation(), format, layoutOptions, ResolveReadOptions(readOptions));
     }
 }

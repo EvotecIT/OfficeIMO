@@ -2,62 +2,81 @@ using BenchmarkDotNet.Attributes;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
-/// <summary>
-/// Tracks OfficeIMO's end-to-end advanced understanding workflow.
-/// </summary>
+/// <summary>Measures the canonical Fast semantic-read route without document-wide enrichment.</summary>
 [MemoryDiagnoser]
-[RankColumn]
-public class PdfAdvancedUnderstandingBenchmarks {
-    private byte[] _pdf = null!;
-    private PdfUnderstandingPipeline _pipeline = null!;
+public class PdfStructuredReadFastBenchmarks {
+    private readonly PdfStructuredReadBenchmarkScenario _scenario = new();
 
     [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
     public PdfBenchmarkScale Scale { get; set; }
 
     [GlobalSetup]
-    public void Setup() {
-        PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(Scale);
-        _pdf = corpus.Pdf;
-        _pipeline = new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced());
-
-        PdfUnderstandingResult understanding = _pipeline.Run(PdfReadDocument.Open(_pdf));
-        PdfUnderstandingAccuracyObservation accuracy = PdfUnderstandingBenchmarkValidation.Evaluate(understanding, corpus.Pages);
-        PdfUnderstandingBenchmarkValidation.RequireCompleteLabelCoverage(accuracy);
-        PdfUnderstandingBenchmarkValidation.RequireDeterministicSemanticQuality(accuracy);
-    }
+    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Fast);
 
     [Benchmark]
-    public PdfUnderstandingPerformanceObservation AdvancedUnderstanding() =>
-        PdfUnderstandingBenchmarkValidation.Observe(_pipeline.Run(PdfReadDocument.Open(_pdf)));
+    public PdfStructuredReadObservation FastLoadAndRead() => _scenario.Read();
 }
 
-/// <summary>
-/// Tracks OfficeIMO's logical structure and table extraction workflow.
-/// </summary>
+/// <summary>Measures the complete Structured semantic-read route with document-wide enrichment.</summary>
 [MemoryDiagnoser]
-[RankColumn]
-public class PdfLogicalStructureBenchmarks {
-    private byte[] _pdf = null!;
+public class PdfStructuredReadCompleteBenchmarks {
+    private readonly PdfStructuredReadBenchmarkScenario _scenario = new();
 
     [Params(PdfBenchmarkScale.Easy, PdfBenchmarkScale.Medium, PdfBenchmarkScale.High)]
     public PdfBenchmarkScale Scale { get; set; }
 
     [GlobalSetup]
-    public void Setup() {
-        PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(Scale);
-        _pdf = corpus.Pdf;
+    public void Setup() => _scenario.Setup(Scale, PdfReadProfile.Structured);
 
-        PdfLogicalDocument logicalDocument = PdfLogicalDocument.Load(_pdf);
-        PdfLogicalStructureObservation logical = PdfUnderstandingBenchmarkValidation.Observe(logicalDocument);
-        PdfBinaryClassificationScore tableDetection = PdfUnderstandingBenchmarkValidation.EvaluateTableDetection(logicalDocument, corpus.Pages);
-        PdfUnderstandingBenchmarkValidation.RequireDeterministicTableQuality(tableDetection);
-        if (logical.PageCount != corpus.Pages.Count || logical.TableCount < corpus.Pages.Count || logical.TableCellCount == 0) {
+    [Benchmark]
+    public PdfStructuredReadObservation StructuredLoadAndRead() => _scenario.Read();
+}
+
+internal sealed class PdfStructuredReadBenchmarkScenario {
+    private byte[] _pdf = null!;
+    private PdfReadOptions _options = null!;
+
+    internal void Setup(PdfBenchmarkScale scale, PdfReadProfile profile) {
+        PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
+        _pdf = corpus.Pdf;
+        _options = PdfUnderstandingBenchmarkReadOptions.Create(profile, corpus.Pages.Count);
+
+        PdfDocumentReadResult result = ReadDocument();
+        PdfStructuredReadObservation observation = PdfUnderstandingBenchmarkValidation.Observe(result);
+        if (observation.PageCount != corpus.Pages.Count || observation.TableCount < corpus.Pages.Count) {
             throw new InvalidDataException(
-                $"Logical structure validation produced {logical.PageCount} pages, {logical.TableCount} tables, and {logical.TableCellCount} table cells for {corpus.Pages.Count} expected pages.");
+                $"Canonical {profile} read produced {observation.PageCount}/{observation.TableCount} pages/tables for {corpus.Pages.Count} expected pages.");
+        }
+
+        if (profile == PdfReadProfile.Structured) {
+            PdfSemanticCorrectnessObservation correctness = PdfUnderstandingBenchmarkValidation.Evaluate(result, corpus);
+            PdfUnderstandingBenchmarkValidation.RequireDeterministicQuality(correctness);
         }
     }
 
-    [Benchmark]
-    public PdfLogicalStructureObservation LogicalStructureAndTables() =>
-        PdfUnderstandingBenchmarkValidation.Observe(PdfLogicalDocument.Load(_pdf));
+    internal PdfStructuredReadObservation Read() =>
+        PdfUnderstandingBenchmarkValidation.Observe(ReadDocument());
+
+    private PdfDocumentReadResult ReadDocument() {
+        PdfDocument document = PdfDocument.Load(_pdf);
+        return document.Read(_options);
+    }
+}
+
+internal static class PdfUnderstandingBenchmarkReadOptions {
+    private const long DefaultDocumentWorkUnits = 10_000_000L;
+
+    internal static PdfReadOptions Create(PdfReadProfile profile, int pageCount) {
+        // The labelled 100-page fixture intentionally exercises quadratic document-wide
+        // similarity work. Raise only this benchmark-owned ceiling; production defaults remain bounded.
+        long documentWorkUnits = Math.Max(
+            DefaultDocumentWorkUnits,
+            checked((long)pageCount * pageCount * 20_000L));
+        return new PdfReadOptions {
+            Profile = profile,
+            Pipeline = new PdfUnderstandingPipelineOptions {
+                MaxDocumentWorkUnits = documentWorkUnits
+            }
+        };
+    }
 }

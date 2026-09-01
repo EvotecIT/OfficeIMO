@@ -19,7 +19,7 @@ public class PdfDocumentCanvasTests {
                 .TextField("disabled", "excluded", 20D, 50D, 120D, 20D, style: new PdfFormFieldStyle { IsNoExport = true }))
             .ToBytes();
 
-        PdfFormDataSet data = PdfDocument.Open(bytes).Forms.ExportData();
+        PdfFormDataSet data = PdfDocument.Load(bytes).Forms.ExportData();
 
         Assert.Contains(data.Fields, field => field.Name == "enabled" && field.Values.SequenceEqual(new[] { "included" }));
         Assert.DoesNotContain(data.Fields, field => field.Name == "disabled");
@@ -267,7 +267,7 @@ public class PdfDocumentCanvasTests {
 
         Assert.Equal("Option2", field.Value);
         Assert.Equal(new[] { "caf\u00E9", "th\u00E9" }, field.Options.Select(option => option.ExportValue).ToArray());
-        Assert.Equal("th\u00E9", Assert.Single(PdfDocument.Open(bytes).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("th\u00E9", Assert.Single(PdfDocument.Load(bytes).Forms.ExportData().Fields).Values[0]);
     }
 
     [Fact]

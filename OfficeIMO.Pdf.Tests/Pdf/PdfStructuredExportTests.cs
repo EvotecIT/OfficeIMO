@@ -11,7 +11,7 @@ public class PdfStructuredExportTests {
     public void StructuredExportEngineIsNotASecondPublicFacade() {
         Type[] exportedTypes = typeof(PdfDocument).Assembly.GetExportedTypes();
 
-        Assert.Contains(exportedTypes, type => type == typeof(PdfLogicalDocumentStructuredExportExtensions));
+        Assert.Contains(exportedTypes, type => type == typeof(PdfDocumentReadResultStructuredExportExtensions));
         Assert.DoesNotContain(exportedTypes, type => type.Name == "PdfStructuredExporter");
         Assert.DoesNotContain(exportedTypes, type => type.Name == "PdfStructuredExportEngine");
     }
@@ -21,7 +21,7 @@ public class PdfStructuredExportTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Structured <export> & JSON \"proof\""))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         string json = logical.ExportStructured(PdfStructuredExportFormat.Json);
         string markdown = logical.ExportStructured(PdfStructuredExportFormat.Markdown);
@@ -46,7 +46,7 @@ public class PdfStructuredExportTests {
         byte[] page = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Page scoped export"))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(PdfMerger.Merge(page, page));
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfMerger.Merge(page, page));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             logical.ExportStructured(PdfStructuredExportFormat.PageXml));
@@ -63,7 +63,7 @@ public class PdfStructuredExportTests {
             .Paragraph(paragraph => paragraph.Text("Fluent structured output"))
             .ToBytes();
 
-        string json = PdfDocument.Open(source).Read.ExportStructured(PdfStructuredExportFormat.Json);
+        string json = PdfDocument.Load(source).Reader.ExportStructured(PdfStructuredExportFormat.Json);
 
         Assert.Contains("Fluent structured output", json, StringComparison.Ordinal);
     }
@@ -73,9 +73,9 @@ public class PdfStructuredExportTests {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted structured output"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Password = "owner" };
+        var readOptions = new PdfLoadOptions { Password = "owner" };
 
-        string json = PdfDocument.Open(source, readOptions).Read.ExportStructured(PdfStructuredExportFormat.Json);
+        string json = PdfDocument.Load(source, readOptions).Reader.ExportStructured(PdfStructuredExportFormat.Json);
 
         Assert.Contains("Encrypted structured output", json, StringComparison.Ordinal);
     }
@@ -98,7 +98,7 @@ public class PdfStructuredExportTests {
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         });
         byte[] source = Encoding.ASCII.GetBytes(rawPdf);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         Assert.Contains("\uD800", logical.Pages[0].TextBlocks[0].Text, StringComparison.Ordinal);
 
         string alto = logical.ExportStructured(PdfStructuredExportFormat.AltoXml);

@@ -6,17 +6,25 @@ internal sealed record PdfUnderstandingBenchmarkExpectation(
     int PageNumber,
     IReadOnlyList<string> ReadingOrder,
     string TableMarker,
-    IReadOnlyList<string> ExpectedTableCells,
+    IReadOnlyList<IReadOnlyList<string>> ExpectedTableRows,
     IReadOnlyDictionary<string, string> ExpectedRegionText,
-    IReadOnlyDictionary<string, PdfUnderstandingSemanticKind> SemanticKinds);
+    IReadOnlyDictionary<string, PdfUnderstandingSemanticKind> SemanticKinds,
+    IReadOnlyDictionary<string, int> HeadingLevels) {
+    internal IReadOnlyList<string> ExpectedTableCells =>
+        ExpectedTableRows.SelectMany(static row => row).ToArray();
+}
 
 internal sealed record PdfUnderstandingBenchmarkCorpus(
     byte[] Pdf,
-    IReadOnlyList<PdfUnderstandingBenchmarkExpectation> Pages);
+    IReadOnlyList<PdfUnderstandingBenchmarkExpectation> Pages,
+    byte[] ContinuationPdf,
+    IReadOnlyList<(int PreviousPage, int CurrentPage)> ExpectedContinuationPairs);
 
 internal static class PdfUnderstandingBenchmarkCorpusFactory {
     internal static PdfUnderstandingBenchmarkCorpus Create(PdfBenchmarkScale scale) {
-        int pageCount = PdfBenchmarkScenario.Get(scale).PageCount;
+        // Running-header/footer recovery is intentionally document-wide, so this labelled
+        // semantic corpus must contain at least two pages even for the Easy scale.
+        int pageCount = Math.Max(2, PdfBenchmarkScenario.Get(scale).PageCount);
         var expectations = new List<PdfUnderstandingBenchmarkExpectation>(pageCount);
         PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => {
             for (int pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
@@ -42,16 +50,16 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                 string statusHeader = "SH-P" + suffix;
                 string accountOne = "C1-P" + suffix;
                 string accountTwo = "C2-P" + suffix;
-                string accountThree = "C3-P" + suffix;
+                string accountThree = accountOne;
                 string ownerOne = "O1-P" + suffix;
                 string ownerTwo = "O2-P" + suffix;
-                string ownerThree = "O3-P" + suffix;
+                string ownerThree = ownerOne;
                 string amountOne = "A1-P" + suffix + " 1037.25";
                 string amountTwo = "A2-P" + suffix + " 1074.50";
-                string amountThree = "A3-P" + suffix + " 1111.75";
+                string amountThree = amountOne;
                 string statusOne = "S1-P" + suffix + " Approved";
                 string statusTwo = "S2-P" + suffix + " Review";
-                string statusThree = "S3-P" + suffix + " Approved";
+                string statusThree = statusOne;
                 string tableRegionText = string.Join(" ", new[] {
                     table, ownerHeader, amountHeader, statusHeader,
                     accountOne, ownerOne, amountOne, statusOne,
@@ -87,11 +95,11 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         list, caption, table, footer
                     },
                     table,
-                    new[] {
-                        table, ownerHeader, amountHeader, statusHeader,
-                        accountOne, ownerOne, amountOne, statusOne,
-                        accountTwo, ownerTwo, amountTwo, statusTwo,
-                        accountThree, ownerThree, amountThree, statusThree
+                    new IReadOnlyList<string>[] {
+                        new[] { table, ownerHeader, amountHeader, statusHeader },
+                        new[] { accountOne, ownerOne, amountOne, statusOne },
+                        new[] { accountTwo, ownerTwo, amountTwo, statusTwo },
+                        new[] { accountThree, ownerThree, amountThree, statusThree }
                     },
                     new Dictionary<string, string>(StringComparer.Ordinal) {
                         [header] = header + " semantic benchmark running header",
@@ -120,11 +128,54 @@ internal static class PdfUnderstandingBenchmarkCorpusFactory {
                         [caption] = PdfUnderstandingSemanticKind.Caption,
                         [table] = PdfUnderstandingSemanticKind.Table,
                         [footer] = PdfUnderstandingSemanticKind.Footer
+                    },
+                    new Dictionary<string, int>(StringComparer.Ordinal) {
+                        [title] = 1
                     }));
             }
         }));
 
-        return new PdfUnderstandingBenchmarkCorpus(document.ToBytes(), expectations.AsReadOnly());
+        byte[] continuationPdf = CreateContinuationPdf();
+        int continuationPageCount = PdfReadDocument.Open(continuationPdf).Pages.Count;
+        var continuationPairs = Enumerable.Range(1, Math.Max(0, continuationPageCount - 1))
+            .Select(static page => (page, page + 1))
+            .ToArray();
+        return new PdfUnderstandingBenchmarkCorpus(
+            document.ToBytes(),
+            expectations.AsReadOnly(),
+            continuationPdf,
+            continuationPairs);
+    }
+
+    private static byte[] CreateContinuationPdf() {
+        var rows = new List<string[]> {
+            new[] { "Account", "Owner", "Amount", "Status" }
+        };
+        for (int index = 1; index <= 60; index++) {
+            rows.Add(new[] {
+                $"CONT-{index:D3}",
+                $"Owner-{index % 11:D2}",
+                (index * 17.25M).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                index % 5 == 0 ? "Review" : "Approved"
+            });
+        }
+
+        return PdfDocument.Create(pdf => pdf.Content(content => content.Table(rows, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                RepeatHeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { 82, 82, 82, 82 },
+                CellPaddingX = 3,
+                CellPaddingY = 2
+            })), new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24,
+                DefaultFontSize = 8
+            })
+            .ToBytes();
     }
 
     private static string AlphabeticPageToken(int pageNumber) {

@@ -5,11 +5,11 @@ namespace OfficeIMO.Pdf;
 /// <summary>Creates bounded, read-only debugger projections without exposing a mutable PDF object model.</summary>
 internal static class PdfDebugger {
     /// <summary>Dumps a PDF byte array into typed debugger records.</summary>
-    public static PdfDebuggerReport Dump(byte[] pdf, PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static PdfDebuggerReport Dump(byte[] pdf, PdfDebuggerOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDebuggerOptions effectiveOptions = options ?? new PdfDebuggerOptions();
         effectiveOptions.Validate();
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.Resolve(readOptions);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
         document.DemandContentExtraction("debug object");
         var (objects, _) = PdfSyntax.ParseObjects(pdf, effectiveReadOptions);
@@ -33,14 +33,14 @@ internal static class PdfDebugger {
     }
 
     /// <summary>Dumps a PDF file into typed debugger records.</summary>
-    public static PdfDebuggerReport Dump(string path, PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static PdfDebuggerReport Dump(string path, PdfDebuggerOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         PdfDocumentSource source = PdfDocumentSource.FromPath(path, readOptions);
         return Dump(source.Bytes, options, source.Options);
     }
 
     /// <summary>Dumps a readable PDF stream from its current position.</summary>
-    public static PdfDebuggerReport Dump(Stream stream, PdfDebuggerOptions? options = null, PdfReadOptions? readOptions = null) {
+    public static PdfDebuggerReport Dump(Stream stream, PdfDebuggerOptions? options = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));

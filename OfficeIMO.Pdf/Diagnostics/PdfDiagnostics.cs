@@ -6,7 +6,7 @@ internal static class PdfDiagnostics {
     private const long UncompressedStreamThresholdBytes = 16L * 1024L;
 
     /// <summary>Analyzes a PDF byte array.</summary>
-    public static PdfDiagnosticReport Analyze(byte[] pdf, PdfReadOptions? options = null) {
+    public static PdfDiagnosticReport Analyze(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
@@ -40,13 +40,13 @@ internal static class PdfDiagnostics {
     }
 
     /// <summary>Analyzes a PDF file.</summary>
-    public static PdfDiagnosticReport Analyze(string path, PdfReadOptions? options = null) {
+    public static PdfDiagnosticReport Analyze(string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return Analyze(File.ReadAllBytes(path), options);
     }
 
     /// <summary>Analyzes a readable PDF stream from its current position.</summary>
-    public static PdfDiagnosticReport Analyze(Stream stream, PdfReadOptions? options = null) {
+    public static PdfDiagnosticReport Analyze(Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -58,19 +58,19 @@ internal static class PdfDiagnostics {
     }
 
     /// <summary>Reports optimization opportunities for a PDF byte array without modifying it.</summary>
-    public static PdfOptimizationReport AnalyzeOptimization(byte[] pdf, PdfReadOptions? options = null) {
+    public static PdfOptimizationReport AnalyzeOptimization(byte[] pdf, PdfLoadOptions? options = null) {
         PdfDiagnosticReport diagnostics = Analyze(pdf, options);
         return BuildOptimizationReport(diagnostics);
     }
 
     /// <summary>Reports optimization opportunities for a PDF file without modifying it.</summary>
-    public static PdfOptimizationReport AnalyzeOptimization(string path, PdfReadOptions? options = null) {
+    public static PdfOptimizationReport AnalyzeOptimization(string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return AnalyzeOptimization(File.ReadAllBytes(path), options);
     }
 
     /// <summary>Reports optimization opportunities for a readable PDF stream without modifying it.</summary>
-    public static PdfOptimizationReport AnalyzeOptimization(Stream stream, PdfReadOptions? options = null) {
+    public static PdfOptimizationReport AnalyzeOptimization(Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));

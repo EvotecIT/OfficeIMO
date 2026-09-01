@@ -27,7 +27,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfLoadOptions? options = null) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Fill form fields",
@@ -43,7 +43,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         Guard.NotNull(formOptions, nameof(formOptions));
         return _document.TryMutationOperation(
@@ -74,7 +74,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfLoadOptions? options = null) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Fill form fields",
@@ -90,7 +90,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         Guard.NotNull(formOptions, nameof(formOptions));
         return _document.TryMutationOperation(
@@ -121,7 +121,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to append a simple AcroForm field-value revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, bool keepNeedAppearances = true, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, bool keepNeedAppearances = true, PdfLoadOptions? options = null) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Append form field revision",
@@ -136,7 +136,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to append a simple AcroForm field-value revision, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Append form field revision",
@@ -165,7 +165,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to append a simple AcroForm field-value revision, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true, PdfLoadOptions? options = null) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Append form field revision",
@@ -180,7 +180,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to append a simple AcroForm field-value revision, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         return _document.TryMutationOperation(
             "Append form field revision",
@@ -219,14 +219,14 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFlatten(PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryFlatten(PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Flatten form fields", PdfPreflightCapability.FlattenSimpleFormFields, PdfMutationOperation.FlattenFormFields, () => FlattenWithReadOptions(formOptions: null, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with simple form fields flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFlatten(PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryFlatten(PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
         return _document.TryMutationOperation("Flatten form fields", PdfPreflightCapability.FlattenSimpleFormFields, PdfMutationOperation.FlattenFormFields, () => FlattenWithReadOptions(formOptions, readOptions ?? _document.ReadOptions), readOptions);
     }
 
@@ -247,14 +247,14 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions: null, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
         return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions);
     }
 
@@ -275,14 +275,14 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfReadOptions? options = null) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfLoadOptions? options = null) {
         return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions: null, options ?? _document.ReadOptions), options);
     }
 
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfLoadOptions? readOptions) {
         return _document.TryMutationOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, PdfMutationOperation.FillAndFlattenFormFields, () => FillAndFlattenWithReadOptions(fieldValues, formOptions, readOptions ?? _document.ReadOptions), readOptions);
     }
 
@@ -326,7 +326,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument FillWithReadOptions(
         IReadOnlyDictionary<string, string> fieldValues,
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "Fill");
@@ -334,14 +334,14 @@ public sealed class PdfDocumentForms {
     private PdfDocument FillWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "Fill");
 
     private PdfDocument FlattenWithReadOptions(
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FlattenFields(input, formOptions, readOptions),
             readOptions,
             operationName: "Flatten");
@@ -349,7 +349,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument FlattenWithReadOptions(
         IReadOnlyCollection<string> fieldNames,
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FlattenFields(input, fieldNames, formOptions, readOptions),
             readOptions,
             operationName: "Flatten");
@@ -357,7 +357,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument FillAndFlattenWithReadOptions(
         IReadOnlyDictionary<string, string> fieldValues,
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillAndFlattenFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "FillAndFlatten");
@@ -365,7 +365,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument FillAndFlattenWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfFormFiller.FillAndFlattenFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "FillAndFlatten");
@@ -373,7 +373,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument AppendRevisionWithReadOptions(
         IReadOnlyDictionary<string, string> fieldValues,
         PdfIncrementalFormFieldUpdateOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "AppendRevision");
@@ -381,7 +381,7 @@ public sealed class PdfDocumentForms {
     private PdfDocument AppendRevisionWithReadOptions(
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfIncrementalFormFieldUpdateOptions? formOptions,
-        PdfReadOptions? readOptions) => _document.ApplyMutation(
+        PdfLoadOptions? readOptions) => _document.ApplyMutation(
             input => PdfIncrementalUpdater.UpdateFormFields(input, fieldValues, formOptions, readOptions),
             readOptions,
             operationName: "AppendRevision");

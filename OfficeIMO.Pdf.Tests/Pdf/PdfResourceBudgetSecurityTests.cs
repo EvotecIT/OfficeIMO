@@ -153,7 +153,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 5 0 R] >>",
             "<< /Length 5 >>\nstream\nBT ET\nendstream",
             "<< /Length 5 >>\nstream\nBT ET\nendstream");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = 9 }
         };
 
@@ -170,7 +170,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents [4 0 R 4 0 R] >>",
             BuildStream("BT ET"));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = 9 }
         };
 
@@ -190,7 +190,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fx 5 0 R >> >> /Contents 4 0 R >>",
             BuildStream(pageContent),
             BuildStream(formContent, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = pageContent.Length + formContent.Length - 1 }
         };
 
@@ -210,7 +210,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             BuildStream(string.Empty),
             "<< /Type /Annot /Subtype /FreeText /Rect [0 0 10 10] /AP << /N 6 0 R >> >>",
             BuildStream(appearanceContent, "/Type /XObject /Subtype /Form /BBox [0 0 10 10]"));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = appearanceContent.Length - 1 }
         };
 
@@ -230,7 +230,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /XObject << /Fx 5 0 R >> >> /Contents 4 0 R >>",
             BuildStream(pageContent),
             BuildStream(formContent, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]"));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxActualTextCharacters = 10 }
         };
 
@@ -248,7 +248,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Resources << /Properties << /MC0 << /ActualText <FEFF00410042> >> >> >> /Contents 4 0 R >>",
             BuildStream(pageContent));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxActualTextCharacters = 1 }
         };
 
@@ -270,7 +270,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Annot /Subtype /FreeText /Rect [20 0 30 10] /Contents (Second) /AP << /N 7 0 R >> >>",
             BuildStream(appearanceContent, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 8 0 R >> >>"),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedTextCharacters = 10 }
         };
 
@@ -314,7 +314,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Kids [6 0 R] >>",
             "<< /Kids [7 0 R] >>",
             "<< /Names [(Target) [3 0 R /Fit]] >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeDepth = 1 }
         };
 
@@ -331,7 +331,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
             BuildStream(string.Empty),
             "<< /Names [(Target) [3 0 R /Fit]] >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -348,7 +348,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
             BuildStream(string.Empty),
             "<< /Names [(Target) [3 0 R /Fit]] >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -366,7 +366,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             BuildStream(string.Empty),
             "<< /Names [(Open) 6 0 R] >>",
             "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -386,7 +386,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             BuildStream(string.Empty),
             "<< /Names [(Open) 6 0 R] >>",
             "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -423,7 +423,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Names [(Target) [3 0 R /Fit]] >>",
             "<< /Names [(Open) 7 0 R] >>",
             "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -446,7 +446,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Names [(Target) [3 0 R /Fit]] >>",
             "<< /Kids [7 0 R] >>",
             "<< /Names [(Ignored) [3 0 R /Fit]] >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxNameTreeNodes = 1 }
         };
 
@@ -503,7 +503,7 @@ public sealed class PdfResourceBudgetSecurityTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>",
             BuildStream("BT /Missing 12 Tf (AB) Tj ET"));
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
         };
 

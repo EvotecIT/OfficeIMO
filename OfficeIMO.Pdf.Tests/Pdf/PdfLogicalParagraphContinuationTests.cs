@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfLogicalParagraphContinuationTests {
     [Fact]
     public void ParagraphContinuations_MergesPageEdgeHyphenWithTypedEvidence() {
-        PdfLogicalDocument document = LoadTwoPageDocument(
+        PdfDocumentReadResult document = LoadTwoPageDocument(
             "The paragraph ends with a discr-",
             "etionary break and continues here");
 
@@ -32,7 +32,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ParagraphContinuations_PreservesAuthoredHyphenByDefault() {
-        PdfLogicalDocument document = LoadTwoPageDocument(
+        PdfDocumentReadResult document = LoadTwoPageDocument(
             "A state-of-the-",
             "art system continues here");
 
@@ -45,7 +45,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ParagraphContinuations_DoesNotMergeCompletedSentence() {
-        PdfLogicalDocument document = LoadTwoPageDocument(
+        PdfDocumentReadResult document = LoadTwoPageDocument(
             "This sentence is complete.",
             "another paragraph starts here");
 
@@ -59,7 +59,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ParagraphContinuations_DoesNotMergeDifferentColumns() {
-        PdfLogicalDocument document = LoadTwoPageDocument(
+        PdfDocumentReadResult document = LoadTwoPageDocument(
             "The paragraph continues without punctuation",
             "another column begins here",
             secondPageX: 170);
@@ -72,7 +72,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ParagraphContinuations_CanDisableCrossPageInference() {
-        PdfLogicalDocument document = LoadTwoPageDocument(
+        PdfDocumentReadResult document = LoadTwoPageDocument(
             "The paragraph continues without punctuation",
             "another segment begins here");
 
@@ -85,7 +85,7 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ParagraphContinuations_RejectsInvalidConfidence() {
-        PdfLogicalDocument document = LoadTwoPageDocument("first segment", "second segment");
+        PdfDocumentReadResult document = LoadTwoPageDocument("first segment", "second segment");
 
         Assert.Throws<ArgumentOutOfRangeException>(() => document.GetParagraphContinuationGroups(
             new PdfLogicalParagraphContinuationOptions { MinimumConfidence = 1.1D }));
@@ -97,10 +97,10 @@ public sealed class PdfLogicalParagraphContinuationTests {
             "The paragraph continues without punctuation",
             "another segment begins here",
             secondPageX: 40);
-        PdfDocument source = PdfDocument.Open(pdf);
+        PdfDocument source = PdfDocument.Load(pdf);
 
-        PdfLogicalParagraphContinuationGroup group = Assert.Single(source.Read.ParagraphContinuations());
-        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Read.TryParagraphContinuations();
+        PdfLogicalParagraphContinuationGroup group = Assert.Single(source.Reader.ParagraphContinuations());
+        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.TryParagraphContinuations();
 
         Assert.True(group.SpansPages);
         Assert.True(attempt.Succeeded);
@@ -110,24 +110,24 @@ public sealed class PdfLogicalParagraphContinuationTests {
 
     [Fact]
     public void ReaderParagraphContinuations_PageSelector_UsesDocumentRelativeSelectionContract() {
-        PdfDocument source = PdfDocument.Open(BuildTwoPagePdf(
+        PdfDocument source = PdfDocument.Load(BuildTwoPagePdf(
             "The paragraph continues without punctuation",
             "another segment begins here",
             secondPageX: 40));
 
-        IReadOnlyList<PdfLogicalParagraphContinuationGroup> groups = source.Read.ParagraphContinuations(PdfPageSelector.Parse("1..last"));
-        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Read.TryParagraphContinuations(PdfPageSelector.Parse("all"));
+        IReadOnlyList<PdfLogicalParagraphContinuationGroup> groups = source.Reader.ParagraphContinuations(PdfPageSelector.Parse("1..last"));
+        PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> attempt = source.Reader.TryParagraphContinuations(PdfPageSelector.Parse("all"));
 
         Assert.True(Assert.Single(groups).SpansPages);
         Assert.True(attempt.Succeeded);
         Assert.True(Assert.Single(attempt.RequireValue()).SpansPages);
     }
 
-    private static PdfLogicalDocument LoadTwoPageDocument(
+    private static PdfDocumentReadResult LoadTwoPageDocument(
         string firstPageText,
         string secondPageText,
         double secondPageX = 40) {
-        return PdfLogicalDocument.Load(
+        return PdfDocumentReadResult.Load(
             BuildTwoPagePdf(firstPageText, secondPageText, secondPageX),
             new PdfTextLayoutOptions { ForceSingleColumn = true });
     }

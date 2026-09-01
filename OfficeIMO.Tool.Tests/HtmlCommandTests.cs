@@ -124,7 +124,7 @@ public sealed class HtmlCommandTests {
             Assert.Equal(0, exitCode);
             byte[] artifact = output.ToArray();
             Assert.Equal("en-US", OfficeIMO.Pdf.PdfReadDocument.Open(artifact).CatalogLanguage);
-            OfficeIMO.Pdf.PdfComplianceProofReport proof = OfficeIMO.Pdf.PdfDocument.Open(artifact)
+            OfficeIMO.Pdf.PdfComplianceProofReport proof = OfficeIMO.Pdf.PdfDocument.Load(artifact)
                 .AssessComplianceProof(OfficeIMO.Pdf.PdfComplianceProfile.PdfUa1);
             Assert.True(proof.HasArtifactEvidence);
             Assert.Equal(artifact.LongLength, proof.ArtifactSizeBytes);

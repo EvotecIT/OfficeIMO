@@ -126,8 +126,8 @@ try {
                     $renderOptions.Dpi = 120D
                     $renderOptions.ContinueOnError = $false
                     $renderOptions.MaxPages = 1
-                    $managedRender = @([OfficeIMO.Pdf.PdfDocument]::Open(
-                            [System.IO.File]::ReadAllBytes($pdfFullPath)).Read.RenderPages('1', $renderOptions))[0]
+                    $managedRender = @([OfficeIMO.Pdf.PdfDocument]::Load(
+                            [System.IO.File]::ReadAllBytes($pdfFullPath)).Render.Pages('1', $renderOptions))[0]
                     [System.IO.File]::WriteAllBytes(
                         (Join-Path $evidenceRoot $managedRelativePath),
                         $managedRender.Bytes)
@@ -219,7 +219,7 @@ try {
         provenance = [ordered]@{
             officeIMO = [ordered]@{
                 kind = 'source'
-                version = '3.2.5+1111111111111111111111111111111111111111'
+                version = '3.3.0+1111111111111111111111111111111111111111'
                 commit = ('1' * 40)
                 worktreeClean = $true
             }

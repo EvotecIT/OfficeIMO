@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Prepared PDF bytes and byte ranges for an external signing operation.</summary>
 public sealed class PdfExternalSignaturePreparation {
     private readonly byte[] _preparedPdf;
-    private readonly PdfReadOptions? _readOptions;
+    private readonly PdfLoadOptions? _readOptions;
 
     internal PdfExternalSignaturePreparation(
         byte[] preparedPdf,
@@ -17,7 +17,7 @@ public sealed class PdfExternalSignaturePreparation {
         int contentsHexOffset,
         int contentsHexLength,
         int reservedSignatureContentsBytes,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         _preparedPdf = (byte[])preparedPdf.Clone();
         _readOptions = readOptions;
         FieldName = fieldName;
@@ -81,13 +81,13 @@ public sealed class PdfExternalSignaturePreparation {
     /// Completes this in-memory preparation with detached CMS or timestamp bytes.
     /// The original read policy is preserved, while the input budget is expanded only for bytes appended by preparation.
     /// </summary>
-    public PdfDocument Complete(byte[] signatureContents, PdfReadOptions? readOptions = null) {
+    public PdfDocument Complete(byte[] signatureContents, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(signatureContents, nameof(signatureContents));
         byte[] completedPdf = PdfIncrementalUpdater.ApplyExternalSignature(this, signatureContents);
-        PdfReadOptions effectiveOptions = readOptions ?? GetCompletionReadOptions(completedPdf.LongLength);
-        return PdfDocument.Open(completedPdf, effectiveOptions);
+        PdfLoadOptions effectiveOptions = readOptions ?? GetCompletionReadOptions(completedPdf.LongLength);
+        return PdfDocument.Load(completedPdf, effectiveOptions);
     }
 
-    internal PdfReadOptions GetCompletionReadOptions(long completedLength) =>
-        PdfReadOptions.WithMinimumInputBytes(_readOptions, Math.Max(_preparedPdf.LongLength, completedLength));
+    internal PdfLoadOptions GetCompletionReadOptions(long completedLength) =>
+        PdfLoadOptions.WithMinimumInputBytes(_readOptions, Math.Max(_preparedPdf.LongLength, completedLength));
 }

@@ -43,7 +43,7 @@ public partial class Excel {
         string text = pdf.GetPage(1).Text;
         Assert.Contains("OfficeIMO", text);
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
         Assert.Equal("OfficeIMO", link.Contents);
 
@@ -89,7 +89,7 @@ public partial class Excel {
             });
         }
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
         PdfCore.PdfNamedDestination destination = Assert.Single(logical.NamedDestinations, item => item.Name.EndsWith("-b3", StringComparison.Ordinal));
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName(destination.Name));
         Assert.True(link.IsNamedDestinationLink);
@@ -101,7 +101,7 @@ public partial class Excel {
         Assert.Contains("/Subtype /Link", rawPdf, StringComparison.Ordinal);
         Assert.Contains("/S /GoTo", rawPdf, StringComparison.Ordinal);
 
-        PdfCore.PdfLogicalDocument summaryOnly = PdfCore.PdfLogicalDocument.Load(summaryOnlyBytes);
+        PdfCore.PdfDocumentReadResult summaryOnly = PdfCore.PdfDocumentReadResult.Load(summaryOnlyBytes);
         Assert.DoesNotContain(summaryOnly.NamedDestinations, item => item.Name.IndexOf("details", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(summaryOnly.Links, link => link.IsNamedDestinationLink);
     }
@@ -125,7 +125,7 @@ public partial class Excel {
             });
         }
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
         PdfCore.PdfNamedDestination destination = Assert.Single(logical.NamedDestinations, item => item.Name.EndsWith("-a1", StringComparison.Ordinal));
         PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName(destination.Name));
         Assert.Equal("Back to Top", link.Contents);
@@ -156,7 +156,7 @@ public partial class Excel {
             });
         }
 
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(bytes);
         Assert.Contains(logical.NamedDestinations, item => item.Name.IndexOf("details", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(logical.NamedDestinations, item => item.Name.EndsWith("-b200", StringComparison.Ordinal));
         Assert.DoesNotContain(logical.Links, link => link.IsNamedDestinationLink && link.Contents == "Open Details B200");
