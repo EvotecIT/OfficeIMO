@@ -200,6 +200,55 @@ public sealed class PdfLogicalReadingOrderTests {
         AssertArtifactSequence(ReadOpenDocumentText(odt), header, "First page body marker.", footer);
     }
 
+    [Fact]
+    public void CanonicalText_PreservesBodyTextOverAFullPageImage() {
+        byte[] pdf = PdfDocument.Create()
+            .BackgroundImage(PdfPngTestImages.CreateRgbPng(1, 1), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
+            .H1("Readable heading")
+            .Paragraph(paragraph => paragraph.Text("Readable body text."))
+            .ToBytes();
+
+        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+
+        Assert.Contains("Readable heading", logical.Text, StringComparison.Ordinal);
+        Assert.Contains("Readable body text.", logical.Text, StringComparison.Ordinal);
+        Assert.Contains(
+            PdfLogicalReadingOrderAnalysis.Analyze(Assert.Single(logical.Pages), PdfLogicalReadingOrderScope.PageContent),
+            static item => item.Kind == PdfLogicalReadingOrderKind.Image);
+    }
+
+    [Fact]
+    public void CanonicalText_PreservesBlocksOmittedByATableProjection() {
+        var style = new PdfTableStyle {
+            HeaderRowCount = 1,
+            CellFills = new Dictionary<(int Row, int Column), PdfColor> {
+                [(1, 0)] = new PdfColor(0.86D, 0.92D, 0.99D),
+                [(3, 0)] = new PdfColor(0.99D, 0.95D, 0.78D)
+            },
+            CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
+                [(1, 0)] = PdfColumnAlign.Center,
+                [(3, 0)] = PdfColumnAlign.Center
+            },
+            CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
+                [(1, 0)] = PdfCellVerticalAlign.Middle
+            }
+        };
+        var rows = new[] {
+            new[] { PdfTableCell.TextCell("Service"), PdfTableCell.TextCell("Status"), PdfTableCell.TextCell("Owner") },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Identity systems", bold: true, italic: true, fontSize: 17) }, 3) },
+            new[] { PdfTableCell.TextCell("Entra"), PdfTableCell.TextCell("Watch"), PdfTableCell.TextCell("IAM") },
+            new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: 15) }, 3) },
+            new[] { PdfTableCell.TextCell("Release"), PdfTableCell.TextCell("Ready"), PdfTableCell.TextCell("OfficeIMO") }
+        };
+        byte[] pdf = PdfDocument.Create().Table(rows, style: style).ToBytes();
+
+        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+
+        Assert.Contains(logical.TextBlocks, static block => block.Text == "Identity systems");
+        Assert.Contains("Identity systems", logical.Text, StringComparison.Ordinal);
+        Assert.Contains("Follow-up", logical.Text, StringComparison.Ordinal);
+    }
+
     private static void AssertInOrder(string value, params string[] markers) {
         int previous = -1;
         foreach (string marker in markers) {

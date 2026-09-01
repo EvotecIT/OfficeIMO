@@ -143,8 +143,9 @@ public static class PdfLogicalReadingOrderAnalysis {
             consumeWork,
             cancellationCheck);
         Candidate[] spanning = positioned
-            .Where(item => item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
-                IsCenteredBandDivider(item, pageColumnAnchors, pageWidth))
+            .Where(item => CanDivideBands(item.Kind) &&
+                (item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
+                IsCenteredBandDivider(item, pageColumnAnchors, pageWidth)))
             .OrderBy(static item => item.Top)
             .ThenBy(static item => item.Left)
             .ToArray();
@@ -160,6 +161,10 @@ public static class PdfLogicalReadingOrderAnalysis {
             bandTop = Math.Max(bandTop, divider.Bottom);
         }
         AddBand(positioned.Where(item => !consumed.Contains(item) && item.Top >= bandTop), ordered, consumed);
+        // Overlapping content can fall inside a wide table or visual band without being
+        // represented by that semantic projection. Preserve every remaining candidate so
+        // canonical text and conversion adapters never lose readable page content.
+        AddBand(positioned.Where(item => !consumed.Contains(item)), ordered, consumed);
         ordered.AddRange(unpositioned);
 
         var result = new PdfLogicalReadingOrderItem[ordered.Count];
@@ -415,11 +420,17 @@ public static class PdfLogicalReadingOrderAnalysis {
         var result = new List<Candidate>();
         var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
         var tableBounds = new PdfVisualBounds?[page.Tables.Count];
+        var tableText = new HashSet<string>[page.Tables.Count];
         for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
             cancellationCheck?.Invoke();
             PdfLogicalTable table = page.Tables[tableIndex];
             consumeWork?.Invoke(Math.Max(1, table.Columns.Count));
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
+            tableText[tableIndex] = new HashSet<string>(
+                table.Cells
+                    .Select(static cell => PdfTextSimilarity.NormalizeSignature(cell.Text))
+                    .Where(static text => text.Length > 0),
+                StringComparer.Ordinal);
         }
         for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
@@ -435,7 +446,11 @@ public static class PdfLogicalReadingOrderAnalysis {
             for (int tableIndex = 0; tableIndex < tableBounds.Length; tableIndex++) {
                 cancellationCheck?.Invoke();
                 consumeWork?.Invoke(1);
-                if (tableBounds[tableIndex] is PdfVisualBounds bounds && IsOwnedByTable(block, blockBounds, bounds)) {
+                string signature = PdfTextSimilarity.NormalizeSignature(block.Text);
+                if (signature.Length > 0 &&
+                    tableText[tableIndex].Contains(signature) &&
+                    tableBounds[tableIndex] is PdfVisualBounds bounds &&
+                    IsOwnedByTable(block, blockBounds, bounds)) {
                     representedTextBlocks.Add(block);
                     break;
                 }
@@ -627,6 +642,13 @@ public static class PdfLogicalReadingOrderAnalysis {
         double nearestAnchor = anchors.Min(anchor => Math.Abs(anchor - item.Left));
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
     }
+
+    private static bool CanDivideBands(PdfLogicalReadingOrderKind kind) =>
+        kind is PdfLogicalReadingOrderKind.TextBlock or
+            PdfLogicalReadingOrderKind.Heading or
+            PdfLogicalReadingOrderKind.Paragraph or
+            PdfLogicalReadingOrderKind.ListItem or
+            PdfLogicalReadingOrderKind.Table;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 

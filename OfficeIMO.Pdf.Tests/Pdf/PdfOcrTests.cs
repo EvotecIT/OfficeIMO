@@ -414,7 +414,7 @@ public class PdfOcrTests {
             At(request, "Searchable", 42, 160, 88, 14),
             At(request, "document", 138, 160, 70, 14),
             At(request, "Zażółć", 42, 200, 58, 14)
-        }, provider: "fixture", model: "fixture-v1", language: "eng"));
+        }, diagnostics: null, provider: "fixture", model: "fixture-v1", language: "eng"));
 
         PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
         byte[] searchable = result.Document.ToBytes();
