@@ -15,6 +15,9 @@ public sealed class PdfHtmlPageSelectionTests {
         }
         PdfDocument document = PdfDocument.Load(source.ToBytes());
         var options = new PdfHtmlSaveOptions {
+            ReadOptions = new PdfReadOptions {
+                Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 1 }
+            },
             PageRanges = new[] { PdfPageRange.From(1001, 1001) }
         };
 

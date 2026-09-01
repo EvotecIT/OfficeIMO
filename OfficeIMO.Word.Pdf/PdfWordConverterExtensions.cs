@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
             this PdfCore.PdfDocument document,
             PdfWordImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().ToWordDocument(options);
+            return ReadForWord(document, options).ToWordDocument(options);
         }
 
         /// <summary>Converts an opened PDF into an editable Word document with conversion diagnostics.</summary>
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             this PdfCore.PdfDocument document,
             PdfWordImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().ToWordDocumentResult(options);
+            return ReadForWord(document, options).ToWordDocumentResult(options);
         }
 
         /// <summary>Converts an opened PDF and saves the editable Word document to a file.</summary>
@@ -30,7 +30,7 @@ namespace OfficeIMO.Word.Pdf {
             string path,
             PdfWordImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().SaveAsWord(path, options);
+            return ReadForWord(document, options).SaveAsWord(path, options);
         }
 
         /// <summary>Converts an opened PDF and saves the editable Word document to a caller-owned stream.</summary>
@@ -39,7 +39,7 @@ namespace OfficeIMO.Word.Pdf {
             Stream stream,
             PdfWordImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().SaveAsWord(stream, options);
+            return ReadForWord(document, options).SaveAsWord(stream, options);
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a file.</summary>
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word.Pdf {
             PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().SaveAsWordAsync(path, options, cancellationToken);
+            return ReadForWord(document, options, cancellationToken).SaveAsWordAsync(path, options, cancellationToken);
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a caller-owned stream.</summary>
@@ -59,8 +59,14 @@ namespace OfficeIMO.Word.Pdf {
             PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return document.Read().SaveAsWordAsync(stream, options, cancellationToken);
+            return ReadForWord(document, options, cancellationToken).SaveAsWordAsync(stream, options, cancellationToken);
         }
+
+        private static PdfCore.PdfDocumentReadResult ReadForWord(
+            PdfCore.PdfDocument document,
+            PdfWordImportOptions? options,
+            CancellationToken cancellationToken = default) =>
+            document.Read(options?.ReadOptions, cancellationToken);
 
         /// <summary>Converts a logical PDF model into an editable Word document.</summary>
         public static WordDocument ToWordDocument(

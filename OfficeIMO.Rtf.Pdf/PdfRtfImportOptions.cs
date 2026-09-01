@@ -9,6 +9,13 @@ namespace OfficeIMO.Rtf.Pdf;
 /// it is not a visual reconstruction of arbitrary fixed-layout PDF content.
 /// </remarks>
 public sealed class PdfRtfImportOptions {
+    /// <summary>
+    /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
+    /// Null uses <see cref="OfficeIMO.Pdf.PdfReadOptions.Default"/>. This setting is ignored when the source is already a
+    /// <see cref="OfficeIMO.Pdf.PdfDocumentReadResult"/>.
+    /// </summary>
+    public OfficeIMO.Pdf.PdfReadOptions? ReadOptions { get; set; }
+
     /// <summary>Whether PDF Info dictionary metadata should be copied into the RTF info destination.</summary>
     public bool IncludeMetadata { get; set; } = true;
 
@@ -31,6 +38,7 @@ public sealed class PdfRtfImportOptions {
 
     /// <summary>Creates a reusable copy of this option set.</summary>
     public PdfRtfImportOptions Clone() => new PdfRtfImportOptions {
+        ReadOptions = ReadOptions,
         IncludeMetadata = IncludeMetadata,
         PreservePageBreaks = PreservePageBreaks,
         IncludeEmptyPages = IncludeEmptyPages,

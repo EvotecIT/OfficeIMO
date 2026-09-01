@@ -117,10 +117,14 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfPageRange[] ranges = options is null
             ? Array.Empty<PdfCore.PdfPageRange>()
             : CopyPageRanges(options);
+        PdfCore.PdfReadOptions configured = options?.ReadOptions ?? PdfCore.PdfReadOptions.Default;
         return document.Read(new PdfCore.PdfReadOptions {
+            Profile = configured.Profile,
             PageSelection = ranges.Length == 0
-                ? null
-                : PdfCore.PdfPageSelection.FromRanges(ranges)
+                ? configured.PageSelection
+                : PdfCore.PdfPageSelection.FromRanges(ranges),
+            LayoutOptions = configured.LayoutOptions,
+            Pipeline = configured.Pipeline
         }, cancellationToken);
     }
 
