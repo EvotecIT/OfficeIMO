@@ -3,6 +3,8 @@
   "platform": "Ubuntu 24.04 amd64 under WSL",
   "tesseract": {
     "version": "5.3.4",
+    "payloadSha256": "f41a03d8b72fc0bcbda7224970076317c598947d109006188188b53af50da92f",
+    "payloadEntryCount": 97,
     "packages": {
       "tesseract-ocr": "5.3.4-1build5",
       "libtesseract5": "5.3.4-1build5",

@@ -72,6 +72,7 @@ $fixtures = Join-Path $EnvironmentRoot 'fixtures'
 $fixtureManifest = Join-Path $fixtures 'cases.json'
 $prepareScript = Join-Path $PSScriptRoot 'tools\prepare_fixtures.py'
 $runnerScript = Join-Path $PSScriptRoot 'tools\run_ocr.py'
+$treeHashScript = Join-Path $PSScriptRoot 'tools\hash_tree.py'
 
 function ConvertTo-WslPath {
     param([Parameter(Mandatory)][string] $Path)
@@ -103,7 +104,19 @@ $tesseractRootWsl = ConvertTo-WslPath $requiredPaths.TesseractRoot
 $rapidPackagesWsl = ConvertTo-WslPath $requiredPaths.RapidPackages
 $rapidModelsWsl = ConvertTo-WslPath $requiredPaths.RapidModels
 $runnerWsl = ConvertTo-WslPath $runnerScript
+$treeHashWsl = ConvertTo-WslPath $treeHashScript
 $fixturesWsl = ConvertTo-WslPath $fixtures
+
+$tesseractTreeEvidence = @(& wsl.exe -- python3 $treeHashWsl $tesseractRootWsl)
+if ($LASTEXITCODE -ne 0 -or $tesseractTreeEvidence.Count -ne 1) {
+    throw 'Could not calculate Tesseract payload provenance.'
+}
+$treeParts = ([string] $tesseractTreeEvidence[0]).Trim().Split(' ', [StringSplitOptions]::RemoveEmptyEntries)
+if ($treeParts.Count -ne 2 -or
+    $treeParts[0] -ne [string] $environmentLock.tesseract.payloadSha256 -or
+    [int] $treeParts[1] -ne [int] $environmentLock.tesseract.payloadEntryCount) {
+    throw "Tesseract extracted payload does not match the locked whole-tree SHA-256 provenance."
+}
 
 $tesseractVersion = (& wsl.exe -- env `
     "LD_LIBRARY_PATH=$tesseractRootWsl/usr/lib/x86_64-linux-gnu" `
