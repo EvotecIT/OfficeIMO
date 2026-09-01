@@ -56,6 +56,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of materialized non-empty cells across one iWork source.</summary>
     public int MaximumMaterializedCells { get; set; } = 10_000_000;
 
+    /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
+    public int MaximumTableCatalogEntries { get; set; } = 100_000;
+
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
     public int MaximumProjectedSheets { get; set; } = 4096;
 
@@ -112,6 +115,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));
         ValidatePositive(MaximumTableColumns, nameof(MaximumTableColumns));
         ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
+        ValidatePositive(MaximumTableCatalogEntries, nameof(MaximumTableCatalogEntries));
         ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
         ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
         ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));

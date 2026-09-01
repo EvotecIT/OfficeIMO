@@ -5,6 +5,7 @@ internal sealed class IWorkProjectionBudget {
     private int _tableCount;
     private int _imageCount;
     private int _drawableReferenceCount;
+    private int _tableCatalogEntryCount;
     private int _textItemCount;
     private int _textBoundaryCount;
     private long _textCharacterCount;
@@ -16,6 +17,17 @@ internal sealed class IWorkProjectionBudget {
     }
 
     internal int MaximumProtobufFieldCount => _options.MaximumProtobufFieldCount;
+
+    internal int RemainingTableCatalogEntries =>
+        _options.MaximumTableCatalogEntries - _tableCatalogEntryCount;
+
+    internal void AddTableCatalogEntries(int count) {
+        if (count < 0 || _tableCatalogEntryCount > _options.MaximumTableCatalogEntries - count) {
+            throw new InvalidDataException(
+                $"iWork table catalog entries exceed the configured source-wide limit of {_options.MaximumTableCatalogEntries}.");
+        }
+        _tableCatalogEntryCount += count;
+    }
 
     internal void AddTable() {
         if (_tableCount >= _options.MaximumProjectedTables) {

@@ -77,16 +77,7 @@ namespace OfficeIMO.PowerPoint {
         internal static bool TryResolveSlideFragment(SlidePart sourceSlidePart,
             Uri uri, out SlidePart? targetSlidePart) {
             targetSlidePart = null;
-            if (uri == null || uri.IsAbsoluteUri) return false;
-
-            const string prefix = "#slide-";
-            string fragment = uri.OriginalString;
-            if (!fragment.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
-                || !int.TryParse(fragment.Substring(prefix.Length), NumberStyles.None,
-                    CultureInfo.InvariantCulture, out int slideNumber)
-                || slideNumber < 1) {
-                return false;
-            }
+            if (!TryParseSlideFragment(uri, out int slideNumber)) return false;
 
             PresentationPart? presentationPart = sourceSlidePart.GetParentParts()
                 .OfType<PresentationPart>().FirstOrDefault();
@@ -102,6 +93,17 @@ namespace OfficeIMO.PowerPoint {
 
             targetSlidePart = slidePart;
             return true;
+        }
+
+        internal static bool TryParseSlideFragment(Uri? uri, out int slideNumber) {
+            slideNumber = 0;
+            if (uri == null || uri.IsAbsoluteUri) return false;
+            const string prefix = "#slide-";
+            string fragment = uri.OriginalString;
+            return fragment.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(fragment.Substring(prefix.Length), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out slideNumber)
+                && slideNumber >= 1;
         }
 
         private static Uri ResolvePartUri(Uri sourcePartUri,

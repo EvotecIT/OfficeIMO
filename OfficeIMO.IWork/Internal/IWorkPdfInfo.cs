@@ -119,7 +119,9 @@ internal static class IWorkPdfInfo {
             Math.Min(limit, dictionaryStart + 65536));
         if (dictionaryEnd < 0
             || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Size", out size)
-            || size <= 0 || IndexOfDictionaryName(bytes, "/XRefStm", dictionaryStart, dictionaryEnd) >= 0) {
+            || size <= 0
+            || IndexOfDictionaryName(bytes, "/XRefStm", dictionaryStart, dictionaryEnd) >= 0
+            || IndexOfDictionaryName(bytes, "/Encrypt", dictionaryStart, dictionaryEnd) >= 0) {
             return false;
         }
         int rootName = FindDictionaryName(bytes, "/Root", dictionaryStart, dictionaryEnd,

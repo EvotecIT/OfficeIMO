@@ -387,11 +387,15 @@ internal static class IWorkNumbersReader {
         }
 
         int remainingMaterializedCells = source.Options.MaximumMaterializedCells - materializedCellCount;
+        int remainingCatalogEntries = projectionBudget.RemainingTableCatalogEntries;
+        int maximumCatalogEntries = Math.Min(remainingMaterializedCells, remainingCatalogEntries);
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
-            projectionBudget, source.Options, remainingMaterializedCells,
+            projectionBudget, source.Options, maximumCatalogEntries,
             out bool stringStorageComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
-            source.Options, remainingMaterializedCells, out bool formulaStorageComplete);
+            projectionBudget, source.Options,
+            Math.Min(remainingMaterializedCells, projectionBudget.RemainingTableCatalogEntries),
+            out bool formulaStorageComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -695,7 +699,8 @@ internal static class IWorkNumbersReader {
         fullyReconstructed = true;
         IWorkArchiveRecord? list = index.Dereference(store, 4);
         if (list == null) return strings;
-        EnsureCatalogEntryCount(list, maximumEntries, options, "string");
+        int entryCount = EnsureCatalogEntryCount(list, maximumEntries, options, "string");
+        projectionBudget.AddTableCatalogEntries(entryCount);
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             index.Message(list), 3, out bool malformedEntries);
         if (malformedEntries) fullyReconstructed = false;
@@ -717,14 +722,16 @@ internal static class IWorkNumbersReader {
     }
 
     private static IReadOnlyDictionary<uint, IWorkWireMessage> ReadFormulas(IWorkObjectIndex index,
-        IWorkWireMessage store, IWorkReadOptions options, int maximumEntries,
+        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
+        IWorkReadOptions options, int maximumEntries,
         out bool fullyReconstructed) {
         var formulas = new Dictionary<uint, IWorkWireMessage>();
         var ambiguousIdentifiers = new HashSet<uint>();
         fullyReconstructed = true;
         IWorkArchiveRecord? list = index.Dereference(store, 6);
         if (list == null) return formulas;
-        EnsureCatalogEntryCount(list, maximumEntries, options, "formula");
+        int entryCount = EnsureCatalogEntryCount(list, maximumEntries, options, "formula");
+        projectionBudget.AddTableCatalogEntries(entryCount);
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             index.Message(list), 3, out bool malformedEntries);
         if (malformedEntries) fullyReconstructed = false;
@@ -751,7 +758,7 @@ internal static class IWorkNumbersReader {
         return formulas;
     }
 
-    private static void EnsureCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
+    private static int EnsureCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
         IWorkReadOptions options, string catalogName) {
         int declaredEntryCount = IWorkProtobuf.CountFields(
             list.Payload, 3, options.MaximumProtobufFieldCount,
@@ -768,8 +775,9 @@ internal static class IWorkNumbersReader {
         }
         if (declaredEntryCount > maximumEntries) {
             throw new InvalidDataException(
-                $"An iWork {catalogName} catalog exceeds the remaining materialized-cell limit of {maximumEntries}.");
+                $"An iWork {catalogName} catalog exceeds the remaining table-catalog limit of {maximumEntries}.");
         }
+        return declaredEntryCount;
     }
 
     private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>

@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
         Assert.Contains("formula catalog", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("remaining materialized-cell limit of 1", exception.Message,
+        Assert.Contains("remaining table-catalog limit of 1", exception.Message,
             StringComparison.Ordinal);
     }
 
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
         Assert.Contains("string catalog", exception.Message, StringComparison.Ordinal);
-        Assert.Contains("remaining materialized-cell limit of 1", exception.Message,
+        Assert.Contains("remaining table-catalog limit of 1", exception.Message,
             StringComparison.Ordinal);
     }
 }

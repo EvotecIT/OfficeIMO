@@ -68,10 +68,15 @@ public sealed partial class PowerPointPresentation {
                     sourceSlideSize.HeightPoints, PowerPointSlideSizeType.Custom);
             }
             if (editable) {
+                var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(
+                    projection.Slides.Count);
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
+                    slidePairs.Add((sourceSlide, slide));
+                }
+                foreach ((IWorkKeynoteSlide sourceSlide, PowerPointSlide slide) in slidePairs) {
                     foreach (IWorkKeynoteDrawable drawable in sourceSlide.Drawables) {
                         switch (drawable.Kind) {
                             case IWorkKeynoteDrawableKind.TextBox:
@@ -215,7 +220,7 @@ public sealed partial class PowerPointPresentation {
         picture.Rotation = source.Geometry?.RotationDegrees;
         picture.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null
-            && Uri.TryCreate(source.Hyperlink, UriKind.Absolute, out Uri? imageLink)) {
+            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? imageLink)) {
             picture.SetHyperlink(imageLink);
         }
     }
@@ -234,11 +239,11 @@ public sealed partial class PowerPointPresentation {
                 .Select(textBox => textBox.Hyperlink)
                 .Concat(slide.TitleBox == null ? Array.Empty<string?>() : new[] { slide.TitleBox.Hyperlink })
                 .Concat(slide.Images.Select(image => image.Hyperlink));
-            if (drawableHyperlinks.Any(IsUnsupportedExternalHyperlink)
+            if (drawableHyperlinks.Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))
                 || SlideText(slide).SelectMany(content => content.Paragraphs)
                     .SelectMany(paragraph => paragraph.Runs)
                     .Select(run => run.Hyperlink)
-                    .Any(IsUnsupportedExternalHyperlink)) {
+                    .Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))) {
                 return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
             }
             IEnumerable<IWorkGeometry> geometries = slide.TextBoxes
@@ -429,8 +434,13 @@ public sealed partial class PowerPointPresentation {
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static bool IsUnsupportedExternalHyperlink(string? value) => value != null
-        && !Uri.TryCreate(value, UriKind.Absolute, out _);
+    private static bool IsUnsupportedHyperlink(string? value, int slideCount) {
+        if (value == null) return false;
+        if (!Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? uri)) return true;
+        return !uri.IsAbsoluteUri
+            && (!PowerPointHyperlinkResolver.TryParseSlideFragment(uri, out int slideNumber)
+                || slideNumber > slideCount);
+    }
 
     private static void AddRichTextBox(PowerPointSlide slide, IWorkTextBox source,
         double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight) {
@@ -442,7 +452,7 @@ public sealed partial class PowerPointPresentation {
         textBox.Rotation = source.Geometry?.RotationDegrees;
         textBox.AltText = source.AccessibilityDescription;
         if (source.Hyperlink != null
-            && Uri.TryCreate(source.Hyperlink, UriKind.Absolute, out Uri? shapeLink)) {
+            && Uri.TryCreate(source.Hyperlink, UriKind.RelativeOrAbsolute, out Uri? shapeLink)) {
             textBox.SetHyperlink(shapeLink);
         }
         textBox.Clear();
@@ -664,7 +674,8 @@ public sealed partial class PowerPointPresentation {
             run = paragraph.AddRun(text);
         }
         ApplyTextStyle(run, style);
-        if (hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out Uri? runLink)) {
+        if (hyperlink != null
+            && Uri.TryCreate(hyperlink, UriKind.RelativeOrAbsolute, out Uri? runLink)) {
             run.Hyperlink = runLink;
         }
     }

@@ -57,7 +57,8 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
     IWorkDocumentKind.Numbers,
     new IWorkReadOptions {
         MaximumPackageBytes = 64 * 1024 * 1024,
-        MaximumMaterializedCells = 1_000_000
+        MaximumMaterializedCells = 1_000_000,
+        MaximumTableCatalogEntries = 100_000
     });
 
 IWorkNumbersProjection workbook = source.ReadNumbers();
