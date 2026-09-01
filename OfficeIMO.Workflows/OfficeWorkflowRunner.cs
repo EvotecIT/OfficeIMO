@@ -131,7 +131,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 "WorkflowFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
-                "execute",
+                GetDiagnosticStage(failureStage),
                 new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["exceptionType"] = ex.GetType().Name
                 }));
@@ -465,6 +465,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
     private static ValidatedRequest ValidateRequest(OfficeWorkflowRequest request) {
         if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
+        if (!Enum.IsDefined(typeof(OfficeWorkflowOperation), request.Operation)) {
+            throw new ArgumentOutOfRangeException(nameof(request), request.Operation, "Choose a supported workflow operation.");
+        }
+        if (!Enum.IsDefined(typeof(OfficeWorkflowConflictPolicy), request.ConflictPolicy)) {
+            throw new ArgumentOutOfRangeException(nameof(request), request.ConflictPolicy, "Choose a supported output conflict policy.");
+        }
+        if (!Enum.IsDefined(typeof(OfficeWorkflowOutputProfile), request.OutputProfile)) {
+            throw new ArgumentOutOfRangeException(nameof(request), request.OutputProfile, "Choose a supported workflow output profile.");
+        }
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         string inputPath = Path.GetFullPath(request.InputPath);
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The workflow input file does not exist.", inputPath);

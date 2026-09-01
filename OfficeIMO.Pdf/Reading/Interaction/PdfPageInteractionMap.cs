@@ -421,7 +421,7 @@ public sealed class PdfPageInteractionMap {
         ref PdfSelectionQuad quad) {
         PdfImageClipInfo? clip = placement.Clip;
         if (clip is null) return true;
-        if (!clip.IsRectangle || !clip.IsExact || clip.Width <= 0D || clip.Height <= 0D) return false;
+        if (clip.Width <= 0D || clip.Height <= 0D) return false;
         double sourceHeight = page.GetPageSize().Height;
         if (!TryFromUserRectangle(
                 page,
@@ -441,8 +441,10 @@ public sealed class PdfPageInteractionMap {
             clipQuad.Bottom >= quad.Bottom - tolerance) {
             return true;
         }
-        if (!placement.IsAxisAligned) return false;
 
+        // Interaction regions are quadrilateral, while PDF clips may be arbitrary paths.
+        // Retain the editable image identity using the intersection of their conservative
+        // visual bounds instead of dropping every nonrectangular or inexact clip.
         double left = Math.Max(quad.Left, clipQuad.Left);
         double top = Math.Max(quad.Top, clipQuad.Top);
         double right = Math.Min(quad.Right, clipQuad.Right);

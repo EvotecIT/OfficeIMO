@@ -18,6 +18,14 @@ public sealed partial class OfficeWorkflowRunner {
         return OfficeWorkflowFailureKind.OperationFailed;
     }
 
+    internal static string GetDiagnosticStage(WorkflowFailureStage stage) => stage switch {
+        WorkflowFailureStage.Validation => "validate",
+        WorkflowFailureStage.Input => "input",
+        WorkflowFailureStage.Output => "output",
+        WorkflowFailureStage.Operation => "execute",
+        _ => "execute"
+    };
+
     internal enum WorkflowFailureStage {
         Validation,
         Input,

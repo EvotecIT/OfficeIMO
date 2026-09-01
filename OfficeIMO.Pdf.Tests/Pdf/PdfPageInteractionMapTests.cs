@@ -142,6 +142,37 @@ public class PdfPageInteractionMapTests {
         Assert.Contains(image, map.HitTest(75D, 125D));
     }
 
+    [Fact]
+    public void InteractionMap_RetainsImageIdentityUnderNonrectangularClipping() {
+        const string content = "q 20 20 m 80 20 l 50 80 l h W n 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfImagePlacement placement = Assert.Single(PdfDocument.Load(source).Images.Placements());
+        Assert.NotNull(placement.Clip);
+        Assert.False(placement.Clip!.IsRectangle);
+        Assert.True(placement.Clip.IsExact);
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.NotNull(image.ImagePlacement);
+        Assert.NotNull(image.ImagePlacement!.Clip);
+        Assert.False(image.ImagePlacement.Clip!.IsRectangle);
+        Assert.Equal(20D, image.Quad.Left, 3);
+        Assert.Equal(80D, image.Quad.Right, 3);
+        Assert.Equal(120D, image.Quad.Top, 3);
+        Assert.Equal(180D, image.Quad.Bottom, 3);
+        Assert.Contains(image, map.HitTest(50D, 150D));
+    }
+
     [Theory]
     [InlineData(0, 30D, 60D, 80D, 110D)]
     [InlineData(90, 60D, 80D, 110D, 130D)]

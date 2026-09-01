@@ -377,6 +377,56 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task GeneralWorkflowValidationRejectsUndefinedEnumValues() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        OfficeWorkflowRequest[] requests = [
+            new OfficeWorkflowRequest {
+                Operation = (OfficeWorkflowOperation)999,
+                InputPath = input
+            },
+            new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Inspect,
+                InputPath = input,
+                ConflictPolicy = (OfficeWorkflowConflictPolicy)999
+            },
+            new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Inspect,
+                InputPath = input,
+                OutputProfile = (OfficeWorkflowOutputProfile)999
+            }
+        ];
+
+        foreach (OfficeWorkflowRequest request in requests) {
+            OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request);
+            OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "WorkflowFailed");
+
+            Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+            Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+            Assert.Equal("validate", failure.Stage);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkflowFailureDiagnosticReportsTheActiveOutputStage() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "occupied.pdf");
+        await File.WriteAllTextAsync(output, "existing");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+        OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "WorkflowFailed");
+
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Equal("output", failure.Stage);
+    }
+
+    [Fact]
     public async Task RenamePolicySkipsARequestedPathOccupiedByADirectory() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf");

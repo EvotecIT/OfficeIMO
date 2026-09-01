@@ -833,7 +833,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1081,
+      "sourceFileCount": 1082,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
