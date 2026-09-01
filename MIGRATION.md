@@ -62,6 +62,12 @@ a second logical model.
 | `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
 | `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.LinksByUri(...)` and other link filters | `result.GetLinksByUri(...)` and the matching `result.GetLinksBy...(...)` helper |
+| `pdf.Read.FormFields()` | `result.FormFields` |
+| `pdf.Read.FormWidgets(...)` and widget filters | `result.GetFormWidgets(fieldName)` or `result.GetFormWidgets(pageNumber)` |
+| `pdf.Read.Outlines()` | `result.Outlines` |
+| `pdf.Read.PageLabels()` | `result.PageLabels` |
+| `pdf.Read.NamedDestinations()` | `result.NamedDestinations` |
 | `pdf.Read.DocumentInfo()` / `pdf.Read.Pages()` / `pdf.Read.Annotations()` | `PdfDocumentInfo info = pdf.Inspect()`; use `info`, `info.Pages`, and `info.Annotations` |
 | `pdf.Read.Metadata()` / `Security()` / `HeaderVersion()` / `EffectiveVersion()` / `IsPdf20OrLater()` | use `info.Metadata`, `info.Security`, `info.HeaderVersion`, `info.EffectiveVersion`, and `info.IsPdf20OrLater` |
 | `pdf.Read.XmpMetadata()` / `TaggedContent()` / `OptionalContent()` / `OptionalContentGroups()` | use `info.XmpMetadata`, `info.TaggedContent`, `info.OptionalContent`, and `info.OptionalContentGroups`; use `info.GetOptionalContentGroupsByName(...)` for name filtering |

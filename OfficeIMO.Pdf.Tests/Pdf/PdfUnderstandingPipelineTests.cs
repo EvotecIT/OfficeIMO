@@ -238,7 +238,7 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
-    public void AdvancedPipeline_LeavesUniqueEdgesAndUnvalidatedColumnsAsContent() {
+    public void AdvancedPipeline_ClassifiesPageEdgesWithoutInventingTables() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
         var glyphs = new FixedGlyphStage(new[] {
             new PdfTextSpan("Quarterly report", "F1", 12, 50, 800, 90),
@@ -252,10 +252,9 @@ public class PdfUnderstandingPipelineTests {
 
         PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
 
-        Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header);
         Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footer);
         Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
-        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text == "Quarterly report");
+        Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Header && element.Region.Text == "Quarterly report");
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text.Contains("Item Amount", StringComparison.Ordinal));
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
@@ -350,6 +349,31 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal(fastPage.Lines.Select(static line => line.Text), structuredPage.Lines.Select(static line => line.Text));
         Assert.Equal(fastPage.Regions.Select(static region => region.Text), structuredPage.Regions.Select(static region => region.Text));
         Assert.Equal(fastPage.ReadingOrder.Select(static region => region.Text), structuredPage.ReadingOrder.Select(static region => region.Text));
+    }
+
+    [Fact]
+    public void FastAndSinglePageStructuredReads_PreservePageEdgeHeadersAndFooters() {
+        byte[] pdf = PdfDocument.Create()
+            .Header(header => header.AlignLeft().Text("Local page header {page}/{pages}"))
+            .Footer(footer => footer.AlignLeft().Text("Local page footer {page}/{pages}"))
+            .Paragraph(paragraph => paragraph.Text("First page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .ToBytes();
+
+        PdfLogicalPage fastPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            Profile = PdfReadProfile.Fast,
+            PageSelection = PdfPageSelection.From(1)
+        }).Pages);
+        PdfLogicalPage structuredPage = Assert.Single(PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            Profile = PdfReadProfile.Structured,
+            PageSelection = PdfPageSelection.From(2)
+        }).Pages);
+
+        Assert.Contains(fastPage.Headers, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
+        Assert.Contains(fastPage.Footers, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
+        Assert.Contains(structuredPage.Headers, static block => block.Text.Contains("Local page header", StringComparison.Ordinal));
+        Assert.Contains(structuredPage.Footers, static block => block.Text.Contains("Local page footer", StringComparison.Ordinal));
     }
 
     [Fact]

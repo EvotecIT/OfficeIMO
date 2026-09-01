@@ -128,6 +128,9 @@ public static class PdfLogicalReadingOrderAnalysis {
         if (scope is not (PdfLogicalReadingOrderScope.SemanticBody or PdfLogicalReadingOrderScope.PageContent)) {
             throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported logical reading-order scope.");
         }
+        Action<long>? consumeWork = page.Analysis.ConsumeWork;
+        Action? cancellationCheck = page.Analysis.CancellationCheck;
+        cancellationCheck?.Invoke();
         var candidates = BuildCandidates(page, scope);
         if (candidates.Count == 0) return Array.Empty<PdfLogicalReadingOrderItem>();
 
@@ -136,7 +139,9 @@ public static class PdfLogicalReadingOrderAnalysis {
         var unpositioned = candidates.Where(static item => !item.HasGeometry).OrderBy(static item => item.Sequence).ToArray();
         double[] pageColumnAnchors = FindRepeatedColumnAnchors(
             positioned.Where(item => item.Right - item.Left < Math.Max(1D, pageWidth) * SpanningWidthRatio),
-            pageWidth);
+            pageWidth,
+            consumeWork,
+            cancellationCheck);
         Candidate[] spanning = positioned
             .Where(item => item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
                 IsCenteredBandDivider(item, pageColumnAnchors, pageWidth))
@@ -189,7 +194,11 @@ public static class PdfLogicalReadingOrderAnalysis {
         void AddBand(IEnumerable<Candidate> source, List<Candidate> destination, HashSet<Candidate> seen) {
             Candidate[] band = source.OrderBy(static item => item.Left).ThenBy(static item => item.Top).ToArray();
             if (band.Length == 0) return;
-            double[] anchors = FindRepeatedColumnAnchors(band, pageWidth);
+            double[] anchors = FindRepeatedColumnAnchors(
+                band,
+                pageWidth,
+                consumeWork,
+                cancellationCheck);
             if (anchors.Length < 2) {
                 foreach (Candidate item in band.OrderBy(static item => item.Top).ThenBy(static item => item.Left).ThenBy(static item => item.Sequence)) {
                     item.ColumnIndex = 0;
@@ -554,20 +563,30 @@ public static class PdfLogicalReadingOrderAnalysis {
         return bounds.Right > bounds.Left && bounds.Bottom > bounds.Top;
     }
 
-    private static double[] FindRepeatedColumnAnchors(IEnumerable<Candidate> source, double pageWidth) {
+    private static double[] FindRepeatedColumnAnchors(
+        IEnumerable<Candidate> source,
+        double pageWidth,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        cancellationCheck?.Invoke();
         Candidate[] candidates = source.OrderBy(static item => item.Left).ToArray();
+        if (candidates.Length > 0) consumeWork?.Invoke(candidates.Length);
         if (candidates.Length < 4) return Array.Empty<double>();
         double[] widths = candidates.Select(static item => Math.Max(1D, item.Right - item.Left)).OrderBy(static width => width).ToArray();
         double tolerance = Math.Max(18D, Math.Min(pageWidth * 0.12D, widths[widths.Length / 2] * 0.25D));
-        var clusters = new List<List<Candidate>>();
+        var clusters = new List<ColumnAnchorCluster>();
         for (int index = 0; index < candidates.Length; index++) {
+            cancellationCheck?.Invoke();
             Candidate item = candidates[index];
-            List<Candidate>? cluster = clusters.FirstOrDefault(existing => Math.Abs(existing.Average(static candidate => candidate.Left) - item.Left) <= tolerance);
-            if (cluster is null) { cluster = new List<Candidate>(); clusters.Add(cluster); }
-            cluster.Add(item);
+            ColumnAnchorCluster? cluster = clusters.Count == 0 ? null : clusters[clusters.Count - 1];
+            if (cluster is null || Math.Abs(cluster.Centroid - item.Left) > tolerance) {
+                cluster = new ColumnAnchorCluster();
+                clusters.Add(cluster);
+            }
+            cluster.Add(item.Left);
         }
         double[] repeated = clusters.Where(static cluster => cluster.Count >= 2)
-            .Select(static cluster => cluster.Average(static item => item.Left))
+            .Select(static cluster => cluster.Centroid)
             .OrderBy(static left => left)
             .ToArray();
         double minimumSeparation = Math.Max(72D, pageWidth * 0.2D);
@@ -594,6 +613,18 @@ public static class PdfLogicalReadingOrderAnalysis {
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private sealed class ColumnAnchorCluster {
+        private double _leftSum;
+
+        internal int Count { get; private set; }
+        internal double Centroid => Count == 0 ? 0D : _leftSum / Count;
+
+        internal void Add(double left) {
+            _leftSum += left;
+            Count++;
+        }
+    }
 
     private sealed class Candidate {
         internal Candidate(PdfLogicalReadingOrderKind kind, int sourceIndex, int placementIndex, int sequence, double left, double top, double right, double bottom, bool hasGeometry, bool isClipped) {

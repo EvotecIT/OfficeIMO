@@ -437,19 +437,66 @@ public static class PdfAdvancedUnderstandingStages {
             string text = region.Text.Trim();
             double largest = region.Lines.Max(static line => line.FontSize);
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
-            if (IsAtVisualPageBottom(context, region) && median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
             if (text.StartsWith("Figure ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Fig. ", StringComparison.OrdinalIgnoreCase) || text.StartsWith("Table ", StringComparison.OrdinalIgnoreCase)) return (PdfUnderstandingSemanticKind.Caption, 0.9D, "semantic.caption-prefix", "The region starts with a conventional figure or table caption prefix.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");
+            if (IsCenteredAtVisualPageTop(context, region)) return (PdfUnderstandingSemanticKind.Heading, 0.76D, "semantic.centered-page-title", "Centered text occupies the top eight percent of the page and is treated as a page title.");
+            if (context.Page.GetRotationDegrees() == 0 &&
+                IsAtVisualPageTop(context, region) &&
+                IsCompactRunningEdge(context, region, rejectLowercaseStart: true, rejectSentenceEnd: false)) return (PdfUnderstandingSemanticKind.Header, 0.78D, "semantic.page-edge-header", "Compact text occupies the top eight percent of the page and has no stronger semantic signal.");
+            if (IsAtVisualPageBottom(context, region)) {
+                if (median > 0D && largest <= median * 0.9D) return (PdfUnderstandingSemanticKind.Footnote, 0.84D, "semantic.bottom-small-text", "Small text occupies the bottom eight percent of the page.");
+                if (context.Page.GetRotationDegrees() == 0 &&
+                    IsCompactRunningEdge(context, region, rejectLowercaseStart: false, rejectSentenceEnd: true)) return (PdfUnderstandingSemanticKind.Footer, 0.78D, "semantic.page-edge-footer", "Compact text occupies the bottom eight percent of the page and has no stronger semantic signal.");
+            }
             return (PdfUnderstandingSemanticKind.Paragraph, 0.72D, "semantic.body-region", "No stronger business-document semantic signal was found.");
         }
 
+        private static bool IsCompactRunningEdge(
+            PdfUnderstandingPageContext context,
+            PdfUnderstandingRegion region,
+            bool rejectLowercaseStart,
+            bool rejectSentenceEnd) {
+            if (region.Lines.Count != 1) return false;
+            string text = region.Text.Trim();
+            if (text.Length == 0 || text[text.Length - 1] == '-') return false;
+            if (rejectLowercaseStart && char.IsLower(text[0])) return false;
+            if (rejectSentenceEnd && text[text.Length - 1] is '.' or '?' or '!') return false;
+            if (text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length > 4) return false;
+            PdfVisualBounds visual = GetVisualBounds(context, region);
+            double visualWidth = context.Page.GetVisualPageSize().Width;
+            return visual.Right - visual.Left <= visualWidth * 0.45D;
+        }
+
+        private static bool IsCenteredAtVisualPageTop(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {
+            string text = region.Text.Trim();
+            if (context.Page.GetRotationDegrees() != 0 ||
+                region.Lines.Count != 1 ||
+                text.Length == 0 ||
+                !char.IsUpper(text[0])) return false;
+            PdfVisualBounds visual = GetVisualBounds(context, region);
+            (double visualWidth, double visualHeight) = context.Page.GetVisualPageSize();
+            double center = (visual.Left + visual.Right) / 2D;
+            return visual.Top <= visualHeight * 0.08D &&
+                Math.Abs(center - (visualWidth / 2D)) <= visualWidth * 0.12D;
+        }
+
+        private static bool IsAtVisualPageTop(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {
+            PdfVisualBounds visual = GetVisualBounds(context, region);
+            double visualHeight = context.Page.GetVisualPageSize().Height;
+            return visual.Top <= visualHeight * 0.08D;
+        }
+
         private static bool IsAtVisualPageBottom(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {
-            double bottom = region.Lines.Min(static line => line.BaselineY - Math.Max(1D, line.FontSize * 0.25D));
-            double top = region.Lines.Max(static line => line.BaselineY + Math.Max(1D, line.FontSize));
-            PdfVisualBounds visual = context.Page.TransformBoundsToVisual(region.XStart, bottom, region.XEnd, top);
+            PdfVisualBounds visual = GetVisualBounds(context, region);
             double visualHeight = context.Page.GetVisualPageSize().Height;
             return visual.Bottom >= visualHeight * 0.92D;
+        }
+
+        private static PdfVisualBounds GetVisualBounds(PdfUnderstandingPageContext context, PdfUnderstandingRegion region) {
+            double bottom = region.Lines.Min(static line => line.BaselineY - Math.Max(1D, line.FontSize * 0.25D));
+            double top = region.Lines.Max(static line => line.BaselineY + Math.Max(1D, line.FontSize));
+            return context.Page.TransformBoundsToVisual(region.XStart, bottom, region.XEnd, top);
         }
 
     }
