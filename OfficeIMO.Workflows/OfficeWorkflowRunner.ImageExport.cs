@@ -168,8 +168,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The source PDF does not exist.", inputPath);
         EnsurePdfExtension(inputPath);
         string outputDirectory = Path.GetFullPath(request.OutputDirectory);
-        if (OfficeWorkflowPathIdentity.AreEquivalent(inputPath, outputDirectory)) {
-            throw new ArgumentException("Output directory cannot be the source PDF path.", nameof(request));
+        if (OfficeWorkflowPathIdentity.IsSameOrDescendant(inputPath, outputDirectory)) {
+            throw new ArgumentException("Output directory cannot be the source PDF path or one of its physical ancestors.", nameof(request));
         }
         if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
         if (request.TargetDpi <= 0D || double.IsNaN(request.TargetDpi) || double.IsInfinity(request.TargetDpi)) {

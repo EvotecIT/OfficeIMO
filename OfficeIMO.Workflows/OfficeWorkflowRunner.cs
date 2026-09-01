@@ -339,6 +339,25 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                           analysis.Repair.DetectionOnlyCount == 0 &&
                           mutationPlan.CanExecute &&
                           !hasProtectedSecurity;
+        long? plannedOutputBytes = null;
+        string feasibilityBlocker = string.Empty;
+        if (canPersist) {
+            try {
+                PdfRepairArtifactResult feasibility = PdfRepairArtifact.Create(
+                    input,
+                    new PdfRepairArtifactOptions {
+                        MaximumOutputBytes = request.Limits.MaximumOutputBytes,
+                        CancellationToken = cancellationToken
+                    },
+                    request.PdfLoadOptions);
+                plannedOutputBytes = feasibility.OutputSizeBytes;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                throw;
+            } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
+                canPersist = false;
+                feasibilityBlocker = ex.GetType().Name;
+            }
+        }
         string blockers = string.Join(",", mutationPlan.BlockerCodes);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["recoveredDefects"] = analysis.Repair.RepairCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -346,6 +365,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             ["canonicalMutationMode"] = mutationPlan.ExecutionMode.ToString(),
             ["canonicalBlockers"] = blockers,
             ["protectedSecurity"] = hasProtectedSecurity.ToString(),
+            ["plannedOutputBytes"] = plannedOutputBytes?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+            ["repairArtifactFeasibilityBlocker"] = feasibilityBlocker,
             ["canCreateRepairArtifact"] = canPersist.ToString()
         };
         string summary = canPersist
@@ -371,7 +392,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
-            new PdfSanitizationOptions { CancellationToken = cancellationToken });
+            new PdfSanitizationOptions {
+                CancellationToken = cancellationToken,
+                MaximumOutputBytes = request.Limits.MaximumOutputBytes
+            });
         cancellationToken.ThrowIfCancellationRequested();
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");

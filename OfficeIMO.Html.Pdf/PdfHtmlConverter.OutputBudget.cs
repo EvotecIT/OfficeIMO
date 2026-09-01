@@ -13,6 +13,16 @@ public static partial class PdfHtmlConverterExtensions {
         return new StringBuilder(Math.Min(256, maximum), maximum);
     }
 
+    private static string NormalizeOutputNewLinesWithinBudget(string value, PdfHtmlSaveOptions options) {
+        string normalized = NormalizeOutputNewLines(value, options.NewLine);
+        if (options.MaximumOutputCharacters.HasValue &&
+            normalized.Length > options.MaximumOutputCharacters.Value) {
+            throw new InvalidOperationException(
+                $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while requested newlines were being rendered.");
+        }
+        return normalized;
+    }
+
     private static void AddHtmlItem(
         List<HtmlItem> items,
         HtmlItem item,

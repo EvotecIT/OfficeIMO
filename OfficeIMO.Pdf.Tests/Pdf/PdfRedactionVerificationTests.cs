@@ -182,6 +182,21 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Verify_CompleteStreamInspectionOverridesDisabledDecodedMarkerChecks() {
+        PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
+        byte[] rewrittenWithCompressedResidue = AppendFlateStreamResidue(proof.Redacted, "PAY-SECRET-2026");
+        PdfRedactionVerificationOptions options = PdfRedactionProofTestSupport.CreateVerificationOptions();
+        options.CheckDecodedPdfStreams = false;
+        options.RequireCompleteStreamInspection = true;
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(rewrittenWithCompressedResidue, options);
+
+        Assert.False(report.IsVerified);
+        Assert.True(report.DecodedPdfStreamsChecked);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RemovedDecodedStreamMarker" && issue.Marker == "PAY-SECRET-2026");
+    }
+
+    [Fact]
     public void Verify_FailsClosedWhenPdfStreamCannotBeDecoded() {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
         byte[] rewrittenWithUndecodableStream = AppendUnsupportedFilteredStream(proof.Redacted);
@@ -208,6 +223,26 @@ public class PdfRedactionVerificationTests {
         Assert.True(report.IsVerified);
         Assert.True(report.DecodedPdfStreamsChecked);
         Assert.DoesNotContain(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void Verify_CompleteStreamInspectionOverridesDisabledMarkerOrFailureSwitches(
+        bool checkDecodedPdfStreams,
+        bool failOnUndecodablePdfStreams) {
+        PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
+        byte[] rewrittenWithUndecodableStream = AppendUnsupportedFilteredStream(proof.Redacted);
+        PdfRedactionVerificationOptions options = PdfRedactionProofTestSupport.CreateVerificationOptions();
+        options.CheckDecodedPdfStreams = checkDecodedPdfStreams;
+        options.FailOnUndecodablePdfStreams = failOnUndecodablePdfStreams;
+        options.RequireCompleteStreamInspection = true;
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(rewrittenWithUndecodableStream, options);
+
+        Assert.False(report.IsVerified);
+        Assert.True(report.DecodedPdfStreamsChecked);
+        Assert.Contains(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
     }
 
     [Fact]

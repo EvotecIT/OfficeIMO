@@ -397,6 +397,53 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task RepairPlanIncludesTheConfiguredOutputBudgetInExecutionFeasibility() {
+        using var scope = new TestDirectory();
+        string validPath = CreatePdf(scope.Path, "valid.pdf");
+        string malformedPath = Path.Combine(scope.Path, "malformed.pdf");
+        string raw = Encoding.Latin1.GetString(await File.ReadAllBytesAsync(validPath));
+        string malformed = Regex.Replace(raw, "startxref\\r?\\n\\d+", "startxref\n0", RegexOptions.CultureInvariant);
+        await File.WriteAllBytesAsync(malformedPath, Encoding.Latin1.GetBytes(malformed));
+
+        OfficeWorkflowResult plan = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.RepairPlan,
+            InputPath = malformedPath,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.True(plan.Succeeded, plan.Summary);
+        Assert.False(plan.HealthReport!.Verified);
+        Assert.Equal("False", plan.HealthReport.Metrics["canCreateRepairArtifact"]);
+        Assert.NotEmpty(plan.HealthReport.Metrics["repairArtifactFeasibilityBlocker"]);
+    }
+
+    [Fact]
+    public async Task SanitizeStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Sanitized content");
+        string output = Path.Combine(scope.Path, "bounded-sanitized.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Sanitize,
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.True(
+            result.FailureKind == OfficeWorkflowFailureKind.OperationFailed,
+            result.Summary + " " + string.Join(" ", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public async Task EncryptedPdfInspectionIsReportableWithoutLeakingPassword() {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "encrypted.pdf");

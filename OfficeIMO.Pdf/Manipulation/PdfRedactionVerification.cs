@@ -19,9 +19,11 @@ internal static partial class PdfRedactionVerification {
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
         var externalResults = new List<PdfRedactionExternalValidationResult>();
+        bool decodedPdfStreamsChecked = options.CheckDecodedPdfStreams || options.RequireCompleteStreamInspection;
+        bool failOnUndecodablePdfStreams = options.FailOnUndecodablePdfStreams || options.RequireCompleteStreamInspection;
 
-        if (options.CheckDecodedPdfStreams &&
-            options.FailOnUndecodablePdfStreams &&
+        if (decodedPdfStreamsChecked &&
+            failOnUndecodablePdfStreams &&
             (options.RemovedTextMarkers.Count > 0 || options.RequireCompleteStreamInspection)) {
             issues.AddRange(FindUndecodableStreamIssues(redactedPdf, effectiveReadOptions));
         }
@@ -49,7 +51,7 @@ internal static partial class PdfRedactionVerification {
                     "Removed text marker remains in encoded rewritten PDF string bytes: " + marker));
             }
 
-            if (options.CheckDecodedPdfStreams && ContainsDecodedStreamMarker(redactedPdf, marker, options.MatchCase, effectiveReadOptions)) {
+            if (decodedPdfStreamsChecked && ContainsDecodedStreamMarker(redactedPdf, marker, options.MatchCase, effectiveReadOptions)) {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RemovedDecodedStreamMarker",
                     marker,
@@ -77,7 +79,7 @@ internal static partial class PdfRedactionVerification {
             if (!result.IsValid) issues.Add(new PdfRedactionVerificationIssue("ExternalValidation", result.ValidatorName, "External redaction validation failed for " + result.ValidatorName + (string.IsNullOrWhiteSpace(result.Diagnostic) ? "." : ": " + result.Diagnostic)));
         }
 
-        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, options.CheckDecodedPdfStreams, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
+        return new PdfRedactionVerificationReport(extractedText, options.CheckRawPdfBytes, options.CheckEncodedPdfStrings, decodedPdfStreamsChecked, options.CheckManagedRendering, externalResults.AsReadOnly(), issues.AsReadOnly());
     }
 
     /// <summary>

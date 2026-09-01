@@ -4,6 +4,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Serializes the active catalog-rooted object graph into a normalized full-rewrite PDF.</summary>
 internal static class PdfDocumentObjectGraphRewriter {
+    internal static bool IsOutputLimitExceeded(Exception exception) =>
+        PdfOutputLimitErrors.IsOutputLimitExceeded(exception);
+
     internal static byte[] Rewrite(
         byte[] sourcePdf,
         PdfLoadOptions? sourceReadOptions,
@@ -200,7 +203,7 @@ internal static class PdfDocumentObjectGraphRewriter {
 
     private static void ThrowIfOutputLimitExceeded(long observedBytes, long? maximumOutputBytes) {
         if (maximumOutputBytes.HasValue && observedBytes > maximumOutputBytes.Value) {
-            throw new InvalidDataException("The rewritten PDF exceeds the configured expanded container limit.");
+            throw PdfOutputLimitErrors.Create("The rewritten PDF exceeds the configured expanded container limit.");
         }
     }
 

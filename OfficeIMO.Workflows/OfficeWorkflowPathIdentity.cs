@@ -8,6 +8,9 @@ internal static class OfficeWorkflowPathIdentity {
 
     internal static bool AreEquivalent(string left, string right) => OfficePathIdentity.AreEquivalent(left, right);
 
+    internal static bool IsSameOrDescendant(string candidatePath, string rootPath) =>
+        OfficePathIdentity.IsSameOrDescendant(candidatePath, rootPath);
+
     internal static StringComparer GetComparer(string path) => OfficePathIdentity.GetComparer(path);
 
     internal static StringComparison GetComparison(string path) => OfficePathIdentity.GetComparison(path);

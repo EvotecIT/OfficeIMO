@@ -5,6 +5,9 @@ public sealed class PdfSanitizationOptions {
     /// <summary>Cancellation observed between inventory, object-graph rewrite, and verification stages.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
+    /// <summary>Optional maximum byte count for the sanitized full-rewrite artifact.</summary>
+    public long? MaximumOutputBytes { get; set; }
+
     /// <summary>Action types that may remain. Values are PDF action names without a leading slash.</summary>
     public ISet<string> AllowedActionTypes { get; } = new HashSet<string>(StringComparer.Ordinal);
 

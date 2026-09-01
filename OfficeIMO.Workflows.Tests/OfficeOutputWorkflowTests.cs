@@ -637,6 +637,26 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportRejectsAnOutputDirectoryContainingTheSourcePdf() {
+        using var scope = new TestDirectory();
+        string output = Path.Combine(scope.Path, "pages");
+        Directory.CreateDirectory(output);
+        string input = CreatePdf(output, "source.pdf", "Must survive validation");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.True(File.Exists(input));
+        Assert.True(Directory.Exists(output));
+    }
+
+    [Fact]
     public void DirectoryNotFoundClassifiesByFailureStage() {
         OfficeWorkflowFailureKind outputResult = OfficeWorkflowRunner.ClassifyFailure(
             new DirectoryNotFoundException("Unavailable output root"),

@@ -172,7 +172,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
+        return NormalizeOutputNewLinesWithinBudget(builder.ToString().TrimEnd('\r', '\n'), options);
     }
 
     private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
@@ -197,7 +197,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
+        return NormalizeOutputNewLinesWithinBudget(builder.ToString().TrimEnd('\r', '\n'), options);
     }
 
     private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions options) {

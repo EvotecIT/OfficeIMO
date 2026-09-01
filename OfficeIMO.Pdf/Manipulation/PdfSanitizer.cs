@@ -24,6 +24,9 @@ internal static partial class PdfSanitizer {
     internal static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
+        if (policy.MaximumOutputBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum sanitized output bytes must be positive.");
+        }
         System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
@@ -36,17 +39,25 @@ internal static partial class PdfSanitizer {
         PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumActionDepth = readLimits.MaxObjectNestingDepth;
         int maximumActionNodes = readLimits.MaxIndirectObjects;
-        byte[] sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
-            pdf,
-            sourceReadOptions: readOptions,
-            outputEncryption: null,
-            (objects, security) => {
-                cancellationToken.ThrowIfCancellationRequested();
-                SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
-                return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
-                    ? security.InfoObjectNumber
-                    : null;
-            });
+        byte[] sanitized;
+        try {
+            sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
+                pdf,
+                sourceReadOptions: readOptions,
+                outputEncryption: null,
+                (objects, security) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
+                    return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                        ? security.InfoObjectNumber
+                        : null;
+                },
+                maximumOutputBytes: policy.MaximumOutputBytes);
+        } catch (InvalidDataException exception) when (PdfDocumentObjectGraphRewriter.IsOutputLimitExceeded(exception)) {
+            throw new InvalidOperationException(
+                $"The sanitized PDF exceeded the configured {policy.MaximumOutputBytes:N0}-byte output limit while it was being serialized.",
+                exception);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
         IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
