@@ -87,6 +87,36 @@ public class PdfTableStreamExportContracts {
     }
 
     [Fact]
+    public async Task TableConversionAsyncWrites_LinkOptionsAndMethodCancellationTokens() {
+        PdfDocumentReadResult logical = CreateLogicalDocument();
+        PdfDocument opened = PdfDocument.Load(PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Opened cancellation proof"))
+            .ToBytes());
+        using var optionsCancellation = new CancellationTokenSource();
+        using var methodCancellation = new CancellationTokenSource();
+        optionsCancellation.Cancel();
+
+        var wordOptions = PdfWordImportOptions.CreateTablesOnly();
+        wordOptions.CancellationToken = optionsCancellation.Token;
+        var excelOptions = new PdfExcelTableImportOptions { CancellationToken = optionsCancellation.Token };
+        var powerPointOptions = PdfPowerPointImportOptions.CreateEditableTables();
+        powerPointOptions.CancellationToken = optionsCancellation.Token;
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            logical.SaveAsWordAsync(new MemoryStream(), wordOptions, methodCancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            logical.SaveTablesAsExcelAsync(new MemoryStream(), excelOptions, methodCancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            logical.SaveAsPowerPointAsync(new MemoryStream(), powerPointOptions, methodCancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            opened.SaveAsWordAsync(new MemoryStream(), wordOptions, methodCancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            opened.SaveTablesAsExcelAsync(new MemoryStream(), excelOptions, methodCancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            opened.SaveAsPowerPointAsync(new MemoryStream(), powerPointOptions, methodCancellation.Token));
+    }
+
+    [Fact]
     public void TableScopeAnalysisReportsIncompleteClassificationWhenBudgetIsExhausted() {
         byte[] source = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

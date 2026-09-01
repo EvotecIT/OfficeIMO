@@ -173,6 +173,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 includeArtifactText: includeArtifactText,
                 pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
                 contentStreamObjectNumberAtOffset: contentSequence.GetObjectNumber,
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested

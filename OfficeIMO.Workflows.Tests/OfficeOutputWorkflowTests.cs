@@ -357,6 +357,34 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task FolderAssemblyPreservesRelativeHtmlDependenciesWithoutAddingThemAsDocuments() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        byte[] pixel = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "source.html"),
+            "<!doctype html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+        await File.WriteAllTextAsync(Path.Combine(folder, "style.css"), "body { color: #123456; }");
+        await File.WriteAllBytesAsync(Path.Combine(folder, "pixel.png"), pixel);
+
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Options = new PdfAssemblyOptions { IgnoreDiscoveredUnsupportedFiles = false }
+        });
+
+        Assert.True(result.Succeeded, result.Summary + " | " +
+            string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
+        Assert.Equal(1, result.SourceCount);
+        Assert.Single(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
     public async Task FolderDiscoveryLimitCountsUnsupportedFilesBeforeFiltering() {
         using var scope = new TestDirectory();
         string folder = Path.Combine(scope.Path, "folder");
@@ -762,6 +790,22 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportClassifiesMalformedPageSelectorsAsValidationFailures() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Malformed selector");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = Path.Combine(scope.Path, "pages"),
+                Pages = "last-"
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+    }
+
+    [Fact]
     public async Task PageImageExportRejectsAnOutputDirectoryContainingTheSourcePdf() {
         using var scope = new TestDirectory();
         string output = Path.Combine(scope.Path, "pages");
@@ -792,6 +836,15 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, outputResult);
         Assert.Equal(OfficeWorkflowFailureKind.InputNotFound, inputResult);
+    }
+
+    [Fact]
+    public void MalformedStagedArtifactsClassifyAsOutputFailures() {
+        OfficeWorkflowFailureKind result = OfficeWorkflowRunner.ClassifyFailure(
+            new InvalidDataException("Malformed staged artifact"),
+            OfficeWorkflowRunner.WorkflowFailureStage.Output);
+
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result);
     }
 
     [Fact]

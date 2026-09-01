@@ -250,10 +250,22 @@ public sealed partial class OfficeWorkflowRunner {
                     throw new IOException("A source folder could not be enumerated safely: " + input, ex);
                 }
                 StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(input);
+                StringComparison pathComparison = OfficeWorkflowPathIdentity.GetComparison(input);
+                string[] htmlResourceRoots = files
+                    .Where(static file => {
+                        string extension = Path.GetExtension(file);
+                        return string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase);
+                    })
+                    .Select(static file => Path.GetDirectoryName(Path.GetFullPath(file)) ?? string.Empty)
+                    .Distinct(pathComparer)
+                    .ToArray();
                 foreach (string file in files
                              .OrderBy(static path => path, pathComparer)
                              .ThenBy(static path => path, StringComparer.Ordinal)) {
                     if (OfficeWorkflowPathIdentity.AreEquivalent(file, request.OutputPath)) continue;
+                    if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(file) &&
+                        IsWithinHtmlResourceRoot(Path.GetFullPath(file), htmlResourceRoots, pathComparison)) continue;
                     AddDiscoveredSource(file, input, discovered: true, physicalRoot);
                 }
             } else {
@@ -347,7 +359,7 @@ public sealed partial class OfficeWorkflowRunner {
                 string normalizedName = entry.FullName.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
                 bool isAssemblySource = TryClassifyAssemblySource(entry.Name, out AssemblySourceKind kind, out OfficeWorkflowRoute? route);
                 bool isHtmlDependency = OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(entry.Name) &&
-                    IsWithinHtmlResourceRoot(normalizedName, htmlResourceRoots);
+                    IsWithinHtmlResourceRoot(normalizedName, htmlResourceRoots, StringComparison.OrdinalIgnoreCase);
                 if (isHtmlDependency) isAssemblySource = false;
                 if (!isAssemblySource && !isHtmlDependency && !request.Options.IgnoreDiscoveredUnsupportedFiles) {
                     throw new NotSupportedException("No PDF assembly intake route is available for archive entry '" + entry.FullName + "'.");
@@ -392,12 +404,15 @@ public sealed partial class OfficeWorkflowRunner {
                 }));
         }
 
-        static bool IsWithinHtmlResourceRoot(string normalizedEntryName, IReadOnlyList<string> htmlResourceRoots) {
+        static bool IsWithinHtmlResourceRoot(
+            string normalizedEntryName,
+            IReadOnlyList<string> htmlResourceRoots,
+            StringComparison comparison) {
             for (int i = 0; i < htmlResourceRoots.Count; i++) {
                 string root = htmlResourceRoots[i];
                 if (root.Length == 0 || normalizedEntryName.StartsWith(
                         root + Path.DirectorySeparatorChar,
-                        StringComparison.OrdinalIgnoreCase)) {
+                        comparison)) {
                     return true;
                 }
             }

@@ -43,23 +43,33 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a file.</summary>
-        public static Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
             this PdfCore.PdfDocument document,
             string path,
             PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options, cancellationToken).SaveAsWordAsync(path, options, cancellationToken);
+            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            return await ReadForWord(document, operation, effectiveCancellationToken)
+                .SaveAsWordAsync(path, operation)
+                .ConfigureAwait(false);
         }
 
         /// <summary>Converts an opened PDF and asynchronously saves the editable Word document to a caller-owned stream.</summary>
-        public static Task<PdfWordConversionReport> SaveAsWordAsync(
+        public static async Task<PdfWordConversionReport> SaveAsWordAsync(
             this PdfCore.PdfDocument document,
             Stream stream,
             PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForWord(document, options, cancellationToken).SaveAsWordAsync(stream, options, cancellationToken);
+            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            return await ReadForWord(document, operation, effectiveCancellationToken)
+                .SaveAsWordAsync(stream, operation)
+                .ConfigureAwait(false);
         }
 
         private static PdfCore.PdfDocumentReadResult ReadForWord(
@@ -123,7 +133,8 @@ namespace OfficeIMO.Word.Pdf {
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
             PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
             PdfWordConversionResult result = document.ToWordDocumentResult(operation);
             using (result.Value) {
@@ -141,13 +152,27 @@ namespace OfficeIMO.Word.Pdf {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
             PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
-            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
             PdfWordConversionResult result = document.ToWordDocumentResult(operation);
             using (result.Value) {
                 await result.Value.SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
+        }
+
+        private static CancellationTokenSource? LinkCancellationTokens(
+            CancellationToken optionsToken,
+            CancellationToken methodToken,
+            out CancellationToken effectiveToken) {
+            if (optionsToken.CanBeCanceled && methodToken.CanBeCanceled && optionsToken != methodToken) {
+                CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(optionsToken, methodToken);
+                effectiveToken = linked.Token;
+                return linked;
+            }
+            effectiveToken = methodToken.CanBeCanceled ? methodToken : optionsToken;
+            return null;
         }
     }
 }

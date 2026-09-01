@@ -50,6 +50,19 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_DoesNotTranslateInvalidProfileAsAnOutputLimitFailure() {
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.Profile = (PdfHtmlProfile)int.MaxValue;
+        options.MaximumOutputCharacters = 128;
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options));
+
+        Assert.Equal(nameof(PdfHtmlSaveOptions.Profile), exception.ParamName);
+        Assert.DoesNotContain("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_EnforcesTheLimitAfterRequestedNewlineNormalization() {
         PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
         PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();

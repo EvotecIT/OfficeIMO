@@ -84,6 +84,7 @@ public sealed class PdfRedactionPlan {
                 geometry.UserUnit?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "null"
             }));
             AppendUnredactedTextIdentity(identity, page, pageAreas);
+            AppendUnredactedPathIdentity(identity, page, pageAreas);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas);
             AppendUnredactedAnnotationIdentity(identity, page, pageAreas);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
@@ -98,13 +99,17 @@ public sealed class PdfRedactionPlan {
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas) {
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
+        var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
-            double x = Math.Min(span.X, span.X + span.Advance);
-            double width = Math.Max(1D, Math.Abs(span.Advance));
-            double height = Math.Max(1D, span.FontSize);
-            double y = span.Y - height;
-            if (IntersectsReviewedArea(pageAreas, x, y, width, height)) continue;
+            if (span.TextObjectOrderKey != null && IntersectsReviewedArea(pageAreas, GetTextSpanX(span), GetTextSpanY(span), GetTextSpanWidth(span), GetTextSpanHeight(span))) {
+                reviewedTextObjects.Add(span.TextObjectOrderKey);
+            }
+        }
+        for (int i = 0; i < spans.Count; i++) {
+            PdfTextSpan span = spans[i];
+            if (span.TextObjectOrderKey != null && reviewedTextObjects.Contains(span.TextObjectOrderKey) ||
+                span.TextObjectOrderKey == null && IntersectsReviewedArea(pageAreas, GetTextSpanX(span), GetTextSpanY(span), GetTextSpanWidth(span), GetTextSpanHeight(span))) continue;
             identity.Append("|T:")
                 .Append(span.Text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Append(':').Append(span.Text)
@@ -114,6 +119,122 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(span.FontSize))
                 .Append(',').Append(FormatIdentityNumber(span.RotationDegrees))
                 .Append(',').Append(span.IsVisible ? '1' : '0');
+        }
+    }
+
+    private static double GetTextSpanX(PdfTextSpan span) => Math.Min(span.X, span.X + span.Advance);
+
+    private static double GetTextSpanWidth(PdfTextSpan span) => Math.Max(1D, Math.Abs(span.Advance));
+
+    private static double GetTextSpanHeight(PdfTextSpan span) => Math.Max(1D, span.FontSize);
+
+    private static double GetTextSpanY(PdfTextSpan span) => span.Y - GetTextSpanHeight(span);
+
+    private static void AppendUnredactedPathIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadPage page,
+        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfPageVisualPrimitive> primitives = page.GetIdentityVisualPrimitives();
+        PdfVisualBounds[] visualAreas = pageAreas
+            .Select(area => page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top))
+            .ToArray();
+        for (int i = 0; i < primitives.Count; i++) {
+            PdfPageVisualPrimitive primitive = primitives[i];
+            double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
+            double x = primitive.X - strokePadding;
+            double y = primitive.Y - strokePadding;
+            double width = primitive.Width + strokePadding * 2D;
+            double height = primitive.Height + strokePadding * 2D;
+            if (IntersectsReviewedArea(visualAreas, x, y, width, height)) continue;
+
+            identity.Append("|P:").Append((int)primitive.Kind)
+                .Append(':').Append(FormatIdentityNumber(primitive.X))
+                .Append(',').Append(FormatIdentityNumber(primitive.Y))
+                .Append(',').Append(FormatIdentityNumber(primitive.Width))
+                .Append(',').Append(FormatIdentityNumber(primitive.Height))
+                .Append(',').Append(FormatIdentityNumber(primitive.X1))
+                .Append(',').Append(FormatIdentityNumber(primitive.Y1))
+                .Append(',').Append(FormatIdentityNumber(primitive.X2))
+                .Append(',').Append(FormatIdentityNumber(primitive.Y2))
+                .Append(':').Append(FormatIdentityNumber(primitive.StrokeWidth))
+                .Append(':').Append((int)primitive.StrokeDashStyle)
+                .Append(':').Append((int)primitive.FillRule)
+                .Append(':').Append(primitive.FillOpacity.HasValue ? FormatIdentityNumber(primitive.FillOpacity.Value) : "null")
+                .Append(':').Append(primitive.StrokeOpacity.HasValue ? FormatIdentityNumber(primitive.StrokeOpacity.Value) : "null");
+            AppendIdentityColor(identity, primitive.FillColor);
+            AppendIdentityColor(identity, primitive.StrokeColor);
+            AppendIdentityGradient(identity, primitive.FillGradient);
+            AppendIdentityGradient(identity, primitive.StrokeGradient);
+            AppendIdentityGradient(identity, primitive.FillRadialGradient);
+            AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
+            identity.Append(':').Append(primitive.FillTilingPattern != null ? '1' : '0')
+                .Append(':').Append(primitive.StrokeTilingPattern != null ? '1' : '0')
+                .Append(':').Append(primitive.PathCommands.Count);
+            for (int commandIndex = 0; commandIndex < primitive.PathCommands.Count; commandIndex++) {
+                OfficeIMO.Drawing.OfficePathCommand command = primitive.PathCommands[commandIndex];
+                identity.Append(';').Append((int)command.Kind)
+                    .Append(',').Append(FormatIdentityNumber(command.Point.X))
+                    .Append(',').Append(FormatIdentityNumber(command.Point.Y))
+                    .Append(',').Append(FormatIdentityNumber(command.ControlPoint1.X))
+                    .Append(',').Append(FormatIdentityNumber(command.ControlPoint1.Y))
+                    .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.X))
+                    .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.Y));
+            }
+        }
+    }
+
+    private static bool IntersectsReviewedArea(
+        PdfVisualBounds[] areas,
+        double x,
+        double y,
+        double width,
+        double height) {
+        for (int i = 0; i < areas.Length; i++) {
+            PdfVisualBounds area = areas[i];
+            if (x < area.Right && x + width > area.Left &&
+                y < area.Bottom && y + height > area.Top) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void AppendIdentityColor(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeColor? color) {
+        if (!color.HasValue) {
+            identity.Append(":null");
+            return;
+        }
+        OfficeIMO.Drawing.OfficeColor value = color.Value;
+        identity.Append(':').Append(value.R).Append(',').Append(value.G).Append(',').Append(value.B).Append(',').Append(value.A);
+    }
+
+    private static void AppendIdentityGradient(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeLinearGradient? gradient) {
+        if (gradient == null) {
+            identity.Append(":null");
+            return;
+        }
+        identity.Append(":L,").Append(FormatIdentityNumber(gradient.StartX)).Append(',').Append(FormatIdentityNumber(gradient.StartY))
+            .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY));
+        AppendIdentityGradientStops(identity, gradient.Stops);
+    }
+
+    private static void AppendIdentityGradient(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeRadialGradient? gradient) {
+        if (gradient == null) {
+            identity.Append(":null");
+            return;
+        }
+        identity.Append(":R,").Append(FormatIdentityNumber(gradient.StartX)).Append(',').Append(FormatIdentityNumber(gradient.StartY))
+            .Append(',').Append(FormatIdentityNumber(gradient.StartRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.StartRadiusY))
+            .Append(',').Append(FormatIdentityNumber(gradient.EndX)).Append(',').Append(FormatIdentityNumber(gradient.EndY))
+            .Append(',').Append(FormatIdentityNumber(gradient.EndRadiusX)).Append(',').Append(FormatIdentityNumber(gradient.EndRadiusY));
+        AppendIdentityGradientStops(identity, gradient.Stops);
+    }
+
+    private static void AppendIdentityGradientStops(System.Text.StringBuilder identity, IReadOnlyList<OfficeIMO.Drawing.OfficeGradientStop> stops) {
+        identity.Append(',').Append(stops.Count);
+        for (int i = 0; i < stops.Count; i++) {
+            identity.Append(';').Append(FormatIdentityNumber(stops[i].Offset));
+            AppendIdentityColor(identity, stops[i].Color);
         }
     }
 

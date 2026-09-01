@@ -12,6 +12,46 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRedactionVerificationTests {
     [Fact]
+    public void AppliedPlanVerificationAcceptsWholeTextObjectRemovalWhenOnlyOneSpanWasReviewed() {
+        byte[] source = BuildTextObjectWithTwoSpansPdf();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 8D, 88D, 60D, 18D, "first span")
+        ]);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
+        Assert.DoesNotContain("FIRST", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain("SECOND", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
+        byte[] source = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Item(item => item
+                .Rectangle(40D, 30D, strokeColor: PdfColor.FromRgb(180, 20, 20), fillColor: PdfColor.FromRgb(255, 220, 220)))));
+            compose.Page(page => page.Content(content => content.Item(item => item
+                .Rectangle(80D, 30D, strokeColor: PdfColor.FromRgb(20, 20, 180), fillColor: PdfColor.FromRgb(220, 220, 255)))));
+        }).ToBytes();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 10D, 10D, 10D, 10D, "reviewed area")
+        ]);
+        byte[] reordered = PdfPageExtractor.ExtractPages(source, 2, 1);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            reordered,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationReportsResidualContentInsideReviewedArea() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Still present")).ToBytes();
         var area = new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page");
@@ -762,6 +802,35 @@ public class PdfRedactionVerificationTests {
             "stream",
             content,
             "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextObjectWithTwoSpansPdf() {
+        const string content = "BT /F1 12 Tf 10 100 Td (FIRST) Tj 90 0 Td (SECOND) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",

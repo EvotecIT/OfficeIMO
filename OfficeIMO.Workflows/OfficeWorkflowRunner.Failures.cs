@@ -2,8 +2,7 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     internal static OfficeWorkflowFailureKind ClassifyFailure(Exception exception, WorkflowFailureStage stage) {
-        if (stage == WorkflowFailureStage.Output &&
-            exception is IOException or UnauthorizedAccessException) {
+        if (stage == WorkflowFailureStage.Output) {
             return OfficeWorkflowFailureKind.OutputFailed;
         }
         if (exception is FileNotFoundException or DirectoryNotFoundException) {

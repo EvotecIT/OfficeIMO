@@ -372,6 +372,7 @@ internal static class TextContentParser {
         int pendingLineBreaks = 0;
         bool emittedTextInTextObject = false;
         PdfContentOrderKey? currentContentOrderKey = null;
+        PdfContentOrderKey? currentTextObjectOrderKey = null;
         int textObjectFirstSpanIndex = 0;
         PersistentGraphicsStateFlags textObjectPersistentState = PersistentGraphicsStateFlags.None;
         bool textObjectHasCollateralVisual = false;
@@ -389,6 +390,7 @@ internal static class TextContentParser {
             currentContentOrderKey = contentOrderPrefix?.Append(operation.OperatorOffset + contentOrderOffset);
             string op = operation.Name;
             if (string.Equals(op, "BT", StringComparison.Ordinal)) {
+                currentTextObjectOrderKey = currentContentOrderKey;
                 textObjectFirstSpanIndex = spans.Count;
                 textObjectPersistentState = PersistentGraphicsStateFlags.None;
                 textObjectHasCollateralVisual = false;
@@ -996,7 +998,8 @@ internal static class TextContentParser {
                     paintedText,
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
                     GetActiveMcid(),
-                    currentContentStreamObjectNumber));
+                    currentContentStreamObjectNumber,
+                    currentTextObjectOrderKey));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

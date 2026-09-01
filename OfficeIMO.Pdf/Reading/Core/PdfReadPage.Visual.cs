@@ -580,6 +580,11 @@ public sealed partial class PdfReadPage {
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives() {
+        (double width, double height) = GetVisualPageSize();
+        return GetVisualPrimitives(width, height, GetVisualPageTransform());
+    }
+
     private void CollectVisualPrimitivesAndForms(
         string content,
         PdfDictionary? resources,
