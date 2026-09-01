@@ -181,6 +181,6 @@ internal static class ConversionApiCompileContract {
         _ = OfficeIMO.Word.OpenDocument.WordOpenDocumentImageExportExtensions.ExportImages(odt, imageFormat);
         _ = OfficeIMO.Excel.OpenDocument.ExcelOpenDocumentImageExportExtensions.ExportImages(ods, imageFormat);
         _ = OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentImageExportExtensions.ExportImages(odp, imageFormat);
-        _ = OfficeIMO.Pdf.PdfImageExportExtensions.ExportImages(pdf, imageFormat);
+        _ = pdf.Render.ExportImages(imageFormat);
     }
 }

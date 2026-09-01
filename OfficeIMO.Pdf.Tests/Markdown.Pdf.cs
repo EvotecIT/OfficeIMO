@@ -255,7 +255,7 @@ Console.WriteLine("OfficeIMO");
         Assert.True(result.HasWarnings);
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("Processed Markdown PDF", processed.Inspect().Metadata.Title);
-        Assert.Contains("OfficeIMO logo", result.Value.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("OfficeIMO logo", result.Value.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -692,7 +692,7 @@ Paragraph [paragraph link](https://example.com/paragraph).
         byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Empty(options.Warnings);
         Assert.Contains("paragraph link", text);
@@ -852,7 +852,7 @@ author: OfficeIMO
 
         byte[] pdf = document.ToPdf(options);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Empty(options.Warnings);
         Assert.Contains("Contents", text);
@@ -887,7 +887,7 @@ Validation notes.
 
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf);
 
         Assert.Empty(options.Warnings);
         Assert.Empty(logical.GetLinksByDestinationName("pdf-playbook"));

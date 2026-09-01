@@ -422,7 +422,7 @@ public class PdfITextInspiredCoverageTests {
             Assert.Equal("First", field.Value);
             Assert.Equal("First", field.Widgets[0].AppearanceState);
             Assert.Equal("Off", field.Widgets[1].AppearanceState);
-            Assert.Equal("0", Assert.Single(PdfDocument.Open(updated).Forms.ExportData().Fields).Values[0]);
+            Assert.Equal("0", Assert.Single(PdfDocument.Load(updated).Forms.ExportData().Fields).Values[0]);
         }
     }
 
@@ -526,7 +526,7 @@ public class PdfITextInspiredCoverageTests {
         PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
         Assert.Equal("Yes", field.Value);
         Assert.Equal("Yes", Assert.Single(field.Widgets).AppearanceState);
-        Assert.Equal("accepted", Assert.Single(PdfDocument.Open(pdf).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("accepted", Assert.Single(PdfDocument.Load(pdf).Forms.ExportData().Fields).Values[0]);
     }
 
     private static void AssertRadioExportValue(byte[] pdf) {
@@ -534,7 +534,7 @@ public class PdfITextInspiredCoverageTests {
         Assert.Equal("Second", field.Value);
         Assert.Equal("Off", field.Widgets[0].AppearanceState);
         Assert.Equal("Second", field.Widgets[1].AppearanceState);
-        Assert.Equal("second-export", Assert.Single(PdfDocument.Open(pdf).Forms.ExportData().Fields).Values[0]);
+        Assert.Equal("second-export", Assert.Single(PdfDocument.Load(pdf).Forms.ExportData().Fields).Values[0]);
     }
 
     private static PdfDictionary BuildButtonFieldWithStates(params string[] states) {
@@ -731,7 +731,7 @@ public class PdfITextInspiredCoverageTests {
     public void PageEditor_NamedAndFluentBoundaryBoxApisUseSharedEngine() {
         byte[] pdf = PdfPageGeometrySupport.BuildPageGeometryPdf();
 
-        PdfDocument updated = PdfDocument.Open(pdf)
+        PdfDocument updated = PdfDocument.Load(pdf)
             .Pages.SetMediaBox(0, 0, 260, 280)
             .Pages.SetCropBox(5, 6, 250, 270)
             .Pages.SetBleedBox(7, 8, 248, 268)

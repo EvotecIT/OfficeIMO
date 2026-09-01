@@ -36,7 +36,7 @@ public partial class PdfPageImageRendererTests {
             secondImage,
             firstTint,
             secondTint);
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 50 }
         }).Pages[0];
 
@@ -70,7 +70,7 @@ public partial class PdfPageImageRendererTests {
             secondImage,
             firstTint,
             secondTint);
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 50 }
         }).Pages[0];
 

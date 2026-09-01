@@ -6,7 +6,7 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan Require(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         PdfMutationPlan plan = Plan(pdf, operation, options, fieldNames, executionPreference);
@@ -21,12 +21,12 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan RequireFullRewrite(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireFullRewrite);
 
     /// <summary>Allows the canonical catalog-rooted page-content rewriter to preserve an existing AcroForm graph.</summary>
-    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfReadOptions? options = null) {
+    internal static void RequireCatalogPreservingPageContentRewrite(byte[] pdf, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
         bool supported = preflight.CanRead;
@@ -53,7 +53,7 @@ internal static class PdfMutationPlanner {
     internal static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocument(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null) =>
         RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory: null);
 
@@ -64,7 +64,7 @@ internal static class PdfMutationPlanner {
         byte[] pdf,
         PdfMutationOperation operation,
         PdfReadDocument document,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null) {
         Guard.NotNull(document, nameof(document));
         return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, () => document);
@@ -78,7 +78,7 @@ internal static class PdfMutationPlanner {
         byte[] pdf,
         PdfMutationOperation operation,
         Func<PdfReadDocument> documentFactory,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null) {
         Guard.NotNull(documentFactory, nameof(documentFactory));
         return RequireFullRewriteDocumentCore(pdf, operation, options, fieldNames, documentFactory);
@@ -87,11 +87,11 @@ internal static class PdfMutationPlanner {
     private static (PdfMutationPlan Plan, PdfReadDocument Document) RequireFullRewriteDocumentCore(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         IEnumerable<string>? fieldNames,
         Func<PdfReadDocument>? documentFactory) {
         Guard.NotNull(pdf, nameof(pdf));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         PdfReadDocument? document = null;
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             pdf,
@@ -115,7 +115,7 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan RequireAppendOnly(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null) =>
         Require(pdf, operation, options, fieldNames, PdfMutationExecutionPreference.RequireAppendOnly);
 
@@ -123,7 +123,7 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan Plan(
         byte[] pdf,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -135,7 +135,7 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan Plan(
         Stream input,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(input, nameof(input));
@@ -171,7 +171,7 @@ internal static class PdfMutationPlanner {
     public static PdfMutationPlan Plan(
         string inputPath,
         PdfMutationOperation operation,
-        PdfReadOptions? options = null,
+        PdfLoadOptions? options = null,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
@@ -201,7 +201,7 @@ internal static class PdfMutationPlanner {
         PdfMutationOperation operation,
         IEnumerable<string>? fieldNames = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNull(preflight, nameof(preflight));
         Guard.NotNull(pdf, nameof(pdf));
         bool finalizationReservationValidated = operation != PdfMutationOperation.FinalizeExternalSignature ||

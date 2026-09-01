@@ -19,7 +19,7 @@ public sealed class PdfArtifactSnapshot {
     /// <summary>Readable page count, or null when page inspection did not complete.</summary>
     public int? PageCount { get; }
 
-    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfReadOptions? readOptions = null) {
+    internal static PdfArtifactSnapshot Capture(byte[] bytes, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(bytes, nameof(bytes));
 
         int? pageCount = null;

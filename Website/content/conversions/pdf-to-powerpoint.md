@@ -35,7 +35,7 @@ A PDF contains final page presentation, not the PowerPoint theme, slide master, 
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("briefing.pdf");
+PdfDocument pdf = PdfDocument.Load("briefing.pdf");
 PdfPowerPointConversionResult result = pdf.ToPowerPointPresentationResult();
 using var presentation = result.Value;
 

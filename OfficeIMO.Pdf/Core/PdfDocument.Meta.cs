@@ -14,6 +14,7 @@ public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
     private readonly PdfDocumentSource? _source;
     private readonly PdfPipelineReport _pipeline;
+    private readonly PdfDocumentReader _reader;
 
     // Metadata
     private string? _title;
@@ -28,7 +29,10 @@ public sealed partial class PdfDocument {
         _blockScopes = new System.Collections.Generic.Stack<System.Action<IPdfBlock>>();
         _blockScopes.Push(_blocks.Add);
         Pages = new PdfDocumentPages(this);
-        Read = new PdfDocumentReader(this);
+        _reader = new PdfDocumentReader(this);
+        Render = new PdfDocumentRenderer(this);
+        Resources = new PdfDocumentResources(this);
+        Ocr = new PdfDocumentOcr(this);
         Text = new PdfDocumentTextEditor(this);
         Images = new PdfDocumentImageEditor(this);
         Stamp = new PdfDocumentStamper(this);
@@ -72,55 +76,55 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
-    /// Opens an existing PDF from bytes and snapshots the caller-owned input once.
+    /// Loads an existing PDF from bytes and snapshots the caller-owned input once.
     /// </summary>
-    public static PdfDocument Open(byte[] pdf, PdfReadOptions? readOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, readOptions));
+    public static PdfDocument Load(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromCallerBytes(pdf, loadOptions));
 
     /// <summary>
     /// Opens a byte buffer owned by a trusted OfficeIMO adapter without making another snapshot.
     /// The adapter must never mutate the buffer after this call.
     /// </summary>
-    internal static PdfDocument OpenOwned(byte[] pdf, PdfReadOptions? readOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
+    internal static PdfDocument LoadOwned(byte[] pdf, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, loadOptions));
 
     /// <summary>Opens an internally owned artifact together with its already validated canonical parse.</summary>
-    internal static PdfDocument OpenOwned(
+    internal static PdfDocument LoadOwned(
         byte[] pdf,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? loadOptions,
         PdfReadDocument readDocument) =>
-        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions, readDocument));
+        new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, loadOptions, readDocument));
 
     /// <summary>
-    /// Opens an existing PDF from a bounded file snapshot.
+    /// Loads an existing PDF from a bounded file snapshot.
     /// </summary>
-    public static PdfDocument Open(string path, PdfReadOptions? readOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromPath(path, readOptions));
+    public static PdfDocument Load(string path, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromPath(path, loadOptions));
 
     /// <summary>
-    /// Opens a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
+    /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
     /// </summary>
-    public static PdfDocument Open(Stream stream, PdfReadOptions? readOptions = null) =>
-        new PdfDocument(PdfDocumentSource.FromStream(stream, readOptions));
+    public static PdfDocument Load(Stream stream, PdfLoadOptions? loadOptions = null) =>
+        new PdfDocument(PdfDocumentSource.FromStream(stream, loadOptions));
 
-    /// <summary>Asynchronously opens an existing PDF from a bounded file snapshot.</summary>
-    public static async Task<PdfDocument> OpenAsync(
+    /// <summary>Asynchronously loads an existing PDF from a bounded file snapshot.</summary>
+    public static async Task<PdfDocument> LoadAsync(
         string path,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? loadOptions = null,
         CancellationToken cancellationToken = default) {
         PdfDocumentSource source = await PdfDocumentSource
-            .FromPathAsync(path, readOptions, cancellationToken)
+            .FromPathAsync(path, loadOptions, cancellationToken)
             .ConfigureAwait(false);
         return new PdfDocument(source);
     }
 
-    /// <summary>Asynchronously opens a complete PDF from a readable caller-owned stream.</summary>
-    public static async Task<PdfDocument> OpenAsync(
+    /// <summary>Asynchronously loads a complete PDF from a readable caller-owned stream.</summary>
+    public static async Task<PdfDocument> LoadAsync(
         Stream stream,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? loadOptions = null,
         CancellationToken cancellationToken = default) {
         PdfDocumentSource source = await PdfDocumentSource
-            .FromStreamAsync(stream, readOptions, cancellationToken)
+            .FromStreamAsync(stream, loadOptions, cancellationToken)
             .ConfigureAwait(false);
         return new PdfDocument(source);
     }
@@ -131,9 +135,26 @@ public sealed partial class PdfDocument {
     public PdfDocumentPages Pages { get; }
 
     /// <summary>
-    /// Readback operations for this PDF.
+    /// Builds the canonical semantic document result using the structured profile by default.
     /// </summary>
-    public PdfDocumentReader Read { get; }
+    public PdfDocumentReadResult Read(PdfReadOptions? options = null, CancellationToken cancellationToken = default) {
+        return PdfDocumentReadEngine.Read(this, PdfReadOptions.Resolve(options), cancellationToken);
+    }
+
+    /// <summary>
+    /// Transitional internal access to focused read operations while they move to their canonical capability owners.
+    /// This property is not part of the 3.3 public API.
+    /// </summary>
+    internal PdfDocumentReader Reader => _reader;
+
+    /// <summary>Managed page rendering, drawing projection, and renderer diagnostics.</summary>
+    public PdfDocumentRenderer Render { get; }
+
+    /// <summary>Bounded font and raw object-resource inspection.</summary>
+    public PdfDocumentResources Resources { get; }
+
+    /// <summary>Caller-provider OCR enrichment over the canonical logical result.</summary>
+    public PdfDocumentOcr Ocr { get; }
 
     /// <summary>Existing-page text search and editing operations.</summary>
     public PdfDocumentTextEditor Text { get; }
@@ -256,12 +277,14 @@ public sealed partial class PdfDocument {
 
     internal byte[] GetBytesForOperation() => _source?.Bytes ?? RenderBytesCore();
 
-    internal PdfReadDocument GetReadDocument(PdfReadOptions? options = null) {
+    internal PdfReadDocument GetReadDocument(
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
         if (_source is not null) {
-            return _source.Read(options);
+            return _source.Read(options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(RenderBytesCore(), options);
+        return PdfReadDocument.Open(RenderBytesCore(), options, cancellationToken);
     }
 
     /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>
@@ -274,9 +297,9 @@ public sealed partial class PdfDocument {
     /// Captures one byte snapshot and its canonical parse for a compound read operation.
     /// Generated documents are rendered once for the complete operation.
     /// </summary>
-    internal (byte[] Bytes, PdfReadDocument Document, PdfReadOptions Options) GetReadSnapshot(
-        PdfReadOptions? options = null) {
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options ?? ReadOptions);
+    internal (byte[] Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
+        PdfLoadOptions? options = null) {
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
         if (_source is not null) {
             return (_source.Bytes, _source.Read(effectiveOptions), effectiveOptions);
         }
@@ -285,7 +308,7 @@ public sealed partial class PdfDocument {
         return (bytes, PdfReadDocument.Open(bytes, effectiveOptions), effectiveOptions);
     }
 
-    internal PdfReadOptions ReadOptions {
+    internal PdfLoadOptions ReadOptions {
         get {
             if (_source is not null) {
                 return _source.Options;
@@ -293,8 +316,8 @@ public sealed partial class PdfDocument {
 
             PdfStandardEncryptionOptions? encryption = _options.EncryptionSnapshot;
             return encryption is null
-                ? PdfReadOptions.Default
-                : new PdfReadOptions {
+                ? PdfLoadOptions.Default
+                : new PdfLoadOptions {
                     Password = encryption.UserPassword,
                     AesCryptographyProvider = encryption.AesCryptographyProvider
                 };
@@ -306,7 +329,7 @@ public sealed partial class PdfDocument {
         return new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, null));
     }
 
-    internal static PdfDocument FromBytes(byte[] pdf, PdfReadOptions? readOptions) {
+    internal static PdfDocument FromBytes(byte[] pdf, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         return new PdfDocument(PdfDocumentSource.FromOwnedBytes(pdf, readOptions));
     }
@@ -316,7 +339,7 @@ public sealed partial class PdfDocument {
     /// </summary>
     internal PdfDocument ApplyMutation(
         Func<byte[], byte[]> mutation,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
         Guard.NotNull(mutation, nameof(mutation));
         byte[] inputBytes = GetBytesForOperation();
@@ -327,7 +350,7 @@ public sealed partial class PdfDocument {
     internal PdfDocument WithBytes(
         byte[] inputBytes,
         byte[] pdf,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         PdfArtifactSnapshot input = _pipeline.Output ?? PdfArtifactSnapshot.Capture(inputBytes, ReadOptions);
@@ -338,12 +361,12 @@ public sealed partial class PdfDocument {
         byte[] inputBytes,
         PdfArtifactSnapshot input,
         byte[] pdf,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
         PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(pdf, effectiveReadOptions);
@@ -359,7 +382,7 @@ public sealed partial class PdfDocument {
         PdfArtifactSnapshot input,
         byte[] pdf,
         int outputPageCount,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         [System.Runtime.CompilerServices.CallerMemberName] string operationName = "") {
         Guard.NotNull(inputBytes, nameof(inputBytes));
         Guard.NotNull(input, nameof(input));
@@ -372,7 +395,7 @@ public sealed partial class PdfDocument {
         }
 #endif
 
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.WithMinimumInputBytes(
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.WithMinimumInputBytes(
             readOptions ?? ReadOptions,
             pdf.LongLength);
         PdfReadDocument readback = PdfReadDocument.Open(pdf, effectiveReadOptions);
@@ -390,7 +413,7 @@ public sealed partial class PdfDocument {
         PdfArtifactSnapshot input,
         byte[] pdf,
         PdfArtifactSnapshot output,
-        PdfReadOptions effectiveReadOptions,
+        PdfLoadOptions effectiveReadOptions,
         string operationName,
         PdfReadDocument? readDocument = null) {
         PdfMutationOperation? mutationOperation = ResolveMutationOperation(operationName);

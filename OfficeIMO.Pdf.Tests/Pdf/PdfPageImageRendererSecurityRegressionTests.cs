@@ -30,12 +30,12 @@ public partial class PdfPageImageRendererTests {
         string type3Font = "6 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 7 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string glyphA = BuildStreamObject(7, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("/Fm1 Do", "<< /XObject << /Fm1 5 0 R >> >>", form, type3Font, glyphA);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         });
 
         PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(pdf).AssessRenderCompatibility(new PdfReadOptions
+            PdfDocument.Load(pdf).AssessRenderCompatibility(new PdfLoadOptions
             {
                 Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
             }));
@@ -119,7 +119,7 @@ public partial class PdfPageImageRendererTests {
 
     private static void AssertNestedAuxiliarySurfaceLimit(byte[] pdf) {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(pdf).AssessRenderCompatibility(new PdfReadOptions
+            PdfDocument.Load(pdf).AssessRenderCompatibility(new PdfLoadOptions
             {
                 Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
             }));
@@ -130,23 +130,23 @@ public partial class PdfPageImageRendererTests {
     }
 
     private static void AssertAuxiliaryType3DepthMatchesDrawing(byte[] pdf) {
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         };
 
-        _ = PdfDocument.Open(pdf).AssessRenderCompatibility(options);
+        _ = PdfDocument.Load(pdf).AssessRenderCompatibility(options);
         OfficeDrawing drawing = PdfReadDocument.Open(pdf, options).Pages[0].ToDrawing();
 
         Assert.NotEmpty(drawing.Elements);
     }
 
     private static void AssertAuxiliaryType3DepthIsBounded(byte[] pdf) {
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         };
 
         PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(pdf).AssessRenderCompatibility(options));
+            PdfDocument.Load(pdf).AssessRenderCompatibility(options));
         PdfReadLimitException drawingException = Assert.Throws<PdfReadLimitException>(() =>
             PdfReadDocument.Open(pdf, options).Pages[0].ToDrawing());
 
@@ -192,7 +192,7 @@ public partial class PdfPageImageRendererTests {
         Assert.True(exception.Actual > exception.Limit);
 
         PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(pdf).AssessRenderCompatibility());
+            PdfDocument.Load(pdf).AssessRenderCompatibility());
         Assert.True(
             diagnosticException.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
             $"Unexpected diagnostic limit kind: {diagnosticException.Kind}.");
@@ -566,7 +566,7 @@ public partial class PdfPageImageRendererTests {
         Assert.True(exception.Actual > exception.Limit);
 
         PdfReadLimitException diagnosticException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(pdf).AssessRenderCompatibility());
+            PdfDocument.Load(pdf).AssessRenderCompatibility());
         Assert.True(
             diagnosticException.Kind is PdfReadLimitKind.TextClippingPaths or PdfReadLimitKind.TextClippingIntersectionWork,
             $"Unexpected diagnostic limit kind: {diagnosticException.Kind}.");

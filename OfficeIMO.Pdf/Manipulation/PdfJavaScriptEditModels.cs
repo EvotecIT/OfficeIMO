@@ -84,7 +84,7 @@ public sealed class PdfJavaScriptEditSession {
 /// <summary>Edited PDF bytes with exact named-script readback and rewrite-preservation proof.</summary>
 public sealed class PdfJavaScriptEditResult {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
     internal PdfJavaScriptEditResult(
         byte[] pdf,
@@ -92,7 +92,7 @@ public sealed class PdfJavaScriptEditResult {
         PdfRewritePreservationReport preservationReport,
         IReadOnlyList<PdfJavaScript> javaScripts,
         IReadOnlyList<string> operations,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         _pdf = (byte[])pdf.Clone();
         _readOptions = readOptions;
         MutationPlan = mutationPlan;
@@ -121,5 +121,5 @@ public sealed class PdfJavaScriptEditResult {
     public byte[] ToBytes() => (byte[])_pdf.Clone();
 
     /// <summary>Opens the edited artifact as a fluent PDF document.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
 }

@@ -221,11 +221,11 @@ internal static class HtmlPdfEvidenceRunner {
 
         PdfReadObservation observation = PdfBenchmarkValidation.ValidateGenerated(bytes, scenario, engine.ToString());
         PdfBenchmarkValidation.ValidateTaggedStructure(bytes, engine.ToString(), scenario);
-        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Inspect();
+        PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect();
         PdfTaggedContentInfo tagged = info.TaggedContent
             ?? throw new InvalidDataException($"{engine} did not expose tagged-content evidence.");
 
-        PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.RenderPages(
+        PdfPageRenderResult visual = OfficeIMO.Pdf.PdfDocument.Load(bytes).Render.Pages(
             "1",
             new PdfPageRenderOptions {
                 Format = PdfPageRenderFormat.Png,

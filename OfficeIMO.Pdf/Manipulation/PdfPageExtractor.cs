@@ -30,21 +30,21 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPages(byte[] pdf, PdfReadOptions? options, params int[] pageNumbers) {
+    public static byte[] ExtractPages(byte[] pdf, PdfLoadOptions? options, params int[] pageNumbers) {
         return ExtractPages(pdf, pageNumbers, options);
     }
 
     /// <summary>
     /// Creates a new PDF containing the selected one-based page numbers in the requested order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfReadOptions? options) {
+    public static byte[] ExtractPages(byte[] pdf, IEnumerable<int> pageNumbers, PdfLoadOptions? options) {
         return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes: null);
     }
 
     internal static byte[] ExtractPages(
         byte[] pdf,
         IEnumerable<int> pageNumbers,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         long maximumOutputBytes) {
         Guard.Positive(maximumOutputBytes, nameof(maximumOutputBytes));
         return ExtractPagesCore(pdf, pageNumbers, options, maximumOutputBytes);
@@ -53,7 +53,7 @@ internal static partial class PdfPageExtractor {
     private static byte[] ExtractPagesCore(
         byte[] pdf,
         IEnumerable<int> pageNumbers,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         long? maximumOutputBytes) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
@@ -237,14 +237,14 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+    public static byte[] ExtractPageRanges(byte[] pdf, PdfLoadOptions? options, params PdfPageRange[] pageRanges) {
         return ExtractPageRanges(pdf, (IEnumerable<PdfPageRange>)pageRanges, options);
     }
 
     /// <summary>
     /// Creates a new PDF containing the supplied inclusive one-based page ranges in caller order, using read options for password-protected sources.
     /// </summary>
-    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
+    public static byte[] ExtractPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 
@@ -342,7 +342,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one single-page PDF per source page, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfReadOptions? options) {
+    public static IReadOnlyList<byte[]> SplitPages(byte[] pdf, PdfLoadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         var (_, document) = PdfMutationPlanner.RequireFullRewriteDocument(
             pdf,
@@ -385,14 +385,14 @@ internal static partial class PdfPageExtractor {
     /// <summary>
     /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, PdfLoadOptions? options, params PdfPageRange[] pageRanges) {
         return SplitPageRanges(pdf, (IEnumerable<PdfPageRange>)pageRanges, options);
     }
 
     /// <summary>
     /// Splits a PDF into one output PDF per inclusive one-based page range, using read options for password-protected sources.
     /// </summary>
-    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options) {
+    public static IReadOnlyList<byte[]> SplitPageRanges(byte[] pdf, IEnumerable<PdfPageRange> pageRanges, PdfLoadOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
 

@@ -34,7 +34,7 @@ Redaction must remove content, not merely draw a black rectangle over visible te
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("case-file.pdf");
+PdfDocument source = PdfDocument.Load("case-file.pdf");
 var search = new PdfRedactionSearchOptions { MatchCase = false };
 search.AddLiteral("Account 1234");
 

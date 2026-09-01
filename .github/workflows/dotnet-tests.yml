@@ -164,6 +164,7 @@ jobs:
             'OfficeIMO.Rtf/OfficeIMO.Rtf.csproj',
             'OfficeIMO.Email/OfficeIMO.Email.csproj',
             'OfficeIMO.Html/OfficeIMO.Html.csproj',
+            'OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj',
             'OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj',
             'OfficeIMO.Markdown.Html/OfficeIMO.Markdown.Html.csproj',
             'OfficeIMO.Mhtml/OfficeIMO.Mhtml.csproj',
@@ -194,6 +195,7 @@ jobs:
           $markdownVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown'
           $rtfVersion = Get-PackedPackageVersion 'OfficeIMO.Rtf'
           $htmlVersion = Get-PackedPackageVersion 'OfficeIMO.Html'
+          $htmlRtfVersion = Get-PackedPackageVersion 'OfficeIMO.Html.Rtf'
           $markdownHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Markdown.Html'
           $mhtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Mhtml'
           $readerHtmlVersion = Get-PackedPackageVersion 'OfficeIMO.Reader.Html'
@@ -228,6 +230,7 @@ jobs:
             'OfficeIMO.Email',
             'OfficeIMO.Email.Html',
             'OfficeIMO.Html',
+            'OfficeIMO.Html.Rtf',
             'OfficeIMO.Markdown.Html',
             'OfficeIMO.Mhtml',
             'OfficeIMO.Reader.Core',
@@ -257,6 +260,7 @@ jobs:
             @{ Id = 'officeimo.markdown'; Version = $markdownVersion },
             @{ Id = 'officeimo.rtf'; Version = $rtfVersion },
             @{ Id = 'officeimo.html'; Version = $htmlVersion },
+            @{ Id = 'officeimo.html.rtf'; Version = $htmlRtfVersion },
             @{ Id = 'officeimo.markdown.html'; Version = $markdownHtmlVersion },
             @{ Id = 'officeimo.mhtml'; Version = $mhtmlVersion },
             @{ Id = 'officeimo.reader.html'; Version = $readerHtmlVersion }

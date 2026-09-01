@@ -2,18 +2,18 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Normalized OCR merge result with both native and OCR-enriched logical documents.</summary>
 public sealed class PdfOcrMergeResult {
-    internal PdfOcrMergeResult(PdfLogicalDocument nativeDocument, PdfLogicalDocument enrichedDocument, IReadOnlyList<PdfOcrPageMergeResult> pages) {
+    internal PdfOcrMergeResult(PdfDocumentReadResult nativeDocument, PdfDocumentReadResult enrichedDocument, IReadOnlyList<PdfOcrPageMergeResult> pages) {
         NativeDocument = nativeDocument;
         EnrichedDocument = enrichedDocument;
         Pages = pages;
     }
     /// <summary>Native parser logical model used for overlap decisions.</summary>
-    public PdfLogicalDocument NativeDocument { get; }
+    public PdfDocumentReadResult NativeDocument { get; }
     /// <summary>
     /// Logical model containing accepted OCR text and conservative OCR table inference in addition to native content.
     /// Pass this model directly to the Word, Excel, PowerPoint, HTML, RTF, or OpenDocument reverse converters.
     /// </summary>
-    public PdfLogicalDocument EnrichedDocument { get; }
+    public PdfDocumentReadResult EnrichedDocument { get; }
     /// <summary>Number of accepted OCR words across all requested pages.</summary>
     public int AcceptedWordCount => Pages.Sum(static page => page.Words.Count);
     /// <summary>

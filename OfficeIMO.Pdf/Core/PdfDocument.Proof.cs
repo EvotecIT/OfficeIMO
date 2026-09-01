@@ -6,7 +6,7 @@ public sealed partial class PdfDocument {
         byte[] actualPdf,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
-        PdfReadOptions? actualReadOptions = null) {
+        PdfLoadOptions? actualReadOptions = null) {
         return PdfVisualComparer.Compare(GetBytesForOperation(), actualPdf, selection, options, ReadOptions, actualReadOptions);
     }
 
@@ -214,7 +214,7 @@ public sealed partial class PdfDocument {
             id,
             operation,
             sourcePdf,
-            pdf => rewrite(Open(pdf)).GetBytesForOperation()) {
+            pdf => rewrite(Load(pdf)).GetBytesForOperation()) {
                 ExpectedClassification = expectedClassification,
                 PreservationOptions = options
             };

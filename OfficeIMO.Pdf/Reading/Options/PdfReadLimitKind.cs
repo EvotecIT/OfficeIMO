@@ -126,5 +126,8 @@ public enum PdfReadLimitKind {
     ClippingIntersectionWork = 40,
 
     /// <summary>Aggregate bytes produced while decoding parser-owned PDF streams.</summary>
-    TotalDecodedStreamBytes = 41
+    TotalDecodedStreamBytes = 41,
+
+    /// <summary>Bounded comparison and traversal work performed by semantic reconstruction.</summary>
+    UnderstandingWork = 42
 }

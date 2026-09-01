@@ -7,36 +7,42 @@ internal static class PdfUnderstandingEvidenceRunner {
         string outputPath = ReadOption(args, "--output") ?? throw new ArgumentException("semantic-evidence requires --output <path>.");
         PdfBenchmarkScale scale = ParseScale(ReadOption(args, "--scale") ?? "Medium");
         PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
-        var pipeline = new PdfUnderstandingPipeline(PdfUnderstandingPipelineOptions.Advanced());
-        PdfUnderstandingResult result = pipeline.Run(PdfReadDocument.Open(corpus.Pdf));
-        PdfUnderstandingAccuracyObservation accuracy = PdfUnderstandingBenchmarkValidation.Evaluate(result, corpus.Pages);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(corpus.Pdf);
-        PdfLogicalStructureObservation logicalStructure = PdfUnderstandingBenchmarkValidation.Observe(logical);
-        PdfBinaryClassificationScore tableDetection = PdfUnderstandingBenchmarkValidation.EvaluateTableDetection(logical, corpus.Pages);
-        PdfUnderstandingBenchmarkValidation.RequireCompleteLabelCoverage(accuracy);
-        PdfUnderstandingBenchmarkValidation.RequireDeterministicSemanticQuality(accuracy);
-        PdfUnderstandingBenchmarkValidation.RequireDeterministicTableQuality(tableDetection);
+        PdfDocument document = PdfDocument.Load(corpus.Pdf);
+        PdfDocumentReadResult structured = document.Read(
+            PdfUnderstandingBenchmarkReadOptions.Create(PdfReadProfile.Structured, corpus.Pages.Count));
+        PdfSemanticCorrectnessObservation correctness = PdfUnderstandingBenchmarkValidation.Evaluate(structured, corpus);
+        PdfStructuredReadObservation structure = PdfUnderstandingBenchmarkValidation.Observe(structured);
+        PdfUnderstandingBenchmarkValidation.RequireDeterministicQuality(correctness);
 
         string fullPath = Path.GetFullPath(outputPath);
         Directory.CreateDirectory(Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory());
         var report = new {
-            schemaVersion = 1,
+            schemaVersion = 2,
             generatedAtUtc = DateTimeOffset.UtcNow,
-            workload = "OfficeIMO.Pdf.AdvancedUnderstanding",
+            workload = "OfficeIMO.Pdf.LoadAndRead.Structured",
             scale = scale.ToString(),
             corpus = new {
                 source = "deterministic-generated",
                 pages = corpus.Pages.Count,
                 includes = new[] { "running-header", "spanning-heading", "indented-two-column-reading-order", "list-item", "caption", "table", "running-footer" }
             },
-            accuracy,
-            tableDetection,
-            logicalStructure,
+            correctness,
+            structure,
             coverage = new {
-                measured = new[] { "labelled-region-character-error-rate", "labelled-region-pairwise-reading-order-accuracy", "labelled-region-kendall-tau", "semantic-kind-precision-recall-f1", "logical-table-detection-precision-recall-f1" },
-                notMeasured = new[] { "whole-document-character-error-rate", "heading-level-f1", "cell-adjacency", "teds", "cross-page-continuation-pair-f1", "independent-producer-generalization" }
+                measured = new[] {
+                    "labelled-region-character-error-rate",
+                    "labelled-region-pairwise-reading-order-accuracy",
+                    "labelled-region-kendall-tau",
+                    "semantic-kind-precision-recall-f1",
+                    "heading-detection-precision-recall-f1",
+                    "heading-exact-level-precision-recall-f1",
+                    "logical-table-detection-precision-recall-f1",
+                    "table-cell-adjacency-precision-recall-f1",
+                    "cross-page-continuation-pair-precision-recall-f1"
+                },
+                notMeasured = new[] { "whole-document-character-error-rate", "full-tree-edit-distance-teds", "independent-producer-generalization" }
             },
-            interpretation = "This deterministic scorecard is a regression gate, not evidence of accuracy on independent real-world PDFs. Use the separate BenchmarkDotNet workload for elapsed time and managed allocations."
+            interpretation = "This deterministic labelled scorecard is a regression gate, not evidence of generalization to independent real-world PDFs. Cell adjacency is a directly labelled structural score, not a claim of full TEDS equivalence. Use PdfStructuredReadBenchmarks for elapsed time and managed allocations, and the corpus runner for failure rate by document class."
         };
         File.WriteAllText(fullPath, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine(fullPath);

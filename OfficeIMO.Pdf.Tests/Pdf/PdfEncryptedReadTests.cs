@@ -11,19 +11,19 @@ public class PdfEncryptedReadTests {
 
         Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(pdf));
         Assert.Throws<PdfPasswordRequiredException>(() => PdfTextExtractor.ExtractAllText(pdf));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfReadOptions { Password = "wrong" }));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfReadDocument.Open(pdf, new PdfLoadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "wrong" }));
     }
 
     [Fact]
     public void StandardPasswordEncryptedPdf_ReadsTextWithPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
-        var options = new PdfReadOptions { Password = "open" };
+        var options = new PdfLoadOptions { Password = "open" };
 
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, options);
         PdfDiagnosticReport diagnostics = PdfDiagnostics.Analyze(pdf, options);
-        string fluentText = PdfDocument.Open(pdf, options).Read.Text();
+        string fluentText = PdfDocument.Load(pdf, options).Reader.Text();
 
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
@@ -37,7 +37,7 @@ public class PdfEncryptedReadTests {
     [Fact]
     public void StandardPasswordEncryptedPdf_InspectUsesDecryptedSignatureSecurity() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithSignature("open", "owner", "Secret PDF Text");
-        var options = new PdfReadOptions { Password = "open" };
+        var options = new PdfLoadOptions { Password = "open" };
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf, options);
         PdfSignatureValidationReport report = PdfSignatureValidator.Validate(pdf, options);
@@ -67,13 +67,13 @@ public class PdfEncryptedReadTests {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2(string.Empty, "owner", "Empty user password text");
 
         byte[] extracted = PdfPageExtractor.ExtractPages(pdf, 1);
-        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Open(pdf).Pages.Split();
-        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Open(pdf).Pages.TrySplit();
+        IReadOnlyList<PdfDocument> splitPages = PdfDocument.Load(pdf).Pages.Split();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> trySplit = PdfDocument.Load(pdf).Pages.TrySplit();
 
         Assert.False(PdfInspector.Probe(extracted).HasEncryption);
         Assert.Contains("Empty user password text", PdfTextExtractor.ExtractAllText(extracted), StringComparison.Ordinal);
         PdfDocument splitPage = Assert.Single(splitPages);
-        Assert.Contains("Empty user password text", splitPage.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Empty user password text", splitPage.Reader.Text(), StringComparison.Ordinal);
         Assert.True(trySplit.CanAttempt);
         Assert.True(trySplit.Succeeded);
     }
@@ -81,9 +81,9 @@ public class PdfEncryptedReadTests {
     [Fact]
     public void StandardPasswordEncryptedPdf_SplitsWithPasswordAsUnencryptedOutputs() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
-        var options = new PdfReadOptions { Password = "open" };
+        var options = new PdfLoadOptions { Password = "open" };
 
-        IReadOnlyList<byte[]> pages = PdfDocument.Open(pdf, options).Pages.Split()
+        IReadOnlyList<byte[]> pages = PdfDocument.Load(pdf, options).Pages.Split()
             .Select(page => page.ToBytes())
             .ToArray();
 
@@ -96,37 +96,37 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedPdf_TrySplitSucceedsWhenOpenedWithPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf, new PdfReadOptions { Password = "open" }).Pages.TrySplit();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(pdf, new PdfLoadOptions { Password = "open" }).Pages.TrySplit();
 
         Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);
         PdfDocument page = Assert.Single(result.RequireValue());
-        Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Secret PDF Text", page.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void StandardPasswordEncryptedPdf_TrySplitUsesSuppliedPassword() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2("open", "owner", "Secret PDF Text");
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Open(pdf).Pages.TrySplit(new PdfReadOptions { Password = "open" });
+        PdfOperationResult<IReadOnlyList<PdfDocument>> result = PdfDocument.Load(pdf).Pages.TrySplit(new PdfLoadOptions { Password = "open" });
 
         Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded);
         PdfDocument page = Assert.Single(result.RequireValue());
-        Assert.Contains("Secret PDF Text", page.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Secret PDF Text", page.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void StandardPasswordEncryptedPdf_ExtractWithWrongPasswordReportsPasswordError() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
 
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "wrong" }, 1));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfLoadOptions { Password = "wrong" }, 1));
     }
 
     [Fact]
     public void StandardPasswordEncryptedPdf_ExtractsWithSupportedPageLabelsWhenPasswordProvided() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithPageLabels("open", "owner", "Secret PDF Text");
-        var options = new PdfReadOptions { Password = "open" };
+        var options = new PdfLoadOptions { Password = "open" };
 
         byte[] page = PdfPageExtractor.ExtractPages(pdf, options, 1);
 
@@ -138,7 +138,7 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedFormPdf_ExtractBlocksDecryptedFormMarkers() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfReadOptions { Password = "open" }, 1));
+        PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() => PdfPageExtractor.ExtractPages(pdf, new PdfLoadOptions { Password = "open" }, 1));
 
         Assert.Contains("FullRewrite.Forms", exception.Plan.BlockerCodes);
     }
@@ -148,17 +148,17 @@ public class PdfEncryptedReadTests {
     public void StandardPasswordEncryptedFormPdf_RequiresOwnerOrExplicitOverrideForRewrite() {
         byte[] pdf = EncryptedPdfFixture.CreateRevision2WithTextField("open", "owner", "Secret PDF Text");
 
-        var userOptions = new PdfReadOptions { Password = "open" };
+        var userOptions = new PdfLoadOptions { Password = "open" };
         PdfDocumentPreflight userPreflight = PdfInspector.Preflight(pdf, userOptions);
         Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
+            PdfDocument.Load(pdf, userOptions).Forms.Fill(new Dictionary<string, string> {
                 ["Name"] = "Blocked"
             }));
 
-        PdfDocument ownerFilled = PdfDocument.Open(pdf, new PdfReadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
+        PdfDocument ownerFilled = PdfDocument.Load(pdf, new PdfLoadOptions { Password = "owner" }).Forms.Fill(new Dictionary<string, string> {
             ["Name"] = "Grace"
         });
-        PdfDocument explicitlyAuthorized = PdfDocument.Open(pdf, new PdfReadOptions {
+        PdfDocument explicitlyAuthorized = PdfDocument.Load(pdf, new PdfLoadOptions {
             Password = "open",
             PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
         }).Forms.Fill(new Dictionary<string, string> {

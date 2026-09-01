@@ -118,7 +118,7 @@ internal static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractMarkdownByPage(PdfLogicalDocument document, PdfLogicalMarkdownOptions? markdownOptions) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> ExtractMarkdownByPage(PdfDocumentReadResult document, PdfLogicalMarkdownOptions? markdownOptions) {
         var pages = new List<string>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
             pages.Add(document.Pages[i].ToMarkdown(markdownOptions));
@@ -127,7 +127,7 @@ internal static partial class PdfTextExtractor {
         return pages.AsReadOnly();
     }
     
-    private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedMarkdownPages(PdfLogicalDocument document, PdfLogicalMarkdownOptions? markdownOptions) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedMarkdownPages(PdfDocumentReadResult document, PdfLogicalMarkdownOptions? markdownOptions) {
         var pages = new List<SelectedTextPage>(document.Pages.Count);
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfLogicalPage page = document.Pages[i];

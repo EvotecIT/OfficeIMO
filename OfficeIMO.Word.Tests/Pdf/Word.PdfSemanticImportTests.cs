@@ -58,7 +58,7 @@ public partial class Word {
                 .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
         Assert.Equal("Bold red italic blue", logicalItem.Text);
         Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
@@ -78,6 +78,48 @@ public partial class Word {
             ReadRunText(run).Contains("italic blue", StringComparison.Ordinal) &&
             run.RunProperties?.Italic != null &&
             run.RunProperties?.Color?.Val?.Value == "0000FF");
+    }
+
+    [Fact]
+    public void PdfSemanticImport_PreservesClassifiedHeaderFooterCaptionAndFootnoteText() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 450,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 42,
+                MarginBottom = 42,
+                DefaultFontSize = 11
+            })
+            .Header(header => header.AlignLeft().Text("Import header {page}/{pages}"))
+            .Footer(footer => footer.AlignCenter().Text("Import footer {page}"))
+            .Paragraph(paragraph => paragraph.Text("Figure 1. Classified caption"))
+            .Canvas(canvas => canvas.Text("1 Classified footnote", 36D, 415D, 220D, 18D, fontSize: 7D))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second page body."))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Third page body."))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
+
+        Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Headers));
+        Assert.NotEmpty(logical.Pages.SelectMany(static page => page.Footers));
+        Assert.Contains(logical.Pages.SelectMany(static page => page.Captions), block => block.Text.Contains("Classified caption", StringComparison.Ordinal));
+        Assert.True(
+            logical.Pages.SelectMany(static page => page.Footnotes).Any(block => block.Text.Contains("Classified footnote", StringComparison.Ordinal)),
+            string.Join(" | ", logical.Pages.SelectMany(static page => page.TextBlocks).Select(static block =>
+                block.Kind + ":" + block.Text + ":" + block.BaselineY.ToString(System.Globalization.CultureInfo.InvariantCulture))));
+
+        using OfficeWordDocument imported = logical.ToWordDocument();
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(imported.ToBytes()), false);
+        string importedText = string.Join("\n", GetPdfSemanticBody(package)
+            .Elements<Paragraph>()
+            .Select(ReadParagraphText));
+
+        Assert.Contains("Import header", importedText, StringComparison.Ordinal);
+        Assert.Contains("Import footer", importedText, StringComparison.Ordinal);
+        Assert.Contains("Figure 1. Classified caption", importedText, StringComparison.Ordinal);
+        Assert.Contains("1 Classified footnote", importedText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -264,7 +306,7 @@ public partial class Word {
             .ToBytes();
         byte[] rotated = PdfCore.PdfPageEditor.RotatePages(source, 90, 1);
 
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(rotated);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(rotated);
         Assert.Single(logical.Pages[0].Tables);
         PdfWordConversionResult conversion = logical.ToWordDocumentResult(new PdfWordImportOptions());
         using OfficeWordDocument importedDocument = conversion.Value;
@@ -359,7 +401,7 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Only selected page body."))
             .ToBytes();
         var options = new PdfWordImportOptions();
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.LoadPageRanges(
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.LoadPageRanges(
             pdf,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
@@ -392,7 +434,7 @@ public partial class Word {
             .Paragraph(paragraph => paragraph.Text("Loaded selected page body."))
             .ToBytes();
         PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Open(pdf);
-        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.FromPageRanges(
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.FromPageRanges(
             readDocument,
             CreateSemanticLayoutOptions(),
             new[] { PdfCore.PdfPageRange.From(2, 2) });
@@ -765,8 +807,8 @@ public partial class Word {
         Assert.DoesNotContain(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text.Contains("[PDF image: page 1", StringComparison.Ordinal));
     }
 
-    private static PdfCore.PdfLogicalDocument LoadSemanticPdf(byte[] pdf) =>
-        PdfCore.PdfLogicalDocument.Load(pdf, CreateSemanticLayoutOptions());
+    private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
+        PdfCore.PdfDocumentReadResult.Load(pdf, CreateSemanticLayoutOptions());
 
     private static PdfCore.PdfTextLayoutOptions CreateSemanticLayoutOptions() => new PdfCore.PdfTextLayoutOptions {
         ForceSingleColumn = true

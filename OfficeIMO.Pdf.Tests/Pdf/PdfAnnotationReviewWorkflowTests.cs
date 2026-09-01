@@ -57,7 +57,7 @@ public class PdfAnnotationReviewWorkflowTests {
         int signedHeaderCount = PdfSyntax.CountIndirectObjectHeaders(signed, new PdfReadLimits());
         int signedObjectCount = PdfReadDocument.Open(signed).RawStructure().TotalObjectCount;
         int signedRevisionCount = PdfInspector.Probe(signed).Security.RevisionCount;
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxIndirectObjects = Math.Max(signedHeaderCount, signedObjectCount),
                 MaxRevisions = signedRevisionCount
@@ -74,7 +74,7 @@ public class PdfAnnotationReviewWorkflowTests {
         Assert.Equal(PdfMutationExecutionMode.AppendOnly, result.MutationPlan.ExecutionMode);
         Assert.True(result.SignatureMutationReport!.IsPreservedAppendOnlyMutation);
         Assert.True(result.Bytes.AsSpan(0, signed.Length).SequenceEqual(signed));
-        Assert.Single(result.ToDocument().Read.Annotations());
+        Assert.Single(result.ToDocument().Reader.Annotations());
         Assert.Equal(PdfAnnotationReviewState.Completed, Assert.Single(PdfInspector.Inspect(result.Bytes).GetAnnotationsBySubtype("Text")).Review!.StandardState);
     }
 
@@ -189,7 +189,7 @@ public class PdfAnnotationReviewWorkflowTests {
             .ToBytes();
         int parentObjectNumber = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
         int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxIndirectObjects = sourceObjectCount,
                 MaxAnnotationsPerPage = 1
@@ -202,7 +202,7 @@ public class PdfAnnotationReviewWorkflowTests {
             "Budgeted reply",
             readOptions: readOptions);
 
-        Assert.Equal(2, result.ToDocument().Read.Annotations().Count);
+        Assert.Equal(2, result.ToDocument().Reader.Annotations().Count);
     }
 
     private static byte[] BuildSparseAnnotationPdf() => Encoding.ASCII.GetBytes(

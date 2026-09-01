@@ -46,7 +46,7 @@ public sealed partial class PdfProvenanceTests {
     [Fact]
     public void EncryptedObjectStreamConsumesDecodedBudgetOnlyAfterDecryption() {
         (byte[] pdf, long requiredDecodedBytes) = CreateEncryptedObjectStreamPdf();
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Password = "open",
             Limits = new PdfReadLimits {
                 MaxDecodedStreamBytes = 1024,

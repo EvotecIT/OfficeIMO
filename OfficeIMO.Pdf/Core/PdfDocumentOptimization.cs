@@ -7,7 +7,7 @@ public sealed class PdfDocumentOptimization {
     internal PdfDocumentOptimization(PdfDocument document) => _document = document;
 
     /// <summary>Builds an optimization opportunity report without modifying the PDF.</summary>
-    public PdfOptimizationReport Analyze(PdfReadOptions? options = null) => _document.AnalyzeOptimization(options);
+    public PdfOptimizationReport Analyze(PdfLoadOptions? options = null) => _document.AnalyzeOptimization(options);
 
     /// <summary>Applies dependency-free lossless optimization.</summary>
     public PdfOptimizationActionResult Apply(PdfOptimizationOptions? options = null) => _document.Optimize(options);

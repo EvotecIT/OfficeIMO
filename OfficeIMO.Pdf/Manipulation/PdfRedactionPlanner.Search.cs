@@ -4,13 +4,13 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfRedactionPlanner {
     /// <summary>Derives reviewable redaction rectangles from literal text, bounded regex, logical element kinds, and AcroForm field names.</summary>
-    public static PdfRedactionPlan Search(byte[] pdf, PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? readOptions = null) {
+    public static PdfRedactionPlan Search(byte[] pdf, PdfRedactionSearchOptions search, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(search, nameof(search));
         if (search.RegexTimeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(search), "Regex timeout must be positive.");
         Regex[] expressions = search.RegularExpressions.Select(pattern => new Regex(pattern, search.RegexOptions, search.RegexTimeout)).ToArray();
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 
-        PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Open(pdf, readOptions), layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(PdfReadDocument.Open(pdf, readOptions), layoutOptions);
         StringComparison comparison = search.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var areas = new List<PdfRedactionArea>(); var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfLogicalTextBlock block in logical.TextBlocks) {

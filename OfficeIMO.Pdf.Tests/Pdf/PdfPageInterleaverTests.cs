@@ -135,15 +135,15 @@ public class PdfPageInterleaverTests {
         byte[] second = PdfProductionWorkflowTestSupport.CreatePdf("B one");
         int sourceObjectLimit = Math.Max(PdfSyntax.ParseObjects(first).Map.Count, PdfSyntax.ParseObjects(second).Map.Count);
         var firstSource = new PdfInterleaveSource(first) {
-            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
         };
         var secondSource = new PdfInterleaveSource(second) {
-            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxPages = 1, MaxIndirectObjects = sourceObjectLimit } }
         };
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(new[] { firstSource, secondSource });
 
-        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+        Assert.Equal(2, result.ToDocument().Reader.Pages().Count);
         Assert.Equal(2, result.MergeReport.OutputPageCount);
     }
 
@@ -154,10 +154,10 @@ public class PdfPageInterleaverTests {
         int firstObjectCount = PdfReadDocument.Open(first).RawStructure().TotalObjectCount;
         int secondObjectCount = PdfReadDocument.Open(second).RawStructure().TotalObjectCount;
         var firstSource = new PdfInterleaveSource(first) {
-            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = firstObjectCount } }
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = firstObjectCount } }
         };
         var secondSource = new PdfInterleaveSource(second) {
-            ReadOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = secondObjectCount } }
+            ReadOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = secondObjectCount } }
         };
 
         PdfInterleaveResult result = PdfPageInterleaver.Interleave(
@@ -168,7 +168,7 @@ public class PdfPageInterleaverTests {
                 }
             });
 
-        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+        Assert.Equal(2, result.ToDocument().Reader.Pages().Count);
     }
 
     [Fact]

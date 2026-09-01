@@ -225,7 +225,7 @@ internal static class PowerPointRoadmapVisualCorpus {
         }
 
         IReadOnlyList<PdfCore.PdfPageRenderResult> rendered =
-            PdfCore.PdfDocument.Open(pdf).Read.RenderPages(options:
+            PdfCore.PdfDocument.Load(pdf).Render.Pages(options:
                 new PdfCore.PdfPageRenderOptions {
                     Dpi = 72D,
                     Format = PdfCore.PdfPageRenderFormat.Png,

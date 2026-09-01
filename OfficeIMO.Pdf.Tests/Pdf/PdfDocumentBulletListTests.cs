@@ -171,7 +171,7 @@ public class PdfDocumentBulletListTests {
             .Paragraph(p => p.LinkToBookmark("Jump to second bullet", "SecondBulletAnchor", contents: "List bookmark jump"))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
@@ -229,7 +229,7 @@ public class PdfDocumentBulletListTests {
             Assert.Contains("Plain Bold Red Marked Linked", pdf.GetPage(1).Text, StringComparison.Ordinal);
         }
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes);
         PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
 
         Assert.True(boldText >= 0, "Expected encoded 'Bold' text in the list content stream.");

@@ -4,7 +4,266 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
+    [Fact]
+    public void PdfLogicalElementKind_PreservesPublishedNumericValues() {
+        Assert.Equal(0, (int)PdfLogicalElementKind.TextBlock);
+        Assert.Equal(1, (int)PdfLogicalElementKind.Heading);
+        Assert.Equal(2, (int)PdfLogicalElementKind.ListItem);
+        Assert.Equal(3, (int)PdfLogicalElementKind.LeaderRow);
+        Assert.Equal(4, (int)PdfLogicalElementKind.Table);
+        Assert.Equal(5, (int)PdfLogicalElementKind.Image);
+        Assert.Equal(6, (int)PdfLogicalElementKind.LinkAnnotation);
+        Assert.Equal(7, (int)PdfLogicalElementKind.FormWidget);
+        Assert.Equal(8, (int)PdfLogicalElementKind.Header);
+        Assert.Equal(9, (int)PdfLogicalElementKind.Footer);
+        Assert.Equal(10, (int)PdfLogicalElementKind.Caption);
+        Assert.Equal(11, (int)PdfLogicalElementKind.Footnote);
+    }
+
+    [Fact]
+    public void DocumentHeadingTiers_ExcludeAuthoritativeSemanticLevelsFromFontRanking() {
+        var explicitBlock = new PdfLogicalTextBlock(
+            1, PdfLogicalElementKind.Heading, "Tagged heading", 50D, 250D, 700D, 30D, Array.Empty<PdfTextSpan>());
+        var heuristicBlock = new PdfLogicalTextBlock(
+            1, PdfLogicalElementKind.Heading, "Heuristic heading", 50D, 250D, 650D, 20D, Array.Empty<PdfTextSpan>());
+        var explicitHeading = new PdfLogicalHeading(
+            1,
+            1,
+            explicitBlock.Text,
+            explicitBlock.FontSize,
+            explicitBlock,
+            evidence: new[] {
+                new PdfInferenceEvidence("semantic.tagged-pdf-role", "The tagged PDF supplies the heading level.", 1D)
+            });
+        var heuristicHeading = new PdfLogicalHeading(
+            1,
+            3,
+            heuristicBlock.Text,
+            heuristicBlock.FontSize,
+            heuristicBlock);
+
+        PdfDocumentReadResult.ApplyDocumentHeadingFontTiers(
+            new[] { explicitHeading, heuristicHeading },
+            System.Threading.CancellationToken.None);
+
+        Assert.Equal(1, explicitHeading.Level);
+        Assert.Equal(1, heuristicHeading.Level);
+    }
+
+    [Fact]
+    public void DocumentHeadingTiers_RankDistinctSizesAndClusterNearbySizes() {
+        double[] fontSizes = { 30D, 29.6D, 28D, 27D, 26D, 25D, 24D, 23D };
+        PdfLogicalHeading[] headings = fontSizes.Select((fontSize, index) => {
+            var block = new PdfLogicalTextBlock(
+                1,
+                PdfLogicalElementKind.Heading,
+                "Heading " + index,
+                50D,
+                250D,
+                700D - index * 30D,
+                fontSize,
+                Array.Empty<PdfTextSpan>());
+            return new PdfLogicalHeading(1, 1, block.Text, fontSize, block);
+        }).ToArray();
+
+        PdfDocumentReadResult.ApplyDocumentHeadingFontTiers(
+            headings,
+            System.Threading.CancellationToken.None);
+
+        Assert.Equal(new[] { 1, 1, 2, 3, 4, 5, 6, 6 }, headings.Select(static heading => heading.Level));
+    }
+
+    [Fact]
+    public void Read_BuildsHeadingHierarchyAndDirectSectionOwnership() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Operations")
+            .Paragraph(paragraph => paragraph.Text("Operations overview."))
+            .H2("North region")
+            .Paragraph(paragraph => paragraph.Text("North region details."))
+            .H1("Finance")
+            .Paragraph(paragraph => paragraph.Text("Finance overview."))
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
+
+        Assert.Equal(3, result.AllSections.Count);
+        Assert.Equal(2, result.Sections.Count);
+        PdfLogicalSection operations = result.Sections[0];
+        PdfLogicalSection north = Assert.Single(operations.Children);
+        PdfLogicalSection finance = result.Sections[1];
+        Assert.Equal("Operations", operations.Title);
+        Assert.Equal("North region", north.Title);
+        Assert.Same(operations, north.Parent);
+        Assert.Equal("Finance", finance.Title);
+        Assert.Null(finance.Parent);
+        Assert.Contains(operations.Paragraphs, paragraph => paragraph.Text.Contains("Operations overview", StringComparison.Ordinal));
+        Assert.Contains(north.Paragraphs, paragraph => paragraph.Text.Contains("North region details", StringComparison.Ordinal));
+        Assert.Contains(finance.Paragraphs, paragraph => paragraph.Text.Contains("Finance overview", StringComparison.Ordinal));
+        Assert.Same(north, result.GetOwningSection(Assert.Single(north.Paragraphs)));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Sections_PublishCompleteOwnershipIndexesDuringConcurrentFirstAccess() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("Operations")
+            .Paragraph(paragraph => paragraph.Text("Operations overview."))
+            .H2("North region")
+            .Paragraph(paragraph => paragraph.Text("North region details."))
+            .ToBytes();
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read();
+        PdfLogicalParagraph paragraph = result.Paragraphs.Last();
+        using var start = new System.Threading.ManualResetEventSlim(false);
+        System.Threading.Tasks.Task<(IReadOnlyList<PdfLogicalSection> Roots, IReadOnlyList<PdfLogicalSection> All, PdfLogicalSection? Owner)>[] readers =
+            Enumerable.Range(0, 32)
+                .Select(_ => System.Threading.Tasks.Task.Run(() => {
+                    start.Wait();
+                    return (result.Sections, result.AllSections, result.GetOwningSection(paragraph));
+                }))
+                .ToArray();
+
+        start.Set();
+        (IReadOnlyList<PdfLogicalSection> Roots, IReadOnlyList<PdfLogicalSection> All, PdfLogicalSection? Owner)[] snapshots =
+            await System.Threading.Tasks.Task.WhenAll(readers);
+
+        Assert.All(snapshots, snapshot => {
+            Assert.Single(snapshot.Roots);
+            Assert.Equal(2, snapshot.All.Count);
+            Assert.Same(snapshot.All[1], snapshot.Owner);
+        });
+    }
+
+    [Fact]
+    public void Read_AssignsLinksAndFormWidgetsToHeadingOwnedSections() {
+        byte[] source = PdfDocument.Create()
+            .H1("Interactive section")
+            .Paragraph(paragraph => paragraph.Link("Section link", "https://example.com/section"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "section-note",
+            Kind = PdfFormFieldCreationKind.Text,
+            PageNumber = 1,
+            X = 72,
+            Y = 420,
+            Width = 180,
+            Height = 24
+        })).ToDocument();
+
+        PdfDocumentReadResult result = document.Read();
+        PdfLogicalSection section = Assert.Single(result.Sections);
+        PdfLogicalLinkAnnotation link = Assert.Single(result.Links);
+        PdfLogicalFormWidget widget = Assert.Single(result.FormWidgets);
+
+        Assert.Contains(link, section.Links);
+        Assert.Contains(widget, section.FormWidgets);
+        Assert.Same(section, result.GetOwningSection(link));
+        Assert.Same(section, result.GetOwningSection(widget));
+    }
+
+    [Fact]
+    public void Read_CreatesOccurrenceLocalWidgetsForRepeatedPageSelections() {
+        byte[] source = PdfDocument.Create()
+            .H1("Repeated interactive section")
+            .Paragraph(paragraph => paragraph.Text("Repeated page body"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            Name = "repeated-note",
+            Kind = PdfFormFieldCreationKind.Text,
+            PageNumber = 1,
+            X = 72,
+            Y = 420,
+            Width = 180,
+            Height = 24
+        })).ToDocument();
+
+        PdfDocumentReadResult result = document.Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1, 1)
+        });
+        PdfLogicalFormWidget first = Assert.Single(result.Pages[0].FormWidgets);
+        PdfLogicalFormWidget second = Assert.Single(result.Pages[1].FormWidgets);
+        PdfLogicalSection firstOwner = Assert.IsType<PdfLogicalSection>(result.GetOwningSection(first));
+        PdfLogicalSection secondOwner = Assert.IsType<PdfLogicalSection>(result.GetOwningSection(second));
+
+        Assert.NotSame(first, second);
+        Assert.NotSame(firstOwner, secondOwner);
+        Assert.Contains(first, firstOwner.FormWidgets);
+        Assert.DoesNotContain(second, firstOwner.FormWidgets);
+        Assert.Contains(second, secondOwner.FormWidgets);
+        Assert.DoesNotContain(first, secondOwner.FormWidgets);
+    }
+
+    [Fact]
+    public void Read_TracksRepeatedImagePlacementsWithSectionLocalOwnership() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 80, 160);
+        byte[] source = PdfDocument.Create()
+            .H1("First image section")
+            .Paragraph(paragraph => paragraph.Text("First section body"))
+            .Image(image, 24, 24)
+            .H1("Second image section")
+            .Paragraph(paragraph => paragraph.Text("Second section body"))
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Equal(2, result.Sections.Count);
+
+        PdfLogicalImage firstPlacement = Assert.Single(result.Sections[0].Images);
+        PdfLogicalImage secondPlacement = Assert.Single(result.Sections[1].Images);
+        Assert.NotSame(firstPlacement, secondPlacement);
+        Assert.Same(resource.SourceImage, firstPlacement.SourceImage);
+        Assert.Same(resource.SourceImage, secondPlacement.SourceImage);
+        Assert.Single(firstPlacement.Placements);
+        Assert.Single(secondPlacement.Placements);
+        Assert.NotSame(firstPlacement.PrimaryPlacement, secondPlacement.PrimaryPlacement);
+        Assert.Same(result.Sections[0], result.GetOwningSection(firstPlacement));
+        Assert.Same(result.Sections[1], result.GetOwningSection(secondPlacement));
+        Assert.Null(result.GetOwningSection(resource));
+        Assert.Equal(result.Sections, result.GetOwningSections(resource));
+    }
+
+    [Fact]
+    public void Read_DoesNotAssignAggregateImageToASectionWhenAnotherPlacementIsUnsectioned() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(160, 80, 20);
+        byte[] source = PdfDocument.Create()
+            .Image(image, 24, 24)
+            .H1("Owned image section")
+            .Paragraph(paragraph => paragraph.Text("Owned section body"))
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        PdfLogicalSection section = Assert.Single(result.Sections);
+        PdfLogicalImage placement = Assert.Single(section.Images);
+
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Same(section, result.GetOwningSection(placement));
+        Assert.Null(result.GetOwningSection(resource));
+        Assert.Equal(new[] { section }, result.GetOwningSections(resource));
+    }
+
+    [Fact]
+    public void Read_AssignsAggregateImageWhenEveryPlacementSharesOneSection() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(80, 160, 20);
+        byte[] source = PdfDocument.Create()
+            .H1("Shared image section")
+            .Paragraph(paragraph => paragraph.Text("Shared section body"))
+            .Image(image, 24, 24)
+            .Image(image, 24, 24)
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(source).Read();
+        PdfLogicalImage resource = Assert.Single(Assert.Single(result.Pages).Images);
+        PdfLogicalSection section = Assert.Single(result.Sections);
+
+        Assert.Equal(2, resource.PlacementCount);
+        Assert.Equal(2, section.Images.Count);
+        Assert.Same(section, result.GetOwningSection(resource));
+        Assert.Equal(new[] { section }, result.GetOwningSections(resource));
+    }
+
     [Fact]
     public void LogicalTextBlocks_PreservePositionedRunStyleSpans() {
         byte[] pdf = PdfDocument.Create()
@@ -17,7 +276,7 @@ public partial class PdfLogicalDocumentTests {
                 .Text("Blue"))
             .ToBytes();
 
-        PdfLogicalTextBlock block = Assert.Single(PdfLogicalDocument.Load(pdf).TextBlocks);
+        PdfLogicalTextBlock block = Assert.Single(PdfDocumentReadResult.Load(pdf).TextBlocks);
 
         Assert.Equal(block.SpanCount, block.Spans.Count);
         Assert.True(block.Spans.Count >= 2);
@@ -110,7 +369,7 @@ public partial class PdfLogicalDocumentTests {
             .Image(CreateMinimalRgbPng(), 18, 18)
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 
@@ -257,7 +516,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("Second page."))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.True(logical.HasReadableOutputIntents);
         Assert.Equal(1, logical.OutputIntentCount);
@@ -277,7 +536,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Empty(logical.GetOutputIntentsBySubtype("GTS_PDFX"));
         Assert.Empty(logical.GetOutputIntentsByOutputConditionIdentifier("Office profile"));
 
-        PdfLogicalDocument pageRange = PdfLogicalDocument.LoadPageRanges(pdf, new PdfPageRange(1, 1));
+        PdfDocumentReadResult pageRange = PdfDocumentReadResult.LoadPageRanges(pdf, new PdfPageRange(1, 1));
         Assert.False(pageRange.HasReadableOutputIntents);
         Assert.Empty(pageRange.OutputIntents);
     }
@@ -294,7 +553,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("Second page."))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.True(logical.HasReadableXmpMetadata);
         PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(logical.XmpMetadata);
@@ -312,7 +571,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal("1.0", xmp.ElectronicInvoiceVersion);
         Assert.Equal("EN 16931", xmp.ElectronicInvoiceConformanceLevel);
 
-        PdfLogicalDocument pageRange = PdfLogicalDocument.LoadPageRanges(pdf, new PdfPageRange(1, 1));
+        PdfDocumentReadResult pageRange = PdfDocumentReadResult.LoadPageRanges(pdf, new PdfPageRange(1, 1));
         Assert.False(pageRange.HasReadableXmpMetadata);
         Assert.Null(pageRange.XmpMetadata);
     }
@@ -328,7 +587,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("Second page."))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.True(logical.HasReadableTaggedContent);
         PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(logical.TaggedContent);
@@ -345,14 +604,14 @@ public partial class PdfLogicalDocumentTests {
         Assert.Contains(tagged.StructureElements, element => element.StructureType == "Document" && element.Language == "en-US");
         Assert.Contains(tagged.StructureElements, element => element.StructureType == "P" && element.MarkedContentReferenceCount > 0);
 
-        PdfLogicalDocument pageRange = PdfLogicalDocument.LoadPageRanges(pdf, new PdfPageRange(1, 1));
+        PdfDocumentReadResult pageRange = PdfDocumentReadResult.LoadPageRanges(pdf, new PdfPageRange(1, 1));
         Assert.False(pageRange.HasReadableTaggedContent);
         Assert.Null(pageRange.TaggedContent);
     }
 
     [Fact]
     public void Load_ReadsCatalogActionsWithoutScriptPayload() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildCatalogJavaScriptActionPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildCatalogJavaScriptActionPdf());
 
         Assert.True(logical.HasCatalogActions);
         Assert.Equal(3, logical.CatalogActionCount);
@@ -379,7 +638,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsReusedCatalogNextActionsForEachBranch() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildCatalogJavaScriptActionWithSharedNextActionPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildCatalogJavaScriptActionWithSharedNextActionPdf());
 
         Assert.True(logical.HasCatalogActions);
         Assert.Equal(3, logical.CatalogActionCount);
@@ -389,7 +648,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsPageActionsWithoutScriptPayload() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageAdditionalActionsPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildPageAdditionalActionsPdf());
 
         Assert.True(logical.HasPageActions);
         Assert.Equal(2, logical.PageActionCount);
@@ -415,7 +674,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsReusedIndirectPageActionsForEachTrigger() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageAdditionalActionsWithSharedIndirectActionPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildPageAdditionalActionsWithSharedIndirectActionPdf());
 
         Assert.True(logical.HasPageActions);
         Assert.Equal(2, logical.PageActionCount);
@@ -433,7 +692,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsPageNextActionsWithoutScriptPayload() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageChainedActionsPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildPageChainedActionsPdf());
 
         Assert.True(logical.HasPageActions);
         Assert.Equal(3, logical.PageActionCount);
@@ -462,7 +721,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("Attachment metadata proof."))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.True(logical.HasAttachments);
         Assert.Equal(1, logical.AttachmentCount);
@@ -485,7 +744,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsPageGeometryAndPresentationMetadata() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(PdfPageGeometrySupport.BuildPageGeometryPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfPageGeometrySupport.BuildPageGeometryPdf());
 
         PdfLogicalPage page = Assert.Single(logical.Pages);
         Assert.Equal(380, page.Width);
@@ -508,7 +767,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void Load_ReadsOptionalContentLayerMetadata() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
 
         Assert.True(logical.HasReadableOptionalContent);
         Assert.True(logical.HasOptionalContentGroups);
@@ -544,7 +803,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(paragraph => paragraph.Text("*Compact starred bullet"))
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("1037.25", StringComparison.Ordinal));
         Assert.DoesNotContain(logical.ListItems, item => item.Text.Contains("-42", StringComparison.Ordinal));

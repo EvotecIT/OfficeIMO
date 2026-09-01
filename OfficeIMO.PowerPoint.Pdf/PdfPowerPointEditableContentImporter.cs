@@ -8,16 +8,16 @@ public static partial class PowerPointPdfConverterExtensions {
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocument document,
         PdfPowerPointImportOptions options) {
-        PdfCore.PdfLogicalDocument logical = ReadBoundedLogicalDocument(document, options);
+        PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options);
         return ImportEditableContent(logical, options, document);
     }
 
     private static PdfPowerPointConversionResult ImportEditableContent(
-        PdfCore.PdfLogicalDocument logical,
+        PdfCore.PdfDocumentReadResult logical,
         PdfPowerPointImportOptions options) => ImportEditableContent(logical, options, sourceDocument: null);
 
     private static PdfPowerPointConversionResult ImportEditableContent(
-        PdfCore.PdfLogicalDocument logical,
+        PdfCore.PdfDocumentReadResult logical,
         PdfPowerPointImportOptions options,
         PdfCore.PdfDocument? sourceDocument) {
         if (options.MaxEditableObjectsPerPage <= 0) {
@@ -29,7 +29,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         OfficeDrawing? referenceDrawing = logical.Pages.Count == 0 || sourceDocument == null
             ? null
-            : sourceDocument.Read.Drawing(logical.Pages[0].PageNumber);
+            : sourceDocument.Render.Drawing(logical.Pages[0].PageNumber);
         if (referenceDrawing != null) {
             ConfigureEditableSlideSize(presentation, referenceDrawing);
         } else if (logical.Pages.Count > 0) {
@@ -53,7 +53,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 ? null
                 : pageIndex == 0 && referenceDrawing != null
                     ? referenceDrawing
-                    : sourceDocument.Read.Drawing(page.PageNumber);
+                    : sourceDocument.Render.Drawing(page.PageNumber);
             int slideIndex = presentation.Slides.Count;
             PptCore.PowerPointSlide slide = presentation.AddSlide();
             EditablePagePlacement placement = GetEditablePagePlacement(
@@ -123,7 +123,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 AddEditableRendererWarnings(
                     warnings,
                     page.PageNumber,
-                    sourceDocument.Read.RenderCapabilityDiagnostics(page.PageNumber));
+                    sourceDocument.Render.CapabilityDiagnostics(page.PageNumber));
             }
         }
 
@@ -376,8 +376,9 @@ public static partial class PowerPointPdfConverterExtensions {
     private static bool CanReconstructEditableTextBlock(
         PdfCore.PdfLogicalTextBlock block,
         double pageHeight) =>
-        block.VisualBounds != null ||
-        (block.Spans.Count > 0 && block.Spans.All(span => span.CanProjectCompleteText(pageHeight)));
+        block.Spans.Count == 0
+            ? block.VisualBounds != null
+            : block.Spans.All(span => span.CanProjectCompleteText(pageHeight));
 
     private static void ApplyEditableTextRuns(
         PptCore.PowerPointTextBox textBox,

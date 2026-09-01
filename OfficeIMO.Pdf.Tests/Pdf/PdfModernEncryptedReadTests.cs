@@ -13,8 +13,8 @@ public class PdfModernEncryptedReadTests {
     public void ExternalAes256FixturesReadWithUserAndOwnerPasswords(string fixture, int revision, string title) {
         byte[] pdf = Convert.FromBase64String(fixture);
 
-        PdfDocumentInfo userInfo = PdfInspector.Inspect(pdf, new PdfReadOptions { Password = "open" });
-        PdfDocumentInfo ownerInfo = PdfInspector.Inspect(pdf, new PdfReadOptions { Password = "owner" });
+        PdfDocumentInfo userInfo = PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" });
+        PdfDocumentInfo ownerInfo = PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "owner" });
 
         Assert.Equal(revision, userInfo.Security.EncryptionRevision);
         Assert.Equal(256, userInfo.Security.EncryptionLengthBits);
@@ -22,6 +22,6 @@ public class PdfModernEncryptedReadTests {
         Assert.Equal(PdfStandardPermissions.All, userInfo.Security.AllowedStandardPermissions);
         Assert.Equal(title, userInfo.Metadata.Title);
         Assert.Equal(title, ownerInfo.Metadata.Title);
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "wrong" }));
     }
 }

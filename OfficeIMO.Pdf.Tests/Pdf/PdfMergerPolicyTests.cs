@@ -32,14 +32,14 @@ public class PdfMergerPolicyTests {
         byte[] second = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Secondary body"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { IncludeArtifactText = true };
+        var readOptions = new PdfLoadOptions { IncludeArtifactText = true };
 
         PdfMergeResult result = PdfDocument.MergeWithReport(
             new PdfMergeOptions(),
-            PdfDocument.Open(first, readOptions),
-            PdfDocument.Open(second));
+            PdfDocument.Load(first, readOptions),
+            PdfDocument.Load(second));
 
-        string text = result.ToDocument().Read.Text();
+        string text = result.ToDocument().Reader.Text();
         Assert.Contains("Merged artifact header", text, StringComparison.Ordinal);
         Assert.Contains("Primary body", text, StringComparison.Ordinal);
         Assert.Contains("Secondary body", text, StringComparison.Ordinal);
@@ -52,7 +52,7 @@ public class PdfMergerPolicyTests {
         int sourceObjectLimit = Math.Max(
             PdfSyntax.ParseObjects(first).Map.Count,
             PdfSyntax.ParseObjects(second).Map.Count);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxIndirectObjects = sourceObjectLimit }
         };
         var mergeOptions = new PdfMergeOptions {
@@ -61,10 +61,10 @@ public class PdfMergerPolicyTests {
 
         PdfMergeResult result = PdfDocument.MergeWithReport(
             mergeOptions,
-            PdfDocument.Open(first, readOptions),
-            PdfDocument.Open(second, readOptions));
+            PdfDocument.Load(first, readOptions),
+            PdfDocument.Load(second, readOptions));
 
-        Assert.Equal(2, result.ToDocument().Read.Pages().Count);
+        Assert.Equal(2, result.ToDocument().Reader.Pages().Count);
         Assert.Equal(2, result.Report.OutputPageCount);
     }
 
@@ -166,14 +166,14 @@ public class PdfMergerPolicyTests {
             Enumerable.Repeat((byte)0x41, 128).ToArray(),
             "application/octet-stream");
         byte[] second = PdfDocument.Create(incomingOptions).Paragraph(p => p.Text("Incoming attachment")).ToBytes();
-        var tightAttachmentLimit = new PdfReadOptions {
+        var tightAttachmentLimit = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 16 }
         };
 
         PdfMergeResult result = PdfMerger.MergeWithReport(
             new PdfMergeOptions(),
             new[] { first, second },
-            new[] { new PdfReadOptions(), tightAttachmentLimit });
+            new[] { new PdfLoadOptions(), tightAttachmentLimit });
 
         Assert.Equal(1, result.Report.Sources[1].AttachmentCount);
         Assert.Empty(PdfAttachmentExtractor.ExtractAttachments(result.ToBytes()));

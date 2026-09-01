@@ -36,7 +36,7 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(pdf, options, readOptions: null);
 
     /// <summary>Removes annotations using explicit read limits or credentials and returns rewritten PDF bytes.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult RemoveAnnotations(byte[] pdf, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
 
         PdfAnnotationRemovalOptions effectiveOptions = options ?? new PdfAnnotationRemovalOptions();
@@ -131,7 +131,7 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(pdf, objectNumber, options, readOptions: null);
 
     /// <summary>Updates one indirect annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         if (objectNumber <= 0) {
@@ -172,7 +172,7 @@ internal static partial class PdfAnnotationEditor {
         PdfGeneratedOutputGrowth generatedGrowth = BuildGeneratedOutputGrowth(
             objects,
             new[] { objectNumber }.Concat(changedObjects));
-        PdfReadOptions rewrittenReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth);
+        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, rewritten, generatedGrowth);
         ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
@@ -181,7 +181,7 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(inputPath, outputPath, options, readOptions: null);
 
     /// <summary>Removes annotations from a PDF file using explicit read limits or credentials and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         PdfAnnotationEditResult result = RemoveAnnotations(File.ReadAllBytes(inputPath), options, readOptions);
@@ -193,7 +193,7 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(inputPath, outputPath, objectNumber, options, readOptions: null);
 
     /// <summary>Updates one annotation in a PDF file using explicit read limits or credentials and writes the result to another file.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult UpdateAnnotation(string inputPath, string outputPath, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         PdfAnnotationEditResult result = UpdateAnnotation(File.ReadAllBytes(inputPath), objectNumber, options, readOptions);

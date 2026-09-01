@@ -11,7 +11,7 @@ public class PdfFormDataTests {
             .MultiSelectChoiceField("Regions", new[] { "EU", "US", "APAC" }, new[] { "EU", "APAC" })
             .ToBytes();
 
-        string xfdf = PdfDocument.Open(source).Forms.ExportXfdf();
+        string xfdf = PdfDocument.Load(source).Forms.ExportXfdf();
         PdfFormDataSet parsed = PdfFormDataSet.ParseXfdf(xfdf);
 
         Assert.Equal(2, parsed.Fields.Count);
@@ -25,8 +25,8 @@ public class PdfFormDataTests {
         byte[] source = PdfDocument.Create().TextField("Customer.Name", value: "Before").ToBytes();
         var data = new PdfFormDataSet(new[] { new PdfFormDataField("Customer.Name", new[] { "After" }) });
 
-        PdfDocument updated = PdfDocument.Open(source).Forms.ImportXfdf(data.ToXfdf());
-        PdfFormField field = Assert.Single(updated.Read.DocumentInfo().FormFields);
+        PdfDocument updated = PdfDocument.Load(source).Forms.ImportXfdf(data.ToXfdf());
+        PdfFormField field = Assert.Single(updated.Reader.DocumentInfo().FormFields);
 
         Assert.Equal("After", field.Value);
         Assert.Single(field.Widgets);
@@ -50,6 +50,6 @@ public class PdfFormDataTests {
 
         byte[] source = PdfDocument.Create().TextField("A", value: "before").ToBytes();
         var options = new PdfFormFillerOptions { MaxXfdfDocumentCharacters = xfdf.Length - 1 };
-        Assert.Throws<InvalidOperationException>(() => PdfDocument.Open(source).Forms.ImportXfdf(xfdf, options));
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Load(source).Forms.ImportXfdf(xfdf, options));
     }
 }

@@ -7,9 +7,9 @@ public static partial class PdfProvenance {
     /// Combines provenance carrier limits with PDF reader limits. A caller-supplied reader limit remains
     /// authoritative; synthesized options inherit a raised provenance asset limit so both layers accept the same input.
     /// </summary>
-    internal static PdfReadOptions CreateReadOptionsForInspection(
+    internal static PdfLoadOptions CreateReadOptionsForInspection(
         OfficeProvenanceOptions options,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(options, nameof(options));
         OfficeProvenanceBinary.ValidateLimits(options);
         return CreateReadOptions(
@@ -21,14 +21,14 @@ public static partial class PdfProvenance {
             readOptions);
     }
 
-    private static PdfReadOptions CreateReadOptions(
+    private static PdfLoadOptions CreateReadOptions(
         long maximumAssetBytes,
         int maximumContainerEntries,
         long maximumExpandedContainerBytes,
         long maximumSingleManifestBytes,
         long maximumTotalManifestBytes,
-        PdfReadOptions? readOptions) {
-        PdfReadOptions effective = PdfReadOptions.WithMaximumContainerEntries(
+        PdfLoadOptions? readOptions) {
+        PdfLoadOptions effective = PdfLoadOptions.WithMaximumContainerEntries(
             readOptions,
             maximumContainerEntries,
             maximumDecodedStreamBytes: readOptions == null
@@ -46,7 +46,7 @@ public static partial class PdfProvenance {
                 : null,
             preserveExistingRawStreamLimit: readOptions != null);
         return readOptions == null
-            ? PdfReadOptions.WithMinimumInputBytes(effective, maximumAssetBytes)
+            ? PdfLoadOptions.WithMinimumInputBytes(effective, maximumAssetBytes)
             : effective;
     }
 

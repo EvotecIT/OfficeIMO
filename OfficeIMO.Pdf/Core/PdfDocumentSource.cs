@@ -1,4 +1,5 @@
 using OfficeIMO.Core.Internal;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,26 +11,23 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 internal sealed class PdfDocumentSource {
     private readonly byte[] _bytes;
-    private readonly Lazy<PdfReadDocument> _readDocument;
+    private readonly object _readLock = new object();
+    private PdfReadDocument? _readDocument;
+    private ExceptionDispatchInfo? _readFailure;
 
-    private PdfDocumentSource(byte[] bytes, PdfReadOptions options) {
+    private PdfDocumentSource(byte[] bytes, PdfLoadOptions options) {
         _bytes = bytes;
         Options = options;
-        _readDocument = new Lazy<PdfReadDocument>(
-            () => PdfReadDocument.Open(_bytes, Options),
-            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
     }
 
-    private PdfDocumentSource(byte[] bytes, PdfReadOptions options, PdfReadDocument readDocument) {
+    private PdfDocumentSource(byte[] bytes, PdfLoadOptions options, PdfReadDocument readDocument) {
         _bytes = bytes;
         Options = options;
-        _readDocument = new Lazy<PdfReadDocument>(
-            () => readDocument,
-            System.Threading.LazyThreadSafetyMode.ExecutionAndPublication);
+        _readDocument = readDocument;
     }
 
     /// <summary>Immutable read settings captured when the source is opened.</summary>
-    internal PdfReadOptions Options { get; }
+    internal PdfLoadOptions Options { get; }
 
     /// <summary>Returns the owned source bytes for in-assembly operations without another allocation.</summary>
     internal byte[] Bytes => _bytes;
@@ -38,17 +36,17 @@ internal sealed class PdfDocumentSource {
     internal byte[] CopyBytes() => (byte[])_bytes.Clone();
 
     /// <summary>Snapshots caller-owned bytes after enforcing the configured input budget.</summary>
-    internal static PdfDocumentSource FromCallerBytes(byte[] bytes, PdfReadOptions? options) {
+    internal static PdfDocumentSource FromCallerBytes(byte[] bytes, PdfLoadOptions? options) {
         Guard.NotNull(bytes, nameof(bytes));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource((byte[])bytes.Clone(), effectiveOptions);
     }
 
     /// <summary>Adopts an internal operation result without copying it again.</summary>
-    internal static PdfDocumentSource FromOwnedBytes(byte[] bytes, PdfReadOptions? options) {
+    internal static PdfDocumentSource FromOwnedBytes(byte[] bytes, PdfLoadOptions? options) {
         Guard.NotNull(bytes, nameof(bytes));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions);
     }
@@ -56,19 +54,19 @@ internal sealed class PdfDocumentSource {
     /// <summary>Adopts internal bytes together with the canonical parse that already validated them.</summary>
     internal static PdfDocumentSource FromOwnedBytes(
         byte[] bytes,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         PdfReadDocument readDocument) {
         Guard.NotNull(bytes, nameof(bytes));
         Guard.NotNull(readDocument, nameof(readDocument));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         ValidateLength(bytes.LongLength, effectiveOptions);
         return new PdfDocumentSource(bytes, effectiveOptions, readDocument);
     }
 
     /// <summary>Reads and owns one bounded file snapshot.</summary>
-    internal static PdfDocumentSource FromPath(string path, PdfReadOptions? options) {
+    internal static PdfDocumentSource FromPath(string path, PdfLoadOptions? options) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         string fullPath = Path.GetFullPath(path);
         var file = new FileInfo(fullPath);
         ValidateLength(file.Length, effectiveOptions);
@@ -84,17 +82,17 @@ internal sealed class PdfDocumentSource {
     /// <summary>
     /// Reads and owns one bounded stream snapshot. Seekable streams are read from the beginning and restored.
     /// </summary>
-    internal static PdfDocumentSource FromStream(Stream stream, PdfReadOptions? options) {
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+    internal static PdfDocumentSource FromStream(Stream stream, PdfLoadOptions? options) {
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         return FromBoundedStream(stream, effectiveOptions);
     }
 
     /// <summary>
     /// Reads and owns one bounded stream snapshot from the caller's current position.
     /// </summary>
-    internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfReadOptions? options) {
+    internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfLoadOptions? options) {
         Guard.NotNull(stream, nameof(stream));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         long limit = effectiveOptions.Limits.MaxInputBytes;
         try {
             byte[] bytes = OfficeStreamReader.ReadRemainingBytes(stream, limit);
@@ -107,10 +105,10 @@ internal sealed class PdfDocumentSource {
     /// <summary>Asynchronously reads and owns one bounded file snapshot.</summary>
     internal static async Task<PdfDocumentSource> FromPathAsync(
         string path,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         CancellationToken cancellationToken) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         string fullPath = Path.GetFullPath(path);
         var file = new FileInfo(fullPath);
         ValidateLength(file.Length, effectiveOptions);
@@ -130,19 +128,36 @@ internal sealed class PdfDocumentSource {
     /// </summary>
     internal static Task<PdfDocumentSource> FromStreamAsync(
         Stream stream,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         CancellationToken cancellationToken) {
-        PdfReadOptions effectiveOptions = PdfReadOptions.Resolve(options);
+        PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         return FromBoundedStreamAsync(stream, effectiveOptions, cancellationToken);
     }
 
     /// <summary>Returns the cached canonical parse or a one-off parse for explicit override settings.</summary>
-    internal PdfReadDocument Read(PdfReadOptions? options = null) {
-        if (options is null || ReferenceEquals(options, Options)) {
-            return _readDocument.Value;
+    internal PdfReadDocument Read(
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (options is not null && !ReferenceEquals(options, Options)) {
+            return PdfReadDocument.Open(_bytes, options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(_bytes, options);
+        lock (_readLock) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (_readDocument is not null) return _readDocument;
+            _readFailure?.Throw();
+            try {
+                _readDocument = PdfReadDocument.Open(_bytes, Options, cancellationToken);
+                return _readDocument;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                // A caller's cancellation must not poison the reusable source cache.
+                throw;
+            } catch (Exception exception) {
+                _readFailure = ExceptionDispatchInfo.Capture(exception);
+                throw;
+            }
+        }
     }
 
     /// <summary>
@@ -160,7 +175,7 @@ internal sealed class PdfDocumentSource {
         return PdfArtifactSnapshot.CaptureKnownPageCount(_bytes, pageCount);
     }
 
-    private static PdfDocumentSource FromBoundedStream(Stream stream, PdfReadOptions options) {
+    private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) {
         Guard.NotNull(stream, nameof(stream));
         long limit = options.Limits.MaxInputBytes;
         try {
@@ -173,7 +188,7 @@ internal sealed class PdfDocumentSource {
 
     private static async Task<PdfDocumentSource> FromBoundedStreamAsync(
         Stream stream,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         CancellationToken cancellationToken) {
         Guard.NotNull(stream, nameof(stream));
         long limit = options.Limits.MaxInputBytes;
@@ -187,7 +202,7 @@ internal sealed class PdfDocumentSource {
         }
     }
 
-    private static void ValidateLength(long length, PdfReadOptions options) {
+    private static void ValidateLength(long length, PdfLoadOptions options) {
         options.Limits.Validate();
         if (length > options.Limits.MaxInputBytes) {
             throw PdfReadLimitException.Create(

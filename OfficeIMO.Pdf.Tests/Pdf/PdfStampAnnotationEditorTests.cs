@@ -81,7 +81,7 @@ public class PdfStampAnnotationEditorTests {
         byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Encrypted stamp source"))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Password = "owner" };
+        var readOptions = new PdfLoadOptions { Password = "owner" };
 
         PdfAnnotationEditResult result = PdfAnnotationEditor.AddStampAnnotation(
             source,
@@ -107,7 +107,7 @@ public class PdfStampAnnotationEditorTests {
             .Select(static indirect => indirect.Value)
             .OfType<PdfStream>()
             .Max(static stream => stream.Data.Length);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxAnnotationsPerPage = 1,
                 MaxRawStreamBytes = maximumSourceStreamBytes,
@@ -120,7 +120,7 @@ public class PdfStampAnnotationEditorTests {
             new PdfStampAnnotationOptions { Contents = new string('A', 400) },
             readOptions);
 
-        Assert.Equal(2, result.ToDocument().Read.Annotations().Count);
+        Assert.Equal(2, result.ToDocument().Reader.Annotations().Count);
     }
 
     private static byte[] Certify(byte[] source, PdfCertificationPermissionLevel permission) {

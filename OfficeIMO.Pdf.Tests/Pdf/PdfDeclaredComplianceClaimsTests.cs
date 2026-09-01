@@ -14,7 +14,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
             .CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
         byte[] bytes = artifact.ToBytes();
 
-        PdfDeclaredComplianceClaimsReport report = PdfDocument.Open(bytes).AssessDeclaredComplianceClaims();
+        PdfDeclaredComplianceClaimsReport report = PdfDocument.Load(bytes).AssessDeclaredComplianceClaims();
         PdfDeclaredComplianceClaim claim = Assert.Single(report.Claims);
 
         Assert.Equal(PdfArtifactFingerprint.ComputeSha256(bytes), report.ArtifactSha256);
@@ -42,7 +42,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
             bytes,
             "PDF/A-3b");
 
-        PdfDeclaredComplianceClaimsReport report = PdfDocument.Open(bytes).AssessDeclaredComplianceClaims(new[] { validation });
+        PdfDeclaredComplianceClaimsReport report = PdfDocument.Load(bytes).AssessDeclaredComplianceClaims(new[] { validation });
         PdfDeclaredComplianceClaim claim = Assert.Single(report.Claims);
 
         Assert.Equal(PdfDeclaredComplianceClaimStatus.Claimable, claim.Status);
@@ -60,7 +60,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
             "Interoperability",
             "openpreserve-pdfa1b-text.pdf");
 
-        PdfDeclaredComplianceClaim claim = Assert.Single(PdfDocument.Open(path).AssessDeclaredComplianceClaims().Claims);
+        PdfDeclaredComplianceClaim claim = Assert.Single(PdfDocument.Load(path).AssessDeclaredComplianceClaims().Claims);
 
         Assert.Equal("PDF/A-1b", claim.Declaration);
         Assert.Null(claim.Profile);
@@ -73,7 +73,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
     public void DeclaredClaims_ReturnEmptyReportForOrdinaryPdf() {
         byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Ordinary PDF.")).ToBytes();
 
-        PdfDeclaredComplianceClaimsReport report = PdfDocument.Open(bytes).AssessDeclaredComplianceClaims();
+        PdfDeclaredComplianceClaimsReport report = PdfDocument.Load(bytes).AssessDeclaredComplianceClaims();
 
         Assert.False(report.HasClaims);
         Assert.Empty(report.Claims);
@@ -86,7 +86,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
         byte[] pdf = BuildPdfWithXmp(xmp);
 
         PdfXmpMetadataInfo metadata = Assert.IsType<PdfXmpMetadataInfo>(PdfReadDocument.Open(pdf).XmpMetadata);
-        PdfDeclaredComplianceClaimsReport report = PdfDocument.Open(pdf).AssessDeclaredComplianceClaims();
+        PdfDeclaredComplianceClaimsReport report = PdfDocument.Load(pdf).AssessDeclaredComplianceClaims();
 
         Assert.Equal(1, metadata.PdfAPart);
         Assert.Equal("B", metadata.PdfAConformance);

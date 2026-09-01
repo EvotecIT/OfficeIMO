@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls placement of a source PDF page imported as a Form XObject onto target pages.</summary>
@@ -8,6 +10,7 @@ public sealed class PdfPageOverlayOptions {
     private double? _width;
     private double? _height;
     private double _opacity = 1D;
+    private OfficeBlendMode _blendMode = OfficeBlendMode.Normal;
     private PdfAlign _horizontalAlignment = PdfAlign.Center;
     private PdfVerticalAlign _verticalAlignment = PdfVerticalAlign.Middle;
     private PdfPageOverlayFit _fit = PdfPageOverlayFit.Contain;
@@ -65,11 +68,19 @@ public sealed class PdfPageOverlayOptions {
             _opacity = value;
         }
     }
+    /// <summary>Blend operation used when the imported page is composited over existing content.</summary>
+    public OfficeBlendMode BlendMode {
+        get => _blendMode;
+        set {
+            if (value < OfficeBlendMode.Normal || value > OfficeBlendMode.Luminosity) throw new ArgumentOutOfRangeException(nameof(BlendMode), value, "Unsupported imported-page blend mode.");
+            _blendMode = value;
+        }
+    }
     /// <summary>Places the imported page before existing page content.</summary>
     public bool BehindContent { get; set; }
 
     /// <summary>Read options used for the imported source PDF, including its password and permission policy.</summary>
-    public PdfReadOptions? SourceReadOptions { get; set; }
+    public PdfLoadOptions? SourceReadOptions { get; set; }
 
     /// <summary>Sets the target pages from a rich page-selector expression.</summary>
     public PdfPageOverlayOptions UseTargetPages(string selector) {
@@ -88,6 +99,7 @@ public sealed class PdfPageOverlayOptions {
         Width = Width,
         Height = Height,
         Opacity = Opacity,
+        BlendMode = BlendMode,
         BehindContent = behindContent ?? BehindContent,
         SourceReadOptions = SourceReadOptions
     };

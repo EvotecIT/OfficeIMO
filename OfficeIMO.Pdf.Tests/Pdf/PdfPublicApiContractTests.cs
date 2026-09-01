@@ -17,6 +17,7 @@ public sealed class PdfPublicApiContractTests {
         "PdfComplianceAnalyzer",
         "PdfDebugger",
         "PdfDiagnostics",
+        "PdfDocumentReader",
         "PdfFormData",
         "PdfFormFiller",
         "PdfImageExtractor",
@@ -47,7 +48,7 @@ public sealed class PdfPublicApiContractTests {
     };
 
     [Fact]
-    public void FacadeExposesOneCreateOpenAnalyzeWorkflowWithoutLegacyLoad() {
+    public void FacadeExposesOneCreateLoadReadAnalyzeWorkflowWithoutLegacyOpenOrResultLoaders() {
         MethodInfo[] methods = typeof(PdfDocument).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance);
 
         Assert.Contains(methods, method =>
@@ -61,27 +62,40 @@ public sealed class PdfPublicApiContractTests {
             methods.Where(method => method.Name == nameof(PdfDocument.Create) && method.IsStatic),
             method => Assert.Equal(typeof(Action<PdfCompose>), method.GetParameters()[0].ParameterType));
         Assert.Contains(methods, method =>
-            method.Name == nameof(PdfDocument.Open) &&
+            method.Name == nameof(PdfDocument.Load) &&
             method.IsStatic &&
             method.GetParameters().FirstOrDefault()?.ParameterType == typeof(byte[]));
         Assert.Contains(methods, method =>
-            method.Name == nameof(PdfDocument.Open) &&
+            method.Name == nameof(PdfDocument.Load) &&
             method.IsStatic &&
             method.GetParameters().FirstOrDefault()?.ParameterType == typeof(string));
         Assert.Contains(methods, method =>
-            method.Name == nameof(PdfDocument.Open) &&
+            method.Name == nameof(PdfDocument.Load) &&
             method.IsStatic &&
             method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Stream));
         Assert.Contains(methods, method =>
-            method.Name == nameof(PdfDocument.OpenAsync) &&
+            method.Name == nameof(PdfDocument.LoadAsync) &&
             method.IsStatic);
         Assert.Contains(methods, method =>
             method.Name == nameof(PdfDocument.Analyze) &&
             !method.IsStatic &&
             method.ReturnType == typeof(PdfAnalysisReport));
-        Assert.DoesNotContain(methods, method => method.Name == "Load");
+        Assert.DoesNotContain(methods, method => method.Name == "Open");
+        Assert.Contains(methods, method =>
+            method.Name == nameof(PdfDocument.Read) &&
+            !method.IsStatic &&
+            method.ReturnType == typeof(PdfDocumentReadResult));
 
-        Assert.Equal(typeof(PdfDocumentReader), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Read))?.PropertyType);
+        Assert.Null(typeof(PdfDocument).GetProperty("Read", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(PdfDocument).GetProperty("Reader", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Equal(typeof(PdfDocumentRenderer), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Render))?.PropertyType);
+        Assert.Equal(typeof(PdfDocumentResources), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Resources))?.PropertyType);
+        Assert.Equal(typeof(PdfDocumentImageEditor), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Images))?.PropertyType);
+        Assert.Equal(typeof(PdfDocumentAttachments), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Attachments))?.PropertyType);
+        Assert.Equal(typeof(PdfDocumentOcr), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Ocr))?.PropertyType);
+        Assert.DoesNotContain(
+            typeof(PdfDocumentReadResult).GetMethods(BindingFlags.Public | BindingFlags.Static),
+            method => method.Name is "Load" or "LoadPageRanges" or "From" or "FromPageRanges");
         Assert.Equal(typeof(PdfDocumentPages), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Pages))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentForms), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Forms))?.PropertyType);
         Assert.Equal(typeof(PdfDocumentSecurity), typeof(PdfDocument).GetProperty(nameof(PdfDocument.Security))?.PropertyType);
@@ -121,7 +135,7 @@ public sealed class PdfPublicApiContractTests {
                 .H1("Canonical authoring")
                 .Paragraph(paragraph => paragraph.Text("One public composition model."))));
 
-        string text = document.Read.Text();
+        string text = document.Read().Text;
 
         Assert.Contains("Canonical authoring", text, StringComparison.Ordinal);
         Assert.Contains("One public composition model.", text, StringComparison.Ordinal);
@@ -136,7 +150,7 @@ public sealed class PdfPublicApiContractTests {
                 .H1("Service report")
                 .Paragraph(paragraph => paragraph.Text("Validated operational data."))))));
 
-        string text = document.Read.Text();
+        string text = string.Join(" ", document.Read().TextBlocks.Select(static block => block.Text));
 
         Assert.Contains("Quarterly review", text, StringComparison.Ordinal);
         Assert.Contains("Service report", text, StringComparison.Ordinal);
@@ -225,7 +239,7 @@ public sealed class PdfPublicApiContractTests {
                 .H1("Capability proof")
                 .Paragraph(paragraph => paragraph.Text("Sensitive marker"))))
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(bytes);
+        PdfDocument document = PdfDocument.Load(bytes);
 
         PdfSignatureValidationReport signatures = document.Security.ValidateSignatures();
         PdfRedactionPlan redactions = document.Redactions.Search(

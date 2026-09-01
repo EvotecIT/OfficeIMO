@@ -232,6 +232,22 @@ public sealed class PdfContentStreamInterpreterTests {
     }
 
     [Fact]
+    public void TextParser_PollsCancellationDuringContentOperations() {
+        int polls = 0;
+
+        Assert.Throws<OperationCanceledException>(() => TextContentParser.Parse(
+            "q Q BT /F1 12 Tf (text) Tj ET",
+            (_, bytes) => System.Text.Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D,
+            cancellationCheck: () => {
+                polls++;
+                if (polls == 3) throw new OperationCanceledException();
+            }));
+
+        Assert.Equal(3, polls);
+    }
+
+    [Fact]
     public void Interpreter_AppliesOneSharedOperationBudget() {
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfContentStreamInterpreter.Interpret("q Q q", 2, _ => { }));

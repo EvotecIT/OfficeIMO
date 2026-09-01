@@ -9,7 +9,7 @@ public class PdfParsingModeTests {
     public void LenientModeReportsAndRecoversIncorrectStreamLength() {
         byte[] pdf = BuildStreamPdf("/Length 999");
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
         PdfRepairDiagnostic repair = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "IncorrectStreamLength");
         Assert.Equal(4, repair.ObjectNumber);
@@ -22,7 +22,7 @@ public class PdfParsingModeTests {
         byte[] pdf = BuildStreamPdf("/Length 999");
 
         PdfParseException exception = Assert.Throws<PdfParseException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+            PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Equal("IncorrectStreamLength", exception.Code);
         Assert.Equal(4, exception.ObjectNumber);
@@ -32,9 +32,9 @@ public class PdfParsingModeTests {
     public void MissingStreamLengthIsReportedOrRejectedByPolicy() {
         byte[] pdf = BuildStreamPdf(string.Empty);
 
-        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+            PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingStreamLength" && item.ObjectNumber == 4);
         Assert.Equal("MissingStreamLength", strict.Code);
@@ -66,7 +66,7 @@ public class PdfParsingModeTests {
 
         var (objects, _) = PdfSyntax.ParseObjects(
             pdf,
-            new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient },
+            new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient },
             out PdfRepairReport repairReport);
 
         PdfStream stream = Assert.IsType<PdfStream>(objects[4].Value);
@@ -176,7 +176,7 @@ public class PdfParsingModeTests {
             streamData +
             "\nendstream\nendobj\n" +
             "trailer\n<< /Size 7 >>\nstartxref\n0\n%%EOF\n");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTokensPerObject = 8 }
         };
 
@@ -199,7 +199,7 @@ public class PdfParsingModeTests {
 
         var (objects, _) = PdfSyntax.ParseObjects(
             pdf,
-            new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient },
+            new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient },
             out PdfRepairReport repairReport);
 
         PdfStream followingStream = Assert.IsType<PdfStream>(objects[5].Value);
@@ -217,9 +217,9 @@ public class PdfParsingModeTests {
             "3 0 obj\n<< /Producer (unterminated object boundary) >>\n" +
             "trailer\n<< /Root 1 0 R /Size 4 >>\nstartxref\n0\n%%EOF\n");
 
-        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+            PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingEndObject" && item.ObjectNumber == 3);
         Assert.Equal("MissingEndObject", strict.Code);
@@ -230,7 +230,7 @@ public class PdfParsingModeTests {
     public void CleanDocumentHasEmptyRepairReport() {
         byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("Clean parse")).ToBytes();
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict });
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict });
 
         Assert.False(document.RepairReport.HasRepairs);
         Assert.Empty(document.RepairReport.Diagnostics);
@@ -241,9 +241,9 @@ public class PdfParsingModeTests {
         byte[] clean = PdfDocument.Create().Paragraph(p => p.Text("Cross-reference recovery")).ToBytes();
         byte[] damaged = ReplaceLastStartXrefOffset(clean, "1");
 
-        PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
-            PdfReadDocument.Open(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+            PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         PdfRepairDiagnostic repair = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "InvalidStartXref");
         Assert.Contains("rebuilt the object index", repair.Message, StringComparison.Ordinal);
@@ -258,9 +258,9 @@ public class PdfParsingModeTests {
             "2 0 obj\n<< /Type /Pages /Count 0 /Kids [] >>\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 3 >>\n%%EOF\n");
 
-        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument lenient = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
         PdfParseException strict = Assert.Throws<PdfParseException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+            PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Contains(lenient.RepairReport.Diagnostics, item => item.Code == "MissingStartXref");
         Assert.Equal("MissingStartXref", strict.Code);
@@ -273,8 +273,8 @@ public class PdfParsingModeTests {
         Assert.Contains("/Count 2", text, StringComparison.Ordinal);
         byte[] damaged = Encoding.ASCII.GetBytes(text.Replace("/Count 2", "/Count 1"));
 
-        PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
-        PdfParseException strict = Assert.Throws<PdfParseException>(() => PdfReadDocument.Open(damaged, new PdfReadOptions { ParsingMode = PdfParsingMode.Strict }));
+        PdfReadDocument lenient = PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfParseException strict = Assert.Throws<PdfParseException>(() => PdfReadDocument.Open(damaged, new PdfLoadOptions { ParsingMode = PdfParsingMode.Strict }));
 
         Assert.Equal(2, lenient.Pages.Count);
         PdfRepairDiagnostic diagnostic = Assert.Single(lenient.RepairReport.Diagnostics, item => item.Code == "IncorrectPageTreeCount");
@@ -294,7 +294,7 @@ public class PdfParsingModeTests {
             "8 0 obj\n<< /Type /Page /MediaBox [0 0 10 10] >>\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 9 >>\n%%EOF\n");
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
         Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "OddNameTreePairs" && !item.WasRecovered);
         Assert.Contains(document.RepairReport.Diagnostics, item => item.Code == "BrokenNamedDestination" && !item.WasRecovered);
@@ -312,7 +312,7 @@ public class PdfParsingModeTests {
             "7 0 obj\n(second)\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions { ParsingMode = PdfParsingMode.Lenient });
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient });
 
         PdfRepairDiagnostic duplicate = Assert.Single(document.RepairReport.Diagnostics, item => item.Code == "DuplicateObjectIdentifier");
         Assert.Equal(7, duplicate.ObjectNumber);

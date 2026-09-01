@@ -22,7 +22,7 @@ internal static partial class PdfMetadataEditor {
         string? subject,
         string? keywords,
         bool createXmpMetadata,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.SynchronizeMetadata, readOptions);
 

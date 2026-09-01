@@ -151,7 +151,7 @@ public partial class PdfType3UncoloredPatternTests {
                 "9 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj",
                 StreamObject(10, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>", strokePatternContent)
             });
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxPageContentBytes = pageContent.Length + glyphContent.Length +
                     (stroke ? strokePatternContent.Length : fillPatternContent.Length)
@@ -292,7 +292,7 @@ public partial class PdfType3UncoloredPatternTests {
             patternDictionary: "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 5 5] /XStep 10 /YStep 10 /Resources << >>",
             patternContent: patternContent,
             glyphContent: glyphContent);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxPageContentBytes = pageContent.Length + glyphContent.Length + patternContent.Length
             }

@@ -10,7 +10,7 @@ internal static partial class PdfPageImageRenderer {
         byte[] pdf,
         PdfPageSelection? selection = null,
         PdfPageRenderOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         return RenderPages(() => pdf, selection, options, readOptions, cancellationToken);
@@ -20,7 +20,7 @@ internal static partial class PdfPageImageRenderer {
         Func<byte[]> getPdf,
         Func<int, int[]> resolvePages,
         PdfPageRenderOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         PdfPageRenderOptions effectiveOptions = options ?? new PdfPageRenderOptions();
         effectiveOptions.Validate();
@@ -32,7 +32,7 @@ internal static partial class PdfPageImageRenderer {
             byte[] pdf = getPdf();
             Guard.NotNull(pdf, nameof(pdf));
             execution.Token.ThrowIfCancellationRequested();
-            PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+            PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, execution.Token);
             execution.Token.ThrowIfCancellationRequested();
             int[] pages = resolvePages(document.Pages.Count);
             execution.Token.ThrowIfCancellationRequested();
@@ -64,7 +64,7 @@ internal static partial class PdfPageImageRenderer {
         byte[] pdf,
         string pageRanges,
         PdfPageRenderOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         return RenderPages(() => pdf, pageRanges, options, readOptions, cancellationToken);
@@ -75,7 +75,7 @@ internal static partial class PdfPageImageRenderer {
         byte[] pdf,
         PdfPageSelector selector,
         PdfPageRenderOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         return RenderPages(() => pdf, selector, options, readOptions, cancellationToken);
@@ -85,7 +85,7 @@ internal static partial class PdfPageImageRenderer {
         Func<byte[]> getPdf,
         PdfPageSelection? selection,
         PdfPageRenderOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         Guard.NotNull(getPdf, nameof(getPdf));
         return RenderPagesCore(
@@ -100,7 +100,7 @@ internal static partial class PdfPageImageRenderer {
         Func<byte[]> getPdf,
         string pageRanges,
         PdfPageRenderOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         Guard.NotNull(getPdf, nameof(getPdf));
         Guard.NotNull(pageRanges, nameof(pageRanges));
@@ -116,7 +116,7 @@ internal static partial class PdfPageImageRenderer {
         Func<byte[]> getPdf,
         PdfPageSelector selector,
         PdfPageRenderOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         CancellationToken cancellationToken) {
         Guard.NotNull(getPdf, nameof(getPdf));
         Guard.NotNull(selector, nameof(selector));

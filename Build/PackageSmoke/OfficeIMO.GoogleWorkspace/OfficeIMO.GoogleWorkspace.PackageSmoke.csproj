@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOGooglePackageSmoke Condition="'$(EnableOfficeIMOGooglePackageSmoke)' == ''">false</EnableOfficeIMOGooglePackageSmoke>
-    <OfficeIMOGooglePackageVersion Condition="'$(OfficeIMOGooglePackageVersion)' == ''">3.1.0</OfficeIMOGooglePackageVersion>
+    <OfficeIMOGooglePackageVersion Condition="'$(OfficeIMOGooglePackageVersion)' == ''">3.3.0</OfficeIMOGooglePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>

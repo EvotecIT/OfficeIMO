@@ -463,7 +463,7 @@ internal static partial class PdfSyntax {
         return ContainsAnyParsedPdfName(pdf, null, names);
     }
 
-    private static bool ContainsAnyParsedPdfName(byte[] pdf, PdfReadOptions? options, params string[] names) {
+    private static bool ContainsAnyParsedPdfName(byte[] pdf, PdfLoadOptions? options, params string[] names) {
         try {
             var (map, _) = ParseObjects(pdf, options);
             var nameSet = new HashSet<string>(names, StringComparer.Ordinal);
@@ -538,7 +538,7 @@ internal static partial class PdfSyntax {
         return false;
     }
 
-    private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfReadOptions? options) {
+    private static bool ShouldSuppressParsedPdfNameException(Exception exception, PdfLoadOptions? options) {
         if (exception is OutOfMemoryException || exception is StackOverflowException) {
             return false;
         }

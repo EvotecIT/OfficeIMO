@@ -61,7 +61,7 @@ public class PdfInteroperabilityCorpusTests {
             .WithSourceFeatures(item.Features.ToArray());
     }
 
-    private static byte[] ApplyPlannedMetadataUpdate(byte[] pdf, PdfReadOptions? readOptions) {
+    private static byte[] ApplyPlannedMetadataUpdate(byte[] pdf, PdfLoadOptions? readOptions) {
         PdfMutationPlan plan = PdfMutationPlanner.Plan(pdf, PdfMutationOperation.UpdateMetadata, readOptions);
         switch (plan.ExecutionMode) {
             case PdfMutationExecutionMode.FullRewrite:

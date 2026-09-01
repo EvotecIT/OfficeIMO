@@ -565,7 +565,7 @@
         "visualPages": 3,
         "validatorEvidence": [
           "PdfInspector",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "optional Poppler raster baseline"
         ]
       }
@@ -613,7 +613,7 @@
         "visualPages": 2,
         "validatorEvidence": [
           "PdfInspector",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfImageExtractor",
           "optional Poppler raster baseline"
         ]
@@ -663,7 +663,7 @@
         "validatorEvidence": [
           "ExcelDocument.SaveAsPdf",
           "PdfReadDocument",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfImageExtractor"
         ]
       }
@@ -707,7 +707,7 @@
         "visualPages": 1,
         "validatorEvidence": [
           "PdfReadDocument",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "optional Poppler raster baseline"
         ]
       }
@@ -749,7 +749,7 @@
         "visualPages": 2,
         "validatorEvidence": [
           "PdfInspector",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfImageExtractor"
         ]
       }
@@ -917,7 +917,7 @@
           "PdfHtmlProfileContracts",
           "PdfHtmlConverter.ToHtmlResult",
           "PdfHtmlExportSummary",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfImageExtractor"
         ]
       }
@@ -963,7 +963,7 @@
         "validatorEvidence": [
           "MarkdownPdfConverter",
           "PdfReadDocument",
-          "PdfLogicalDocument"
+          "PdfDocumentReadResult"
         ]
       }
     },
@@ -1100,7 +1100,7 @@
         "validatorEvidence": [
           "RtfDocument.SaveAsPdf",
           "PdfReadDocument",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "RtfPdfConverterExtensions.ToRtfDocumentFromPdf"
         ]
       }
@@ -1590,7 +1590,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfLogicalTableAnalysis",
           "OfficeIMO.Reader.Pdf",
           "PdfHtmlConverter"
@@ -1639,7 +1639,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "DocumentReaderPdfExtensions",
           "ReaderChunk.Diagnostics",
           "ReaderChunk.FormFields"
@@ -1698,7 +1698,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "DocumentReaderPdfExtensions",
           "ReaderChunk.Diagnostics",
           "OfficeDocumentReadResult.Metadata",
@@ -1746,7 +1746,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "DocumentReaderPdfExtensions",
           "ReaderChunk.Diagnostics",
           "ReaderChunk.Visuals"
@@ -1796,7 +1796,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfLogicalTableAnalysis",
           "DocumentReaderPdfExtensions",
           "ReaderChunk.Diagnostics",
@@ -1893,7 +1893,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument.AcroFormXfa",
+          "PdfDocumentReadResult.AcroFormXfa",
           "PdfDocumentInfo.AcroFormXfa",
           "DocumentReaderPdfExtensions",
           "OfficeDocumentReadResult.Metadata"
@@ -1945,7 +1945,7 @@
         "visualPages": 1,
         "validatorEvidence": [
           "PdfStandardSecurityWriter",
-          "PdfReadOptions.Password",
+          "PdfLoadOptions.Password",
           "PdfInspector.Preflight",
           "PdfTextExtractor",
           "PdfDocument.Pages.Split"
@@ -1990,7 +1990,7 @@
         ],
         "visualPages": 1,
         "validatorEvidence": [
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfReadDocument"
         ]
       }
@@ -2052,7 +2052,7 @@
         "visualPages": 1,
         "validatorEvidence": [
           "PdfHtmlConverter",
-          "PdfLogicalDocument",
+          "PdfDocumentReadResult",
           "PdfHtmlExportSummary",
           "PdfHtmlExportSummary.OutlineCount",
           "PdfHtmlExportSummary.RenderedOutlineCount",

@@ -83,7 +83,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from all pages from the current position of a readable stream.</summary>
     public static string ExtractMarkdown(Stream stream, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null) {
-        return PdfLogicalDocument.Load(stream, options).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.Load(stream, options).ToMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from all pages from the current position of a readable stream and writes UTF-8 Markdown to <paramref name="outputStream"/>.</summary>
@@ -100,7 +100,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from each page from the current position of a readable stream.</summary>
     public static IReadOnlyList<string> ExtractMarkdownByPage(Stream stream, PdfTextLayoutOptions? options = null, PdfLogicalMarkdownOptions? markdownOptions = null) {
-        return ExtractMarkdownByPage(PdfLogicalDocument.Load(stream, options), markdownOptions);
+        return ExtractMarkdownByPage(PdfDocumentReadResult.Load(stream, options), markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges from the current position of a readable stream.</summary>
@@ -110,7 +110,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges from the current position of a readable stream.</summary>
     public static IReadOnlyList<string> ExtractMarkdownByPageRanges(Stream stream, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, params PdfPageRange[] pageRanges) {
-        return ExtractMarkdownByPage(PdfLogicalDocument.LoadPageRanges(stream, options, pageRanges), markdownOptions);
+        return ExtractMarkdownByPage(PdfDocumentReadResult.LoadPageRanges(stream, options, pageRanges), markdownOptions);
     }
     
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges and concatenates selected pages with Markdown page separators.</summary>
@@ -120,7 +120,7 @@ internal static partial class PdfTextExtractor {
     
     /// <summary>Extracts logical Markdown from the supplied inclusive one-based page ranges and concatenates selected pages with Markdown page separators.</summary>
     public static string ExtractMarkdownByPageRangesAsDocument(Stream stream, PdfTextLayoutOptions? options, PdfLogicalMarkdownOptions? markdownOptions, params PdfPageRange[] pageRanges) {
-        return PdfLogicalDocument.LoadPageRanges(stream, options, pageRanges).ToMarkdown(markdownOptions);
+        return PdfDocumentReadResult.LoadPageRanges(stream, options, pageRanges).ToMarkdown(markdownOptions);
     }
     
     /// <summary>Extracts plain text from each page from the current stream position and writes one UTF-8 text file per page.</summary>
@@ -169,7 +169,7 @@ internal static partial class PdfTextExtractor {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
     
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
-        var pages = ExtractSelectedMarkdownPages(PdfLogicalDocument.LoadPageRanges(stream, options, pageRanges), markdownOptions);
+        var pages = ExtractSelectedMarkdownPages(PdfDocumentReadResult.LoadPageRanges(stream, options, pageRanges), markdownOptions);
         return WriteMarkdownPages(baseName, fullOutputDirectory, pages);
     }
     

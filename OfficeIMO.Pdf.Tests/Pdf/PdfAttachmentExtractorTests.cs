@@ -143,7 +143,7 @@ public class PdfAttachmentExtractorTests {
         byte[] pdf = BuildRepeatedFileAttachmentAnnotationPdf(annotationCount: 3);
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions {
+            PdfReadDocument.Open(pdf, new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxAttachments = 2 }
             }));
 
@@ -160,7 +160,7 @@ public class PdfAttachmentExtractorTests {
             .Paragraph(p => p.Text("Aggregate attachment budget."))
             .ToBytes();
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 5 }
         });
         Assert.Equal(2, document.Attachments.Count);
@@ -180,7 +180,7 @@ public class PdfAttachmentExtractorTests {
         }
         byte[] pdf = BuildFlateEmbeddedFilePdf(payload, malformedPredictor: true);
 
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 64 }
         });
         Assert.Single(document.Attachments);
@@ -201,7 +201,7 @@ public class PdfAttachmentExtractorTests {
             .ToBytes();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfReadDocument.Open(pdf, new PdfReadOptions {
+            PdfReadDocument.Open(pdf, new PdfLoadOptions {
                 Limits = new PdfReadLimits {
                     MaxAttachments = 1,
                     MaxTotalAttachmentBytes = 3

@@ -34,7 +34,7 @@ Rotation updates the selected pages in a newly written document. It is intended 
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument source = PdfDocument.Open("scans.pdf");
+PdfDocument source = PdfDocument.Load("scans.pdf");
 PdfPageSelector pages = PdfPageSelector.Parse("1,3-5,last");
 PdfDocument rotated = source.Pages.Rotate(90, pages);
 

@@ -32,7 +32,7 @@ public sealed class HtmlPdfWorkbenchConversionService {
         cancellationToken.ThrowIfCancellationRequested();
 
         long elapsedMilliseconds = (long)Stopwatch.GetElapsedTime(started).TotalMilliseconds;
-        PdfDocumentInfo pdfInfo = PdfDocument.Open(payload.PdfBytes).Inspect();
+        PdfDocumentInfo pdfInfo = PdfDocument.Load(payload.PdfBytes).Inspect();
         cancellationToken.ThrowIfCancellationRequested();
         var evidence = new HtmlPdfWorkbenchEvidence(
             "officeimo.html-pdf-workbench/v1",

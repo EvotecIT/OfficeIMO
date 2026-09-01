@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -5,21 +7,29 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public enum PdfLogicalElementKind {
     /// <summary>Line-level text recovered from positioned PDF text spans.</summary>
-    TextBlock,
+    TextBlock = 0,
     /// <summary>Heuristic heading line inferred from text size and geometry.</summary>
-    Heading,
+    Heading = 1,
     /// <summary>Detected bullet or numbered list item.</summary>
-    ListItem,
+    ListItem = 2,
     /// <summary>Detected leader row such as label plus dotted value.</summary>
-    LeaderRow,
+    LeaderRow = 3,
     /// <summary>Detected table-like region.</summary>
-    Table,
+    Table = 4,
     /// <summary>Image XObject referenced by the page.</summary>
-    Image,
+    Image = 5,
     /// <summary>URI, named-destination, direct-destination, named-action, or remote GoTo link annotation on the page.</summary>
-    LinkAnnotation,
+    LinkAnnotation = 6,
     /// <summary>AcroForm widget annotation on the page.</summary>
-    FormWidget
+    FormWidget = 7,
+    /// <summary>Document-wide repeated or explicitly identified page header.</summary>
+    Header = 8,
+    /// <summary>Document-wide repeated or explicitly identified page footer.</summary>
+    Footer = 9,
+    /// <summary>Caption associated with nearby visual or tabular content.</summary>
+    Caption = 10,
+    /// <summary>Footnote text identified by geometry and typography.</summary>
+    Footnote = 11
 }
 
 /// <summary>
@@ -36,7 +46,7 @@ public interface IPdfLogicalElement {
 /// <summary>
 /// First-party logical read model for a parser-supported PDF.
 /// </summary>
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     private const int AcroFormSignaturesExistFlag = 1;
     private const int AcroFormAppendOnlyFlag = 2;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>>? _pagesBySourcePageNumber;
@@ -44,6 +54,7 @@ public sealed partial class PdfLogicalDocument {
     private IReadOnlyDictionary<PdfLogicalElementKind, IReadOnlyList<IPdfLogicalElement>>? _elementsByKind;
     private IReadOnlyDictionary<int, IReadOnlyList<IPdfLogicalElement>>? _elementsByPageNumber;
     private IReadOnlyList<PdfLogicalTextBlock>? _textBlocks;
+    private string? _text;
     private IReadOnlyList<PdfLogicalHeading>? _headings;
     private IReadOnlyList<PdfLogicalParagraph>? _paragraphs;
     private IReadOnlyList<PdfLogicalListItem>? _listItems;
@@ -56,6 +67,18 @@ public sealed partial class PdfLogicalDocument {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByNamedAction;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByRemoteFile;
     private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
+    private readonly object _sectionsLock = new object();
+    private IReadOnlyList<PdfLogicalSection>? _sections;
+    private IReadOnlyList<PdfLogicalSection>? _allSections;
+    private Dictionary<PdfLogicalTextBlock, PdfLogicalSection>? _textBlockSections;
+    private Dictionary<PdfLogicalParagraph, PdfLogicalSection>? _paragraphSections;
+    private Dictionary<PdfLogicalListItem, PdfLogicalSection>? _listItemSections;
+    private Dictionary<PdfLogicalTable, PdfLogicalSection>? _tableSections;
+    private Dictionary<PdfLogicalImage, PdfLogicalSection>? _imageSections;
+    private Dictionary<PdfLogicalImage, List<PdfLogicalSection>>? _imageResourceSections;
+    private Dictionary<PdfLogicalImage, int>? _imageResourceOwnedPlacementCounts;
+    private Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>? _linkSections;
+    private Dictionary<PdfLogicalFormWidget, PdfLogicalSection>? _formWidgetSections;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
     private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
     private IReadOnlyList<string>? _formFieldNames;
@@ -63,7 +86,7 @@ public sealed partial class PdfLogicalDocument {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByFieldName;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>>? _formWidgetsByPageNumber;
 
-    private PdfLogicalDocument(
+    private PdfDocumentReadResult(
         PdfMetadata metadata,
         IReadOnlyList<PdfLogicalPage> pages,
         IReadOnlyList<PdfOutlineItem> outlines,
@@ -87,7 +110,9 @@ public sealed partial class PdfLogicalDocument {
         string? catalogPageMode,
         string? catalogPageLayout,
         string? catalogVersion,
-        string? catalogLanguage) {
+        string? catalogLanguage,
+        int sourcePageCount,
+        PdfReadProfile profile) {
         Metadata = metadata;
         Pages = pages;
         Outlines = outlines;
@@ -112,13 +137,21 @@ public sealed partial class PdfLogicalDocument {
         CatalogPageLayout = catalogPageLayout;
         CatalogVersion = catalogVersion;
         CatalogLanguage = catalogLanguage;
+        SourcePageCount = sourcePageCount;
+        Profile = profile;
     }
 
     /// <summary>Document metadata read from the PDF Info dictionary when available.</summary>
     public PdfMetadata Metadata { get; }
 
+    /// <summary>Semantic reconstruction profile used to produce this result.</summary>
+    public PdfReadProfile Profile { get; }
+
     /// <summary>Logical pages in document order.</summary>
     public IReadOnlyList<PdfLogicalPage> Pages { get; }
+
+    /// <summary>Total page count in the source PDF before caller page selection was applied.</summary>
+    public int SourcePageCount { get; }
 
     /// <summary>Logical pages grouped by one-based source page number. Range-based loads can contain the same source page more than once.</summary>
     public IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>> PagesBySourcePageNumber {
@@ -311,6 +344,95 @@ public sealed partial class PdfLogicalDocument {
             _headings ??= FlattenPageItems(Pages, page => page.Headings);
             return _headings;
         }
+    }
+
+    /// <summary>Plain text in canonical page and reading order, with lines and pages separated by platform newlines.</summary>
+    public string Text => _text ??= string.Join(
+        Environment.NewLine + Environment.NewLine,
+        Pages.Select(static page => GetCanonicalPageText(page)));
+
+    /// <summary>Top-level heading-owned sections reconstructed in canonical reading order.</summary>
+    public IReadOnlyList<PdfLogicalSection> Sections {
+        get { EnsureSections(); return _sections!; }
+    }
+
+    /// <summary>All reconstructed sections flattened in document reading order.</summary>
+    public IReadOnlyList<PdfLogicalSection> AllSections {
+        get { EnsureSections(); return _allSections!; }
+    }
+
+    /// <summary>Returns the section directly owning a text block, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalTextBlock textBlock) {
+        Guard.NotNull(textBlock, nameof(textBlock));
+        EnsureSections();
+        return _textBlockSections!.TryGetValue(textBlock, out PdfLogicalSection? section) ? section : null;
+    }
+
+    /// <summary>Returns the section directly owning a paragraph, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalParagraph paragraph) {
+        Guard.NotNull(paragraph, nameof(paragraph));
+        EnsureSections();
+        return _paragraphSections!.TryGetValue(paragraph, out PdfLogicalSection? section) ? section : null;
+    }
+
+    /// <summary>Returns the section directly owning a list item, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalListItem listItem) {
+        Guard.NotNull(listItem, nameof(listItem));
+        EnsureSections();
+        return _listItemSections!.TryGetValue(listItem, out PdfLogicalSection? section) ? section : null;
+    }
+
+    /// <summary>Returns the section directly owning a table, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalTable table) {
+        Guard.NotNull(table, nameof(table));
+        EnsureSections();
+        return _tableSections!.TryGetValue(table, out PdfLogicalSection? section) ? section : null;
+    }
+
+    /// <summary>
+    /// Returns the section directly owning a placement-local image projection.
+    /// For an aggregate page image resource, returns the owner only when all placements belong to one section.
+    /// </summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalImage image) {
+        Guard.NotNull(image, nameof(image));
+        EnsureSections();
+        if (_imageSections!.TryGetValue(image, out PdfLogicalSection? section)) return section;
+        int expectedPlacements = Math.Max(1, image.PlacementCount);
+        return _imageResourceSections!.TryGetValue(image, out List<PdfLogicalSection>? owners) &&
+               owners.Count == 1 &&
+               _imageResourceOwnedPlacementCounts!.TryGetValue(image, out int ownedPlacements) &&
+               ownedPlacements == expectedPlacements
+            ? owners[0]
+            : null;
+    }
+
+    /// <summary>
+    /// Returns every section containing a placement of the supplied aggregate image resource.
+    /// Placement-local images return their single direct owner.
+    /// </summary>
+    public IReadOnlyList<PdfLogicalSection> GetOwningSections(PdfLogicalImage image) {
+        Guard.NotNull(image, nameof(image));
+        EnsureSections();
+        if (_imageSections!.TryGetValue(image, out PdfLogicalSection? section)) {
+            return new[] { section };
+        }
+        return _imageResourceSections!.TryGetValue(image, out List<PdfLogicalSection>? owners)
+            ? owners.AsReadOnly()
+            : Array.Empty<PdfLogicalSection>();
+    }
+
+    /// <summary>Returns the section directly owning a link, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalLinkAnnotation link) {
+        Guard.NotNull(link, nameof(link));
+        EnsureSections();
+        return _linkSections!.TryGetValue(link, out PdfLogicalSection? section) ? section : null;
+    }
+
+    /// <summary>Returns the section directly owning a form widget, or null for unsectioned content.</summary>
+    public PdfLogicalSection? GetOwningSection(PdfLogicalFormWidget formWidget) {
+        Guard.NotNull(formWidget, nameof(formWidget));
+        EnsureSections();
+        return _formWidgetSections!.TryGetValue(formWidget, out PdfLogicalSection? section) ? section : null;
     }
 
     /// <summary>All heuristic paragraph objects flattened in page order.</summary>
@@ -831,6 +953,121 @@ public sealed partial class PdfLogicalDocument {
         return new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<T>>(result);
     }
 
+    private void EnsureSections() {
+        if (Volatile.Read(ref _sections) is not null) return;
+
+        lock (_sectionsLock) {
+            if (_sections is not null) return;
+
+            var roots = new List<PdfLogicalSection>();
+            var all = new List<PdfLogicalSection>();
+            var stack = new Stack<PdfLogicalSection>();
+            var textBlockSections = new Dictionary<PdfLogicalTextBlock, PdfLogicalSection>();
+            var paragraphSections = new Dictionary<PdfLogicalParagraph, PdfLogicalSection>();
+            var listItemSections = new Dictionary<PdfLogicalListItem, PdfLogicalSection>();
+            var tableSections = new Dictionary<PdfLogicalTable, PdfLogicalSection>();
+            var imageSections = new Dictionary<PdfLogicalImage, PdfLogicalSection>();
+            var imageResourceSections = new Dictionary<PdfLogicalImage, List<PdfLogicalSection>>();
+            var imageResourceOwnedPlacementCounts = new Dictionary<PdfLogicalImage, int>();
+            var linkSections = new Dictionary<PdfLogicalLinkAnnotation, PdfLogicalSection>();
+            var formWidgetSections = new Dictionary<PdfLogicalFormWidget, PdfLogicalSection>();
+            PdfLogicalSection? current = null;
+
+            for (int pageIndex = 0; pageIndex < Pages.Count; pageIndex++) {
+                PdfLogicalPage page = Pages[pageIndex];
+                IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder = PdfLogicalReadingOrderAnalysis.Analyze(page);
+                for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
+                    PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
+                    if (item.Kind == PdfLogicalReadingOrderKind.Heading) {
+                        PdfLogicalHeading heading = page.Headings[item.SourceIndex];
+                        int level = Math.Max(1, heading.Level);
+                        while (stack.Count > 0 && stack.Peek().Level >= level) stack.Pop();
+                        PdfLogicalSection? parent = stack.Count == 0 ? null : stack.Peek();
+                        current = new PdfLogicalSection(all.Count, heading, parent);
+                        all.Add(current);
+                        if (parent is null) roots.Add(current);
+                        else parent.AddChild(current);
+                        stack.Push(current);
+                        continue;
+                    }
+
+                    if (current is null) continue;
+                    switch (item.Kind) {
+                        case PdfLogicalReadingOrderKind.TextBlock: {
+                            PdfLogicalTextBlock value = page.TextBlocks[item.SourceIndex];
+                            current.Add(value);
+                            textBlockSections[value] = current;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Paragraph: {
+                            PdfLogicalParagraph value = page.Paragraphs[item.SourceIndex];
+                            current.Add(value);
+                            paragraphSections[value] = current;
+                            for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
+                                textBlockSections[value.Lines[lineIndex]] = current;
+                            }
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.ListItem: {
+                            PdfLogicalListItem value = page.ListItems[item.SourceIndex];
+                            current.Add(value);
+                            listItemSections[value] = current;
+                            for (int lineIndex = 0; lineIndex < value.Lines.Count; lineIndex++) {
+                                textBlockSections[value.Lines[lineIndex]] = current;
+                            }
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Table: {
+                            PdfLogicalTable value = page.Tables[item.SourceIndex];
+                            current.Add(value);
+                            tableSections[value] = current;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Image: {
+                            PdfLogicalImage resource = page.Images[item.SourceIndex];
+                            PdfLogicalImage value = item.PlacementIndex >= 0
+                                ? resource.ForPlacement(item.PlacementIndex)
+                                : resource;
+                            if (current.Add(value)) imageSections[value] = current;
+                            if (!imageResourceSections.TryGetValue(resource, out List<PdfLogicalSection>? owners)) {
+                                owners = new List<PdfLogicalSection>();
+                                imageResourceSections.Add(resource, owners);
+                            }
+                            if (!owners.Contains(current)) owners.Add(current);
+                            imageResourceOwnedPlacementCounts.TryGetValue(resource, out int ownedPlacements);
+                            imageResourceOwnedPlacementCounts[resource] = ownedPlacements + 1;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.Link: {
+                            PdfLogicalLinkAnnotation value = page.Links[item.SourceIndex];
+                            current.Add(value);
+                            linkSections[value] = current;
+                            break;
+                        }
+                        case PdfLogicalReadingOrderKind.FormWidget: {
+                            PdfLogicalFormWidget value = page.FormWidgets[item.SourceIndex];
+                            current.Add(value);
+                            formWidgetSections[value] = current;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            _textBlockSections = textBlockSections;
+            _paragraphSections = paragraphSections;
+            _listItemSections = listItemSections;
+            _tableSections = tableSections;
+            _imageSections = imageSections;
+            _imageResourceSections = imageResourceSections;
+            _imageResourceOwnedPlacementCounts = imageResourceOwnedPlacementCounts;
+            _linkSections = linkSections;
+            _formWidgetSections = formWidgetSections;
+            _allSections = all.AsReadOnly();
+            Volatile.Write(ref _sections, roots.AsReadOnly());
+        }
+    }
+
     private static System.Collections.ObjectModel.ReadOnlyDictionary<TKey, IReadOnlyList<T>> ToReadOnlyLookup<TKey, T>(Dictionary<TKey, List<T>> grouped) where TKey : notnull {
         var result = new Dictionary<TKey, IReadOnlyList<T>>();
         foreach (var item in grouped) {
@@ -854,59 +1091,65 @@ public sealed partial class PdfLogicalDocument {
     }
 
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>
-    public static PdfLogicalDocument Load(byte[] pdf, PdfTextLayoutOptions? options = null) {
+    internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
-        return From(PdfReadDocument.Open(pdf), options);
+        return PdfDocument.Load(pdf).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from bytes with explicit read limits or credentials and returns the logical read model.</summary>
-    public static PdfLogicalDocument Load(byte[] pdf, PdfTextLayoutOptions? options, PdfReadOptions? readOptions) {
+    internal static PdfDocumentReadResult Load(byte[] pdf, PdfTextLayoutOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        return From(PdfReadDocument.Open(pdf, readOptions), options);
+        return PdfDocument.Load(pdf, readOptions).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads a PDF from a file path and returns the logical read model.</summary>
-    public static PdfLogicalDocument Load(string path, PdfTextLayoutOptions? options = null) {
+    internal static PdfDocumentReadResult Load(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return From(PdfReadDocument.Open(path), options);
+        return PdfDocument.Load(path).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>
     /// Loads a PDF from a readable stream and returns the logical read model.
     /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
     /// </summary>
-    public static PdfLogicalDocument Load(Stream stream, PdfTextLayoutOptions? options = null) {
+    internal static PdfDocumentReadResult Load(Stream stream, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
-        return From(PdfReadDocument.Open(stream), options);
+        return PdfDocument.Load(stream).Read(new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument LoadPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
         return LoadPageRanges(pdf, null, pageRanges);
     }
 
     /// <summary>Loads selected source page ranges from PDF bytes into the logical read model, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
-        return FromPageRanges(PdfReadDocument.Open(pdf), options, pageRanges);
+        return PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            LayoutOptions = options ?? new PdfTextLayoutOptions(),
+            PageSelection = PdfPageSelection.FromRanges(pageRanges)
+        });
     }
 
     /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument LoadPageRanges(string path, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(string path, params PdfPageRange[] pageRanges) {
         return LoadPageRanges(path, null, pageRanges);
     }
 
     /// <summary>Loads selected source page ranges from a file path into the logical read model, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument LoadPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return FromPageRanges(PdfReadDocument.Open(path), options, pageRanges);
+        return PdfDocument.Load(path).Read(new PdfReadOptions {
+            LayoutOptions = options ?? new PdfTextLayoutOptions(),
+            PageSelection = PdfPageSelection.FromRanges(pageRanges)
+        });
     }
 
     /// <summary>
     /// Loads selected source page ranges from a readable stream into the logical read model, preserving caller order and overlaps.
     /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
     /// </summary>
-    public static PdfLogicalDocument LoadPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
         return LoadPageRanges(stream, null, pageRanges);
     }
 
@@ -914,38 +1157,45 @@ public sealed partial class PdfLogicalDocument {
     /// Loads selected source page ranges from a readable stream into the logical read model, preserving caller order and overlaps.
     /// Seekable streams are read from the beginning and restored; non-seekable streams are read forward from their current position.
     /// </summary>
-    public static PdfLogicalDocument LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult LoadPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(stream, nameof(stream));
-        return FromPageRanges(PdfReadDocument.Open(stream), options, pageRanges);
+        return PdfDocument.Load(stream).Read(new PdfReadOptions {
+            LayoutOptions = options ?? new PdfTextLayoutOptions(),
+            PageSelection = PdfPageSelection.FromRanges(pageRanges)
+        });
     }
 
     /// <summary>Builds the logical read model from an already parsed PDF document.</summary>
-    public static PdfLogicalDocument From(PdfReadDocument document, PdfTextLayoutOptions? options = null) {
+    internal static PdfDocumentReadResult From(PdfReadDocument document, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(document, nameof(document));
-
-        var pageNumbers = new int[document.Pages.Count];
-        for (int i = 0; i < document.Pages.Count; i++) {
-            pageNumbers[i] = i + 1;
-        }
-
-        return FromPageNumbers(document, options, pageNumbers);
+        return PdfDocumentReadEngine.Read(document, new PdfReadOptions { LayoutOptions = options ?? new PdfTextLayoutOptions() });
     }
 
     /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument FromPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult FromPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
         return FromPageRanges(document, null, pageRanges);
     }
 
     /// <summary>Builds a logical read model for selected source page ranges from an already parsed PDF document, preserving caller order and overlaps.</summary>
-    public static PdfLogicalDocument FromPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+    internal static PdfDocumentReadResult FromPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
         Guard.NotNull(document, nameof(document));
-        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
-
-        return FromPageNumbers(document, options, pageNumbers);
+        return PdfDocumentReadEngine.Read(document, new PdfReadOptions {
+            LayoutOptions = options ?? new PdfTextLayoutOptions(),
+            PageSelection = PdfPageSelection.FromRanges(pageRanges)
+        });
     }
 
-    internal static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
+    internal static PdfDocumentReadResult FromPageNumbers(
+        PdfReadDocument document,
+        PdfTextLayoutOptions? options,
+        int[] pageNumbers,
+        IReadOnlyList<PdfUnderstandingPageResult> analyses,
+        PdfReadProfile profile,
+        CancellationToken cancellationToken) {
         document.DemandContentExtraction("logical object");
+        if (analyses.Count != pageNumbers.Length) {
+            throw new ArgumentException("Semantic analysis count must match the selected page count.", nameof(analyses));
+        }
         bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
         IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
             ? document.FormFields
@@ -985,12 +1235,30 @@ public sealed partial class PdfLogicalDocument {
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pageNumbers[i];
-            formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets);
-            pages.Add(PdfLogicalPage.From(document, document.Pages[pageNumber - 1], pageNumber, options, pageFormWidgets));
+            IReadOnlyList<PdfLogicalFormWidget>? pageFormWidgets = null;
+            if (formWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalFormWidget>? sourceWidgets)) {
+                pageFormWidgets = CloneFormWidgetsForOccurrence(sourceWidgets, pageNumber);
+            }
+            pages.Add(PdfLogicalPage.From(
+                document,
+                document.Pages[pageNumber - 1],
+                pageNumber,
+                options,
+                pageFormWidgets,
+                analyses[i],
+                cancellationToken));
+        }
+        if (profile == PdfReadProfile.Structured) {
+            ApplyDocumentHeadingFontTiers(
+                pages.SelectMany(static page => page.Headings).ToArray(),
+                cancellationToken);
         }
 
-        return new PdfLogicalDocument(
+        cancellationToken.ThrowIfCancellationRequested();
+
+        return new PdfDocumentReadResult(
             document.Metadata,
             pages.AsReadOnly(),
             outlines,
@@ -1014,7 +1282,72 @@ public sealed partial class PdfLogicalDocument {
             document.CatalogPageMode,
             document.CatalogPageLayout,
             document.CatalogVersion,
-            document.CatalogLanguage);
+            document.CatalogLanguage,
+            document.Pages.Count,
+            profile);
+    }
+
+    internal static void ApplyDocumentHeadingFontTiers(
+        IReadOnlyList<PdfLogicalHeading> headings,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (headings.Count == 0) return;
+
+        var fontSizes = new List<double>(headings.Count);
+        for (int headingIndex = 0; headingIndex < headings.Count; headingIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfLogicalHeading heading = headings[headingIndex];
+            if (heading.CanApplyDocumentFontTier) fontSizes.Add(heading.FontSize);
+        }
+        Dictionary<double, int> tierByFontSize = PdfHeadingFontTierAnalysis.BuildLookup(
+            fontSizes,
+            cancellationToken.ThrowIfCancellationRequested);
+
+        for (int headingIndex = 0; headingIndex < headings.Count; headingIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfLogicalHeading heading = headings[headingIndex];
+            if (!heading.CanApplyDocumentFontTier) continue;
+            if (tierByFontSize.TryGetValue(heading.FontSize, out int tier)) heading.ApplyDocumentFontTier(tier);
+        }
+    }
+
+    private static string GetCanonicalPageText(PdfLogicalPage page) {
+        IReadOnlyList<PdfLogicalReadingOrderItem> readingOrder =
+            PdfLogicalReadingOrderAnalysis.Analyze(page, PdfLogicalReadingOrderScope.PageContent);
+        var lines = new List<string>(page.TextBlocks.Count);
+        for (int itemIndex = 0; itemIndex < readingOrder.Count; itemIndex++) {
+            PdfLogicalReadingOrderItem item = readingOrder[itemIndex];
+            if (item.Kind == PdfLogicalReadingOrderKind.Table) {
+                IReadOnlyList<IReadOnlyList<string>> rows = page.Tables[item.SourceIndex].Rows;
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    lines.Add(string.Join("\t", rows[rowIndex]));
+                }
+                continue;
+            }
+            IReadOnlyList<PdfLogicalTextBlock>? itemLines = item.Kind switch {
+                PdfLogicalReadingOrderKind.TextBlock => new[] { page.TextBlocks[item.SourceIndex] },
+                PdfLogicalReadingOrderKind.Heading => new[] { page.Headings[item.SourceIndex].Line },
+                PdfLogicalReadingOrderKind.Paragraph => page.Paragraphs[item.SourceIndex].Lines,
+                PdfLogicalReadingOrderKind.ListItem => page.ListItems[item.SourceIndex].Lines,
+                _ => null
+            };
+            if (itemLines is null) continue;
+            for (int lineIndex = 0; lineIndex < itemLines.Count; lineIndex++) {
+                lines.Add(itemLines[lineIndex].Text);
+            }
+        }
+        return string.Join(Environment.NewLine, lines);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfLogicalFormWidget> CloneFormWidgetsForOccurrence(
+        IReadOnlyList<PdfLogicalFormWidget> source,
+        int pageNumber) {
+        var result = new PdfLogicalFormWidget[source.Count];
+        for (int index = 0; index < source.Count; index++) {
+            PdfLogicalFormWidget widget = source[index];
+            result[index] = new PdfLogicalFormWidget(pageNumber, widget.Field, widget.SourceWidget);
+        }
+        return Array.AsReadOnly(result);
     }
 
     internal static IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalFormWidget>> IndexFormWidgetsByPageNumber(

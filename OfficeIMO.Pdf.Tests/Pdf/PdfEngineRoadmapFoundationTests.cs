@@ -70,7 +70,7 @@ public class PdfEngineRoadmapFoundationTests {
             .Paragraph(paragraph => paragraph.Text("Mutation portfolio"))
             .TextField("customer", value: "Ada")
             .ToBytes();
-        PdfDocument opened = PdfDocument.Open(bytes);
+        PdfDocument opened = PdfDocument.Load(bytes);
 
         PdfMutationPortfolioReport report = opened.AssessMutations(new[] {
             PdfMutationOperation.ModifyAnnotations,
@@ -98,7 +98,7 @@ public class PdfEngineRoadmapFoundationTests {
             yield return "customer";
         }
 
-        PdfMutationPortfolioReport report = PdfDocument.Open(bytes).AssessMutations(
+        PdfMutationPortfolioReport report = PdfDocument.Load(bytes).AssessMutations(
             new[] { PdfMutationOperation.ModifyCatalog, PdfMutationOperation.FillFormFields },
             FieldNames());
 
@@ -112,7 +112,7 @@ public class PdfEngineRoadmapFoundationTests {
             .Paragraph(paragraph => paragraph.Text("Producer compatibility"))
             .ToBytes();
 
-        PdfRenderCompatibilityReport report = PdfDocument.Open(bytes).AssessRenderCompatibility();
+        PdfRenderCompatibilityReport report = PdfDocument.Load(bytes).AssessRenderCompatibility();
 
         Assert.Same(PdfRenderCapabilities.Current, report.Manifest);
         Assert.Single(report.Pages);

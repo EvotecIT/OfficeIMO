@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly string _trailerRaw;
-    private readonly PdfReadOptions _options;
+    private readonly PdfLoadOptions _options;
     private readonly long _decodedStreamBytes;
     private readonly PdfDecodedStreamBudget _decodedStreamBudget;
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
@@ -40,7 +40,7 @@ public sealed partial class PdfReadDocument {
 
     internal Dictionary<int, PdfIndirectObject> Objects => _objects;
     internal string TrailerRaw => _trailerRaw;
-    internal PdfReadOptions ReadOptions => _options;
+    internal PdfLoadOptions ReadOptions => _options;
     internal int FormWidgetJavaScriptCount => _formWidgetJavaScriptCount;
     internal long FormWidgetJavaScriptBytes => _formWidgetJavaScriptBytes;
     internal long DecodedStreamBytes => _decodedStreamBytes;
@@ -51,9 +51,9 @@ public sealed partial class PdfReadDocument {
         string trailerRaw,
         PdfDocumentSecurityInfo security,
         PdfRepairReport repairReport,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         long decodedStreamBytes) {
-        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfLoadOptions();
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
         Security = security;

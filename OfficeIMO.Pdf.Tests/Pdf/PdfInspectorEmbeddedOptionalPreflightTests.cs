@@ -346,27 +346,27 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Reader_ExposesCatalogActionDiagnostics() {
-        PdfDocument document = PdfDocument.Open(BuildCatalogActiveActionSlotsPdf());
+        PdfDocument document = PdfDocument.Load(BuildCatalogActiveActionSlotsPdf());
 
-        IReadOnlyList<PdfCatalogAction> actions = document.Read.CatalogActions();
+        IReadOnlyList<PdfCatalogAction> actions = document.Reader.CatalogActions();
         Assert.Equal(4, actions.Count);
-        Assert.True(document.Read.TryCatalogActions().Succeeded);
+        Assert.True(document.Reader.TryCatalogActions().Succeeded);
 
-        PdfCatalogAction openAction = Assert.Single(document.Read.CatalogActionsByActionType("JavaScript"));
+        PdfCatalogAction openAction = Assert.Single(document.Reader.CatalogActionsByActionType("JavaScript"));
         Assert.Equal("OpenAction", openAction.Name);
         Assert.Equal("OpenAction", openAction.Source);
         Assert.Null(openAction.TriggerName);
 
-        PdfCatalogAction submitAction = Assert.Single(document.Read.CatalogActionsByActionType("SubmitForm"));
+        PdfCatalogAction submitAction = Assert.Single(document.Reader.CatalogActionsByActionType("SubmitForm"));
         Assert.Equal("AA.DS", submitAction.Name);
         Assert.Equal("AA", submitAction.Source);
         Assert.Equal("DS", submitAction.TriggerName);
 
-        Assert.Equal(2, document.Read.CatalogActionsBySource("OpenAction").Count);
-        Assert.Equal(2, document.Read.CatalogActionsBySource("AA").Count);
-        Assert.Empty(document.Read.CatalogActionsBySource("Names/JavaScript"));
-        Assert.True(document.Read.TryCatalogActionsByActionType("Launch").Succeeded);
-        Assert.True(document.Read.TryCatalogActionsBySource("AA").Succeeded);
+        Assert.Equal(2, document.Reader.CatalogActionsBySource("OpenAction").Count);
+        Assert.Equal(2, document.Reader.CatalogActionsBySource("AA").Count);
+        Assert.Empty(document.Reader.CatalogActionsBySource("Names/JavaScript"));
+        Assert.True(document.Reader.TryCatalogActionsByActionType("Launch").Succeeded);
+        Assert.True(document.Reader.TryCatalogActionsBySource("AA").Succeeded);
     }
 
     [Fact]
@@ -452,38 +452,38 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Reader_ExposesPageActionDiagnostics() {
-        PdfDocument document = PdfDocument.Open(BuildPageAdditionalActionsPdf());
+        PdfDocument document = PdfDocument.Load(BuildPageAdditionalActionsPdf());
 
-        IReadOnlyList<PdfPageAction> actions = document.Read.PageActions();
+        IReadOnlyList<PdfPageAction> actions = document.Reader.PageActions();
         Assert.Equal(2, actions.Count);
-        Assert.True(document.Read.TryPageActions().Succeeded);
+        Assert.True(document.Reader.TryPageActions().Succeeded);
 
-        IReadOnlyList<PdfPageAction> pageActions = document.Read.PageActions(1);
+        IReadOnlyList<PdfPageAction> pageActions = document.Reader.PageActions(1);
         Assert.Equal(2, pageActions.Count);
 
-        PdfPageAction openAction = Assert.Single(document.Read.PageActionsByTriggerName("O"));
+        PdfPageAction openAction = Assert.Single(document.Reader.PageActionsByTriggerName("O"));
         Assert.Equal(1, openAction.PageNumber);
         Assert.Equal("O", openAction.ActionPath);
         Assert.Equal("JavaScript", openAction.ActionType);
         Assert.False(openAction.IsChainedAction);
 
-        PdfPageAction actionTypeMatch = Assert.Single(document.Read.PageActionsByActionType("JavaScript"));
+        PdfPageAction actionTypeMatch = Assert.Single(document.Reader.PageActionsByActionType("JavaScript"));
         Assert.Equal(openAction.PageNumber, actionTypeMatch.PageNumber);
         Assert.Equal(openAction.TriggerName, actionTypeMatch.TriggerName);
         Assert.Equal(openAction.ActionPath, actionTypeMatch.ActionPath);
 
-        PdfPageAction actionPathMatch = Assert.Single(document.Read.PageActionsByActionPath("O"));
+        PdfPageAction actionPathMatch = Assert.Single(document.Reader.PageActionsByActionPath("O"));
         Assert.Equal(openAction.PageNumber, actionPathMatch.PageNumber);
         Assert.Equal(openAction.TriggerName, actionPathMatch.TriggerName);
         Assert.Equal(openAction.ActionType, actionPathMatch.ActionType);
-        Assert.Empty(document.Read.PageActions(2));
-        Assert.Empty(document.Read.PageActionsByActionType("GoTo"));
-        Assert.Empty(document.Read.PageActionsByTriggerName("D"));
-        Assert.Empty(document.Read.PageActionsByActionPath("O.Next"));
-        Assert.True(document.Read.TryPageActions(1).Succeeded);
-        Assert.True(document.Read.TryPageActionsByActionType("Launch").Succeeded);
-        Assert.True(document.Read.TryPageActionsByTriggerName("C").Succeeded);
-        Assert.True(document.Read.TryPageActionsByActionPath("C").Succeeded);
+        Assert.Empty(document.Reader.PageActions(2));
+        Assert.Empty(document.Reader.PageActionsByActionType("GoTo"));
+        Assert.Empty(document.Reader.PageActionsByTriggerName("D"));
+        Assert.Empty(document.Reader.PageActionsByActionPath("O.Next"));
+        Assert.True(document.Reader.TryPageActions(1).Succeeded);
+        Assert.True(document.Reader.TryPageActionsByActionType("Launch").Succeeded);
+        Assert.True(document.Reader.TryPageActionsByTriggerName("C").Succeeded);
+        Assert.True(document.Reader.TryPageActionsByActionPath("C").Succeeded);
     }
 
     [Fact]

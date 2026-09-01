@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMerger {
     private static readonly char[] ViewerPreferenceSeparators = { ' ' };
-    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfReadOptions readOptions, int[]? outputSourceIndexes) {
+    private static byte[] ApplyViewerPolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions, int[]? outputSourceIndexes) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasViewerState(source)).Count();
         if (mode == PdfMergeStructureMode.KeepPrimary) { decisions.Add(new PdfMergeDecision("ViewerPreferences", mode, "Kept primary viewer preferences and initial view.", droppedCount: incoming)); return merged; }
         if (mode == PdfMergeStructureMode.RejectIncoming) {
@@ -37,7 +37,7 @@ internal static partial class PdfMerger {
         return output;
     }
 
-    private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfReadOptions readOptions) {
+    private static byte[] ApplyCatalogStatePolicy(byte[] merged, IReadOnlyList<ImportedSource> sources, int primarySourceIndex, PdfMergeStructureMode mode, List<PdfMergeDecision> decisions, PdfLoadOptions readOptions) {
         int incoming = sources.Where((source, index) => index != primarySourceIndex && HasCatalogState(source)).Count();
         bool incomingOptionalContent = sources.Where((source, index) => index != primarySourceIndex)
             .Any(static source => source.CatalogState.OptionalContent != null);

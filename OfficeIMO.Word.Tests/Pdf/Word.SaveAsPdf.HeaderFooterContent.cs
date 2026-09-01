@@ -205,7 +205,7 @@ public partial class Word {
         Assert.True(File.Exists(pdfPath));
         using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains("Native GIF header image body", pdf.GetPage(1).Text);
-        Assert.NotEmpty(PdfCore.PdfDocument.Open(pdfPath).Read.ImagePlacements());
+        Assert.NotEmpty(PdfCore.PdfDocument.Load(pdfPath).Images.Placements());
     }
 
     [Fact]

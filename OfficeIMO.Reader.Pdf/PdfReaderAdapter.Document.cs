@@ -30,7 +30,7 @@ internal static partial class PdfReaderAdapter {
     /// <summary>
     /// Converts an already loaded logical PDF model into the shared OfficeIMO read result JSON envelope.
     /// </summary>
-    public static string ReadDocumentJson(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
+    public static string ReadDocumentJson(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
         OfficeDocumentReadResult result = ReadDocument(document, sourceName, readerOptions, pdfOptions, cancellationToken);
         return OfficeDocumentReadResultJson.Serialize(result, indented);
     }
@@ -59,7 +59,7 @@ internal static partial class PdfReaderAdapter {
     /// <summary>
     /// Converts an already loaded logical PDF model into logical tables in source order.
     /// </summary>
-    public static IReadOnlyList<ReaderTable> ReadTables(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static IReadOnlyList<ReaderTable> ReadTables(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         return DocumentReaderEngine.ExtractTables(Read(document, sourceName, readerOptions, pdfOptions, cancellationToken), cancellationToken);
     }
 
@@ -87,7 +87,7 @@ internal static partial class PdfReaderAdapter {
     /// <summary>
     /// Converts an already loaded logical PDF model into logical table export payloads in source order.
     /// </summary>
-    public static IReadOnlyList<ReaderTableExportBundle> ReadTableExports(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
+    public static IReadOnlyList<ReaderTableExportBundle> ReadTableExports(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
         return DocumentReaderEngine.ExportTables(ReadTables(document, sourceName, readerOptions, pdfOptions, cancellationToken), indentedJson, cancellationToken);
     }
 
@@ -103,9 +103,9 @@ internal static partial class PdfReaderAdapter {
         var effectivePdfOptions = ReaderPdfOptionsCloner.CloneOrDefault(pdfOptions);
         ReaderInputLimits.EnforceFileSize(pdfPath, effectiveReaderOptions.MaxInputBytes);
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
-        PdfDocument pdf = PdfDocument.Open(pdfPath, CreatePdfReadOptions(effectiveReaderOptions));
+        PdfDocument pdf = PdfDocument.Load(pdfPath, CreatePdfLoadOptions(effectiveReaderOptions));
         PdfDocumentPreflight preflight = pdf.Preflight();
-        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
     }
 
@@ -128,7 +128,7 @@ internal static partial class PdfReaderAdapter {
         PdfDocument pdf = OpenReaderPdf(pdfStream, effectiveReaderOptions);
         UpdateSourceMetadataFromPdfDocument(source, pdf, effectiveReaderOptions.ComputeHashes);
         PdfDocumentPreflight preflight = pdf.Preflight();
-        PdfLogicalDocument document = LoadDocument(pdf, effectivePdfOptions);
+        PdfDocumentReadResult document = LoadDocument(pdf, effectivePdfOptions, cancellationToken);
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight, applyPageRanges: false, cancellationToken);
     }
 
@@ -145,7 +145,7 @@ internal static partial class PdfReaderAdapter {
     /// <summary>
     /// Converts an already loaded logical PDF model into the shared OfficeIMO read result envelope.
     /// </summary>
-    public static OfficeDocumentReadResult ReadDocument(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+    public static OfficeDocumentReadResult ReadDocument(PdfDocumentReadResult document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
 
@@ -160,7 +160,7 @@ internal static partial class PdfReaderAdapter {
         return BuildDocumentResult(document, source, effectiveReaderOptions, effectivePdfOptions, preflight: null, applyPageRanges: true, cancellationToken);
     }
 
-    private static OfficeDocumentReadResult BuildDocumentResult(PdfLogicalDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken) {
+    private static OfficeDocumentReadResult BuildDocumentResult(PdfDocumentReadResult document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, PdfDocumentPreflight? preflight, bool applyPageRanges, CancellationToken cancellationToken) {
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
@@ -261,6 +261,7 @@ internal static partial class PdfReaderAdapter {
                 if (element is PdfLogicalTextBlock textBlock) {
                     PdfLogicalHeading? heading = FindHeading(page, textBlock);
                     PdfLogicalListItem? listItem = FindListItem(page, textBlock);
+                    if (listItem is not null && !ReferenceEquals(listItem.Line, textBlock)) continue;
                     string kind = heading != null
                         ? "heading"
                         : listItem != null
@@ -466,7 +467,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates, ReaderPdfOptions pdfOptions) {
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfDocumentReadResult document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates, ReaderPdfOptions pdfOptions) {
         var entries = new List<OfficeDocumentMetadataEntry>();
         HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
         AddMetadata(entries, "pdf-catalog-page-mode", "pdf.catalog", "PageMode", document.CatalogPageMode);
@@ -741,7 +742,7 @@ internal static partial class PdfReaderAdapter {
 
     private static PdfLogicalListItem? FindListItem(PdfLogicalPage page, PdfLogicalTextBlock textBlock) {
         for (int i = 0; i < page.ListItems.Count; i++) {
-            if (ReferenceEquals(page.ListItems[i].Line, textBlock)) {
+            if (page.ListItems[i].Lines.Any(line => ReferenceEquals(line, textBlock))) {
                 return page.ListItems[i];
             }
         }
@@ -749,8 +750,10 @@ internal static partial class PdfReaderAdapter {
         return null;
     }
 
-    private static string ToDocumentBlockKind(PdfLogicalElementKind kind) {
+    internal static string ToDocumentBlockKind(PdfLogicalElementKind kind) {
         switch (kind) {
+            case PdfLogicalElementKind.TextBlock:
+                return "text-block";
             case PdfLogicalElementKind.Heading:
                 return "heading";
             case PdfLogicalElementKind.ListItem:
@@ -759,8 +762,22 @@ internal static partial class PdfReaderAdapter {
                 return "leader-row";
             case PdfLogicalElementKind.Table:
                 return "table";
+            case PdfLogicalElementKind.Image:
+                return "image";
+            case PdfLogicalElementKind.LinkAnnotation:
+                return "link";
+            case PdfLogicalElementKind.FormWidget:
+                return "form-widget";
+            case PdfLogicalElementKind.Header:
+                return "header";
+            case PdfLogicalElementKind.Footer:
+                return "footer";
+            case PdfLogicalElementKind.Caption:
+                return "caption";
+            case PdfLogicalElementKind.Footnote:
+                return "footnote";
             default:
-                return "text-block";
+                throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown PDF logical element kind.");
         }
     }
 

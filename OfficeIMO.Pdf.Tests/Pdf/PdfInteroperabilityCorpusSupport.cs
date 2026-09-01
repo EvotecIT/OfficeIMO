@@ -9,7 +9,7 @@ internal sealed class PdfInteroperabilityCorpusCase {
         string id,
         byte[] pdf,
         PdfMutationExecutionMode expectedMetadataMode,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         params string[] features) {
         Id = id;
         Pdf = pdf;
@@ -24,7 +24,7 @@ internal sealed class PdfInteroperabilityCorpusCase {
 
     public PdfMutationExecutionMode ExpectedMetadataMode { get; }
 
-    public PdfReadOptions? ReadOptions { get; }
+    public PdfLoadOptions? ReadOptions { get; }
 
     public IReadOnlyList<string> Features { get; }
 }
@@ -78,7 +78,7 @@ internal static class PdfInteroperabilityCorpusSupport {
                 "password-encrypted",
                 encrypted,
                 PdfMutationExecutionMode.FullRewrite,
-                new PdfReadOptions { Password = "open" },
+                new PdfLoadOptions { Password = "open" },
                 "encrypted", "standard-security", "password"),
             new PdfInteroperabilityCorpusCase(
                 "tagged-structure",

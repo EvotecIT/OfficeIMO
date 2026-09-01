@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfConversionProofReport {
     internal PdfConversionProofReport(
         PdfDocumentInfo? documentInfo,
-        PdfLogicalDocument? logicalDocument,
+        PdfDocumentReadResult? logicalDocument,
         string extractedText,
         IReadOnlyList<string> logicalSignals,
         long artifactByteCount,
@@ -29,7 +29,7 @@ public sealed class PdfConversionProofReport {
     public PdfDocumentInfo? DocumentInfo { get; }
 
     /// <summary>Logical readback snapshot for the generated PDF when requested or needed for proof.</summary>
-    public PdfLogicalDocument? LogicalDocument { get; }
+    public PdfDocumentReadResult? LogicalDocument { get; }
 
     /// <summary>Text extracted from the generated PDF during proof.</summary>
     public string ExtractedText { get; }

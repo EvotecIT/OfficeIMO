@@ -3,8 +3,8 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfOcrLogicalDocumentBuilder {
-    internal static PdfLogicalDocument Build(
-        PdfLogicalDocument nativeDocument,
+    internal static PdfDocumentReadResult Build(
+        PdfDocumentReadResult nativeDocument,
         IReadOnlyList<PdfOcrPageMergeResult> mergePages,
         PdfOcrMergeOptions options,
         CancellationToken cancellationToken) {

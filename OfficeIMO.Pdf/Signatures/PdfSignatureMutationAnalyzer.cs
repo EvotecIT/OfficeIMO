@@ -8,8 +8,8 @@ internal static class PdfSignatureMutationAnalyzer {
         byte[] after,
         PdfMutationOperation operation,
         IEnumerable<string>? fieldNames = null,
-        PdfReadOptions? readOptions = null,
-        PdfReadOptions? afterReadOptions = null,
+        PdfLoadOptions? readOptions = null,
+        PdfLoadOptions? afterReadOptions = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
         Guard.NotNull(before, nameof(before));
         Guard.NotNull(after, nameof(after));
@@ -18,7 +18,7 @@ internal static class PdfSignatureMutationAnalyzer {
         int[] afterRevisionEnds = FindRevisionEnds(after);
         PdfMutationPlan plan = PdfMutationPlanner.Plan(before, operation, readOptions, fieldNames, executionPreference);
         PdfSignatureValidationReport beforeValidation = PdfSignatureValidator.Validate(before, readOptions);
-        PdfReadOptions effectiveAfterReadOptions = afterReadOptions ?? PdfReadOptions.ForGeneratedOutput(
+        PdfLoadOptions effectiveAfterReadOptions = afterReadOptions ?? PdfLoadOptions.ForGeneratedOutput(
             readOptions,
             before,
             after,

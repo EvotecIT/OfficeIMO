@@ -58,7 +58,7 @@ public sealed class BrowserConversionServiceTests {
         Assert.Contains("TH", tagged.StructureTypes);
         Assert.Contains("TD", tagged.StructureTypes);
 
-        PdfComplianceProofReport proof = PdfDocument.Open(result.Bytes)
+        PdfComplianceProofReport proof = PdfDocument.Load(result.Bytes)
             .AssessComplianceProof(PdfComplianceProfile.PdfUa1);
         Assert.True(proof.HasArtifactEvidence);
         Assert.Equal(result.Bytes.LongLength, proof.ArtifactSizeBytes);
@@ -203,7 +203,7 @@ public sealed class BrowserConversionServiceTests {
             "<html lang='ja'><head><title>日本語の保存版</title></head><body><h1>日本語の保存版</h1><p>東京都で品質を確認します。</p></body></html>",
             BrowserPdfProfileCatalog.Archival);
 
-        PdfComplianceProofReport proof = PdfDocument.Open(result.Bytes)
+        PdfComplianceProofReport proof = PdfDocument.Load(result.Bytes)
             .AssessComplianceProof(PdfComplianceProfile.PdfA2B);
 
         Assert.Equal(BrowserPdfProfileKind.Archival, result.Profile?.Kind);

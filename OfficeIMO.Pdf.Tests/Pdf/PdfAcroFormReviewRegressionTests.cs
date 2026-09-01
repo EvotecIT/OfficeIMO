@@ -10,7 +10,7 @@ public class PdfAcroFormReviewRegressionTests {
     [InlineData(true)]
     public void AppendOnlyFill_RejectsPushButtons(bool useTryFill) {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button append guard")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Calculate"
@@ -18,17 +18,17 @@ public class PdfAcroFormReviewRegressionTests {
         var values = new Dictionary<string, string> { ["calculate"] = "Off" };
 
         if (useTryFill) {
-            PdfOperationResult<PdfDocument> result = PdfDocument.Open(authored).Forms.TryFill(values);
+            PdfOperationResult<PdfDocument> result = PdfDocument.Load(authored).Forms.TryFill(values);
             Assert.False(result.Succeeded);
             Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Contains("Push-button", StringComparison.Ordinal));
         } else {
-            Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.AppendRevision(values));
+            Assert.Throws<ArgumentException>(() => PdfDocument.Load(authored).Forms.AppendRevision(values));
         }
     }
 
     [Fact]
     public void Create_RejectsChildBelowInheritedTerminalFieldWithWidgetKids() {
-        PdfDocument document = PdfDocument.Open(BuildInheritedTerminalFieldPdf());
+        PdfDocument document = PdfDocument.Load(BuildInheritedTerminalFieldPdf());
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "section.existing.child",
@@ -43,7 +43,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Create_RejectsChildBelowTerminalFieldThatOnlyInheritsItsType() {
-        PdfDocument document = PdfDocument.Open(BuildInheritedTerminalFieldWithoutKidsPdf());
+        PdfDocument document = PdfDocument.Load(BuildInheritedTerminalFieldWithoutKidsPdf());
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "section.existing.child",
@@ -74,7 +74,7 @@ public class PdfAcroFormReviewRegressionTests {
     public void Move_RebuildsPushButtonAppearanceWhenFlagIsInherited() {
         byte[] source = BuildInheritedPushButtonPdf(includeInteractiveAppearances: false);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit =>
             edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
 
         PdfFormField field = Assert.Single(result.Fields);
@@ -104,12 +104,12 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Create_PreflightsHierarchicalFieldDepthBeforeMaterializingParents() {
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxFormFieldDepth = 2 }
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit =>
+            PdfDocument.Load(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit =>
                 edit.Create(new PdfFormFieldCreateOptions { Name = "grand.parent.child" })));
 
         Assert.Equal(PdfReadLimitKind.FormFieldDepth, exception.Kind);
@@ -120,7 +120,7 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void Create_RejectsDestinationRectangleWhoseFarEdgeOverflows() {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
-            PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
+            PdfDocument.Load(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
                 edit.Create(new PdfFormFieldCreateOptions {
                     Name = "overflow",
                     X = double.MaxValue,
@@ -132,7 +132,7 @@ public class PdfAcroFormReviewRegressionTests {
     public void MoveThenRenamePreservesQueuedInheritedFieldValue() {
         byte[] source = BuildInheritedTerminalFieldPdf();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Move("section.existing", pageNumber: 1, x: 40, y: 80, width: 180, height: 40)
             .Rename("section.existing", "section.renamed"));
 
@@ -145,7 +145,7 @@ public class PdfAcroFormReviewRegressionTests {
     public void Edit_UsesLastDefaultValueAssignedInTransaction() {
         byte[] source = PdfDocument.Create().TextField("name", value: "Ada").ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetDefaultValue("name", "first")
             .SetDefaultValue("name", "second"));
 
@@ -154,20 +154,20 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void SetDefaultValue_RejectsTextBeyondInheritedMaxLength() {
-        byte[] source = PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
+        byte[] source = PdfDocument.Load(BuildSinglePagePdf("1.7")).Forms.Edit(edit =>
             edit.Create(new PdfFormFieldCreateOptions {
                 Name = "code",
                 Kind = PdfFormFieldCreationKind.Text,
                 Style = new PdfFormFieldStyle { MaxLength = 4 }
             })).ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit =>
             edit.SetDefaultValue("code", "ABCDE")));
     }
 
     [Fact]
     public void SetDefaultValue_NullOverridesAnInheritedDefault() {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedDefaultValuePdf()).Forms.Edit(edit =>
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildInheritedDefaultValuePdf()).Forms.Edit(edit =>
             edit.SetDefaultValue("section.name", null));
 
         PdfFormField field = Assert.Single(result.Fields);
@@ -182,7 +182,7 @@ public class PdfAcroFormReviewRegressionTests {
         byte[] source = BuildNonzeroGenerationWidgetPdf();
         Assert.Equal(2, PdfSyntax.ParseObjects(source, null).Map[6].Generation);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit =>
             edit.Move("name", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
         PdfDictionary page = Assert.IsType<PdfDictionary>(objects[3].Value);
@@ -195,7 +195,7 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void Move_RejectsResizingPushButtonWithRolloverAndDownAppearances() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
+            PdfDocument.Load(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
                 edit.Move("group.run", pageNumber: 1, x: 40, y: 80, width: 180, height: 40)));
 
         Assert.Contains("rollover or down", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -203,7 +203,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Move_PreservesCustomPushButtonNormalAppearanceWhenOnlyPositionChanges() {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildInheritedPushButtonPdf()).Forms.Edit(edit =>
             edit.Move("group.run", pageNumber: 1, x: 80, y: 120, width: 100, height: 20));
         PdfFormWidget widget = Assert.Single(Assert.Single(result.Fields).Widgets);
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
@@ -219,7 +219,7 @@ public class PdfAcroFormReviewRegressionTests {
     public void Move_DetachesSharedPushButtonAppearanceDictionary() {
         byte[] source = BuildSharedPushButtonAppearancePdf();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit =>
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit =>
             edit.Move("first", pageNumber: 1, x: 40, y: 80, width: 180, height: 40));
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
         PdfDictionary first = RequireNamedField(objects, "first");
@@ -236,14 +236,14 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void Edit_RejectsClearingPushButtonSemanticFlag() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button flags")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "run",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Run"
         })).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(authored).Forms.Edit(edit => edit.SetFlags("run", 0)));
+            PdfDocument.Load(authored).Forms.Edit(edit => edit.SetFlags("run", 0)));
 
         Assert.Contains("push-button flag", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -253,7 +253,7 @@ public class PdfAcroFormReviewRegressionTests {
         byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Action", 1 << 16)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Action", 1 << 16)));
 
         Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -304,7 +304,7 @@ public class PdfAcroFormReviewRegressionTests {
 
         Assert.False(readDocument.HasOnlyWidgetOwnedActiveContent());
         Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
     [Fact]
@@ -314,7 +314,7 @@ public class PdfAcroFormReviewRegressionTests {
         var appearanceOptions = new PdfFormFillerOptions()
             .UseAppearanceFontFile("OfficeIMO CFF", fontPath);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.4")).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "run",
                 Kind = PdfFormFieldCreationKind.PushButton,
@@ -329,7 +329,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Create_RaisesPdf14HeaderForCombTextField() {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.4")).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "code",
                 Kind = PdfFormFieldCreationKind.Text,
@@ -342,20 +342,20 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void Create_RaisesPdf14HeaderForCommitOnSelectionChoiceField() {
         byte[] source = BuildSinglePagePdf("1.4");
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "country",
                 Kind = PdfFormFieldCreationKind.Choice,
                 ChoiceOptions = new[] { "Poland", "Germany" },
                 Style = new PdfFormFieldStyle { CommitsOnSelectionChange = true }
             }));
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "country",
                 Kind = PdfFormFieldCreationKind.Choice,
                 ChoiceOptions = new[] { "Poland", "Germany" }
             })).ToBytes();
-        PdfAcroFormEditResult rawFlags = PdfDocument.Open(authored).Forms.Edit(
+        PdfAcroFormEditResult rawFlags = PdfDocument.Load(authored).Forms.Edit(
             edit => edit.SetFlags("country", 67108864));
 
         Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
@@ -364,7 +364,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void SetFlags_RaisesPdf14HeaderForBit26FieldFeatures() {
-        byte[] source = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(edit => edit
+        byte[] source = PdfDocument.Load(BuildSinglePagePdf("1.4")).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "rich",
                 Kind = PdfFormFieldCreationKind.Text
@@ -376,7 +376,7 @@ public class PdfAcroFormReviewRegressionTests {
                 Height = 40
             })).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetFlags("rich", 33554432)
             .SetFlags("radio", 32768 | 33554432));
 
@@ -385,7 +385,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void SetTabOrder_RaisesPdf17HeaderForAnnotationArrayOrdering() {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.7")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.7")).Forms.Edit(
             edit => edit.SetTabOrder(1, PdfPageTabOrder.Annotations));
 
         Assert.StartsWith("%PDF-2.0", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
@@ -397,7 +397,7 @@ public class PdfAcroFormReviewRegressionTests {
     [InlineData(PdfPageTabOrder.Column)]
     [InlineData(PdfPageTabOrder.Structure)]
     public void SetTabOrder_RaisesPdf14HeaderForAnyPageTabsEntry(PdfPageTabOrder tabOrder) {
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.4")).Forms.Edit(
             edit => edit.SetTabOrder(1, tabOrder));
 
         Assert.StartsWith("%PDF-1.5", PdfEncoding.Latin1GetString(result.ToBytes()), StringComparison.Ordinal);
@@ -406,12 +406,12 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void CreateRadioGroup_PreflightsExpandedObjectCountBeforeAppearanceMaterialization() {
         byte[] source = BuildSinglePagePdf("1.7");
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxIndirectObjects = 7 }
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "choice",
                 Kind = PdfFormFieldCreationKind.RadioButtonGroup,
                 ChoiceOptions = new[] { "One" },
@@ -436,31 +436,31 @@ public class PdfAcroFormReviewRegressionTests {
             DefaultValue = useDefaultValue ? "12345" : null
         };
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(options)));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(options)));
     }
 
     [Fact]
     public void SignatureFields_RejectDefaultValuesDuringCreateAndEdit() {
         byte[] source = BuildSinglePagePdf("1.7");
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "signature",
             Kind = PdfFormFieldCreationKind.Signature,
             DefaultValue = "reserved"
         })));
 
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "signature",
             Kind = PdfFormFieldCreationKind.Signature
         })).ToBytes();
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit =>
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(authored).Forms.Edit(edit =>
             edit.SetDefaultValue("signature", "reserved")));
     }
 
     [Fact]
     public void MoveAcrossPages_RejectsResourceLessStateAppearances() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(BuildTwoPageStateAppearancePdf()).Forms.Edit(edit =>
+            PdfDocument.Load(BuildTwoPageStateAppearancePdf()).Forms.Edit(edit =>
                 edit.Move("choice", pageNumber: 2, x: 40, y: 80, width: 100, height: 20)));
 
         Assert.Contains("inherits page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -469,7 +469,7 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void MoveAcrossPages_RejectsResourceLessInteractiveAppearances() {
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(BuildTwoPageInteractiveAppearancePdf()).Forms.Edit(edit =>
+            PdfDocument.Load(BuildTwoPageInteractiveAppearancePdf()).Forms.Edit(edit =>
                 edit.Move("run", pageNumber: 2, x: 40, y: 80, width: 100, height: 20)));
 
         Assert.Contains("inherits page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -478,7 +478,7 @@ public class PdfAcroFormReviewRegressionTests {
     [Fact]
     public void Create_PreflightsAggregateWidgetJavaScriptBeforeGraphMaterialization() {
         const string script = "app.alert('budget');";
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxJavaScripts = 2,
                 MaxTotalJavaScriptBytes = 1_000_000L
@@ -486,7 +486,7 @@ public class PdfAcroFormReviewRegressionTests {
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit => edit
+            PdfDocument.Load(BuildSinglePagePdf("1.7"), readOptions).Forms.Edit(edit => edit
                 .Create(new PdfFormFieldCreateOptions { Name = "one", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })
                 .Create(new PdfFormFieldCreateOptions { Name = "two", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })
                 .Create(new PdfFormFieldCreateOptions { Name = "three", Kind = PdfFormFieldCreationKind.PushButton, JavaScript = script })));
@@ -502,7 +502,7 @@ public class PdfAcroFormReviewRegressionTests {
         var appearanceOptions = new PdfFormFillerOptions()
             .UseAppearanceFontFile("OfficeIMO CFF", fontPath);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.4", "1.4")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.4", "1.4")).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "run",
                 Kind = PdfFormFieldCreationKind.PushButton,
@@ -521,7 +521,7 @@ public class PdfAcroFormReviewRegressionTests {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath is null) return;
 
-        PdfAcroFormEditResult result = PdfDocument.Open(BuildSinglePagePdf("1.7", "1.4")).Forms.Edit(
+        PdfAcroFormEditResult result = PdfDocument.Load(BuildSinglePagePdf("1.7", "1.4")).Forms.Edit(
             edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "run",
                 Kind = PdfFormFieldCreationKind.PushButton,

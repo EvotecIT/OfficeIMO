@@ -12,7 +12,7 @@ PdfDocumentConversionResult pdfResult = source.ToPdfDocumentResult();
 pdfResult.RequireNoLoss();
 pdfResult.Save("proposal.pdf");
 
-PdfDocument pdf = PdfDocument.Open("proposal.pdf");
+PdfDocument pdf = PdfDocument.Load("proposal.pdf");
 PdfOdtConversionResult odtResult = pdf.ToOdtDocumentResult();
 odtResult.Value.Save("reconstructed.odt");
 ```

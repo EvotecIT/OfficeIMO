@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     private IReadOnlyList<PdfPageAction>? _pageActions;
     private IReadOnlyList<string>? _pageActionTypes;
     private IReadOnlyList<string>? _pageActionTriggerNames;

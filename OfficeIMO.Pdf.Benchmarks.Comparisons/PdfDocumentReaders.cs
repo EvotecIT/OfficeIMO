@@ -20,11 +20,24 @@ internal static class PdfDocumentReaders {
     };
 
     internal static string ExtractText(PdfReaderEngine engine, byte[] pdf) => engine switch {
-        PdfReaderEngine.OfficeIMO => OfficePdfDocument.Open(pdf).Read.Text(),
+        PdfReaderEngine.OfficeIMO => string.Join('\n', ExtractOfficeImoTextByPage(pdf)),
         PdfReaderEngine.PdfPig => ExtractTextWithPdfPig(pdf),
         PdfReaderEngine.IText => ExtractTextWithIText(pdf),
         _ => throw new ArgumentOutOfRangeException(nameof(engine))
     };
+
+    internal static IReadOnlyList<string> ExtractOfficeImoTextByPage(
+        byte[] pdf,
+        global::OfficeIMO.Pdf.PdfLoadOptions? loadOptions = null) {
+        global::OfficeIMO.Pdf.PdfDocumentReadResult result = OfficePdfDocument
+            .Load(pdf, loadOptions)
+            .Read(new global::OfficeIMO.Pdf.PdfReadOptions {
+                Profile = global::OfficeIMO.Pdf.PdfReadProfile.Structured
+        });
+        return result.Pages
+            .Select(static page => string.Join('\n', page.TextBlocks.Select(static block => block.Text)))
+            .ToArray();
+    }
 
     private static PdfReadObservation ReadWithOfficeImo(byte[] pdf) {
         global::OfficeIMO.Pdf.PdfReadDocument document = global::OfficeIMO.Pdf.PdfReadDocument.Open(pdf);

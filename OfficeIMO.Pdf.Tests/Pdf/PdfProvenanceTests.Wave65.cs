@@ -30,7 +30,7 @@ public sealed partial class PdfProvenanceTests {
         const long raisedLimit = 600L * 1024L * 1024L;
         var limits = new OfficeProvenanceOptions { MaxAssetBytes = raisedLimit };
 
-        PdfReadOptions readOptions = PdfProvenance.CreateReadOptionsForInspection(limits, readOptions: null);
+        PdfLoadOptions readOptions = PdfProvenance.CreateReadOptionsForInspection(limits, readOptions: null);
 
         Assert.Equal(raisedLimit, readOptions.Limits.MaxInputBytes);
     }
@@ -40,9 +40,9 @@ public sealed partial class PdfProvenanceTests {
         const long raisedLimit = 600L * 1024L * 1024L;
         const long explicitLimit = 384L * 1024L * 1024L;
         var limits = new OfficeProvenanceOptions { MaxAssetBytes = raisedLimit };
-        var requested = new PdfReadOptions { Limits = new PdfReadLimits { MaxInputBytes = explicitLimit } };
+        var requested = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = explicitLimit } };
 
-        PdfReadOptions readOptions = PdfProvenance.CreateReadOptionsForInspection(limits, requested);
+        PdfLoadOptions readOptions = PdfProvenance.CreateReadOptionsForInspection(limits, requested);
 
         Assert.Equal(explicitLimit, readOptions.Limits.MaxInputBytes);
     }

@@ -15,7 +15,7 @@ public sealed class PdfRepairArtifactOptions {
 /// <summary>Normalized repaired PDF with before/after diagnostics and preservation evidence.</summary>
 public sealed class PdfRepairArtifactResult {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
     internal PdfRepairArtifactResult(
         byte[] pdf,
@@ -23,7 +23,7 @@ public sealed class PdfRepairArtifactResult {
         PdfRepairReport sourceRepairReport,
         PdfRepairReport strictOutputRepairReport,
         PdfRewritePreservationReport preservation,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         _pdf = (byte[])pdf.Clone();
         SourceSizeBytes = sourceSizeBytes;
         SourceRepairReport = sourceRepairReport;
@@ -47,7 +47,7 @@ public sealed class PdfRepairArtifactResult {
     /// <summary>Returns an independent copy of the normalized artifact.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the normalized artifact through the public document API.</summary>
-    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Creates bounded repair artifacts only for defects the parser recovered explicitly.</summary>
@@ -56,12 +56,12 @@ public static class PdfRepairArtifact {
     public static PdfRepairArtifactResult Create(
         byte[] pdf,
         PdfRepairArtifactOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfRepairArtifactOptions effective = options ?? new PdfRepairArtifactOptions();
         if (effective.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum repair-artifact bytes must be positive.");
 
-        PdfReadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient);
+        PdfLoadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient);
         PdfReadDocument source = PdfReadDocument.Open(pdf, lenientOptions);
         PdfRepairReport sourceRepairs = source.RepairReport;
         if (effective.RequireRecoveredDefects && sourceRepairs.RepairCount == 0) {
@@ -85,8 +85,8 @@ public static class PdfRepairArtifact {
             outputEncryption: null,
             mutateObjectGraph: null,
             maximumOutputBytes: effective.MaximumOutputBytes);
-        PdfReadOptions strictOptions = CreateReadOptions(
-            PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output),
+        PdfLoadOptions strictOptions = CreateReadOptions(
+            PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output),
             PdfParsingMode.Strict);
         PdfReadDocument strictOutput = PdfReadDocument.Open(output, strictOptions);
         if (strictOutput.RepairReport.HasRepairs) throw new InvalidOperationException("The repaired artifact still requires parser recovery.");
@@ -107,9 +107,9 @@ public static class PdfRepairArtifact {
             strictOptions);
     }
 
-    private static PdfReadOptions CreateReadOptions(PdfReadOptions? readOptions, PdfParsingMode parsingMode) {
-        PdfReadOptions effective = PdfReadOptions.Resolve(readOptions);
-        return new PdfReadOptions {
+    private static PdfLoadOptions CreateReadOptions(PdfLoadOptions? readOptions, PdfParsingMode parsingMode) {
+        PdfLoadOptions effective = PdfLoadOptions.Resolve(readOptions);
+        return new PdfLoadOptions {
             ParsingMode = parsingMode,
             Limits = effective.Limits,
             Password = effective.Password,

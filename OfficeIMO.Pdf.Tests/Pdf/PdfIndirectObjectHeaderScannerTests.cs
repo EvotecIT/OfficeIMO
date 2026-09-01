@@ -32,7 +32,7 @@ public class PdfIndirectObjectHeaderScannerTests {
 
         var (objects, _) = PdfSyntax.ParseObjects(
             pdf,
-            new PdfReadOptions {
+            new PdfLoadOptions {
                 Limits = new PdfReadLimits {
                     MaxInputBytes = pdf.Length,
                     MaxObjectParsingTime = TimeSpan.FromSeconds(2)

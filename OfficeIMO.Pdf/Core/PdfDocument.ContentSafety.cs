@@ -10,7 +10,7 @@ public sealed partial class PdfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, readOptions);
@@ -20,7 +20,7 @@ public sealed partial class PdfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         byte[] pdf,
         OfficeContentSafetyOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(pdf);
 #else
@@ -36,7 +36,7 @@ public sealed partial class PdfDocument {
         byte[] pdf,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(selection);
@@ -66,7 +66,7 @@ public sealed partial class PdfDocument {
             return (target.PageNumber, target.Span, item.SourceTextOffset!.Value, item.SourceTextLength!.Value);
         }).Where(item => !exactTargets.Any(exact => exact.PageNumber == item.PageNumber && ReferenceEquals(exact.Span, item.Span))).ToArray();
         byte[] output = PdfTextEditor.MutateExactContentSafetySpans(pdf, exactTargets, textEdits, readOptions);
-        PdfReadOptions outputOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
+        PdfLoadOptions outputOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, output.LongLength);
         OfficeContentSafetyReport after = InspectPdfContentSafety(output, options.Inspection, outputOptions, targets: null);
         OfficeContentCleanupChange[] changes = selected.Select(item => new OfficeContentCleanupChange(item.Id, item.Location, item.CleanupCapability)).ToArray();
         return new OfficeContentCleanupResult(output, before, after, changes);
@@ -78,7 +78,7 @@ public sealed partial class PdfDocument {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeContentCleanupOptions();
@@ -91,7 +91,7 @@ public sealed partial class PdfDocument {
     private static OfficeContentSafetyReport InspectPdfContentSafety(
         byte[] pdf,
         OfficeContentSafetyOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         IDictionary<string, PdfContentSafetyTarget>? targets) {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         var builder = new OfficeContentSafetyBuilder("PDF", options);

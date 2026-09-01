@@ -297,7 +297,7 @@ public sealed partial class BrowserConversionService {
     }
 
     private static BrowserConversionArtifact CreateDebugOverlay(SelectedDocument source, byte[] pdf) {
-        OfficeDrawing drawing = PdfDocument.Open(pdf).Read.LayoutDebugOverlay(
+        OfficeDrawing drawing = PdfDocument.Load(pdf).Render.LayoutDebugOverlay(
             1,
             new PdfLayoutDebugOverlayOptions {
                 MaxElements = 12_000,

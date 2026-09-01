@@ -74,7 +74,7 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
 
         Assert.True(valueBlock.FontSize < 18D);
@@ -103,9 +103,9 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);
@@ -136,9 +136,9 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);
@@ -169,9 +169,9 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);
@@ -234,9 +234,9 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);
@@ -270,7 +270,7 @@ public class PdfDocumentWorkflowTests {
             })
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
 
         Assert.Contains(blocks, block => block.Text.Contains(largeValue, StringComparison.Ordinal) && block.FontSize > 6.001D && block.FontSize < 20D);
     }
@@ -300,9 +300,9 @@ public class PdfDocumentWorkflowTests {
                                 }))))))
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(bytes);
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
-        string compactText = document.Read.Text()
+        PdfDocument document = PdfDocument.Load(bytes);
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
+        string compactText = document.Reader.Text()
             .Replace("\r", string.Empty)
             .Replace("\n", string.Empty)
             .Replace(" ", string.Empty);
@@ -331,7 +331,7 @@ public class PdfDocumentWorkflowTests {
             }))
             .ToBytes();
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Open(bytes).Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = PdfDocument.Load(bytes).Reader.TextBlocks();
         PdfLogicalTextBlock valueBlock = Assert.Single(blocks, block => block.Text.Contains(longValue, StringComparison.Ordinal));
 
         Assert.True(valueBlock.FontSize < 18D);
@@ -363,7 +363,7 @@ public class PdfDocumentWorkflowTests {
             .ToBytes();
 
         Assert.StartsWith("%PDF-2.0", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
-        Assert.Equal("2.0", PdfDocument.Open(bytes).Inspect().HeaderVersion);
+        Assert.Equal("2.0", PdfDocument.Load(bytes).Inspect().HeaderVersion);
     }
 
     [Fact]
@@ -371,27 +371,27 @@ public class PdfDocumentWorkflowTests {
         byte[] source = BuildThreePagePdf();
         byte[] callerBuffer = (byte[])source.Clone();
 
-        PdfDocument document = PdfDocument.Open(callerBuffer);
+        PdfDocument document = PdfDocument.Load(callerBuffer);
         callerBuffer[20] ^= 0x10;
 
         Assert.Equal(3, document.Inspect().PageCount);
         Assert.Equal("Workflow source", document.Inspect().Metadata.Title);
-        Assert.Equal("Workflow source", document.Read.DocumentInfo().Metadata.Title);
-        Assert.Equal("Workflow source", document.Read.Metadata().Title);
-        Assert.Equal(3, document.Read.Pages().Count);
-        Assert.Equal(2, document.Read.Page(2)?.PageNumber);
-        Assert.Null(document.Read.Page(4));
-        Assert.False(document.Read.Security().HasEncryption);
-        Assert.False(document.Read.Security().HasSignatures);
-        Assert.Equal(document.Inspect().HeaderVersion, document.Read.HeaderVersion());
-        Assert.Equal(document.Inspect().EffectiveVersion, document.Read.EffectiveVersion());
-        Assert.False(document.Read.IsPdf20OrLater());
-        Assert.True(document.Read.TryDocumentInfo().Succeeded);
-        Assert.True(document.Read.TryMetadata().Succeeded);
-        Assert.True(document.Read.TryPages().Succeeded);
-        Assert.True(document.Read.TrySecurity().Succeeded);
-        Assert.Equal(PdfTextExtractor.ExtractAllText(source), document.Read.Text());
-        Assert.Equal(PdfTextExtractor.ExtractTextByPage(source), document.Read.TextByPage());
+        Assert.Equal("Workflow source", document.Reader.DocumentInfo().Metadata.Title);
+        Assert.Equal("Workflow source", document.Reader.Metadata().Title);
+        Assert.Equal(3, document.Reader.Pages().Count);
+        Assert.Equal(2, document.Reader.Page(2)?.PageNumber);
+        Assert.Null(document.Reader.Page(4));
+        Assert.False(document.Reader.Security().HasEncryption);
+        Assert.False(document.Reader.Security().HasSignatures);
+        Assert.Equal(document.Inspect().HeaderVersion, document.Reader.HeaderVersion());
+        Assert.Equal(document.Inspect().EffectiveVersion, document.Reader.EffectiveVersion());
+        Assert.False(document.Reader.IsPdf20OrLater());
+        Assert.True(document.Reader.TryDocumentInfo().Succeeded);
+        Assert.True(document.Reader.TryMetadata().Succeeded);
+        Assert.True(document.Reader.TryPages().Succeeded);
+        Assert.True(document.Reader.TrySecurity().Succeeded);
+        Assert.Equal(PdfTextExtractor.ExtractAllText(source), document.Reader.Text());
+        Assert.Equal(PdfTextExtractor.ExtractTextByPage(source), document.Reader.TextByPage());
         Assert.True(document.Preflight().CanRead);
         Assert.True(document.Preflight().CanRewrite);
 
@@ -410,7 +410,7 @@ public class PdfDocumentWorkflowTests {
         long originalPosition = stream.Length;
         stream.Position = originalPosition;
 
-        PdfDocument document = PdfDocument.Open(stream);
+        PdfDocument document = PdfDocument.Load(stream);
 
         Assert.Equal(3, document.Inspect().PageCount);
         Assert.Equal(originalPosition, stream.Position);
@@ -428,74 +428,74 @@ public class PdfDocumentWorkflowTests {
             .Paragraph(paragraph => paragraph.Text("Reader catalog metadata workflow"))
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
-        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(document.Read.XmpMetadata());
+        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(document.Reader.XmpMetadata());
         Assert.True(xmp.IsWellFormedXml);
         Assert.Equal("Reader catalog metadata", xmp.Title);
         Assert.Equal("OfficeIMO", xmp.Creator);
         Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal("B", xmp.PdfAConformance);
         Assert.Equal(1, xmp.PdfUaPart);
-        Assert.True(document.Read.TryXmpMetadata().Succeeded);
+        Assert.True(document.Reader.TryXmpMetadata().Succeeded);
 
-        PdfOutputIntentInfo outputIntent = Assert.Single(document.Read.OutputIntents());
+        PdfOutputIntentInfo outputIntent = Assert.Single(document.Reader.OutputIntents());
         Assert.Equal("GTS_PDFA1", outputIntent.Subtype);
         Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.OutputConditionIdentifier);
         Assert.True(outputIntent.HasDestinationOutputProfile);
-        Assert.Single(document.Read.OutputIntentsBySubtype("GTS_PDFA1"));
-        Assert.Single(document.Read.OutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier));
-        Assert.Empty(document.Read.OutputIntentsBySubtype("GTS_PDFX"));
-        Assert.True(document.Read.TryOutputIntents().Succeeded);
-        Assert.True(document.Read.TryOutputIntentsBySubtype("GTS_PDFA1").Succeeded);
-        Assert.True(document.Read.TryOutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier).Succeeded);
+        Assert.Single(document.Reader.OutputIntentsBySubtype("GTS_PDFA1"));
+        Assert.Single(document.Reader.OutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier));
+        Assert.Empty(document.Reader.OutputIntentsBySubtype("GTS_PDFX"));
+        Assert.True(document.Reader.TryOutputIntents().Succeeded);
+        Assert.True(document.Reader.TryOutputIntentsBySubtype("GTS_PDFA1").Succeeded);
+        Assert.True(document.Reader.TryOutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier).Succeeded);
 
-        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(document.Read.TaggedContent());
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(document.Reader.TaggedContent());
         Assert.True(tagged.Marked);
         Assert.Contains("Document", tagged.StructureTypes);
         Assert.Contains("P", tagged.StructureTypes);
-        Assert.True(document.Read.TryTaggedContent().Succeeded);
+        Assert.True(document.Reader.TryTaggedContent().Succeeded);
     }
 
     [Fact]
     public void Open_ExposesOptionalContentAndAttachmentMetadataThroughFluentReader() {
-        PdfDocument optionalContentDocument = PdfDocument.Open(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        PdfDocument optionalContentDocument = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
 
-        PdfOptionalContentProperties optionalContent = Assert.IsType<PdfOptionalContentProperties>(optionalContentDocument.Read.OptionalContent());
+        PdfOptionalContentProperties optionalContent = Assert.IsType<PdfOptionalContentProperties>(optionalContentDocument.Reader.OptionalContent());
         Assert.Equal("Default layers", optionalContent.DefaultConfigurationName);
         Assert.Equal(2, optionalContent.GroupCount);
 
-        IReadOnlyList<PdfOptionalContentGroup> groups = optionalContentDocument.Read.OptionalContentGroups();
+        IReadOnlyList<PdfOptionalContentGroup> groups = optionalContentDocument.Reader.OptionalContentGroups();
         Assert.Equal(new[] { "Print layer", "Hidden layer" }, groups.Select(group => group.Name).ToArray());
-        PdfOptionalContentGroup printLayer = Assert.Single(optionalContentDocument.Read.OptionalContentGroupsByName("Print layer"));
+        PdfOptionalContentGroup printLayer = Assert.Single(optionalContentDocument.Reader.OptionalContentGroupsByName("Print layer"));
         Assert.Equal("Print layer", printLayer.Name);
-        Assert.Empty(optionalContentDocument.Read.OptionalContentGroupsByName("Missing"));
-        Assert.True(optionalContentDocument.Read.TryOptionalContent().Succeeded);
-        Assert.True(optionalContentDocument.Read.TryOptionalContentGroups().Succeeded);
-        Assert.True(optionalContentDocument.Read.TryOptionalContentGroupsByName("Hidden layer").Succeeded);
+        Assert.Empty(optionalContentDocument.Reader.OptionalContentGroupsByName("Missing"));
+        Assert.True(optionalContentDocument.Reader.TryOptionalContent().Succeeded);
+        Assert.True(optionalContentDocument.Reader.TryOptionalContentGroups().Succeeded);
+        Assert.True(optionalContentDocument.Reader.TryOptionalContentGroupsByName("Hidden layer").Succeeded);
 
         byte[] payload = Encoding.UTF8.GetBytes("attachment metadata payload");
-        PdfDocument attachmentDocument = PdfDocument.Open(PdfDocument.Create()
+        PdfDocument attachmentDocument = PdfDocument.Load(PdfDocument.Create()
             .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Data, "Workflow attachment")
             .Paragraph(paragraph => paragraph.Text("Attachment metadata workflow"))
             .ToBytes());
 
-        PdfAttachmentInfo attachment = Assert.Single(attachmentDocument.Read.AttachmentMetadata());
+        PdfAttachmentInfo attachment = Assert.Single(attachmentDocument.Reader.AttachmentMetadata());
         Assert.Equal("payload.txt", attachment.Name);
         Assert.Equal("payload.txt", attachment.FileName);
         Assert.Equal("text/plain", attachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
         Assert.False(attachment.IsAssociatedFile);
-        Assert.Single(attachmentDocument.Read.AttachmentMetadataByName("payload.txt"));
-        Assert.Single(attachmentDocument.Read.AttachmentMetadataByFileName("payload.txt"));
-        Assert.Single(attachmentDocument.Read.AttachmentMetadataBySource("Names/EmbeddedFiles"));
-        Assert.Single(attachmentDocument.Read.AttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data));
-        Assert.Empty(attachmentDocument.Read.AttachmentMetadataBySource("AF"));
-        Assert.True(attachmentDocument.Read.TryAttachmentMetadata().Succeeded);
-        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByName("payload.txt").Succeeded);
-        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByFileName("payload.txt").Succeeded);
-        Assert.True(attachmentDocument.Read.TryAttachmentMetadataBySource("Names/EmbeddedFiles").Succeeded);
-        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data).Succeeded);
+        Assert.Single(attachmentDocument.Reader.AttachmentMetadataByName("payload.txt"));
+        Assert.Single(attachmentDocument.Reader.AttachmentMetadataByFileName("payload.txt"));
+        Assert.Single(attachmentDocument.Reader.AttachmentMetadataBySource("Names/EmbeddedFiles"));
+        Assert.Single(attachmentDocument.Reader.AttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data));
+        Assert.Empty(attachmentDocument.Reader.AttachmentMetadataBySource("AF"));
+        Assert.True(attachmentDocument.Reader.TryAttachmentMetadata().Succeeded);
+        Assert.True(attachmentDocument.Reader.TryAttachmentMetadataByName("payload.txt").Succeeded);
+        Assert.True(attachmentDocument.Reader.TryAttachmentMetadataByFileName("payload.txt").Succeeded);
+        Assert.True(attachmentDocument.Reader.TryAttachmentMetadataBySource("Names/EmbeddedFiles").Succeeded);
+        Assert.True(attachmentDocument.Reader.TryAttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data).Succeeded);
     }
 
     [Fact]
@@ -513,7 +513,7 @@ public class PdfDocumentWorkflowTests {
                 SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
             });
 
-        PdfDocument document = PdfDocument.Open(preparation.PreparedPdf);
+        PdfDocument document = PdfDocument.Load(preparation.PreparedPdf);
 
         PdfSignatureValidationReport signatures = document.ValidateSignatures();
         PdfAppendOnlyMutationReport mutation = document.AnalyzeAppendOnlyMutation();
@@ -539,114 +539,116 @@ public class PdfDocumentWorkflowTests {
         byte[] source = BuildThreePagePdf();
         PdfPageSelection selection = PdfPageSelection.Parse("3,1-2");
 
-        PdfDocument extracted = PdfDocument.Open(source).Pages.Extract(selection);
-        Assert.Equal(PdfDocument.Open(source).Pages.Extract("3,1-2").ToBytes(), extracted.ToBytes());
+        PdfDocument extracted = PdfDocument.Load(source).Pages.Extract(selection);
+        Assert.Equal(PdfDocument.Load(source).Pages.Extract("3,1-2").ToBytes(), extracted.ToBytes());
         Assert.Equal(3, extracted.Inspect().PageCount);
-        Assert.Contains("Page C", extracted.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", extracted.Reader.Text(), StringComparison.Ordinal);
 
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Delete("2").ToBytes(),
-            PdfDocument.Open(source).Pages.Delete(PdfPageSelection.From(2)).ToBytes());
+            PdfDocument.Load(source).Pages.Delete("2").ToBytes(),
+            PdfDocument.Load(source).Pages.Delete(PdfPageSelection.From(2)).ToBytes());
 
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Reorder("2,3,1").ToBytes(),
-            PdfDocument.Open(source).Pages.Reorder(PdfPageSelection.Parse("2,3,1")).ToBytes());
+            PdfDocument.Load(source).Pages.Reorder("2,3,1").ToBytes(),
+            PdfDocument.Load(source).Pages.Reorder(PdfPageSelection.Parse("2,3,1")).ToBytes());
 
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Duplicate("2").ToBytes(),
-            PdfDocument.Open(source).Pages.Duplicate(PdfPageSelection.From(PdfPageRange.From(2, 2))).ToBytes());
+            PdfDocument.Load(source).Pages.Duplicate("2").ToBytes(),
+            PdfDocument.Load(source).Pages.Duplicate(PdfPageSelection.From(PdfPageRange.From(2, 2))).ToBytes());
 
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Move(1, "3").ToBytes(),
-            PdfDocument.Open(source).Pages.Move(1, PdfPageSelection.From(3)).ToBytes());
+            PdfDocument.Load(source).Pages.Move(1, "3").ToBytes(),
+            PdfDocument.Load(source).Pages.Move(1, PdfPageSelection.From(3)).ToBytes());
 
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Rotate(90, "2").ToBytes(),
-            PdfDocument.Open(source).Pages.Rotate(90, PdfPageSelection.Parse("2")).ToBytes());
+            PdfDocument.Load(source).Pages.Rotate(90, "2").ToBytes(),
+            PdfDocument.Load(source).Pages.Rotate(90, PdfPageSelection.Parse("2")).ToBytes());
 
-        IReadOnlyList<PdfDocument> splitRanges = PdfDocument.Open(source).Pages.Split("1,3");
+        IReadOnlyList<PdfDocument> splitRanges = PdfDocument.Load(source).Pages.Split("1,3");
         Assert.Equal(2, splitRanges.Count);
-        Assert.Contains("Page A", splitRanges[0].Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Page C", splitRanges[1].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page A", splitRanges[0].Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", splitRanges[1].Reader.Text(), StringComparison.Ordinal);
         Assert.Equal(
-            PdfDocument.Open(source).Pages.Split(new[] { PdfPageRange.From(1, 1), PdfPageRange.From(3, 3) })[1].ToBytes(),
+            PdfDocument.Load(source).Pages.Split(new[] { PdfPageRange.From(1, 1), PdfPageRange.From(3, 3) })[1].ToBytes(),
             splitRanges[1].ToBytes());
 
-        PdfDocument opened = PdfDocument.Open(source);
-        Assert.Equal(PdfTextExtractor.ExtractAllTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Read.Text(PdfPageSelection.Parse("2,1")));
-        Assert.Equal(PdfTextExtractor.ExtractTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Read.TextByPage(PdfPageSelection.Parse("2,1")));
-        Assert.Equal(2, opened.Read.Logical(PdfPageSelection.Parse("2,1")).Pages.Count);
-        Assert.Contains("Second page body", opened.Read.Markdown(PdfPageSelection.Parse("2")), StringComparison.Ordinal);
+        PdfDocument opened = PdfDocument.Load(source);
+        Assert.Equal(PdfTextExtractor.ExtractAllTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Reader.Text(PdfPageSelection.Parse("2,1")));
+        Assert.Equal(PdfTextExtractor.ExtractTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Reader.TextByPage(PdfPageSelection.Parse("2,1")));
+        Assert.Equal(2, opened.Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.Parse("2,1")
+        }).Pages.Count);
+        Assert.Contains("Second page body", opened.Reader.Markdown(PdfPageSelection.Parse("2")), StringComparison.Ordinal);
     }
 
     [Fact]
     public void OperationResult_PreflightsPageOperationsAndCarriesDiagnostics() {
         byte[] source = BuildThreePagePdf();
 
-        PdfOperationResult<PdfDocument> extracted = PdfDocument.Open(source).Pages.TryExtract(PdfPageSelection.Parse("2"));
+        PdfOperationResult<PdfDocument> extracted = PdfDocument.Load(source).Pages.TryExtract(PdfPageSelection.Parse("2"));
         Assert.True(extracted.CanAttempt);
         Assert.True(extracted.Succeeded);
         Assert.Empty(extracted.Diagnostics);
         Assert.Equal(PdfPreflightCapability.ManipulatePages, extracted.Capability);
-        Assert.Contains("Page B", extracted.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page B", extracted.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stringExtract = PdfDocument.Open(source).Pages.TryExtract("2");
+        PdfOperationResult<PdfDocument> stringExtract = PdfDocument.Load(source).Pages.TryExtract("2");
         Assert.True(stringExtract.Succeeded);
-        Assert.Contains("Page B", stringExtract.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page B", stringExtract.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stringDelete = PdfDocument.Open(source).Pages.TryDelete("2");
+        PdfOperationResult<PdfDocument> stringDelete = PdfDocument.Load(source).Pages.TryDelete("2");
         Assert.True(stringDelete.Succeeded);
-        Assert.DoesNotContain("Page B", stringDelete.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page B", stringDelete.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stringReorder = PdfDocument.Open(source).Pages.TryReorder("2,3,1");
+        PdfOperationResult<PdfDocument> stringReorder = PdfDocument.Load(source).Pages.TryReorder("2,3,1");
         Assert.True(stringReorder.Succeeded);
-        Assert.Contains("Page A", stringReorder.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page A", stringReorder.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfDocument> stringDuplicate = PdfDocument.Open(source).Pages.TryDuplicate("2");
+        PdfOperationResult<PdfDocument> stringDuplicate = PdfDocument.Load(source).Pages.TryDuplicate("2");
         Assert.True(stringDuplicate.Succeeded);
         Assert.Equal(4, stringDuplicate.RequireValue().Inspect().PageCount);
 
-        PdfOperationResult<PdfDocument> stringMove = PdfDocument.Open(source).Pages.TryMove(1, "3");
+        PdfOperationResult<PdfDocument> stringMove = PdfDocument.Load(source).Pages.TryMove(1, "3");
         Assert.True(stringMove.Succeeded);
         Assert.Equal(3, stringMove.RequireValue().Inspect().PageCount);
 
-        PdfOperationResult<PdfDocument> stringRotate = PdfDocument.Open(source).Pages.TryRotate(90, "2");
+        PdfOperationResult<PdfDocument> stringRotate = PdfDocument.Load(source).Pages.TryRotate(90, "2");
         Assert.True(stringRotate.Succeeded);
         Assert.Equal(3, stringRotate.RequireValue().Inspect().PageCount);
 
-        PdfOperationResult<PdfDocument> malformedRange = PdfDocument.Open(source).Pages.TryExtract("2-");
+        PdfOperationResult<PdfDocument> malformedRange = PdfDocument.Load(source).Pages.TryExtract("2-");
         Assert.True(malformedRange.CanAttempt);
         Assert.False(malformedRange.Succeeded);
         Assert.NotNull(malformedRange.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedRange.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> split = PdfDocument.Open(source).Pages.TrySplit();
+        PdfOperationResult<IReadOnlyList<PdfDocument>> split = PdfDocument.Load(source).Pages.TrySplit();
         Assert.True(split.Succeeded);
         Assert.Equal(3, split.RequireValue().Count);
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> stringSplit = PdfDocument.Open(source).Pages.TrySplit("1,3");
+        PdfOperationResult<IReadOnlyList<PdfDocument>> stringSplit = PdfDocument.Load(source).Pages.TrySplit("1,3");
         Assert.True(stringSplit.CanAttempt);
         Assert.True(stringSplit.Succeeded);
         Assert.Equal(2, stringSplit.RequireValue().Count);
-        Assert.Contains("Page C", stringSplit.RequireValue()[1].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", stringSplit.RequireValue()[1].Reader.Text(), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Load(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
         Assert.False(emptySelectionSplit.Succeeded);
         Assert.Null(emptySelectionSplit.Value);
         Assert.Contains("At least one page selection", string.Join(" ", emptySelectionSplit.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> emptyRangeSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageRange>());
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptyRangeSplit = PdfDocument.Load(source).Pages.TrySplit(Array.Empty<PdfPageRange>());
         Assert.False(emptyRangeSplit.Succeeded);
         Assert.Null(emptyRangeSplit.Value);
         Assert.Contains("At least one page range", string.Join(" ", emptyRangeSplit.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<PdfDocument>> malformedSplit = PdfDocument.Open(source).Pages.TrySplit("2-");
+        PdfOperationResult<IReadOnlyList<PdfDocument>> malformedSplit = PdfDocument.Load(source).Pages.TrySplit("2-");
         Assert.True(malformedSplit.CanAttempt);
         Assert.False(malformedSplit.Succeeded);
         Assert.NotNull(malformedSplit.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedSplit.Diagnostics), StringComparison.Ordinal);
 
-        PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
+        PdfDocument invalid = PdfDocument.Load(Encoding.ASCII.GetBytes("not a pdf"));
         PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryExtract(PdfPageSelection.From(1));
 
         Assert.False(blocked.CanAttempt);
@@ -662,40 +664,40 @@ public class PdfDocumentWorkflowTests {
         byte[] source = BuildThreePagePdf();
         byte[] appendix = BuildPdf("Appendix", "Appendix body");
 
-        PdfOperationResult<PdfDocument> merged = PdfDocument.Open(source).TryMergeWith(PdfDocument.Open(appendix));
+        PdfOperationResult<PdfDocument> merged = PdfDocument.Load(source).TryMergeWith(PdfDocument.Load(appendix));
         Assert.True(merged.Succeeded);
         Assert.Equal(4, merged.RequireValue().Inspect().PageCount);
 
-        PdfDocument opened = PdfDocument.Open(source);
-        PdfOperationResult<string> text = opened.Read.TryText(PdfPageSelection.Parse("2"));
+        PdfDocument opened = PdfDocument.Load(source);
+        PdfOperationResult<string> text = opened.Reader.TryText(PdfPageSelection.Parse("2"));
         Assert.True(text.Succeeded);
         Assert.Contains("Second page body", text.RequireValue(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfLogicalDocument> logical = opened.Read.TryLogical(PdfPageSelection.Parse("1,3"));
+        PdfOperationResult<PdfDocumentReadResult> logical = opened.Reader.TryLogical(PdfPageSelection.Parse("1,3"));
         Assert.True(logical.Succeeded);
         Assert.Equal(2, logical.RequireValue().Pages.Count);
 
-        PdfOperationResult<string> markdown = opened.Read.TryMarkdown(PdfPageSelection.Parse("1"));
+        PdfOperationResult<string> markdown = opened.Reader.TryMarkdown(PdfPageSelection.Parse("1"));
         Assert.True(markdown.Succeeded);
         Assert.Contains("First page body", markdown.RequireValue(), StringComparison.Ordinal);
 
-        PdfOperationResult<string> stringText = opened.Read.TryText("2");
+        PdfOperationResult<string> stringText = opened.Reader.TryText("2");
         Assert.True(stringText.Succeeded);
         Assert.Contains("Second page body", stringText.RequireValue(), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<string>> stringTextByPage = opened.Read.TryTextByPage("3,1");
+        PdfOperationResult<IReadOnlyList<string>> stringTextByPage = opened.Reader.TryTextByPage("3,1");
         Assert.True(stringTextByPage.Succeeded);
         Assert.Equal(2, stringTextByPage.RequireValue().Count);
 
-        PdfOperationResult<string> stringMarkdown = opened.Read.TryMarkdown("1");
+        PdfOperationResult<string> stringMarkdown = opened.Reader.TryMarkdown("1");
         Assert.True(stringMarkdown.Succeeded);
         Assert.Contains("First page body", stringMarkdown.RequireValue(), StringComparison.Ordinal);
 
-        PdfOperationResult<PdfLogicalDocument> stringLogical = opened.Read.TryLogical("1,3");
+        PdfOperationResult<PdfDocumentReadResult> stringLogical = opened.Reader.TryLogical("1,3");
         Assert.True(stringLogical.Succeeded);
         Assert.Equal(2, stringLogical.RequireValue().Pages.Count);
 
-        PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> stringTextBlocks = opened.Read.TryTextBlocks("2");
+        PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> stringTextBlocks = opened.Reader.TryTextBlocks("2");
         Assert.True(stringTextBlocks.Succeeded);
         Assert.Contains(stringTextBlocks.RequireValue(), block => block.Text.Contains("Second page body", StringComparison.Ordinal));
 
@@ -704,40 +706,40 @@ public class PdfDocumentWorkflowTests {
             Width = 24,
             Height = 24
         });
-        PdfDocument imageDocument = PdfDocument.Open(imagePdf);
-        IReadOnlyList<PdfExtractedImage> selectedImages = imageDocument.Read.Images("3,1-2");
+        PdfDocument imageDocument = PdfDocument.Load(imagePdf);
+        IReadOnlyList<PdfExtractedImage> selectedImages = imageDocument.Reader.Images("3,1-2");
         Assert.Equal(2, selectedImages.Count);
         Assert.Equal(3, selectedImages[0].PageNumber);
         Assert.Equal(1, selectedImages[1].PageNumber);
 
-        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> stringImages = imageDocument.Read.TryImages("3,1-2");
+        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> stringImages = imageDocument.Reader.TryImages("3,1-2");
         Assert.True(stringImages.Succeeded);
         Assert.Equal(2, stringImages.RequireValue().Count);
 
-        IReadOnlyList<PdfImagePlacement> selectedPlacements = imageDocument.Read.ImagePlacements("3,1-2");
+        IReadOnlyList<PdfImagePlacement> selectedPlacements = imageDocument.Reader.ImagePlacements("3,1-2");
         Assert.Equal(2, selectedPlacements.Count);
         Assert.Equal(3, selectedPlacements[0].PageNumber);
         Assert.Equal(1, selectedPlacements[1].PageNumber);
         Assert.True(selectedPlacements[0].Width > 0);
         Assert.True(selectedPlacements[0].Height > 0);
 
-        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> stringPlacements = imageDocument.Read.TryImagePlacements("3,1-2");
+        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> stringPlacements = imageDocument.Reader.TryImagePlacements("3,1-2");
         Assert.True(stringPlacements.Succeeded);
         Assert.Equal(2, stringPlacements.RequireValue().Count);
 
-        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> malformedPlacementRange = imageDocument.Read.TryImagePlacements("2-");
+        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> malformedPlacementRange = imageDocument.Reader.TryImagePlacements("2-");
         Assert.True(malformedPlacementRange.CanAttempt);
         Assert.False(malformedPlacementRange.Succeeded);
         Assert.NotNull(malformedPlacementRange.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedPlacementRange.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> malformedImageRange = imageDocument.Read.TryImages("2-");
+        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> malformedImageRange = imageDocument.Reader.TryImages("2-");
         Assert.True(malformedImageRange.CanAttempt);
         Assert.False(malformedImageRange.Succeeded);
         Assert.NotNull(malformedImageRange.Exception);
         Assert.Contains("Page number cannot be empty", string.Join(" ", malformedImageRange.Diagnostics), StringComparison.Ordinal);
 
-        PdfOperationResult<string> malformedRange = opened.Read.TryText("2-");
+        PdfOperationResult<string> malformedRange = opened.Reader.TryText("2-");
         Assert.True(malformedRange.CanAttempt);
         Assert.False(malformedRange.Succeeded);
         Assert.NotNull(malformedRange.Exception);
@@ -748,46 +750,46 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(3, stamped.RequireValue().Inspect().PageCount);
 
         byte[] formPdf = BuildSimpleFormPdf();
-        PdfDocument formDocument = PdfDocument.Open(formPdf);
-        PdfFormField formField = Assert.Single(formDocument.Read.FormFields());
+        PdfDocument formDocument = PdfDocument.Load(formPdf);
+        PdfFormField formField = Assert.Single(formDocument.Reader.FormFields());
         Assert.Equal("Person.Name", formField.Name);
         Assert.Equal(PdfFormFieldKind.Text, formField.Kind);
         Assert.Equal("Original", formField.Value);
-        Assert.Equal("Person.Name", formDocument.Read.FormField("Person.Name")?.Name);
-        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields("Person.Name")).Name);
-        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields(PdfFormFieldKind.Text)).Name);
-        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields(1)).Name);
+        Assert.Equal("Person.Name", formDocument.Reader.FormField("Person.Name")?.Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Reader.FormFields("Person.Name")).Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Reader.FormFields(PdfFormFieldKind.Text)).Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Reader.FormFields(1)).Name);
 
-        PdfLogicalFormWidget widget = Assert.Single(formDocument.Read.FormWidgets());
+        PdfLogicalFormWidget widget = Assert.Single(formDocument.Reader.FormWidgets());
         Assert.Equal("Person.Name", widget.FieldName);
         Assert.Equal(1, widget.PageNumber);
         Assert.True(widget.Width > 0);
         Assert.True(widget.Height > 0);
-        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormWidgets("Person.Name")).FieldName);
-        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormWidgets(1)).FieldName);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Reader.FormWidgets("Person.Name")).FieldName);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Reader.FormWidgets(1)).FieldName);
 
-        PdfOperationResult<IReadOnlyList<PdfFormField>> safeFormFields = formDocument.Read.TryFormFields("Person.Name");
+        PdfOperationResult<IReadOnlyList<PdfFormField>> safeFormFields = formDocument.Reader.TryFormFields("Person.Name");
         Assert.True(safeFormFields.Succeeded);
         Assert.Equal("Person.Name", Assert.Single(safeFormFields.RequireValue()).Name);
 
-        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> safeFormWidgets = formDocument.Read.TryFormWidgets("Person.Name");
+        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> safeFormWidgets = formDocument.Reader.TryFormWidgets("Person.Name");
         Assert.True(safeFormWidgets.Succeeded);
         Assert.Equal("Person.Name", Assert.Single(safeFormWidgets.RequireValue()).FieldName);
 
-        PdfOperationResult<PdfDocument> filled = PdfDocument.Open(formPdf).Forms.TryFill(new Dictionary<string, string> {
+        PdfOperationResult<PdfDocument> filled = PdfDocument.Load(formPdf).Forms.TryFill(new Dictionary<string, string> {
             ["Person.Name"] = "Ada Lovelace"
         });
         Assert.True(filled.Succeeded);
         Assert.Equal("Ada Lovelace", Assert.Single(filled.RequireValue().Inspect().FormFields).Value);
 
-        PdfOperationResult<PdfDocument> flattened = PdfDocument.Open(formPdf).Forms.TryFillAndFlatten(new Dictionary<string, string> {
+        PdfOperationResult<PdfDocument> flattened = PdfDocument.Load(formPdf).Forms.TryFillAndFlatten(new Dictionary<string, string> {
             ["Person.Name"] = "Ada Lovelace"
         });
         Assert.True(flattened.Succeeded);
         Assert.Empty(flattened.RequireValue().Inspect().FormFields);
 
-        PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
-        PdfOperationResult<string> blockedText = invalid.Read.TryText();
+        PdfDocument invalid = PdfDocument.Load(Encoding.ASCII.GetBytes("not a pdf"));
+        PdfOperationResult<string> blockedText = invalid.Reader.TryText();
         Assert.False(blockedText.CanAttempt);
         Assert.NotEmpty(blockedText.Diagnostics);
 
@@ -795,31 +797,31 @@ public class PdfDocumentWorkflowTests {
         Assert.False(blockedStamp.CanAttempt);
         Assert.NotEmpty(blockedStamp.Diagnostics);
 
-        PdfOperationResult<IReadOnlyList<PdfFormField>> blockedFormFields = invalid.Read.TryFormFields();
+        PdfOperationResult<IReadOnlyList<PdfFormField>> blockedFormFields = invalid.Reader.TryFormFields();
         Assert.False(blockedFormFields.CanAttempt);
         Assert.NotEmpty(blockedFormFields.Diagnostics);
 
-        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> blockedFormWidgets = invalid.Read.TryFormWidgets();
+        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> blockedFormWidgets = invalid.Reader.TryFormWidgets();
         Assert.False(blockedFormWidgets.CanAttempt);
         Assert.NotEmpty(blockedFormWidgets.Diagnostics);
 
-        PdfOperationResult<PdfDocumentInfo> blockedDocumentInfo = invalid.Read.TryDocumentInfo();
+        PdfOperationResult<PdfDocumentInfo> blockedDocumentInfo = invalid.Reader.TryDocumentInfo();
         Assert.False(blockedDocumentInfo.CanAttempt);
         Assert.NotEmpty(blockedDocumentInfo.Diagnostics);
 
-        PdfOperationResult<PdfDocumentSecurityInfo> blockedSecurity = invalid.Read.TrySecurity();
+        PdfOperationResult<PdfDocumentSecurityInfo> blockedSecurity = invalid.Reader.TrySecurity();
         Assert.False(blockedSecurity.CanAttempt);
         Assert.NotEmpty(blockedSecurity.Diagnostics);
 
-        PdfOperationResult<PdfXmpMetadataInfo> blockedXmp = invalid.Read.TryXmpMetadata();
+        PdfOperationResult<PdfXmpMetadataInfo> blockedXmp = invalid.Reader.TryXmpMetadata();
         Assert.False(blockedXmp.CanAttempt);
         Assert.NotEmpty(blockedXmp.Diagnostics);
 
-        PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> blockedOutputIntents = invalid.Read.TryOutputIntents();
+        PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> blockedOutputIntents = invalid.Reader.TryOutputIntents();
         Assert.False(blockedOutputIntents.CanAttempt);
         Assert.NotEmpty(blockedOutputIntents.Diagnostics);
 
-        PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> blockedAttachmentMetadata = invalid.Read.TryAttachmentMetadata();
+        PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> blockedAttachmentMetadata = invalid.Reader.TryAttachmentMetadata();
         Assert.False(blockedAttachmentMetadata.CanAttempt);
         Assert.NotEmpty(blockedAttachmentMetadata.Diagnostics);
     }
@@ -832,9 +834,9 @@ public class PdfDocumentWorkflowTests {
             .Paragraph(paragraph => paragraph.Text("Attachment workflow"))
             .ToBytes();
 
-        PdfDocument opened = PdfDocument.Open(source);
-        IReadOnlyList<PdfExtractedAttachment> attachments = opened.Read.Attachments();
-        PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> result = opened.Read.TryAttachments();
+        PdfDocument opened = PdfDocument.Load(source);
+        IReadOnlyList<PdfExtractedAttachment> attachments = opened.Reader.Attachments();
+        PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> result = opened.Reader.TryAttachments();
 
         PdfExtractedAttachment attachment = Assert.Single(attachments);
         Assert.Equal("payload.txt", attachment.FileName);
@@ -846,8 +848,8 @@ public class PdfDocumentWorkflowTests {
         Assert.Empty(result.Diagnostics);
 
         PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> blocked = PdfDocument
-            .Open(Encoding.ASCII.GetBytes("not a pdf"))
-            .Read
+            .Load(Encoding.ASCII.GetBytes("not a pdf"))
+            .Reader
             .TryAttachments();
 
         Assert.False(blocked.CanAttempt);
@@ -863,37 +865,37 @@ public class PdfDocumentWorkflowTests {
             .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: PdfAlign.Center)
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(source);
-        IReadOnlyList<PdfAnnotation> annotations = document.Read.Annotations();
+        PdfDocument document = PdfDocument.Load(source);
+        IReadOnlyList<PdfAnnotation> annotations = document.Reader.Annotations();
         Assert.Equal(2, annotations.Count);
         Assert.All(annotations, annotation => Assert.Equal(1, annotation.PageNumber));
 
-        PdfAnnotation text = Assert.Single(document.Read.AnnotationsBySubtype("Text"));
+        PdfAnnotation text = Assert.Single(document.Reader.AnnotationsBySubtype("Text"));
         Assert.Equal("Review note", text.Contents);
         Assert.True(text.Width > 0);
         Assert.True(text.Height > 0);
 
-        PdfAnnotation freeText = Assert.Single(document.Read.AnnotationsBySubtype("FreeText"));
+        PdfAnnotation freeText = Assert.Single(document.Reader.AnnotationsBySubtype("FreeText"));
         Assert.Equal("Visible reviewer note", freeText.Contents);
         Assert.True(freeText.HasFreeTextAppearanceMetadata);
         Assert.Equal(11D, freeText.EffectiveFontSize);
-        Assert.Empty(document.Read.AnnotationsByActionType("JavaScript"));
+        Assert.Empty(document.Reader.AnnotationsByActionType("JavaScript"));
 
-        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeAnnotations = document.Read.TryAnnotations();
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeAnnotations = document.Reader.TryAnnotations();
         Assert.True(safeAnnotations.Succeeded);
         Assert.Equal(2, safeAnnotations.RequireValue().Count);
 
-        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeFreeText = document.Read.TryAnnotationsBySubtype("FreeText");
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeFreeText = document.Reader.TryAnnotationsBySubtype("FreeText");
         Assert.True(safeFreeText.Succeeded);
         Assert.Equal("Visible reviewer note", Assert.Single(safeFreeText.RequireValue()).Contents);
 
-        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeActions = document.Read.TryAnnotationsByActionType("JavaScript");
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeActions = document.Reader.TryAnnotationsByActionType("JavaScript");
         Assert.True(safeActions.Succeeded);
         Assert.Empty(safeActions.RequireValue());
 
         PdfOperationResult<IReadOnlyList<PdfAnnotation>> blocked = PdfDocument
-            .Open(Encoding.ASCII.GetBytes("not a pdf"))
-            .Read
+            .Load(Encoding.ASCII.GetBytes("not a pdf"))
+            .Reader
             .TryAnnotations();
 
         Assert.False(blocked.CanAttempt);
@@ -916,7 +918,7 @@ public class PdfDocumentWorkflowTests {
             .Paragraph(paragraph => paragraph.Text("This paragraph should appear in structured text and redaction planning."))
             .ToBytes();
 
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfDocumentInfo info = document.Inspect();
         Assert.True(info.HasReadablePageLabels);
         Assert.True(info.HasReadableOpenAction);
@@ -933,10 +935,10 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(diagnostics.StreamCount, optimization.StreamCount);
         Assert.NotEmpty(optimization.LargestStreams);
 
-        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Read.TextBlocks();
+        IReadOnlyList<PdfLogicalTextBlock> blocks = document.Reader.TextBlocks();
         Assert.NotEmpty(blocks);
         Assert.Contains(blocks, block => block.Text.Contains("Diagnostic Report", StringComparison.Ordinal));
-        Assert.True(document.Read.TryTextBlocks().Succeeded);
+        Assert.True(document.Reader.TryTextBlocks().Succeeded);
 
         PdfRedactionPlan plan = document.PlanRedactions(new[] {
             new PdfRedactionArea(1, 0, 0, 1000, 1000, "full-page")
@@ -952,27 +954,27 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void ProofReports_StayFluentForRewritePreservationAndRedactionVerification() {
         byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
-        PdfDocument updated = PdfDocument.Open(source).UpdateMetadata(title: "Updated preservation title");
+        PdfDocument updated = PdfDocument.Load(source).UpdateMetadata(title: "Updated preservation title");
         var preservationOptions = new PdfRewritePreservationOptions()
             .AllowMetadataChanges("Title")
             .RequireTextMarkers("PreservationMarker", "SecondPageMarker");
 
-        PdfRewritePreservationReport preserved = PdfDocument.Open(source).AssessRewritePreservation(updated, preservationOptions);
+        PdfRewritePreservationReport preserved = PdfDocument.Load(source).AssessRewritePreservation(updated, preservationOptions);
         Assert.True(preserved.IsPreserved);
         Assert.Empty(preserved.Issues);
 
         using var rewrittenStream = new MemoryStream(updated.ToBytes());
-        Assert.True(PdfDocument.Open(source).AssertRewritePreserved(rewrittenStream, preservationOptions).IsPreserved);
+        Assert.True(PdfDocument.Load(source).AssertRewritePreserved(rewrittenStream, preservationOptions).IsPreserved);
 
-        PdfDocument deleted = PdfDocument.Open(source).Pages.Delete(2);
-        PdfRewritePreservationReport loss = PdfDocument.Open(source).AssessRewritePreservation(
+        PdfDocument deleted = PdfDocument.Load(source).Pages.Delete(2);
+        PdfRewritePreservationReport loss = PdfDocument.Load(source).AssessRewritePreservation(
             deleted,
             new PdfRewritePreservationOptions().RequireTextMarkers("SecondPageMarker"));
         Assert.False(loss.IsPreserved);
         Assert.Contains(loss.Issues, issue => issue.Feature == "PageCount");
         Assert.Contains(loss.Issues, issue => issue.Feature == "TextMarker" && issue.Expected == "SecondPageMarker");
 
-        PdfRewritePreservationMatrixReport matrix = PdfDocument.Open(source).AssertRewritePreservationMatrix(
+        PdfRewritePreservationMatrixReport matrix = PdfDocument.Load(source).AssertRewritePreservationMatrix(
             "fluent-metadata-update",
             "MetadataUpdate",
             document => document.UpdateMetadata(title: "Updated preservation title"),
@@ -986,7 +988,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains("attachments", matrixEntry.SourceFeatures);
 
         byte[] signedSource = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
-        PdfRewritePreservationMatrixReport blockedMatrix = PdfDocument.Open(signedSource).AssertRewritePreservationMatrix(
+        PdfRewritePreservationMatrixReport blockedMatrix = PdfDocument.Load(signedSource).AssertRewritePreservationMatrix(
             "signed-rewrite-blocked",
             "MetadataUpdate",
             document => document.UpdateMetadata(title: "Blocked"),
@@ -999,16 +1001,16 @@ public class PdfDocumentWorkflowTests {
         PdfRedactionProofResult redactionProof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
         PdfRedactionVerificationOptions redactionOptions = PdfRedactionProofTestSupport.CreateVerificationOptions();
 
-        PdfRedactionVerificationReport verified = PdfDocument.Open(redactionProof.Redacted).VerifyRedactions(redactionOptions);
+        PdfRedactionVerificationReport verified = PdfDocument.Load(redactionProof.Redacted).VerifyRedactions(redactionOptions);
         Assert.True(verified.IsVerified);
         Assert.Empty(verified.Issues);
         Assert.DoesNotContain("PAY-SECRET-2026", verified.ExtractedText, StringComparison.Ordinal);
         Assert.Contains("Visible compliance marker", verified.ExtractedText, StringComparison.Ordinal);
 
-        PdfRedactionVerificationReport unredacted = PdfDocument.Open(redactionProof.Source).VerifyRedactions(redactionOptions);
+        PdfRedactionVerificationReport unredacted = PdfDocument.Load(redactionProof.Source).VerifyRedactions(redactionOptions);
         Assert.False(unredacted.IsVerified);
         Assert.Contains(unredacted.Issues, issue => issue.Feature == "RemovedTextMarker" && issue.Marker == "PAY-SECRET-2026");
-        Assert.Throws<InvalidOperationException>(() => PdfDocument.Open(redactionProof.Source).AssertRedactionsVerified(redactionOptions));
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Load(redactionProof.Source).AssertRedactionsVerified(redactionOptions));
     }
 
     [Fact]
@@ -1021,7 +1023,7 @@ public class PdfDocumentWorkflowTests {
             ["Person.Name"] = PdfFormFieldValue.From("Ada Lovelace")
         };
 
-        PdfDocumentForms forms = PdfDocument.Open(formPdf).Forms;
+        PdfDocumentForms forms = PdfDocument.Load(formPdf).Forms;
 
         Assert.True(forms.TryFill(textValues, null).Succeeded);
         Assert.True(forms.TryFill(fieldValues, null).Succeeded);
@@ -1036,26 +1038,26 @@ public class PdfDocumentWorkflowTests {
 
         Assert.Equal(
             PdfPageExtractor.ExtractPageRanges(source, PdfPageRange.ParseMany("3,1-2")),
-            PdfDocument.Open(source).Pages.Extract("3,1-2").ToBytes());
+            PdfDocument.Load(source).Pages.Extract("3,1-2").ToBytes());
 
         Assert.Equal(
             PdfPageEditor.DeletePageRanges(source, PdfPageRange.ParseMany("2")),
-            PdfDocument.Open(source).Pages.Delete("2").ToBytes());
+            PdfDocument.Load(source).Pages.Delete("2").ToBytes());
 
         Assert.Equal(
             PdfPageEditor.ReorderPageRanges(source, PdfPageRange.ParseMany("2,3,1")),
-            PdfDocument.Open(source).Pages.Reorder("2,3,1").ToBytes());
+            PdfDocument.Load(source).Pages.Reorder("2,3,1").ToBytes());
 
         Assert.Equal(
             PdfPageEditor.RotatePageRanges(source, 90, PdfPageRange.ParseMany("2")),
-            PdfDocument.Open(source).Pages.Rotate(90, "2").ToBytes());
+            PdfDocument.Load(source).Pages.Rotate(90, "2").ToBytes());
 
-        IReadOnlyList<PdfDocument> split = PdfDocument.Open(source).Pages.Split();
+        IReadOnlyList<PdfDocument> split = PdfDocument.Load(source).Pages.Split();
         Assert.Equal(3, split.Count);
         Assert.All(split, part => Assert.Equal(1, part.Inspect().PageCount));
-        Assert.Contains("Page A", split[0].Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Page B", split[1].Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Page C", split[2].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page A", split[0].Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page B", split[1].Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", split[2].Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1064,29 +1066,29 @@ public class PdfDocumentWorkflowTests {
         byte[] source = BuildThreePagePdf();
         PdfPageSelection selection = PdfPageSelection.Parse("3,1");
 
-        PdfDocument appended = PdfDocument.Open(target).Pages.Append(PdfDocument.Open(source), selection);
+        PdfDocument appended = PdfDocument.Load(target).Pages.Append(PdfDocument.Load(source), selection);
         Assert.Equal(PdfPageImporter.AppendPages(target, source, 3, 1), appended.ToBytes());
         Assert.Equal(3, appended.Inspect().PageCount);
-        Assert.Contains("Page C", appended.Read.Text(), StringComparison.Ordinal);
-        Assert.DoesNotContain("Page B", appended.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", appended.Reader.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page B", appended.Reader.Text(), StringComparison.Ordinal);
 
-        PdfDocument prepended = PdfDocument.Open(target).Pages.Prepend(source, PdfPageSelection.From(2));
+        PdfDocument prepended = PdfDocument.Load(target).Pages.Prepend(source, PdfPageSelection.From(2));
         Assert.Equal(PdfPageImporter.PrependPages(target, source, 2), prepended.ToBytes());
-        Assert.Contains("Second page body", prepended.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Second page body", prepended.Reader.Text(), StringComparison.Ordinal);
 
         var importOptions = new PdfPageImportOptions {
             FlattenVisualAnnotations = true
         };
-        PdfDocument inserted = PdfDocument.Open(target).Pages.Insert(1, source, PdfPageSelection.From(2), importOptions);
+        PdfDocument inserted = PdfDocument.Load(target).Pages.Insert(1, source, PdfPageSelection.From(2), importOptions);
         Assert.Equal(PdfPageImporter.InsertPages(importOptions, target, source, 1, 2), inserted.ToBytes());
 
-        PdfOperationResult<PdfDocument> imported = PdfDocument.Open(target).Pages.TryAppend(PdfDocument.Open(source), PdfPageSelection.From(1));
+        PdfOperationResult<PdfDocument> imported = PdfDocument.Load(target).Pages.TryAppend(PdfDocument.Load(source), PdfPageSelection.From(1));
         Assert.True(imported.Succeeded);
         Assert.Equal(PdfPreflightCapability.ManipulatePages, imported.Capability);
-        Assert.Contains("First page body", imported.RequireValue().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("First page body", imported.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-        PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
-        PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryAppend(PdfDocument.Open(source));
+        PdfDocument invalid = PdfDocument.Load(Encoding.ASCII.GetBytes("not a pdf"));
+        PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryAppend(PdfDocument.Load(source));
         Assert.False(blocked.CanAttempt);
         Assert.False(blocked.Succeeded);
         Assert.NotEmpty(blocked.Diagnostics);
@@ -1095,20 +1097,20 @@ public class PdfDocumentWorkflowTests {
         try {
             File.WriteAllBytes(sourcePath, source);
 
-            PdfOperationResult<PdfDocument> byteImport = PdfDocument.Open(target).Pages.TryAppend(source, PdfPageSelection.From(1));
+            PdfOperationResult<PdfDocument> byteImport = PdfDocument.Load(target).Pages.TryAppend(source, PdfPageSelection.From(1));
             Assert.True(byteImport.Succeeded);
             Assert.Equal(2, byteImport.RequireValue().Inspect().PageCount);
 
             using var sourceStream = new MemoryStream(source);
-            PdfOperationResult<PdfDocument> streamImport = PdfDocument.Open(target).Pages.TryPrepend(sourceStream, PdfPageSelection.From(2));
+            PdfOperationResult<PdfDocument> streamImport = PdfDocument.Load(target).Pages.TryPrepend(sourceStream, PdfPageSelection.From(2));
             Assert.True(streamImport.Succeeded);
-            Assert.Contains("Second page body", streamImport.RequireValue().Read.Text(), StringComparison.Ordinal);
+            Assert.Contains("Second page body", streamImport.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-            PdfOperationResult<PdfDocument> pathImport = PdfDocument.Open(target).Pages.TryInsert(1, sourcePath, PdfPageSelection.From(3));
+            PdfOperationResult<PdfDocument> pathImport = PdfDocument.Load(target).Pages.TryInsert(1, sourcePath, PdfPageSelection.From(3));
             Assert.True(pathImport.Succeeded);
-            Assert.Contains("Third page body", pathImport.RequireValue().Read.Text(), StringComparison.Ordinal);
+            Assert.Contains("Third page body", pathImport.RequireValue().Reader.Text(), StringComparison.Ordinal);
 
-            PdfOperationResult<PdfDocument> failedSource = PdfDocument.Open(target).Pages.TryAppend(Encoding.ASCII.GetBytes("not a pdf"));
+            PdfOperationResult<PdfDocument> failedSource = PdfDocument.Load(target).Pages.TryAppend(Encoding.ASCII.GetBytes("not a pdf"));
             Assert.True(failedSource.CanAttempt);
             Assert.False(failedSource.Succeeded);
             Assert.NotNull(failedSource.Exception);
@@ -1124,22 +1126,22 @@ public class PdfDocumentWorkflowTests {
     public void PageOperations_SplitByPageCountSelectionsAndBookmarks() {
         byte[] source = BuildThreePagePdf();
 
-        IReadOnlyList<PdfDocument> pageGroups = PdfDocument.Open(source).Pages.Split(2);
+        IReadOnlyList<PdfDocument> pageGroups = PdfDocument.Load(source).Pages.Split(2);
         Assert.Equal(2, pageGroups.Count);
         Assert.Equal(2, pageGroups[0].Inspect().PageCount);
         Assert.Equal(1, pageGroups[1].Inspect().PageCount);
-        Assert.Contains("Page A", pageGroups[0].Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Page C", pageGroups[1].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page A", pageGroups[0].Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", pageGroups[1].Reader.Text(), StringComparison.Ordinal);
 
-        IReadOnlyList<PdfDocument> selections = PdfDocument.Open(source).Pages.Split(
+        IReadOnlyList<PdfDocument> selections = PdfDocument.Load(source).Pages.Split(
             PdfPageSelection.Parse("1-2"),
             PdfPageSelection.Parse("3"));
         Assert.Equal(2, selections.Count);
-        Assert.Contains("Second page body", selections[0].Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Third page body", selections[1].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Second page body", selections[0].Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Third page body", selections[1].Reader.Text(), StringComparison.Ordinal);
 
         byte[] bookmarked = BuildThreeBookmarkPdf();
-        PdfDocument bookmarkDocument = PdfDocument.Open(bookmarked);
+        PdfDocument bookmarkDocument = PdfDocument.Load(bookmarked);
         IReadOnlyList<PdfBookmarkPageRange> ranges = bookmarkDocument.Pages.BookmarkPageRanges();
         Assert.Equal(3, ranges.Count);
         Assert.Equal("Chapter One", ranges[0].Title);
@@ -1151,13 +1153,13 @@ public class PdfDocumentWorkflowTests {
 
         IReadOnlyList<PdfDocument> bookmarkSplit = bookmarkDocument.Pages.SplitByBookmarks("Chapter Two");
         PdfDocument chapterTwo = Assert.Single(bookmarkSplit);
-        Assert.Contains("Chapter Two", chapterTwo.Read.Text(), StringComparison.Ordinal);
-        Assert.DoesNotContain("Chapter Three", chapterTwo.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Chapter Two", chapterTwo.Reader.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Chapter Three", chapterTwo.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
     public void PageOperations_BookmarkPageRangesUsePageOrderWhenOutlineOrderDiffers() {
-        PdfDocument document = PdfDocument.Open(BuildOutOfOrderBookmarkPdf());
+        PdfDocument document = PdfDocument.Load(BuildOutOfOrderBookmarkPdf());
 
         IReadOnlyList<PdfBookmarkPageRange> ranges = document.Pages.BookmarkPageRanges();
 
@@ -1172,11 +1174,11 @@ public class PdfDocumentWorkflowTests {
         byte[] source = BuildThreePagePdf();
         byte[] appendix = BuildPdf("Appendix", "Appendix body");
 
-        PdfDocument merged = PdfDocument.Open(source).MergeWith(PdfDocument.Open(appendix));
+        PdfDocument merged = PdfDocument.Load(source).MergeWith(PdfDocument.Load(appendix));
         Assert.Equal(PdfMerger.Merge(source, appendix), merged.ToBytes());
         Assert.Equal(4, merged.Inspect().PageCount);
 
-        PdfDocument bulkMerged = PdfDocument.Merge(PdfDocument.Open(source), PdfDocument.Open(appendix));
+        PdfDocument bulkMerged = PdfDocument.Merge(PdfDocument.Load(source), PdfDocument.Load(appendix));
         Assert.Equal(PdfMerger.Merge(source, appendix), bulkMerged.ToBytes());
         Assert.Equal(4, bulkMerged.Inspect().PageCount);
 
@@ -1202,14 +1204,14 @@ public class PdfDocumentWorkflowTests {
     public void AppendOnlyRevisionWorkflows_StayFluentAndDelegateToIncrementalEngine() {
         byte[] source = BuildThreePagePdf();
 
-        PdfDocument metadata = PdfDocument.Open(source).AppendMetadataRevision(title: "Append-only workflow");
+        PdfDocument metadata = PdfDocument.Load(source).AppendMetadataRevision(title: "Append-only workflow");
         Assert.Equal(
             PdfIncrementalUpdater.UpdateMetadata(source, title: "Append-only workflow"),
             metadata.ToBytes());
         Assert.Equal("Append-only workflow", metadata.Inspect().Metadata.Title);
         Assert.True(metadata.Inspect().Security.HasIncrementalUpdates);
 
-        PdfOperationResult<PdfDocument> metadataResult = PdfDocument.Open(source).TryAppendMetadataRevision(author: "OfficeIMO Incremental");
+        PdfOperationResult<PdfDocument> metadataResult = PdfDocument.Load(source).TryAppendMetadataRevision(author: "OfficeIMO Incremental");
         Assert.True(metadataResult.Succeeded);
         Assert.Equal(PdfPreflightCapability.AppendMetadataRevision, metadataResult.Capability);
         Assert.Equal("OfficeIMO Incremental", metadataResult.RequireValue().Inspect().Metadata.Author);
@@ -1223,14 +1225,14 @@ public class PdfDocumentWorkflowTests {
             KeepNeedAppearances = false
         };
 
-        PdfDocument form = PdfDocument.Open(formSource).Forms.AppendRevision(fieldValues, formOptions);
+        PdfDocument form = PdfDocument.Load(formSource).Forms.AppendRevision(fieldValues, formOptions);
         Assert.Equal(
             PdfIncrementalUpdater.UpdateFormFields(formSource, fieldValues, formOptions),
             form.ToBytes());
         Assert.Equal("Ada", Assert.Single(form.Inspect().FormFields).Value);
         Assert.True(form.Inspect().Security.HasIncrementalUpdates);
 
-        PdfOperationResult<PdfDocument> formResult = PdfDocument.Open(formSource).Forms.TryAppendRevision(fieldValues, formOptions, readOptions: null);
+        PdfOperationResult<PdfDocument> formResult = PdfDocument.Load(formSource).Forms.TryAppendRevision(fieldValues, formOptions, readOptions: null);
         Assert.True(formResult.Succeeded);
         Assert.Equal(PdfPreflightCapability.AppendFormFieldRevision, formResult.Capability);
         Assert.Equal("Ada", Assert.Single(formResult.RequireValue().Inspect().FormFields).Value);
@@ -1243,14 +1245,14 @@ public class PdfDocumentWorkflowTests {
             SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
         };
 
-        PdfExternalSignaturePreparation preparation = PdfDocument.Open(source).PrepareExternalSignature(signatureOptions);
+        PdfExternalSignaturePreparation preparation = PdfDocument.Load(source).PrepareExternalSignature(signatureOptions);
         Assert.Equal(
             PdfIncrementalUpdater.PrepareExternalSignature(source, signatureOptions).PreparedPdf,
             preparation.PreparedPdf);
         Assert.Equal("Approval", preparation.FieldName);
-        Assert.True(PdfDocument.Open(preparation.PreparedPdf).ValidateSignatures().HasSignatures);
+        Assert.True(PdfDocument.Load(preparation.PreparedPdf).ValidateSignatures().HasSignatures);
 
-        PdfOperationResult<PdfExternalSignaturePreparation> signatureResult = PdfDocument.Open(source).TryPrepareExternalSignature(signatureOptions);
+        PdfOperationResult<PdfExternalSignaturePreparation> signatureResult = PdfDocument.Load(source).TryPrepareExternalSignature(signatureOptions);
         Assert.True(signatureResult.Succeeded);
         Assert.Equal(PdfPreflightCapability.PrepareExternalSignatureRevision, signatureResult.Capability);
         Assert.Equal("Approval", signatureResult.RequireValue().FieldName);
@@ -1264,13 +1266,13 @@ public class PdfDocumentWorkflowTests {
             .PageBreak()
             .Paragraph(paragraph => paragraph.Text("Page two"))
             .ToBytes();
-        var onePageLimit = new PdfReadOptions {
+        var onePageLimit = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPages = 1 }
         };
-        PdfDocument constrained = PdfDocument.Open(twoPages, onePageLimit);
+        PdfDocument constrained = PdfDocument.Load(twoPages, onePageLimit);
 
         PdfMutationBlockedException mergeException = Assert.Throws<PdfMutationBlockedException>(
-            () => PdfDocument.Merge(PdfDocument.Open(onePage), constrained));
+            () => PdfDocument.Merge(PdfDocument.Load(onePage), constrained));
         PdfMutationBlockedException resizeException = Assert.Throws<PdfMutationBlockedException>(
             () => constrained.Pages.Resize(new PageSize(612, 792)));
 
@@ -1291,7 +1293,7 @@ public class PdfDocumentWorkflowTests {
             .Paragraph(paragraph => paragraph.Text("Tagged append-only body."))
             .ToBytes();
 
-        PdfDocument tagged = PdfDocument.Open(source);
+        PdfDocument tagged = PdfDocument.Load(source);
         PdfDocumentPreflight preflight = tagged.Preflight();
         Assert.True(preflight.CanRead);
         Assert.False(preflight.CanRewrite);
@@ -1324,7 +1326,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public void UpdateMetadata_PreservesSimpleOptionalContentLayersThroughFluentWorkflow() {
         byte[] source = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
-        PdfDocument layered = PdfDocument.Open(source);
+        PdfDocument layered = PdfDocument.Load(source);
         PdfDocumentPreflight preflight = layered.Preflight();
         Assert.True(preflight.CanRead);
         Assert.True(preflight.CanRewrite);
@@ -1351,7 +1353,7 @@ public class PdfDocumentWorkflowTests {
 
     [Fact]
     public void Save_WritesCurrentBytesToStreamAndPath() {
-        PdfDocument document = PdfDocument.Open(BuildThreePagePdf()).Pages.Delete(2);
+        PdfDocument document = PdfDocument.Load(BuildThreePagePdf()).Pages.Delete(2);
         using var stream = new MemoryStream();
 
         document.Save(stream);
@@ -1374,7 +1376,7 @@ public class PdfDocumentWorkflowTests {
     [Fact]
     public async System.Threading.Tasks.Task SaveResult_ReportsOutputWithoutRequiringReadablePdfContent() {
         byte[] invalidPdf = Encoding.ASCII.GetBytes("not a pdf");
-        PdfDocument document = PdfDocument.Open(invalidPdf);
+        PdfDocument document = PdfDocument.Load(invalidPdf);
         using var stream = new MemoryStream();
 
         Assert.Empty(document.AnalyzeTextEncoding());

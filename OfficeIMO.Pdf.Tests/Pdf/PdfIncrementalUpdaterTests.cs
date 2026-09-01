@@ -19,8 +19,8 @@ public class PdfIncrementalUpdaterTests {
             .Meta(title: "Encrypted original", author: "Encrypted author")
             .Paragraph(paragraph => paragraph.Text("Encrypted incremental body"))
             .ToBytes();
-        var ownerOptions = new PdfReadOptions { Password = "owner" };
-        var userOptions = new PdfReadOptions { Password = "open" };
+        var ownerOptions = new PdfLoadOptions { Password = "owner" };
+        var userOptions = new PdfLoadOptions { Password = "open" };
         PdfDocumentSecurityInfo before = PdfSyntax.ReadDocumentSecurityInfo(original, ownerOptions);
 
         byte[] updated = PdfIncrementalUpdater.UpdateMetadata(
@@ -30,7 +30,7 @@ public class PdfIncrementalUpdaterTests {
 
         Assert.True(updated.AsSpan(0, original.Length).SequenceEqual(original));
         Assert.Throws<PdfPasswordRequiredException>(() => PdfInspector.Inspect(updated));
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(updated, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(updated, new PdfLoadOptions { Password = "wrong" }));
         PdfDocumentInfo userInfo = PdfInspector.Inspect(updated, userOptions);
         PdfDocumentSecurityInfo after = PdfSyntax.ReadDocumentSecurityInfo(updated, ownerOptions);
         Assert.Equal("Encrypted updated", userInfo.Metadata.Title);
@@ -85,7 +85,7 @@ public class PdfIncrementalUpdaterTests {
             .Paragraph(paragraph => paragraph.Text("Create XMP append"))
             .ToBytes();
 
-        PdfDocument updated = PdfDocument.Open(original)
+        PdfDocument updated = PdfDocument.Load(original)
             .AppendMetadataRevision(title: "Created XMP", keywords: "one;two", createXmpMetadata: true);
         PdfDocumentInfo info = updated.Inspect();
 
@@ -100,13 +100,13 @@ public class PdfIncrementalUpdaterTests {
             .Meta(title: "Before fluent append")
             .Paragraph(paragraph => paragraph.Text("Fluent encrypted body"))
             .ToBytes();
-        var ownerOptions = new PdfReadOptions { Password = "owner" };
+        var ownerOptions = new PdfLoadOptions { Password = "owner" };
 
-        PdfDocument updated = PdfDocument.Open(original, ownerOptions)
+        PdfDocument updated = PdfDocument.Load(original, ownerOptions)
             .AppendMetadataRevision(title: "After fluent append");
 
-        Assert.Equal("After fluent append", updated.Read.Metadata().Title);
-        Assert.Contains("Fluent encrypted body", updated.Read.Text(), StringComparison.Ordinal);
+        Assert.Equal("After fluent append", updated.Reader.Metadata().Title);
+        Assert.Contains("Fluent encrypted body", updated.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]

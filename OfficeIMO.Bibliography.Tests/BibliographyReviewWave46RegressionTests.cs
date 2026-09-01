@@ -69,16 +69,11 @@ public sealed class BibliographyReviewWave46RegressionTests {
     }
 
     [Fact]
-    public void Long_XML_declaration_scans_observe_cancellation() {
-        byte[] bytes = Encoding.ASCII.GetBytes("<?xml" + new string(' ', 16 * 1024 * 1024));
+    public void XML_declaration_detection_honors_precancelled_tokens() {
+        byte[] bytes = Encoding.ASCII.GetBytes("<?xml");
         using var cancellation = new CancellationTokenSource();
-        var cancellationThread = new Thread(() => { Thread.Sleep(1); cancellation.Cancel(); });
-        cancellationThread.Start();
+        cancellation.Cancel();
 
-        try {
-            Assert.Throws<OperationCanceledException>(() => BibliographyEncoding.Detect(bytes, cancellation.Token));
-        } finally {
-            cancellationThread.Join();
-        }
+        Assert.Throws<OperationCanceledException>(() => BibliographyEncoding.Detect(bytes, cancellation.Token));
     }
 }

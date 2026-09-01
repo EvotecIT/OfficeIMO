@@ -89,7 +89,7 @@ public class PdfAllSeverityBatch21Tests {
 
     [Fact]
     public void LegacyTwoArgumentFormCallsRemainSourceCompatibleWithoutMakingNullAmbiguous() {
-        PdfDocumentForms forms = PdfDocument.Open(PdfDocument.Create().ToBytes()).Forms;
+        PdfDocumentForms forms = PdfDocument.Load(PdfDocument.Create().ToBytes()).Forms;
         var strings = new Dictionary<string, string>();
         var typed = new Dictionary<string, PdfFormFieldValue>();
         var formOptions = new PdfFormFillerOptions();

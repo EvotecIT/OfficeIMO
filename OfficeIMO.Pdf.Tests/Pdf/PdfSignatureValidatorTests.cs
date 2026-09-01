@@ -133,7 +133,7 @@ public class PdfSignatureValidatorTests {
     public void SecurityScan_HandlesManyDefaultSizedSignatureContentsWithinParserBudget() {
         const int signatureCount = 24;
         const int reservedSignatureContentsBytes = 32768;
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxObjectParsingTime = TimeSpan.FromSeconds(15)
             }

@@ -10,20 +10,27 @@ internal static class PdfOcr {
         byte[] pdf,
         IPdfOcrProvider provider,
         PdfOcrMergeOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(provider, nameof(provider));
         PdfOcrMergeOptions effectiveOptions = options ?? new PdfOcrMergeOptions();
         effectiveOptions.Validate();
-        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions);
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         int[] selectedPages = effectiveOptions.Selection?.ToPageNumbers(
             readDocument.Pages.Count,
             nameof(effectiveOptions.Selection)) ?? Enumerable.Range(1, readDocument.Pages.Count).ToArray();
         if (selectedPages.Length > effectiveOptions.MaxPages) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.Pages, effectiveOptions.MaxPages, selectedPages.Length);
         }
-        PdfLogicalDocument logical = PdfLogicalDocument.FromPageNumbers(readDocument, null, selectedPages);
+        PdfDocumentReadResult logical = PdfDocumentReadEngine.Read(
+            readDocument,
+            new PdfReadOptions {
+                Profile = PdfReadProfile.Structured,
+                PageSelection = effectiveOptions.Selection,
+                Pipeline = CreateUnderstandingPipelineOptions(effectiveOptions)
+            },
+            cancellationToken);
         var renderOptions = new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Png,
             Dpi = effectiveOptions.Dpi,
@@ -47,12 +54,17 @@ internal static class PdfOcr {
         }
 
         IReadOnlyList<PdfOcrPageMergeResult> mergedPages = pages.AsReadOnly();
-        PdfLogicalDocument enriched = PdfOcrLogicalDocumentBuilder.Build(
+        PdfDocumentReadResult enriched = PdfOcrLogicalDocumentBuilder.Build(
             logical,
             mergedPages,
             effectiveOptions,
             cancellationToken);
         return new PdfOcrMergeResult(logical, enriched, mergedPages);
+    }
+
+    internal static PdfUnderstandingPipelineOptions CreateUnderstandingPipelineOptions(PdfOcrMergeOptions options) {
+        Guard.NotNull(options, nameof(options));
+        return new PdfUnderstandingPipelineOptions { MaxPages = options.MaxPages };
     }
 
     private static PdfOcrPageMergeResult MergePage(PdfLogicalPage nativePage, PdfReadPage readPage, PdfOcrResponse response, PdfOcrRequest request, PdfOcrMergeOptions options, CancellationToken cancellationToken) {

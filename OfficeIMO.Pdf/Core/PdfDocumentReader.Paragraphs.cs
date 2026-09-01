@@ -1,12 +1,12 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Fluent cross-page paragraph recovery operations for a <see cref="PdfDocument"/>.</summary>
-public sealed partial class PdfDocumentReader {
+internal sealed partial class PdfDocumentReader {
     /// <summary>Recovers conservative cross-page paragraph continuation groups.</summary>
     public IReadOnlyList<PdfLogicalParagraphContinuationGroup> ParagraphContinuations(
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return Logical(layoutOptions, readOptions).GetParagraphContinuationGroups(continuationOptions);
     }
 
@@ -14,7 +14,7 @@ public sealed partial class PdfDocumentReader {
     public PdfOperationResult<IReadOnlyList<PdfLogicalParagraphContinuationGroup>> TryParagraphContinuations(
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return _document.TryOperation(
             "Recover paragraph continuations",
             PdfPreflightCapability.ReadLogicalObjects,
@@ -27,7 +27,7 @@ public sealed partial class PdfDocumentReader {
         PdfPageSelection selection,
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return Logical(selection, layoutOptions, readOptions).GetParagraphContinuationGroups(continuationOptions);
     }
@@ -37,7 +37,7 @@ public sealed partial class PdfDocumentReader {
         PdfPageSelection selection,
         PdfLogicalParagraphContinuationOptions? continuationOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation(
             "Recover paragraph continuations",

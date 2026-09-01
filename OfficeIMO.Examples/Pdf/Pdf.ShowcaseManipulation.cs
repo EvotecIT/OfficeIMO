@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Pdf {
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source B", author: "OfficeIMO")
                 .Save(sourceBPath);
 
-            PdfDocument merged = PdfDocument.Open(sourceAPath)
+            PdfDocument merged = PdfDocument.Load(sourceAPath)
                 .MergeWith(sourceBPath);
             merged.Save(mergedPath);
             merged.Pages.Extract(PdfPageRange.From(2, 2))
@@ -67,7 +67,7 @@ namespace OfficeIMO.Examples.Pdf {
                     Color = PdfColor.FromRgb(14, 116, 144)
                 });
             stamped.Save(stampedPath);
-            File.WriteAllText(extractedTextPath, stamped.Read.Text());
+            File.WriteAllText(extractedTextPath, stamped.Read().Text);
 
             if (open) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo { FileName = stampedPath, UseShellExecute = true });

@@ -64,8 +64,8 @@ public class PdfBatesNumbererTests {
             new[] { new PdfBatesDocument(source) },
             new PdfBatesNumberingOptions { Prefix = "BOTTOM-", MinimumDigits = 2, Position = PdfBatesPosition.BottomLeft }).Documents[0].ToBytes();
 
-        PdfLogicalTextBlock topBlock = Assert.Single(PdfLogicalDocument.Load(top).TextBlocks, static block => block.Text.Contains("TOP-01", StringComparison.Ordinal));
-        PdfLogicalTextBlock bottomBlock = Assert.Single(PdfLogicalDocument.Load(bottom).TextBlocks, static block => block.Text.Contains("BOTTOM-01", StringComparison.Ordinal));
+        PdfLogicalTextBlock topBlock = Assert.Single(PdfDocumentReadResult.Load(top).TextBlocks, static block => block.Text.Contains("TOP-01", StringComparison.Ordinal));
+        PdfLogicalTextBlock bottomBlock = Assert.Single(PdfDocumentReadResult.Load(bottom).TextBlocks, static block => block.Text.Contains("BOTTOM-01", StringComparison.Ordinal));
         Assert.True(topBlock.BaselineY > bottomBlock.BaselineY);
     }
 
@@ -89,7 +89,7 @@ public class PdfBatesNumbererTests {
         byte[] source = PdfProductionWorkflowTestSupport.CreatePdf("Tight Bates budget");
         int sourceObjectCount = PdfReadDocument.Open(source).RawStructure().TotalObjectCount;
         var input = new PdfBatesDocument(source) {
-            ReadOptions = new PdfReadOptions {
+            ReadOptions = new PdfLoadOptions {
                 Limits = new PdfReadLimits { MaxIndirectObjects = sourceObjectCount }
             }
         };
@@ -98,7 +98,7 @@ public class PdfBatesNumbererTests {
             new[] { input },
             new PdfBatesNumberingOptions { Prefix = "7 0 obj-" }).Documents);
 
-        Assert.Contains("7 0 obj-000001", result.ToDocument().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("7 0 obj-000001", result.ToDocument().Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class PdfBatesNumbererTests {
             "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
             "trailer\n<< /Root 1 0 R /Size 5 >>\nstartxref\n0\n%%EOF\n");
         var input = new PdfBatesDocument(source) {
-            ReadOptions = new PdfReadOptions {
+            ReadOptions = new PdfLoadOptions {
                 Limits = new PdfReadLimits {
                     MaxRawStreamBytes = 1,
                     MaxDecodedStreamBytes = 1,
@@ -134,6 +134,6 @@ public class PdfBatesNumbererTests {
             new[] { input },
             new PdfBatesNumberingOptions { Prefix = "startxref 123-" }).Documents);
 
-        Assert.Contains("startxref 123-000001", result.ToDocument().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("startxref 123-000001", result.ToDocument().Reader.Text(), StringComparison.Ordinal);
     }
 }

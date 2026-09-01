@@ -105,14 +105,14 @@ public static class OdtPdfConversionExtensions {
 
     /// <summary>Reconstructs an ODT document from an already loaded logical PDF model.</summary>
     public static OdtDocument ToOdtDocument(
-        this PdfCore.PdfLogicalDocument source,
+        this PdfCore.PdfDocumentReadResult source,
         WordPdf.PdfWordImportOptions? pdfOptions = null,
         WordOpenDocumentConversionOptions? openDocumentOptions = null) =>
         source.ToOdtDocumentResult(pdfOptions, openDocumentOptions).Value;
 
     /// <summary>Reconstructs an ODT document from a logical PDF model and preserves both stage reports.</summary>
     public static PdfOdtConversionResult ToOdtDocumentResult(
-        this PdfCore.PdfLogicalDocument source,
+        this PdfCore.PdfDocumentReadResult source,
         WordPdf.PdfWordImportOptions? pdfOptions = null,
         WordOpenDocumentConversionOptions? openDocumentOptions = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
@@ -141,14 +141,14 @@ public static class OdtPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs and saves an ODT document from a logical PDF model.</summary>
-    public static PdfOdtConversionReport SaveAsOdt(this PdfCore.PdfLogicalDocument source, string path, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdtConversionReport SaveAsOdt(this PdfCore.PdfDocumentReadResult source, string path, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions);
         result.Value.Save(path);
         return result.Report;
     }
 
     /// <summary>Reconstructs and writes an ODT document from a logical PDF model.</summary>
-    public static PdfOdtConversionReport SaveAsOdt(this PdfCore.PdfLogicalDocument source, Stream stream, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null) {
+    public static PdfOdtConversionReport SaveAsOdt(this PdfCore.PdfDocumentReadResult source, Stream stream, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null) {
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions);
         result.Value.Save(stream);
         return result.Report;
@@ -171,7 +171,7 @@ public static class OdtPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously saves an ODT document from a logical PDF model.</summary>
-    public static async Task<PdfOdtConversionReport> SaveAsOdtAsync(this PdfCore.PdfLogicalDocument source, string path, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdtConversionReport> SaveAsOdtAsync(this PdfCore.PdfDocumentReadResult source, string path, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
@@ -179,7 +179,7 @@ public static class OdtPdfConversionExtensions {
     }
 
     /// <summary>Reconstructs synchronously, then asynchronously writes an ODT document from a logical PDF model.</summary>
-    public static async Task<PdfOdtConversionReport> SaveAsOdtAsync(this PdfCore.PdfLogicalDocument source, Stream stream, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
+    public static async Task<PdfOdtConversionReport> SaveAsOdtAsync(this PdfCore.PdfDocumentReadResult source, Stream stream, WordPdf.PdfWordImportOptions? pdfOptions = null, WordOpenDocumentConversionOptions? openDocumentOptions = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOdtConversionResult result = source.ToOdtDocumentResult(pdfOptions, openDocumentOptions);
         await result.Value.SaveAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);

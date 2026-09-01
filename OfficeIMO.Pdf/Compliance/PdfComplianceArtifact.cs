@@ -5,12 +5,12 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfComplianceArtifact {
     private readonly byte[] _bytes;
-    private readonly PdfReadOptions? _readOptions;
+    private readonly PdfLoadOptions? _readOptions;
 
     internal PdfComplianceArtifact(
         byte[] bytes,
         PdfComplianceReadinessReport readiness,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(bytes, nameof(bytes));
         Guard.NotNull(readiness, nameof(readiness));
 

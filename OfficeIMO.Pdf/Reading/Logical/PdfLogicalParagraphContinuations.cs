@@ -110,7 +110,7 @@ public static class PdfLogicalParagraphContinuations {
     /// geometry, typography, and text-boundary evidence meet the configured confidence threshold.
     /// </summary>
     public static IReadOnlyList<PdfLogicalParagraphContinuationGroup> Group(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalParagraphContinuationOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         PdfLogicalParagraphContinuationOptions effective = PdfLogicalParagraphContinuationOptions.Resolve(options);
@@ -147,7 +147,7 @@ public static class PdfLogicalParagraphContinuations {
     }
 
     private static bool TryContinue(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalParagraph previous,
         PdfLogicalParagraph current,
         int currentPageIndex,
@@ -314,7 +314,7 @@ public static class PdfLogicalParagraphContinuations {
     }
 }
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Returns conservative cross-page paragraph continuation groups in document order.</summary>
     public IReadOnlyList<PdfLogicalParagraphContinuationGroup> GetParagraphContinuationGroups(
         PdfLogicalParagraphContinuationOptions? options = null) =>

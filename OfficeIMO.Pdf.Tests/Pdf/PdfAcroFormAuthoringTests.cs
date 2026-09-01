@@ -11,7 +11,7 @@ public class PdfAcroFormAuthoringTests {
             .Paragraph(paragraph => paragraph.Text("Chromium form authoring acceptance"))
             .ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "notes",
                 Kind = PdfFormFieldCreationKind.Text,
@@ -105,7 +105,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Fill_PreservesAuthoredWidgetActionsAndUpdatesRadioAndChoiceValues() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Fill scripted fields")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "country",
                 Kind = PdfFormFieldCreationKind.Choice,
@@ -127,7 +127,7 @@ public class PdfAcroFormAuthoringTests {
                 JavaScript = "app.alert('radio');"
             })).ToBytes();
 
-        PdfDocument filled = PdfDocument.Open(authored).Forms.Fill(new Dictionary<string, string> {
+        PdfDocument filled = PdfDocument.Load(authored).Forms.Fill(new Dictionary<string, string> {
             ["country"] = "Two",
             ["option"] = "B"
         });
@@ -142,13 +142,13 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Fill_RejectsAuthoredPushButtonsWithoutReplacingTheirCaptionAppearance() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button fill guard")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Calculate"
         })).ToBytes();
 
-        PdfDocument opened = PdfDocument.Open(authored);
+        PdfDocument opened = PdfDocument.Load(authored);
         Assert.Throws<ArgumentException>(() => opened.Forms.Fill(new Dictionary<string, string> {
             ["calculate"] = "On"
         }));
@@ -161,7 +161,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Preflight_DoesNotAdvertisePushButtonsAsFillableValueFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button preflight")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Calculate",
@@ -181,7 +181,7 @@ public class PdfAcroFormAuthoringTests {
     public void Create_AllowsEscapableSpacesInRadioOptionNames() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Radio names")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "size",
             Kind = PdfFormFieldCreationKind.RadioButtonGroup,
             ChoiceOptions = new[] { "Extra Large" },
@@ -199,7 +199,7 @@ public class PdfAcroFormAuthoringTests {
     public void Create_RejectsMultiSelectComboChoiceFlags() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Choice flags")).ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "choice",
             Kind = PdfFormFieldCreationKind.Choice,
             ChoiceOptions = new[] { "One", "Two" },
@@ -211,14 +211,14 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Edit_AllowsSubsequentEditsWhenActiveContentBelongsOnlyToFormWidgets() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Repeated scripted edits")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Calculate",
             JavaScript = "app.alert('kept');"
         })).ToBytes();
 
-        PdfAcroFormEditResult renamed = PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("calculate", "recalculate"));
+        PdfAcroFormEditResult renamed = PdfDocument.Load(authored).Forms.Edit(edit => edit.Rename("calculate", "recalculate"));
 
         PdfFormField field = Assert.Single(renamed.Fields);
         Assert.Equal("recalculate", field.Name);
@@ -229,11 +229,11 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void EditResult_RetainsRaisedWidgetJavaScriptLimit() {
         byte[] source = BuildWidgetActionBudgetPdf(PdfReadLimits.DefaultMaxJavaScripts + 1);
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 1 }
         };
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source, options).Forms.Edit(edit => edit.Rename("run", "renamed"));
+        PdfAcroFormEditResult result = PdfDocument.Load(source, options).Forms.Edit(edit => edit.Rename("run", "renamed"));
 
         PdfFormField field = Assert.Single(result.ToDocument().Inspect().FormFields);
         Assert.Equal("renamed", field.Name);
@@ -243,7 +243,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void WidgetOwnedActiveContentTraversalHonorsObjectDepthLimit() {
         byte[] source = BuildDeepCatalogReferenceChainWithWidgetAction(chainLength: 12);
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
         };
 
@@ -261,7 +261,7 @@ public class PdfAcroFormAuthoringTests {
             .Replace(" /A 8 0 R >>", " /A 8 0 R /OfficeIMO << /S /Launch >> >>"));
 
         PdfReadDocument readDocument = PdfReadDocument.Open(source);
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
 
         Assert.False(readDocument.HasOnlyWidgetOwnedActiveContent());
         Assert.False(document.Preflight().CanFillSimpleFormFields);
@@ -271,7 +271,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Sanitize_RemovesAuthoredWidgetJavaScriptWithoutRemovingFields() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Sanitize widget script")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "submit",
             Kind = PdfFormFieldCreationKind.PushButton,
             X = 72,
@@ -307,7 +307,7 @@ public class PdfAcroFormAuthoringTests {
             JavaScript = "app.alert('kept');"
         };
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => {
             edit.Create(options);
             options.Name = "mutated";
             choices[0] = "Changed";
@@ -319,9 +319,9 @@ public class PdfAcroFormAuthoringTests {
         Assert.Equal(new[] { "One", "Two" }, field.Options.Select(static option => option.ExportValue));
         Assert.False(field.IsReadOnly);
 
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "limited",
                 Kind = PdfFormFieldCreationKind.PushButton,
                 JavaScript = "app.alert('too large');"
@@ -333,19 +333,19 @@ public class PdfAcroFormAuthoringTests {
     public void Reader_DecodesExistingWidgetJavaScriptStreamAndAppliesLimits() {
         byte[] source = BuildWidgetJavaScriptStreamPdf("app.alert('stream');");
 
-        PdfFormField field = Assert.Single(PdfDocument.Open(source).Inspect().FormFields);
+        PdfFormField field = Assert.Single(PdfDocument.Load(source).Inspect().FormFields);
         PdfFormWidgetAction action = Assert.Single(Assert.Single(field.Widgets).Actions);
         Assert.Equal("A", action.TriggerName);
         Assert.Equal("app.alert('stream');", action.JavaScript);
 
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScriptBytes = 8 } };
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(source, options).Inspect());
         Assert.Equal(PdfReadLimitKind.DecodedStreamBytes, exception.Kind);
     }
 
     [Fact]
     public void Reader_ReportsReadableEmptyWidgetJavaScriptAsPresent() {
-        PdfFormField field = Assert.Single(PdfDocument.Open(BuildWidgetJavaScriptStreamPdf(string.Empty)).Inspect().FormFields);
+        PdfFormField field = Assert.Single(PdfDocument.Load(BuildWidgetJavaScriptStreamPdf(string.Empty)).Inspect().FormFields);
         PdfFormWidget widget = Assert.Single(field.Widgets);
 
         Assert.True(field.HasJavaScript);
@@ -358,13 +358,13 @@ public class PdfAcroFormAuthoringTests {
     public void Reader_TraversesChainedWidgetActionsWithCyclesAndAggregateBudgets() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
-        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets);
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets);
         Assert.Equal(new[] { "A", "A.Next.0", "A.Next.1" }, widget.Actions.Select(static action => action.TriggerName));
         Assert.Equal(new[] { "GoTo", "JavaScript", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
         Assert.Equal("app.alert('one');", widget.JavaScript);
 
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(source, options).Inspect());
         Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
         Assert.Equal(2, exception.Actual);
     }
@@ -372,9 +372,9 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Reader_BoundsSharedWidgetActionDagExpansion() {
         byte[] source = BuildSharedWidgetActionDagPdf(depth: 8);
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 16 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 16 } };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(source, options).Inspect());
 
         Assert.Equal(PdfReadLimitKind.WidgetActions, exception.Kind);
         Assert.Equal(16, exception.Limit);
@@ -392,7 +392,7 @@ public class PdfAcroFormAuthoringTests {
     public void Reader_TraversesSingleIndirectNextWidgetAction() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false, useSingleIndirectNext: true);
 
-        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets);
+        PdfFormWidget widget = Assert.Single(Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets);
 
         Assert.Equal(new[] { "A", "A.Next" }, widget.Actions.Select(static action => action.TriggerName));
         Assert.Equal(new[] { "GoTo", "JavaScript" }, widget.Actions.Select(static action => action.ActionType));
@@ -402,7 +402,7 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Reader_CountsSingleIndirectNextDictionaryAsOneNestingLevel() {
         byte[] source = BuildShallowSingleIndirectNextWidgetActionPdf();
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 1 }
         };
 
@@ -416,7 +416,7 @@ public class PdfAcroFormAuthoringTests {
     public void Flatten_PrunesIndirectWidgetActionGraphButKeepsPublicRedactionAnalysisClean() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
-        PdfDocument flattened = PdfDocument.Open(source).Forms.Flatten();
+        PdfDocument flattened = PdfDocument.Load(source).Forms.Flatten();
         IReadOnlyList<PdfSanitizationFinding> findings = PdfSanitizer.Analyze(flattened.ToBytes());
 
         Assert.Empty(flattened.Inspect().FormFields);
@@ -428,27 +428,27 @@ public class PdfAcroFormAuthoringTests {
     public void FormPreflightAndPlannerBothRejectUnrelatedCatalogOpenAction() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: true);
 
-        PdfDocumentPreflight preflight = PdfDocument.Open(source).Preflight();
+        PdfDocumentPreflight preflight = PdfDocument.Load(source).Preflight();
 
         Assert.False(preflight.CanFillSimpleFormFields);
         Assert.False(preflight.CanFlattenSimpleFormFields);
         Assert.Contains(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields), message => message.Contains("open action", StringComparison.OrdinalIgnoreCase));
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(source).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Rename("run", "renamed")));
 
         byte[] nonWidgetAction = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace("/Subtype /Widget /FT /Tx", "/Subtype /Text /FT /Tx"));
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(nonWidgetAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
 
         byte[] outlineAction = BuildWidgetActionGraphPdf(includeOpenAction: false, includeOutlineAction: true);
-        PdfDocumentInfo outlineInfo = PdfDocument.Open(outlineAction).Inspect();
+        PdfDocumentInfo outlineInfo = PdfDocument.Load(outlineAction).Inspect();
         Assert.Empty(outlineInfo.CatalogActions);
         Assert.Equal(0, outlineInfo.PageActionCount);
-        Assert.False(PdfDocument.Open(outlineAction).Preflight().CanFillSimpleFormFields);
-        Assert.False(PdfDocument.Open(outlineAction).Preflight().CanFlattenSimpleFormFields);
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Flatten());
-        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Open(outlineAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
+        Assert.False(PdfDocument.Load(outlineAction).Preflight().CanFillSimpleFormFields);
+        Assert.False(PdfDocument.Load(outlineAction).Preflight().CanFlattenSimpleFormFields);
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(outlineAction).Forms.Fill(new Dictionary<string, string> { ["run"] = "updated" }));
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(outlineAction).Forms.Flatten());
+        Assert.Throws<PdfMutationBlockedException>(() => PdfDocument.Load(outlineAction).Forms.Edit(edit => edit.Rename("run", "renamed")));
     }
 
     [Fact]
@@ -456,7 +456,7 @@ public class PdfAcroFormAuthoringTests {
         const string script = "app.alert('€ •');\f";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unicode widget action")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "unicode",
             Kind = PdfFormFieldCreationKind.PushButton,
             X = 72,
@@ -476,7 +476,7 @@ public class PdfAcroFormAuthoringTests {
         const string existingScript = "app.alert('existing');";
         const string newScript = "app.alert('new');";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Existing widget action budget")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "existing",
             Kind = PdfFormFieldCreationKind.PushButton,
             X = 72,
@@ -486,9 +486,9 @@ public class PdfAcroFormAuthoringTests {
             JavaScript = existingScript
         })).ToBytes();
 
-        var countOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+        var countOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
         PdfReadLimitException countException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(authored, countOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(authored, countOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "new",
                 Kind = PdfFormFieldCreationKind.PushButton,
                 JavaScript = newScript
@@ -498,14 +498,14 @@ public class PdfAcroFormAuthoringTests {
 
         long existingBytes = PdfJavaScriptStringEncoding.EncodeUnicode(existingScript, nameof(existingScript)).LongLength;
         long newBytes = PdfJavaScriptStringEncoding.EncodeUnicode(newScript, nameof(newScript)).LongLength;
-        var byteOptions = new PdfReadOptions {
+        var byteOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxJavaScripts = 2,
                 MaxTotalJavaScriptBytes = existingBytes + newBytes - 1L
             }
         };
         PdfReadLimitException byteException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(authored, byteOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(authored, byteOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "new",
                 Kind = PdfFormFieldCreationKind.PushButton,
                 JavaScript = newScript
@@ -519,12 +519,12 @@ public class PdfAcroFormAuthoringTests {
         const string script = "app.alert('radio');";
         long scriptBytes = PdfJavaScriptStringEncoding.EncodeUnicode(script, nameof(script)).LongLength;
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Radio action budget")).ToBytes();
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = 3, MaxTotalJavaScriptBytes = scriptBytes * 3L - 1L }
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(source, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "choice",
                 Kind = PdfFormFieldCreationKind.RadioButtonGroup,
                 ChoiceOptions = new[] { "One", "Two", "Three" },
@@ -541,17 +541,17 @@ public class PdfAcroFormAuthoringTests {
     public void Edit_AppliesJavaScriptBudgetsToTheFinalCommandAdjustedFieldGraph() {
         const string script = "app.alert('replacement');";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Script replacement budget")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "run",
             Kind = PdfFormFieldCreationKind.PushButton,
             JavaScript = script
         })).ToBytes();
         long scriptBytes = PdfJavaScriptStringEncoding.EncodeUnicode(script, nameof(script)).LongLength;
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = 1, MaxTotalJavaScriptBytes = scriptBytes }
         };
 
-        PdfAcroFormEditResult result = PdfDocument.Open(authored, readOptions).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(authored, readOptions).Forms.Edit(edit => edit
             .Remove("run")
             .Create(new PdfFormFieldCreateOptions {
                 Name = "replacement",
@@ -568,17 +568,17 @@ public class PdfAcroFormAuthoringTests {
     public void Edit_PreflightsExistingNonJavaScriptActionsAgainstFinalWidgetActionCount() {
         const string script = "app.alert('count');";
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Action count")).ToBytes();
-        byte[] scripted = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] scripted = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "existing",
             Kind = PdfFormFieldCreationKind.PushButton,
             JavaScript = script
         })).ToBytes();
         byte[] nonJavaScript = PdfEncoding.Latin1GetBytes(PdfEncoding.Latin1GetString(scripted)
             .Replace("/S /JavaScript /JS", "/S /URI /URI"));
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(nonJavaScript, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+            PdfDocument.Load(nonJavaScript, readOptions).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
                 Name = "planned",
                 Kind = PdfFormFieldCreationKind.PushButton,
                 JavaScript = script
@@ -594,7 +594,7 @@ public class PdfAcroFormAuthoringTests {
         const int editFlag = 262144;
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Choice compatibility")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "empty",
                 Kind = PdfFormFieldCreationKind.Choice,
@@ -641,7 +641,7 @@ public class PdfAcroFormAuthoringTests {
     public void ChoiceCreation_PreservesAnExplicitlyUnselectedValueWhenOptionsExist() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected choice")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "country",
             Kind = PdfFormFieldCreationKind.Choice,
             ChoiceOptions = new[] { "Poland", "Germany" },
@@ -660,7 +660,7 @@ public class PdfAcroFormAuthoringTests {
         const int multiSelectFlag = 2097152;
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unselected multi-select choice")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "countries",
             Kind = PdfFormFieldCreationKind.Choice,
             FieldFlags = multiSelectFlag,
@@ -682,7 +682,7 @@ public class PdfAcroFormAuthoringTests {
     public void Create_ExtendsANonterminalFieldThatDeclaresAnInheritedType() {
         byte[] source = BuildInheritedTypeFieldHierarchyPdf();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "customer.phone",
             Value = "+48 123 456 789"
         }));
@@ -698,7 +698,7 @@ public class PdfAcroFormAuthoringTests {
         byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace("/BaseFont /Helvetica", "/BaseFont /ZapfDingbats"));
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "caption",
                 Kind = PdfFormFieldCreationKind.Text,
@@ -724,7 +724,7 @@ public class PdfAcroFormAuthoringTests {
     public void Create_UsesWinAnsiForAllocatedHelveticaAppearanceResources() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("WinAnsi field appearance")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "caption",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Pay € now"
@@ -740,7 +740,7 @@ public class PdfAcroFormAuthoringTests {
         byte[] source = Encoding.ASCII.GetBytes(PdfEncoding.Latin1GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace("/BaseFont /Helvetica >>", "/BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [65 /space] >> >>"));
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "caption",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "A"
@@ -760,7 +760,7 @@ public class PdfAcroFormAuthoringTests {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unicode button caption")).ToBytes();
         var appearanceOptions = new PdfFormFillerOptions().UseAppearanceFontFile("OfficeIMO Authoring Font", fontPath);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Łódź"
@@ -780,7 +780,7 @@ public class PdfAcroFormAuthoringTests {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Shared radio appearance font")).ToBytes();
         var appearanceOptions = new PdfFormFillerOptions().UseAppearanceFontFile("OfficeIMO Authoring Font", fontPath);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "shipping.method",
             Kind = PdfFormFieldCreationKind.RadioButtonGroup,
             ChoiceOptions = new[] { "Courier", "Parcel", "Pickup" },
@@ -844,7 +844,7 @@ public class PdfAcroFormAuthoringTests {
             .UseAppearanceFont("Broken Authoring Font", new byte[] { 0, 1, 2, 3 })
             .UseAppearanceFontFallbacks(fallbackSet);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "delivery.window",
             Kind = PdfFormFieldCreationKind.RadioButtonGroup,
             ChoiceOptions = new[] { "Morning", "Afternoon", "Evening" },
@@ -864,7 +864,7 @@ public class PdfAcroFormAuthoringTests {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Styled checkbox")).ToBytes();
         var style = new PdfFormFieldStyle { MarkColor = PdfColor.FromRgb(22, 101, 52) };
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "accepted",
             Kind = PdfFormFieldCreationKind.CheckBox,
             Value = "Yes",
@@ -881,11 +881,11 @@ public class PdfAcroFormAuthoringTests {
     [Fact]
     public void Edit_ReusesRaisedJavaScriptLimitsForIntermediateReadbacks() {
         byte[] source = BuildWidgetActionBudgetPdf(10_001);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxJavaScripts = 10_002 }
         };
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source, readOptions).Forms.Edit(edit => edit.Rename("run", "renamed"));
+        PdfAcroFormEditResult result = PdfDocument.Load(source, readOptions).Forms.Edit(edit => edit.Rename("run", "renamed"));
 
         Assert.Equal("renamed", Assert.Single(result.Fields).Name);
         Assert.True(result.PreservationReport.IsPreserved);
@@ -895,7 +895,7 @@ public class PdfAcroFormAuthoringTests {
     public void Remove_DropsIndirectWidgetActionsThroughCatalogReachabilityRewrite() {
         byte[] source = BuildWidgetActionGraphPdf(includeOpenAction: false);
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Remove("run"));
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Remove("run"));
 
         Assert.Empty(result.Fields);
         Assert.DoesNotContain(PdfSanitizer.Analyze(result.ToBytes()), static finding => finding.Kind == PdfSanitizationFindingKind.ActiveAction);
@@ -906,7 +906,7 @@ public class PdfAcroFormAuthoringTests {
     public void Remove_CanDeleteANewlyCreatedParentSubtreeInTheSameTransaction() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Remove authored hierarchy")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions { Name = "customer.name", Value = "Ada" })
             .Create(new PdfFormFieldCreateOptions { Name = "customer.notes", Value = "Priority" })
             .Remove("customer"));
@@ -920,7 +920,7 @@ public class PdfAcroFormAuthoringTests {
     public void Remove_CanRebuildAFieldSubtreeLaterInTheSameTransaction() {
         byte[] source = BuildInheritedTypeFieldHierarchyPdf();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Remove("customer")
             .Create(new PdfFormFieldCreateOptions { Name = "customer.phone", Value = "+48 123 456 789" }));
 
@@ -949,22 +949,22 @@ public class PdfAcroFormAuthoringTests {
     public void Create_RejectsCombOutsideItsCompatibleTextFieldContract() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Comb validation")).ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "multiline",
             Kind = PdfFormFieldCreationKind.Text,
             Style = new PdfFormFieldStyle { IsComb = true, IsMultiline = true, MaxLength = 4 }
         })));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "password",
             Kind = PdfFormFieldCreationKind.Text,
             Style = new PdfFormFieldStyle { IsComb = true, IsPassword = true, MaxLength = 4 }
         })));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "file",
             Kind = PdfFormFieldCreationKind.Text,
             Style = new PdfFormFieldStyle { IsComb = true, IsFileSelect = true, MaxLength = 4 }
         })));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "button",
             Kind = PdfFormFieldCreationKind.PushButton,
             Style = new PdfFormFieldStyle { IsComb = true, MaxLength = 4 }
@@ -979,7 +979,7 @@ public class PdfAcroFormAuthoringTests {
     public void Create_RejectsConflictingRawButtonKindFlags(PdfFormFieldCreationKind kind, int fieldFlags) {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button flag validation")).ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "button",
             Kind = kind,
             Caption = kind == PdfFormFieldCreationKind.PushButton ? "Run" : null,
@@ -995,9 +995,9 @@ public class PdfAcroFormAuthoringTests {
     public void Reader_AccountsWidgetActionsEvenWhenWidgetGeometryIsUnreadable() {
         byte[] source = Encoding.ASCII.GetBytes(Encoding.ASCII.GetString(BuildWidgetActionGraphPdf(includeOpenAction: false))
             .Replace(" /Rect [20 20 160 48]", string.Empty));
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxJavaScripts = 1 } };
 
-        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Open(source, options).Inspect());
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() => PdfDocument.Load(source, options).Inspect());
 
         Assert.Equal(PdfReadLimitKind.JavaScripts, exception.Kind);
         Assert.Equal(2, exception.Actual);
@@ -1008,7 +1008,7 @@ public class PdfAcroFormAuthoringTests {
         const int comboFlag = 131072;
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Final flags")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "country",
                 Kind = PdfFormFieldCreationKind.Choice,
@@ -1021,7 +1021,7 @@ public class PdfAcroFormAuthoringTests {
         Assert.False(field.IsCombo);
         Assert.Equal(0, field.Flags);
 
-        PdfAcroFormEditResult promoted = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult promoted = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "country",
                 Kind = PdfFormFieldCreationKind.Choice,
@@ -1035,7 +1035,7 @@ public class PdfAcroFormAuthoringTests {
     public void ButtonCaptionsIgnoreTextOnlyPasswordAndMultilineStyleFlags() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Button captions")).ToBytes();
 
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions {
                 Name = "calculate",
                 Kind = PdfFormFieldCreationKind.PushButton,

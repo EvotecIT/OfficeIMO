@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfComplianceAnalyzer {
     /// <summary>Analyzes an existing PDF byte array for profile-specific readback evidence.</summary>
-    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfReadOptions? options = null) {
+    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, byte[] pdf, PdfLoadOptions? options = null) {
         return AssessReadback(profile, pdf, System.Threading.CancellationToken.None, options);
     }
 
@@ -10,7 +10,7 @@ internal static partial class PdfComplianceAnalyzer {
         PdfComplianceProfile profile,
         byte[] pdf,
         System.Threading.CancellationToken cancellationToken,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
@@ -31,13 +31,13 @@ internal static partial class PdfComplianceAnalyzer {
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
-    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, string path, PdfReadOptions? options = null) {
+    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return AssessReadback(profile, File.ReadAllBytes(path), options);
     }
 
     /// <summary>Analyzes an existing PDF stream from its current position for profile-specific readback evidence.</summary>
-    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, Stream stream, PdfReadOptions? options = null) {
+    public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));

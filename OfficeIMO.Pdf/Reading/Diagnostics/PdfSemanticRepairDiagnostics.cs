@@ -5,7 +5,7 @@ internal static class PdfSemanticRepairDiagnostics {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary? catalog,
         IReadOnlyList<PdfReadPage> pages,
-        PdfReadOptions options) {
+        PdfLoadOptions options) {
         var diagnostics = new List<PdfRepairDiagnostic>();
         if (catalog is null) return diagnostics;
         PdfDictionary? pagesRoot = ResolveDictionary(objects, catalog.Items.TryGetValue("Pages", out PdfObject? pagesObject) ? pagesObject : null);
@@ -20,7 +20,7 @@ internal static class PdfSemanticRepairDiagnostics {
         return diagnostics.AsReadOnly();
     }
 
-    private static void RepairPageTree(Dictionary<int, PdfIndirectObject> objects, PdfDictionary root, IReadOnlyList<PdfReadPage> pages, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
+    private static void RepairPageTree(Dictionary<int, PdfIndirectObject> objects, PdfDictionary root, IReadOnlyList<PdfReadPage> pages, PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics) {
         int declared = (int)(root.Get<PdfNumber>("Count")?.Value ?? -1);
         if (declared != pages.Count) {
             AddDefect(options, diagnostics, "IncorrectPageTreeCount", "The page-tree root declares /Count " + declared + " but traversal found " + pages.Count + " page(s); lenient loading rebuilt /Count from reachable leaves.", FindObjectNumber(objects, root), recovered: true);
@@ -36,7 +36,7 @@ internal static class PdfSemanticRepairDiagnostics {
         RepairPageNode(objects, root, kids, options, diagnostics, visited, 1);
     }
 
-    private static void RepairPageNode(Dictionary<int, PdfIndirectObject> objects, PdfDictionary parent, PdfArray kids, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics, HashSet<PdfDictionary> visited, int depth) {
+    private static void RepairPageNode(Dictionary<int, PdfIndirectObject> objects, PdfDictionary parent, PdfArray kids, PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics, HashSet<PdfDictionary> visited, int depth) {
         if (depth > options.Limits.MaxPageTreeDepth || !visited.Add(parent)) return;
         for (int index = kids.Items.Count - 1; index >= 0; index--) {
             PdfObject kidObject = kids.Items[index];
@@ -60,7 +60,7 @@ internal static class PdfSemanticRepairDiagnostics {
         }
     }
 
-    private static void ValidateNameTrees(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, IReadOnlyList<PdfReadPage> pages, PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics) {
+    private static void ValidateNameTrees(Dictionary<int, PdfIndirectObject> objects, PdfDictionary catalog, IReadOnlyList<PdfReadPage> pages, PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics) {
         PdfDictionary? names = ResolveDictionary(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesObject) ? namesObject : null);
         if (names is null) return;
         foreach (KeyValuePair<string, PdfObject> entry in names.Items) {
@@ -93,7 +93,7 @@ internal static class PdfSemanticRepairDiagnostics {
         PdfObject nodeObject,
         string treeName,
         HashSet<int> visited,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
@@ -119,7 +119,7 @@ internal static class PdfSemanticRepairDiagnostics {
         PdfObject nodeObject,
         HashSet<int> visited,
         HashSet<int> pageObjectNumbers,
-        PdfReadOptions options,
+        PdfLoadOptions options,
         List<PdfRepairDiagnostic> diagnostics,
         int depth,
         ref int traversedNodes) {
@@ -183,7 +183,7 @@ internal static class PdfSemanticRepairDiagnostics {
         }
     }
 
-    private static void AddDefect(PdfReadOptions options, List<PdfRepairDiagnostic> diagnostics, string code, string message, int? objectNumber, bool recovered) {
+    private static void AddDefect(PdfLoadOptions options, List<PdfRepairDiagnostic> diagnostics, string code, string message, int? objectNumber, bool recovered) {
         if (options.ParsingMode == PdfParsingMode.Strict) throw new PdfParseException(code, message, objectNumber);
         diagnostics.Add(new PdfRepairDiagnostic(code, message, objectNumber, recovered ? PdfRepairDisposition.Recovered : PdfRepairDisposition.DetectedOnly));
     }

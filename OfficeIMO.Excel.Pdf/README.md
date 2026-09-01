@@ -96,7 +96,7 @@ result.Report.RequireNoErrorWarnings();
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("statement.pdf");
+PdfDocument pdf = PdfDocument.Load("statement.pdf");
 PdfExcelTableImportReport report = pdf.SaveTablesAsExcel("statement-tables.xlsx");
 
 foreach (var table in report.Entries) {
@@ -112,19 +112,21 @@ Console.WriteLine($"Non-table page content detected: {report.HasOmittedPageConte
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("bank-statement.pdf");
-PdfLogicalDocument source = pdf.Read.Logical(
-    PdfPageSelection.Parse("1-3"));
-
-PdfExcelTableImportReport report = source.SaveTablesAsExcel(
+PdfDocument pdf = PdfDocument.Load("bank-statement.pdf");
+PdfExcelTableImportReport report = pdf.SaveTablesAsExcel(
     "bank-statement-q1.xlsx",
     new PdfExcelTableImportOptions {
+        ReadOptions = new PdfReadOptions {
+            PageSelection = PdfPageSelection.Parse("1-3")
+        },
         MaxRows = 250
     });
 
 Console.WriteLine($"Imported {report.Entries.Count} table(s).");
 report.RequireNoLoss(); // checks table-row truncation, not unrelated page content
 ```
+
+`ReadOptions` also exposes the canonical Fast/Structured profile and semantic work limits for large or deliberately bounded imports. It is ignored when the source is already a `PdfDocumentReadResult`.
 
 Compatible table segments continue across adjacent pages by default. The shared PDF table analysis classifies Boolean, percentage, date-time, time-only, numeric, and text columns with confidence; the import options decide which detected families become typed Excel cells.
 

@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using UglyToad.PdfPig.DocumentLayoutAnalysis.TextExtractor;
@@ -102,7 +103,9 @@ internal static partial class PdfCorpusRunner {
             Console.WriteLine(
                 $"{outcome,-5} " +
                 $"{result.Id,-40} pages={result.Read.PageCount,4} " +
-                $"recall={result.Read.TokenRecall:P1} bytes={result.Bytes:N0}");
+                $"recall={result.Read.TokenRecall:P1} " +
+                $"read={result.Read.ElapsedMilliseconds:N1}ms " +
+                $"alloc={result.Read.AllocatedBytes:N0} bytes={result.Bytes:N0}");
             if (!result.Read.Success) {
                 Console.WriteLine("  read: " + result.Read.Error);
             }
@@ -112,11 +115,12 @@ internal static partial class PdfCorpusRunner {
         }
 
         var report = new PdfCorpusReport(
-            1,
+            2,
             DateTimeOffset.UtcNow,
             RuntimeInformation.FrameworkDescription,
             RuntimeInformation.OSDescription,
-            results);
+            results,
+            BuildClassSummaries(results));
         string reportPath = Path.Combine(outputDirectory, "pdf-corpus-compatibility.json");
         await File.WriteAllTextAsync(reportPath, JsonSerializer.Serialize(report, JsonOptions)).ConfigureAwait(false);
         Console.WriteLine($"Corpus report: {reportPath}");
@@ -144,12 +148,22 @@ internal static partial class PdfCorpusRunner {
         IReadOnlyList<string> officePages;
         string oracle;
         PdfCorpusReadResult read;
+        double readElapsedMilliseconds = 0D;
+        long readAllocatedBytes = 0L;
         try {
             (oraclePages, oracle) = ReadOracleByPage(bytes);
-            OfficeIMO.Pdf.PdfReadOptions readOptions = new() {
+            OfficeIMO.Pdf.PdfLoadOptions readOptions = new() {
                 IncludeArtifactText = true
             };
-            officePages = OfficePdfDocument.Open(bytes, readOptions).Read.TextByPage();
+            long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+            var stopwatch = Stopwatch.StartNew();
+            try {
+                officePages = PdfDocumentReaders.ExtractOfficeImoTextByPage(bytes, readOptions);
+            } finally {
+                stopwatch.Stop();
+                readElapsedMilliseconds = stopwatch.Elapsed.TotalMilliseconds;
+                readAllocatedBytes = Math.Max(0L, GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
+            }
             File.WriteAllText(
                 GetEntryOutputPath(diagnosticsDirectory, entry.Id, "." + oracle + ".txt"),
                 string.Join("\n\f\n", oraclePages));
@@ -171,7 +185,7 @@ internal static partial class PdfCorpusRunner {
                 WriteSpanDiagnostics(bytes, readOptions, diagnosticsDirectory, entry.Id);
                 File.WriteAllText(
                     GetEntryOutputPath(diagnosticsDirectory, entry.Id, ".officeimo.debug.txt"),
-                    OfficePdfDocument.Open(bytes).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
+                    OfficePdfDocument.Load(bytes).Debug(new OfficeIMO.Pdf.PdfDebuggerOptions {
                         IncludeDecodedStreamPreviews = true,
                         MaxDecodedStreamPreviewBytes = 64 * 1024
                     }).ToText());
@@ -182,7 +196,9 @@ internal static partial class PdfCorpusRunner {
                     officePages.Sum(static text => text.Length),
                     oraclePages.Sum(static text => text.Length),
                     recall,
-                    $"OfficeIMO token recall {recall:P2} is below the {entry.MinimumTokenRecall:P2} corpus threshold.");
+                    $"OfficeIMO token recall {recall:P2} is below the {entry.MinimumTokenRecall:P2} corpus threshold.",
+                    readElapsedMilliseconds,
+                    readAllocatedBytes);
                 return CreateResult(entry, path, bytes.Length, sha256, read,
                     new PdfCorpusManipulationResult(false, "NotRun", 0, 0, 0, Array.Empty<string>(), "Read validation failed."));
             }
@@ -194,9 +210,20 @@ internal static partial class PdfCorpusRunner {
                 officePages.Sum(static text => text.Length),
                 oraclePages.Sum(static text => text.Length),
                 recall,
-                null);
+                null,
+                readElapsedMilliseconds,
+                readAllocatedBytes);
         } catch (Exception exception) {
-            read = new PdfCorpusReadResult(false, "unavailable", 0, 0, 0, 0, exception.ToString());
+            read = new PdfCorpusReadResult(
+                false,
+                "unavailable",
+                0,
+                0,
+                0,
+                0,
+                exception.ToString(),
+                readElapsedMilliseconds,
+                readAllocatedBytes);
             return CreateResult(entry, path, bytes.Length, sha256, read,
                 new PdfCorpusManipulationResult(false, "NotRun", 0, 0, 0, Array.Empty<string>(), "Read validation failed."));
         }
@@ -205,6 +232,47 @@ internal static partial class PdfCorpusRunner {
             ? new PdfCorpusManipulationResult(true, "Skipped", 0, 0, 0, Array.Empty<string>(), null)
             : ValidateManipulation(bytes, oraclePages);
         return CreateResult(entry, path, bytes.Length, sha256, read, manipulation);
+    }
+
+    private static IReadOnlyList<PdfCorpusClassSummary> BuildClassSummaries(IReadOnlyList<PdfCorpusResult> results) {
+        var summaries = new List<PdfCorpusClassSummary>();
+        summaries.AddRange(results
+            .GroupBy(static result => string.IsNullOrWhiteSpace(result.Tier) ? "unspecified" : result.Tier, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(static group => CreateClassSummary("tier", group.Key, group)));
+        summaries.AddRange(results
+            .SelectMany(static result => result.Features
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Select(feature => (Feature: feature, Result: result)))
+            .GroupBy(static item => item.Feature, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(static group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(static group => CreateClassSummary("feature", group.Key, group.Select(static item => item.Result))));
+        return summaries.AsReadOnly();
+    }
+
+    private static PdfCorpusClassSummary CreateClassSummary(
+        string dimension,
+        string name,
+        IEnumerable<PdfCorpusResult> source) {
+        PdfCorpusResult[] results = source.ToArray();
+        int totalPages = results.Sum(static result => result.Read.PageCount);
+        double elapsed = results.Sum(static result => result.Read.ElapsedMilliseconds);
+        long allocated = results.Sum(static result => result.Read.AllocatedBytes);
+        int failedReads = results.Count(static result => !result.Read.Success);
+        return new PdfCorpusClassSummary(
+            dimension,
+            name,
+            results.Length,
+            results.Length - failedReads,
+            failedReads,
+            results.Count(static result => string.Equals(result.Manipulation.Status, "Blocked", StringComparison.Ordinal)),
+            results.Count(static result => string.Equals(result.Manipulation.Status, "Failed", StringComparison.Ordinal)),
+            totalPages,
+            elapsed,
+            allocated,
+            results.Length == 0 ? 0D : (double)failedReads / results.Length,
+            totalPages == 0 ? 0D : elapsed / totalPages,
+            totalPages == 0 ? 0D : (double)allocated / totalPages);
     }
 
     private static void ValidateRequiredText(
@@ -231,7 +299,7 @@ internal static partial class PdfCorpusRunner {
 
     private static void WriteSpanDiagnostics(
         byte[] bytes,
-        OfficeIMO.Pdf.PdfReadOptions? readOptions,
+        OfficeIMO.Pdf.PdfLoadOptions? readOptions,
         string diagnosticsDirectory,
         string entryId) {
         const int maxSpans = 10_000;

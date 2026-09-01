@@ -126,7 +126,7 @@ public sealed partial class PdfDocumentConversionResult {
 
         var issues = new List<PdfConversionProofIssue>();
         PdfDocumentInfo? documentInfo = null;
-        PdfLogicalDocument? logicalDocument = null;
+        PdfDocumentReadResult? logicalDocument = null;
         string extractedText = string.Empty;
         IReadOnlyList<string> logicalSignals = Array.Empty<string>();
         long artifactByteCount = 0;
@@ -148,7 +148,7 @@ public sealed partial class PdfDocumentConversionResult {
                     extractedText = readDocument.ExtractText();
                     documentInfo = PdfInspector.Inspect(pdfBytes);
                     if (options.RequiredLogicalSignals.Count > 0) {
-                        logicalDocument = PdfLogicalDocument.From(readDocument);
+                        logicalDocument = PdfDocumentReadResult.From(readDocument);
                         logicalSignals = BuildLogicalSignals(documentInfo, logicalDocument, extractedText);
                     }
                 }
@@ -772,7 +772,7 @@ public sealed partial class PdfDocumentConversionResult {
         return value;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<string> BuildLogicalSignals(PdfDocumentInfo documentInfo, PdfLogicalDocument logicalDocument, string extractedText) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<string> BuildLogicalSignals(PdfDocumentInfo documentInfo, PdfDocumentReadResult logicalDocument, string extractedText) {
         var signals = new List<string>();
 
         AddSignal(signals, documentInfo.PageCount > 0, "page-count");

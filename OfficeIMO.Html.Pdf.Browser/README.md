@@ -31,7 +31,7 @@ PdfDocumentConversionResult result =
 PdfDocumentPreflight preflight = result.Value.Preflight();
 PdfMutationPlan stamping = result.Value.PlanMutation(
     PdfMutationOperation.ModifyPageContent);
-string text = result.Value.Read.Text();
+string text = result.Value.Read().Text;
 ```
 
 Use `tagged: false` when later full-rewrite operations are important. Use `tagged: true` when Chromium-generated accessibility structure is required. In both cases, treat `PdfDocument.Preflight()` and `PdfDocument.PlanMutation(...)` as authoritative: a valid, readable PDF can still have operation-specific rewrite blockers.

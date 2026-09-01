@@ -50,7 +50,7 @@ public sealed partial class PdfProvenanceTests {
             MaxManifestBytes = manifestLength * 2,
             MaxExpandedContainerBytes = manifestLength * 2L
         };
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxDecodedStreamBytes = manifestLength * 2,
                 MaxTotalDecodedStreamBytes = manifestLength + 64L,

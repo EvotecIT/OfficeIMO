@@ -77,11 +77,15 @@ public partial class PdfStamperTests {
         var page = Assert.IsType<PdfDictionary>(objects[pageObjectNumber].Value);
         var contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
 
-        Assert.Equal(3, contents.Items.Count);
+        Assert.Equal(5, contents.Items.Count);
         foreach (var item in contents.Items) {
             var reference = Assert.IsType<PdfReference>(item);
             Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
         }
+        IReadOnlyList<string> streams = GetPageContentStreams(stamped, 1);
+        Assert.Equal("q\n", streams[0]);
+        Assert.Equal("\nQ\n", streams[3]);
+        Assert.Contains("/OIMOStampF1", streams[4], StringComparison.Ordinal);
     }
 
     [Fact]

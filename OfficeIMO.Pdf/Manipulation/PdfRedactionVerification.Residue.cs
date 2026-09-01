@@ -22,7 +22,7 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker, bool matchCase, PdfReadOptions readOptions) {
+    private static bool ContainsDecodedStreamMarker(byte[] pdf, string marker, bool matchCase, PdfLoadOptions readOptions) {
         if (string.IsNullOrEmpty(marker)) {
             return false;
         }
@@ -57,7 +57,7 @@ internal static partial class PdfRedactionVerification {
         return false;
     }
 
-    private static List<PdfRedactionVerificationIssue> FindUndecodableStreamIssues(byte[] pdf, PdfReadOptions readOptions) {
+    private static List<PdfRedactionVerificationIssue> FindUndecodableStreamIssues(byte[] pdf, PdfLoadOptions readOptions) {
         var issues = new List<PdfRedactionVerificationIssue>();
         Dictionary<int, PdfIndirectObject> objects;
         try {

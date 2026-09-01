@@ -38,7 +38,7 @@ public sealed class PdfProductionSplitOptions {
 /// <summary>One generated production split artifact.</summary>
 public sealed class PdfProductionSplitPart {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
+    private readonly PdfLoadOptions _readOptions;
 
     internal PdfProductionSplitPart(
         int partNumber,
@@ -46,7 +46,7 @@ public sealed class PdfProductionSplitPart {
         IReadOnlyList<int> sourcePages,
         PdfProductionSplitReason reason,
         bool exceedsTargetSize,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         PartNumber = partNumber;
         _pdf = (byte[])pdf.Clone();
         SourcePages = sourcePages;
@@ -68,7 +68,7 @@ public sealed class PdfProductionSplitPart {
     /// <summary>Returns an independent copy of the generated part.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the generated part through the public document API.</summary>
-    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_pdf, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_pdf, readOptions ?? _readOptions);
 }
 
 /// <summary>Generated production split artifacts and bounded-probe evidence.</summary>
@@ -93,7 +93,7 @@ public sealed class PdfProductionSplitResult {
 /// <summary>Creates bounded, report-driven PDF production splits.</summary>
 public static class PdfProductionSplitter {
     /// <summary>Splits a PDF using page-count, text-boundary, and target-size policies.</summary>
-    public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfReadOptions? readOptions = null) {
+    public static PdfProductionSplitResult Split(byte[] pdf, PdfProductionSplitOptions options, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         ValidateOptions(options);
@@ -155,7 +155,7 @@ public static class PdfProductionSplitter {
         byte[] source,
         PlannedPart group,
         PdfProductionSplitOptions options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         List<PdfProductionSplitPart> output,
         ref int probeCount,
         ref long cumulativeArtifactBytes) {
@@ -230,7 +230,7 @@ public static class PdfProductionSplitter {
     private static byte[] Extract(
         byte[] source,
         IEnumerable<int> pages,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         PdfProductionSplitOptions options,
         ref int probeCount,
         ref long cumulativeArtifactBytes) {
@@ -262,9 +262,9 @@ public static class PdfProductionSplitter {
         IEnumerable<int> pages,
         PdfProductionSplitReason reason,
         bool exceedsTarget,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         int[] pageNumbers = pages.ToArray();
-        PdfReadOptions strictOptions = CreateStrictReadOptions(readOptions, source, artifact);
+        PdfLoadOptions strictOptions = CreateStrictReadOptions(readOptions, source, artifact);
         PdfReadDocument reopened = PdfReadDocument.Open(artifact, strictOptions);
         if (reopened.Pages.Count != pageNumbers.Length) throw new InvalidOperationException("Generated split artifact page count does not match its report.");
         output.Add(new PdfProductionSplitPart(
@@ -276,9 +276,9 @@ public static class PdfProductionSplitter {
             strictOptions));
     }
 
-    private static PdfReadOptions CreateStrictReadOptions(PdfReadOptions? readOptions, byte[] source, byte[] artifact) {
-        PdfReadOptions effective = PdfReadOptions.ForGeneratedOutput(readOptions, source, artifact);
-        return new PdfReadOptions {
+    private static PdfLoadOptions CreateStrictReadOptions(PdfLoadOptions? readOptions, byte[] source, byte[] artifact) {
+        PdfLoadOptions effective = PdfLoadOptions.ForGeneratedOutput(readOptions, source, artifact);
+        return new PdfLoadOptions {
             ParsingMode = PdfParsingMode.Strict,
             Limits = effective.Limits,
             Password = effective.Password,

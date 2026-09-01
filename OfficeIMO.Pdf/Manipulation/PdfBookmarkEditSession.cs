@@ -32,9 +32,9 @@ public sealed class PdfBookmarkNode {
 /// <summary>Transactional add/remove/rename/move/nest/retarget/rebuild surface for existing bookmarks.</summary>
 public sealed class PdfBookmarkEditSession {
     private readonly List<PdfBookmarkNode> _roots;
-    private readonly PdfLogicalDocument _logical;
+    private readonly PdfDocumentReadResult _logical;
     private int _nextId;
-    internal PdfBookmarkEditSession(PdfLogicalDocument logical) { _logical = logical; _roots = new List<PdfBookmarkNode>(); Import(logical.Outlines, _roots); }
+    internal PdfBookmarkEditSession(PdfDocumentReadResult logical) { _logical = logical; _roots = new List<PdfBookmarkNode>(); Import(logical.Outlines, _roots); }
     /// <summary>Current top-level bookmark nodes.</summary>
     public IReadOnlyList<PdfBookmarkNode> Roots => _roots.AsReadOnly();
     /// <summary>Adds a bookmark at the root or below a parent id.</summary>

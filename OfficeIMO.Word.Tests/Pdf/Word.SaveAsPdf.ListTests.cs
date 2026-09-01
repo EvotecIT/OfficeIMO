@@ -504,7 +504,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
             var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
             var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
                 .SelectMany(page => page.ListItems)
                 .ToList();
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(bytes, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             });
             PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));

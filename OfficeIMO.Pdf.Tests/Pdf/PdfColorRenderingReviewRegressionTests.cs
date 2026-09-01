@@ -218,7 +218,7 @@ public class PdfColorRenderingReviewRegressionTests {
         byte[] unusedProfile = CreateRgbProfileWithSharedSampledCurves(sampleCount: 4096);
         Assert.True(unusedProfile.Length > outputProfile.Length);
         byte[] pdf = BuildOverwrittenColorSpaceOutputIntentPdf(outputProfile, unusedProfile);
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = unusedProfile.Length - 1 }
         };
 
