@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
@@ -62,10 +64,17 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Inspects metadata, pages, annotations, fields, and catalog-level state.
     /// </summary>
-    public PdfDocumentInfo Inspect(PdfLoadOptions? options = null) {
-        var snapshot = GetReadSnapshot(options);
+    public PdfDocumentInfo Inspect(PdfLoadOptions? options = null) =>
+        Inspect(options, CancellationToken.None);
+
+    /// <summary>
+    /// Inspects metadata, pages, annotations, fields, and catalog-level state with cooperative cancellation.
+    /// </summary>
+    public PdfDocumentInfo Inspect(PdfLoadOptions? options, CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("logical object");
-        return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+        return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
     }
 
     /// <summary>

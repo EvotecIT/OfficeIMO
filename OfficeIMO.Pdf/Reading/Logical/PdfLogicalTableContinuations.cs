@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Controls bounded recovery of tables split across adjacent PDF pages.</summary>
@@ -84,7 +86,25 @@ public static class PdfLogicalTableContinuations {
         bool mergePageContinuations,
         bool suppressRepeatedBodyHeaderRows,
         int maximumSegmentsPerTable,
-        double geometryTolerancePoints) {
+        double geometryTolerancePoints) =>
+        Group(
+            document,
+            maxRows,
+            mergePageContinuations,
+            suppressRepeatedBodyHeaderRows,
+            maximumSegmentsPerTable,
+            geometryTolerancePoints,
+            CancellationToken.None);
+
+    /// <summary>Groups compatible table segments with cooperative cancellation.</summary>
+    public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
+        PdfDocumentReadResult document,
+        int maxRows,
+        bool mergePageContinuations,
+        bool suppressRepeatedBodyHeaderRows,
+        int maximumSegmentsPerTable,
+        double geometryTolerancePoints,
+        CancellationToken cancellationToken) {
         return Group(document, new PdfLogicalTableContinuationOptions {
             MaxRows = maxRows,
             MergePageContinuations = mergePageContinuations,
@@ -92,14 +112,22 @@ public static class PdfLogicalTableContinuations {
             MaximumSegmentsPerTable = maximumSegmentsPerTable,
             GeometryTolerancePoints = geometryTolerancePoints,
             MinimumConfidence = 0D
-        });
+        }, cancellationToken);
     }
 
     /// <summary>Groups compatible table segments using an explicit, typed continuation policy.</summary>
     public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
         PdfDocumentReadResult document,
-        PdfLogicalTableContinuationOptions? options = null) {
+        PdfLogicalTableContinuationOptions? options = null) =>
+        Group(document, options, CancellationToken.None);
+
+    /// <summary>Groups compatible table segments using an explicit policy and cooperative cancellation.</summary>
+    public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
+        PdfDocumentReadResult document,
+        PdfLogicalTableContinuationOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalTableContinuationOptions effective = PdfLogicalTableContinuationOptions.Resolve(options);
 
         int extractionRowLimit = effective.MaxRows > 0
@@ -108,24 +136,36 @@ public static class PdfLogicalTableContinuations {
                 : effective.MaxRows + MaximumRepeatedHeaderRows
             : 0;
         IReadOnlyList<PdfLogicalTableExtraction> extractions =
-            PdfLogicalTableAnalysis.ExtractTables(document, extractionRowLimit);
+            PdfLogicalTableAnalysis.ExtractTables(document, extractionRowLimit, cancellationToken);
         if (extractions.Count == 0) return Array.Empty<PdfLogicalTableContinuationGroup>();
 
         var groups = new List<PdfLogicalTableContinuationGroup>(extractions.Count);
         var segments = new List<PdfLogicalTableExtraction>();
         var boundaries = new List<ContinuationBoundary>();
         for (int index = 0; index < extractions.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalTableExtraction current = extractions[index];
             if (segments.Count > 0) {
                 ContinuationBoundary boundary = default;
                 bool canContinue = effective.MergePageContinuations &&
                     segments.Count < effective.MaximumSegmentsPerTable &&
-                    CanContinue(document, segments[segments.Count - 1], current, effective.GeometryTolerancePoints, out boundary) &&
+                    CanContinue(
+                        document,
+                        segments[segments.Count - 1],
+                        current,
+                        effective.GeometryTolerancePoints,
+                        cancellationToken,
+                        out boundary) &&
                     boundary.Confidence >= effective.MinimumConfidence;
                 if (canContinue) {
                     boundaries.Add(boundary);
                 } else {
-                    groups.Add(CreateGroup(segments, boundaries, effective.MaxRows, effective.SuppressRepeatedBodyHeaderRows));
+                    groups.Add(CreateGroup(
+                        segments,
+                        boundaries,
+                        effective.MaxRows,
+                        effective.SuppressRepeatedBodyHeaderRows,
+                        cancellationToken));
                     segments.Clear();
                     boundaries.Clear();
                 }
@@ -134,7 +174,14 @@ public static class PdfLogicalTableContinuations {
             segments.Add(current);
         }
 
-        if (segments.Count > 0) groups.Add(CreateGroup(segments, boundaries, effective.MaxRows, effective.SuppressRepeatedBodyHeaderRows));
+        if (segments.Count > 0) {
+            groups.Add(CreateGroup(
+                segments,
+                boundaries,
+                effective.MaxRows,
+                effective.SuppressRepeatedBodyHeaderRows,
+                cancellationToken));
+        }
         return groups.AsReadOnly();
     }
 
@@ -143,7 +190,9 @@ public static class PdfLogicalTableContinuations {
         PdfLogicalTableExtraction previous,
         PdfLogicalTableExtraction current,
         double tolerance,
+        CancellationToken cancellationToken,
         out ContinuationBoundary boundary) {
+        cancellationToken.ThrowIfCancellationRequested();
         boundary = default;
         if (current.PageIndex != previous.PageIndex + 1 || current.PageNumber != previous.PageNumber + 1) return false;
         PdfLogicalPage previousPage = document.Pages[previous.PageIndex];
@@ -152,11 +201,11 @@ public static class PdfLogicalTableContinuations {
         if (previous.Data.Columns.Count < 2 || previous.Data.Columns.Count != current.Data.Columns.Count) return false;
         if (!string.Equals(previous.DetectionKind, current.DetectionKind, StringComparison.Ordinal)) return false;
         if (!IsAtBottomEdge(previous.Table, previousPage) || !IsAtTopEdge(current.Table, currentPage)) return false;
-        if (!HasCompatibleColumns(previous.Table, current.Table, tolerance)) return false;
+        if (!HasCompatibleColumns(previous.Table, current.Table, tolerance, cancellationToken)) return false;
 
         bool previousHasHeader = previous.Data.Structure.HasHeaderRow;
         bool currentHasHeader = current.Data.Structure.HasHeaderRow;
-        if (currentHasHeader && (!previousHasHeader || !HeadersEqual(previous.Data.Columns, current.Data.Columns))) return false;
+        if (currentHasHeader && (!previousHasHeader || !HeadersEqual(previous.Data.Columns, current.Data.Columns, cancellationToken))) return false;
 
         PdfLogicalTableContinuationEvidence evidence =
             PdfLogicalTableContinuationEvidence.AdjacentPages |
@@ -167,7 +216,7 @@ public static class PdfLogicalTableContinuations {
             PdfLogicalTableContinuationEvidence.CompatibleGeometry |
             PdfLogicalTableContinuationEvidence.CompatibleHeaders;
         double confidence = 0.75D;
-        if (HasCompatibleColumns(previous.Table, current.Table, tolerance * 0.5D)) confidence += 0.1D;
+        if (HasCompatibleColumns(previous.Table, current.Table, tolerance * 0.5D, cancellationToken)) confidence += 0.1D;
         if (currentHasHeader) {
             evidence |= PdfLogicalTableContinuationEvidence.RepeatedHeaders;
             confidence += 0.1D;
@@ -204,13 +253,21 @@ public static class PdfLogicalTableContinuations {
     internal static bool HasCompatibleColumns(
         PdfLogicalTable previousTable,
         PdfLogicalTable currentTable,
-        double tolerance) {
+        double tolerance) =>
+        HasCompatibleColumns(previousTable, currentTable, tolerance, CancellationToken.None);
+
+    private static bool HasCompatibleColumns(
+        PdfLogicalTable previousTable,
+        PdfLogicalTable currentTable,
+        double tolerance,
+        CancellationToken cancellationToken) {
         IReadOnlyList<PdfLogicalTableColumn> previous = previousTable.Columns;
         IReadOnlyList<PdfLogicalTableColumn> current = currentTable.Columns;
         if (previous.Count == 0 || previous.Count != current.Count) return false;
         bool positionedRecovery = string.Equals(previousTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal) &&
             string.Equals(currentTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal);
         for (int index = 0; index < previous.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (Math.Abs(previous[index].From - current[index].From) > tolerance) return false;
             // The last right edge is based on the widest text run on each page rather than a stable split.
             // Positioned-cell recovery derives every right edge from page-local text width, so its
@@ -221,11 +278,18 @@ public static class PdfLogicalTableContinuations {
         return true;
     }
 
-    internal static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) {
+    internal static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) =>
+        HeadersEqual(previous, current, CancellationToken.None);
+
+    private static bool HeadersEqual(
+        IReadOnlyList<string> previous,
+        IReadOnlyList<string> current,
+        CancellationToken cancellationToken) {
         if (previous.Count != current.Count) return false;
         var previousSignature = new System.Text.StringBuilder();
         var currentSignature = new System.Text.StringBuilder();
         for (int index = 0; index < previous.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string left = NormalizeHeaderSignature(previous[index]);
             string right = NormalizeHeaderSignature(current[index]);
             if (!HaveMatchingNumbers(left, right)) return false;
@@ -275,27 +339,36 @@ public static class PdfLogicalTableContinuations {
         IReadOnlyList<PdfLogicalTableExtraction> sourceSegments,
         IReadOnlyList<ContinuationBoundary> sourceBoundaries,
         int maxRows,
-        bool suppressRepeatedBodyHeaderRows) {
+        bool suppressRepeatedBodyHeaderRows,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalTableExtraction[] segments = sourceSegments.ToArray();
         int repeatedBodyHeaderRows = suppressRepeatedBodyHeaderRows
-            ? DetectRepeatedBodyHeaderRows(segments)
+            ? DetectRepeatedBodyHeaderRows(segments, cancellationToken)
             : 0;
         double confidence = sourceBoundaries.Count == 0 ? 1D : sourceBoundaries.Min(static boundary => boundary.Confidence);
         PdfLogicalTableContinuationEvidence evidence = PdfLogicalTableContinuationEvidence.None;
         for (int boundaryIndex = 0; boundaryIndex < sourceBoundaries.Count; boundaryIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             evidence |= sourceBoundaries[boundaryIndex].Evidence;
         }
-        IReadOnlyList<string> columns = BuildColumns(segments[0].Data.Columns, segments[0].Data.Rows, repeatedBodyHeaderRows);
+        IReadOnlyList<string> columns = BuildColumns(
+            segments[0].Data.Columns,
+            segments[0].Data.Rows,
+            repeatedBodyHeaderRows,
+            cancellationToken);
         var allRows = new List<IReadOnlyList<string>>();
         int totalRowCount = 0;
         int suppressedRows = 0;
         for (int segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<IReadOnlyList<string>> rows = segments[segmentIndex].Data.Rows;
             int start = repeatedBodyHeaderRows;
             int availableRowCount = segments[segmentIndex].Data.TotalRowCount;
             totalRowCount = checked(totalRowCount + Math.Max(0, availableRowCount - start));
             if (segmentIndex > 0) suppressedRows += Math.Min(start, availableRowCount);
             for (int rowIndex = start; rowIndex < rows.Count; rowIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (maxRows <= 0 || allRows.Count < maxRows) allRows.Add(rows[rowIndex]);
             }
         }
@@ -309,7 +382,8 @@ public static class PdfLogicalTableContinuations {
             suppressedRows,
             repeatedBodyHeaderRows,
             confidence,
-            evidence);
+            evidence,
+            cancellationToken);
     }
 
     private readonly struct ContinuationBoundary {
@@ -322,20 +396,30 @@ public static class PdfLogicalTableContinuations {
         internal PdfLogicalTableContinuationEvidence Evidence { get; }
     }
 
-    private static int DetectRepeatedBodyHeaderRows(PdfLogicalTableExtraction[] segments) {
-        if (segments.Length < 2 ||
-            segments.Any(static segment => !segment.Data.Structure.HasHeaderRow) ||
-            segments.Skip(1).Any(segment => !HeadersEqual(segments[0].Data.Columns, segment.Data.Columns))) {
-            return 0;
+    private static int DetectRepeatedBodyHeaderRows(
+        PdfLogicalTableExtraction[] segments,
+        CancellationToken cancellationToken) {
+        if (segments.Length < 2) return 0;
+        for (int segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!segments[segmentIndex].Data.Structure.HasHeaderRow) return 0;
+            if (segmentIndex > 0 && !HeadersEqual(
+                    segments[0].Data.Columns,
+                    segments[segmentIndex].Data.Columns,
+                    cancellationToken)) {
+                return 0;
+            }
         }
         int maximum = Math.Min(MaximumRepeatedHeaderRows, segments.Min(static segment => segment.Data.Rows.Count));
         int repeated = 0;
         for (int rowIndex = 0; rowIndex < maximum; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<string> candidate = segments[0].Data.Rows[rowIndex];
             if (!LooksLikeHeaderRow(candidate)) break;
             bool matches = true;
             for (int segmentIndex = 1; segmentIndex < segments.Length; segmentIndex++) {
-                if (!RowsEqual(candidate, segments[segmentIndex].Data.Rows[rowIndex])) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!RowsEqual(candidate, segments[segmentIndex].Data.Rows[rowIndex], cancellationToken)) {
                     matches = false;
                     break;
                 }
@@ -359,9 +443,13 @@ public static class PdfLogicalTableContinuations {
         return true;
     }
 
-    private static bool RowsEqual(IReadOnlyList<string> left, IReadOnlyList<string> right) {
+    private static bool RowsEqual(
+        IReadOnlyList<string> left,
+        IReadOnlyList<string> right,
+        CancellationToken cancellationToken) {
         if (left.Count != right.Count) return false;
         for (int index = 0; index < left.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(left[index].Trim(), right[index].Trim(), StringComparison.OrdinalIgnoreCase)) return false;
         }
 
@@ -371,12 +459,15 @@ public static class PdfLogicalTableContinuations {
     private static IReadOnlyList<string> BuildColumns(
         IReadOnlyList<string> primaryHeaders,
         IReadOnlyList<IReadOnlyList<string>> primaryRows,
-        int additionalHeaderRows) {
+        int additionalHeaderRows,
+        CancellationToken cancellationToken) {
         if (additionalHeaderRows == 0) return primaryHeaders;
         var columns = new string[primaryHeaders.Count];
         for (int columnIndex = 0; columnIndex < columns.Length; columnIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             var parts = new List<string>(additionalHeaderRows + 1) { primaryHeaders[columnIndex].Trim() };
             for (int rowIndex = 0; rowIndex < additionalHeaderRows; rowIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string part = columnIndex < primaryRows[rowIndex].Count ? primaryRows[rowIndex][columnIndex].Trim() : string.Empty;
                 if (part.Length > 0 && !parts.Contains(part, StringComparer.OrdinalIgnoreCase)) parts.Add(part);
             }
@@ -399,7 +490,8 @@ public sealed class PdfLogicalTableContinuationGroup {
         int suppressedRepeatedHeaderRows,
         int additionalHeaderRowCount,
         double confidence,
-        PdfLogicalTableContinuationEvidence evidence) {
+        PdfLogicalTableContinuationEvidence evidence,
+        CancellationToken cancellationToken = default) {
         Segments = segments;
         Columns = columns;
         Rows = rows;
@@ -409,7 +501,7 @@ public sealed class PdfLogicalTableContinuationGroup {
         AdditionalHeaderRowCount = additionalHeaderRowCount;
         Confidence = confidence;
         Evidence = evidence;
-        Data = CreateData(segments[0].Data, columns, rows, totalRowCount, truncated);
+        Data = CreateData(segments[0].Data, columns, rows, totalRowCount, truncated, cancellationToken);
     }
 
     /// <summary>Page-level table segments contributing to this logical table.</summary>
@@ -446,12 +538,15 @@ public sealed class PdfLogicalTableContinuationGroup {
         IReadOnlyList<string> columns,
         IReadOnlyList<IReadOnlyList<string>> rows,
         int totalRowCount,
-        bool truncated) {
+        bool truncated,
+        CancellationToken cancellationToken) {
         var numericColumns = new bool[columns.Count];
         for (int columnIndex = 0; columnIndex < columns.Count; columnIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             bool hasValue = false;
             bool numeric = true;
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 string value = columnIndex < rows[rowIndex].Count ? rows[rowIndex][columnIndex] : string.Empty;
                 if (string.IsNullOrWhiteSpace(value)) continue;
                 hasValue = true;
@@ -475,4 +570,10 @@ public sealed partial class PdfDocumentReadResult {
     public IReadOnlyList<PdfLogicalTableContinuationGroup> GetTableContinuationGroups(
         PdfLogicalTableContinuationOptions? options = null) =>
         PdfLogicalTableContinuations.Group(this, options);
+
+    /// <summary>Returns bounded cross-page table continuation groups with cooperative cancellation.</summary>
+    public IReadOnlyList<PdfLogicalTableContinuationGroup> GetTableContinuationGroups(
+        PdfLogicalTableContinuationOptions? options,
+        CancellationToken cancellationToken) =>
+        PdfLogicalTableContinuations.Group(this, options, cancellationToken);
 }

@@ -107,7 +107,7 @@ Existing output is refused unless --force is supplied.
         WorkflowArguments parsed,
         TextWriter output,
         CancellationToken cancellationToken) {
-        PdfPrintPlan plan = await Task.Run(() => PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+        PdfPrintPlan plan = await PdfPrintPlanner.CreateAsync(new PdfPrintPlanRequest {
             InputPath = Path.GetFullPath(parsed.Inputs[0]),
             Pages = parsed.Pages,
             PaperSize = parsed.PaperSize,
@@ -115,7 +115,7 @@ Existing output is refused unless --force is supplied.
             PagesPerSheet = parsed.PagesPerSheet,
             ScaleMode = parsed.ScaleMode,
             Margin = parsed.Margin
-        }, cancellationToken), cancellationToken).ConfigureAwait(false);
+        }, cancellationToken).ConfigureAwait(false);
         await output.WriteLineAsync("Source pages: " + plan.SourcePageCount.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
         await output.WriteLineAsync("Selected pages: " + string.Join(',', plan.SelectedPages)).ConfigureAwait(false);
         await output.WriteLineAsync("Sheets: " + plan.Sheets.Count.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);

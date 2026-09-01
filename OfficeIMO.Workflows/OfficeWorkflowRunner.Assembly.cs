@@ -68,7 +68,7 @@ public sealed partial class OfficeWorkflowRunner {
                     diagnostics,
                     cancellationToken);
                 using (var measurement = new OfficeWorkflowBoundedCountingStream(remainingOutputBytes)) {
-                    normalized.Save(measurement);
+                    await normalized.SaveAsync(measurement, cancellationToken).ConfigureAwait(false);
                     normalizedBytes = checked(normalizedBytes + measurement.Length);
                 }
                 documents.Add(normalized);

@@ -298,14 +298,17 @@ public sealed partial class PdfDocument {
     /// Generated documents are rendered once for the complete operation.
     /// </summary>
     internal (byte[] Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
-        PdfLoadOptions? options = null) {
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
         if (_source is not null) {
-            return (_source.Bytes, _source.Read(effectiveOptions), effectiveOptions);
+            return (_source.Bytes, _source.Read(effectiveOptions, cancellationToken), effectiveOptions);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = RenderBytesCore();
-        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions), effectiveOptions);
+        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
     }
 
     internal PdfLoadOptions ReadOptions {

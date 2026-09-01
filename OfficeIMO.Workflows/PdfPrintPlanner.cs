@@ -137,6 +137,12 @@ public static class PdfPrintPlanner {
     /// <summary>Creates a validated print-preview plan.</summary>
     public static PdfPrintPlan Create(
         PdfPrintPlanRequest request,
+        CancellationToken cancellationToken = default) =>
+        CreateAsync(request, cancellationToken).GetAwaiter().GetResult();
+
+    /// <summary>Asynchronously creates a validated print-preview plan.</summary>
+    public static async Task<PdfPrintPlan> CreateAsync(
+        PdfPrintPlanRequest request,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
@@ -148,11 +154,12 @@ public static class PdfPrintPlanner {
         if (!Enum.IsDefined(request.Orientation)) throw new ArgumentOutOfRangeException(nameof(request.Orientation));
         if (!Enum.IsDefined(request.ScaleMode)) throw new ArgumentOutOfRangeException(nameof(request.ScaleMode));
 
-        PdfDocument document = PdfDocument.Load(
+        PdfDocument document = await PdfDocument.LoadAsync(
             Path.GetFullPath(request.InputPath),
-            new PdfLoadOptions { Password = request.PdfPassword });
+            new PdfLoadOptions { Password = request.PdfPassword },
+            cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentInfo info = document.Inspect();
+        PdfDocumentInfo info = document.Inspect(options: null, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         int[] pages = string.IsNullOrWhiteSpace(request.Pages)
             ? Enumerable.Range(1, info.PageCount).ToArray()

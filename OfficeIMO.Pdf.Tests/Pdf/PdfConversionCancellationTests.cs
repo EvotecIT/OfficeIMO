@@ -33,4 +33,19 @@ public sealed class PdfConversionCancellationTests {
             });
         });
     }
+
+    [Fact]
+    public void InspectionAndTableContinuationOwnersExposeCancellation() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Cancellation must reach inspection and table grouping"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfDocumentReadResult logical = document.Read();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => document.Inspect(null, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() =>
+            logical.GetTableContinuationGroups(options: null, cancellationToken: cancellation.Token));
+    }
 }

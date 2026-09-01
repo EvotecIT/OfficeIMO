@@ -194,7 +194,7 @@ public static class PdfImageExportExtensions {
         return PdfImageExportEngine.Export(
             token => {
                 token.ThrowIfCancellationRequested();
-                PdfReadDocument readDocument = document.GetReadSnapshot().Document;
+                PdfReadDocument readDocument = document.GetReadSnapshot(cancellationToken: token).Document;
                 token.ThrowIfCancellationRequested();
                 return readDocument;
             },

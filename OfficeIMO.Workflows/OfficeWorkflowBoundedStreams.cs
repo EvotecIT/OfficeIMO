@@ -56,6 +56,20 @@ internal sealed class OfficeWorkflowBoundedCountingStream : Stream {
 
     public override void WriteByte(byte value) => Advance(1);
 
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Write(buffer, offset, count);
+        return Task.CompletedTask;
+    }
+
+    public override ValueTask WriteAsync(
+        ReadOnlyMemory<byte> buffer,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        Advance(buffer.Length);
+        return ValueTask.CompletedTask;
+    }
+
     private void Advance(int count) {
         long end;
         try {

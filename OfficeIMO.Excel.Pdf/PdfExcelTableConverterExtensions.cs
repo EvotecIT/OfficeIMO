@@ -167,7 +167,8 @@ namespace OfficeIMO.Excel.Pdf {
                 options.MergePageContinuations,
                 options.SuppressRepeatedBodyHeaderRows,
                 options.MaximumContinuationSegments,
-                options.ContinuationGeometryTolerancePoints);
+                options.ContinuationGeometryTolerancePoints,
+                options.CancellationToken);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
                 return Array.Empty<PdfExcelTableImportEntry>();

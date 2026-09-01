@@ -436,13 +436,16 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
-    public void PrintPlannerObservesCancellationBeforeInspectingTheSource() {
+    public async Task PrintPlannerObservesCancellationBeforeInspectingTheSource() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "cancel-print-plan.pdf", "Cancelled");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => PdfPrintPlanner.Create(
+            new PdfPrintPlanRequest { InputPath = input },
+            cancellation.Token));
+        await Assert.ThrowsAsync<OperationCanceledException>(() => PdfPrintPlanner.CreateAsync(
             new PdfPrintPlanRequest { InputPath = input },
             cancellation.Token));
     }

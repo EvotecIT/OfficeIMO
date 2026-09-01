@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -14,13 +15,19 @@ public static class PdfLogicalTableAnalysis {
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
     /// <returns>Column names, body-row boundary, and table-shape flags for structured consumers.</returns>
-    public static PdfLogicalTableStructure Analyze(PdfLogicalTable table) {
-        Guard.NotNull(table, nameof(table));
+    public static PdfLogicalTableStructure Analyze(PdfLogicalTable table) =>
+        Analyze(table, CancellationToken.None);
 
-        int columnCount = GetColumnCount(table);
-        IReadOnlyList<string>? headerColumns = DetectHeaderColumns(table);
-        bool hasHeader = headerColumns != null && headerColumns.Count == columnCount;
-        bool isKeyValueTable = LooksLikeKeyValueTable(table);
+    private static PdfLogicalTableStructure Analyze(
+        PdfLogicalTable table,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(table, nameof(table));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int columnCount = GetColumnCount(table, cancellationToken);
+        string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
+        bool hasHeader = headerColumns != null && headerColumns.Length == columnCount;
+        bool isKeyValueTable = LooksLikeKeyValueTable(table, cancellationToken);
         int bodyStartRowIndex = hasHeader ? 1 : 0;
         int totalBodyRowCount = Math.Max(0, table.Rows.Count - bodyStartRowIndex);
         IReadOnlyList<string> columns = hasHeader
@@ -44,12 +51,20 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="table">Logical table to inspect.</param>
     /// <param name="maxRows">Maximum number of body rows to return. Values less than or equal to zero return all body rows.</param>
     /// <returns>Inferred columns, normalized body rows, numeric-column flags, and truncation metadata.</returns>
-    public static PdfLogicalTableData Extract(PdfLogicalTable table, int maxRows = 0) {
-        Guard.NotNull(table, nameof(table));
+    public static PdfLogicalTableData Extract(PdfLogicalTable table, int maxRows = 0) =>
+        Extract(table, maxRows, CancellationToken.None);
 
-        PdfLogicalTableStructure structure = Analyze(table);
-        IReadOnlyList<IReadOnlyList<string>> rows = GetBodyRows(table, structure, maxRows);
-        IReadOnlyList<bool> numericColumns = DetectNumericColumns(table, structure);
+    private static PdfLogicalTableData Extract(
+        PdfLogicalTable table,
+        int maxRows,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(table, nameof(table));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        PdfLogicalTableStructure structure = Analyze(table, cancellationToken);
+        IReadOnlyList<IReadOnlyList<string>> rows = GetBodyRows(table, structure, maxRows, cancellationToken);
+        IReadOnlyList<bool> numericColumns = DetectNumericColumns(table, structure, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLogicalTableDiagnostics diagnostics = PdfLogicalTableDiagnostics.Create(table, structure);
         return new PdfLogicalTableData(
             structure,
@@ -65,10 +80,16 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="document">Logical PDF document to inspect.</param>
     /// <param name="maxRows">Maximum number of body rows per table. Values less than or equal to zero return all body rows.</param>
     /// <returns>Page-aware normalized table extractions.</returns>
-    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(PdfDocumentReadResult document, int maxRows = 0) {
+    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(PdfDocumentReadResult document, int maxRows = 0) =>
+        ExtractTables(document, maxRows, CancellationToken.None);
+
+    internal static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(
+        PdfDocumentReadResult document,
+        int maxRows,
+        CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
 
-        return ExtractTables(document.Pages, maxRows);
+        return ExtractTables(document.Pages, maxRows, cancellationToken);
     }
 
     /// <summary>
@@ -77,20 +98,29 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="pages">Logical pages to inspect.</param>
     /// <param name="maxRows">Maximum number of body rows per table. Values less than or equal to zero return all body rows.</param>
     /// <returns>Page-aware normalized table extractions.</returns>
-    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(IReadOnlyList<PdfLogicalPage> pages, int maxRows = 0) {
+    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(IReadOnlyList<PdfLogicalPage> pages, int maxRows = 0) =>
+        ExtractTables(pages, maxRows, CancellationToken.None);
+
+    private static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(
+        IReadOnlyList<PdfLogicalPage> pages,
+        int maxRows,
+        CancellationToken cancellationToken) {
         Guard.NotNull(pages, nameof(pages));
+        cancellationToken.ThrowIfCancellationRequested();
 
         var extractions = new List<PdfLogicalTableExtraction>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfLogicalPage page = pages[pageIndex];
             for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfLogicalTable table = page.Tables[tableIndex];
                 extractions.Add(new PdfLogicalTableExtraction(
                     pageIndex,
                     page.PageNumber,
                     tableIndex,
                     table,
-                    Extract(table, maxRows)));
+                    Extract(table, maxRows, cancellationToken)));
             }
         }
 
@@ -106,7 +136,7 @@ public static class PdfLogicalTableAnalysis {
     public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(PdfLogicalPage page, int maxRows = 0) {
         Guard.NotNull(page, nameof(page));
 
-        return ExtractTables(new[] { page }, maxRows);
+        return ExtractTables(new[] { page }, maxRows, CancellationToken.None);
     }
 
     /// <summary>
@@ -235,10 +265,16 @@ public static class PdfLogicalTableAnalysis {
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
     /// <returns>Header column names when the first row looks like distinct text headers; otherwise null.</returns>
-    public static IReadOnlyList<string>? DetectHeaderColumns(PdfLogicalTable table) {
-        Guard.NotNull(table, nameof(table));
+    public static IReadOnlyList<string>? DetectHeaderColumns(PdfLogicalTable table) =>
+        DetectHeaderColumns(table, CancellationToken.None);
 
-        int columnCount = GetColumnCount(table);
+    private static string[]? DetectHeaderColumns(
+        PdfLogicalTable table,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(table, nameof(table));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int columnCount = GetColumnCount(table, cancellationToken);
         if (table.Rows.Count <= 1 || columnCount <= 1) {
             return null;
         }
@@ -252,6 +288,7 @@ public static class PdfLogicalTableAnalysis {
         var seenHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         int nonNumericCount = 0;
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string header = firstRow[columnIndex].Trim();
             if (header.Length == 0 || !seenHeaders.Add(header)) {
                 return null;
@@ -268,7 +305,7 @@ public static class PdfLogicalTableAnalysis {
             !LooksLikeKeyValueHeader(headers) &&
             !IsValueHeader(headers[1]) &&
             LooksLikeHeaderlessKeyValueFirstRow(headers) &&
-            LooksLikeKeyValueBody(table, startRow: 0)) {
+            LooksLikeKeyValueBody(table, startRow: 0, cancellationToken)) {
             return null;
         }
 
@@ -401,25 +438,35 @@ public static class PdfLogicalTableAnalysis {
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
     /// <returns>True when the table has two visible columns and body rows look like non-numeric labels with values.</returns>
-    public static bool LooksLikeKeyValueTable(PdfLogicalTable table) {
-        Guard.NotNull(table, nameof(table));
+    public static bool LooksLikeKeyValueTable(PdfLogicalTable table) =>
+        LooksLikeKeyValueTable(table, CancellationToken.None);
 
-        if (GetColumnCount(table) != 2 || table.Rows.Count == 0) {
+    private static bool LooksLikeKeyValueTable(
+        PdfLogicalTable table,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(table, nameof(table));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (GetColumnCount(table, cancellationToken) != 2 || table.Rows.Count == 0) {
             return false;
         }
 
-        IReadOnlyList<string>? headerColumns = DetectHeaderColumns(table);
-        bool hasHeader = headerColumns != null && headerColumns.Count == 2;
+        string[]? headerColumns = DetectHeaderColumns(table, cancellationToken);
+        bool hasHeader = headerColumns != null && headerColumns.Length == 2;
         if (hasHeader && !LooksLikeKeyValueHeader(headerColumns!)) {
             return false;
         }
 
-        return LooksLikeKeyValueBody(table, hasHeader ? 1 : 0);
+        return LooksLikeKeyValueBody(table, hasHeader ? 1 : 0, cancellationToken);
     }
 
-    private static bool LooksLikeKeyValueBody(PdfLogicalTable table, int startRow) {
+    private static bool LooksLikeKeyValueBody(
+        PdfLogicalTable table,
+        int startRow,
+        CancellationToken cancellationToken = default) {
         int bodyRowCount = 0;
         for (int rowIndex = startRow; rowIndex < table.Rows.Count; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<string> row = table.Rows[rowIndex];
             string key = row.Count > 0 ? row[0].Trim() : string.Empty;
             string value = row.Count > 1 ? row[1].Trim() : string.Empty;
@@ -438,11 +485,15 @@ public static class PdfLogicalTableAnalysis {
     /// </summary>
     /// <param name="table">Logical table to inspect.</param>
     /// <returns>The maximum row width, or zero when the table has no visible cells.</returns>
-    public static int GetColumnCount(PdfLogicalTable table) {
+    public static int GetColumnCount(PdfLogicalTable table) =>
+        GetColumnCount(table, CancellationToken.None);
+
+    private static int GetColumnCount(PdfLogicalTable table, CancellationToken cancellationToken) {
         Guard.NotNull(table, nameof(table));
 
         int columnCount = 0;
         for (int i = 0; i < table.Rows.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             columnCount = Math.Max(columnCount, table.Rows[i].Count);
         }
 
@@ -489,10 +540,21 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="structure">Inferred table structure that provides column count and body-row boundary.</param>
     /// <returns>A Boolean value per visible table column. True means all non-empty body cells in that column look numeric.</returns>
     public static bool[] DetectNumericColumns(PdfLogicalTable table, PdfLogicalTableStructure structure) {
+        return DetectNumericColumns(table, structure, CancellationToken.None);
+    }
+
+    private static bool[] DetectNumericColumns(
+        PdfLogicalTable table,
+        PdfLogicalTableStructure structure,
+        CancellationToken cancellationToken) {
         Guard.NotNull(table, nameof(table));
         Guard.NotNull(structure, nameof(structure));
 
-        return DetectNumericColumns(table, structure.ColumnCount, structure.BodyStartRowIndex);
+        return DetectNumericColumns(
+            table,
+            structure.ColumnCount,
+            structure.BodyStartRowIndex,
+            cancellationToken);
     }
 
     /// <summary>
@@ -503,8 +565,17 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="maxRows">Maximum number of rows to return. Values less than or equal to zero return all body rows.</param>
     /// <returns>Body rows padded or trimmed to the inferred column count.</returns>
     public static IReadOnlyList<IReadOnlyList<string>> GetBodyRows(PdfLogicalTable table, PdfLogicalTableStructure structure, int maxRows = 0) {
+        return GetBodyRows(table, structure, maxRows, CancellationToken.None);
+    }
+
+    private static IReadOnlyList<IReadOnlyList<string>> GetBodyRows(
+        PdfLogicalTable table,
+        PdfLogicalTableStructure structure,
+        int maxRows,
+        CancellationToken cancellationToken) {
         Guard.NotNull(table, nameof(table));
         Guard.NotNull(structure, nameof(structure));
+        cancellationToken.ThrowIfCancellationRequested();
 
         int availableRows = Math.Max(0, table.Rows.Count - structure.BodyStartRowIndex);
         int rowCount = maxRows > 0 ? Math.Min(maxRows, availableRows) : availableRows;
@@ -514,6 +585,7 @@ public static class PdfLogicalTableAnalysis {
 
         var rows = new IReadOnlyList<string>[rowCount];
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             rows[rowIndex] = NormalizeRow(table.Rows[structure.BodyStartRowIndex + rowIndex], structure.ColumnCount);
         }
 
@@ -521,19 +593,25 @@ public static class PdfLogicalTableAnalysis {
     }
 
     internal static bool[] DetectNumericColumns(PdfLogicalTable table, int columnCount) {
-        return DetectNumericColumns(table, columnCount, startRow: 1);
+        return DetectNumericColumns(table, columnCount, startRow: 1, CancellationToken.None);
     }
 
-    private static bool[] DetectNumericColumns(PdfLogicalTable table, int columnCount, int startRow) {
+    private static bool[] DetectNumericColumns(
+        PdfLogicalTable table,
+        int columnCount,
+        int startRow,
+        CancellationToken cancellationToken) {
         var numericColumns = new bool[columnCount];
         if (table.Rows.Count <= startRow) {
             return numericColumns;
         }
 
         for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             bool sawValue = false;
             bool allNumeric = true;
             for (int rowIndex = startRow; rowIndex < table.Rows.Count; rowIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<string> row = table.Rows[rowIndex];
                 string value = columnIndex < row.Count ? row[columnIndex] : string.Empty;
                 if (string.IsNullOrWhiteSpace(value)) {
@@ -717,7 +795,7 @@ public static class PdfLogicalTableAnalysis {
         return digitsAfter == 3 ? NumberSeparatorRole.Group : NumberSeparatorRole.Decimal;
     }
 
-    private static bool LooksLikeKeyValueHeader(IReadOnlyList<string> headerColumns) {
+    private static bool LooksLikeKeyValueHeader(string[] headerColumns) {
         string keyHeader = headerColumns[0].Trim();
         string valueHeader = headerColumns[1].Trim();
 
