@@ -179,6 +179,14 @@ public sealed class PdfUnderstandingRegion {
 
 /// <summary>Semantic classification of one ordered region.</summary>
 public sealed class PdfUnderstandingSemanticElement {
+    /// <summary>Creates a semantic classification for a region without an explicit hierarchy level.</summary>
+    public PdfUnderstandingSemanticElement(
+        PdfUnderstandingRegion region,
+        PdfUnderstandingSemanticKind kind,
+        double confidence,
+        IEnumerable<PdfInferenceEvidence>? evidence)
+        : this(region, kind, confidence, evidence, level: null) { }
+
     /// <summary>Creates a semantic classification for a region.</summary>
     public PdfUnderstandingSemanticElement(PdfUnderstandingRegion region, PdfUnderstandingSemanticKind kind, double confidence = 0.5D, IEnumerable<PdfInferenceEvidence>? evidence = null, int? level = null) { Guard.NotNull(region, nameof(region)); if (level <= 0) throw new ArgumentOutOfRangeException(nameof(level)); Region = region; Kind = kind; Confidence = PdfInference.Clamp(confidence); Evidence = PdfInference.Snapshot(evidence); Level = level; }
     /// <summary>Classified region.</summary>
