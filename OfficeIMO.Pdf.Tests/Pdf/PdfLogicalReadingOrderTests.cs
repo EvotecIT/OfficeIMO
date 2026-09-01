@@ -4,6 +4,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.OpenDocument.Odt.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Pdf;
+using System.Globalization;
 using System.IO.Compression;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -271,10 +272,12 @@ public sealed class PdfLogicalReadingOrderTests {
 
     [Fact]
     public void TableOwnership_RecognizesCompleteWordSequencesWithinWrappedCellText() {
-        string[] cells = { "this wrapped table cell contains multiple visual lines" };
+        string longPrefix = string.Join(" ", Enumerable.Range(0, 180).Select(index => "prefix" + index.ToString(CultureInfo.InvariantCulture)));
+        string[] cells = { "this wrapped table cell contains multiple visual lines", longPrefix + " target wrapped suffix" };
 
         Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "this wrapped table cell"));
         Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "contains multiple visual lines"));
+        Assert.True(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "target wrapped suffix"));
         Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "wrapped table cell contains multiple visual" + "x"));
         Assert.False(PdfLogicalReadingOrderAnalysis.IsRepresentedByTableCell(cells, "rap"));
     }

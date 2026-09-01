@@ -30,7 +30,7 @@ PdfSearchableOcrResult result = await OfficeOcr.MakePdfSearchableAsync(
 Console.WriteLine($"Added {result.AddedWordCount} OCR words.");
 ```
 
-English is the default. Language choices are typed and discoverable, so callers do not need to know Tesseract language codes. The curated catalog contains 28 typed languages across Latin, Cyrillic, Arabic, Hebrew, Devanagari, Chinese, Japanese, Korean, Greek, and Vietnamese text. Requested language data is downloaded on demand from an immutable official `tessdata_fast` commit. Every file is checked against a package-pinned size and SHA-256 digest before it enters the versioned user cache.
+English is the default. Language choices are typed and discoverable, so callers do not need to know Tesseract language codes. The curated catalog contains 28 typed languages across Latin, Cyrillic, Arabic, Hebrew, Devanagari, Chinese, Japanese, Korean, Greek, and Vietnamese text. Requested language data is downloaded on demand from an immutable official `tessdata_fast` commit; orientation data is included automatically when the selected page segmentation mode needs it. Every file is checked against a package-pinned size and SHA-256 digest before it enters the versioned user cache.
 
 ```csharp
 var options = new OfficeOcrOptions();

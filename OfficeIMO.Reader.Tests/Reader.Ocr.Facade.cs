@@ -64,6 +64,24 @@ public sealed class ReaderOcrFacadeTests {
         }));
     }
 
+    [Theory]
+    [InlineData(null, false)]
+    [InlineData(0, true)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    [InlineData(3, false)]
+    [InlineData(11, false)]
+    [InlineData(12, true)]
+    [InlineData(13, false)]
+    public void Session_RequiresOrientationDataOnlyForOsdSegmentationModes(int? pageSegmentationMode, bool expectsOsd) {
+        string[] required = OfficeOcr.ResolveRequiredLanguageData("eng+pol", pageSegmentationMode);
+
+        Assert.Equal(expectsOsd, required.Contains("osd", StringComparer.Ordinal));
+        Assert.Contains("eng", required);
+        Assert.Contains("pol", required);
+        Assert.Equal(required.Length, required.Distinct(StringComparer.Ordinal).Count());
+    }
+
     [Fact]
     public async Task ReadTextAsync_RejectsNullNestedTesseractOptionsBeforeReadingTheFile() {
         var options = new OfficeOcrOptions { Tesseract = null! };

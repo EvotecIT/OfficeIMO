@@ -421,17 +421,16 @@ public static class PdfLogicalReadingOrderAnalysis {
         var result = new List<Candidate>();
         var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
         var tableBounds = new PdfVisualBounds?[page.Tables.Count];
-        var tableText = new HashSet<string>[page.Tables.Count];
+        var tableText = new string[page.Tables.Count][][];
         for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
             cancellationCheck?.Invoke();
             PdfLogicalTable table = page.Tables[tableIndex];
             consumeWork?.Invoke(Math.Max(1, table.Columns.Count));
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
-            tableText[tableIndex] = new HashSet<string>(
-                table.Cells
-                    .Select(static cell => PdfTextSimilarity.NormalizeSignature(cell.Text))
-                    .Where(static text => text.Length > 0),
-                StringComparer.Ordinal);
+            tableText[tableIndex] = table.Cells
+                .Select(static cell => NormalizeTableOwnershipWords(cell.Text))
+                .Where(static words => words.Length > 0)
+                .ToArray();
         }
         for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
@@ -444,12 +443,12 @@ public static class PdfLogicalReadingOrderAnalysis {
             PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
             cancellationCheck?.Invoke();
             if (!TryGetVisualBounds(page, block, out PdfVisualBounds blockBounds)) continue;
+            string[] blockWords = NormalizeTableOwnershipWords(block.Text);
             for (int tableIndex = 0; tableIndex < tableBounds.Length; tableIndex++) {
                 cancellationCheck?.Invoke();
                 consumeWork?.Invoke(1);
-                string signature = PdfTextSimilarity.NormalizeSignature(block.Text);
-                if (signature.Length > 0 &&
-                    IsRepresentedByTableCell(tableText[tableIndex], signature) &&
+                if (blockWords.Length > 0 &&
+                    IsRepresentedByTableCell(tableText[tableIndex], blockWords, consumeWork, cancellationCheck) &&
                     tableBounds[tableIndex] is PdfVisualBounds bounds &&
                     IsOwnedByTable(block, blockBounds, bounds)) {
                     representedTextBlocks.Add(block);
@@ -644,19 +643,46 @@ public static class PdfLogicalReadingOrderAnalysis {
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
     }
 
-    internal static bool IsRepresentedByTableCell(IEnumerable<string> cellSignatures, string blockSignature) {
-        foreach (string cellSignature in cellSignatures) {
-            if (string.Equals(cellSignature, blockSignature, StringComparison.Ordinal)) return true;
-            int offset = cellSignature.IndexOf(blockSignature, StringComparison.Ordinal);
-            while (offset >= 0) {
-                int end = offset + blockSignature.Length;
-                bool startsAtBoundary = offset == 0 || cellSignature[offset - 1] == ' ';
-                bool endsAtBoundary = end == cellSignature.Length || cellSignature[end] == ' ';
-                if (startsAtBoundary && endsAtBoundary) return true;
-                offset = cellSignature.IndexOf(blockSignature, offset + 1, StringComparison.Ordinal);
+    internal static bool IsRepresentedByTableCell(IEnumerable<string> cellTexts, string blockText) =>
+        IsRepresentedByTableCell(
+            cellTexts.Select(static text => NormalizeTableOwnershipWords(text)),
+            NormalizeTableOwnershipWords(blockText),
+            consumeWork: null,
+            cancellationCheck: null);
+
+    private static bool IsRepresentedByTableCell(
+        IEnumerable<string[]> cellWords,
+        string[] blockWords,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        if (blockWords.Length == 0) return false;
+        foreach (string[] words in cellWords) {
+            cancellationCheck?.Invoke();
+            if (words.Length < blockWords.Length) continue;
+            int lastStart = words.Length - blockWords.Length;
+            for (int start = 0; start <= lastStart; start++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(blockWords.Length);
+                bool matched = true;
+                for (int index = 0; index < blockWords.Length; index++) {
+                    if (!string.Equals(words[start + index], blockWords[index], StringComparison.Ordinal)) {
+                        matched = false;
+                        break;
+                    }
+                }
+                if (matched) return true;
             }
         }
         return false;
+    }
+
+    private static string[] NormalizeTableOwnershipWords(string? text) {
+        if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();
+        return text!
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(static word => PdfTextSimilarity.NormalizeSignature(word))
+            .Where(static word => word.Length > 0)
+            .ToArray();
     }
 
     private static bool CanDivideBands(Candidate item, double pageWidth, double pageHeight) {

@@ -22,7 +22,7 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
         if (request == null) throw new ArgumentNullException(nameof(request));
         cancellationToken.ThrowIfCancellationRequested();
 
-        byte[] payload = request.Png;
+        byte[] payload = (byte[])request.Png.Clone();
         string assetId = "pdf-page-" + request.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
         var location = new ReaderLocation {
             Path = _options.SourceName,
@@ -58,7 +58,7 @@ public sealed class OfficeOcrEnginePdfProvider : IPdfOcrProvider {
         OfficeOcrEngineResult result = await _engine.RecognizeAsync(new OfficeOcrEngineRequest {
             Candidate = candidate,
             Asset = asset,
-            Payload = payload,
+            Payload = (byte[])payload.Clone(),
             Language = _options.Language,
             Source = source,
             ProviderOptions = _options.ProviderOptions

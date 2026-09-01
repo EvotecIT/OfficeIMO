@@ -92,6 +92,26 @@ public sealed class ReaderOcrPdfTests {
         Assert.Contains(response.Diagnostics, diagnostic => diagnostic.StartsWith("ocr-span-geometry-missing:", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task OfficeOcrEnginePdfProvider_IsolatesMutableEnginePayloadFromProvenanceEvidence() {
+        byte[] callerPayload = { 1, 2, 3 };
+        OfficeOcrEngineRequest? captured = null;
+        var engine = new DelegateOfficeOcrEngine("mutating-fixture", (request, _) => {
+            captured = request;
+            request.Payload[0] = 99;
+            return new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult());
+        });
+        var provider = new OfficeOcrEnginePdfProvider(engine);
+
+        await provider.RecognizeAsync(new PdfOcrRequest(1, callerPayload, 100, 100, 50, 50, 2D));
+
+        Assert.NotNull(captured);
+        Assert.NotSame(captured!.Payload, captured.Asset.PayloadBytes);
+        Assert.Equal(new byte[] { 1, 2, 3 }, callerPayload);
+        Assert.Equal(new byte[] { 1, 2, 3 }, captured.Asset.PayloadBytes);
+        Assert.True(captured.Asset.PayloadHashMatches(out _));
+    }
+
     private sealed class StubEngine : IOfficeOcrEngine {
         private readonly OfficeOcrEngineResult _result;
 

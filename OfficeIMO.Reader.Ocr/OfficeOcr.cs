@@ -25,15 +25,16 @@ public static class OfficeOcr {
         var engine = new TesseractOcrEngine(engineOptions);
         string version = await engine.GetVersionAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<string> languages = await engine.GetLanguagesAsync(cancellationToken).ConfigureAwait(false);
-        string[] requestedLanguages = ParseLanguages(languageExpression);
+        string[] requestedLanguages = ResolveRequiredLanguageData(languageExpression, engineOptions.PageSegmentationMode);
+        string requiredLanguageExpression = string.Join("+", requestedLanguages);
         TesseractLanguageDataResult? provisioned = null;
         if (requestedLanguages.Any(language => !languages.Contains(language, StringComparer.Ordinal))) {
             if (!source.ProvisionMissingLanguageData || !string.IsNullOrWhiteSpace(source.Tesseract.TessdataDirectory)) {
                 throw new InvalidOperationException(
-                    "The configured Tesseract runtime does not provide every requested language (" + languageExpression + "). " +
+                    "The configured Tesseract runtime does not provide every required language-data file (" + requiredLanguageExpression + "). " +
                     "Install the missing trained data, configure TessdataDirectory, or enable ProvisionMissingLanguageData.");
             }
-            provisioned = await TesseractLanguageData.EnsureAsync(languageExpression, source.LanguageData, cancellationToken).ConfigureAwait(false);
+            provisioned = await TesseractLanguageData.EnsureAsync(requiredLanguageExpression, source.LanguageData, cancellationToken).ConfigureAwait(false);
             engineOptions.TessdataDirectory = provisioned.Directory;
             engine = new TesseractOcrEngine(engineOptions);
             languages = await engine.GetLanguagesAsync(cancellationToken).ConfigureAwait(false);
@@ -87,6 +88,14 @@ public static class OfficeOcr {
         .Where(static language => language.Length > 0)
         .Distinct(StringComparer.Ordinal)
         .ToArray();
+
+    internal static string[] ResolveRequiredLanguageData(string languageExpression, int? pageSegmentationMode) {
+        string[] languages = ParseLanguages(languageExpression);
+        if (pageSegmentationMode is 0 or 1 or 12 && !languages.Contains("osd", StringComparer.Ordinal)) {
+            return languages.Concat(new[] { "osd" }).ToArray();
+        }
+        return languages;
+    }
 
     internal static string ResolveLanguageExpression(OfficeOcrOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
