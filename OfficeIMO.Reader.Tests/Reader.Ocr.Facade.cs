@@ -94,6 +94,46 @@ public sealed class ReaderOcrFacadeTests {
     }
 
     [Fact]
+    public async Task MakePdfSearchableAsync_RejectsExistingOutputBeforeRuntimeDiscovery() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string outputPath = Path.Combine(directory, "existing.pdf");
+        try {
+            File.WriteAllBytes(outputPath, new byte[] { 1, 2, 3 });
+            var options = new OfficeOcrOptions {
+                Tesseract = new TesseractOcrEngineOptions { ExecutablePath = "missing-tesseract-fixture" }
+            };
+
+            IOException exception = await Assert.ThrowsAsync<IOException>(() =>
+                OfficeOcr.MakePdfSearchableAsync(Path.Combine(directory, "missing.pdf"), outputPath, options));
+
+            Assert.Contains(Path.GetFullPath(outputPath), exception.Message, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ResolvePdfPaths_SnapshotsRelativePathsAgainstTheCurrentDirectory() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-ocr-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        lock (ReaderCurrentDirectoryLock.Gate) {
+            string originalDirectory = Environment.CurrentDirectory;
+            try {
+                Environment.CurrentDirectory = directory;
+
+                (string inputPath, string outputPath) = OfficeOcr.ResolvePdfPaths("input.pdf", "output.pdf");
+
+                Assert.Equal(Path.Combine(directory, "input.pdf"), inputPath);
+                Assert.Equal(Path.Combine(directory, "output.pdf"), outputPath);
+            } finally {
+                Environment.CurrentDirectory = originalDirectory;
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task Session_RecognizesImageWithStableSourceEvidenceAndConfiguredLanguage() {
         OfficeOcrEngineRequest? captured = null;
         var engine = new DelegateOfficeOcrEngine("fixture", (request, _) => {

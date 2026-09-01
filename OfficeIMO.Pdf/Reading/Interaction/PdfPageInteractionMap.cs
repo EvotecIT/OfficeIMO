@@ -83,7 +83,10 @@ public sealed class PdfPageInteractionMap {
             while (enumerator.MoveNext()) elementCount++;
             if (elementCount == 0) continue;
 
-            double totalAdvance = Math.Max(Math.Abs(span.Advance), elementCount * Math.Max(1D, span.FontSize * 0.5D));
+            double totalAdvance = Math.Abs(span.Advance);
+            if (totalAdvance <= 0D) {
+                totalAdvance = elementCount * Math.Max(1D, span.FontSize * 0.5D);
+            }
             double radians = span.RotationDegrees * Math.PI / 180D;
             double directionX = Math.Cos(radians);
             double directionY = Math.Sin(radians);

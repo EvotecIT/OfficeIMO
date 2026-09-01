@@ -5,10 +5,14 @@ namespace OfficeIMO.Pdf;
 internal static class PdfOcrLogicalDocumentBuilder {
     internal static IReadOnlyList<PdfRecognizedWord> OrderWordsForLogicalReading(
         IReadOnlyList<PdfRecognizedWord> words,
-        CancellationToken cancellationToken) =>
-        BuildLines(words, cancellationToken)
-            .SelectMany(static line => line.Words.OrderBy(static word => word.ProviderSequence))
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfRecognizedWord[] ordered = words
+            .OrderBy(static word => word.ProviderSequence)
             .ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        return ordered;
+    }
 
     internal static IReadOnlyList<PdfOcrLogicalTextLine> BuildTextLines(
         IReadOnlyList<PdfRecognizedWord> words,

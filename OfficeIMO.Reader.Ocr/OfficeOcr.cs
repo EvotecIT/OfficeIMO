@@ -75,12 +75,22 @@ public static class OfficeOcr {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input PDF path cannot be empty.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("Output PDF path cannot be empty.", nameof(outputPath));
         OfficeOcrOptions effective = options ?? new OfficeOcrOptions();
+        if (!Enum.IsDefined(typeof(OfficeConversionFileConflictPolicy), effective.OutputConflictPolicy)) {
+            throw new ArgumentOutOfRangeException(nameof(OfficeOcrOptions.OutputConflictPolicy), "The output conflict policy is not supported.");
+        }
+        (string fullInputPath, string fullOutputPath) = ResolvePdfPaths(inputPath, outputPath);
+        if (effective.OutputConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists && File.Exists(fullOutputPath)) {
+            throw new IOException($"Destination file '{fullOutputPath}' already exists.");
+        }
         var session = await CreateSessionAsync(effective, cancellationToken).ConfigureAwait(false);
-        PdfDocument document = await PdfDocument.LoadAsync(inputPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+        PdfDocument document = await PdfDocument.LoadAsync(fullInputPath, cancellationToken: cancellationToken).ConfigureAwait(false);
         PdfSearchableOcrResult result = await session.MakePdfSearchableAsync(document, cancellationToken).ConfigureAwait(false);
-        await result.Document.SaveAsync(outputPath, effective.OutputConflictPolicy, cancellationToken).ConfigureAwait(false);
+        await result.Document.SaveAsync(fullOutputPath, effective.OutputConflictPolicy, cancellationToken).ConfigureAwait(false);
         return result;
     }
+
+    internal static (string InputPath, string OutputPath) ResolvePdfPaths(string inputPath, string outputPath) =>
+        (Path.GetFullPath(inputPath), Path.GetFullPath(outputPath));
 
     private static string[] ParseLanguages(string expression) => expression
         .Split('+')

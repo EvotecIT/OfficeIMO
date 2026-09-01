@@ -293,6 +293,30 @@ public class PdfOcrTests {
         Assert.Equal(0, page.RejectedNativeOverlapCount);
     }
 
+    [Fact]
+    public async Task RecognizeAndMergeAsync_UsesPaintedAdvanceForActualTextOverlapBounds() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.ActualText("A much longer replacement", logical =>
+                logical.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D)))
+            .ToBytes();
+        PdfReadPage readPage = PdfReadDocument.Open(source).Pages[0];
+        PdfTextSpan nativeSpan = Assert.Single(
+            readPage.GetInteractionTextSpans(),
+            static span => span.Text == "A much longer replacement");
+        PdfSelectionQuad firstLogicalGlyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
+        double ocrLeft = firstLogicalGlyph.Left + Math.Abs(nativeSpan.Advance) + 2D;
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", ocrLeft * request.Scale, firstLogicalGlyph.Top * request.Scale,
+                24D * request.Scale, firstLogicalGlyph.Height * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(270)]
@@ -574,6 +598,35 @@ public class PdfOcrTests {
         int secondWord = decodedContent.IndexOf(PdfSyntaxEscaper.TextString("עולם"), StringComparison.Ordinal);
         Assert.True(firstWord >= 0, "The searchable layer did not contain the first logical word.");
         Assert.True(secondWord > firstWord, "The searchable layer reversed the provider's right-to-left logical word sequence.");
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_PreservesProviderSequenceAcrossLinesAndColumns() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "LeftTop", 30, 80, 54, 12),
+            At(request, "LeftBottom", 30, 120, 66, 12),
+            At(request, "RightTop", 300, 80, 60, 12),
+            At(request, "RightBottom", 300, 120, 72, 12)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        string decodedContent = string.Join(
+            Environment.NewLine,
+            result.Document.Debug(new PdfDebuggerOptions {
+                IncludeDecodedStreamPreviews = true,
+                MaxDecodedStreamPreviewBytes = 64 * 1024
+            }).Objects.Select(static item => item.DecodedStreamPreview ?? string.Empty));
+
+        string[] expected = { "LeftTop", "LeftBottom", "RightTop", "RightBottom" };
+        int previous = -1;
+        for (int index = 0; index < expected.Length; index++) {
+            int current = decodedContent.IndexOf(PdfSyntaxEscaper.TextString(expected[index]), StringComparison.Ordinal);
+            Assert.True(current > previous, $"The searchable layer did not preserve provider sequence at '{expected[index]}'.");
+            previous = current;
+        }
     }
 
     [Fact]
