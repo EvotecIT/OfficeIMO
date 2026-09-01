@@ -116,6 +116,7 @@ internal static class IWorkFormulaReader {
                         || node.HasUnexpectedWireKind(5, IWorkWireKind.Varint)) complete = false;
                     ulong? value = node.GetUnsigned(5);
                     if (!value.HasValue) complete = false;
+                    if (value > 1) complete = false;
                     stack.Add(new Operand(value.GetValueOrDefault() != 0 ? "TRUE" : "FALSE", PrimaryPrecedence));
                     break;
                 }

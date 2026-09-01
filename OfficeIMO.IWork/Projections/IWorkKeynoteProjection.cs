@@ -267,7 +267,17 @@ internal static class IWorkKeynoteReader {
                 MarkDuplicateSlide(show, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
-            IWorkWireMessage nodeMessage = index.Message(node);
+            IWorkWireMessage nodeMessage;
+            try {
+                nodeMessage = index.Message(node);
+            } catch (InvalidDataException) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_KEYNOTE_SLIDE_NODE_UNSUPPORTED",
+                    "The Keynote slide tree references a malformed node record; editable reconstruction is incomplete.",
+                    node.EntryPath, node.Identifier));
+                continue;
+            }
             ulong? skippedValue = nodeMessage.GetUnsigned(4);
             bool skipped = skippedValue == 1;
             if (nodeMessage.FieldCount(4) > 1
@@ -299,23 +309,34 @@ internal static class IWorkKeynoteReader {
                 MarkDuplicateSlide(show, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
-            slides.Add(ReadSlide(source, index, slide, position, skipped, projectionBudget,
-                ref materializedCellCount, diagnostics,
-                ref supportsEditableReconstruction));
+            IWorkKeynoteSlide? projectedSlide = ReadSlide(source, index, slide, position, skipped,
+                projectionBudget, ref materializedCellCount, diagnostics,
+                ref supportsEditableReconstruction);
+            if (projectedSlide != null) slides.Add(projectedSlide);
         }
         return new IWorkKeynoteProjection(source, slides, slideSize, diagnostics, supportsEditableReconstruction);
     }
 
-    private static IWorkKeynoteSlide ReadSlide(IWorkSourceDocument source, IWorkObjectIndex index, IWorkArchiveRecord slide,
+    private static IWorkKeynoteSlide? ReadSlide(IWorkSourceDocument source, IWorkObjectIndex index, IWorkArchiveRecord slide,
         int position, bool skipped, IWorkProjectionBudget projectionBudget,
         ref int materializedCellCount,
         List<IWorkDiagnostic> diagnostics,
         ref bool supportsEditableReconstruction) {
+        IWorkWireMessage message;
+        try {
+            message = index.Message(slide);
+        } catch (InvalidDataException) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_SLIDE_MALFORMED",
+                "A Keynote slide record is malformed; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
+            return null;
+        }
         foreach (int field in new[] { 7, 42, 5, 6 }) {
             projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
                 slide.Payload, field, projectionBudget.MaximumProtobufFieldCount));
         }
-        IWorkWireMessage message = index.Message(slide);
         if (message.FieldCount(5) > 1) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -379,6 +400,12 @@ internal static class IWorkKeynoteReader {
         var drawables = new List<IWorkKeynoteDrawable>();
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord drawable in candidates) {
+            try {
+                index.Message(drawable);
+            } catch (InvalidDataException) {
+                MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
+                continue;
+            }
             if (drawable.MessageType == 6000) {
                 projectionBudget.AddTable();
                 IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
@@ -432,6 +459,12 @@ internal static class IWorkKeynoteReader {
                 text = cached;
                 projectionBudget.AddTextContentUse(text, includeCharacters: true);
             } else {
+                try {
+                    index.Message(storage);
+                } catch (InvalidDataException) {
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    continue;
+                }
                 text = IWorkTextReader.Read(index, storage, projectionBudget);
                 textCache.Add(storage.Identifier, text);
             }
@@ -525,13 +558,36 @@ internal static class IWorkKeynoteReader {
         } else if (noteRecords.Count == 1
                    && noteRecords[0].MessageType == PresenterNoteArchive) {
             IWorkArchiveRecord note = noteRecords[0];
-            IReadOnlyList<IWorkArchiveRecord> noteStorages = index.DereferenceAll(
-                index.Message(note), 1, out int unresolvedStorageCount);
+            IWorkWireMessage? noteMessage = null;
+            try {
+                noteMessage = index.Message(note);
+            } catch (InvalidDataException) {
+                noteMessage = null;
+            }
+            IReadOnlyList<IWorkArchiveRecord> noteStorages;
+            int unresolvedStorageCount;
+            if (noteMessage == null) {
+                noteStorages = Array.Empty<IWorkArchiveRecord>();
+                unresolvedStorageCount = 1;
+            } else {
+                noteStorages = index.DereferenceAll(noteMessage, 1, out unresolvedStorageCount);
+            }
             if (unresolvedStorageCount == 0 && noteStorages.Count == 1
                 && noteStorages[0].MessageType == TextStorageArchive) {
                 IWorkArchiveRecord storage = noteStorages[0];
-                notes = IWorkTextReader.Read(index, storage, projectionBudget);
-                if (!notes.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                bool storageMalformed = false;
+                try {
+                    index.Message(storage);
+                } catch (InvalidDataException) {
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    storageMalformed = true;
+                }
+                if (!storageMalformed) {
+                    notes = IWorkTextReader.Read(index, storage, projectionBudget);
+                    if (!notes.IsComplete) {
+                        MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    }
+                }
             } else {
                 MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
             }

@@ -318,9 +318,9 @@ public sealed partial class IWorkSourceDocument {
                 : IWorkVisualCoverage.FirstPageOrCompositePreview;
             (int? width, int? height) = IWorkImageInfo.Read(
                 entry.Bytes, mediaType, remainingDecodedBytes, out long decodedBytes);
+            if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
             if (decodedBytes < 0 || decodedBytes > remainingDecodedBytes) continue;
             remainingDecodedBytes -= decodedBytes;
-            if (mediaType != "application/pdf" && (!width.HasValue || !height.HasValue)) continue;
             recognizedPaths.Add(entry.Path);
             previews.Add(new IWorkPreviewAsset(entry.Path, mediaType, coverage, width, height, entry.Bytes));
         }
