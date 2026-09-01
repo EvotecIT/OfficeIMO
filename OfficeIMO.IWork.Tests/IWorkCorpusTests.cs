@@ -286,13 +286,18 @@ public sealed class IWorkCorpusTests {
         using var tableResult = PowerPointPresentation.LoadKeynoteWithReport(
             Fixture("keynotekit/tabledeck-v15.2.1.key"));
         PowerPointTable table = Assert.Single(Assert.Single(tableResult.Document.Slides).Tables);
+        IWorkTable sourceTable = Assert.Single(Assert.Single(
+            tableResult.Projection.Slides).Tables);
 
         Assert.False(tableResult.IsVisualFallback);
         Assert.Equal((3, 3), (table.Rows, table.Columns));
         Assert.Equal("Product", table.GetCell(0, 0).Text);
         Assert.Equal("24000", table.GetCell(1, 2).Text);
         Assert.InRange(table.LeftPoints, 94.99d, 95.01d);
-        Assert.InRange(table.WidthPoints, 1729.99d, 1730.01d);
+        double expectedWidth = sourceTable.DefaultColumnWidth!.Value * sourceTable.ColumnCount;
+        double expectedHeight = sourceTable.DefaultRowHeight!.Value * sourceTable.RowCount;
+        Assert.InRange(table.WidthPoints, expectedWidth - 0.001d, expectedWidth + 0.001d);
+        Assert.InRange(table.HeightPoints, expectedHeight - 0.001d, expectedHeight + 0.001d);
 
         using var imageResult = PowerPointPresentation.LoadKeynoteWithReport(
             Fixture("keynotekit/imagedeck-v15.2.1.key"));

@@ -133,13 +133,14 @@ internal static class IWorkArchiveParser {
         IWorkReadOptions options) {
         var records = new List<IWorkArchiveRecord>();
         long totalDecompressedBytes = 0;
+        int archiveReferenceCount = 0;
         foreach (IWorkPackageEntry entry in entries.Where(candidate => IsIndexArchivePath(candidate.Path))) {
             byte[] stream;
             try {
                 long remaining = options.MaximumTotalDecompressedIwaBytes - totalDecompressedBytes;
                 stream = IWorkSnappy.DecodeIwa(entry.Bytes, options, remaining);
                 totalDecompressedBytes = checked(totalDecompressedBytes + stream.LongLength);
-                ParseStream(stream, entry.Path, records, options);
+                ParseStream(stream, entry.Path, records, options, ref archiveReferenceCount);
             } catch (Exception exception) when (exception is InvalidDataException or OverflowException) {
                 throw new InvalidDataException($"Failed to read IWA entry {entry.Path}: {exception.Message}", exception);
             }
@@ -152,7 +153,7 @@ internal static class IWorkArchiveParser {
         && path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
 
     private static void ParseStream(byte[] stream, string entryPath, List<IWorkArchiveRecord> records,
-        IWorkReadOptions options) {
+        IWorkReadOptions options, ref int archiveReferenceCount) {
         int offset = 0;
         while (offset < stream.Length) {
             ulong rawInfoLength = IWorkProtobuf.ReadVarint(stream, ref offset);
@@ -208,12 +209,27 @@ internal static class IWorkArchiveParser {
                 if (offset > stream.Length - payloadLength) {
                     throw new InvalidDataException($"Truncated payload for object {identifier.Value} at offset {offset}.");
                 }
+                int remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                    - archiveReferenceCount;
+                IReadOnlyList<ulong> versions = messageInfo.GetRepeatedUnsigned(
+                    2, packed: true, remainingArchiveReferences);
+                archiveReferenceCount += versions.Count;
+                remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                    - archiveReferenceCount;
+                IReadOnlyList<ulong> objectReferences = messageInfo.GetRepeatedUnsigned(
+                    5, packed: true, remainingArchiveReferences);
+                archiveReferenceCount += objectReferences.Count;
+                remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                    - archiveReferenceCount;
+                IReadOnlyList<ulong> dataReferences = messageInfo.GetRepeatedUnsigned(
+                    6, packed: true, remainingArchiveReferences);
+                archiveReferenceCount += dataReferences.Count;
                 records.Add(new IWorkArchiveRecord(
                     identifier.Value,
                     (uint)rawType.Value,
-                    messageInfo.GetRepeatedUnsigned(2, packed: true).Select(value => checked((uint)value)).ToArray(),
-                    messageInfo.GetRepeatedUnsigned(5, packed: true),
-                    messageInfo.GetRepeatedUnsigned(6, packed: true),
+                    versions.Select(value => checked((uint)value)).ToArray(),
+                    objectReferences,
+                    dataReferences,
                     entryPath,
                     payloadIndex,
                     Slice(stream, offset, payloadLength)));

@@ -1103,7 +1103,9 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
                 byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
-                byte[] stringPayload = table.DuplicateString
+                byte[] stringPayload = table.MissingStringEntry
+                    ? Message()
+                    : table.DuplicateString
                     ? Message(BytesField(3, stringEntry), BytesField(3, stringEntry))
                     : Message(new[] { BytesField(3, stringEntry) }
                         .Concat(Enumerable.Range(0, table.UnexpectedStringCatalogFieldCount)
@@ -1550,7 +1552,7 @@ public sealed partial class IWorkBoundaryTests {
             int trailingEmptyOffsetCount = 0, bool duplicateTableStore = false,
             bool duplicateRowIndex = false, bool conflictingNumberValue = false,
             byte decimal128SpecialHighByte = 0, bool emptyTile = false,
-            bool duplicatePopulatedOffset = false) {
+            bool duplicatePopulatedOffset = false, bool missingStringEntry = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1601,6 +1603,7 @@ public sealed partial class IWorkBoundaryTests {
             Decimal128SpecialHighByte = decimal128SpecialHighByte;
             EmptyTile = emptyTile;
             DuplicatePopulatedOffset = duplicatePopulatedOffset;
+            MissingStringEntry = missingStringEntry;
         }
 
         internal string Name { get; }
@@ -1653,5 +1656,6 @@ public sealed partial class IWorkBoundaryTests {
         internal byte Decimal128SpecialHighByte { get; }
         internal bool EmptyTile { get; }
         internal bool DuplicatePopulatedOffset { get; }
+        internal bool MissingStringEntry { get; }
     }
 }

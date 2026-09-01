@@ -51,7 +51,8 @@ internal static class IWorkImageInfo {
             if (offset >= bytes.Length) return (null, null);
             byte marker = bytes[offset++];
             while (marker == 0xff && offset < bytes.Length) marker = bytes[offset++];
-            if (marker == 0xd9) return hasScan && width > 0 && height > 0
+            if (marker == 0xd9) return offset == bytes.Length
+                && hasScan && width > 0 && height > 0
                 ? (width, height)
                 : (null, null);
             if (marker == 0x00 || marker == 0xd8) return (null, null);

@@ -57,6 +57,7 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
     IWorkDocumentKind.Numbers,
     new IWorkReadOptions {
         MaximumPackageBytes = 64 * 1024 * 1024,
+        MaximumArchiveReferenceCount = 1_000_000,
         MaximumMaterializedCells = 1_000_000,
         MaximumTableCatalogEntries = 100_000
     });
@@ -93,7 +94,7 @@ This is extended semantic reconstruction rather than plain-text extraction:
 
 Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
 
-`IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, and source-wide materialized cells in addition to the package/IWA limits.
+`IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
 `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview without traversing the application-specific semantic graph and reports `VisualFallback`; the corresponding `ReadPages`, `ReadNumbers`, or `ReadKeynote` call returns a diagnostic-only projection and does not claim that preview text or objects are editable. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 

@@ -148,8 +148,13 @@ public sealed partial class IWorkSourceDocument {
         IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
         foreach (IWorkArchiveRecord document in records.Where(record =>
                      record.IsPrimary && record.MessageType == 1)) {
-            int declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
-                options.MaximumProtobufFieldCount);
+            int declaredSheetCount;
+            try {
+                declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
+                    options.MaximumProtobufFieldCount);
+            } catch (InvalidDataException) {
+                continue;
+            }
             if (options.ImportMode != IWorkImportMode.VisualOnly
                 && declaredSheetCount > options.MaximumProjectedSheets) {
                 throw new InvalidDataException(

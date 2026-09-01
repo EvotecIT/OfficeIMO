@@ -42,22 +42,33 @@ internal sealed class IWorkWireMessage {
         return value?.Unsigned;
     }
 
-    internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed = false) {
+    internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed = false) =>
+        GetRepeatedUnsigned(field, packed, _options.MaximumProtobufFieldCount);
+
+    internal IReadOnlyList<ulong> GetRepeatedUnsigned(int field, bool packed,
+        int maximumValues) {
+        if (maximumValues < 0) throw new ArgumentOutOfRangeException(nameof(maximumValues));
+        int effectiveMaximum = Math.Min(maximumValues, _options.MaximumProtobufFieldCount);
+        string limitDescription = effectiveMaximum < maximumValues
+            ? $"configured value limit of {_options.MaximumProtobufFieldCount}"
+            : $"remaining aggregate limit of {maximumValues}";
         var result = new List<ulong>();
         foreach (IWorkWireValue value in Values(field)) {
             if (value.Kind == IWorkWireKind.Varint) {
+                if (result.Count >= effectiveMaximum) {
+                    throw new InvalidDataException(
+                        $"A repeated protobuf value exceeds the {limitDescription}.");
+                }
                 result.Add(value.Unsigned);
             } else if (packed && value.Kind == IWorkWireKind.Bytes && value.Bytes != null) {
                 int offset = 0;
                 while (offset < value.Bytes.Length) {
-                    if (result.Count >= _options.MaximumProtobufFieldCount) {
-                        throw new InvalidDataException($"A packed protobuf field exceeds the configured value limit of {_options.MaximumProtobufFieldCount}.");
+                    if (result.Count >= effectiveMaximum) {
+                        throw new InvalidDataException(
+                            $"A repeated protobuf value exceeds the {limitDescription}.");
                     }
                     result.Add(IWorkProtobuf.ReadVarint(value.Bytes, ref offset));
                 }
-            }
-            if (result.Count > _options.MaximumProtobufFieldCount) {
-                throw new InvalidDataException($"A packed protobuf field exceeds the configured value limit of {_options.MaximumProtobufFieldCount}.");
             }
         }
         return result;

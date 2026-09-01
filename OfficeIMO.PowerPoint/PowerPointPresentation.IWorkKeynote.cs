@@ -140,28 +140,22 @@ public sealed partial class PowerPointPresentation {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         double left = source.Geometry?.LeftPoints ?? 72d;
         double top = source.Geometry?.TopPoints ?? 72d;
-        double width = source.Geometry is { WidthPoints: > 0 }
-            ? source.Geometry.WidthPoints
-            : source.DefaultColumnWidth is > 0
-                ? source.DefaultColumnWidth.Value * source.ColumnCount
-                : Math.Max(144d, 72d * source.ColumnCount);
-        double height = source.Geometry is { HeightPoints: > 0 }
-            ? source.Geometry.HeightPoints
-            : source.DefaultRowHeight is > 0
-                ? source.DefaultRowHeight.Value * source.RowCount
-                : Math.Max(36d, 24d * source.RowCount);
         double? columnWidth = source.DefaultColumnWidth is > 0
-            ? QuantizePositiveEmuPoints(width / source.ColumnCount)
+            ? QuantizePositiveEmuPoints(source.DefaultColumnWidth.Value)
             : null;
         double? rowHeight = source.DefaultRowHeight is > 0
-            ? QuantizePositiveEmuPoints(height / source.RowCount)
+            ? QuantizePositiveEmuPoints(source.DefaultRowHeight.Value)
             : null;
-        width = columnWidth.HasValue
+        double width = columnWidth.HasValue
             ? columnWidth.Value * source.ColumnCount
-            : QuantizePositiveEmuPoints(width);
-        height = rowHeight.HasValue
+            : QuantizePositiveEmuPoints(source.Geometry is { WidthPoints: > 0 }
+                ? source.Geometry.WidthPoints
+                : Math.Max(144d, 72d * source.ColumnCount));
+        double height = rowHeight.HasValue
             ? rowHeight.Value * source.RowCount
-            : QuantizePositiveEmuPoints(height);
+            : QuantizePositiveEmuPoints(source.Geometry is { HeightPoints: > 0 }
+                ? source.Geometry.HeightPoints
+                : Math.Max(36d, 24d * source.RowCount));
         PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
             left, top, width, height);
         table.AltText = source.AccessibilityDescription;
@@ -335,9 +329,14 @@ public sealed partial class PowerPointPresentation {
                 double fallbackHeight = table.DefaultRowHeight is > 0
                     ? table.DefaultRowHeight.Value * table.RowCount
                     : Math.Max(36d, 24d * table.RowCount);
-                if (table.Geometry == null
-                    && (!FitsPositiveMeasurement(fallbackWidth, MaximumPointMeasurement)
-                        || !FitsPositiveMeasurement(fallbackHeight, MaximumPointMeasurement))) {
+                double projectedWidth = table.DefaultColumnWidth is > 0
+                    ? fallbackWidth
+                    : table.Geometry?.WidthPoints ?? fallbackWidth;
+                double projectedHeight = table.DefaultRowHeight is > 0
+                    ? fallbackHeight
+                    : table.Geometry?.HeightPoints ?? fallbackHeight;
+                if (!FitsPositiveMeasurement(projectedWidth, MaximumPointMeasurement)
+                    || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
                 }
                 if (table.Geometry is { } geometry
@@ -387,16 +386,8 @@ public sealed partial class PowerPointPresentation {
 
     private static bool TableSizingRequiresEmuRounding(IWorkTable table) {
         if (table.RowCount <= 0 || table.ColumnCount <= 0) return false;
-        double width = table.Geometry?.WidthPoints
-            ?? (table.DefaultColumnWidth is > 0
-                ? table.DefaultColumnWidth.Value * table.ColumnCount
-                : Math.Max(144d, 72d * table.ColumnCount));
-        double height = table.Geometry?.HeightPoints
-            ?? (table.DefaultRowHeight is > 0
-                ? table.DefaultRowHeight.Value * table.RowCount
-                : Math.Max(36d, 24d * table.RowCount));
-        return table.DefaultColumnWidth is > 0 && !IsExactEmu(width / table.ColumnCount)
-            || table.DefaultRowHeight is > 0 && !IsExactEmu(height / table.RowCount);
+        return table.DefaultColumnWidth is > 0 && !IsExactEmu(table.DefaultColumnWidth.Value)
+            || table.DefaultRowHeight is > 0 && !IsExactEmu(table.DefaultRowHeight.Value);
     }
 
     private static bool IsExactEmu(double points) {

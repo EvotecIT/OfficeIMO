@@ -41,6 +41,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum number of IWA records across the package.</summary>
     public int MaximumRecordCount { get; set; } = 1_000_000;
 
+    /// <summary>Gets or sets the maximum combined ArchiveInfo version, object-reference, and data-reference values across the package.</summary>
+    public int MaximumArchiveReferenceCount { get; set; } = 8_000_000;
+
     /// <summary>Gets or sets the maximum number of fields decoded from one protobuf message.</summary>
     public int MaximumProtobufFieldCount { get; set; } = 1_000_000;
 
@@ -110,6 +113,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumArchiveInfoBytes, nameof(MaximumArchiveInfoBytes));
         ValidatePositive(MaximumRecordBytes, nameof(MaximumRecordBytes));
         ValidatePositive(MaximumRecordCount, nameof(MaximumRecordCount));
+        ValidatePositive(MaximumArchiveReferenceCount, nameof(MaximumArchiveReferenceCount));
         ValidatePositive(MaximumProtobufFieldCount, nameof(MaximumProtobufFieldCount));
         ValidatePositive(MaximumProtobufDepth, nameof(MaximumProtobufDepth));
         ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));

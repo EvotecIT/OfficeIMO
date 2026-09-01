@@ -103,13 +103,25 @@ internal static class IWorkNumbersReader {
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         var projectedDrawableIdentifiers = new HashSet<ulong>();
         bool supportsEditableReconstruction = true;
-        int declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
-            source.Options.MaximumProtobufFieldCount);
+        IWorkWireMessage documentMessage;
+        int declaredSheetCount;
+        try {
+            declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
+                source.Options.MaximumProtobufFieldCount);
+            documentMessage = index.Message(document);
+        } catch (InvalidDataException) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_NUMBERS_DOCUMENT_MALFORMED",
+                "The Numbers document root is malformed; editable reconstruction is unavailable.",
+                document.EntryPath, document.Identifier));
+            return new IWorkNumbersProjection(source, sheets, diagnostics,
+                supportsEditableReconstruction: false);
+        }
         if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = index.DereferenceAll(
-            index.Message(document), 1, out int unresolvedSheetCount);
+            documentMessage, 1, out int unresolvedSheetCount);
         if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
@@ -979,12 +991,21 @@ internal static class IWorkNumbersReader {
                 if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options, projectionBudget);
                 return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : Error(row, column, "Number cell has no value field.");
             case 3:
-                if (hasString && strings.TryGetValue(stringIdentifier, out string? text)) {
+                if (hasString) {
+                    if (strings.TryGetValue(stringIdentifier, out string? text)) {
+                        return hasFormula
+                            ? Formula(row, column, formulaIdentifier, formulas, options,
+                                projectionBudget, text, IWorkCellKind.Text)
+                            : new IWorkTableCell(row, column, IWorkCellKind.Text, text);
+                    }
                     return hasFormula
-                        ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, text, IWorkCellKind.Text)
-                        : new IWorkTableCell(row, column, IWorkCellKind.Text, text);
+                        ? Formula(row, column, formulaIdentifier, formulas, options,
+                            projectionBudget, cachedValueIsComplete: false)
+                        : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
                 }
-                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : Error(row, column, $"Unresolved shared string {stringIdentifier}.");
+                return hasFormula
+                    ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget)
+                    : Error(row, column, "Text cell has no shared-string value field.");
             case 5:
                 if (!hasDate) return Error(row, column, "Date cell has no date value field.");
                 if (!IsFinite(dateValue)) return Error(row, column, "Date cell has a non-finite value.");
@@ -1025,7 +1046,8 @@ internal static class IWorkNumbersReader {
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkReadOptions options,
         IWorkProjectionBudget projectionBudget,
         object? cachedValue = null,
-        IWorkCellKind? cachedValueKind = null) {
+        IWorkCellKind? cachedValueKind = null,
+        bool cachedValueIsComplete = true) {
         IWorkFormulaResult result = formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)
             ? IWorkFormulaReader.Render(formula, row - 1, column - 1,
                 options.MaximumFormulaNodes, options.MaximumFormulaCharacters)
@@ -1035,7 +1057,7 @@ internal static class IWorkNumbersReader {
         projectionBudget.AddTextItem();
         return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
             formula: formulaText, valueKind: cachedValueKind,
-            formulaIsComplete: result.IsComplete);
+            formulaIsComplete: result.IsComplete && cachedValueIsComplete);
     }
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,

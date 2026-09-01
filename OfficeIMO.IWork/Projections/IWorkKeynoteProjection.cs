@@ -163,7 +163,17 @@ internal static class IWorkKeynoteReader {
                     : "No supported Keynote document root was found; editable reconstruction is unavailable."));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false);
         }
-        IWorkWireMessage documentMessage = index.Message(document);
+        IWorkWireMessage documentMessage;
+        try {
+            documentMessage = index.Message(document);
+        } catch (InvalidDataException) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DOCUMENT_MALFORMED",
+                "The Keynote document root is malformed; editable reconstruction is unavailable.",
+                document.EntryPath, document.Identifier));
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics,
+                supportsEditableReconstruction: false);
+        }
         bool showReferenceComplete = documentMessage.FieldCount(2) == 1
             && !documentMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
         IWorkArchiveRecord? show = showReferenceComplete

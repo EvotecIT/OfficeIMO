@@ -449,6 +449,7 @@ internal static class IWorkTextReader {
         if (!identifier.HasValue) return null;
         if (cache.TryGetValue(identifier.Value, out Cached<string?> cached)) {
             if (!cached.IsComplete) complete = false;
+            if (cached.Value != null) projectionBudget.AddTextCharacters(cached.Value.Length);
             return cached.Value;
         }
         bool resolvedCompletely = true;

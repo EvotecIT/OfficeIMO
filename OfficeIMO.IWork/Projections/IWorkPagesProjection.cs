@@ -172,7 +172,18 @@ internal static class IWorkPagesReader {
         }
 
         bool supportsEditableReconstruction = true;
-        IWorkWireMessage documentMessage = index.Message(document);
+        IWorkWireMessage documentMessage;
+        try {
+            documentMessage = index.Message(document);
+        } catch (InvalidDataException) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_PAGES_DOCUMENT_MALFORMED",
+                "The Pages document root is malformed; editable reconstruction is unavailable.",
+                document.EntryPath, document.Identifier));
+            return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images,
+                tables, drawables, null, diagnostics,
+                supportsEditableReconstruction: false);
+        }
         IWorkPageLayout? pageLayout = ReadPageLayout(documentMessage, out bool pageLayoutComplete);
         if (!pageLayoutComplete) {
             supportsEditableReconstruction = false;
