@@ -19,6 +19,43 @@ public static class PdfAdvancedUnderstandingStages {
     /// <summary>Business-document semantic classification.</summary>
     public static IPdfSemanticClassificationStage SemanticClassification { get; } = new AdvancedSemanticClassificationStage();
 
+    private static T[] CopyAndSort<T>(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<T> values,
+        Comparison<T> comparison) {
+        var source = new T[values.Count];
+        for (int index = 0; index < values.Count; index++) {
+            context.ConsumeWork();
+            source[index] = values[index];
+        }
+        if (source.Length < 2) return source;
+
+        var target = new T[source.Length];
+        for (int width = 1; width < source.Length;) {
+            for (int left = 0; left < source.Length; left += width * 2) {
+                int middle = Math.Min(left + width, source.Length);
+                int right = Math.Min(left + (width * 2), source.Length);
+                int first = left;
+                int second = middle;
+                int output = left;
+                while (first < middle && second < right) {
+                    context.ConsumeWork();
+                    target[output++] = comparison(source[first], source[second]) <= 0
+                        ? source[first++]
+                        : source[second++];
+                }
+                while (first < middle) target[output++] = source[first++];
+                while (second < right) target[output++] = source[second++];
+            }
+            T[] swap = source;
+            source = target;
+            target = swap;
+            if (width > source.Length / 2) break;
+            width *= 2;
+        }
+        return source;
+    }
+
     private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
         public IReadOnlyList<PdfTextSpan> Decode(PdfUnderstandingPageContext context) {
             context.ThrowIfCancellationRequested();
@@ -144,43 +181,6 @@ public static class PdfAdvancedUnderstandingStages {
                     return top != 0 ? top : left.XStart.CompareTo(right.XStart);
                 });
             return sortedLines.Length == 0 ? Array.Empty<PdfUnderstandingLine>() : Array.AsReadOnly(sortedLines);
-        }
-
-        private static T[] CopyAndSort<T>(
-            PdfUnderstandingPageContext context,
-            IReadOnlyList<T> values,
-            Comparison<T> comparison) {
-            var source = new T[values.Count];
-            for (int index = 0; index < values.Count; index++) {
-                context.ConsumeWork();
-                source[index] = values[index];
-            }
-            if (source.Length < 2) return source;
-
-            var target = new T[source.Length];
-            for (int width = 1; width < source.Length;) {
-                for (int left = 0; left < source.Length; left += width * 2) {
-                    int middle = Math.Min(left + width, source.Length);
-                    int right = Math.Min(left + (width * 2), source.Length);
-                    int first = left;
-                    int second = middle;
-                    int output = left;
-                    while (first < middle && second < right) {
-                        context.ConsumeWork();
-                        target[output++] = comparison(source[first], source[second]) <= 0
-                            ? source[first++]
-                            : source[second++];
-                    }
-                    while (first < middle) target[output++] = source[first++];
-                    while (second < right) target[output++] = source[second++];
-                }
-                T[] swap = source;
-                source = target;
-                target = swap;
-                if (width > source.Length / 2) break;
-                width *= 2;
-            }
-            return source;
         }
 
         private static double ProjectAlong(PdfUnderstandingWord word, double radians) =>
@@ -330,11 +330,15 @@ public static class PdfAdvancedUnderstandingStages {
             AddCanonicalTableRegions(context, lines, remaining, regions);
             int[] parent = Enumerable.Range(0, lines.Count).ToArray();
             double maximumVerticalGap = lines.Count == 0 ? 0D : lines.Max(static line => line.FontSize) * 2.2D;
-            int[] candidates = remaining
-                .OrderByDescending(index => lines[index].BaselineY)
-                .ThenBy(index => lines[index].XStart)
-                .ThenBy(static index => index)
-                .ToArray();
+            int[] candidates = CopyAndSort(
+                context,
+                remaining.ToArray(),
+                (left, right) => {
+                    int baseline = lines[right].BaselineY.CompareTo(lines[left].BaselineY);
+                    if (baseline != 0) return baseline;
+                    int x = lines[left].XStart.CompareTo(lines[right].XStart);
+                    return x != 0 ? x : left.CompareTo(right);
+                });
             for (int leftPosition = 0; leftPosition < candidates.Length; leftPosition++) {
                 int leftIndex = candidates[leftPosition];
                 for (int rightPosition = leftPosition + 1; rightPosition < candidates.Length; rightPosition++) {
@@ -346,7 +350,13 @@ public static class PdfAdvancedUnderstandingStages {
                 }
             }
             foreach (IGrouping<int, int> component in candidates.GroupBy(index => Find(parent, index))) {
-                PdfUnderstandingLine[] ordered = component.Select(index => lines[index]).OrderByDescending(static line => line.BaselineY).ThenBy(static line => line.XStart).ToArray();
+                PdfUnderstandingLine[] ordered = CopyAndSort(
+                    context,
+                    component.Select(index => lines[index]).ToArray(),
+                    static (left, right) => {
+                        int baseline = right.BaselineY.CompareTo(left.BaselineY);
+                        return baseline != 0 ? baseline : left.XStart.CompareTo(right.XStart);
+                    });
                 double confidence = PdfInference.Clamp(ordered.Average(static line => line.Confidence) - Math.Min(0.2D, Math.Max(0, ordered.Length - 12) * 0.01D));
                 regions.Add(new PdfUnderstandingRegion(ordered, confidence, new[] {
                     new PdfInferenceEvidence("region.spatial-connectivity", "The region is a connected component of " + ordered.Length.ToString(CultureInfo.InvariantCulture) + " line(s), allowing non-rectangular and mixed-layout neighborhoods.", ordered.Length > 1 ? 0.8D : 0.4D)
@@ -376,11 +386,18 @@ public static class PdfAdvancedUnderstandingStages {
                 double bottom = Math.Min(table.YTop, table.YBottom);
                 double left = table.Columns.Min(static column => Math.Min(column.From, column.To));
                 double right = table.Columns.Max(static column => Math.Max(column.From, column.To));
-                int[] tableLineIndexes = remaining
-                    .Where(index => HasMeaningfulTableOverlap(lines[index], top, bottom, left, right))
-                    .OrderByDescending(index => lines[index].BaselineY)
-                    .ThenBy(index => lines[index].XStart)
-                    .ToArray();
+                var matchedIndexes = new List<int>();
+                foreach (int index in remaining) {
+                    context.ConsumeWork();
+                    if (HasMeaningfulTableOverlap(lines[index], top, bottom, left, right)) matchedIndexes.Add(index);
+                }
+                int[] tableLineIndexes = CopyAndSort(
+                    context,
+                    matchedIndexes,
+                    (first, second) => {
+                        int baseline = lines[second].BaselineY.CompareTo(lines[first].BaselineY);
+                        return baseline != 0 ? baseline : lines[first].XStart.CompareTo(lines[second].XStart);
+                    });
                 if (tableLineIndexes.Length < 2) continue;
 
                 PdfUnderstandingLine[] tableLines = tableLineIndexes.Select(index => lines[index]).ToArray();

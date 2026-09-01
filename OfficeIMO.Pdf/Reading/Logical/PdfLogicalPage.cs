@@ -251,7 +251,7 @@ public sealed partial class PdfLogicalPage {
                 analysis.ConsumeWork,
                 analysis.CancellationCheck);
         if (analysis is not null) {
-            ReplaceProjectionLines(page, structured, analysis.Lines, cancellationToken);
+            ReplaceProjectionLines(page, structured, GetRetainedProjectionLines(analysis), cancellationToken);
         }
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
@@ -377,10 +377,22 @@ public sealed partial class PdfLogicalPage {
             pageAnalysis);
     }
 
+    private static List<PdfUnderstandingLine> GetRetainedProjectionLines(PdfUnderstandingPageResult analysis) {
+        var retained = new List<PdfUnderstandingLine>();
+        var seen = new HashSet<PdfUnderstandingLine>();
+        for (int regionIndex = 0; regionIndex < analysis.ReadingOrder.Count; regionIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> lines = analysis.ReadingOrder[regionIndex].Lines;
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                if (seen.Add(lines[lineIndex])) retained.Add(lines[lineIndex]);
+            }
+        }
+        return retained;
+    }
+
     private static void ReplaceProjectionLines(
         PdfReadPage page,
         StructuredPage structured,
-        IReadOnlyList<PdfUnderstandingLine> sourceLines,
+        List<PdfUnderstandingLine> sourceLines,
         CancellationToken cancellationToken) {
         structured.Lines.Clear();
         structured.LinesDetailed.Clear();

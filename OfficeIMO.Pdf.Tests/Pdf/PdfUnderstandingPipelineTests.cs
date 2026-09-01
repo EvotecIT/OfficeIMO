@@ -656,6 +656,36 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void LogicalReadingOrder_ChargesEveryTableOwnershipComparison() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Quality", "Premium" }
+            })
+            .ToBytes();
+        var classification = new CapturingParagraphClassificationStage();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.SemanticClassification = classification;
+        options.MaxWorkUnitsPerPage = 1_000_000;
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        Assert.NotEmpty(page.TextBlocks);
+        Assert.NotEmpty(page.Tables);
+        PdfUnderstandingPageContext context = Assert.IsType<PdfUnderstandingPageContext>(classification.Context);
+        long tableGeometryWork = page.Tables.Sum(static table => Math.Max(1, table.Columns.Count));
+        long available = context.MaxWorkUnitsPerPage - context.WorkUnitsConsumed;
+        Assert.True(available > tableGeometryWork);
+        context.ConsumeWork(available - tableGeometryWork);
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfLogicalReadingOrderAnalysis.Analyze(page));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(context.MaxWorkUnitsPerPage, exception.Limit);
+        Assert.Equal(exception.Limit + 1, exception.Actual);
+    }
+
+    [Fact]
     public void TextSimilarity_ChargesEveryEditDistanceCell() {
         long consumed = 0;
 
@@ -716,6 +746,53 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(1, exception.Limit);
         Assert.True(exception.Actual > exception.Limit);
+    }
+
+    [Fact]
+    public void AdvancedSegmentation_ChargesOrderingBeforeSpatialTraversal() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfReadPage sourcePage = PdfReadDocument.Open(pdf).Pages[0];
+        var context = new PdfUnderstandingPageContext(
+            sourcePage,
+            1,
+            new PdfTextLayoutOptions(),
+            10_000,
+            10_000,
+            maxWorkUnitsPerPage: 2);
+        PdfUnderstandingLine[] lines = {
+            CreateUnderstandingLine("Second", 100D, 160D, 680D),
+            CreateUnderstandingLine("First", 50D, 110D, 700D)
+        };
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfAdvancedUnderstandingStages.PageSegmentation.Segment(context, lines));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
+        Assert.Equal(2, exception.Limit);
+        Assert.Equal(3, exception.Actual);
+    }
+
+    [Fact]
+    public void LogicalProjection_HonorsLinesOmittedByPageSegmentation() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("placeholder")).ToBytes();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("Retained by segmentation", "F1", 12D, 50D, 700D, 150D),
+            new PdfTextSpan("Excluded by segmentation", "F1", 12D, 50D, 650D, 150D)
+        });
+        options.PageSegmentation = new FirstLineOnlySegmentationStage();
+        options.ReadingOrder = new IdentityReadingOrderStage();
+        options.SemanticClassification = new ParagraphClassificationStage();
+
+        PdfDocumentReadResult result = Read(pdf, options);
+        PdfLogicalPage page = Assert.Single(result.Pages);
+
+        Assert.Equal(2, page.Analysis.Lines.Count);
+        Assert.Equal("Retained by segmentation", Assert.Single(page.Analysis.ReadingOrder).Text);
+        Assert.Equal("Retained by segmentation", Assert.Single(page.TextBlocks).Text);
+        Assert.Contains("Retained by segmentation", result.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded by segmentation", result.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded by segmentation", result.ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1801,6 +1878,11 @@ public class PdfUnderstandingPipelineTests {
             lines.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : new[] { new PdfUnderstandingRegion(lines) };
     }
 
+    private sealed class FirstLineOnlySegmentationStage : IPdfPageSegmentationStage {
+        public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) =>
+            lines.Count == 0 ? Array.Empty<PdfUnderstandingRegion>() : new[] { new PdfUnderstandingRegion(new[] { lines[0] }) };
+    }
+
     private sealed class HeadingThenRemainingRegionStage : IPdfPageSegmentationStage {
         public IReadOnlyList<PdfUnderstandingRegion> Segment(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines) {
             if (lines.Count <= 1) return lines.Count == 0
@@ -1820,6 +1902,19 @@ public class PdfUnderstandingPipelineTests {
     private sealed class ParagraphClassificationStage : IPdfSemanticClassificationStage {
         public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingRegion> orderedRegions) =>
             orderedRegions.Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph)).ToArray();
+    }
+
+    private sealed class CapturingParagraphClassificationStage : IPdfSemanticClassificationStage {
+        internal PdfUnderstandingPageContext? Context { get; private set; }
+
+        public IReadOnlyList<PdfUnderstandingSemanticElement> Classify(
+            PdfUnderstandingPageContext context,
+            IReadOnlyList<PdfUnderstandingRegion> orderedRegions) {
+            Context = context;
+            return orderedRegions
+                .Select(static region => new PdfUnderstandingSemanticElement(region, PdfUnderstandingSemanticKind.Paragraph))
+                .ToArray();
+        }
     }
 
     private sealed class HeadingClassificationStage : IPdfSemanticClassificationStage {
