@@ -135,7 +135,7 @@ internal static partial class PdfRedactionVerification {
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RedactionPlanPageIdentityChanged",
                     "ReviewedPages",
-                    "The rewritten PDF changed the reviewed page order, page identity, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles in a different page coordinate system."));
+                    "The rewritten PDF changed the reviewed page order, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles in a different page coordinate system."));
             }
         }
 

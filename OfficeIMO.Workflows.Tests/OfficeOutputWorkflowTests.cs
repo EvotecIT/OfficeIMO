@@ -405,6 +405,65 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task FolderAssemblyRejectsARegularFileReplacedAfterDiscovery() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "folder");
+        Directory.CreateDirectory(folder);
+        string discovered = CreatePdf(folder, "source.pdf", "Reviewed input");
+        string replacement = CreatePdf(scope.Path, "replacement.pdf", "Replacement input");
+        string retired = Path.Combine(scope.Path, "retired.pdf");
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        bool replaced = false;
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(
+            new PdfAssemblyRequest {
+                Sources = [folder],
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            },
+            new InlineProgress<OfficeWorkflowProgress>(update => {
+                if (replaced || update.Stage != "normalize") return;
+                File.Move(discovered, retired);
+                File.Copy(replacement, discovered);
+                replaced = true;
+            }));
+
+        Assert.True(replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("changed after discovery", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task FolderAssemblyRejectsASymbolicLinkSubstitutedAfterDiscovery() {
+        if (OperatingSystem.IsWindows()) return;
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "folder");
+        Directory.CreateDirectory(folder);
+        string discovered = CreatePdf(folder, "source.pdf", "Reviewed input");
+        string outside = CreatePdf(scope.Path, "outside.pdf", "Outside input");
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        bool replaced = false;
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(
+            new PdfAssemblyRequest {
+                Sources = [folder],
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            },
+            new InlineProgress<OfficeWorkflowProgress>(update => {
+                if (replaced || update.Stage != "normalize") return;
+                File.Delete(discovered);
+                File.CreateSymbolicLink(discovered, outside);
+                replaced = true;
+            }));
+
+        Assert.True(replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public async Task PhysicalPathAliasCannotBeUsedAsBothAssemblyInputAndOutput() {
         if (OperatingSystem.IsWindows()) return;
         using var scope = new TestDirectory();

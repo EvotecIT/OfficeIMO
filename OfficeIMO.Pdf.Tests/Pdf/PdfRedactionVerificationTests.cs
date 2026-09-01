@@ -66,6 +66,7 @@ public class PdfRedactionVerificationTests {
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed first page")))));
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
         }).ToBytes();
+        source = PdfPageEditor.RotatePages(source, 90, 2);
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed first page")
         ]);
@@ -77,6 +78,26 @@ public class PdfRedactionVerificationTests {
 
         Assert.False(report.IsVerified);
         Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationAcceptsPageObjectRenumbering() {
+        byte[] source = BuildSparsePageObjectPdf();
+        PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
+            new PdfRedactionArea(1, 10D, 10D, 20D, 20D, "reviewed area")
+        ]);
+
+        byte[] rewritten = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.NotEqual(
+            PdfReadDocument.Open(source).Pages[0].ObjectNumber,
+            PdfReadDocument.Open(rewritten).Pages[0].ObjectNumber);
+        Assert.True(report.IsVerified);
+        Assert.DoesNotContain(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
     [Fact]
@@ -689,6 +710,32 @@ public class PdfRedactionVerificationTests {
     private static byte[] BuildSimpleFlateImageRedactionSource() {
         const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n";
         return BuildSimpleFlateImagePdf(pageContent);
+    }
+
+    private static byte[] BuildSparsePageObjectPdf() {
+        const string content = "q Q";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [50 0 R] >>",
+            "endobj",
+            "50 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Contents 75 0 R >>",
+            "endobj",
+            "75 0 obj",
+            "<< /Length 3 >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildRepeatedSimpleFlateImageRedactionSource() {

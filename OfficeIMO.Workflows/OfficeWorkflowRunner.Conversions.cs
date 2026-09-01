@@ -16,12 +16,21 @@ public sealed partial class OfficeWorkflowRunner {
         ValidatedRequest request,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
-        OfficeWorkflowRoute route = request.Route!;
-        cancellationToken.ThrowIfCancellationRequested();
         byte[] input = OfficeWorkflowInputReader.ReadAllBytes(
             request.InputPath,
             request.Limits.MaximumInputBytes,
             cancellationToken);
+        return Convert(request, input, diagnostics, cancellationToken);
+    }
+
+    private static OperationArtifact Convert(
+        ValidatedRequest request,
+        byte[] input,
+        List<OfficeWorkflowDiagnostic> diagnostics,
+        CancellationToken cancellationToken) {
+        ArgumentNullException.ThrowIfNull(input);
+        OfficeWorkflowRoute route = request.Route!;
+        cancellationToken.ThrowIfCancellationRequested();
         long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
         bool hasLoss = false;

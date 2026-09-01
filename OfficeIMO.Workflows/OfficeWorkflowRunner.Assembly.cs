@@ -6,6 +6,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
+    private const int AssemblyInputBufferSize = 81920;
     private static readonly HashSet<string> AssemblyImageExtensions = new(StringComparer.OrdinalIgnoreCase) {
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx"
     };
@@ -163,7 +164,7 @@ public sealed partial class OfficeWorkflowRunner {
                 "PdfAssemblyFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
-                "execute",
+                GetDiagnosticStage(failureStage),
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = ex.GetType().Name }));
             return new PdfAssemblyResult(
                 validated?.Id ?? request.Id,
@@ -232,6 +233,7 @@ public sealed partial class OfficeWorkflowRunner {
         foreach (string input in request.Sources) {
             cancellationToken.ThrowIfCancellationRequested();
             if (Directory.Exists(input)) {
+                string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(input);
                 List<string> files = [];
                 try {
                     foreach (string file in Directory.EnumerateFiles(input, "*", new EnumerationOptions {
@@ -252,41 +254,44 @@ public sealed partial class OfficeWorkflowRunner {
                              .OrderBy(static path => path, pathComparer)
                              .ThenBy(static path => path, StringComparer.Ordinal)) {
                     if (OfficeWorkflowPathIdentity.AreEquivalent(file, request.OutputPath)) continue;
-                    AddDiscoveredSource(file, input, discovered: true);
+                    AddDiscoveredSource(file, input, discovered: true, physicalRoot);
                 }
             } else {
-                AddDiscoveredSource(input, input, discovered: false);
+                string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(Path.GetDirectoryName(input)!);
+                AddDiscoveredSource(input, input, discovered: false, physicalRoot);
             }
         }
         if (sources.Count == 0) throw new InvalidOperationException("No supported documents were found in the requested sources.");
         return sources;
 
-        void AddDiscoveredSource(string path, string origin, bool discovered) {
+        void AddDiscoveredSource(string path, string origin, bool discovered, string physicalRoot) {
             cancellationToken.ThrowIfCancellationRequested();
             string extension = Path.GetExtension(path);
             if (string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase)) {
                 archiveIndex++;
-                ExpandArchive(path, origin, archiveIndex);
+                ExpandArchive(path, origin, archiveIndex, physicalRoot);
                 return;
             }
             if (!TryClassifyAssemblySource(path, out AssemblySourceKind kind, out OfficeWorkflowRoute? route)) {
                 if (discovered && request.Options.IgnoreDiscoveredUnsupportedFiles) return;
                 throw new NotSupportedException("No PDF assembly intake route is available for '" + path + "'.");
             }
-            long size = new FileInfo(path).Length;
-            EnforceInputLimit(path, size, request.Limits);
-            Add(new AssemblySource(path, origin, Path.GetFileName(path), kind, route, size));
+            Add(CaptureSource(path, origin, Path.GetFileName(path), kind, route, physicalRoot));
         }
 
-        void ExpandArchive(string archivePath, string origin, int index) {
-            long archiveFileBytes = new FileInfo(archivePath).Length;
+        void ExpandArchive(string archivePath, string origin, int index, string physicalRoot) {
+            using FileStream archiveStream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
+                archivePath,
+                physicalRoot,
+                AssemblyInputBufferSize);
+            long archiveFileBytes = archiveStream.Length;
             EnforceInputLimit(archivePath, archiveFileBytes, request.Limits);
             string destinationRoot = Path.Combine(extractionRoot, "archive-" + index.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
             Directory.CreateDirectory(destinationRoot);
+            string physicalDestinationRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(destinationRoot);
             string canonicalDestinationRoot = Path.GetFullPath(destinationRoot)
                 .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar;
             StringComparison destinationComparison = OfficeWorkflowPathIdentity.GetComparison(destinationRoot);
-            using var archiveStream = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             int remainingDiscoveryCapacity = request.Options.MaximumDiscoveredEntries - discoveredEntryCount;
             int preflightLimit = Math.Min(request.Options.MaximumArchiveEntries, remainingDiscoveryCapacity);
             OfficeArchiveSafety.ZipCentralDirectoryScanResult preflight =
@@ -355,7 +360,7 @@ public sealed partial class OfficeWorkflowRunner {
                 using (FileStream target = new(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
                     CopyBounded(source, target, entry.Length, request.Options.MaximumArchiveEntryBytes, cancellationToken);
                 }
-                Add(new AssemblySource(destination, origin, entry.FullName, kind, route, entry.Length));
+                Add(CaptureSource(destination, origin, entry.FullName, kind, route, physicalDestinationRoot));
             }
             if (observedArchiveEntries != preflight.EntryCount) {
                 throw new InvalidDataException("The ZIP produced fewer entries than its bounded central-directory preflight declared.");
@@ -378,6 +383,23 @@ public sealed partial class OfficeWorkflowRunner {
             sources.Add(source);
         }
 
+        AssemblySource CaptureSource(
+            string path,
+            string origin,
+            string displayName,
+            AssemblySourceKind kind,
+            OfficeWorkflowRoute? route,
+            string physicalRoot) {
+            using FileStream stream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
+                path,
+                physicalRoot,
+                AssemblyInputBufferSize);
+            long size = stream.Length;
+            EnforceInputLimit(path, size, request.Limits);
+            string identity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
+            return new AssemblySource(path, origin, displayName, kind, route, size, physicalRoot, identity);
+        }
+
         void CountDiscoveredEntry() {
             cancellationToken.ThrowIfCancellationRequested();
             discoveredEntryCount = checked(discoveredEntryCount + 1);
@@ -395,19 +417,29 @@ public sealed partial class OfficeWorkflowRunner {
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        using FileStream inputStream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
+            source.Path,
+            source.PhysicalRoot,
+            AssemblyInputBufferSize);
+        string observedIdentity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(source.Path, inputStream);
+        if (!string.Equals(observedIdentity, source.PhysicalIdentityKey, StringComparison.Ordinal) ||
+            inputStream.Length != source.SizeBytes) {
+            throw new InvalidDataException("An assembly source changed after discovery: " + source.DisplayName);
+        }
+        byte[] input = OfficeWorkflowInputReader.ReadAllBytes(
+            inputStream,
+            source.DisplayName,
+            request.Limits.MaximumInputBytes,
+            cancellationToken);
         switch (source.Kind) {
             case AssemblySourceKind.Pdf:
-                PdfDocument opened = PdfDocument.Load(source.Path, request.PdfLoadOptions);
+                PdfDocument opened = PdfDocument.Load(input, request.PdfLoadOptions);
                 _ = opened.Inspect();
                 AddAssemblySourceDiagnostic(source, "PDF pages retained", diagnostics);
                 return opened;
             case AssemblySourceKind.Image:
-                byte[] imageBytes = OfficeWorkflowInputReader.ReadAllBytes(
-                    source.Path,
-                    request.Limits.MaximumInputBytes,
-                    cancellationToken);
                 PdfDocument imageDocument = PdfDocument.CreateFromImages(
-                    [new PdfImageDocumentSource(imageBytes, source.DisplayName)],
+                    [new PdfImageDocumentSource(input, source.DisplayName)],
                     request.Options.ImageOptions);
                 AddAssemblySourceDiagnostic(source, "Image composed as one PDF page", diagnostics);
                 return imageDocument;
@@ -428,7 +460,7 @@ public sealed partial class OfficeWorkflowRunner {
                     request.PdfLoadOptions,
                     request.PdfLoadOptions,
                     CreatePdfLoadOptions(request.PdfLoadOptions.Password, maximumNormalizedBytes));
-                OperationArtifact artifact = Convert(conversionRequest, diagnostics, cancellationToken);
+                OperationArtifact artifact = Convert(conversionRequest, input, diagnostics, cancellationToken);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);
                 return PdfDocument.Load(artifact.Bytes, conversionRequest.OutputPdfLoadOptions);
@@ -512,7 +544,9 @@ public sealed partial class OfficeWorkflowRunner {
         string DisplayName,
         AssemblySourceKind Kind,
         OfficeWorkflowRoute? Route,
-        long SizeBytes);
+        long SizeBytes,
+        string PhysicalRoot,
+        string PhysicalIdentityKey);
 
     private sealed record ValidatedAssemblyRequest(
         string Id,

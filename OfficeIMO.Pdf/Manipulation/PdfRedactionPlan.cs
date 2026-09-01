@@ -70,7 +70,6 @@ public sealed class PdfRedactionPlan {
             PdfReadPage page = document.Pages[i];
             PdfPageGeometry geometry = page.GetGeometry();
             identities[i] = string.Join("|", new[] {
-                page.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 page.GetRotationDegrees().ToString(System.Globalization.CultureInfo.InvariantCulture),
                 FormatPageBoxIdentity(geometry.MediaBox),
                 FormatPageBoxIdentity(geometry.CropBox),
