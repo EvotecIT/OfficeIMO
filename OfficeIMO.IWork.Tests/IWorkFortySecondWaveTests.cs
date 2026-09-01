@@ -17,6 +17,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.Single(result.Document.Slides);
         Assert.Single(result.Document.Slides[0].Pictures);
+        Assert.Contains(result.ImportReport.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED");
     }
 
     [Fact]

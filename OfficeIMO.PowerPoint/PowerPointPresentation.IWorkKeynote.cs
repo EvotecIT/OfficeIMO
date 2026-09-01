@@ -40,9 +40,15 @@ public sealed partial class PowerPointPresentation {
             : FindPowerPointProjectionLimitation(projection);
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
-        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = editable
-            ? FindPowerPointProjectionDiagnostics(projection)
-            : Array.Empty<IWorkDiagnostic>();
+        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics =
+            (!projection.HasEditableContent || destinationLimitation == null
+                ? Array.Empty<IWorkDiagnostic>()
+                : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED", destinationLimitation) })
+            .Concat(editable
+                ? FindPowerPointProjectionDiagnostics(projection)
+                : Array.Empty<IWorkDiagnostic>())
+            .ToArray();
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Keynote source has no supported editable slides.");

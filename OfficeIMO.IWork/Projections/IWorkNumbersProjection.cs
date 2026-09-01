@@ -42,9 +42,13 @@ public sealed class IWorkNumbersProjection {
     public bool HasEditableContent => Sheets.Count > 0 && _supportsEditableReconstruction;
 
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
-    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
+    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
+        CreateImportReport(kind, preview, Array.Empty<IWorkDiagnostic>());
+
+    internal IWorkImportReport CreateImportReport(IWorkProjectionKind kind,
+        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, Diagnostics, preview,
+        return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
@@ -271,7 +275,17 @@ internal static class IWorkNumbersReader {
         IWorkProjectionBudget projectionBudget, List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount,
         ref bool supportsEditableReconstruction) {
-        IWorkWireMessage recordMessage = source.Index.Message(tableRecord);
+        IWorkWireMessage recordMessage;
+        try {
+            recordMessage = source.Index.Message(tableRecord);
+        } catch (InvalidDataException) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_INFO_UNSUPPORTED",
+                "An iWork table-info record is malformed; editable reconstruction is incomplete.",
+                tableRecord.EntryPath, tableRecord.Identifier));
+            return null;
+        }
         IWorkWireMessage? tableInfo = tableRecord.MessageType switch {
             TableInfoArchive => recordMessage,
             WordProcessingTableInfoArchive => IWorkObjectIndex.TryGetMessage(recordMessage, 1),
@@ -350,16 +364,28 @@ internal static class IWorkNumbersReader {
                 "A Numbers table accessibility description is preserved but cannot be represented by the editable worksheet projection.",
                 tableRecord.EntryPath, tableRecord.Identifier));
         }
-        return ReadTable(source, source.Index, model, geometry, projectionBudget, diagnostics,
-            accessibilityDescription, ref materializedCellCount, ref supportsEditableReconstruction);
+        IWorkWireMessage modelMessage;
+        try {
+            modelMessage = source.Index.Message(model);
+        } catch (InvalidDataException) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_MODEL_UNSUPPORTED",
+                "An iWork table references a malformed table model; editable reconstruction is incomplete.",
+                model.EntryPath, model.Identifier));
+            return null;
+        }
+        return ReadTable(source, source.Index, model, modelMessage, geometry, projectionBudget,
+            diagnostics, accessibilityDescription, ref materializedCellCount,
+            ref supportsEditableReconstruction);
     }
 
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
-        IWorkArchiveRecord model, IWorkGeometry? geometry, IWorkProjectionBudget projectionBudget,
+        IWorkArchiveRecord model, IWorkWireMessage message, IWorkGeometry? geometry,
+        IWorkProjectionBudget projectionBudget,
         List<IWorkDiagnostic> diagnostics,
         string? accessibilityDescription,
         ref int materializedCellCount, ref bool supportsEditableReconstruction) {
-        IWorkWireMessage message = index.Message(model);
         if (HasUnsupportedTableScalarEncoding(message)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

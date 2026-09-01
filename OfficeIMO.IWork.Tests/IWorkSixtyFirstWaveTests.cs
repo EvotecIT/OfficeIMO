@@ -29,6 +29,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.IsType<DateTime>(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables[0].Cells).Value);
+        Assert.Contains(result.ImportReport.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
 
     [Fact]

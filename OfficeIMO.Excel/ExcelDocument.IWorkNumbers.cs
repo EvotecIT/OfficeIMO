@@ -39,6 +39,11 @@ public partial class ExcelDocument {
             : FindExcelProjectionLimitation(projection);
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
+        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !projection.HasEditableContent
+                || destinationLimitation == null
+            ? Array.Empty<IWorkDiagnostic>()
+            : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Numbers source has no supported editable content.");
@@ -144,7 +149,8 @@ public partial class ExcelDocument {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkNumbersLoadResult(document, source, projection, projection.CreateImportReport(kind, preview));
+            return new IWorkNumbersLoadResult(document, source, projection,
+                projection.CreateImportReport(kind, preview, destinationDiagnostics));
         } catch {
             document.Dispose();
             throw;

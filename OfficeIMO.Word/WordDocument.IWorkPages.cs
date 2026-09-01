@@ -48,6 +48,11 @@ public partial class WordDocument {
             : FindWordProjectionLimitation(projection);
         bool editable = mode != IWorkImportMode.VisualOnly && projection.HasEditableContent
             && destinationLimitation == null;
+        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !projection.HasEditableContent
+                || destinationLimitation == null
+            ? Array.Empty<IWorkDiagnostic>()
+            : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED", destinationLimitation) };
         if (!editable && mode == IWorkImportMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Pages source has no supported editable content.");
@@ -141,7 +146,8 @@ public partial class WordDocument {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
-            return new IWorkPagesLoadResult(document, source, projection, projection.CreateImportReport(kind, preview));
+            return new IWorkPagesLoadResult(document, source, projection,
+                projection.CreateImportReport(kind, preview, destinationDiagnostics));
         } catch {
             document.Dispose();
             throw;

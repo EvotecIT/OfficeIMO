@@ -98,9 +98,13 @@ public sealed class IWorkPagesProjection {
     public bool HasEditableContent => _supportsEditableReconstruction;
 
     /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
-    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) {
+    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
+        CreateImportReport(kind, preview, Array.Empty<IWorkDiagnostic>());
+
+    internal IWorkImportReport CreateImportReport(IWorkProjectionKind kind,
+        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
         ValidateReportRequest(kind, preview);
-        return _source.CreateReport(kind, Diagnostics, preview,
+        return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Body.Paragraphs.Count
@@ -202,12 +206,20 @@ internal static class IWorkPagesReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
                 "The Pages document root does not reference exactly one supported body text storage.", document.EntryPath, document.Identifier));
         } else {
-            bodyContent = IWorkTextReader.Read(index, body, projectionBudget);
-            if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction);
-            int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
-                paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
-            ReadHeadersAndFooters(index, body, sections, projectionBudget, diagnostics,
-                maximumSectionCount, ref supportsEditableReconstruction);
+            if (!TryReadMessage(index, body, out _)) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PAGES_BODY_MALFORMED",
+                    "The Pages body text storage is malformed; editable reconstruction is incomplete.",
+                    body.EntryPath, body.Identifier));
+            } else {
+                bodyContent = IWorkTextReader.Read(index, body, projectionBudget);
+                if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction);
+                int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
+                    paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
+                ReadHeadersAndFooters(index, body, sections, projectionBudget, diagnostics,
+                    maximumSectionCount, ref supportsEditableReconstruction);
+            }
         }
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
@@ -223,7 +235,14 @@ internal static class IWorkPagesReader {
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord shape in documentDrawables
                      .Where(record => record.MessageType == ShapeInfoArchive)) {
-            IWorkWireMessage shapeMessage = index.Message(shape);
+            if (!TryReadMessage(index, shape, out IWorkWireMessage shapeMessage)) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
+                    "A Pages drawable record is malformed; editable reconstruction is incomplete.",
+                    shape.EntryPath, shape.Identifier));
+                continue;
+            }
             IWorkArchiveRecord? field4Storage = index.Dereference(shapeMessage, 4);
             IWorkArchiveRecord? field2Storage = index.Dereference(shapeMessage, 2);
             IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
@@ -261,6 +280,10 @@ internal static class IWorkPagesReader {
                 text = cached;
                 projectionBudget.AddTextContentUse(text, includeCharacters: true);
             } else {
+                if (!TryReadMessage(index, storage, out _)) {
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    continue;
+                }
                 text = IWorkTextReader.Read(index, storage, projectionBudget);
                 textCache.Add(storage.Identifier, text);
             }
@@ -554,7 +577,15 @@ internal static class IWorkPagesReader {
                 continue;
             }
             IWorkArchiveRecord section = referencedSections[0];
-            IWorkWireMessage sectionMessage = index.Message(section);
+            if (!TryReadMessage(index, section, out IWorkWireMessage sectionMessage)) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PAGES_SECTION_UNSUPPORTED",
+                    "A Pages section record is malformed; editable reconstruction is incomplete.",
+                    section.EntryPath, section.Identifier));
+                sections.Add(new IWorkPagesSection(sectionIndex++, null, null, null, null, null, null));
+                continue;
+            }
             foreach (int field in new[] {
                          FirstPageTemplateField, EvenPageTemplateField, DefaultPageTemplateField
                      }) {
@@ -591,7 +622,14 @@ internal static class IWorkPagesReader {
                     }
                     continue;
                 }
-                IWorkWireMessage archiveMessage = index.Message(archive);
+                if (!TryReadMessage(index, archive, out IWorkWireMessage archiveMessage)) {
+                    supportsEditableReconstruction = false;
+                    diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                        "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED",
+                        "A Pages header/footer archive is malformed; editable reconstruction is incomplete.",
+                        archive.EntryPath, archive.Identifier));
+                    continue;
+                }
                 AddSectionStorageText(index, archiveMessage, 1, archive, headers, new HashSet<ulong>(),
                     textCache, projectionBudget, diagnostics, ref supportsEditableReconstruction);
                 AddSectionStorageText(index, archiveMessage, 2, archive, footers, new HashSet<ulong>(),
@@ -641,6 +679,10 @@ internal static class IWorkPagesReader {
             }
             bool reused = textCache.TryGetValue(storage.Identifier, out IWorkTextContent? text);
             if (!reused) {
+                if (!TryReadMessage(index, storage, out _)) {
+                    MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                    continue;
+                }
                 text = IWorkTextReader.Read(index, storage, projectionBudget);
                 textCache.Add(storage.Identifier, text);
             }
@@ -674,6 +716,17 @@ internal static class IWorkPagesReader {
             "IWORK_PAGES_TEXT_UNSUPPORTED",
             "A Pages text storage contains an invalid UTF-8 run; editable reconstruction is incomplete.",
             storage.EntryPath, storage.Identifier));
+    }
+
+    private static bool TryReadMessage(IWorkObjectIndex index, IWorkArchiveRecord record,
+        out IWorkWireMessage message) {
+        try {
+            message = index.Message(record);
+            return true;
+        } catch (InvalidDataException) {
+            message = null!;
+            return false;
+        }
     }
 
     internal static string CleanText(string value) => value

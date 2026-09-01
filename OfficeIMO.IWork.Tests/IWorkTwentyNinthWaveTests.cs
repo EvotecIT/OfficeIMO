@@ -42,6 +42,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.Equal("https://example.test/empty-pages-shape",
             Assert.Single(result.Projection.TextBoxObjects).Hyperlink);
+        Assert.Contains(result.ImportReport.Diagnostics,
+            diagnostic => diagnostic.Code == "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED");
     }
 
     [Fact]
