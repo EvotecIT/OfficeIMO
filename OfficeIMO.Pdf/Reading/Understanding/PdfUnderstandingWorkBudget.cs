@@ -28,6 +28,7 @@ internal sealed class PdfUnderstandingWorkBudget {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
         if (units <= 0) throw new ArgumentOutOfRangeException(nameof(units));
 #pragma warning restore CA1512
+        if (Volatile.Read(ref _operationCompleted) != 0) return;
         ThrowIfCancellationRequested();
         long next;
         try {
@@ -47,6 +48,6 @@ internal sealed class PdfUnderstandingWorkBudget {
         }
     }
 
-    /// <summary>Detaches retained lazy projections from the completed read operation's token.</summary>
+    /// <summary>Detaches retained lazy projections from the completed read operation's token and one-time work budget.</summary>
     internal void CompleteOperation() => Volatile.Write(ref _operationCompleted, 1);
 }

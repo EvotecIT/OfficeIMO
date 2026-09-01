@@ -50,7 +50,10 @@ a second logical model.
 | parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
 | `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
 | `PdfLogicalDocument` | `PdfDocumentReadResult` |
+| `pdf.Read.Text()` | `pdf.Read().Text`; this is canonical semantic text rather than the former direct extraction surface |
+| selected `pdf.Read.Text(...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection }).Text` |
 | `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
+| `pdf.Read.TryText(...)` / `TryTextByPage(...)` / `TryMarkdown(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary and use `result.Text`, project `result.Pages[*].TextBlocks`, or call `result.ToMarkdown()` |
 | `pdf.Read.ExportStructured(format)` | `pdf.Read().ExportStructured(format)`; pass semantic options to `Read(...)` and load/security options to `Load(...)` |
 | `pdf.Read.TextByPage()` | project `result.Pages[*].TextBlocks` for the application's text shape |
 | `pdf.Read.Images(...)` | `pdf.Images.Extract(...)` |

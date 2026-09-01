@@ -450,6 +450,21 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void StructuredRead_AcceptsMarkedContentReferenceWithoutOptionalType() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateScopedTaggedMcidPdf(includeMcrType: false)).Read();
+        PdfUnderstandingPageResult page = Assert.Single(result.Pages).Analysis;
+
+        AssertTaggedHeading(page, "Page heading", 1);
+        Assert.Contains(page.Elements, element =>
+            element.Kind == PdfUnderstandingSemanticKind.Paragraph &&
+            element.Region.Text == "Form paragraph" &&
+            element.Evidence.Any(static evidence => evidence.Code == "semantic.tagged-pdf-role"));
+        Assert.All(
+            result.TaggedContent!.StructureElements,
+            element => Assert.Single(element.MarkedContentReferences));
+    }
+
+    [Fact]
     public void StructuredRead_PreservesProvenanceAcrossManyPageContentStreams() {
         const int streamCount = 256;
         PdfDocumentReadResult result = PdfDocument.Load(CreateManyContentStreamsPdf(streamCount)).Read();
@@ -674,12 +689,21 @@ public class PdfUnderstandingPipelineTests {
                 new[] { "Quality", "Premium" }
             })
             .ToBytes();
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         var classification = new CapturingParagraphClassificationStage();
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.SemanticClassification = classification;
         options.MaxWorkUnitsPerPage = 1_000_000;
 
-        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfUnderstandingPageResult analysis = Assert.Single(
+            new PdfUnderstandingPipeline(new PdfTextLayoutOptions(), options)
+                .RunPages(document, new[] { 1 }));
+        PdfLogicalPage page = PdfLogicalPage.From(
+            document,
+            document.Pages[0],
+            1,
+            new PdfTextLayoutOptions(),
+            analysis: analysis);
         Assert.NotEmpty(page.TextBlocks);
         Assert.NotEmpty(page.Tables);
         PdfUnderstandingPageContext context = Assert.IsType<PdfUnderstandingPageContext>(classification.Context);
@@ -694,6 +718,28 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(context.MaxWorkUnitsPerPage, exception.Limit);
         Assert.Equal(exception.Limit + 1, exception.Actual);
+    }
+
+    [Fact]
+    public void CompletedRead_DoesNotChargeLazyLogicalAnalysisToTheOperationBudget() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Metric", "Value" },
+                new[] { "Quality", "Premium" }
+            })
+            .ToBytes();
+        var classification = new CapturingParagraphClassificationStage();
+        PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
+        options.SemanticClassification = classification;
+        options.MaxWorkUnitsPerPage = 1_000_000;
+
+        PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
+        PdfUnderstandingPageContext context = Assert.IsType<PdfUnderstandingPageContext>(classification.Context);
+        long completedWork = context.WorkUnitsConsumed;
+
+        Assert.NotEmpty(PdfLogicalReadingOrderAnalysis.Analyze(page));
+        Assert.NotEmpty(PdfLogicalReadingOrderAnalysis.Analyze(page));
+        Assert.Equal(completedWork, context.WorkUnitsConsumed);
     }
 
     [Fact]
@@ -1739,11 +1785,12 @@ public class PdfUnderstandingPipelineTests {
             "<< /Title (Section 2) /Parent 6 0 R /Dest [3 0 R /Fit] >>");
     }
 
-    private static byte[] CreateScopedTaggedMcidPdf() {
+    private static byte[] CreateScopedTaggedMcidPdf(bool includeMcrType = true) {
         string pageContent = "/H1 << /MCID 0 >> BDC\n" +
             "BT /F1 24 Tf 72 700 Td (Page heading) Tj ET\nEMC\n/Fx1 Do\n";
         string formContent = "/P << /MCID 0 >> BDC\n" +
             "BT /F1 12 Tf 72 500 Td (Form paragraph) Tj ET\nEMC\n";
+        string mcrType = includeMcrType ? "/Type /MCR " : string.Empty;
         return BuildClassicPdf(
             "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 7 0 R /MarkInfo << /Marked true >> >>",
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
@@ -1755,9 +1802,9 @@ public class PdfUnderstandingPipelineTests {
                 "/Resources << /Font << /F1 5 0 R >> >>", formContent),
             "<< /Type /StructTreeRoot /K [8 0 R 9 0 R] /ParentTree 10 0 R /ParentTreeNextKey 2 >>",
             "<< /Type /StructElem /S /H1 /P 7 0 R /Pg 3 0 R " +
-                "/K << /Type /MCR /Pg 3 0 R /Stm 4 0 R /MCID 0 >> >>",
+                "/K << " + mcrType + "/Pg 3 0 R /Stm 4 0 R /MCID 0 >> >>",
             "<< /Type /StructElem /S /P /P 7 0 R /Pg 3 0 R " +
-                "/K << /Type /MCR /Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
+                "/K << " + mcrType + "/Pg 3 0 R /Stm 6 0 R /MCID 0 >> >>",
             "<< /Nums [0 [8 0 R] 1 [9 0 R]] >>");
     }
 

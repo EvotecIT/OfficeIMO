@@ -150,7 +150,9 @@ public sealed partial class PdfReadDocument {
         }
 
         string? type = TryReadName(dictionary, "Type");
-        if (string.Equals(type, "MCR", StringComparison.Ordinal)) {
+        bool isMarkedContentReference = string.Equals(type, "MCR", StringComparison.Ordinal) ||
+            (type is null && dictionary.Items.ContainsKey("MCID"));
+        if (isMarkedContentReference) {
             int? pageObjectNumber = ReadReferenceObjectNumber(dictionary, "Pg") ?? inheritedPageObjectNumber;
             int? contentStreamObjectNumber = ReadReferenceObjectNumber(dictionary, "Stm");
             if (dictionary.Items.TryGetValue("MCID", out PdfObject? mcidObject) &&
