@@ -401,8 +401,12 @@ public sealed partial class OfficeWorkflowRunner {
                 AddAssemblySourceDiagnostic(source, "PDF pages retained", diagnostics);
                 return opened;
             case AssemblySourceKind.Image:
+                byte[] imageBytes = OfficeWorkflowInputReader.ReadAllBytes(
+                    source.Path,
+                    request.Limits.MaximumInputBytes,
+                    cancellationToken);
                 PdfDocument imageDocument = PdfDocument.CreateFromImages(
-                    [new PdfImageDocumentSource(File.ReadAllBytes(source.Path), source.DisplayName)],
+                    [new PdfImageDocumentSource(imageBytes, source.DisplayName)],
                     request.Options.ImageOptions);
                 AddAssemblySourceDiagnostic(source, "Image composed as one PDF page", diagnostics);
                 return imageDocument;

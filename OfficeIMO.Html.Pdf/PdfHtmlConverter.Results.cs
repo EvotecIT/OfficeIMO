@@ -22,11 +22,18 @@ public static partial class PdfHtmlConverterExtensions {
         options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
-        string html = options.Profile switch {
-            PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
-            PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
-        };
+        string html;
+        try {
+            html = options.Profile switch {
+                PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
+                PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
+                _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
+            };
+        } catch (ArgumentOutOfRangeException exception) when (options.MaximumOutputCharacters.HasValue) {
+            throw new InvalidOperationException(
+                $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while it was being rendered.",
+                exception);
+        }
         return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
     }
 

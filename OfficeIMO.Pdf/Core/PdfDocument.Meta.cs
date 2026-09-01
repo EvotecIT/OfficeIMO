@@ -284,7 +284,7 @@ public sealed partial class PdfDocument {
             return _source.Read(options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(RenderBytesCore(), options, cancellationToken);
+        return PdfReadDocument.Open(RenderBytesCore(cancellationToken), options, cancellationToken);
     }
 
     /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>
@@ -307,7 +307,7 @@ public sealed partial class PdfDocument {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] bytes = RenderBytesCore();
+        byte[] bytes = RenderBytesCore(cancellationToken);
         return (bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
     }
 

@@ -6,8 +6,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
-        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, System.Threading.CancellationToken.None, out _, out _, out _, out _)!;
-        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes);
+        return Write(doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None);
+    }
+
+    internal static byte[] Write(
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        System.Threading.CancellationToken cancellationToken) {
+        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out _, out _)!;
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken);
         return bytes;
     }
 

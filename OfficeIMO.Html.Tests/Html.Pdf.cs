@@ -18,6 +18,18 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void Pdf_ToHtmlResult_StopsAtTheConfiguredOutputCharacterLimit() {
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        options.MaximumOutputCharacters = 128;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options));
+
+        Assert.Contains("128-character output limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("being rendered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfToHtml_ResultAndBodyClassAreImmutableComposedContracts() {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
         options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";

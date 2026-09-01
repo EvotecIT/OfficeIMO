@@ -260,12 +260,13 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private byte[] RenderBytesCore() {
+    private byte[] RenderBytesCore(System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
             return _source.CopyBytes();
         }
 
-        return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
+        return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords, cancellationToken);
     }
 
     private (long BytesWritten, int? PageCount, PdfSerializationReport Serialization) RenderToStreamCore(Stream stream) {

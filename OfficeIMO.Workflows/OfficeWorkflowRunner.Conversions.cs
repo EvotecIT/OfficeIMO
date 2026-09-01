@@ -118,10 +118,13 @@ public sealed partial class OfficeWorkflowRunner {
             }
             case "pdf-html": {
                 PdfDocument pdf = PdfDocument.Load(input, request.PdfLoadOptions);
+                int maximumOutputCharacters = (int)Math.Min(int.MaxValue, maximumOutputBytes);
                 PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
                     Profile = PdfHtmlProfile.PositionedReview,
                     IncludeLinkAnnotations = true,
                     IncludeFormWidgets = true,
+                    MaximumOutputCharacters = maximumOutputCharacters,
+                    MaxEmbeddedImageBytes = Math.Min(10L * 1024L * 1024L, maximumOutputBytes - maximumOutputBytes / 4L),
                     CancellationToken = cancellationToken
                 });
                 bytes = EncodeUtf8Bounded(conversion.Value, maximumOutputBytes);

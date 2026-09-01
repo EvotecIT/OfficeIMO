@@ -16,6 +16,18 @@ public class PdfAnalysisReportTests {
     }
 
     [Fact]
+    public void InspectPropagatesCancellationRaisedDuringGeneratedDocumentRendering() {
+        using var cancellation = new CancellationTokenSource();
+        PdfDocument document = PdfDocument.Create().TableDeferred(() => {
+            cancellation.Cancel();
+            return new[] { new[] { "Cancelled while rendering" } };
+        }, batchSize: 1);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            document.Inspect(options: null, cancellation.Token));
+    }
+
+    [Fact]
     public void AnalyzeReturnsOneCoherentHealthAndCapabilityReport() {
         byte[] bytes = PdfDocument.Create()
             .Meta(title: "Analysis source")
