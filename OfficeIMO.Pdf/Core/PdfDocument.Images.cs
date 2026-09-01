@@ -61,8 +61,8 @@ public sealed class PdfImageDocumentOptions {
         if (MaximumPageDimension <= 0D || double.IsNaN(MaximumPageDimension) || double.IsInfinity(MaximumPageDimension)) {
             throw new ArgumentOutOfRangeException(nameof(MaximumPageDimension));
         }
-        ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize));
-        if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize));
+        ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize), validatePrintableArea: false);
+        if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize), validatePrintableArea: true);
         return new PdfImageDocumentOptions {
             FixedPageSize = FixedPageSize,
             FallbackPageSize = FallbackPageSize,
@@ -73,11 +73,11 @@ public sealed class PdfImageDocumentOptions {
         };
     }
 
-    private void ValidatePageSize(PageSize size, string name) {
+    private void ValidatePageSize(PageSize size, string name, bool validatePrintableArea) {
         if (size.Width > MaximumPageDimension || size.Height > MaximumPageDimension) {
             throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension:N0} points.");
         }
-        if (size.Width <= Margin * 2D || size.Height <= Margin * 2D) {
+        if (validatePrintableArea && (size.Width <= Margin * 2D || size.Height <= Margin * 2D)) {
             throw new ArgumentException("Page margins leave no printable image area.", name);
         }
     }
@@ -156,6 +156,9 @@ public sealed partial class PdfDocument {
             double width = info.Width * 72D / dpiX;
             double height = info.Height * 72D / dpiY;
             double maximumContentDimension = options.MaximumPageDimension - options.Margin * 2D;
+            if (maximumContentDimension <= 0D) {
+                throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
+            }
             double scale = Math.Min(1D, maximumContentDimension / Math.Max(width, height));
             pageSize = new PageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
             return pageSize;

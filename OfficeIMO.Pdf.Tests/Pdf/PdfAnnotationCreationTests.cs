@@ -6,6 +6,23 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAnnotationCreationTests {
     [Fact]
+    public void AddTextAnnotationGeneratesTheRequestedIconAppearance() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Text note appearance")).ToBytes();
+
+        PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Text",
+            Rectangle = new[] { 40D, 50D, 64D, 74D },
+            Contents = "Review note",
+            IconName = "Comment",
+            GenerateAppearance = true
+        });
+
+        PdfAnnotation annotation = Assert.Single(added.ToDocument().Inspect().GetAnnotationsBySubtype("Text"));
+        Assert.True(annotation.HasNormalAppearance);
+        Assert.Contains("/Name /Comment", Encoding.ASCII.GetString(added.Bytes), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MoveAnnotation_TranslatesRectangleAndLineGeometryTogether() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Move annotation")).ToBytes();
         PdfAnnotationEditResult added = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {

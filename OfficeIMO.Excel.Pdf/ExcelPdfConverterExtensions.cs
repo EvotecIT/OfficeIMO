@@ -164,23 +164,25 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF at the specified path.</summary>
-        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             string path,
             ExcelPdfSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+            return await document.ToPdfDocumentResult(operation).SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF to a caller-owned stream.</summary>
-        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             Stream stream,
             ExcelPdfSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+            return await document.ToPdfDocumentResult(operation).SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Attempts to asynchronously save an Excel workbook as PDF at the specified path.</summary>
@@ -191,8 +193,9 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                return await document.ToPdfDocumentResult(options)
-                    .TrySaveAsync(path, cancellationToken)
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+                return await document.ToPdfDocumentResult(operation)
+                    .TrySaveAsync(path, operation.CancellationToken)
                     .ConfigureAwait(false);
             } catch (OperationCanceledException) {
                 throw;
@@ -209,14 +212,30 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                return await document.ToPdfDocumentResult(options)
-                    .TrySaveAsync(stream, cancellationToken)
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+                return await document.ToPdfDocumentResult(operation)
+                    .TrySaveAsync(stream, operation.CancellationToken)
                     .ConfigureAwait(false);
             } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
+        }
+
+        private static CancellationTokenSource? CreateAsyncConversionOptions(
+            ExcelPdfSaveOptions? options,
+            CancellationToken methodToken,
+            out ExcelPdfSaveOptions operation) {
+            operation = (options ?? new ExcelPdfSaveOptions()).CloneForConversion();
+            if (!methodToken.CanBeCanceled || operation.CancellationToken == methodToken) return null;
+            if (!operation.CancellationToken.CanBeCanceled) {
+                operation.CancellationToken = methodToken;
+                return null;
+            }
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(operation.CancellationToken, methodToken);
+            operation.CancellationToken = linked.Token;
+            return linked;
         }
 
     }

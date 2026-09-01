@@ -1522,7 +1522,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion and PDF capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 14,
+      "sourceFileCount": 15,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,

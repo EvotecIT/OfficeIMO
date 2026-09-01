@@ -43,6 +43,19 @@ public sealed class PdfImageDocumentTests {
     }
 
     [Fact]
+    public void CreateFromImagesAllowsDynamicPageMarginsLargerThanUnusedFallbackPaper() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
+
+        PdfDocument document = PdfDocument.CreateFromImages(
+            [new PdfImageDocumentSource(image, "large-margin.png")],
+            new PdfImageDocumentOptions { Margin = 300D });
+
+        PdfPageInfo page = Assert.Single(document.Inspect().Pages);
+        Assert.Equal(672D, page.Width, 2);
+        Assert.Equal(636D, page.Height, 2);
+    }
+
+    [Fact]
     public void CreateFromImagesAppliesEmbeddedJpegOrientationBeforeSizingAndDrawing() {
         var raster = new OfficeRasterImage(2, 1);
         raster.SetPixel(0, 0, OfficeColor.Red);

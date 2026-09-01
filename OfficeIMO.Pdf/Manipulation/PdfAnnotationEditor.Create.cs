@@ -99,7 +99,7 @@ internal static partial class PdfAnnotationEditor {
         }
     }
 
-    private static bool IsAppearanceSubtype(string subtype) => subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
+    private static bool IsAppearanceSubtype(string subtype) => subtype == "Text" || subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
     private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || subtype == "Link" || IsAppearanceSubtype(subtype);
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
