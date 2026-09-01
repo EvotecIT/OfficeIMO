@@ -51,6 +51,37 @@ public sealed class PowerPointPdfAsyncContractTests {
         Assert.True(stage.ObservedSemanticCancellation);
     }
 
+    [Fact]
+    public async Task PdfImportAsyncPassesOptionCancellationIntoSaveStage() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Save cancellation probe"))
+            .ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        var options = PdfPowerPointImportOptions.CreateEditableContent();
+        options.CancellationToken = cancellation.Token;
+        using var output = new CancelOnWriteStream(cancellation);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            PdfDocument.Load(pdf).SaveAsPowerPointAsync(output, options));
+
+        Assert.True(output.ObservedOptionToken);
+    }
+
+    [Fact]
+    public void LogicalPdfImportHonorsOptionCancellation() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Logical cancellation probe"))
+            .ToBytes();
+        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var options = PdfPowerPointImportOptions.CreateEditableTables();
+        options.CancellationToken = cancellation.Token;
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            logical.ToPowerPointPresentationResult(options));
+    }
+
     private sealed class CancelingSemanticStage : IPdfSemanticClassificationStage {
         private readonly CancellationTokenSource _cancellation;
 
@@ -73,5 +104,31 @@ public sealed class PowerPointPdfAsyncContractTests {
 
             return Array.Empty<PdfUnderstandingSemanticElement>();
         }
+    }
+
+    private sealed class CancelOnWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnWriteStream(CancellationTokenSource cancellation) {
+            _cancellation = cancellation;
+        }
+
+        internal bool ObservedOptionToken { get; private set; }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            _cancellation.Cancel();
+            ObservedOptionToken = cancellationToken == _cancellation.Token;
+            cancellationToken.ThrowIfCancellationRequested();
+            return base.WriteAsync(buffer, offset, count, cancellationToken);
+        }
+
+#if NET6_0_OR_GREATER
+        public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) {
+            _cancellation.Cancel();
+            ObservedOptionToken = cancellationToken == _cancellation.Token;
+            cancellationToken.ThrowIfCancellationRequested();
+            return base.WriteAsync(buffer, cancellationToken);
+        }
+#endif
     }
 }
