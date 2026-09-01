@@ -37,6 +37,12 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Replacement line endpoints as x1, y1, x2, y2.</summary>
     public IReadOnlyList<double>? Line { get; set; }
 
+    internal double? LineLeaderLength { get; set; }
+
+    internal double? LineLeaderExtension { get; set; }
+
+    internal IReadOnlyList<double>? LineCaptionOffset { get; set; }
+
     /// <summary>Replacement ink paths; every path is an x/y coordinate sequence.</summary>
     public IReadOnlyList<IReadOnlyList<double>>? InkPaths { get; set; }
 

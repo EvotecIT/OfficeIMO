@@ -8,18 +8,25 @@ internal static class PdfDiagnostics {
     private const long UncompressedStreamThresholdBytes = 16L * 1024L;
 
     /// <summary>Analyzes a PDF byte array.</summary>
-    public static PdfDiagnosticReport Analyze(byte[] pdf, PdfLoadOptions? options = null) {
-        Guard.NotNull(pdf, nameof(pdf));
+    public static PdfDiagnosticReport Analyze(byte[] pdf, PdfLoadOptions? options = null) =>
+        Analyze(pdf, options, CancellationToken.None);
 
-        PdfDocumentProbe probe = PdfInspector.Probe(pdf);
-        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options);
+    internal static PdfDiagnosticReport Analyze(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        PdfDocumentProbe probe = PdfInspector.Probe(pdf, options, cancellationToken);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, options, cancellationToken);
         PdfDocumentInfo? info = preflight.DocumentInfo;
 
         try {
-            var (objects, _) = PdfSyntax.ParseObjects(pdf, options);
-            return BuildReport(probe, preflight, info, objects, objectGraphError: null);
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
-            return BuildReport(probe, preflight, info, objects: null, ex.Message);
+            var (objects, _) = PdfSyntax.ParseObjects(pdf, options, out _, out _, cancellationToken);
+            return BuildReport(probe, preflight, info, objects, objectGraphError: null, cancellationToken);
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            return BuildReport(probe, preflight, info, objects: null, ex.Message, cancellationToken);
         }
     }
 
@@ -63,10 +70,14 @@ internal static class PdfDiagnostics {
     }
 
     /// <summary>Reports optimization opportunities for a PDF byte array without modifying it.</summary>
-    public static PdfOptimizationReport AnalyzeOptimization(byte[] pdf, PdfLoadOptions? options = null) {
-        PdfDiagnosticReport diagnostics = Analyze(pdf, options);
-        return BuildOptimizationReport(diagnostics);
-    }
+    public static PdfOptimizationReport AnalyzeOptimization(byte[] pdf, PdfLoadOptions? options = null) =>
+        AnalyzeOptimization(pdf, options, CancellationToken.None);
+
+    internal static PdfOptimizationReport AnalyzeOptimization(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        BuildOptimizationReport(Analyze(pdf, options, cancellationToken), cancellationToken);
 
     /// <summary>Reports optimization opportunities for a PDF file without modifying it.</summary>
     public static PdfOptimizationReport AnalyzeOptimization(string path, PdfLoadOptions? options = null) {

@@ -69,8 +69,9 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "html-pdf": {
+                HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(request.InputPath);
                 PdfDocumentConversionResult conversion = ParseHtmlInput(input, request.InputPath)
-                    .ToPdfDocumentResultAsync(new HtmlPdfSaveOptions(), cancellationToken)
+                    .ToPdfDocumentResultAsync(options, cancellationToken)
                     .GetAwaiter()
                     .GetResult();
                 bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
@@ -180,6 +181,9 @@ public sealed partial class OfficeWorkflowRunner {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         return HtmlConversionDocument.Parse(
             DecodeHtmlInput(input),
-            new HtmlConversionDocumentOptions { BaseUri = new Uri(Path.GetFullPath(inputPath)) });
+            new HtmlConversionDocumentOptions {
+                BaseUri = new Uri(Path.GetFullPath(inputPath)),
+                ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy()
+            });
     }
 }

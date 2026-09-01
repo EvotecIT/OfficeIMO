@@ -65,6 +65,53 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task HtmlToPdfLoadsRelativeImagesFromTheHtmlDirectory() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        string image = Path.Combine(scope.Path, "pixel.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        File.WriteAllBytes(image, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        File.WriteAllText(input, "<!doctype html><html><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>", Encoding.UTF8);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        IReadOnlyList<PdfExtractedImage> images = PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract();
+        Assert.True(images.Count > 0, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+    }
+
+    [Fact]
+    public async Task HtmlToPdfDoesNotLoadRelativeImagesOutsideTheHtmlDirectory() {
+        using var scope = new TestDirectory();
+        string sourceDirectory = Path.Combine(scope.Path, "source");
+        Directory.CreateDirectory(sourceDirectory);
+        string input = Path.Combine(sourceDirectory, "source.html");
+        string image = Path.Combine(scope.Path, "outside.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        File.WriteAllBytes(image, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        File.WriteAllText(input, "<!doctype html><html><body><img src=\"../outside.png\" alt=\"outside\"></body></html>", Encoding.UTF8);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Empty(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
     public async Task ConversionStopsWhileSerializingAtTheConfiguredOutputLimit() {
         using var scope = new TestDirectory();
         string input = CreateInput(scope.Path, "docx-pdf");

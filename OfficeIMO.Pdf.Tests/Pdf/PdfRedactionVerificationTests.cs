@@ -66,7 +66,6 @@ public class PdfRedactionVerificationTests {
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed first page")))));
             compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
         }).ToBytes();
-        source = PdfPageEditor.RotatePages(source, 90, 2);
         PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed first page")
         ]);

@@ -303,6 +303,9 @@ internal static partial class PdfAnnotationEditor {
         if (options.QuadPoints is not null) { annotation.Items["QuadPoints"] = CreateNumberArray(options.QuadPoints); invalidateAppearance = true; }
         if (options.Vertices is not null) { annotation.Items["Vertices"] = CreateNumberArray(options.Vertices); invalidateAppearance = true; }
         if (options.Line is not null) { annotation.Items["L"] = CreateNumberArray(options.Line); invalidateAppearance = true; }
+        if (options.LineLeaderLength.HasValue) { annotation.Items["LL"] = new PdfNumber(options.LineLeaderLength.Value); invalidateAppearance = true; }
+        if (options.LineLeaderExtension.HasValue) { annotation.Items["LLE"] = new PdfNumber(options.LineLeaderExtension.Value); invalidateAppearance = true; }
+        if (options.LineCaptionOffset is not null) { annotation.Items["CO"] = CreateNumberArray(options.LineCaptionOffset); invalidateAppearance = true; }
         if (options.InkPaths is not null) {
             var paths = new PdfArray(); foreach (IReadOnlyList<double> path in options.InkPaths) paths.Items.Add(CreateNumberArray(path)); annotation.Items["InkList"] = paths; invalidateAppearance = true;
         }

@@ -11,7 +11,6 @@ internal static partial class PdfRedactionPlanner {
         if (search.LiteralText.Count == 0 && expressions.Length == 0 && search.FormFieldNames.Count == 0 && search.LogicalElementKinds.Count == 0) throw new ArgumentException("At least one redaction search criterion is required.", nameof(search));
 
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, readOptions);
-        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument);
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
         StringComparison comparison = search.MatchCase ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
         var areas = new List<PdfRedactionArea>(); var keys = new HashSet<string>(StringComparer.Ordinal);
@@ -22,7 +21,7 @@ internal static partial class PdfRedactionPlanner {
         }
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) if (widget.FieldName is not null && requestedFields.Contains(widget.FieldName)) AddArea(areas, keys, new PdfRedactionArea(widget.PageNumber, widget.X1, widget.Y1, widget.Width, widget.Height, "field:" + widget.FieldName));
-        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "RedactionSearchNoMatches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), pageIdentities);
+        if (areas.Count == 0) return new PdfRedactionPlan(PdfInspector.Preflight(pdf, readOptions), Array.Empty<PdfRedactionArea>(), Array.Empty<PdfRedactionMatch>(), new[] { new PdfDiagnosticFinding(PdfDiagnosticSeverity.Info, "RedactionSearchNoMatches", "No logical content matched the requested redaction search criteria.") }, DescribeCriteria(search), PdfRedactionPlan.ComputeSourceSha256(pdf), PdfRedactionPlan.CapturePageIdentities(readDocument, Array.Empty<PdfRedactionArea>()));
         PdfRedactionPlan planned = Plan(pdf, areas, layoutOptions, readOptions);
         return new PdfRedactionPlan(planned.Preflight, planned.Areas, planned.Matches, planned.Findings, DescribeCriteria(search), planned.SourceSha256, planned.PageIdentities);
     }

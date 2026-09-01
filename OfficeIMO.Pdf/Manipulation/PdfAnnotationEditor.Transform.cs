@@ -52,12 +52,27 @@ internal static partial class PdfAnnotationEditor {
         bool canGenerateMissingAppearance =
             !preserveAuthoredAppearance &&
             PdfAnnotationFlattener.IsSupportedVisualAnnotation(annotation.Subtype);
+        LineAuxiliaryGeometry lineAuxiliary = string.Equals(annotation.Subtype, "Line", StringComparison.OrdinalIgnoreCase)
+            ? ReadLineAuxiliaryGeometry(pdf, objectNumber, readOptions)
+            : default;
+        double lineNormalScale = lineAuxiliary == default
+            ? 1D
+            : GetLineNormalScale(annotation.LineCoordinates, scaleX, scaleY);
         var options = new PdfAnnotationUpdateOptions {
             Rectangle = new[] { target.Left, target.Bottom, target.Right, target.Top },
             RectangleDifferences = TransformRectangleDifferences(annotation.RectangleDifferences, scaleX, scaleY),
             QuadPoints = TransformPairs(annotation.QuadPoints, annotation, target, scaleX, scaleY),
             Vertices = TransformPairs(annotation.Vertices, annotation, target, scaleX, scaleY),
             Line = TransformPairs(annotation.LineCoordinates, annotation, target, scaleX, scaleY),
+            LineLeaderLength = lineAuxiliary.LeaderLength.HasValue
+                ? lineAuxiliary.LeaderLength.Value * lineNormalScale
+                : null,
+            LineLeaderExtension = lineAuxiliary.LeaderExtension.HasValue
+                ? lineAuxiliary.LeaderExtension.Value * lineNormalScale
+                : null,
+            LineCaptionOffset = lineAuxiliary.CaptionOffset is null
+                ? null
+                : [lineAuxiliary.CaptionOffset[0] * scaleX, lineAuxiliary.CaptionOffset[1] * scaleY],
             InkPaths = annotation.InkList.Count == 0
                 ? null
                 : annotation.InkList.Select(path => (IReadOnlyList<double>)TransformPairs(path, annotation, target, scaleX, scaleY)!).ToArray(),
@@ -94,6 +109,63 @@ internal static partial class PdfAnnotationEditor {
         }
         return transformed;
     }
+
+    private static double GetLineNormalScale(IReadOnlyList<double> coordinates, double scaleX, double scaleY) {
+        if (coordinates.Count != 4) return 1D;
+        double dx = coordinates[2] - coordinates[0];
+        double dy = coordinates[3] - coordinates[1];
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        if (length <= 0D) return 1D;
+        double normalX = -dy / length;
+        double normalY = dx / length;
+        return Math.Sqrt(normalX * normalX * scaleX * scaleX + normalY * normalY * scaleY * scaleY);
+    }
+
+    private static LineAuxiliaryGeometry ReadLineAuxiliaryGeometry(
+        byte[] pdf,
+        int objectNumber,
+        PdfLoadOptions? readOptions) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
+        if (!objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) ||
+            indirect.Value is not PdfDictionary dictionary) {
+            return default;
+        }
+
+        double? leaderLength = ReadOptionalNumber(objects, dictionary, "LL");
+        double? leaderExtension = ReadOptionalNumber(objects, dictionary, "LLE");
+        double[]? captionOffset = ReadOptionalNumberPair(objects, dictionary, "CO");
+        return new LineAuxiliaryGeometry(leaderLength, leaderExtension, captionOffset);
+    }
+
+    private static double? ReadOptionalNumber(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return null;
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfNumber number) {
+            throw new NotSupportedException("Line annotation /" + key + " geometry is malformed and cannot be transformed safely.");
+        }
+        return number.Value;
+    }
+
+    private static double[]? ReadOptionalNumberPair(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary dictionary,
+        string key) {
+        if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) return null;
+        if (PdfObjectLookup.Resolve(objects, value) is not PdfArray array ||
+            array.Items.Count != 2 ||
+            PdfObjectLookup.Resolve(objects, array.Items[0]) is not PdfNumber x ||
+            PdfObjectLookup.Resolve(objects, array.Items[1]) is not PdfNumber y) {
+            throw new NotSupportedException("Line annotation /" + key + " geometry is malformed and cannot be transformed safely.");
+        }
+        return [x.Value, y.Value];
+    }
+
+    private readonly record struct LineAuxiliaryGeometry(
+        double? LeaderLength,
+        double? LeaderExtension,
+        double[]? CaptionOffset);
 
     private static PdfAnnotation GetTransformTarget(byte[] pdf, int objectNumber, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));

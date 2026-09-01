@@ -37,8 +37,8 @@ internal static partial class PdfOptimizer {
 
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Optimize, readOptions);
 
-        PdfOptimizationReport reportBefore = PdfDiagnostics.AnalyzeOptimization(pdf, readOptions);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        PdfOptimizationReport reportBefore = PdfDiagnostics.AnalyzeOptimization(pdf, readOptions, cancellationToken);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber <= 0) {
@@ -48,7 +48,7 @@ internal static partial class PdfOptimizer {
         var actions = new List<PdfOptimizationAction>();
         var skippedActions = new List<PdfOptimizationSkippedAction>();
         var optimizedObjects = new Dictionary<int, PdfIndirectObject>(objects);
-        PdfMetadata metadata = PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata;
+        PdfMetadata metadata = PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata;
         if (effectiveOptions.CompressUnfilteredStreams) {
             CompressUnfilteredStreams(optimizedObjects, effectiveOptions, actions, skippedActions);
         }
@@ -77,7 +77,7 @@ internal static partial class PdfOptimizer {
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
         PdfLoadOptions candidateReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, candidate.LongLength);
-        PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions);
+        PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         var preservationOptions = new PdfRewritePreservationOptions {
             OriginalReadOptions = readOptions,

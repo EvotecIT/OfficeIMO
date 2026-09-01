@@ -7,6 +7,19 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOptimizerTests {
     [Fact]
+    public void Optimize_HonorsCancellationBeforeDiagnosticsAndParsing() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Cancelled) Tj\nET\n");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            _ = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                CancellationToken = cancellation.Token
+            });
+        });
+    }
+
+    [Fact]
     public void Optimize_CompressesUnfilteredStreamsAndPreservesText() {
         byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
 

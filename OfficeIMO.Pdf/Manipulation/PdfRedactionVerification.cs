@@ -129,13 +129,15 @@ internal static partial class PdfRedactionVerification {
         if (pageIdentityMatches &&
             reviewedPlan.PageIdentities.Count > 0 &&
             rewrittenPreflight.CanReadLogicalObjects) {
-            IReadOnlyList<string> rewrittenPageIdentities = PdfRedactionPlan.CapturePageIdentities(PdfReadDocument.Open(redactedPdf, readOptions));
+            IReadOnlyList<string> rewrittenPageIdentities = PdfRedactionPlan.CapturePageIdentities(
+                PdfReadDocument.Open(redactedPdf, readOptions),
+                reviewedPlan.Areas);
             if (!reviewedPlan.PageIdentities.SequenceEqual(rewrittenPageIdentities, StringComparer.Ordinal)) {
                 pageIdentityMatches = false;
                 issues.Add(new PdfRedactionVerificationIssue(
                     "RedactionPlanPageIdentityChanged",
                     "ReviewedPages",
-                    "The rewritten PDF changed the reviewed page order, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles in a different page coordinate system."));
+                    "The rewritten PDF changed reviewed page content outside the redaction areas, page order, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles against a different page identity."));
             }
         }
 

@@ -63,21 +63,118 @@ public sealed class PdfRedactionPlan {
 #endif
     }
 
-    internal static IReadOnlyList<string> CapturePageIdentities(PdfReadDocument document) {
+    internal static IReadOnlyList<string> CapturePageIdentities(
+        PdfReadDocument document,
+        IReadOnlyList<PdfRedactionArea> reviewedAreas) {
         Guard.NotNull(document, nameof(document));
+        Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfReadPage page = document.Pages[i];
             PdfPageGeometry geometry = page.GetGeometry();
-            identities[i] = string.Join("|", new[] {
+            int pageNumber = i + 1;
+            PdfRedactionArea[] pageAreas = reviewedAreas
+                .Where(area => area.PageNumber == pageNumber)
+                .ToArray();
+            var identity = new System.Text.StringBuilder();
+            identity.Append(string.Join("|", new[] {
                 page.GetRotationDegrees().ToString(System.Globalization.CultureInfo.InvariantCulture),
                 FormatPageBoxIdentity(geometry.MediaBox),
                 FormatPageBoxIdentity(geometry.CropBox),
                 geometry.UserUnit?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "null"
-            });
+            }));
+            AppendUnredactedTextIdentity(identity, page, pageAreas);
+            AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas);
+            identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
         return identities;
+    }
+
+    private static void AppendUnredactedTextIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadPage page,
+        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
+        for (int i = 0; i < spans.Count; i++) {
+            PdfTextSpan span = spans[i];
+            double x = Math.Min(span.X, span.X + span.Advance);
+            double width = Math.Max(1D, Math.Abs(span.Advance));
+            double height = Math.Max(1D, span.FontSize);
+            double y = span.Y - height;
+            if (IntersectsReviewedArea(pageAreas, x, y, width, height)) continue;
+            identity.Append("|T:")
+                .Append(span.Text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append(':').Append(span.Text)
+                .Append(':').Append(FormatIdentityNumber(span.X))
+                .Append(',').Append(FormatIdentityNumber(span.Y))
+                .Append(',').Append(FormatIdentityNumber(span.Advance))
+                .Append(',').Append(FormatIdentityNumber(span.FontSize))
+                .Append(',').Append(FormatIdentityNumber(span.RotationDegrees))
+                .Append(',').Append(span.IsVisible ? '1' : '0');
+        }
+    }
+
+    private static void AppendUnredactedImageIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadDocument document,
+        PdfReadPage page,
+        int pageNumber,
+        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
+        for (int i = 0; i < placements.Count; i++) {
+            PdfImagePlacement placement = placements[i];
+            if (IntersectsReviewedArea(pageAreas, placement.X, placement.Y, placement.Width, placement.Height)) continue;
+            byte[]? imageBytes = null;
+            if (placement.ObjectNumber > 0 &&
+                document.Objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect) &&
+                indirect.Value is PdfStream stream) {
+                imageBytes = stream.Data;
+            } else if (placement.InlineImageStream is PdfStream inlineStream) {
+                imageBytes = inlineStream.Data;
+            }
+
+            identity.Append("|I:")
+                .Append(pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .Append(':').Append(FormatIdentityNumber(placement.A))
+                .Append(',').Append(FormatIdentityNumber(placement.B))
+                .Append(',').Append(FormatIdentityNumber(placement.C))
+                .Append(',').Append(FormatIdentityNumber(placement.D))
+                .Append(',').Append(FormatIdentityNumber(placement.E))
+                .Append(',').Append(FormatIdentityNumber(placement.F))
+                .Append(':').Append(imageBytes is null ? "none" : ComputeIdentityHash(imageBytes));
+        }
+    }
+
+    private static bool IntersectsReviewedArea(
+        IReadOnlyList<PdfRedactionArea> areas,
+        double x,
+        double y,
+        double width,
+        double height) {
+        for (int i = 0; i < areas.Count; i++) {
+            PdfRedactionArea area = areas[i];
+            if (x < area.X + area.Width && x + width > area.X &&
+                y < area.Y + area.Height && y + height > area.Y) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static string FormatIdentityNumber(double value) =>
+        value.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string ComputeIdentityHash(string value) =>
+        ComputeIdentityHash(System.Text.Encoding.UTF8.GetBytes(value));
+
+    private static string ComputeIdentityHash(byte[] value) {
+#if NET6_0_OR_GREATER
+        return Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(value));
+#else
+        using var sha256 = System.Security.Cryptography.SHA256.Create();
+        return Convert.ToBase64String(sha256.ComputeHash(value));
+#endif
     }
 
     private static string FormatPageBoxIdentity(PdfPageBox? box) {

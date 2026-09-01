@@ -31,7 +31,7 @@ internal static partial class PdfRedactionPlanner {
         }
 
         PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options);
-        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument);
+        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray);
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
