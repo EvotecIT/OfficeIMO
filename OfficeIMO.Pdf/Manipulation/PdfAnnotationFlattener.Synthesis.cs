@@ -68,9 +68,10 @@ internal static partial class PdfAnnotationFlattener {
         double? opacity = TryReadAnnotationOpacity(objects, annotation);
 
         if (string.Equals(subtype, "Text", StringComparison.Ordinal)) {
-            content = PdfAnnotationDictionaryBuilder.BuildTextNoteAppearanceContent(
+            content = PdfAnnotationDictionaryBuilder.BuildTextAnnotationAppearanceContent(
                 width,
                 height,
+                TryReadName(objects, annotation, "Name") ?? "Note",
                 TryReadColor(objects, annotation, "C"));
             fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (string.Equals(subtype, "FreeText", StringComparison.Ordinal)) {

@@ -8,13 +8,15 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionMatch> matches,
         IReadOnlyList<PdfDiagnosticFinding> findings,
         IReadOnlyList<string>? searchCriteria,
-        string sourceSha256) {
+        string sourceSha256,
+        IReadOnlyList<string>? pageIdentities = null) {
         Preflight = preflight;
         Areas = areas;
         Matches = matches;
         Findings = findings;
         SearchCriteria = searchCriteria ?? Array.Empty<string>();
         SourceSha256 = sourceSha256;
+        PageIdentities = pageIdentities ?? Array.Empty<string>();
     }
 
     /// <summary>Preflight result used while creating the plan.</summary>
@@ -34,6 +36,8 @@ public sealed class PdfRedactionPlan {
 
     /// <summary>SHA-256 fingerprint of the exact PDF bytes inspected while creating this plan.</summary>
     public string SourceSha256 { get; }
+
+    internal IReadOnlyList<string> PageIdentities { get; }
 
     /// <summary>True when the source was inspectable and the plan contains no blocking findings.</summary>
     public bool IsReviewable =>
@@ -57,5 +61,36 @@ public sealed class PdfRedactionPlan {
         using var sha256 = System.Security.Cryptography.SHA256.Create();
         return Convert.ToBase64String(sha256.ComputeHash(pdf));
 #endif
+    }
+
+    internal static IReadOnlyList<string> CapturePageIdentities(PdfReadDocument document) {
+        Guard.NotNull(document, nameof(document));
+        var identities = new string[document.Pages.Count];
+        for (int i = 0; i < document.Pages.Count; i++) {
+            PdfReadPage page = document.Pages[i];
+            PdfPageGeometry geometry = page.GetGeometry();
+            identities[i] = string.Join("|", new[] {
+                page.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                page.GetRotationDegrees().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                FormatPageBoxIdentity(geometry.MediaBox),
+                FormatPageBoxIdentity(geometry.CropBox),
+                geometry.UserUnit?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "null"
+            });
+        }
+
+        return identities;
+    }
+
+    private static string FormatPageBoxIdentity(PdfPageBox? box) {
+        if (box == null) {
+            return "null";
+        }
+
+        return string.Join(",", new[] {
+            box.Left.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            box.Bottom.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            box.Right.ToString("R", System.Globalization.CultureInfo.InvariantCulture),
+            box.Top.ToString("R", System.Globalization.CultureInfo.InvariantCulture)
+        });
     }
 }

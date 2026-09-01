@@ -45,6 +45,41 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsSameCountRewriteWithChangedPageGeometry() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed page")).ToBytes();
+        PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
+            new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed page")
+        ]);
+        byte[] rewritten = PdfPageEditor.RotatePages(source, 90, 1);
+
+        PdfRedactionVerificationReport report = PdfDocument.Load(rewritten).Redactions.VerifyAppliedPlan(
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsSameCountRewriteWithReorderedPages() {
+        byte[] source = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed first page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
+        }).ToBytes();
+        PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([
+            new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed first page")
+        ]);
+        byte[] rewritten = PdfPageExtractor.ExtractPages(source, 2, 1);
+
+        PdfRedactionVerificationReport report = PdfDocument.Load(rewritten).Redactions.VerifyAppliedPlan(
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationAcceptsAnEmptySearchDrivenPlan() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Nothing confidential")).ToBytes();
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(

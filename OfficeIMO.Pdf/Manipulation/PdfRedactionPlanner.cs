@@ -30,7 +30,9 @@ internal static partial class PdfRedactionPlanner {
                 PdfRedactionPlan.ComputeSourceSha256(pdf));
         }
 
-        PdfDocumentReadResult logical = PdfDocumentReadResult.From(PdfReadDocument.Open(pdf, options), layoutOptions);
+        PdfReadDocument readDocument = PdfReadDocument.Open(pdf, options);
+        IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
 
@@ -51,7 +53,8 @@ internal static partial class PdfRedactionPlanner {
             matches.AsReadOnly(),
             findings.AsReadOnly(),
             searchCriteria: null,
-            PdfRedactionPlan.ComputeSourceSha256(pdf));
+            PdfRedactionPlan.ComputeSourceSha256(pdf),
+            pageIdentities);
     }
 
     /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>

@@ -98,10 +98,7 @@ internal static partial class PdfRedactionVerification {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
-        PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0
-            ? null
-            : PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
-        PdfDocumentPreflight rewrittenPreflight = residualPlan?.Preflight ?? PdfInspector.Preflight(redactedPdf, readOptions);
+        PdfDocumentPreflight rewrittenPreflight = PdfInspector.Preflight(redactedPdf, readOptions);
         var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
         PdfDiagnosticFinding[] reviewedBlockingFindings = reviewedPlan.Findings
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
@@ -118,13 +115,28 @@ internal static partial class PdfRedactionVerification {
         }
         int? reviewedPageCount = reviewedPlan.Preflight.UncheckedDocumentInfo?.PageCount;
         int? rewrittenPageCount = rewrittenPreflight.UncheckedDocumentInfo?.PageCount;
+        bool pageIdentityMatches = true;
         if (reviewedPageCount.HasValue &&
             rewrittenPageCount.HasValue &&
             reviewedPageCount.Value != rewrittenPageCount.Value) {
+            pageIdentityMatches = false;
             issues.Add(new PdfRedactionVerificationIssue(
                 "RedactionPlanPageCountChanged",
                 "ReviewedPages",
                 $"The reviewed PDF had {reviewedPageCount.Value} page(s), but the rewritten PDF has {rewrittenPageCount.Value}. Redaction verification requires the reviewed page set to be preserved."));
+        }
+
+        if (pageIdentityMatches &&
+            reviewedPlan.PageIdentities.Count > 0 &&
+            rewrittenPreflight.CanReadLogicalObjects) {
+            IReadOnlyList<string> rewrittenPageIdentities = PdfRedactionPlan.CapturePageIdentities(PdfReadDocument.Open(redactedPdf, readOptions));
+            if (!reviewedPlan.PageIdentities.SequenceEqual(rewrittenPageIdentities, StringComparer.Ordinal)) {
+                pageIdentityMatches = false;
+                issues.Add(new PdfRedactionVerificationIssue(
+                    "RedactionPlanPageIdentityChanged",
+                    "ReviewedPages",
+                    "The rewritten PDF changed the reviewed page order, page identity, rotation, MediaBox, CropBox, or UserUnit. Redaction verification will not reuse reviewed rectangles in a different page coordinate system."));
+            }
         }
 
         if (rewrittenPageCount.HasValue) {
@@ -139,6 +151,10 @@ internal static partial class PdfRedactionVerification {
                     $"Reviewed redaction page {missingPageNumber} does not exist in the rewritten PDF."));
             }
         }
+
+        PdfRedactionPlan? residualPlan = reviewedPlan.Areas.Count == 0 || !pageIdentityMatches
+            ? null
+            : PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)

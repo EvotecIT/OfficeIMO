@@ -78,10 +78,13 @@ public static partial class PdfHtmlConverterExtensions {
         string path,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
-        await HtmlTextIO.WriteAsync(path, result.Value, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
+            await HtmlTextIO.WriteAsync(path, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
+            return result.Report;
+        }
     }
 
     /// <summary>Renders a logical PDF document, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -90,10 +93,31 @@ public static partial class PdfHtmlConverterExtensions {
         Stream stream,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
-        await HtmlTextIO.WriteAsync(stream, result.Value, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
+            await HtmlTextIO.WriteAsync(stream, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
+            return result.Report;
+        }
+    }
+
+    internal static PdfHtmlSaveOptions CreateAsyncRenderOptions(
+        PdfHtmlSaveOptions? options,
+        CancellationToken cancellationToken,
+        out CancellationTokenSource? linkedCancellation) {
+        PdfHtmlSaveOptions renderOptions = options?.CloneForConversion() ?? new PdfHtmlSaveOptions();
+        CancellationToken optionsCancellation = renderOptions.CancellationToken;
+        linkedCancellation = null;
+
+        if (optionsCancellation.CanBeCanceled && cancellationToken.CanBeCanceled && optionsCancellation != cancellationToken) {
+            linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(optionsCancellation, cancellationToken);
+            renderOptions.CancellationToken = linkedCancellation.Token;
+        } else if (cancellationToken.CanBeCanceled) {
+            renderOptions.CancellationToken = cancellationToken;
+        }
+
+        return renderOptions;
     }
 
     private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlSaveOptions options) {

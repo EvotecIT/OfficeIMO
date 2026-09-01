@@ -18,6 +18,26 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void Pdf_SaveAsHtmlAsync_LinksTheMethodTokenIntoRenderOptions() {
+        using var optionsCancellation = new System.Threading.CancellationTokenSource();
+        using var methodCancellation = new System.Threading.CancellationTokenSource();
+        var options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.CancellationToken = optionsCancellation.Token;
+
+        PdfHtmlSaveOptions renderOptions = PdfHtmlConverterExtensions.CreateAsyncRenderOptions(
+            options,
+            methodCancellation.Token,
+            out System.Threading.CancellationTokenSource? linkedCancellation);
+
+        using (linkedCancellation) {
+            Assert.NotSame(options, renderOptions);
+            Assert.False(renderOptions.CancellationToken.IsCancellationRequested);
+            methodCancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() => renderOptions.CancellationToken.ThrowIfCancellationRequested());
+        }
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_StopsAtTheConfiguredOutputCharacterLimit() {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
         options.MaximumOutputCharacters = 128;
