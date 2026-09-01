@@ -117,10 +117,17 @@ public sealed class PdfPublicApiContractTests {
                 method.Name == nameof(PdfDocument.TrySave) &&
                 method.ReturnType == typeof(PdfSaveResult)));
         Assert.Equal(
-            2,
+            3,
             methods.Count(method =>
                 method.Name == nameof(PdfDocument.SaveAsync) &&
                 method.ReturnType == typeof(Task<PdfSaveResult>)));
+        Assert.Contains(methods, method =>
+            method.Name == nameof(PdfDocument.SaveAsync) &&
+            method.GetParameters().Select(static parameter => parameter.ParameterType).SequenceEqual(new[] {
+                typeof(string),
+                typeof(OfficeConversionFileConflictPolicy),
+                typeof(System.Threading.CancellationToken)
+            }));
         Assert.Equal(
             2,
             methods.Count(method =>

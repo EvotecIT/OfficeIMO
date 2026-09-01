@@ -2,19 +2,19 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 213,
-    "productionComponentCount": 113,
+    "projectCount": 214,
+    "productionComponentCount": 114,
     "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 96,
-    "conceptualWordCount": 42275
+    "conceptualWordCount": 42304
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
-      "componentCount": 29
+      "componentCount": 30
     },
     {
       "name": "Formats and interoperability",
@@ -833,7 +833,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1075,
+      "sourceFileCount": 1076,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1113,6 +1113,19 @@
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Notebook"
     },
     {
+      "name": "OfficeIMO.Reader.Ocr",
+      "packageId": "OfficeIMO.Reader.Ocr",
+      "category": "Extraction and ingestion",
+      "description": "Easy local OCR facade for OfficeIMO images and searchable PDFs.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Reader.Ocr/OfficeIMO.Reader.Ocr.csproj",
+      "sourceFileCount": 5,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/reader/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Reader.Ocr"
+    },
+    {
       "name": "OfficeIMO.Reader.Ocr.Process",
       "packageId": "OfficeIMO.Reader.Ocr.Process",
       "category": "Extraction and ingestion",
@@ -1132,7 +1145,7 @@
       "description": "Optional Tesseract CLI OCR engine for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Ocr.Tesseract/OfficeIMO.Reader.Ocr.Tesseract.csproj",
-      "sourceFileCount": 5,
+      "sourceFileCount": 8,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,
@@ -1184,7 +1197,7 @@
       "description": "PDF reader and normalized PDF projection bridge for OfficeIMO.Reader.",
       "kind": "package",
       "projectPath": "OfficeIMO.Reader.Pdf/OfficeIMO.Reader.Pdf.csproj",
-      "sourceFileCount": 17,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 3,
       "docsUrl": "/docs/reader/",
       "apiUrl": null,

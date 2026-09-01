@@ -143,8 +143,9 @@ public static class PdfLogicalReadingOrderAnalysis {
             consumeWork,
             cancellationCheck);
         Candidate[] spanning = positioned
-            .Where(item => item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
-                IsCenteredBandDivider(item, pageColumnAnchors, pageWidth))
+            .Where(item => CanDivideBands(item, pageWidth, pageHeight) &&
+                (item.Right - item.Left >= Math.Max(1D, pageWidth) * SpanningWidthRatio ||
+                item.Kind != PdfLogicalReadingOrderKind.Image && IsCenteredBandDivider(item, pageColumnAnchors, pageWidth)))
             .OrderBy(static item => item.Top)
             .ThenBy(static item => item.Left)
             .ToArray();
@@ -160,6 +161,23 @@ public static class PdfLogicalReadingOrderAnalysis {
             bandTop = Math.Max(bandTop, divider.Bottom);
         }
         AddBand(positioned.Where(item => !consumed.Contains(item) && item.Top >= bandTop), ordered, consumed);
+        // Overlapping content can fall inside a wide table or visual band without being
+        // represented by that semantic projection. Merge those candidates back at their
+        // visual position instead of appending them after lower-page content.
+        foreach (Candidate item in positioned
+            .Where(item => !consumed.Contains(item))
+            .OrderBy(static item => item.Top)
+            .ThenBy(static item => item.Left)
+            .ThenBy(static item => item.Sequence)) {
+            item.ColumnIndex = 0;
+            int insertionIndex = ordered.FindIndex(existing =>
+                existing.Top > item.Top ||
+                existing.Top == item.Top && existing.Left > item.Left ||
+                existing.Top == item.Top && existing.Left == item.Left && existing.Sequence > item.Sequence);
+            if (insertionIndex < 0) ordered.Add(item);
+            else ordered.Insert(insertionIndex, item);
+            consumed.Add(item);
+        }
         ordered.AddRange(unpositioned);
 
         var result = new PdfLogicalReadingOrderItem[ordered.Count];
@@ -234,6 +252,7 @@ public static class PdfLogicalReadingOrderAnalysis {
         PdfLogicalReadingOrderItem[] items) {
         if (page.RotationDegrees != 0 ||
             page.Analysis.ReadingOrder.Count == 0 ||
+            items.Any(static item => item.SpansColumns && item.Kind is PdfLogicalReadingOrderKind.Table or PdfLogicalReadingOrderKind.Image) ||
             items.Length < 2) return items;
 
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
@@ -415,11 +434,16 @@ public static class PdfLogicalReadingOrderAnalysis {
         var result = new List<Candidate>();
         var representedTextBlocks = new HashSet<PdfLogicalTextBlock>();
         var tableBounds = new PdfVisualBounds?[page.Tables.Count];
+        var tableText = new string[page.Tables.Count][][];
         for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
             cancellationCheck?.Invoke();
             PdfLogicalTable table = page.Tables[tableIndex];
             consumeWork?.Invoke(Math.Max(1, table.Columns.Count));
             if (TryGetVisualBounds(page, table, out PdfVisualBounds bounds)) tableBounds[tableIndex] = bounds;
+            tableText[tableIndex] = table.Cells
+                .Select(static cell => NormalizeTableOwnershipWords(cell.Text))
+                .Where(static words => words.Length > 0)
+                .ToArray();
         }
         for (int index = 0; index < page.Headings.Count; index++) representedTextBlocks.Add(page.Headings[index].Line);
         for (int index = 0; index < page.Paragraphs.Count; index++) {
@@ -432,10 +456,14 @@ public static class PdfLogicalReadingOrderAnalysis {
             PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
             cancellationCheck?.Invoke();
             if (!TryGetVisualBounds(page, block, out PdfVisualBounds blockBounds)) continue;
+            string[] blockWords = NormalizeTableOwnershipWords(block.Text);
             for (int tableIndex = 0; tableIndex < tableBounds.Length; tableIndex++) {
                 cancellationCheck?.Invoke();
                 consumeWork?.Invoke(1);
-                if (tableBounds[tableIndex] is PdfVisualBounds bounds && IsOwnedByTable(block, blockBounds, bounds)) {
+                if (blockWords.Length > 0 &&
+                    IsRepresentedByTableCell(tableText[tableIndex], blockWords, consumeWork, cancellationCheck) &&
+                    tableBounds[tableIndex] is PdfVisualBounds bounds &&
+                    IsOwnedByTable(block, blockBounds, bounds)) {
                     representedTextBlocks.Add(block);
                     break;
                 }
@@ -626,6 +654,63 @@ public static class PdfLogicalReadingOrderAnalysis {
         if (item.Kind == PdfLogicalReadingOrderKind.Heading) return pageCentered;
         double nearestAnchor = anchors.Min(anchor => Math.Abs(anchor - item.Left));
         return pageCentered && nearestAnchor > Math.Max(24D, pageWidth * 0.1D);
+    }
+
+    internal static bool IsRepresentedByTableCell(IEnumerable<string> cellTexts, string blockText) =>
+        IsRepresentedByTableCell(
+            cellTexts.Select(static text => NormalizeTableOwnershipWords(text)),
+            NormalizeTableOwnershipWords(blockText),
+            consumeWork: null,
+            cancellationCheck: null);
+
+    private static bool IsRepresentedByTableCell(
+        IEnumerable<string[]> cellWords,
+        string[] blockWords,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
+        if (blockWords.Length == 0) return false;
+        foreach (string[] words in cellWords) {
+            cancellationCheck?.Invoke();
+            if (words.Length < blockWords.Length) continue;
+            int lastStart = words.Length - blockWords.Length;
+            for (int start = 0; start <= lastStart; start++) {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(blockWords.Length);
+                bool matched = true;
+                for (int index = 0; index < blockWords.Length; index++) {
+                    if (!string.Equals(words[start + index], blockWords[index], StringComparison.Ordinal)) {
+                        matched = false;
+                        break;
+                    }
+                }
+                if (matched) return true;
+            }
+        }
+        return false;
+    }
+
+    private static string[] NormalizeTableOwnershipWords(string? text) {
+        if (string.IsNullOrWhiteSpace(text)) return Array.Empty<string>();
+        return text!
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(static word => PdfTextSimilarity.NormalizeSignature(word))
+            .Where(static word => word.Length > 0)
+            .ToArray();
+    }
+
+    private static bool CanDivideBands(Candidate item, double pageWidth, double pageHeight) {
+        if (item.Kind == PdfLogicalReadingOrderKind.Image) {
+            double width = item.Right - item.Left;
+            double height = item.Bottom - item.Top;
+            bool coversPageBackground = width >= Math.Max(1D, pageWidth) * 0.9D &&
+                height >= Math.Max(1D, pageHeight) * 0.8D;
+            return !coversPageBackground;
+        }
+        return item.Kind is PdfLogicalReadingOrderKind.TextBlock or
+            PdfLogicalReadingOrderKind.Heading or
+            PdfLogicalReadingOrderKind.Paragraph or
+            PdfLogicalReadingOrderKind.ListItem or
+            PdfLogicalReadingOrderKind.Table;
     }
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);

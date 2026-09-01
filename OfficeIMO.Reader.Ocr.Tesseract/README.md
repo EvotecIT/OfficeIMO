@@ -11,7 +11,13 @@ dotnet add package OfficeIMO.Reader.Ocr.Tesseract
 dotnet add package OfficeIMO.Reader.Pdf
 ```
 
-Install Tesseract separately for the host operating system, then verify the executable and required languages:
+Install Tesseract separately for the host operating system. `TesseractOcrEngine.CreateDefault()` discovers an explicit path, `OFFICEIMO_TESSERACT_PATH`, `TESSERACT_PATH`, the process `PATH`, and common platform locations:
+
+```csharp
+TesseractOcrEngine engine = TesseractOcrEngine.CreateDefault();
+```
+
+You can verify the executable and required languages directly:
 
 ```text
 tesseract --version
@@ -31,8 +37,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddPdfHandler()
     .Build();
 OfficeDocumentReadResult source = reader.ReadDocument("scanned.pdf");
-var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
-    ExecutablePath = "tesseract",
+var engine = TesseractOcrEngine.CreateDefault(new TesseractOcrEngineOptions {
     Language = "eng+pol",
     PageSegmentationMode = 3,
     Timeout = TimeSpan.FromMinutes(1)
@@ -55,7 +60,7 @@ foreach (OfficeDocumentOcrRecognition recognition in execution.Recognitions) {
 
 The provider parses Tesseract TSV into line and word spans with pixel bounding boxes and normalized confidence. Tesseract TSV does not expose character boxes, so `SupportsCharacterSpans` is false. A process or delegate engine can still return character spans through the shared core contract.
 
-`GetVersionAsync()` and `GetLanguagesAsync()` provide explicit installation discovery. Missing executables, trained data, unsupported input formats, and nonzero process exits surface as engine failures; `ApplyOcrAsync` converts them to structured diagnostics when `ContinueOnError` is enabled.
+`GetVersionAsync()` and `GetLanguagesAsync()` provide explicit installation evidence. `TesseractLanguageData.EnsureAsync("eng+pol")` can provision any model in the facade's 28-language catalog, plus orientation data, into a versioned user cache. Downloads come from one immutable official `tessdata_fast` commit and must match package-pinned lengths and SHA-256 digests. Missing executables, unavailable trained data, unsupported input formats, and nonzero process exits surface as engine failures; `ApplyOcrAsync` converts them to structured diagnostics when `ContinueOnError` is enabled.
 
 Per-request payload and output files use owner-only Unix directories and permissions. Temporary files are deleted by default; enable `KeepTemporaryFiles` only for controlled diagnostics.
 
@@ -67,7 +72,7 @@ Per-request payload and output files use owner-only Unix directories and permiss
 
 ## Dependency footprint
 
-- **External:** An installed Tesseract CLI and its language data; neither is bundled.
+- **External:** An installed Tesseract CLI. Language data is not bundled; callers may use their system data or explicitly invoke the checksum-pinned provisioner.
 - **OfficeIMO:** `OfficeIMO.Reader.Core` and `OfficeIMO.Reader.Ocr.Process` own the OCR contract, bounded process execution, TSV projection, and diagnostics.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

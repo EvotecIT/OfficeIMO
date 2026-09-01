@@ -67,6 +67,55 @@ public sealed class PdfPageInteractionMap {
         return new PdfPageInteractionMap(pageNumber, size.Width, size.Height, regions.AsReadOnly());
     }
 
+    internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page) {
+        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
+        (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
+        var bounds = new List<PdfSelectionQuad>(spans.Count);
+        var geometryBudget = new PdfReadPage.VisualGeometryBudget();
+        for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+            PdfTextSpan span = spans[spanIndex];
+            // Rendering mode 3 is the standard invisible searchable-text layer. Include it
+            // for OCR deduplication without allowing other concealed/clipped text to mask pixels.
+            if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && span.TextRenderingMode != 3)) continue;
+
+            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(span.Text);
+            int elementCount = 0;
+            while (enumerator.MoveNext()) elementCount++;
+            if (elementCount == 0) continue;
+
+            double totalAdvance = Math.Abs(span.Advance);
+            if (totalAdvance <= 0D) {
+                totalAdvance = elementCount * Math.Max(1D, span.FontSize * 0.5D);
+            }
+            double radians = span.RotationDegrees * Math.PI / 180D;
+            double directionX = Math.Cos(radians);
+            double directionY = Math.Sin(radians);
+            double normalX = -directionY;
+            double normalY = directionX;
+            PdfSelectionQuad quad = FromVisualBaseline(
+                span.X,
+                span.Y,
+                span.X + directionX * totalAdvance,
+                span.Y + directionY * totalAdvance,
+                normalX,
+                normalY,
+                Math.Max(1D, span.FontSize),
+                Math.Max(0.5D, span.FontSize * 0.2D),
+                pageHeight);
+            if (span.ClipPath.HasValue) {
+                PdfPageClipPath clip = span.ClipPath.Value;
+                if (clip.Width <= 0D || clip.Height <= 0D ||
+                    clip.CanProveNoPositiveAreaIntersection(
+                        PdfPageClipPath.Rectangle(quad.Left, quad.Top, quad.Width, quad.Height),
+                        geometryBudget)) {
+                    continue;
+                }
+            }
+            if (quad.Intersects(0D, 0D, pageWidth, pageHeight)) bounds.Add(quad);
+        }
+        return bounds.Count == 0 ? Array.Empty<PdfSelectionQuad>() : bounds.AsReadOnly();
+    }
+
     /// <summary>Returns all regions containing a visual top-left page coordinate.</summary>
     public IReadOnlyList<PdfPageInteractionRegion> HitTest(double x, double y, double tolerance = 0D) {
         if (!IsFinite(x) || !IsFinite(y)) {

@@ -977,6 +977,14 @@ _Dependency footprint:_ only `OfficeIMO.Reader.Core`, OneNote, and OneNote.Markd
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core` and OpenDocument; no LibreOffice runtime.
 
+#### [OfficeIMO.Reader.Ocr](OfficeIMO.Reader.Ocr/README.md)
+
+- [x] One-call image recognition and searchable-PDF creation with a reusable session API
+- [x] Installed Tesseract discovery with explicit runtime and language evidence
+- [x] Checksum-pinned provisioning for 28 typed OCR languages plus orientation data in a versioned user cache
+
+_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Tesseract` and `OfficeIMO.Reader.Pdf`; the native OCR executable remains external.
+
 #### [OfficeIMO.Reader.Ocr.Process](OfficeIMO.Reader.Ocr.Process/README.md)
 
 - [x] Versioned JSON request/response protocol for caller-configured OCR executables
@@ -988,10 +996,11 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` and `System.Text.Json`; the OCR 
 #### [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md)
 
 - [x] Optional `IOfficeOcrEngine` for an installed Tesseract CLI
-- [x] Language discovery, version discovery, page-segmentation options, and TSV parsing
+- [x] Runtime, language, and version discovery; page-segmentation options; and TSV parsing
+- [x] Optional immutable, length- and SHA-256-verified `tessdata_fast` provisioning for the curated catalog
 - [x] Word/line spans with bounds, normalized confidence, timeouts, and structured failures
 
-_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesseract installation; no bundled native binaries or language data.
+_Dependency footprint:_ `OfficeIMO.Reader.Ocr.Process` plus an external Tesseract installation; no bundled native binaries or default language payloads.
 
 #### [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md)
 

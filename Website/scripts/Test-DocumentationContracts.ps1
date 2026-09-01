@@ -312,8 +312,8 @@ if ([int] $catalog.repository.conceptualPageCount -ne $docs.Count) {
     Add-Failure "The generated conceptual page count is $($catalog.repository.conceptualPageCount); expected $($docs.Count) from the current documentation source."
 }
 $expectedRepositoryCounts = [ordered]@{
-    projectCount = 213
-    productionComponentCount = 113
+    projectCount = 214
+    productionComponentCount = 114
     testProjectCount = 40
     benchmarkProjectCount = 33
     validationProjectCount = 28
@@ -391,10 +391,10 @@ $aotMatrix = Get-Content -LiteralPath $aotMatrixPath -Raw | ConvertFrom-Json
 if ($aotMatrix.summary.productionProjectCount -ne $catalog.repository.productionComponentCount) {
     Add-Failure 'The NativeAOT matrix does not account for every production project.'
 }
-if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 110) {
-    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 110."
+if ($aotMatrix.summary.nativeAotValidatedProjectCount -ne 111) {
+    Add-Failure "The NativeAOT matrix validates $($aotMatrix.summary.nativeAotValidatedProjectCount) projects; expected 111."
 }
-if ($aotMatrix.summary.fullyRootedLibraryCount -ne 107 -or
+if ($aotMatrix.summary.fullyRootedLibraryCount -ne 108 -or
     $aotMatrix.summary.boundedWorkflowLibraryCount -ne 1 -or
     $aotMatrix.summary.nativeExecutableCount -ne 1 -or
     $aotMatrix.summary.nativeBuildAnalyzerCount -ne 1 -or

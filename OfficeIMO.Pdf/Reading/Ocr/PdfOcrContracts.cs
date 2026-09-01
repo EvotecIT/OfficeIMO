@@ -38,16 +38,40 @@ public sealed class PdfOcrResponse {
     private const int AbsoluteMaximumWords = 1_000_000;
     private const int AbsoluteMaximumDiagnostics = 100_000;
     private const int AbsoluteMaximumTextCharacters = 16 * 1024 * 1024;
-    /// <summary>Creates a provider response.</summary>
-    public PdfOcrResponse(IEnumerable<PdfOcrWord> words, IEnumerable<string>? diagnostics = null) {
+    /// <summary>Creates a provider response without optional provider provenance.</summary>
+    public PdfOcrResponse(IEnumerable<PdfOcrWord> words, IEnumerable<string>? diagnostics = null)
+        : this(words, diagnostics, null, null, null) { }
+
+    /// <summary>Creates a provider response with provider provenance.</summary>
+    public PdfOcrResponse(
+        IEnumerable<PdfOcrWord> words,
+        IEnumerable<string>? diagnostics,
+        string? provider,
+        string? model,
+        string? language) {
         Guard.NotNull(words as object, nameof(words));
         Words = MaterializeWords(words);
         Diagnostics = MaterializeDiagnostics(diagnostics);
+        Provider = NormalizeMetadata(provider, nameof(provider));
+        Model = NormalizeMetadata(model, nameof(model));
+        Language = NormalizeMetadata(language, nameof(language));
     }
-    /// <summary>Recognized words in pixel coordinates from the top-left.</summary>
+    /// <summary>
+    /// Recognized words in the provider's logical reading sequence, with pixel coordinates from the top-left.
+    /// Preserve logical sequence for right-to-left and mixed-direction text; OfficeIMO uses geometry separately.
+    /// </summary>
     public IReadOnlyList<PdfOcrWord> Words { get; }
     /// <summary>Provider diagnostics retained in the merge report.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+
+    /// <summary>Provider identifier reported for this page, when available.</summary>
+    public string? Provider { get; }
+
+    /// <summary>Provider model, engine, or trained-data identifier, when available.</summary>
+    public string? Model { get; }
+
+    /// <summary>Detected or requested language identifier, when available.</summary>
+    public string? Language { get; }
 
     private static ReadOnlyCollection<PdfOcrWord> MaterializeWords(IEnumerable<PdfOcrWord> words) {
         var result = new List<PdfOcrWord>();
@@ -81,6 +105,13 @@ public sealed class PdfOcrResponse {
             result.Add(diagnostic ?? string.Empty);
         }
         return result.AsReadOnly();
+    }
+
+    private static string? NormalizeMetadata(string? value, string parameterName) {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        string normalized = value!.Trim();
+        if (normalized.Length > 4096) throw new ArgumentException("OCR response metadata cannot exceed 4096 characters.", parameterName);
+        return normalized;
     }
 }
 

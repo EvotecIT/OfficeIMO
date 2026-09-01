@@ -23,7 +23,7 @@ public class PdfOcrTests {
             new PdfOcrWord("Scanned", 150, 400, 120, 32, 0.95),
             new PdfOcrWord("Weak", 300, 400, 80, 30, 0.2),
             new PdfOcrWord("Outside", request.PixelWidth, 0, 20, 20, 0.99)
-        }, new[] { "provider-proof" }));
+        }, new[] { "provider-proof" }, provider: "fixture", model: "fixture-v1", language: "eng"));
 
         PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
         PdfOcrPageMergeResult page = Assert.Single(result.Pages);
@@ -37,6 +37,9 @@ public class PdfOcrTests {
         Assert.Equal(1, page.RejectedLowConfidenceCount);
         Assert.Equal(1, page.RejectedNativeOverlapCount);
         Assert.Contains("provider-proof", page.Diagnostics);
+        Assert.Equal("fixture", page.Provider);
+        Assert.Equal("fixture-v1", page.Model);
+        Assert.Equal("eng", page.Language);
         Assert.Contains(page.Diagnostics, diagnostic => diagnostic.StartsWith("InvalidWordGeometry:", StringComparison.Ordinal));
         Assert.Contains("Native text", page.Text, StringComparison.Ordinal);
         Assert.Contains("Scanned", page.Text, StringComparison.Ordinal);
@@ -179,6 +182,141 @@ public class PdfOcrTests {
         Assert.Equal(1, exception.Limit);
     }
 
+    [Fact]
+    public async Task MakeSearchableAsync_RejectsOcrOverVisibleArtifactTextWithoutExposingArtifactsInTheLogicalResult() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Artifact(artifact => artifact.Text("Footer", 50D, 700D, 100D, 20D)))
+            .ToBytes();
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(
+            source,
+            1,
+            readOptions: new PdfLoadOptions { IncludeArtifactText = true });
+        PdfSelectionQuad[] glyphs = map.TextRegions.Select(static region => region.Quad).ToArray();
+        Assert.NotEmpty(glyphs);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord(
+                "Footer",
+                left * request.Scale,
+                top * request.Scale,
+                (right - left) * request.Scale,
+                (bottom - top) * request.Scale,
+                0.99D)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Ocr.Pages);
+        Assert.Empty(page.Words);
+        Assert.Equal(1, page.RejectedNativeOverlapCount);
+        Assert.Empty(result.Ocr.NativeDocument.TextBlocks);
+        Assert.False(result.WasModified);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_CombinesFragmentedNativeSpansForOverlapRejection() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas
+                .Text("N", 50D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("a", 62D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("t", 74D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("i", 86D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("v", 98D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("e", 110D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
+            .Select(static region => region.Quad)
+            .ToArray();
+        Assert.Equal(6, glyphs.Length);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Native", left * request.Scale, top * request.Scale,
+                (right - left) * request.Scale, (bottom - top) * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Empty(page.Words);
+        Assert.Equal(1, page.RejectedNativeOverlapCount);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_DoesNotDoubleCountOverlappingNativeSpans() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas
+                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D)
+                .Text("A", 50D, 100D, 12D, 20D, fontSize: 12D))
+            .ToBytes();
+        PdfSelectionQuad glyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", glyph.Left * request.Scale, glyph.Top * request.Scale,
+                glyph.Width * 3D * request.Scale, glyph.Height * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_DoesNotUseFullyClippedTextForOverlapRejection() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Clip(10D, 10D, 10D, 10D, clipped =>
+                clipped.Text("Clipped", 100D, 100D, 80D, 20D, fontSize: 12D)))
+            .ToBytes();
+        PdfSelectionQuad[] glyphs = PdfPageInteractionMap.Create(source, 1).TextRegions
+            .Select(static region => region.Quad)
+            .ToArray();
+        Assert.NotEmpty(glyphs);
+        double left = glyphs.Min(static quad => quad.Left);
+        double top = glyphs.Min(static quad => quad.Top);
+        double right = glyphs.Max(static quad => quad.Right);
+        double bottom = glyphs.Max(static quad => quad.Bottom);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", left * request.Scale, top * request.Scale,
+                (right - left) * request.Scale, (bottom - top) * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
+    [Fact]
+    public async Task RecognizeAndMergeAsync_UsesPaintedAdvanceForActualTextOverlapBounds() {
+        byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.ActualText("A much longer replacement", logical =>
+                logical.Text("X", 50D, 100D, 12D, 20D, fontSize: 12D)))
+            .ToBytes();
+        PdfReadPage readPage = PdfReadDocument.Open(source).Pages[0];
+        PdfTextSpan nativeSpan = Assert.Single(
+            readPage.GetInteractionTextSpans(),
+            static span => span.Text == "A much longer replacement");
+        PdfSelectionQuad firstLogicalGlyph = PdfPageInteractionMap.Create(source, 1).TextRegions[0].Quad;
+        double ocrLeft = firstLogicalGlyph.Left + Math.Abs(nativeSpan.Advance) + 2D;
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            new PdfOcrWord("Scanned", ocrLeft * request.Scale, firstLogicalGlyph.Top * request.Scale,
+                24D * request.Scale, firstLogicalGlyph.Height * request.Scale, 0.99D)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(source).Ocr.ReadAsync(provider);
+
+        PdfOcrPageMergeResult page = Assert.Single(result.Pages);
+        Assert.Equal("Scanned", Assert.Single(page.Words).Text);
+        Assert.Equal(0, page.RejectedNativeOverlapCount);
+    }
+
     [Theory]
     [InlineData(90)]
     [InlineData(270)]
@@ -317,7 +455,7 @@ public class PdfOcrTests {
             .ToBytes();
         PdfDocumentReadResult native = PdfDocumentReadResult.Load(pdf);
         PdfRecognizedWord[] words = Enumerable.Range(0, 50_000)
-            .Select(static _ => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D))
+            .Select(static index => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D, index))
             .ToArray();
         var pageMerge = new PdfOcrPageMergeResult(1, words, 0, 0, Array.Empty<string>(), string.Empty);
         var timer = System.Diagnostics.Stopwatch.StartNew();
@@ -400,6 +538,179 @@ public class PdfOcrTests {
         Assert.Same(result.NativeDocument, result.EnrichedDocument);
         Assert.DoesNotContain(result.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfLogicalContentSourceKind.Ocr);
         Assert.True(result.HasAcceptedOcrContent);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_WritesGeometryAlignedInvisibleTextWithoutVisualChanges() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Searchable", 42, 160, 88, 14),
+            At(request, "document", 138, 160, 70, 14),
+            At(request, "Zażółć", 42, 200, 58, 14)
+        }, diagnostics: null, provider: "fixture", model: "fixture-v1", language: "eng"));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        byte[] searchable = result.Document.ToBytes();
+
+        Assert.True(result.WasModified);
+        Assert.Equal(3, result.AddedWordCount);
+        Assert.Equal(new[] { 1 }, result.ModifiedPages);
+        Assert.Contains("Searchable document", PdfReadDocument.Open(searchable).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Zażółć", PdfReadDocument.Open(searchable).ExtractText(), StringComparison.Ordinal);
+        PdfPageInteractionMap interactions = PdfPageInteractionMap.Create(
+            searchable,
+            1,
+            new PdfPageInteractionOptions { IncludeInvisibleText = true });
+        PdfPageInteractionRegion[] word = interactions.TextRegions.Take("Searchable".Length).ToArray();
+        Assert.Equal("Searchable", string.Concat(word.Select(static region => region.Text)));
+        Assert.Equal(42D, word[0].Quad.Left, 2);
+        Assert.Equal(88D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
+        Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
+        Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_PreservesProviderLogicalOrderForRightToLeftWords() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "שלום", 150, 160, 48, 14),
+            At(request, "עולם", 100, 160, 42, 14)
+        }, diagnostics: null, provider: "fixture", model: "fixture-v1", language: "heb"));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        byte[] searchable = result.Document.ToBytes();
+
+        Assert.Contains("שלום עולם", result.Ocr.Pages[0].Text, StringComparison.Ordinal);
+        Assert.Contains(result.Ocr.EnrichedDocument.TextBlocks,
+            block => block.SourceKind == PdfLogicalContentSourceKind.Ocr && block.Text == "שלום עולם");
+        string decodedContent = string.Join(
+            Environment.NewLine,
+            PdfDocument.Load(searchable).Debug(new PdfDebuggerOptions {
+                IncludeDecodedStreamPreviews = true,
+                MaxDecodedStreamPreviewBytes = 64 * 1024
+            }).Objects.Select(static item => item.DecodedStreamPreview ?? string.Empty));
+        int firstWord = decodedContent.IndexOf(PdfSyntaxEscaper.TextString("שלום"), StringComparison.Ordinal);
+        int secondWord = decodedContent.IndexOf(PdfSyntaxEscaper.TextString("עולם"), StringComparison.Ordinal);
+        Assert.True(firstWord >= 0, "The searchable layer did not contain the first logical word.");
+        Assert.True(secondWord > firstWord, "The searchable layer reversed the provider's right-to-left logical word sequence.");
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_PreservesProviderSequenceAcrossLinesAndColumns() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "LeftTop", 30, 80, 54, 12),
+            At(request, "LeftBottom", 30, 120, 66, 12),
+            At(request, "RightTop", 300, 80, 60, 12),
+            At(request, "RightBottom", 300, 120, 72, 12)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        string decodedContent = string.Join(
+            Environment.NewLine,
+            result.Document.Debug(new PdfDebuggerOptions {
+                IncludeDecodedStreamPreviews = true,
+                MaxDecodedStreamPreviewBytes = 64 * 1024
+            }).Objects.Select(static item => item.DecodedStreamPreview ?? string.Empty));
+
+        string[] expected = { "LeftTop", "LeftBottom", "RightTop", "RightBottom" };
+        int previous = -1;
+        for (int index = 0; index < expected.Length; index++) {
+            int current = decodedContent.IndexOf(PdfSyntaxEscaper.TextString(expected[index]), StringComparison.Ordinal);
+            Assert.True(current > previous, $"The searchable layer did not preserve provider sequence at '{expected[index]}'.");
+            previous = current;
+        }
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_DeduplicatesSelectedPhysicalPagesBeforeRecognition() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Once", 42, 160, 40, 14)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider, new PdfOcrMergeOptions {
+            Selection = PdfPageSelection.From(1, 1),
+            DetectAlignedTables = false
+        });
+
+        Assert.Equal(1, provider.CallCount);
+        Assert.Equal(1, result.AddedWordCount);
+        Assert.Equal(new[] { 1 }, result.ModifiedPages);
+        Assert.Contains("Once", PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_DoesNotDuplicateAnExistingInvisibleSearchLayer() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Already searchable", 42, 160, 120, 14)
+        }));
+
+        PdfSearchableOcrResult first = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        PdfSearchableOcrResult second = await first.Document.Ocr.MakeSearchableAsync(provider);
+
+        Assert.True(first.WasModified);
+        Assert.False(second.WasModified);
+        Assert.Equal(0, second.AddedWordCount);
+        Assert.Equal(1, second.Ocr.Pages[0].RejectedNativeOverlapCount);
+        Assert.Empty(second.ModifiedPages);
+        Assert.Same(first.Document, second.Document);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_LeavesDocumentUnchangedWhenNoWordsAreAccepted() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Already searchable")).ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(Array.Empty<PdfOcrWord>()));
+        PdfDocument document = PdfDocument.Load(source);
+
+        PdfSearchableOcrResult result = await document.Ocr.MakeSearchableAsync(provider);
+
+        Assert.False(result.WasModified);
+        Assert.Equal(0, result.AddedWordCount);
+        Assert.Empty(result.ModifiedPages);
+        Assert.Same(document, result.Document);
+        Assert.Equal(source, result.Document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public async Task MakeSearchableAsync_PreservesVisualCoordinatesAcrossCropAndRotation(int rotation) {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        source = PdfPageEditor.SetCropBox(source, 20, 40, 500, 700);
+        source = PdfPageEditor.RotatePages(source, rotation);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Rotated", 24, 180, 64, 12)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        PdfPageInteractionMap interactions = PdfPageInteractionMap.Create(
+            result.Document.ToBytes(),
+            1,
+            new PdfPageInteractionOptions { IncludeInvisibleText = true });
+        PdfPageInteractionRegion[] word = interactions.TextRegions.ToArray();
+
+        Assert.Equal("Rotated", string.Concat(word.Select(static region => region.Text)));
+        Assert.Equal(24D, word[0].Quad.Left, 2);
+        Assert.Equal(180D, word[0].Quad.Top, 2);
+        Assert.Equal(64D, word[word.Length - 1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.True(PdfVisualComparer.Compare(source, result.Document.ToBytes()).IsMatch);
     }
 
     private static PdfOcrWord At(PdfOcrRequest request, string text, double x, double y, double width, double height, double confidence = 0.95D) =>

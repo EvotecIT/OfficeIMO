@@ -23,4 +23,53 @@ public sealed class PdfDocumentOcr {
             options,
             _document.ReadOptions,
             cancellationToken);
+
+    /// <summary>
+    /// Recognizes selected pages and returns a PDF with geometry-aligned invisible text for accepted OCR words.
+    /// Pages without accepted OCR content are left unchanged. Existing digital signatures may block the required
+    /// full rewrite through the ordinary PDF mutation policy.
+    /// </summary>
+    public async Task<PdfSearchableOcrResult> MakeSearchableAsync(
+        IPdfOcrProvider provider,
+        PdfOcrMergeOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
+        if (effectiveOptions.Selection != null) {
+            int pageCount = _document.Inspect(_document.ReadOptions).PageCount;
+            int[] uniquePages = effectiveOptions.Selection
+                .ToPageNumbers(pageCount, nameof(options))
+                .Distinct()
+                .ToArray();
+            effectiveOptions.Selection = PdfPageSelection.From(uniquePages);
+        }
+
+        PdfOcrMergeResult ocr = await ReadAsync(provider, effectiveOptions, cancellationToken).ConfigureAwait(false);
+        int[] modifiedPages = ocr.Pages
+            .Where(static page => page.Words.Count > 0)
+            .Select(static page => page.PageNumber)
+            .Distinct()
+            .ToArray();
+        if (modifiedPages.Length == 0) {
+            return new PdfSearchableOcrResult(_document, ocr, Array.Empty<int>());
+        }
+
+        var wordsByPage = ocr.Pages
+            .Where(static page => page.Words.Count > 0)
+            .GroupBy(static page => page.PageNumber)
+            .ToDictionary(static pages => pages.Key, static pages => pages.First().Words);
+        string pageSelector = string.Join(",", modifiedPages.Select(static page => page.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+        PdfDocument searchable = _document.Stamp.Content(
+            (canvas, context) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                IReadOnlyList<PdfRecognizedWord> words = wordsByPage[context.PageNumber];
+                IReadOnlyList<PdfRecognizedWord> logicalWords = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(words, cancellationToken);
+                for (int i = 0; i < logicalWords.Count; i++) {
+                    PdfRecognizedWord word = logicalWords[i];
+                    canvas.SearchableText(word.Text, word.X, word.Y, word.Width, word.Height);
+                }
+            },
+            new PdfCanvasStampOptions().UseTargetPages(pageSelector),
+            _document.ReadOptions);
+        return new PdfSearchableOcrResult(searchable, ocr, Array.AsReadOnly(modifiedPages));
+    }
 }

@@ -92,6 +92,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr\OfficeIMO.Reader.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
@@ -200,6 +201,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Latex" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Notebook" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Process" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Tesseract" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.OneNote" />
