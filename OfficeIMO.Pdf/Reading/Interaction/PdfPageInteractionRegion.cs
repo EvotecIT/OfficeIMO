@@ -10,7 +10,8 @@ public sealed class PdfPageInteractionRegion {
         string? subtype = null,
         string? fieldName = null,
         int? objectNumber = null,
-        int textIndex = -1) {
+        int textIndex = -1,
+        PdfImagePlacement? imagePlacement = null) {
         Kind = kind;
         Quad = quad;
         Text = text;
@@ -19,6 +20,7 @@ public sealed class PdfPageInteractionRegion {
         FieldName = fieldName;
         ObjectNumber = objectNumber;
         TextIndex = textIndex;
+        ImagePlacement = imagePlacement;
     }
 
     /// <summary>Region kind.</summary>
@@ -39,9 +41,15 @@ public sealed class PdfPageInteractionRegion {
     /// <summary>Fully qualified form field name when applicable.</summary>
     public string? FieldName { get; }
 
-    /// <summary>Indirect annotation or widget object number when known.</summary>
+    /// <summary>Indirect annotation, widget, or image object number when known.</summary>
     public int? ObjectNumber { get; }
 
     /// <summary>Zero-based text-element index on the page, or -1 for non-text regions.</summary>
     public int TextIndex { get; }
+
+    /// <summary>
+    /// Exact image placement identity when <see cref="Kind"/> is <see cref="PdfInteractionKind.Image"/>.
+    /// The identity is bound to the source PDF revision and can be passed directly to the document image editor.
+    /// </summary>
+    public PdfImagePlacement? ImagePlacement { get; }
 }

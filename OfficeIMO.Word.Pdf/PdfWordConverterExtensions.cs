@@ -65,8 +65,12 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfDocumentReadResult ReadForWord(
             PdfCore.PdfDocument document,
             PdfWordImportOptions? options,
-            CancellationToken cancellationToken = default) =>
-            document.Read(options?.ReadOptions, cancellationToken);
+            CancellationToken cancellationToken = default) {
+            CancellationToken effectiveCancellationToken = cancellationToken.CanBeCanceled
+                ? cancellationToken
+                : options?.CancellationToken ?? default;
+            return document.Read(options?.ReadOptions, effectiveCancellationToken);
+        }
 
         /// <summary>Converts a logical PDF model into an editable Word document.</summary>
         public static WordDocument ToWordDocument(

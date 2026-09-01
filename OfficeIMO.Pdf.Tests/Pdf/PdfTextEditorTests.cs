@@ -165,6 +165,33 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void LocatedOccurrenceReplaceAndMovePreserveUnmatchedTextInTheSameSourceSpan() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (Alpha target Omega) Tj ET\n");
+        PdfDocument original = PdfDocument.Load(source);
+        PdfTextMatch target = Assert.Single(original.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult replaced = original.Text.Replace(target, "replacement");
+        string replacedText = replaced.Document.Reader.Text();
+        Assert.Contains("Alpha replacement Omega", replacedText, StringComparison.Ordinal);
+
+        PdfDocument moveSource = PdfDocument.Load(source);
+        PdfTextMatch alphaBefore = Assert.Single(moveSource.Text.Find("Alpha", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch targetBefore = Assert.Single(moveSource.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch omegaBefore = Assert.Single(moveSource.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult moved = moveSource.Text.Move(targetBefore, 12D, -4D);
+        PdfTextMatch alphaAfter = Assert.Single(moved.Document.Text.Find("Alpha", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch targetAfter = Assert.Single(moved.Document.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch omegaAfter = Assert.Single(moved.Document.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Equal(alphaBefore.X, alphaAfter.X, 2);
+        Assert.Equal(alphaBefore.Y, alphaAfter.Y, 2);
+        Assert.Equal(targetBefore.X + 12D, targetAfter.X, 2);
+        Assert.Equal(targetBefore.Y - 4D, targetAfter.Y, 2);
+        Assert.Equal(omegaBefore.X, omegaAfter.X, 2);
+        Assert.Equal(omegaBefore.Y, omegaAfter.Y, 2);
+    }
+
+    [Fact]
     public void ReplaceAllKeepsSameBaselineColumnsSeparateAndUsesMatchedSpanStyle() {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (left cat) Tj ET\n" +

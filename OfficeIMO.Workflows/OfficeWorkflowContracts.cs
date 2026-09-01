@@ -52,6 +52,22 @@ public enum OfficeWorkflowStatus {
     Failed
 }
 
+/// <summary>Stable category describing why a workflow did not complete.</summary>
+public enum OfficeWorkflowFailureKind {
+    /// <summary>The workflow completed or was cancelled without a failure.</summary>
+    None,
+    /// <summary>The request or one of its options was invalid.</summary>
+    ValidationFailed,
+    /// <summary>A requested input could not be found.</summary>
+    InputNotFound,
+    /// <summary>The input exists but is unsupported or structurally invalid.</summary>
+    UnsupportedInput,
+    /// <summary>The requested output could not be staged or published.</summary>
+    OutputFailed,
+    /// <summary>The workflow failed for another execution reason.</summary>
+    OperationFailed
+}
+
 /// <summary>Severity of one structured workflow diagnostic.</summary>
 public enum OfficeWorkflowDiagnosticSeverity {
     /// <summary>Informational evidence.</summary>
@@ -162,6 +178,12 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Optional PDF password. It is used only while executing and is never copied to results or reports.</summary>
     public string? PdfPassword { get; set; }
+
+    /// <summary>
+    /// Optional password for the comparison PDF. When omitted, <see cref="PdfPassword"/> is reused.
+    /// It is used only while executing and is never copied to results or reports.
+    /// </summary>
+    public string? ComparisonPdfPassword { get; set; }
 
     /// <summary>Shared request resource limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();

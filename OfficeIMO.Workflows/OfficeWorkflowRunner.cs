@@ -204,13 +204,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] expected = File.ReadAllBytes(request.InputPath);
         byte[] actual = File.ReadAllBytes(request.ComparisonPath!);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions);
-        PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.PdfLoadOptions);
+        PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions);
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
             actual,
             cancellationToken,
             expectedReadOptions: request.PdfLoadOptions,
-            actualReadOptions: request.PdfLoadOptions);
+            actualReadOptions: request.ComparisonPdfLoadOptions);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
             ["pagesCompared"] = comparison.Pages.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
             ["differentPages"] = comparison.Pages.Count(page => !page.IsMatch).ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -228,7 +228,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             metrics);
         byte[]? gallery = request.OutputPath is null
             ? null
-            : Encoding.UTF8.GetBytes(comparison.ToHtmlGallery("OfficeIMO document comparison"));
+            : EncodeUtf8Bounded(
+                comparison.ToHtmlGallery("OfficeIMO document comparison"),
+                request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
     }
 
@@ -447,6 +449,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             if (!string.Equals(Path.GetExtension(outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException($"Route '{route.Id}' requires a '{NormalizeExtension(route.TargetExtension)}' output.", nameof(request));
             }
+            if (route.Id == "html-pdf" && request.OutputProfile != OfficeWorkflowOutputProfile.Faithful) {
+                throw new ArgumentException(
+                    "The html-pdf route currently supports only the Faithful output profile.",
+                    nameof(request));
+            }
         } else if (request.Operation == OfficeWorkflowOperation.Compare) {
             if (string.IsNullOrWhiteSpace(request.ComparisonPath)) throw new ArgumentException("PDF comparison requires a second input path.", nameof(request));
             comparisonPath = Path.GetFullPath(request.ComparisonPath);
@@ -478,7 +485,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             request.ConflictPolicy,
             request.OutputProfile,
             limits,
-            new PdfLoadOptions { Password = request.PdfPassword });
+            new PdfLoadOptions { Password = request.PdfPassword },
+            new PdfLoadOptions { Password = request.ComparisonPdfPassword ?? request.PdfPassword });
     }
 
     private static void ValidateStagedArtifact(string stagingPath, string outputPath, PdfLoadOptions loadOptions) {
@@ -583,11 +591,23 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported output profile.")
     };
 
-    private static byte[] SerializePdfConversion(PdfDocumentConversionResult conversion, CancellationToken cancellationToken) {
-        using var stream = new MemoryStream();
+    private static byte[] SerializePdfConversion(
+        PdfDocumentConversionResult conversion,
+        long maximumOutputBytes,
+        CancellationToken cancellationToken) {
+        using var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
         conversion.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult().RequireSuccess();
         cancellationToken.ThrowIfCancellationRequested();
         return stream.ToArray();
+    }
+
+    private static byte[] EncodeUtf8Bounded(string value, long maximumOutputBytes) {
+        int byteCount = Encoding.UTF8.GetByteCount(value);
+        if (byteCount > maximumOutputBytes) {
+            throw new InvalidOperationException(
+                $"Generated artifact exceeded the configured {maximumOutputBytes:N0}-byte output limit while it was being encoded.");
+        }
+        return Encoding.UTF8.GetBytes(value);
     }
 
     private static PdfPowerPointImportOptions CreatePowerPointImportOptions(CancellationToken cancellationToken) {
@@ -672,5 +692,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         OfficeWorkflowConflictPolicy ConflictPolicy,
         OfficeWorkflowOutputProfile OutputProfile,
         OfficeWorkflowLimits Limits,
-        PdfLoadOptions PdfLoadOptions);
+        PdfLoadOptions PdfLoadOptions,
+        PdfLoadOptions ComparisonPdfLoadOptions);
 }

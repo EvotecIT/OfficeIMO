@@ -26,6 +26,25 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsARewriteThatDropsAReviewedPage() {
+        byte[] source = PdfDocument.Create(compose => {
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Retained first page")))));
+            compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed second page")))));
+        }).ToBytes();
+        var area = new PdfRedactionArea(2, 0D, 0D, 600D, 800D, "reviewed page");
+        PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([area]);
+        byte[] rewritten = PdfPageExtractor.ExtractPages(source, 1);
+
+        PdfRedactionVerificationReport report = PdfDocument.Load(rewritten).Redactions.VerifyAppliedPlan(
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageCountChanged");
+        Assert.Contains(report.Issues, issue => issue.Feature == "RedactionPlanPageMissing");
+    }
+
+    [Fact]
     public void AssertVerified_ConfirmsRemovedAndRetainedTextMarkersAfterApply() {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 

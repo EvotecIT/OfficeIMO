@@ -58,6 +58,54 @@ public class PdfPageInteractionMapTests {
     }
 
     [Fact]
+    public void InteractionMap_ProjectsExactEditableImagePlacement() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Image interaction"))
+            .ToBytes();
+        PdfDocument withImage = PdfDocument.Load(source).Images.Add(
+            new PdfPageRegion(1, 50D, 60D, 40D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
+
+        PdfPageInteractionMap map = withImage.Reader.Interactions(1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.NotNull(image.ImagePlacement);
+        Assert.Equal(50D, image.ImagePlacement!.X, 3);
+        Assert.Equal(60D, image.ImagePlacement.Y, 3);
+        Assert.Equal(40D, image.ImagePlacement.Width, 3);
+        Assert.Equal(20D, image.ImagePlacement.Height, 3);
+        Assert.Contains(image, map.HitTest(
+            (image.Quad.Left + image.Quad.Right) / 2D,
+            (image.Quad.Top + image.Quad.Bottom) / 2D));
+
+        PdfImageEditResult removed = withImage.Images.Remove(image.ImagePlacement);
+        Assert.Empty(removed.Document.Images.Placements());
+    }
+
+    [Fact]
+    public void InteractionMap_ProjectsImageThroughCropAndPageRotation() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Rotated image interaction"))
+            .ToBytes();
+        byte[] withImage = PdfDocument.Load(source).Images.Add(
+            new PdfPageRegion(1, 75D, 90D, 45D, 30D),
+            PdfPngTestImages.CreateRgbPng(0, 128, 255)).Document.ToBytes();
+        withImage = PdfPageEditor.SetCropBox(withImage, 20D, 40D, 400D, 600D);
+        withImage = PdfPageEditor.RotatePages(withImage, 90);
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(withImage, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.InRange(image.Quad.Left, 0D, map.Width);
+        Assert.InRange(image.Quad.Right, 0D, map.Width);
+        Assert.InRange(image.Quad.Top, 0D, map.Height);
+        Assert.InRange(image.Quad.Bottom, 0D, map.Height);
+        Assert.Contains(image, map.HitTest(
+            (image.Quad.Left + image.Quad.Right) / 2D,
+            (image.Quad.Top + image.Quad.Bottom) / 2D));
+    }
+
+    [Fact]
     public void InteractionMap_EnforcesTextRegionBudget() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("More than one glyph"))
@@ -65,6 +113,25 @@ public class PdfPageInteractionMapTests {
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
             PdfPageInteractionMap.Create(source, 1, new PdfPageInteractionOptions { MaxTextRegions = 1 }));
+
+        Assert.Equal(PdfReadLimitKind.InteractionRegions, exception.Kind);
+        Assert.Equal(1, exception.Limit);
+    }
+
+    [Fact]
+    public void InteractionMap_EnforcesImageRegionBudget() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Image budget"))
+            .ToBytes();
+        PdfDocument first = PdfDocument.Load(source).Images.Add(
+            new PdfPageRegion(1, 20D, 20D, 20D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
+        byte[] second = first.Images.Add(
+            new PdfPageRegion(1, 60D, 20D, 20D, 20D),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document.ToBytes();
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfPageInteractionMap.Create(second, 1, new PdfPageInteractionOptions { MaxImageRegions = 1 }));
 
         Assert.Equal(PdfReadLimitKind.InteractionRegions, exception.Kind);
         Assert.Equal(1, exception.Limit);
@@ -89,5 +156,25 @@ public class PdfPageInteractionMapTests {
             new PdfPageInteractionOptions { MaxTextRegions = 1 });
 
         Assert.Empty(map.TextRegions);
+    }
+
+    [Fact]
+    public void InteractionMap_CountsOnlyImageRegionsThatIntersectThePage() {
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(200D, 200D))).ToBytes();
+        PdfDocument offPage = PdfDocument.Load(source).Images.Add(
+            new PdfPageRegion(1, 10000D, 10000D, 20D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
+        byte[] withVisibleImage = offPage.Images.Add(
+            new PdfPageRegion(1, 20D, 20D, 20D, 20D),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document.ToBytes();
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(
+            withVisibleImage,
+            1,
+            new PdfPageInteractionOptions { MaxImageRegions = 1 });
+
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Image);
+        Assert.Equal(20D, image.ImagePlacement!.X, 3);
+        Assert.Equal(20D, image.ImagePlacement.Y, 3);
     }
 }

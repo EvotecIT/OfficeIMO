@@ -93,6 +93,30 @@ internal static partial class PdfRedactionVerification {
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfRedactionPlan residualPlan = PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
         var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
+        int? reviewedPageCount = reviewedPlan.Preflight.UncheckedDocumentInfo?.PageCount;
+        int? rewrittenPageCount = residualPlan.Preflight.UncheckedDocumentInfo?.PageCount;
+        if (reviewedPageCount.HasValue &&
+            rewrittenPageCount.HasValue &&
+            reviewedPageCount.Value != rewrittenPageCount.Value) {
+            issues.Add(new PdfRedactionVerificationIssue(
+                "RedactionPlanPageCountChanged",
+                "ReviewedPages",
+                $"The reviewed PDF had {reviewedPageCount.Value} page(s), but the rewritten PDF has {rewrittenPageCount.Value}. Redaction verification requires the reviewed page set to be preserved."));
+        }
+
+        if (rewrittenPageCount.HasValue) {
+            foreach (int missingPageNumber in reviewedPlan.Areas
+                .Select(static area => area.PageNumber)
+                .Where(pageNumber => pageNumber < 1 || pageNumber > rewrittenPageCount.Value)
+                .Distinct()
+                .OrderBy(static pageNumber => pageNumber)) {
+                issues.Add(new PdfRedactionVerificationIssue(
+                    "RedactionPlanPageMissing",
+                    "Page:" + missingPageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    $"Reviewed redaction page {missingPageNumber} does not exist in the rewritten PDF."));
+            }
+        }
+
         PdfDiagnosticFinding[] blockingFindings = residualPlan.Findings
             .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
             .ToArray();

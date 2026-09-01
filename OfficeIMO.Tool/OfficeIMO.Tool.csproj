@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.</Description>
+    <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, output, intake, and capability discovery.</Description>
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
     <VersionPrefix>3.3.0</VersionPrefix>
@@ -57,6 +57,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Pdf\OfficeIMO.PowerPoint.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
   </ItemGroup>
 
   <ItemGroup>

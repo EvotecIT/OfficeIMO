@@ -53,6 +53,48 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task ConversionStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "docx-pdf");
+        string output = System.IO.Path.Combine(scope.Path, "bounded.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "docx-pdf",
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("while it was being serialized", StringComparison.Ordinal));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task HtmlToPdfRejectsOutputProfilesItCannotHonor() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = System.IO.Path.Combine(scope.Path, "lightweight.pdf"),
+            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("supports only the Faithful output profile", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task CancellationDuringActiveHtmlConversionStopsBeforePublication() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.html");
@@ -298,6 +340,42 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(sanitization.Succeeded, sanitization.Summary);
         Assert.NotNull(sanitization.HealthReport!.After);
         Assert.True(sanitization.HealthReport.Verified);
+    }
+
+    [Fact]
+    public async Task ComparisonAcceptsIndependentPasswordsForEncryptedInputs() {
+        using var scope = new TestDirectory();
+        string left = System.IO.Path.Combine(scope.Path, "left-encrypted.pdf");
+        string right = System.IO.Path.Combine(scope.Path, "right-encrypted.pdf");
+        await File.WriteAllBytesAsync(
+            left,
+            PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                new PdfOptions().SetEncryption("left-open", "left-owner"))
+                .ToBytes());
+        await File.WriteAllBytesAsync(
+            right,
+            PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                new PdfOptions().SetEncryption("right-open", "right-owner"))
+                .ToBytes());
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = left,
+            ComparisonPath = right,
+            OutputPath = System.IO.Path.Combine(scope.Path, "encrypted-comparison.html"),
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            PdfPassword = "left-open",
+            ComparisonPdfPassword = "right-open"
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(result.HealthReport!.Before.CanRead);
+        Assert.True(result.HealthReport.After!.CanRead);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("left-open", StringComparison.Ordinal) ||
+            diagnostic.Message.Contains("right-open", StringComparison.Ordinal));
     }
 
     private static OfficeWorkflowRequest Optimize(string input, string output, OfficeWorkflowConflictPolicy policy) => new() {

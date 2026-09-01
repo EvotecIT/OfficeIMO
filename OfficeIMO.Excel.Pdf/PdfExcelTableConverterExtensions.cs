@@ -65,8 +65,12 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfDocumentReadResult ReadForExcel(
             PdfCore.PdfDocument document,
             PdfExcelTableImportOptions? options,
-            CancellationToken cancellationToken = default) =>
-            document.Read(options?.ReadOptions, cancellationToken);
+            CancellationToken cancellationToken = default) {
+            CancellationToken effectiveCancellationToken = cancellationToken.CanBeCanceled
+                ? cancellationToken
+                : options?.CancellationToken ?? default;
+            return document.Read(options?.ReadOptions, effectiveCancellationToken);
+        }
 
         /// <summary>Imports logical PDF tables into a new Excel workbook at <paramref name="workbookPath"/>.</summary>
         public static PdfExcelTableImportReport SaveTablesAsExcel(

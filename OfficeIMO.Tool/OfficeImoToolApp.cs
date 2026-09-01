@@ -5,6 +5,7 @@ using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
 using OfficeIMO.Tool.Commands.Reader;
 using OfficeIMO.Tool.Commands.Tabular;
+using OfficeIMO.Tool.Commands.Workflow;
 using System.Reflection;
 using System.Text;
 
@@ -23,6 +24,7 @@ Usage:
   officeimo reader <command> [options]
   officeimo markup <command> [options]
   officeimo tabular <command> [options]
+  officeimo workflow <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
   officeimo --version
@@ -102,6 +104,14 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                     return await TabularCommand.RunAsync(
                         commandArguments,
                         tabularOutput,
+                        standardError,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            case "workflow":
+                using (var workflowOutput = CreateUtf8Writer(standardOutput)) {
+                    return await WorkflowCommand.RunAsync(
+                        commandArguments,
+                        workflowOutput,
                         standardError,
                         cancellationToken).ConfigureAwait(false);
                 }

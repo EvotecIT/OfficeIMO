@@ -18,6 +18,7 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         OfficeWorkflowRoute route = request.Route!;
         cancellationToken.ThrowIfCancellationRequested();
+        long maximumOutputBytes = request.Limits.MaximumOutputBytes;
         byte[] bytes;
         bool hasLoss = false;
         switch (route.Id) {
@@ -26,7 +27,7 @@ public sealed partial class OfficeWorkflowRunner {
                     var options = new WordPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-                    bytes = SerializePdfConversion(conversion, cancellationToken);
+                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
@@ -36,7 +37,7 @@ public sealed partial class OfficeWorkflowRunner {
                     var options = new ExcelPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-                    bytes = SerializePdfConversion(conversion, cancellationToken);
+                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
@@ -46,7 +47,7 @@ public sealed partial class OfficeWorkflowRunner {
                     var options = new PowerPointPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-                    bytes = SerializePdfConversion(conversion, cancellationToken);
+                    bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                     hasLoss = conversion.HasLoss;
                     AddPdfWarnings(conversion.Warnings, diagnostics);
                 }
@@ -54,10 +55,10 @@ public sealed partial class OfficeWorkflowRunner {
             case "html-pdf": {
                 string html = File.ReadAllText(request.InputPath, Encoding.UTF8);
                 PdfDocumentConversionResult conversion = HtmlConversionDocument.Parse(html)
-                    .ToPdfDocumentResultAsync(cancellationToken: cancellationToken)
+                    .ToPdfDocumentResultAsync(new HtmlPdfSaveOptions(), cancellationToken)
                     .GetAwaiter()
                     .GetResult();
-                bytes = SerializePdfConversion(conversion, cancellationToken);
+                bytes = SerializePdfConversion(conversion, maximumOutputBytes, cancellationToken);
                 hasLoss = conversion.HasLoss;
                 AddPdfWarnings(conversion.Warnings, diagnostics);
                 break;
@@ -68,7 +69,7 @@ public sealed partial class OfficeWorkflowRunner {
                     CancellationToken = cancellationToken
                 });
                 using WordDocument document = conversion.Value;
-                using (var stream = new MemoryStream()) {
+                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
                     bytes = stream.ToArray();
                 }
@@ -82,7 +83,7 @@ public sealed partial class OfficeWorkflowRunner {
                     CancellationToken = cancellationToken
                 });
                 using ExcelDocument document = conversion.Value;
-                using (var stream = new MemoryStream()) {
+                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
                     bytes = stream.ToArray();
                 }
@@ -101,7 +102,7 @@ public sealed partial class OfficeWorkflowRunner {
                 PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(
                     CreatePowerPointImportOptions(cancellationToken));
                 using PowerPointPresentation document = conversion.Value;
-                using (var stream = new MemoryStream()) {
+                using (var stream = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes)) {
                     document.SaveAsync(stream, cancellationToken).GetAwaiter().GetResult();
                     bytes = stream.ToArray();
                 }
@@ -117,7 +118,7 @@ public sealed partial class OfficeWorkflowRunner {
                     IncludeFormWidgets = true,
                     CancellationToken = cancellationToken
                 });
-                bytes = Encoding.UTF8.GetBytes(conversion.Value);
+                bytes = EncodeUtf8Bounded(conversion.Value, maximumOutputBytes);
                 hasLoss = conversion.HasLoss;
                 AddMessages(conversion.Report.Warnings.Select(static warning => warning.ToString()), hasLoss, diagnostics);
                 break;
