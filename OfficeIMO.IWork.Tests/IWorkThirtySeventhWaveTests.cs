@@ -14,13 +14,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: width, slideHeight: height);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
-        Assert.Equal(960d, result.Document.SlideSize.WidthPoints, 3);
-        Assert.Equal(540d, result.Document.SlideSize.HeightPoints, 3);
-        Assert.Empty(result.Document.ValidateDocument());
+        Assert.Equal(960d, result.Value.SlideSize.WidthPoints, 3);
+        Assert.Equal(540d, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Empty(result.Value.ValidateDocument());
     }
 
     [Theory]
@@ -30,12 +30,12 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: size, slideHeight: size);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(size, result.Document.SlideSize.WidthPoints, 3);
-        Assert.Equal(size, result.Document.SlideSize.HeightPoints, 3);
-        Assert.Empty(result.Document.ValidateDocument());
+        Assert.Equal(size, result.Value.SlideSize.WidthPoints, 3);
+        Assert.Equal(size, result.Value.SlideSize.HeightPoints, 3);
+        Assert.Empty(result.Value.ValidateDocument());
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Bounded rows", 1, 1, 1d, malformedSecondTileRow: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Bounded tiles", 1, 1, 1d, malformedSecondTileEntry: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             duplicateDrawableInField: true);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             aliasDrawableAcrossFields: true);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

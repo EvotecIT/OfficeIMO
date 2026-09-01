@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Tile fields", 1, 1, 1d, unexpectedTileFieldCount: 7)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Mixed row", 1, 1, 1d, mixedRowIndexWire: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

@@ -9,9 +9,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_header_footer_variants_map_to_distinct_word_parts() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         IWorkPagesSection source = Assert.Single(result.Projection.Sections);
-        WordSection section = Assert.Single(result.Document.Sections);
+        WordSection section = Assert.Single(result.Value.Sections);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(source.HasFirstPageTemplate);
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(section.DifferentOddAndEvenPages);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
         WordSection persisted = Assert.Single(reopened.Sections);
@@ -49,9 +49,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: label);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(
-            Assert.Single(result.Document.Slides).TextBoxes).Paragraphs);
+            Assert.Single(result.Value.Slides).TextBoxes).Paragraphs);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Item", paragraph.Text);
@@ -64,9 +64,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Consecutive_keynote_list_items_continue_native_numbering() {
         using MemoryStream package = CreateKeynotePackageWithNumberedSequence("10.");
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointParagraph[] paragraphs = Assert.Single(
-            Assert.Single(result.Document.Slides).TextBoxes).Paragraphs.ToArray();
+            Assert.Single(result.Value.Slides).TextBoxes).Paragraphs.ToArray();
 
         Assert.Equal(2, paragraphs.Length);
         Assert.All(paragraphs, paragraph =>
@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: "custom:");
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

@@ -18,9 +18,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "مرحبا بالعالم", naturalAlignment: true);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointParagraph paragraph = Assert.Single(Assert.Single(
-            Assert.Single(result.Document.Slides).TextBoxes).Paragraphs);
+            Assert.Single(result.Value.Slides).TextBoxes).Paragraphs);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(PowerPointTextAlignment.Right, paragraph.Alignment);
@@ -32,8 +32,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(
             depth: 1, naturalAlignment: true, bodyText: "مرحبا بالعالم");
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
-        WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        WordParagraph paragraph = Assert.Single(result.Value.Paragraphs,
             candidate => candidate.Text == "مرحبا بالعالم");
 
         Assert.False(result.IsVisualFallback);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             text: "Item", listLabel: label);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithListLabel(label,
             includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

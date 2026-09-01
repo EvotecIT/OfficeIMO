@@ -28,7 +28,7 @@ Console.WriteLine(source.ContainerKind);        // ZipPackage, DirectoryBundle, 
 Console.WriteLine(string.Join(", ", source.BuildVersions));
 Console.WriteLine(pages.Paragraphs.Count);
 
-IWorkImportReport report = pages.CreateImportReport(
+IWorkConversionReport report = pages.CreateConversionReport(
     IWorkProjectionKind.EditableReconstruction);
 foreach (IWorkArchiveRecord record in report.UnsupportedRecords) {
     Console.WriteLine($"{record.EntryPath}: {record.MessageType}");

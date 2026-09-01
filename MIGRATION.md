@@ -13,13 +13,15 @@ OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destina
 
 `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` no longer depend on `OfficeIMO.IWork`. Applications that import Apple Pages, Numbers, or Keynote files must reference the matching adapter package explicitly:
 
-| Source | Add package | Replace |
+| Source | Add package | Replace with source-first conversion |
 | --- | --- | --- |
-| Pages | `OfficeIMO.Word.IWork` | `WordDocument.LoadPages*` with `WordIWorkConverter.LoadPages*` |
-| Numbers | `OfficeIMO.Excel.IWork` | `ExcelDocument.LoadNumbers*` with `ExcelIWorkConverter.LoadNumbers*` |
-| Keynote | `OfficeIMO.PowerPoint.IWork` | `PowerPointPresentation.LoadKeynote*` with `PowerPointIWorkConverter.LoadKeynote*` |
+| Pages | `OfficeIMO.Word.IWork` | `IWorkSourceDocument.Open(...).ToWordDocument[Result](...)` |
+| Numbers | `OfficeIMO.Excel.IWork` | `IWorkSourceDocument.Open(...).ToExcelDocument[Result](...)` |
+| Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Open(...).ToPowerPointPresentation[Result](...)` |
 
-The result-type namespaces, members, and `IWorkReadOptions` contract are unchanged, but the CLR assembly identities moved with the APIs: `IWorkPagesLoadResult` is now in `OfficeIMO.Word.IWork`, `IWorkNumbersLoadResult` in `OfficeIMO.Excel.IWork`, and `IWorkKeynoteLoadResult` in `OfficeIMO.PowerPoint.IWork`. Applications that persist assembly-qualified names in serializer metadata, reflection configuration, or plugin manifests must update those names. Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
+Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
+
+Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 
 ## OfficeIMO 3.3: one PDF load and semantic read contract
 

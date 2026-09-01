@@ -8,11 +8,11 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 | Source | Typed source projection | Opt-in adapter | Entry points |
 |---|---|---|---|
-| Pages | `IWorkPagesProjection` | `OfficeIMO.Word.IWork` | `WordIWorkConverter.LoadPages`, `LoadPagesWithReport` |
-| Numbers | `IWorkNumbersProjection` | `OfficeIMO.Excel.IWork` | `ExcelIWorkConverter.LoadNumbers`, `LoadNumbersWithReport` |
-| Keynote | `IWorkKeynoteProjection` | `OfficeIMO.PowerPoint.IWork` | `PowerPointIWorkConverter.LoadKeynote`, `LoadKeynoteWithReport` |
+| Pages | `IWorkPagesProjection` | `OfficeIMO.Word.IWork` | `ToWordDocument`, `ToWordDocumentResult` |
+| Numbers | `IWorkNumbersProjection` | `OfficeIMO.Excel.IWork` | `ToExcelDocument`, `ToExcelDocumentResult` |
+| Keynote | `IWorkKeynoteProjection` | `OfficeIMO.PowerPoint.IWork` | `ToPowerPointPresentation`, `ToPowerPointPresentationResult` |
 
-`IWorkSourceDocument.Open` is the advanced inspection entry point. It exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections. The adapter `WithReport` APIs retain that same source model beside the generated Office document.
+`IWorkSourceDocument.Open` is the shared loading and inspection entry point. It accepts paths, streams, and byte arrays; exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections; and can be converted more than once with independent destination options. Adapter result APIs retain that same source model beside the generated Office document.
 
 ## Package and IWA boundary
 
@@ -22,11 +22,11 @@ The current level is **extended semantic reconstruction**. Normal document conte
 | Package safety | Configurable package, entry, entry-count, aggregate-uncompressed-size, and path bounds; top-level package paths and directory entries must be regular files rather than links, pipes, or devices; duplicate, absolute, traversal, and empty-segment paths are rejected; directory reads verify the opened regular-file handle remains under the captured physical package root |
 | IWA framing | Raw Snappy chunks used by modern iWork, with declared-size, chunk-size, aggregate-size, copy-offset, truncation, and integer-overflow checks |
 | Object envelope | Bounded ArchiveInfo and MessageInfo protobuf parsing with field-count, depth, record-count, record-size, wire-type, varint, reference, and unique primary-object validation |
-| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; import reports conservatively retain payloads not losslessly represented, including partially consumed records |
+| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; conversion reports conservatively retain payloads not losslessly represented, including partially consumed records |
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
 | Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
 
-`IWorkReadOptions` supplies all configurable limits. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, the source-wide record count at 1,000,000, and combined ArchiveInfo version/reference values at 8,000,000. Semantic projection also bounds decoded and destination-expanded text characters, including repeated shared strings, font families, list labels, and hyperlinks; text items and attribute boundaries; cross-record style inheritance; sparse materialized cells; string/formula catalogs; source-wide formula rendering work including repeated formula uses; tables; projected images; merged ranges; table dimensions; Numbers sheets; and Keynote slides. Word and PowerPoint owner preflight additionally bounds the aggregate destination table-cell area before allocating editable table grids.
+`IWorkReadOptions` supplies source-reading and semantic-projection limits. `IWorkConversionOptions` independently chooses automatic, editable-only, or visual-only destination representation. Defaults cap a package and aggregate expanded entries at 512 MiB, one entry at 128 MiB, one compressed IWA archive at 64 MiB, one decompressed archive at 256 MiB, all decompressed IWA archives at 512 MiB, one Snappy chunk at 64 MiB, one record at 128 MiB, the source-wide record count at 1,000,000, and combined ArchiveInfo version/reference values at 8,000,000. Semantic projection also bounds decoded and destination-expanded text characters, including repeated shared strings, font families, list labels, and hyperlinks; text items and attribute boundaries; cross-record style inheritance; sparse materialized cells; string/formula catalogs; source-wide formula rendering work including repeated formula uses; tables; projected images; merged ranges; table dimensions; Numbers sheets; and Keynote slides. Word and PowerPoint owner preflight additionally bounds the aggregate destination table-cell area before allocating editable table grids.
 
 ## Editable semantic coverage
 
@@ -40,7 +40,7 @@ Editable reconstruction means the supported content is represented as normal DOC
 
 ## Visual fallback
 
-`IWorkImportMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview.
+`IWorkConversionOptions.Mode = IWorkConversionMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview.
 
 Every adapter report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
 

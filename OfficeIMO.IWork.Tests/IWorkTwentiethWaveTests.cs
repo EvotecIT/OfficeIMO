@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Rotated",
             includePreview: true, textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -28,15 +28,15 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithSharedDrawableText(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.LoadPagesWithReport(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
             Assert.False(result.IsVisualFallback);
             Assert.Equal(2, result.Projection.TextBoxObjects.Count);
-            Assert.Equal(2, result.Document.TextBoxes.Count);
+            Assert.Equal(2, result.Value.TextBoxes.Count);
         } else {
-            using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
             Assert.False(result.IsVisualFallback);
             Assert.Equal(2, Assert.Single(result.Projection.Slides).TextBoxes.Count);
-            Assert.Equal(2, Assert.Single(result.Document.Slides).TextBoxes.Count());
+            Assert.Equal(2, Assert.Single(result.Value.Slides).TextBoxes.Count());
         }
     }
 
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Table_drawable_hyperlinks_disable_editable_reconstruction() {
         using MemoryStream package = CreateNumbersPackageWithTableHyperlink();
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -75,14 +75,14 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithUncachedFormulaTable(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.LoadPagesWithReport(package);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
             IWorkTableCell cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells);
             Assert.True(result.IsVisualFallback);
             Assert.True(result.Projection.HasEditableContent);
             Assert.True(cell.FormulaIsComplete);
             Assert.Null(cell.Value);
         } else {
-            using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+            using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
             IWorkTableCell cell = Assert.Single(Assert.Single(
                 Assert.Single(result.Projection.Slides).Tables).Cells);
             Assert.True(result.IsVisualFallback);

@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Masked_images_disable_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithImage(masked: true, left: 0, rotation: 0);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -28,12 +28,12 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_images_preserve_page_relative_position(float left) {
         using MemoryStream package = CreatePagesPackageWithImage(masked: false, left: left, rotation: 0);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
         DrawingWordprocessing.Anchor anchor = Assert.Single(document.MainDocumentPart?.Document?
@@ -55,9 +55,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Alphabetic_and_roman_pages_lists_use_native_word_numbering(
         string label, string expectedFormat) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
 
         using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Transparent_pages_text_uses_visual_fallback() {
         using MemoryStream package = CreatePagesPackageWithTransparentText();
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -97,7 +97,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Transparent_keynote_text_uses_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithTransparentText();
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -120,7 +120,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -130,9 +130,9 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Every_pages_header_row_repeats_in_word() {
         using MemoryStream package = CreatePagesPackageWithHeaderRows(2);
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
 
         using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
@@ -154,7 +154,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

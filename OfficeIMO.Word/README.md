@@ -379,7 +379,7 @@ foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
     Console.WriteLine($"{finding.Code}: {finding.Message}");
 }
 
-imported.Document.Save("archive.docx");
+imported.Value.Save("archive.docx");
 ```
 
 The importer never saves back to these source formats, executes macros or embedded code, activates embedded objects, or resolves external links. Each result identifies structured or salvage recovery and reports feature-level loss. The source-oriented `Content` retains paragraphs, formatted runs, notes, and inert resource references beside the projected `WordDocument`; existing Word converter packages can export that document to ODT, HTML, Markdown, or PDF.
@@ -397,7 +397,7 @@ The importer never saves back to these source formats, executes macros or embedd
 | Microsoft Write WRI | Salvage | bounded text and paragraph runs | formatting runs, objects, headers, footers, and layout are not yet reconstructed |
 | Microsoft Word for DOS 4-6 | Salvage | bounded text and paragraphs | formatting, annotations, objects, and layout are not yet reconstructed |
 
-`Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `Report.RequireStructuredNoLoss()` when every known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
+`Structured` means the input passed the documented profile grammar, not that conversion is lossless. Inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow. Detection combines stable signatures and validated grammar with an optional source name; resource limits and cancellation apply before and during parsing.
 
 ### Protection
 

@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

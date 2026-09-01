@@ -13,14 +13,14 @@ public sealed partial class IWorkBoundaryTests {
                 completeFormula: true, mixedFormulaTypeWire: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.False(cell.FormulaIsComplete);
         Assert.False(result.IsVisualFallback);
-        Assert.Null(result.Document.Sheets[0].GetFormulaText(1, 1));
-        Assert.Equal(1d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Null(result.Value.Sheets[0].GetFormulaText(1, 1));
+        Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
     }
 
     [Fact]
@@ -29,10 +29,10 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Height", 1, 1, 1d, defaultRowHeight: 12.345d)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(12.345d, result.Document.Sheets[0].DefaultRowHeight);
+        Assert.Equal(12.345d, result.Value.Sheets[0].DefaultRowHeight);
     }
 
     [Fact]
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: true,
             documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.LoadPagesWithReport(package, options));
+            WordIWorkConverter.ConvertPagesToWordResult(package, options));
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -100,7 +100,7 @@ public sealed partial class IWorkBoundaryTests {
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            ExcelIWorkConverter.LoadNumbersWithReport(package, options));
+            ExcelIWorkConverter.ConvertNumbersToExcelResult(package, options));
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.LoadKeynoteWithReport(package, options));
+            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, options));
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);

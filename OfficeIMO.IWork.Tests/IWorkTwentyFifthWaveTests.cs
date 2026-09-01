@@ -11,9 +11,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_owner_preserves_cross_type_drawable_order() {
         using MemoryStream package = CreateKeynotePackageWithImageBeforeTable();
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         IWorkKeynoteSlide sourceSlide = Assert.Single(result.Projection.Slides);
-        PowerPointSlide targetSlide = Assert.Single(result.Document.Slides);
+        PowerPointSlide targetSlide = Assert.Single(result.Value.Slides);
 
         Assert.True(result.Projection.HasEditableContent,
             string.Join("; ", result.Projection.Diagnostics.Select(diagnostic =>
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.IsType<PowerPointTable>(targetSlide.Shapes[1]);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
         Assert.IsType<PowerPointPicture>(Assert.Single(reopened.Slides).Shapes[0]);
@@ -36,11 +36,11 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_placeholder_fallback_scales_to_the_recovered_canvas() {
         using MemoryStream package = CreateKeynotePackageWithCanvasTitle(720f, 540f);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
-        PowerPointTextBox title = Assert.Single(Assert.Single(result.Document.Slides).TextBoxes);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        PowerPointTextBox title = Assert.Single(Assert.Single(result.Value.Slides).TextBoxes);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(720d, result.Document.SlideSize.WidthPoints, 3);
+        Assert.Equal(720d, result.Value.SlideSize.WidthPoints, 3);
         Assert.True(title.LeftPoints >= 0);
         Assert.True(title.TopPoints >= 0);
         Assert.True(title.RightPoints <= 720d);
@@ -56,8 +56,8 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Errors", 1, 1, 0d, hasFormula: cachedFormula, error: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
-        ExcelSheet sheet = Assert.Single(result.Document.Sheets);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        ExcelSheet sheet = Assert.Single(result.Value.Sheets);
         IWorkTableCell sourceCell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("#ERROR", snapshot.Text);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         Assert.True(Assert.Single(reopened.Sheets).TryGetCellValueSnapshot(

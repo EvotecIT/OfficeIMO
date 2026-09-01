@@ -22,11 +22,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLargeTables(1,
             rotation: 30f, rows: 1, columns: 1);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
-        Assert.Equal(30d, Assert.Single(Assert.Single(result.Document.Slides).Tables).Rotation);
+        Assert.Equal(30d, Assert.Single(Assert.Single(result.Value.Slides).Tables).Rotation);
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
         Assert.Equal(30d, Assert.Single(Assert.Single(reopened.Slides).Tables).Rotation);
@@ -36,14 +36,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_nested_lists_use_native_word_numbering_and_level() {
         using MemoryStream package = CreatePagesPackageWithResolvedNestedList();
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
-        WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
+        WordParagraph paragraph = Assert.Single(result.Value.Paragraphs,
             candidate => candidate.Text == "Item");
         Assert.True(paragraph.IsListItem);
         Assert.Equal(1, paragraph.ListItemLevel);
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         WordParagraph persisted = Assert.Single(reopened.Paragraphs,

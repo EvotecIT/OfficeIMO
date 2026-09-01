@@ -10,15 +10,16 @@ dotnet add package OfficeIMO.Word.IWork
 using OfficeIMO.IWork;
 using OfficeIMO.Word.IWork;
 
-using IWorkPagesLoadResult result = WordIWorkConverter.LoadPagesWithReport(
-    "source.pages",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.pages");
+using PagesToWordResult result = source.ToWordDocumentResult(
+    new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
-Console.WriteLine(result.ImportReport.ProjectionKind);
-result.Document.Save("converted.docx");
+Console.WriteLine(result.Report.ProjectionKind);
+Console.WriteLine(result.HasLoss);
+result.Value.Save("converted.docx");
 ```
 
-`LoadPages` returns the editable Word document directly. `LoadPagesWithReport` also retains the bounded source model, typed Pages projection, diagnostics, unsupported records, and exact editable-versus-visual-fallback result.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToWordDocument` returns the converted document directly; `ToWordDocumentResult` also exposes the typed Pages projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `WordIWorkConverter.ConvertPagesToWord*` provides equivalent path and stream convenience entry points.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Word`. It does not add iWork support to the default Word package graph.
 

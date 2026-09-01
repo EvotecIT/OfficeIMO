@@ -10,15 +10,16 @@ dotnet add package OfficeIMO.PowerPoint.IWork
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
 
-using IWorkKeynoteLoadResult result = PowerPointIWorkConverter.LoadKeynoteWithReport(
-    "source.key",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.key");
+using KeynoteToPowerPointResult result = source.ToPowerPointPresentationResult(
+    new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
-Console.WriteLine(result.ImportReport.ProjectionKind);
-result.Document.Save("converted.pptx");
+Console.WriteLine(result.Report.ProjectionKind);
+Console.WriteLine(result.HasLoss);
+result.Value.Save("converted.pptx");
 ```
 
-`LoadKeynote` returns the editable PowerPoint presentation directly. `LoadKeynoteWithReport` also retains the bounded source model, typed Keynote projection, diagnostics, unsupported records, and exact editable-versus-visual-fallback result.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPointPresentation` returns the converted presentation directly; `ToPowerPointPresentationResult` also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint*` provides equivalent path and stream convenience entry points.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.PowerPoint`. It does not add iWork support to the default PowerPoint package graph.
 

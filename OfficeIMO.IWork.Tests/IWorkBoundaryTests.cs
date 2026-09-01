@@ -56,8 +56,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream ownerPackage = CreateNumbersPackage(new[] {
             new TableSpec("Formula", 1, 1, 42d, hasFormula: true)
         });
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(ownerPackage);
-        Assert.Equal(42d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(ownerPackage);
+        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
         IWorkNumbersProjection projection = source.ReadNumbers();
-        IWorkImportReport report = projection.CreateImportReport(
+        IWorkConversionReport report = projection.CreateConversionReport(
             IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
 
         Assert.False(projection.HasEditableContent);
@@ -99,7 +99,7 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
         IWorkNumbersProjection projection = source.ReadNumbers();
-        IWorkImportReport report = projection.CreateImportReport(
+        IWorkConversionReport report = projection.CreateConversionReport(
             IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
 
         Assert.False(projection.HasEditableContent);
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
         IWorkNumbersProjection projection = source.ReadNumbers();
-        IWorkImportReport report = projection.CreateImportReport(
+        IWorkConversionReport report = projection.CreateConversionReport(
             IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
 
         Assert.False(projection.HasEditableContent);
@@ -129,46 +129,45 @@ public sealed partial class IWorkBoundaryTests {
     public void Missing_keynote_slides_are_preserved_and_use_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithMissingSlide();
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
         Assert.Empty(result.Projection.Slides);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_SLIDE_MISSING");
-        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.MessageType == 4);
+        Assert.Contains(result.Report.UnsupportedRecords, record => record.MessageType == 4);
     }
 
     [Fact]
     public void Missing_keynote_presenter_notes_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithMissingNotes();
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_NOTES_UNSUPPORTED");
-        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.Identifier == 4);
+        Assert.Contains(result.Report.UnsupportedRecords, record => record.Identifier == 4);
     }
 
     [Fact]
-    public void Visual_only_numbers_import_bypasses_semantic_table_limits() {
+    public void Opened_numbers_source_supports_independent_editable_and_visual_conversions() {
         using MemoryStream package = CreateNumbersPackage(new[] {
-            new TableSpec("Large", 100, 1, 42d)
+            new TableSpec("Data", 1, 1, 42d)
         }, includePreview: true);
-        var options = new IWorkReadOptions {
-            ImportMode = IWorkImportMode.VisualOnly,
-            MaximumTableRows = 1
-        };
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package, options);
+        using NumbersToExcelResult editable = source.ToExcelDocumentResult(
+            new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using NumbersToExcelResult visual = source.ToExcelDocumentResult(
+            new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly });
 
-        Assert.True(result.IsVisualFallback);
-        Assert.Empty(result.Projection.Sheets);
-        Assert.Equal(0, result.ImportReport.ReconstructedItemCount);
-        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_SEMANTIC_PROJECTION_SKIPPED");
+        Assert.False(editable.IsVisualFallback);
+        Assert.Equal(42d, editable.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.True(visual.IsVisualFallback);
+        Assert.Single(visual.Value.Sheets[0].Images);
     }
 
     [Fact]
@@ -254,13 +253,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Full Height", 1_048_576, 1, 42d)
         }, textBox: "Leading text");
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.Equal(2, result.Document.Sheets.Count);
-        Assert.Equal("Leading text", result.Document.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(42d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(2, result.Value.Sheets.Count);
+        Assert.Equal("Leading text", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(42d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(bytes);
         Assert.Equal(2, reopened.Sheets.Count);
@@ -272,7 +271,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, includeMalformedDrawableReference: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -284,7 +283,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Missing_pages_body_disables_editable_reconstruction_even_when_a_text_box_exists() {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: "Floating text", includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -297,17 +296,17 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating text",
             includePreview: false, textBoxDrawable: GeometryDrawable(36f, 72f, 216f, 108f));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
-        WordTextBox textBox = Assert.Single(result.Document.TextBoxes);
+        WordTextBox textBox = Assert.Single(result.Value.TextBoxes);
         Assert.Equal("Floating text", Assert.Single(textBox.Paragraphs).Text);
         Assert.Equal(36 * 12700, textBox.HorizontalPositionOffset!.Value);
         Assert.Equal(72 * 12700, textBox.VerticalPositionOffset!.Value);
         Assert.Equal(216L * 12700L, textBox.Width);
         Assert.Equal(108L * 12700L, textBox.Height);
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         WordTextBox persisted = Assert.Single(reopened.TextBoxes);
@@ -321,13 +320,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null, includePreview: false,
             bodyText: string.Empty);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
         Assert.Empty(result.Projection.Paragraphs);
-        Assert.Equal(IWorkProjectionKind.EditableReconstruction, result.ImportReport.ProjectionKind);
-        Assert.Equal(0, result.ImportReport.ReconstructedItemCount);
+        Assert.Equal(IWorkProjectionKind.EditableReconstruction, result.Report.ProjectionKind);
+        Assert.Equal(0, result.Report.ReconstructedItemCount);
     }
 
     [Fact]
@@ -380,7 +379,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             invalidFontName: true, includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -393,7 +392,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             malformedColor: true, includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -406,7 +405,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             wrongWireBold: true, includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -417,7 +416,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(depth: 1,
             invalidAlignment: true, includePreview: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -446,7 +445,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating",
             includePreview: true, textBoxDrawable: Message(BytesField(1, new byte[] { 0x08, 0x80 })));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -458,7 +457,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Floating",
             includePreview: true, textBoxDrawable: Message(VarintField(1, 1)));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -470,17 +469,17 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: true, documentLayoutFields: PageLayoutFields(float.MaxValue));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(IWorkProjectionKind.VisualFallback, result.ImportReport.ProjectionKind);
+        Assert.Equal(IWorkProjectionKind.VisualFallback, result.Report.ProjectionKind);
     }
 
     [Fact]
     public void Missing_pages_section_references_disable_editable_reconstruction() {
         using MemoryStream package = CreatePagesPackageWithMissingSection();
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -504,19 +503,19 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_owner_preserves_header_footer_association_across_sections() {
         using MemoryStream package = CreatePagesPackageWithTwoSections();
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Projection.Sections.Count);
-        Assert.Equal(2, result.Document.Sections.Count);
-        Assert.Contains(result.Document.Sections[0].Header.Default!.Paragraphs,
+        Assert.Equal(2, result.Value.Sections.Count);
+        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.Contains(result.Document.Sections[1].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "Second header");
-        Assert.Contains(result.Document.Sections[1].Footer.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[1].Footer.Default!.Paragraphs,
             paragraph => paragraph.Text == "Second footer");
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Equal(2, reopened.Sections.Count);
@@ -530,20 +529,20 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_layout_breaks_do_not_shift_later_section_headers_and_footers() {
         using MemoryStream package = CreatePagesPackageWithTwoSections(includeLayoutBreak: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Projection.Sections.Count);
-        Assert.Equal(3, result.Document.Sections.Count);
-        Assert.Contains(result.Document.Sections[0].Header.Default!.Paragraphs,
+        Assert.Equal(3, result.Value.Sections.Count);
+        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.Null(result.Document.Sections[1].Header.Default);
-        Assert.Contains(result.Document.Sections[2].Header.Default!.Paragraphs,
+        Assert.Null(result.Value.Sections[1].Header.Default);
+        Assert.Contains(result.Value.Sections[2].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "Second header");
-        Assert.Contains(result.Document.Sections[2].Footer.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[2].Footer.Default!.Paragraphs,
             paragraph => paragraph.Text == "Second footer");
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Equal(3, reopened.Sections.Count);
@@ -566,7 +565,7 @@ public sealed partial class IWorkBoundaryTests {
 
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
         IWorkPagesProjection projection = source.ReadPages();
-        IWorkImportReport report = projection.CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+        IWorkConversionReport report = projection.CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
 
         Assert.Empty(projection.TextBoxes);
         Assert.Contains(report.UnsupportedRecords, record => record.Identifier == orphanShapeId);
@@ -582,13 +581,13 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_NUMBERS_SHEET_TYPE_UNSUPPORTED");
-        Assert.Contains(result.ImportReport.UnsupportedRecords, record => record.Identifier == 2);
+        Assert.Contains(result.Report.UnsupportedRecords, record => record.Identifier == 2);
     }
 
     [Fact]
@@ -610,11 +609,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Reachable", includePreview: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
 
-        IWorkImportReport report = source.ReadPages().CreateImportReport(IWorkProjectionKind.EditableReconstruction);
+        IWorkConversionReport report = source.ReadPages().CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
 
         Assert.Equal(report.TotalRecordCount, report.UnsupportedRecordCount);
         Assert.Equal(source.Records.Count, report.UnsupportedRecords.Count);
-        Assert.True(report.HasConversionLoss);
+        Assert.True(report.HasLoss);
     }
 
     [Fact]
@@ -623,7 +622,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Duplicate", 257, 1, 1d, duplicateCell: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -637,7 +636,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Duplicate physical tile", 257, 1, 1d, duplicateTileIdentity: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -651,7 +650,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Duplicate row", 2, 1, 1d, duplicateTileRow: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -665,7 +664,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Duplicate strings", 1, 1, 0d, textValue: "Value", duplicateString: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -708,9 +707,9 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Duration", 1, 1, 3600d, duration: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
-        Assert.Equal(1d / 24d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(1d / 24d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -720,7 +719,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Long text", 1, 1, 0d, textValue: longText)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -730,8 +729,8 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Long text", 1, 1, 0d, textValue: longText)
         }, includePreview: true);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            ExcelIWorkConverter.LoadNumbersWithReport(editableOnlyPackage,
-                new IWorkReadOptions { ImportMode = IWorkImportMode.EditableOnly }));
+            ExcelIWorkConverter.ConvertNumbersToExcelResult(editableOnlyPackage,
+                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
         Assert.Contains("32,767", exception.Message, StringComparison.Ordinal);
     }
 
@@ -741,9 +740,9 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, previewBytes: CreateSizedPreviewPng(2400, 1200));
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package,
-            new IWorkReadOptions { ImportMode = IWorkImportMode.VisualOnly });
-        ExcelImage image = Assert.Single(result.Document.Sheets[0].Images);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly });
+        ExcelImage image = Assert.Single(result.Value.Sheets[0].Images);
 
         Assert.Equal(1600, image.WidthPixels);
         Assert.Equal(800, image.HeightPixels);

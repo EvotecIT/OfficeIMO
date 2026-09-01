@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         IWorkTextBox textBox = Assert.Single(result.Projection.TextBoxObjects);
 
         Assert.True(result.Projection.HasEditableContent);
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("Shared body", textBox.Content.PlainText);
         Assert.Equal("https://example.test/body-alias", textBox.Hyperlink);
         Assert.Equal("Aliased body text box", textBox.AccessibilityDescription);
-        Assert.Single(result.Document.Images);
+        Assert.Single(result.Value.Images);
     }
 
     [Fact]
@@ -47,11 +47,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(
             depth: 1, includePreview: true, fontSize: 10.25f);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
-        Assert.Single(result.Document.Images);
+        Assert.Single(result.Value.Images);
     }
 
     [Fact]
@@ -93,11 +93,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, fontSize: 10.125f);
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
-        Assert.Single(result.Document.Slides[0].Pictures);
+        Assert.Single(result.Value.Slides[0].Pictures);
     }
 
     [Theory]
@@ -109,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Malformed Boolean", 1, 1, value, boolean: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -127,7 +127,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Boolean", 1, 1, value, boolean: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -135,6 +135,6 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellKind.Boolean, cell.Kind);
         Assert.Equal(expected, cell.Value);
         Assert.Equal(expected,
-            result.Document.Sheets[0].CellAt(1, 1).GetValue<bool>());
+            result.Value.Sheets[0].CellAt(1, 1).GetValue<bool>());
     }
 }

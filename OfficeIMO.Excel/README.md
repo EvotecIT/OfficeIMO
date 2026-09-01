@@ -135,7 +135,7 @@ foreach (OfficeCompatibilityFinding finding in imported.Report.Findings) {
     Console.WriteLine($"{finding.Code}: {finding.Message}");
 }
 
-imported.Document.Save("archive.xlsx");
+imported.Value.Save("archive.xlsx");
 ```
 
 The importer never saves back to these source formats, executes macros, activates embedded objects, or resolves and refreshes external links. Each result identifies structured or salvage recovery and reports feature-level loss. Existing Excel converter packages can export the returned workbook to ODS, CSV, HTML, or PDF.
@@ -150,7 +150,7 @@ The importer never saves back to these source formats, executes macros, activate
 | Later Lotus 123, Quattro QPW, and Works XLR/binary profiles | Salvage | bounded text/tabular runs and compound-content safety inventory where applicable | workbook structure, formulas, names, comments, advanced formatting, and charts are reported as unavailable |
 | Microsoft Multiplan DOS 1-3 | Salvage | bounded text and tabular runs | cell zones, formulas, names, formats, comments, and charts are not yet semantically decoded |
 
-Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `Report.RequireStructuredNoLoss()` when every known approximation must fail the workflow.
+Structured WK-derived profiles accept a valid BOF/EOF workbook with no cells and currently require ASCII text. Formula translation is allow-listed, bounded, charged against the import-wide text budget, and never evaluates the source expression. Unsupported tokens retain only a finite cached value with a loss diagnostic. `Structured` means the record stream passed the profile grammar, not that conversion is lossless; inspect `Report.Findings`, or call `imported.RequireNoLoss()` when salvage recovery, inert content, or any known approximation must fail the workflow.
 
 ### Work with XLSB workbooks
 

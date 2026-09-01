@@ -19,12 +19,15 @@ Selected Lotus 1-2-3, Quattro Pro, Multiplan, and Works spreadsheet sources are 
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddExcelHandler()
-    .AddLegacySpreadsheetHandler()
+    .AddExcelAndLegacyHandlers(new LegacySpreadsheetImportOptions {
+        Limits = new OfficeLegacyImportLimits { MaxInputBytes = 64 * 1024 * 1024 }
+    })
     .Build();
 
 OfficeDocumentReadResult workbook = reader.ReadDocument("archive.wk1");
 ```
+
+The combined registration applies the same immutable legacy options to every legacy spreadsheet route. `AddLegacySpreadsheetHandler(...)` remains available when the normal Excel handler is registered separately or is not needed.
 
 Legacy warnings include the detected profile, structured-versus-salvage quality, and feature-level losses. The handler never executes macros or refreshes external links.
 

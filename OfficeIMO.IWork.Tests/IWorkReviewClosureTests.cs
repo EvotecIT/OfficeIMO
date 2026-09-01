@@ -32,14 +32,14 @@ public sealed partial class IWorkBoundaryTests {
                 hasFormula: true, duplicateFormula: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
         Assert.False(result.IsVisualFallback);
         Assert.False(cell.FormulaIsComplete);
         Assert.Equal(42d, Assert.IsType<double>(cell.Value), 10);
-        Assert.Equal(42d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED");
     }
@@ -50,7 +50,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Malformed dimensions", 1, 1, 42d, wrongWireDimensions: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -62,8 +62,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(
             depth: 1, naturalAlignment: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
-        WordParagraph paragraph = Assert.Single(result.Document.Paragraphs,
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        WordParagraph paragraph = Assert.Single(result.Value.Paragraphs,
             candidate => candidate.Text == "Styled");
 
         Assert.Equal(IWorkTextAlignment.Natural,
@@ -76,17 +76,17 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithLinkedNotes();
         var target = new Uri("https://example.com/keynote-note");
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
         PowerPointTextRun run = Assert.Single(Assert.Single(
-            Assert.Single(result.Document.Slides).Notes.Paragraphs).Runs);
+            Assert.Single(result.Value.Slides).Notes.Paragraphs).Runs);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Linked note", run.Text);
         Assert.Equal(target, run.Hyperlink);
-        Assert.Empty(result.Document.ValidateDocument());
+        Assert.Empty(result.Value.ValidateDocument());
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
         PowerPointTextRun reopenedRun = Assert.Single(Assert.Single(
@@ -118,7 +118,7 @@ public sealed partial class IWorkBoundaryTests {
                 formulaWithoutCachedValue: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -132,16 +132,16 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Narrow", 1, 1, 2d, defaultColumnWidth: 140d)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(2, result.Document.Sheets.Count);
-        Assert.Equal(1d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(2d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
-        Assert.Equal(12.619047619047619d, result.Document.Sheets[0].DefaultColumnWidth);
-        Assert.Equal(25.952380952380953d, result.Document.Sheets[1].DefaultColumnWidth);
-        Assert.Empty(result.Document.Sheets[0].GetColumnDefinitions());
-        Assert.Empty(result.Document.Sheets[1].GetColumnDefinitions());
+        Assert.Equal(2, result.Value.Sheets.Count);
+        Assert.Equal(1d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(2d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(12.619047619047619d, result.Value.Sheets[0].DefaultColumnWidth);
+        Assert.Equal(25.952380952380953d, result.Value.Sheets[1].DefaultColumnWidth);
+        Assert.Empty(result.Value.Sheets[0].GetColumnDefinitions());
+        Assert.Empty(result.Value.Sheets[1].GetColumnDefinitions());
     }
 
     [Fact]
@@ -150,12 +150,12 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula coordinates", 1, 1, 42d)
         }, textBox: "Sheet annotation");
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(2, result.Document.Sheets.Count);
-        Assert.Equal("Sheet annotation", result.Document.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(42d, result.Document.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
+        Assert.Equal(2, result.Value.Sheets.Count);
+        Assert.Equal("Sheet annotation", result.Value.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal(42d, result.Value.Sheets[1].CellAt(1, 1).GetValue<double>(), 10);
     }
 
     [Fact]
@@ -169,7 +169,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Null(sourceParagraph.ListLabel);
         package.Position = 0;
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
     }
@@ -180,7 +180,7 @@ public sealed partial class IWorkBoundaryTests {
             textBox: "Linked shape", includePreview: true,
             textBoxDrawable: Message(StringField(4, "https://example.com/pages-shape")));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal("https://example.com/pages-shape",
@@ -231,7 +231,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(),
             includePreview: true, sheetNameBytes: new byte[] { 0x01 });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -244,7 +244,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Incomplete modern row", 1, 1, 42d, omitCurrentOffsets: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -260,7 +260,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula date", 1, 1, ancientDate, hasFormula: true, date: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.All(Assert.Single(result.Projection.Sheets).Tables,
@@ -272,7 +272,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Not text storage",
             includePreview: true, textBoxStorageType: 9999);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -284,15 +284,15 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: null,
             includePreview: false, bodyText: " First \n\nSecond");
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.Equal(new[] { " First ", string.Empty, "Second" },
             result.Projection.Body.Paragraphs.Select(paragraph => paragraph.Text));
         Assert.Equal(new[] { " First ", string.Empty, "Second" },
             result.Projection.Paragraphs);
-        AssertBlankParagraphBetween(result.Document.Paragraphs.Select(paragraph => paragraph.Text));
+        AssertBlankParagraphBetween(result.Value.Paragraphs.Select(paragraph => paragraph.Text));
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         AssertBlankParagraphBetween(reopened.Paragraphs.Select(paragraph => paragraph.Text));
@@ -302,15 +302,15 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_owner_breaks_header_inheritance_for_an_explicitly_empty_section() {
         using MemoryStream package = CreatePagesPackageWithTwoSections(emptySecondSection: true);
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
-        Assert.Contains(result.Document.Sections[0].Header.Default!.Paragraphs,
+        Assert.Contains(result.Value.Sections[0].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "First header");
-        Assert.NotNull(result.Document.Sections[1].Header.Default);
-        Assert.DoesNotContain(result.Document.Sections[1].Header.Default!.Paragraphs,
+        Assert.NotNull(result.Value.Sections[1].Header.Default);
+        Assert.DoesNotContain(result.Value.Sections[1].Header.Default!.Paragraphs,
             paragraph => paragraph.Text == "First header");
         using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
+        result.Value.Save(bytes);
         bytes.Position = 0;
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.NotNull(reopened.Sections[1].Header.Default);

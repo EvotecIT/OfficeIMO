@@ -97,11 +97,11 @@ public sealed class IWorkPagesProjection {
     /// <summary>Gets whether the supported editable document structure was recovered completely.</summary>
     public bool HasEditableContent => _supportsEditableReconstruction;
 
-    /// <summary>Creates an import report for an OfficeIMO semantic-owner projection.</summary>
-    public IWorkImportReport CreateImportReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
-        CreateImportReport(kind, preview, Array.Empty<IWorkDiagnostic>());
+    /// <summary>Creates a conversion report for an OfficeIMO semantic-owner projection.</summary>
+    public IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
+        CreateConversionReport(kind, preview, Array.Empty<IWorkDiagnostic>());
 
-    internal IWorkImportReport CreateImportReport(IWorkProjectionKind kind,
+    internal IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind,
         IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
         ValidateReportRequest(kind, preview);
         return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
@@ -125,19 +125,11 @@ public sealed class IWorkPagesProjection {
 }
 
 public sealed partial class IWorkSourceDocument {
-    /// <summary>Reads a Pages package into a bounded semantic source projection, or returns a diagnostic-only projection in visual-only mode.</summary>
+    /// <summary>Reads a Pages package into a bounded semantic source projection.</summary>
     public IWorkPagesProjection ReadPages() {
         if (Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException($"The source is {Kind}, not Pages.");
-        if (RequestedImportMode == IWorkImportMode.VisualOnly) {
-            return new IWorkPagesProjection(this, EmptyText(), Array.Empty<IWorkPagesSection>(),
-                Array.Empty<IWorkTextBox>(), Array.Empty<IWorkImageAsset>(),
-                Array.Empty<IWorkTable>(), Array.Empty<IWorkPagesDrawable>(), null,
-                new[] { IWorkProjectionDiagnostics.SemanticProjectionSkipped }, supportsEditableReconstruction: false);
-        }
         return IWorkPagesReader.Read(this);
     }
-
-    private static IWorkTextContent EmptyText() => new(Array.Empty<IWorkTextParagraph>(), isComplete: false);
 }
 
 internal static class IWorkPagesReader {

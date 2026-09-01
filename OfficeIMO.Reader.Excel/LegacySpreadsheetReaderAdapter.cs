@@ -17,7 +17,7 @@ internal static class LegacySpreadsheetReaderAdapter {
         LegacySpreadsheetImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken);
-        return ExcelReaderAdapter.Project(imported.Document, path, readerOptions, options, cancellationToken, BuildWarnings(imported));
+        return ExcelReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported));
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderExcelOptions options,
@@ -25,7 +25,7 @@ internal static class LegacySpreadsheetReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-workbook" : sourceName!;
         using LegacySpreadsheetImportResult imported = LegacySpreadsheetImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken);
-        return ExcelReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported));
+        return ExcelReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported));
     }
 
     internal static bool Probe(Stream stream, string? sourceName, ReaderOptions readerOptions,

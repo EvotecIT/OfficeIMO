@@ -26,9 +26,9 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("iv.", 4)]
     public void Pages_ordered_lists_preserve_nondefault_start_values(string label, int expectedStart) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
 
         using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_right_paragraph_indents_use_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithRightIndent();
 
-        using var result = PowerPointIWorkConverter.LoadKeynoteWithReport(package);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, sheetNameBytes: Encoding.UTF8.GetBytes(sheetName));
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("a", 1, 1, 2d)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

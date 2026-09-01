@@ -37,9 +37,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Parenthesized_pages_lists_preserve_native_numbering(
         string label, int expectedStart, string expectedFormat) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
 
         using WordprocessingDocument document = WordprocessingDocument.Open(saved, false);
@@ -68,7 +68,7 @@ public sealed partial class IWorkBoundaryTests {
                 populatedOffsetBeyondColumns: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -81,10 +81,10 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Trailing empty", 1, 1, 42d, emptyOffsetBeyondColumns: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
-        Assert.Equal(42d, result.Document.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(42d, result.Value.Sheets[0].CellAt(1, 1).GetValue<double>());
     }
 
     [Theory]
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Linked",
             includePreview: true, textBoxDrawable: Message(StringField(field, value)));
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Text",
             includePreview: true, textBoxDrawable: new byte[] { 0x08, 0x80 });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

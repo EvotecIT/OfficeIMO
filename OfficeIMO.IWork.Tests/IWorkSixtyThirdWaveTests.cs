@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
                 wideOffsets: wideOffsets, duplicatePopulatedOffset: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(Assert.Single(Assert.Single(result.Projection.Sheets).Tables).Cells);
@@ -30,8 +30,8 @@ public sealed partial class IWorkBoundaryTests {
                 textValue: "Approved", completeFormula: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
-        ExcelSheet sheet = Assert.Single(result.Document.Sheets);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        ExcelSheet sheet = Assert.Single(result.Value.Sheets);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("1", sheet.GetFormulaText(1, 1));
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("Approved", cached);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         ExcelSheet persisted = Assert.Single(reopened.Sheets);
@@ -55,8 +55,8 @@ public sealed partial class IWorkBoundaryTests {
                 error: true, completeFormula: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
-        ExcelSheet sheet = Assert.Single(result.Document.Sheets);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        ExcelSheet sheet = Assert.Single(result.Value.Sheets);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("1", sheet.GetFormulaText(1, 1));
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("#ERROR", cached);
 
         using var saved = new MemoryStream();
-        result.Document.Save(saved);
+        result.Value.Save(saved);
         saved.Position = 0;
         using ExcelDocument reopened = ExcelDocument.Load(saved);
         ExcelSheet persisted = Assert.Single(reopened.Sheets);

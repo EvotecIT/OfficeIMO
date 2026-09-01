@@ -21,11 +21,11 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(new[] { "First", "Second" },
-            result.Document.Tables.Select(table => table.Description));
+            result.Value.Tables.Select(table => table.Description));
     }
 
     [Theory]
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: "Shape", includePreview: true,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = WordIWorkConverter.LoadPagesWithReport(package);
+        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

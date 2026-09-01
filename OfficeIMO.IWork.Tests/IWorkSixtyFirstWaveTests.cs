@@ -24,12 +24,12 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Date", 1, 1, 0.0000001d, date: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         Assert.IsType<DateTime>(Assert.Single(Assert.Single(
             result.Projection.Sheets).Tables[0].Cells).Value);
-        Assert.Contains(result.ImportReport.Diagnostics,
+        Assert.Contains(result.Report.Diagnostics,
             diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
 
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 date: true, completeFormula: true)
         }, includePreview: true);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.True(result.IsVisualFallback);
         IWorkTableCell cell = Assert.Single(Assert.Single(
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Date", 1, 1, 0.001d, date: true)
         });
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package);
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
 
         Assert.False(result.IsVisualFallback);
     }

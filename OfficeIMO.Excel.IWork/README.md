@@ -10,15 +10,16 @@ dotnet add package OfficeIMO.Excel.IWork
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-using IWorkNumbersLoadResult result = ExcelIWorkConverter.LoadNumbersWithReport(
-    "source.numbers",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
+IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+using NumbersToExcelResult result = source.ToExcelDocumentResult(
+    new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
-Console.WriteLine(result.ImportReport.ProjectionKind);
-result.Document.Save("converted.xlsx");
+Console.WriteLine(result.Report.ProjectionKind);
+Console.WriteLine(result.HasLoss);
+result.Value.Save("converted.xlsx");
 ```
 
-`LoadNumbers` returns the editable Excel document directly. `LoadNumbersWithReport` also retains the bounded source model, typed Numbers projection, diagnostics, unsupported records, and exact editable-versus-visual-fallback result.
+`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns the converted workbook directly; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
 
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Excel`. It does not add iWork support to the default Excel package graph.
 

@@ -43,19 +43,19 @@ The reader accepts ZIP packages, directory bundles, and packages with a nested `
 using OfficeIMO.IWork;
 using OfficeIMO.Excel.IWork;
 
-using IWorkNumbersLoadResult result = ExcelIWorkConverter.LoadNumbersWithReport(
-    "budget.numbers",
-    new IWorkReadOptions { ImportMode = IWorkImportMode.Auto });
+IWorkSourceDocument source = IWorkSourceDocument.Open("budget.numbers");
+using NumbersToExcelResult result = source.ToExcelDocumentResult(
+    new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
-Console.WriteLine(result.ImportReport.ProjectionKind);
-Console.WriteLine(result.HasConversionLoss);
-result.Document.Save("budget.xlsx");
+Console.WriteLine(result.Report.ProjectionKind);
+Console.WriteLine(result.HasLoss);
+result.Value.Save("budget.xlsx");
 ```
 
-Use `WordIWorkConverter.LoadPages*` for Pages, `ExcelIWorkConverter.LoadNumbers*` for Numbers, and `PowerPointIWorkConverter.LoadKeynote*` for Keynote. The short overload returns the destination document. The `WithReport` overload also exposes the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result.
+Use `ToWordDocument[Result]` for Pages, `ToExcelDocument[Result]` for Numbers, and `ToPowerPointPresentation[Result]` for Keynote. The short extension returns the destination document. The result extension also exposes the typed projection, diagnostics, preserved source records, producer build history, and the exact editable or visual-fallback result. The static `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*` methods are path and stream conveniences over the same source-first conversion pipeline.
 
 ## Preservation boundary
 
-OfficeIMO reconstructs supported content as editable DOCX, XLSX, or PPTX. Unsupported and partially consumed records remain available in the bounded source model and are reported as conversion loss. `VisualOnly` can use a package preview when semantic reconstruction is not wanted, but that preview is not presented as editable content.
+OfficeIMO reconstructs supported content as editable DOCX, XLSX, or PPTX. Unsupported and partially consumed records remain available in the bounded source model and are reported as conversion loss. `IWorkConversionOptions.Mode` chooses editable, automatic, or visual destination representation without changing how the source is read. A visual preview is not presented as editable content.
 
 There is no Pages, Numbers, or Keynote writer. See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the tested producer corpus, exact semantic coverage, limits, and known boundaries.

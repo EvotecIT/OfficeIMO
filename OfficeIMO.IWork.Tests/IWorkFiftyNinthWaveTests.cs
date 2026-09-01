@@ -7,19 +7,16 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Numbers_visual_only_mode_ignores_the_semantic_sheet_limit() {
+    public void Numbers_read_limits_apply_independently_of_conversion_mode() {
         using MemoryStream package = CreateNumbersPackage(
             Array.Empty<TableSpec>(), includePreview: true, sheetReferenceCount: 2);
 
-        using var result = ExcelIWorkConverter.LoadNumbersWithReport(package,
-            new IWorkReadOptions {
-                ImportMode = IWorkImportMode.VisualOnly,
-                MaximumProjectedSheets = 1
-            });
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+                new IWorkReadOptions { MaximumProjectedSheets = 1 },
+                new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
 
-        Assert.True(result.IsVisualFallback);
-        Assert.Empty(result.Projection.Sheets);
-        Assert.NotNull(result.ImportReport.VisualPreview);
+        Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -28,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            PowerPointIWorkConverter.LoadKeynoteWithReport(package,
+            PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
                 new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,
@@ -41,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithSharedImage(image);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            WordIWorkConverter.LoadPagesWithReport(package,
+            WordIWorkConverter.ConvertPagesToWordResult(package,
                 new IWorkReadOptions { MaximumProjectedImageBytes = image.LongLength }));
 
         Assert.Contains("destination image", exception.Message,
