@@ -107,7 +107,7 @@ public sealed partial class PdfDocument {
         var document = new PdfDocument();
         foreach (PdfImageDocumentSource source in sources) {
             byte[] sourceBytes = source.GetBytes();
-            PreparedImage prepared = PrepareImageBytes(sourceBytes);
+            PreparedImage prepared = PrepareImageDocumentSource(sourceBytes);
             PageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
             double frameWidth = pageSize.Width - effective.Margin * 2D;
             double frameHeight = pageSize.Height - effective.Margin * 2D;
@@ -126,6 +126,23 @@ public sealed partial class PdfDocument {
                     alternativeText: alternativeText)));
         }
         return document;
+    }
+
+    private static PreparedImage PrepareImageDocumentSource(byte[] sourceBytes) {
+        if (!OfficeImageOrientationNormalizer.TryRead(sourceBytes, out OfficeImageOrientation orientation) ||
+            orientation == OfficeImageOrientation.Normal) {
+            return PrepareImageBytes(sourceBytes);
+        }
+        if (!OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                sourceBytes,
+                applyEmbeddedOrientation: true,
+                out byte[] normalizedPng,
+                out OfficeImageInfo? normalizedInfo) ||
+            normalizedInfo == null) {
+            throw new NotSupportedException(
+                "The image has embedded orientation metadata that could not be normalized safely for PDF composition.");
+        }
+        return PrepareImageBytes(normalizedPng);
     }
 
     private static PageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageDocumentOptions options) {

@@ -234,7 +234,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[]? gallery = request.OutputPath is null
             ? null
             : EncodeUtf8Bounded(
-                comparison.ToHtmlGallery("OfficeIMO document comparison"),
+                comparison.ToHtmlGallery(
+                    "OfficeIMO document comparison",
+                    request.Limits.MaximumOutputBytes,
+                    cancellationToken),
                 request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
     }

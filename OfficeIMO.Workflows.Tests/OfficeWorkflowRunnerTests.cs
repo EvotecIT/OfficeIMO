@@ -113,6 +113,30 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task ComparisonStopsWhileRenderingGalleryAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string left = CreatePdf(scope.Path, "left.pdf", "Expected");
+        string right = CreatePdf(scope.Path, "right.pdf", "Actual");
+        string output = Path.Combine(scope.Path, "bounded-comparison.html");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = left,
+            ComparisonPath = right,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 256L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains("being rendered", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public async Task HtmlToPdfRejectsOutputProfilesItCannotHonor() {
         using var scope = new TestDirectory();
         string input = CreateInput(scope.Path, "html-pdf");

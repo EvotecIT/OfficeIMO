@@ -25,8 +25,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             Report(progress, validated.Id, "validate", "Validating PDF and page selection", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
 
-            PdfDocument document = PdfDocument.Load(validated.InputPath, validated.LoadOptions);
-            PdfDocumentInfo info = document.Inspect();
+            PdfDocument document = await PdfDocument
+                .LoadAsync(validated.InputPath, validated.LoadOptions, cancellationToken)
+                .ConfigureAwait(false);
+            PdfDocumentInfo info = document.Inspect(validated.LoadOptions, cancellationToken);
             int[] pageNumbers = ResolvePageNumbers(validated.Pages, info.PageCount);
             if (pageNumbers.Length > validated.MaximumPages) {
                 throw new InvalidOperationException(
