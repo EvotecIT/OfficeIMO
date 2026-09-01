@@ -21,6 +21,7 @@ You can also set `OFFICEIMO_TESSERACT_PATH` or pass `Tesseract.ExecutablePath`. 
 ## Searchable PDF in one call
 
 ```csharp
+using OfficeIMO.Pdf;
 using OfficeIMO.Reader.Ocr;
 
 PdfSearchableOcrResult result = await OfficeOcr.MakePdfSearchableAsync(

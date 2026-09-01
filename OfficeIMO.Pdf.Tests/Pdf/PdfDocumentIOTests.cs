@@ -184,7 +184,7 @@ public class PdfDocumentIOTests {
             File.WriteAllBytes(outputPath, existing);
 
             await Assert.ThrowsAsync<IOException>(() => BuildDocument("Must not replace")
-                .SaveAsync(outputPath, OfficeConversionFileConflictPolicy.FailIfExists));
+                .SaveAsync(outputPath, OfficeConversionFileConflictPolicy.FailIfExists, CancellationToken.None));
 
             Assert.Equal(existing, File.ReadAllBytes(outputPath));
         } finally {
@@ -206,6 +206,20 @@ public class PdfDocumentIOTests {
 
         Assert.False(Directory.Exists(directory));
         Assert.False(File.Exists(outputPath));
+    }
+
+    [Fact]
+    public async Task SaveAsync_DefaultLiteralBindsToTheCancellationTokenOverload() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-save-default-token-" + Guid.NewGuid().ToString("N"));
+        string outputPath = Path.Combine(directory, "document.pdf");
+        try {
+            await BuildDocument("Default cancellation token").SaveAsync(outputPath, default);
+
+            Assert.True(File.Exists(outputPath));
+            Assert.Equal("Default cancellation token", PdfInspector.Inspect(outputPath).Metadata.Title);
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]

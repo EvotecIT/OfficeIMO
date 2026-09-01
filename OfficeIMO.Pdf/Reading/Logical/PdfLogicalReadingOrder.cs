@@ -162,9 +162,22 @@ public static class PdfLogicalReadingOrderAnalysis {
         }
         AddBand(positioned.Where(item => !consumed.Contains(item) && item.Top >= bandTop), ordered, consumed);
         // Overlapping content can fall inside a wide table or visual band without being
-        // represented by that semantic projection. Preserve every remaining candidate so
-        // canonical text and conversion adapters never lose readable page content.
-        AddBand(positioned.Where(item => !consumed.Contains(item)), ordered, consumed);
+        // represented by that semantic projection. Merge those candidates back at their
+        // visual position instead of appending them after lower-page content.
+        foreach (Candidate item in positioned
+            .Where(item => !consumed.Contains(item))
+            .OrderBy(static item => item.Top)
+            .ThenBy(static item => item.Left)
+            .ThenBy(static item => item.Sequence)) {
+            item.ColumnIndex = 0;
+            int insertionIndex = ordered.FindIndex(existing =>
+                existing.Top > item.Top ||
+                existing.Top == item.Top && existing.Left > item.Left ||
+                existing.Top == item.Top && existing.Left == item.Left && existing.Sequence > item.Sequence);
+            if (insertionIndex < 0) ordered.Add(item);
+            else ordered.Insert(insertionIndex, item);
+            consumed.Add(item);
+        }
         ordered.AddRange(unpositioned);
 
         var result = new PdfLogicalReadingOrderItem[ordered.Count];

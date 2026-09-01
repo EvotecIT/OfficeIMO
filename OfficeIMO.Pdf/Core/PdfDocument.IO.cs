@@ -228,7 +228,7 @@ public sealed partial class PdfDocument {
     public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(
         string path,
         OfficeConversionFileConflictPolicy conflictPolicy,
-        System.Threading.CancellationToken cancellationToken = default) {
+        System.Threading.CancellationToken cancellationToken) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         string fullPath = ValidateOutputPath(path);
         cancellationToken.ThrowIfCancellationRequested();

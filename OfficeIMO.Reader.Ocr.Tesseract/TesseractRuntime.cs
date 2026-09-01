@@ -44,8 +44,13 @@ public static class TesseractRuntime {
     public static bool TryDiscover(string? executablePath, out TesseractRuntimeInfo? runtime) {
         runtime = null;
         string? requested = string.IsNullOrWhiteSpace(executablePath) ? null : executablePath!.Trim();
-        if (LooksLikePath(requested)) {
-            return TryCreate(requested!, TesseractRuntimeSource.Explicit, out runtime);
+        if (requested != null) {
+            if (LooksLikePath(requested)) {
+                return TryCreate(requested, TesseractRuntimeSource.Explicit, out runtime);
+            }
+            if (TryFindOnPath(requested, out string? requestedPath) &&
+                TryCreate(requestedPath!, TesseractRuntimeSource.Path, out runtime)) return true;
+            return false;
         }
 
         foreach (string variable in new[] { "OFFICEIMO_TESSERACT_PATH", "TESSERACT_PATH" }) {
@@ -53,7 +58,7 @@ public static class TesseractRuntime {
             if (!string.IsNullOrWhiteSpace(value) && TryCreate(value!, TesseractRuntimeSource.Environment, out runtime)) return true;
         }
 
-        string executableName = requested ?? PlatformExecutableName();
+        string executableName = PlatformExecutableName();
         if (TryFindOnPath(executableName, out string? path) && TryCreate(path!, TesseractRuntimeSource.Path, out runtime)) return true;
         foreach (string candidate in GetKnownLocations()) {
             if (TryCreate(candidate, TesseractRuntimeSource.KnownLocation, out runtime)) return true;

@@ -146,6 +146,30 @@ public sealed class ReaderOcrTesseractTests {
     }
 
     [Fact]
+    public void TesseractRuntime_DoesNotFallBackWhenACallerSuppliesAMissingExecutableName() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-tesseract-explicit-name-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string executable = Path.Combine(root, Environment.OSVersion.Platform == PlatformID.Win32NT ? "tesseract.exe" : "tesseract");
+        File.WriteAllBytes(executable, Array.Empty<byte>());
+#if NET8_0_OR_GREATER
+        if (!OperatingSystem.IsWindows()) {
+            File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+#endif
+        string? previous = Environment.GetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH");
+        try {
+            Environment.SetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH", executable);
+
+            Assert.False(TesseractRuntime.TryDiscover("missing-tesseract-command", out TesseractRuntimeInfo? runtime));
+            Assert.Null(runtime);
+            Assert.Throws<FileNotFoundException>(() => TesseractRuntime.Discover("missing-tesseract-command"));
+        } finally {
+            Environment.SetEnvironmentVariable("OFFICEIMO_TESSERACT_PATH", previous);
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task TesseractLanguageData_VerifiesDownloadsAndReusesValidCache() {
         byte[] payload = Encoding.UTF8.GetBytes("pinned-language-model");
         string hash;

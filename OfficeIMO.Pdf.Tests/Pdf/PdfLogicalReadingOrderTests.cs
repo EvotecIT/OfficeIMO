@@ -261,13 +261,18 @@ public sealed class PdfLogicalReadingOrderTests {
             new[] { PdfTableCell.Span(new[] { new PdfTextRun("Follow-up", bold: true, fontSize: 15) }, 3) },
             new[] { PdfTableCell.TextCell("Release"), PdfTableCell.TextCell("Ready"), PdfTableCell.TextCell("OfficeIMO") }
         };
-        byte[] pdf = PdfDocument.Create().Table(rows, style: style).ToBytes();
+        byte[] pdf = PdfDocument.Create()
+            .Table(rows, style: style)
+            .Paragraph(paragraph => paragraph.Text("Content below the table"))
+            .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read();
 
         Assert.Contains(logical.TextBlocks, static block => block.Text == "Identity systems");
         Assert.Contains("Identity systems", logical.Text, StringComparison.Ordinal);
         Assert.Contains("Follow-up", logical.Text, StringComparison.Ordinal);
+        AssertInOrder(logical.Text, "Identity systems", "Content below the table");
+        AssertInOrder(logical.Text, "Follow-up", "Content below the table");
     }
 
     [Fact]
