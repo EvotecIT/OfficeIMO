@@ -380,7 +380,7 @@ public partial class PdfPageImageRendererTests {
         string glyph = BuildStreamObject(6, "<<", glyphContent);
         string pattern = BuildStreamObject(7, "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 10 /YStep 10 /Resources << >>", patternContent);
         byte[] pdf = BuildSingleStreamPdf(pageContent, "<< /Font << /FType3 5 0 R >> >>", type3Font, glyph, pattern);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxPageContentBytes = pageContent.Length + glyphContent.Length + patternContent.Length + 64
             }
@@ -411,7 +411,7 @@ public partial class PdfPageImageRendererTests {
         int independentlyValidBudget = Math.Max(
             patternContent.Length,
             pageContent.Length + glyphContent.Length + formContent.Length) + 32;
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxPageContentBytes = independentlyValidBudget }
         });
 
@@ -428,7 +428,7 @@ public partial class PdfPageImageRendererTests {
         string innerFont = "8 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 9 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string innerGlyph = BuildStreamObject(9, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FOuter 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FOuter 5 0 R >> >>", outerFont, outerGlyph, pattern, innerFont, innerGlyph);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
         });
 
@@ -958,7 +958,7 @@ public partial class PdfPageImageRendererTests {
         string innerFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /A 10 0 R >> /Encoding << /Differences [65 /A] >> /FirstChar 65 /LastChar 65 /Widths [500] /Resources << >> >>\nendobj";
         string innerGlyph = BuildStreamObject(10, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FOuter 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FOuter 5 0 R >> >>", outerFont, outerGlyph, middleFont, middleGlyph, innerFont, innerGlyph);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 1 }
         });
 

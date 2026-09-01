@@ -11,7 +11,7 @@ internal static class PdfCorpusProbe {
         PdfDocumentInfo? documentInfo = null;
 
         Measure(stages, "inspect", () => {
-            document = PdfDocument.Open(snapshot);
+            document = PdfDocument.Load(snapshot);
             documentInfo = document.Inspect();
             evidence.PageCount = documentInfo.PageCount;
         });
@@ -21,28 +21,28 @@ internal static class PdfCorpusProbe {
         }
 
         Measure(stages, "logical-semantics", () => {
-            PdfLogicalDocument logical = document.Read.Logical();
+            PdfDocumentReadResult logical = document.Read();
             evidence.ParagraphCount = logical.Paragraphs.Count;
             evidence.TableCount = logical.Tables.Count;
             evidence.CrossPageParagraphCount = logical.GetParagraphContinuationGroups().Count(group => group.SpansPages);
             evidence.CrossPageTableCount = logical.GetTableContinuationGroups().Count(group => group.SpansPages);
         });
         Measure(stages, "fonts", () => {
-            PdfFontInventory fonts = document.Read.Fonts();
+            PdfFontInventory fonts = document.Resources.Fonts();
             evidence.FontCount = fonts.FontCount;
             evidence.EmbeddedFontCount = fonts.EmbeddedFontCount;
             evidence.ParsedEmbeddedOpenTypeFontCount = fonts.Fonts.Count(static font => font.EmbeddedOpenTypeInfo is not null);
             evidence.MissingToUnicodeFontCount = fonts.MissingToUnicodeFontCount;
         });
         Measure(stages, "images", () => {
-            evidence.ImageCount = document.Read.Images().Count;
-            evidence.ImagePlacementCount = document.Read.ImagePlacements().Count;
+            evidence.ImageCount = document.Images.Extract().Count;
+            evidence.ImagePlacementCount = document.Images.Placements().Count;
         });
         Measure(stages, "managed-first-page-render", () => {
             if (documentInfo is null || evidence.PageCount == 0) {
                 throw new InvalidDataException("Document inspection did not expose a renderable PDF page.");
             }
-            IReadOnlyList<PdfPageRenderResult> renders = document.Read.RenderPages(
+            IReadOnlyList<PdfPageRenderResult> renders = document.Render.Pages(
                 "1",
                 new PdfPageRenderOptions {
                     Format = PdfPageRenderFormat.Svg,

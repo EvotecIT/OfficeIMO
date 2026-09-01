@@ -44,7 +44,7 @@ public class PdfRedactionSearchCleanupTests {
     public void Search_LogicalKindProducesReviewablePlanWithoutApplyingIt() {
         byte[] source = PdfDocument.Create().H1("Confidential heading").Paragraph(p => p.Text("Retained paragraph")).ToBytes();
 
-        PdfRedactionPlan plan = PdfDocument.Open(source).SearchRedactions(new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
+        PdfRedactionPlan plan = PdfDocument.Load(source).SearchRedactions(new PdfRedactionSearchOptions().AddLogicalKind(PdfLogicalElementKind.Heading));
 
         Assert.True(plan.IsSearchDriven);
         Assert.Single(plan.SearchCriteria);
@@ -99,7 +99,7 @@ public class PdfRedactionSearchCleanupTests {
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
         }));
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { new PdfRedactionArea(1, 15, 15, 10, 10) });
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 24 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 24 } };
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfRedactionApplier.Apply(source, plan, readOptions: readOptions));
@@ -123,7 +123,7 @@ public class PdfRedactionSearchCleanupTests {
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
         PdfRedactionPlan plan = PdfRedactionPlanner.Search(source, new PdfRedactionSearchOptions().AddLiteral("SECRET"));
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxDecodedStreamBytes = 16 } };
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
             PdfRedactionApplier.Apply(source, plan, readOptions: readOptions));

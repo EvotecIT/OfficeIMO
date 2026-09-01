@@ -7,7 +7,7 @@ internal static class PdfEditorCommandFactory {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(gesture);
         ArgumentNullException.ThrowIfNull(properties);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocument.Load(pdf).Read(new PdfReadOptions { Profile = PdfReadProfile.Fast });
         PdfLogicalPage page = logical.Pages.FirstOrDefault(candidate => candidate.PageNumber == gesture.PageNumber)
             ?? throw new ArgumentOutOfRangeException(nameof(gesture), "The editor gesture page does not exist in the PDF.");
         PdfPageRectangle bounds = page.MapVisualRectangleToUserSpace(

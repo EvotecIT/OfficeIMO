@@ -63,7 +63,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-docx": {
-                PdfDocument pdf = PdfDocument.Open(request.InputPath, request.PdfReadOptions);
+                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
                 PdfWordConversionResult conversion = pdf.ToWordDocumentResult(new PdfWordImportOptions {
                     CancellationToken = cancellationToken
                 });
@@ -77,7 +77,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-xlsx": {
-                PdfDocument pdf = PdfDocument.Open(request.InputPath, request.PdfReadOptions);
+                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
                 PdfExcelTableImportResult conversion = pdf.ImportTablesToExcelDocumentResult(new PdfExcelTableImportOptions {
                     CancellationToken = cancellationToken
                 });
@@ -97,7 +97,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-pptx": {
-                PdfDocument pdf = PdfDocument.Open(request.InputPath, request.PdfReadOptions);
+                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
                 PdfPowerPointConversionResult conversion = pdf.ToPowerPointPresentationResult(
                     CreatePowerPointImportOptions(cancellationToken));
                 using PowerPointPresentation document = conversion.Value;
@@ -110,7 +110,7 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "pdf-html": {
-                PdfDocument pdf = PdfDocument.Open(request.InputPath, request.PdfReadOptions);
+                PdfDocument pdf = PdfDocument.Load(request.InputPath, request.PdfLoadOptions);
                 PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlSaveOptions {
                     Profile = PdfHtmlProfile.PositionedReview,
                     IncludeLinkAnnotations = true,

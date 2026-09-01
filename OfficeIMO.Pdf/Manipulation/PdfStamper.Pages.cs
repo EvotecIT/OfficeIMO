@@ -1,21 +1,22 @@
 using OfficeIMO.Pdf.Filters;
+using OfficeIMO.Drawing;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
     /// <summary>Imports one source PDF page as a Form XObject above selected target pages.</summary>
-    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
         return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: false), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject below selected target pages.</summary>
-    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
         return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: true), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject using the requested content order.</summary>
-    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfReadOptions? targetReadOptions = null) {
+    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
         return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions(), targetReadOptions);
     }
 
@@ -34,7 +35,7 @@ internal static partial class PdfStamper {
         return UnderlayPage(ReadStream(targetPdf, nameof(targetPdf)), ReadStream(sourcePdf, nameof(sourcePdf)), options);
     }
 
-    private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfReadOptions? targetReadOptions = null) {
+    private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfLoadOptions? targetReadOptions = null) {
         return StampPageSetCore(
             targetPdf,
             new[] { new PageStampRequest(sourcePdf, options) },
@@ -44,7 +45,7 @@ internal static partial class PdfStamper {
     private static byte[] StampPageSetCore(
         byte[] targetPdf,
         IReadOnlyList<PageStampRequest> requests,
-        PdfReadOptions? targetReadOptions = null) {
+        PdfLoadOptions? targetReadOptions = null) {
         Guard.NotNull(targetPdf, nameof(targetPdf));
         Guard.NotNull(requests, nameof(requests));
         if (requests.Count == 0) {
@@ -61,6 +62,7 @@ internal static partial class PdfStamper {
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         var reservedFormResourceNames = new HashSet<string>(StringComparer.Ordinal);
         var reservedGraphicsStateResourceNames = new HashSet<string>(StringComparer.Ordinal);
+        var isolatedOverlayPages = new HashSet<int>();
         PdfFileVersion outputVersion = PdfPageExtractor.GetSourceFileVersion(targetPdf);
 
         for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
@@ -69,7 +71,7 @@ internal static partial class PdfStamper {
             PdfPageOverlayOptions options = request.Options;
             Guard.NotNull(sourcePdf, nameof(requests));
             Guard.NotNull(options, nameof(requests));
-            PdfReadOptions? sourceReadOptions = options.SourceReadOptions;
+            PdfLoadOptions? sourceReadOptions = options.SourceReadOptions;
             _ = PdfMutationPlanner.RequireFullRewrite(sourcePdf, PdfMutationOperation.ExtractPages, sourceReadOptions);
 
             var (sourceObjects, _) = PdfSyntax.ParseObjects(sourcePdf, sourceReadOptions);
@@ -113,11 +115,12 @@ internal static partial class PdfStamper {
             targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
 
             int graphicsStateObjectNumber = 0;
-            if (options.Opacity < 1D) {
+            if (options.Opacity < 1D || options.BlendMode != OfficeBlendMode.Normal) {
                 var graphicsState = new PdfDictionary();
                 graphicsState.Items["Type"] = new PdfName("ExtGState");
                 graphicsState.Items["ca"] = new PdfNumber(options.Opacity);
                 graphicsState.Items["CA"] = new PdfNumber(options.Opacity);
+                if (options.BlendMode != OfficeBlendMode.Normal) graphicsState.Items["BM"] = new PdfName(options.BlendMode.ToString());
                 graphicsStateObjectNumber = nextObjectNumber++;
                 targetObjects[graphicsStateObjectNumber] = new PdfIndirectObject(graphicsStateObjectNumber, 0, graphicsState);
             }
@@ -141,6 +144,10 @@ internal static partial class PdfStamper {
                 PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
                 int stampObjectNumber = nextObjectNumber++;
                 targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
+                Dictionary<string, PdfObject>? existingOverride = overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? currentOverride)
+                    ? currentOverride
+                    : null;
+                bool isolateExistingContents = !options.BehindContent && isolatedOverlayPages.Add(targetPage.ObjectNumber);
                 overrides[targetPage.ObjectNumber] = BuildImportedPageOverrides(
                     targetObjects,
                     targetPage.ObjectNumber,
@@ -150,9 +157,9 @@ internal static partial class PdfStamper {
                     graphicsStateObjectNumber,
                     stampObjectNumber,
                     options.BehindContent,
-                    overrides.TryGetValue(targetPage.ObjectNumber, out Dictionary<string, PdfObject>? existingOverride)
-                        ? existingOverride
-                        : null);
+                    existingOverride,
+                    isolateExistingContents,
+                    ref nextObjectNumber);
             }
 
             PdfFileVersion sourceVersion = PdfPageExtractor.GetSourceFileVersion(sourcePdf);
@@ -277,11 +284,14 @@ internal static partial class PdfStamper {
         int graphicsStateObjectNumber,
         int stampObjectNumber,
         bool behindContent,
-        Dictionary<string, PdfObject>? existingOverride = null) {
+        Dictionary<string, PdfObject>? existingOverride,
+        bool isolateExistingContents,
+        ref int nextObjectNumber) {
         PdfDictionary page = (PdfDictionary)objects[pageObjectNumber].Value;
         PdfObject? existingContents = existingOverride != null && existingOverride.TryGetValue("Contents", out PdfObject? overriddenContents)
             ? overriddenContents
             : page.Items.TryGetValue("Contents", out PdfObject? pageContents) ? pageContents : null;
+        if (isolateExistingContents && existingContents != null) existingContents = IsolateContents(objects, existingContents, ref nextObjectNumber);
         PdfArray contents = BuildContentsArray(objects, existingContents, stampObjectNumber, behindContent);
         PdfObject? existingResources = existingOverride != null && existingOverride.TryGetValue("Resources", out PdfObject? overriddenResources)
             ? overriddenResources

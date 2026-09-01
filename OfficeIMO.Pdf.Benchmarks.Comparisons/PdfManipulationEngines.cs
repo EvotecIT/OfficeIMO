@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
 
 internal static class PdfManipulationEngines {
     internal static byte[][] SplitWithOfficeImo(byte[] source, int pagesPerDocument) {
-        OfficePdfDocument document = OfficePdfDocument.Open(source);
+        OfficePdfDocument document = OfficePdfDocument.Load(source);
         IReadOnlyList<OfficePdfDocument> outputs = pagesPerDocument == 1
             ? document.Pages.Split()
             : document.Pages.Split(pagesPerDocument);
@@ -50,7 +50,7 @@ internal static class PdfManipulationEngines {
     }
 
     internal static byte[] MergeWithOfficeImo(byte[][] sources) =>
-        OfficePdfDocument.Merge(sources.Select(static source => OfficePdfDocument.Open(source))).ToBytes();
+        OfficePdfDocument.Merge(sources.Select(static source => OfficePdfDocument.Load(source))).ToBytes();
 
     internal static byte[] MergeWithIText(byte[][] sources) {
         using var outputStream = new MemoryStream();
@@ -86,7 +86,7 @@ internal static class PdfManipulationEngines {
     }
 
     internal static byte[] SelectWithOfficeImo(byte[] source, int[] pageNumbers) {
-        OfficePdfDocument output = OfficePdfDocument.Open(source).Pages.Extract(pageNumbers);
+        OfficePdfDocument output = OfficePdfDocument.Load(source).Pages.Extract(pageNumbers);
         int? actualPageCount = output.Pipeline.Output?.PageCount;
         if (actualPageCount != pageNumbers.Length) {
             throw new InvalidDataException(

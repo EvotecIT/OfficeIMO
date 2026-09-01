@@ -13,7 +13,7 @@ internal static partial class PdfOptimizer {
     internal static PdfOptimizationActionResult Optimize(
         byte[] pdf,
         PdfOptimizationOptions? options,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfOptimizationOptions effectiveOptions = (options ?? new PdfOptimizationOptions()).Clone();
         System.Threading.CancellationToken cancellationToken = effectiveOptions.CancellationToken;
@@ -76,7 +76,7 @@ internal static partial class PdfOptimizer {
         if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
-        PdfReadOptions candidateReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, candidate.LongLength);
+        PdfLoadOptions candidateReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, candidate.LongLength);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions);
         cancellationToken.ThrowIfCancellationRequested();
         var preservationOptions = new PdfRewritePreservationOptions {
@@ -131,7 +131,7 @@ internal static partial class PdfOptimizer {
     internal static PdfOptimizationActionResult Optimize(
         byte[] pdf,
         PdfOptimizationProfile profile,
-        PdfReadOptions? readOptions) =>
+        PdfLoadOptions? readOptions) =>
         Optimize(pdf, PdfOptimizationOptions.Create(profile), readOptions);
 
     /// <summary>Optimizes a PDF file with lossless actions.</summary>

@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Tagged PDF structure metadata discovered from /MarkInfo and /StructTreeRoot.</summary>
     public PdfTaggedContentInfo? TaggedContent { get; }
 

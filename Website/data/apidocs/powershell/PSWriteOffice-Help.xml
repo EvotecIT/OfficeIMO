@@ -26846,9 +26846,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Optional bounded read settings for the target PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -26894,9 +26894,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
           <maml:description>
             <maml:para>Optional bounded read settings for the imported source PDF.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -27106,9 +27106,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Optional bounded read settings for the target PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -27154,9 +27154,9 @@ This does not discover, bypass, or crack a missing password.</maml:para>
         <maml:description>
           <maml:para>Optional bounded read settings for the imported source PDF.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -53370,9 +53370,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Optional bounded read settings for the actual document.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -53454,9 +53454,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Optional bounded read settings for the expected document.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -53493,9 +53493,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Optional bounded read settings for the actual document.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -53577,9 +53577,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Optional bounded read settings for the expected document.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -66103,9 +66103,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
           <maml:description>
             <maml:para>Optional bounded PDF parsing and password settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -66178,9 +66178,9 @@ cells. This keeps existing-document editing simple without forcing callers back 
         <maml:description>
           <maml:para>Optional bounded PDF parsing and password settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -77363,9 +77363,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Optional bounded PDF parsing settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -77469,9 +77469,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <maml:description>
           <maml:para>Optional bounded PDF parsing settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -77630,9 +77630,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Optional bounded PDF parsing settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -77757,9 +77757,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <maml:description>
           <maml:para>Optional bounded PDF parsing settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -77887,9 +77887,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
           <maml:description>
             <maml:para>Optional bounded PDF parsing and password settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -77962,9 +77962,9 @@ such as a rich generated header or footer. Styling remains owned by New-OfficeTe
         <maml:description>
           <maml:para>Optional bounded PDF parsing and password settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -103870,9 +103870,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
           <maml:description>
             <maml:para>Optional bounded PDF parsing settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -103945,9 +103945,9 @@ and existing PDFs before follow-up operations such as splitting, stamping, or me
         <maml:description>
           <maml:para>Optional bounded PDF parsing settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -117611,9 +117611,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Optional bounded PDF parsing and password settings for the source form.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -117722,9 +117722,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Optional bounded PDF parsing and password settings for the source form.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -117833,9 +117833,9 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:description>
           <maml:para>Optional bounded PDF parsing and password settings for the source form.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>
@@ -121583,9 +121583,9 @@ the script needs to work with list objects directly instead of using a text sear
           <maml:description>
             <maml:para>Optional bounded PDF parsing settings.</maml:para>
           </maml:description>
-          <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+          <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
           <dev:type>
-            <maml:name>PdfReadOptions</maml:name>
+            <maml:name>PdfLoadOptions</maml:name>
             <maml:uri />
           </dev:type>
           <dev:defaultValue>None</dev:defaultValue>
@@ -121658,9 +121658,9 @@ the script needs to work with list objects directly instead of using a text sear
         <maml:description>
           <maml:para>Optional bounded PDF parsing settings.</maml:para>
         </maml:description>
-        <command:parameterValue required="false" variableLength="false">PdfReadOptions</command:parameterValue>
+        <command:parameterValue required="false" variableLength="false">PdfLoadOptions</command:parameterValue>
         <dev:type>
-          <maml:name>PdfReadOptions</maml:name>
+          <maml:name>PdfLoadOptions</maml:name>
           <maml:uri />
         </dev:type>
         <dev:defaultValue>None</dev:defaultValue>

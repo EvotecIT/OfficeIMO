@@ -55,7 +55,7 @@ public class RtfPdfImportTests {
                 .Color(PdfCore.PdfColor.FromRgb(0, 0, 255))
                 .Italic(" italic blue"))
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         PdfCore.PdfLogicalListItem logicalItem = Assert.Single(logical.ListItems);
         Assert.Equal(logicalItem.Text, string.Concat(logicalItem.Runs.Select(run => run.Text)));
 
@@ -129,12 +129,12 @@ public class RtfPdfImportTests {
             File.WriteAllBytes(pdfPath, pdf);
 
             using MemoryStream pdfStream = new MemoryStream(pdf);
-            RtfDocument fromStream = PdfCore.PdfLogicalDocument
+            RtfDocument fromStream = PdfCore.PdfDocumentReadResult
                 .Load(pdfStream, CreateLayoutOptions())
                 .ToRtfDocument(CreateImportOptions());
             Assert.Contains(fromStream.Paragraphs, paragraph => paragraph.ToPlainText() == "First bullet");
 
-            RtfDocument fromFile = PdfCore.PdfLogicalDocument
+            RtfDocument fromFile = PdfCore.PdfDocumentReadResult
                 .Load(pdfPath, CreateLayoutOptions())
                 .ToRtfDocument(CreateImportOptions());
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
@@ -169,7 +169,7 @@ public class RtfPdfImportTests {
     [Fact]
     public async Task PdfDocument_RtfFacade_ReturnsDiagnosticsAndSupportsSyncAndAsyncSave() {
         byte[] pdf = CreateSemanticPdf();
-        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(pdf);
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(pdf);
 
         PdfRtfConversionResult result = opened.ToRtfDocumentResult(CreateImportOptions());
         Assert.False(result.HasLoss);
@@ -195,7 +195,7 @@ public class RtfPdfImportTests {
                 PdfCore.PdfKeyValueRow.Text("Due", "2026-06-30")
             })
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadSemanticPdf(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadSemanticPdf(pdf);
         Assert.NotEmpty(logical.Tables);
 
         PdfRtfConversionResult result = logical.ToRtfDocumentResult();
@@ -210,8 +210,8 @@ public class RtfPdfImportTests {
 
     private static PdfRtfImportOptions CreateImportOptions() => new PdfRtfImportOptions();
 
-    private static PdfCore.PdfLogicalDocument LoadSemanticPdf(byte[] pdf) =>
-        PdfCore.PdfLogicalDocument.Load(pdf, CreateLayoutOptions());
+    private static PdfCore.PdfDocumentReadResult LoadSemanticPdf(byte[] pdf) =>
+        PdfCore.PdfDocumentReadResult.Load(pdf, CreateLayoutOptions());
 
     private static PdfCore.PdfTextLayoutOptions CreateLayoutOptions() => new PdfCore.PdfTextLayoutOptions {
         ForceSingleColumn = true

@@ -27,10 +27,10 @@ public sealed class PdfDocumentSecurity {
         _document.TryReencrypt(currentOwnerPassword, newEncryption);
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers.</summary>
-    public PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) => _document.ValidateSignatures(options);
+    public PdfSignatureValidationReport ValidateSignatures(PdfLoadOptions? options = null) => _document.ValidateSignatures(options);
 
     /// <summary>Validates signatures with caller-provided CMS, trust, timestamp, and revocation policy.</summary>
-    public PdfSignatureValidationReport ValidateSignatures(IPdfSignatureCryptographyProvider cryptographyProvider, PdfReadOptions? options = null) =>
+    public PdfSignatureValidationReport ValidateSignatures(IPdfSignatureCryptographyProvider cryptographyProvider, PdfLoadOptions? options = null) =>
         _document.ValidateSignatures(cryptographyProvider, options);
 
     /// <summary>Prepares a placeholder and byte ranges for an externally produced signature.</summary>
@@ -38,7 +38,7 @@ public sealed class PdfDocumentSecurity {
         _document.PrepareExternalSignature(options);
 
     /// <summary>Attempts to prepare an external signature through document preflight.</summary>
-    public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) =>
+    public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfLoadOptions? options = null) =>
         _document.TryPrepareExternalSignature(signatureOptions, options);
 
     /// <summary>Completes the most recently prepared external signature with encoded CMS bytes.</summary>

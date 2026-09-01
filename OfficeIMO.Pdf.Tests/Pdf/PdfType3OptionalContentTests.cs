@@ -306,7 +306,7 @@ public class PdfType3OptionalContentTests {
         byte[] pdf = BuildType3OptionalContentPdf(
             nestedForm: false,
             inlineMembershipDictionary: "<< /Type /OCMD /OCGs [10 0 R] /P /AnyOn /VE " + expression + " >>");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 256 }
         };
 

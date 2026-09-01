@@ -20,7 +20,7 @@ public sealed class PdfDrawingSvgImageTests {
             .ToBytes();
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
-        PdfExtractedImage extracted = Assert.Single(PdfDocument.Open(pdf).Read.Images());
+        PdfExtractedImage extracted = Assert.Single(PdfDocument.Load(pdf).Reader.Images());
         Assert.True(OfficeRasterImageDecoder.TryDecode(extracted.Bytes, out OfficeRasterImage? raster));
         Assert.NotNull(raster);
         byte[] pixels = raster!.GetPixels().ToArray();

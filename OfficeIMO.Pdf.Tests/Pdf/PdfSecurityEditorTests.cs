@@ -13,7 +13,7 @@ public class PdfSecurityEditorTests {
         };
 
         PdfSecurityMutationResult result = PdfSecurityEditor.Encrypt(source, encryption);
-        PdfDocumentInfo output = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "new-open" });
+        PdfDocumentInfo output = PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "new-open" });
 
         Assert.Equal(PdfSecurityMutationKind.Encrypt, result.Kind);
         Assert.Equal(PdfMutationExecutionMode.FullRewrite, result.MutationPlan.ExecutionMode);
@@ -25,7 +25,7 @@ public class PdfSecurityEditorTests {
         Assert.Equal(result.PreservationReport.Original.PageCount, output.PageCount);
         Assert.Equal(result.PreservationReport.Original.Attachments.Count, output.Attachments.Count);
         Assert.Equal(result.PreservationReport.Original.Outlines.Count, output.Outlines.Count);
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "wrong" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "wrong" }));
     }
 
     [Fact]
@@ -38,8 +38,8 @@ public class PdfSecurityEditorTests {
         PdfMutationPlan userPlan = PdfMutationPlanner.Plan(
             encrypted,
             PdfMutationOperation.ChangeEncryption,
-            new PdfReadOptions { Password = "open" });
-        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Open(encrypted).TryDecrypt("open");
+            new PdfLoadOptions { Password = "open" });
+        PdfOperationResult<PdfSecurityMutationResult> refused = PdfDocument.Load(encrypted).TryDecrypt("open");
         PdfSecurityMutationResult result = PdfSecurityEditor.Decrypt(encrypted, "owner");
 
         Assert.Equal(PdfPasswordAuthenticationRole.User, userPlan.Preflight.Probe.Security.PasswordAuthenticationRole);
@@ -64,9 +64,9 @@ public class PdfSecurityEditorTests {
             AllowedPermissions = PdfStandardPermissions.FillForms
         };
 
-        PdfSecurityMutationResult result = PdfDocument.Open(encrypted).Reencrypt("old-owner", replacement);
-        PdfDocumentInfo userInfo = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "new-open" });
-        PdfDocumentInfo ownerInfo = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "new-owner" });
+        PdfSecurityMutationResult result = PdfDocument.Load(encrypted).Reencrypt("old-owner", replacement);
+        PdfDocumentInfo userInfo = PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "new-open" });
+        PdfDocumentInfo ownerInfo = PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "new-owner" });
 
         Assert.Equal(PdfSecurityMutationKind.Reencrypt, result.Kind);
         Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
@@ -75,12 +75,12 @@ public class PdfSecurityEditorTests {
         Assert.Equal(PdfStandardPermissions.FillForms, userInfo.Security.AllowedStandardPermissions);
         Assert.Equal(PdfPasswordAuthenticationRole.User, userInfo.Security.PasswordAuthenticationRole);
         Assert.Equal(PdfPasswordAuthenticationRole.Owner, ownerInfo.Security.PasswordAuthenticationRole);
-        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "old-open" }));
+        Assert.Throws<PdfInvalidPasswordException>(() => PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "old-open" }));
         Assert.Throws<PdfPermissionDeniedException>(() =>
-            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "new-open" }));
+            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "new-open" }));
         Assert.Contains(
             "Re-encryption proof",
-            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "new-owner" }),
+            PdfTextExtractor.ExtractAllText(result.Pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "new-owner" }),
             StringComparison.Ordinal);
     }
 
@@ -106,7 +106,7 @@ public class PdfSecurityEditorTests {
             PdfSecurityMutationResult result = PdfSecurityEditor.Encrypt(
                 sources[i],
                 new PdfStandardEncryptionOptions("corpus-open") { OwnerPassword = "corpus-owner" });
-            PdfDocumentInfo output = PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "corpus-open" });
+            PdfDocumentInfo output = PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "corpus-open" });
 
             Assert.True(result.PreservationReport.IsPreserved, "Case " + i + ": " + result.PreservationReport.Summary);
             Assert.True(output.Security.HasEncryption);
@@ -120,7 +120,7 @@ public class PdfSecurityEditorTests {
     [Fact]
     public void EncryptAllowsValidatedOutputToGrowBeyondExactSourceInputLimit() {
         byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
-        var sourceOptions = new PdfReadOptions {
+        var sourceOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
         };
 
@@ -130,7 +130,7 @@ public class PdfSecurityEditorTests {
             sourceOptions);
 
         Assert.True(result.Pdf.LongLength > source.LongLength);
-        Assert.True(PdfInspector.Inspect(result.Pdf, new PdfReadOptions { Password = "owner" }).Security.HasEncryption);
+        Assert.True(PdfInspector.Inspect(result.Pdf, new PdfLoadOptions { Password = "owner" }).Security.HasEncryption);
     }
 
     [Fact]
@@ -140,11 +140,11 @@ public class PdfSecurityEditorTests {
             "BT\n/F1 12 Tf\n72 760 Td\n(Visible artifact header) Tj\nET\n" +
             "EMC\n" +
             "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
-        var readOptions = new PdfReadOptions { IncludeArtifactText = true };
+        var readOptions = new PdfLoadOptions { IncludeArtifactText = true };
         var firstEncryption = new PdfStandardEncryptionOptions("first-open") { OwnerPassword = "first-owner" };
         var secondEncryption = new PdfStandardEncryptionOptions("second-open") { OwnerPassword = "second-owner" };
 
-        PdfDocument encrypted = PdfDocument.Open(source, readOptions)
+        PdfDocument encrypted = PdfDocument.Load(source, readOptions)
             .Encrypt(firstEncryption)
             .ToDocument();
         PdfDocument reencrypted = encrypted
@@ -154,9 +154,9 @@ public class PdfSecurityEditorTests {
             .Decrypt("second-owner")
             .ToDocument();
 
-        Assert.Contains("Visible artifact header", encrypted.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Visible artifact header", reencrypted.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Visible artifact header", decrypted.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Body text", decrypted.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Visible artifact header", encrypted.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Visible artifact header", reencrypted.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Visible artifact header", decrypted.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Body text", decrypted.Reader.Text(), StringComparison.Ordinal);
     }
 }

@@ -3,7 +3,7 @@
     <Description>Apache Arrow adapters for forward-only OfficeIMO and ADO.NET tabular readers.</Description>
     <AssemblyName>OfficeIMO.Data.Arrow</AssemblyName>
     <AssemblyTitle>OfficeIMO.Data.Arrow</AssemblyTitle>
-    <VersionPrefix>3.2.7</VersionPrefix>
+    <VersionPrefix>3.3.0</VersionPrefix>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IsPackable>true</IsPackable>

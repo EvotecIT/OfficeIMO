@@ -8,7 +8,7 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         PdfMergeCollisionMode collisionMode,
         List<PdfMergeDecision> decisions,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         ValidateXfaFormPolicy(sources, primarySourceIndex, mode);
         int totalCount = sources.Sum(static source => source.FormFieldCount);
         int incomingCount = sources.Where((source, index) => index != primarySourceIndex).Sum(static source => source.FormFieldCount);
@@ -202,7 +202,7 @@ internal static partial class PdfMerger {
         List<string> renamed,
         ref int dropped,
         out IReadOnlyList<string> expectedNames,
-        PdfReadOptions readOptions) {
+        PdfLoadOptions readOptions) {
         PdfReadDocument document = PdfReadDocument.Open(merged, readOptions);
         var names = new List<string>();
         int localDropped = dropped;
@@ -453,7 +453,7 @@ internal static partial class PdfMerger {
         return acroForm;
     }
 
-    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfReadOptions readOptions) {
+    private static void ValidateFormReadback(byte[] output, IReadOnlyList<string> expectedNames, PdfLoadOptions readOptions) {
         string[] actual = PdfReadDocument.Open(output, readOptions).FormFields.Select(static field => field.Name ?? string.Empty).OrderBy(static name => name, StringComparer.Ordinal).ToArray();
         if (!actual.SequenceEqual(expectedNames, StringComparer.Ordinal)) throw new InvalidOperationException("PDF AcroForm merge validation failed; the artifact was not returned.");
     }

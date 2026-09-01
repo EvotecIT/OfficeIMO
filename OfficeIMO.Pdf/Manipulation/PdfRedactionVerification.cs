@@ -10,11 +10,11 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport Verify(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(redactedPdf, nameof(redactedPdf));
         Guard.NotNull(options, nameof(options));
 
-        PdfReadOptions effectiveReadOptions = PdfReadOptions.Resolve(readOptions);
+        PdfLoadOptions effectiveReadOptions = PdfLoadOptions.Resolve(readOptions);
         string extractedText = PdfReadDocument.Open(redactedPdf, effectiveReadOptions).ExtractText();
         string rawPdf = options.CheckRawPdfBytes ? PdfEncoding.Latin1GetString(redactedPdf) : string.Empty;
         var issues = new List<PdfRedactionVerificationIssue>();
@@ -88,7 +88,7 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(reviewedPlan, nameof(reviewedPlan));
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfRedactionPlan residualPlan = PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
@@ -136,7 +136,7 @@ internal static partial class PdfRedactionVerification {
     public static PdfRedactionVerificationReport AssertVerified(
         byte[] redactedPdf,
         PdfRedactionVerificationOptions options,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         PdfRedactionVerificationReport report = Verify(redactedPdf, options, readOptions);
         report.ThrowIfFailed();
         return report;
@@ -147,7 +147,7 @@ internal static partial class PdfRedactionVerification {
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
         PdfRedactionVerificationOptions options,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         PdfRedactionVerificationReport report = VerifyAppliedPlan(redactedPdf, reviewedPlan, options, readOptions);
         report.ThrowIfFailed();
         return report;

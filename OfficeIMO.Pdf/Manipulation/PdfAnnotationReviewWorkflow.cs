@@ -95,7 +95,7 @@ public sealed class PdfAnnotationReviewCatalog {
     /// <summary>Reads all annotations and builds their reply threads.</summary>
     public static PdfAnnotationReviewCatalog Read(
         byte[] pdf,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         PdfAnnotationReviewCatalogOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         return Build(PdfInspector.Inspect(pdf, readOptions).Annotations, options);
@@ -203,7 +203,7 @@ public static class PdfAnnotationReviewEditor {
         int parentObjectNumber,
         string contents,
         PdfAnnotationReplyOptions? options = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.PositiveInteger(parentObjectNumber, nameof(parentObjectNumber));
         if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply contents cannot be empty.", nameof(contents));
@@ -247,7 +247,7 @@ public static class PdfAnnotationReviewEditor {
         PdfAnnotationReviewState state,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic,
         bool allowResidualDataInAppendOnly = false,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return PdfAnnotationEditor.UpdateAnnotation(pdf, annotationObjectNumber, new PdfAnnotationUpdateOptions {
             ReviewState = state,
             ExecutionPreference = executionPreference,

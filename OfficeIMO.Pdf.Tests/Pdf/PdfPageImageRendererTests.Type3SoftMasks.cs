@@ -300,7 +300,7 @@ public partial class PdfPageImageRendererTests {
         string nestedFont = "9 0 obj\n<< /Type /Font /Subtype /Type3 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 10 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(10, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj 60 0 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", type3Font, glyphA, outerState, outerMask, nestedFont, nestedGlyph);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
         });
 
@@ -336,7 +336,7 @@ public partial class PdfPageImageRendererTests {
             nestedMask,
             deepFont,
             deepGlyph);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 1 }
         });
 
@@ -368,7 +368,7 @@ public partial class PdfPageImageRendererTests {
             nestedGlyph,
             pattern,
             helvetica);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedTextCharacters = 1 }
         });
 
@@ -398,7 +398,7 @@ public partial class PdfPageImageRendererTests {
             pattern,
             firstForm,
             secondForm);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 4 }
         });
 
@@ -429,7 +429,7 @@ public partial class PdfPageImageRendererTests {
             nestedGlyph,
             pattern,
             nestedForm);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 4 }
         });
 
@@ -460,7 +460,7 @@ public partial class PdfPageImageRendererTests {
             maskGroup,
             pattern,
             nestedForm);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 4 }
         });
 
@@ -558,7 +558,7 @@ public partial class PdfPageImageRendererTests {
             outerState,
             outerMask,
             ordinaryFont);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             // The live output contains the page Type 3 character and one mask character.
             // Validation receives its own budget and must not charge either character twice.
             Limits = new PdfReadLimits { MaxDecodedTextCharacters = 2 }
@@ -597,7 +597,7 @@ public partial class PdfPageImageRendererTests {
         string nestedFont = "10 0 obj\n<< /Type /Font /Subtype /Type3 /PaintType 1 /FontBBox [0 0 500 700] /FontMatrix [0.001 0 0 0.001 0 0] /CharProcs << /B 11 0 R >> /Encoding << /Differences [66 /B] >> /FirstChar 66 /LastChar 66 /Widths [500] /Resources << >> >>\nendobj";
         string nestedGlyph = BuildStreamObject(11, "<<", "500 0 d0 0 0 500 700 re f");
         byte[] pdf = BuildSingleStreamPdf("BT /FType3 18 Tf 20 100 Td (A) Tj ET", "<< /Font << /FType3 5 0 R >> >>", outerFont, outerGlyph, outerState, outerMask, pattern, nestedFont, nestedGlyph);
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
         };
 

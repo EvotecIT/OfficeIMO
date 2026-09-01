@@ -11,8 +11,8 @@ public static class PdfVisualComparer {
         byte[] actualPdf,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
-        PdfReadOptions? expectedReadOptions = null,
-        PdfReadOptions? actualReadOptions = null) =>
+        PdfLoadOptions? expectedReadOptions = null,
+        PdfLoadOptions? actualReadOptions = null) =>
         Compare(expectedPdf, actualPdf, CancellationToken.None, selection, options, expectedReadOptions, actualReadOptions);
 
     /// <summary>Compares all common pages or a selected page set with cooperative cancellation.</summary>
@@ -22,8 +22,8 @@ public static class PdfVisualComparer {
         CancellationToken cancellationToken,
         PdfPageSelection? selection = null,
         PdfVisualComparisonOptions? options = null,
-        PdfReadOptions? expectedReadOptions = null,
-        PdfReadOptions? actualReadOptions = null) {
+        PdfLoadOptions? expectedReadOptions = null,
+        PdfLoadOptions? actualReadOptions = null) {
         Guard.NotNull(expectedPdf, nameof(expectedPdf));
         Guard.NotNull(actualPdf, nameof(actualPdf));
         PdfVisualComparisonOptions effectiveOptions = options ?? new PdfVisualComparisonOptions();

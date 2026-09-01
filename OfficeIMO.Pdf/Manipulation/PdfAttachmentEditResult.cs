@@ -18,8 +18,8 @@ public sealed class PdfAttachmentValidation {
 /// <summary>Edited PDF bytes with attachment and preservation proof.</summary>
 public sealed class PdfAttachmentEditResult {
     private readonly byte[] _pdf;
-    private readonly PdfReadOptions _readOptions;
-    internal PdfAttachmentEditResult(byte[] pdf, PdfMutationPlan plan, PdfRewritePreservationReport preservation, IReadOnlyList<PdfAttachmentValidation> validations, PdfReadOptions readOptions) { _pdf = (byte[])pdf.Clone(); _readOptions = readOptions; MutationPlan = plan; PreservationReport = preservation; Validations = validations; }
+    private readonly PdfLoadOptions _readOptions;
+    internal PdfAttachmentEditResult(byte[] pdf, PdfMutationPlan plan, PdfRewritePreservationReport preservation, IReadOnlyList<PdfAttachmentValidation> validations, PdfLoadOptions readOptions) { _pdf = (byte[])pdf.Clone(); _readOptions = readOptions; MutationPlan = plan; PreservationReport = preservation; Validations = validations; }
     /// <summary>Shared full-rewrite mutation plan.</summary>
     public PdfMutationPlan MutationPlan { get; }
     /// <summary>Proof that non-attachment structures survived the rewrite.</summary>
@@ -31,5 +31,5 @@ public sealed class PdfAttachmentEditResult {
     /// <summary>Returns a defensive copy of the edited PDF.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, _readOptions);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, _readOptions);
 }

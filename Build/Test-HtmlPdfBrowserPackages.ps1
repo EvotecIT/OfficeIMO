@@ -1,6 +1,6 @@
 param(
     [string] $HtmlTinkerXPackagePath,
-    [string] $OfficeIMOVersion = '3.2.5-browser-local',
+    [string] $OfficeIMOVersion = '3.3.0',
     [version] $MinimumHtmlTinkerXVersion = '3.0.1',
     [string] $ExpectedHtmlTinkerXCommit
 )

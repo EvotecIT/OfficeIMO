@@ -290,7 +290,7 @@ public sealed class ConverterTests {
         byte[] bytes = result.Value.ToBytes();
         using var stream = new MemoryStream();
         await section.SaveAsVisualPdfAsync(stream, options);
-        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Open(bytes).Read.DocumentInfo();
+        OfficeIMO.Pdf.PdfDocumentInfo info = OfficeIMO.Pdf.PdfDocument.Load(bytes).Inspect();
 
         Assert.DoesNotContain(
             result.Warnings,
@@ -319,10 +319,10 @@ public sealed class ConverterTests {
 
         Assert.Throws<PdfPasswordRequiredException>(() => PdfReadDocument.Open(bytes));
         Assert.Throws<PdfInvalidPasswordException>(() =>
-            PdfReadDocument.Open(bytes, new PdfReadOptions { Password = "wrong" }));
+            PdfReadDocument.Open(bytes, new PdfLoadOptions { Password = "wrong" }));
         Assert.Single(PdfReadDocument.Open(
             bytes,
-            new PdfReadOptions { Password = "open" }).Pages);
+            new PdfLoadOptions { Password = "open" }).Pages);
     }
 
     [Fact]

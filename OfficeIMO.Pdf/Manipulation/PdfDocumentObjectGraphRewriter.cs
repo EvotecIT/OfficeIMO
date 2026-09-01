@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 internal static class PdfDocumentObjectGraphRewriter {
     internal static byte[] Rewrite(
         byte[] sourcePdf,
-        PdfReadOptions? sourceReadOptions,
+        PdfLoadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
         Func<Dictionary<int, PdfIndirectObject>, PdfDocumentSecurityInfo, int?>? mutateObjectGraph = null,
         long? maximumOutputBytes = null) {

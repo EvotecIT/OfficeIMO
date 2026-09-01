@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextEditor {
-    private static IReadOnlyList<TextSearchHit> FindHits(byte[] pdf, string text, PdfTextSearchOptions? options, PdfReadOptions? readOptions) {
+    private static IReadOnlyList<TextSearchHit> FindHits(byte[] pdf, string text, PdfTextSearchOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(text, nameof(text));
         if (text.Length == 0) return Array.Empty<TextSearchHit>();

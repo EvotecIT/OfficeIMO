@@ -1,5 +1,23 @@
 namespace OfficeIMO.Pdf;
 
+/// <summary>One marked-content reference owned by a tagged-PDF structure element.</summary>
+public sealed class PdfMarkedContentReference {
+    internal PdfMarkedContentReference(int? pageObjectNumber, int markedContentId, int? contentStreamObjectNumber = null) {
+        PageObjectNumber = pageObjectNumber;
+        MarkedContentId = markedContentId;
+        ContentStreamObjectNumber = contentStreamObjectNumber;
+    }
+
+    /// <summary>Page object containing the marked content, when declared or inherited.</summary>
+    public int? PageObjectNumber { get; }
+
+    /// <summary>Content-stream-scoped marked-content identifier.</summary>
+    public int MarkedContentId { get; }
+
+    /// <summary>Form XObject or other content-stream object owning the MCID, or null for page content.</summary>
+    public int? ContentStreamObjectNumber { get; }
+}
+
 /// <summary>
 /// Lightweight readback metadata for one structure element in a tagged PDF structure tree.
 /// </summary>
@@ -12,7 +30,7 @@ public sealed class PdfStructureElementInfo {
         string? language,
         string? alternateText,
         IReadOnlyList<int> childElementObjectNumbers,
-        int markedContentReferenceCount,
+        IReadOnlyList<PdfMarkedContentReference> markedContentReferences,
         int objectReferenceCount) {
         ObjectNumber = objectNumber;
         StructureType = structureType;
@@ -21,7 +39,7 @@ public sealed class PdfStructureElementInfo {
         Language = language;
         AlternateText = alternateText;
         ChildElementObjectNumbers = childElementObjectNumbers;
-        MarkedContentReferenceCount = markedContentReferenceCount;
+        MarkedContentReferences = markedContentReferences;
         ObjectReferenceCount = objectReferenceCount;
     }
 
@@ -46,8 +64,11 @@ public sealed class PdfStructureElementInfo {
     /// <summary>Child structure element object numbers found in /K.</summary>
     public IReadOnlyList<int> ChildElementObjectNumbers { get; }
 
+    /// <summary>Marked-content references found in /K, retaining page and MCID provenance.</summary>
+    public IReadOnlyList<PdfMarkedContentReference> MarkedContentReferences { get; }
+
     /// <summary>Number of marked-content references found in /K.</summary>
-    public int MarkedContentReferenceCount { get; }
+    public int MarkedContentReferenceCount => MarkedContentReferences.Count;
 
     /// <summary>Number of annotation/object references found in /K.</summary>
     public int ObjectReferenceCount { get; }

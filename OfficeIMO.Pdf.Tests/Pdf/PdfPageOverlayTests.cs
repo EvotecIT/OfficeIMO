@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -54,6 +55,64 @@ public class PdfPageOverlayTests {
         Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OverlayPage_WritesBlendModeAtFullOpacity() {
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay")).ToBytes();
+
+        byte[] result = PdfStamper.OverlayPage(target, source, new PdfPageOverlayOptions {
+            BlendMode = OfficeBlendMode.Multiply
+        });
+
+        string raw = PdfEncoding.Latin1GetString(result);
+        Assert.Contains("/Type /ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("/BM /Multiply", raw, StringComparison.Ordinal);
+        Assert.Contains("/ca 1", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OverlayPage_IsolatesExistingContentBeforeAppendingStamp() {
+        byte[] target = Encoding.ASCII.GetBytes("""
+            %PDF-1.4
+            1 0 obj
+            << /Type /Catalog /Pages 2 0 R >>
+            endobj
+            2 0 obj
+            << /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>
+            endobj
+            3 0 obj
+            << /Type /Page /Parent 2 0 R /Resources << >> /Contents 4 0 R >>
+            endobj
+            4 0 obj
+            << /Length 20 >>
+            stream
+            2 0 0 2 25 30 cm
+            endstream
+            endobj
+            trailer
+            << /Root 1 0 R >>
+            %%EOF
+            """);
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Overlay")).ToBytes();
+
+        byte[] result = PdfStamper.OverlayPage(target, source);
+
+        var (objects, _) = PdfSyntax.ParseObjects(result);
+        PdfReadPage readPage = PdfReadDocument.Open(result).Pages[0];
+        PdfDictionary page = Assert.IsType<PdfDictionary>(objects[readPage.ObjectNumber].Value);
+        PdfArray contents = Assert.IsType<PdfArray>(page.Items["Contents"]);
+        string[] streams = contents.Items
+            .Select(item => Assert.IsType<PdfReference>(item))
+            .Select(reference => Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value))
+            .Select(stream => PdfEncoding.Latin1GetString(stream.Data).Trim())
+            .ToArray();
+
+        Assert.Equal("q", streams[0]);
+        Assert.Contains("2 0 0 2 25 30 cm", streams[1], StringComparison.Ordinal);
+        Assert.Equal("Q", streams[2]);
+        Assert.Contains("/OIMOStamp", streams[3], StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -87,7 +146,7 @@ public class PdfPageOverlayTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Rotated source"))
             .ToBytes();
-        source = PdfDocument.Open(source).Pages.Rotate(90, "1").ToBytes();
+        source = PdfDocument.Load(source).Pages.Rotate(90, "1").ToBytes();
         byte[] target = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Target"))
             .ToBytes();
@@ -135,13 +194,13 @@ public class PdfPageOverlayTests {
         string sourcePath = Path.Combine(Path.GetTempPath(), "officeimo-overlay-" + Guid.NewGuid().ToString("N") + ".pdf");
         File.WriteAllBytes(sourcePath, source);
         try {
-            PdfDocument fromPath = PdfDocument.Open(target).Stamp.OverlayPage(sourcePath);
+            PdfDocument fromPath = PdfDocument.Load(target).Stamp.OverlayPage(sourcePath);
             using var sourceStream = new MemoryStream(source, writable: false);
-            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Open(target).Stamp.TryUnderlayPage(sourceStream);
+            PdfOperationResult<PdfDocument> fromStream = PdfDocument.Load(target).Stamp.TryUnderlayPage(sourceStream);
 
-            Assert.Contains("Reusable overlay", fromPath.Read.Text(), StringComparison.Ordinal);
+            Assert.Contains("Reusable overlay", fromPath.Reader.Text(), StringComparison.Ordinal);
             Assert.True(fromStream.Succeeded, string.Join(Environment.NewLine, fromStream.Diagnostics));
-            Assert.Contains("Reusable overlay", fromStream.RequireValue().Read.Text(), StringComparison.Ordinal);
+            Assert.Contains("Reusable overlay", fromStream.RequireValue().Reader.Text(), StringComparison.Ordinal);
         } finally {
             if (File.Exists(sourcePath)) File.Delete(sourcePath);
         }

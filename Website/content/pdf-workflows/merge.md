@@ -34,8 +34,8 @@ The merge workflow copies complete page trees into a new document. The browser p
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument first = PdfDocument.Open("cover.pdf");
-PdfDocument second = PdfDocument.Open("report.pdf");
+PdfDocument first = PdfDocument.Load("cover.pdf");
+PdfDocument second = PdfDocument.Load("report.pdf");
 
 PdfMergeResult result = PdfDocument.MergeWithReport(
     new PdfMergeOptions(),

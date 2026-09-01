@@ -609,7 +609,7 @@ internal static partial class PdfReaderAdapter {
         }
     }
 
-    private static void AddActionMetadata(List<OfficeDocumentMetadataEntry> entries, PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages) {
+    private static void AddActionMetadata(List<OfficeDocumentMetadataEntry> entries, PdfDocumentReadResult document, IReadOnlyList<PdfLogicalPage> selectedPages) {
         IReadOnlyList<ReaderActionSummary>? actions = BuildActions(document, selectedPages, page: null, includeDocumentActions: true);
         if (actions == null || actions.Count == 0) {
             return;

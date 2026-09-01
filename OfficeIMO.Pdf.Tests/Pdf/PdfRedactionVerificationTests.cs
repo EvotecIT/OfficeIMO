@@ -15,9 +15,9 @@ public class PdfRedactionVerificationTests {
     public void AppliedPlanVerificationReportsResidualContentInsideReviewedArea() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Still present")).ToBytes();
         var area = new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page");
-        PdfRedactionPlan plan = PdfDocument.Open(source).Redactions.Plan([area]);
+        PdfRedactionPlan plan = PdfDocument.Load(source).Redactions.Plan([area]);
 
-        PdfRedactionVerificationReport report = PdfDocument.Open(source).Redactions.VerifyAppliedPlan(
+        PdfRedactionVerificationReport report = PdfDocument.Load(source).Redactions.VerifyAppliedPlan(
             plan,
             new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
 
@@ -266,7 +266,7 @@ public class PdfRedactionVerificationTests {
         string pageContent = nestedOperand + " n\nq\n1 0 0 1 100 200 cm\n/Fx Do\nQ\n";
         const string formContent = "q\n10 0 0 10 0 0 cm\n/ImNested Do\nQ\n";
         byte[] source = BuildNestedImagePdf(pageContent, "<< /Fx 6 0 R >>", formContent, "ImNested");
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 256 }
         };
         PdfImagePlacement placement = Assert.Single(
@@ -740,7 +740,7 @@ public class PdfRedactionVerificationTests {
     }
 
     private static PdfLogicalImage GetSingleImage(byte[] source) {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         PdfLogicalImage image = Assert.Single(logical.Images);

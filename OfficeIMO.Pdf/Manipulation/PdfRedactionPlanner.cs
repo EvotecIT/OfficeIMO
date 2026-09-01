@@ -5,7 +5,7 @@ internal static partial class PdfRedactionPlanner {
     private const double DefaultTextHeight = 12D;
 
     /// <summary>Plans rectangle-based redaction impact for a PDF byte array.</summary>
-    public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    public static PdfRedactionPlan Plan(byte[] pdf, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
 
@@ -24,7 +24,7 @@ internal static partial class PdfRedactionPlanner {
             return new PdfRedactionPlan(preflight, areaArray, Array.Empty<PdfRedactionMatch>(), findings.AsReadOnly());
         }
 
-        PdfLogicalDocument logical = PdfLogicalDocument.From(PdfReadDocument.Open(pdf, options), layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(PdfReadDocument.Open(pdf, options), layoutOptions);
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
 
@@ -43,13 +43,13 @@ internal static partial class PdfRedactionPlanner {
     }
 
     /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>
-    public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return Plan(File.ReadAllBytes(path), areas, layoutOptions, options);
     }
 
     /// <summary>Plans rectangle-based redaction impact for a readable PDF stream.</summary>
-    public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfReadOptions? options = null) {
+    public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     [Fact]
     public void ToMarkdown_RendersLogicalHeadingsParagraphsListsTablesAndImages() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
@@ -32,7 +32,7 @@ public partial class PdfLogicalDocumentTests {
             .Image(CreateMinimalRgbPng(), 18, 18)
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 
@@ -80,7 +80,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).ToMarkdown();
 
@@ -110,7 +110,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).Pages[0].Tables);
 
@@ -155,7 +155,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).Pages[0].Tables);
 
@@ -199,7 +199,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).Pages[0].Tables);
 
@@ -236,7 +236,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalTable table = Assert.Single(PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).Pages[0].Tables);
 
@@ -271,7 +271,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
 
@@ -317,7 +317,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("[not a link](https://example.test)"))
             .ToBytes();
 
-        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).ToMarkdown();
 
@@ -340,7 +340,7 @@ public partial class PdfLogicalDocumentTests {
             .Paragraph(p => p.Text("Chapter One ........ 3"))
             .ToBytes();
 
-        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).ToMarkdown();
 
@@ -349,7 +349,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void ToMarkdown_RendersDirectDestinationLinkAnnotations() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildDirectDestinationLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildDirectDestinationLinkPdf());
 
         string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true
@@ -360,7 +360,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void ToMarkdown_RendersNamedActionLinkAnnotations() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNamedActionLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildNamedActionLinkPdf());
 
         string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true
@@ -371,7 +371,7 @@ public partial class PdfLogicalDocumentTests {
 
     [Fact]
     public void ToMarkdown_RendersRemoteGoToLinkAnnotations() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildRemoteGoToLinkPdf());
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(BuildRemoteGoToLinkPdf());
 
         string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
             IncludeLinkAnnotations = true

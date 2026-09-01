@@ -79,7 +79,7 @@ public static class PdfLogicalTableContinuations {
     /// <param name="maximumSegmentsPerTable">Maximum adjacent segments in one group.</param>
     /// <param name="geometryTolerancePoints">Maximum per-column geometry difference in PDF points.</param>
     public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         int maxRows,
         bool mergePageContinuations,
         bool suppressRepeatedBodyHeaderRows,
@@ -97,7 +97,7 @@ public static class PdfLogicalTableContinuations {
 
     /// <summary>Groups compatible table segments using an explicit, typed continuation policy.</summary>
     public static IReadOnlyList<PdfLogicalTableContinuationGroup> Group(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalTableContinuationOptions? options = null) {
         Guard.NotNull(document, nameof(document));
         PdfLogicalTableContinuationOptions effective = PdfLogicalTableContinuationOptions.Resolve(options);
@@ -139,7 +139,7 @@ public static class PdfLogicalTableContinuations {
     }
 
     private static bool CanContinue(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         PdfLogicalTableExtraction previous,
         PdfLogicalTableExtraction current,
         double tolerance,
@@ -221,10 +221,51 @@ public static class PdfLogicalTableContinuations {
         return true;
     }
 
-    private static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) {
+    internal static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) {
         if (previous.Count != current.Count) return false;
+        var previousSignature = new System.Text.StringBuilder();
+        var currentSignature = new System.Text.StringBuilder();
         for (int index = 0; index < previous.Count; index++) {
-            if (!string.Equals(previous[index].Trim(), current[index].Trim(), StringComparison.OrdinalIgnoreCase)) return false;
+            string left = NormalizeHeaderSignature(previous[index]);
+            string right = NormalizeHeaderSignature(current[index]);
+            if (!HaveMatchingNumbers(left, right)) return false;
+            if (left.Length == 0 || right.Length == 0) {
+                if (!string.Equals(left, right, StringComparison.Ordinal)) return false;
+            } else if (left.Length < 5 || right.Length < 5) {
+                if (!string.Equals(left, right, StringComparison.Ordinal)) return false;
+            } else if (PdfTextSimilarity.NormalizedSimilarity(left, right) < 0.75D) {
+                return false;
+            }
+            if (index > 0) {
+                previousSignature.Append('\u001F');
+                currentSignature.Append('\u001F');
+            }
+            previousSignature.Append(left);
+            currentSignature.Append(right);
+        }
+
+        return PdfTextSimilarity.NormalizedSimilarity(
+            previousSignature.ToString(),
+            currentSignature.ToString()) >= 0.88D;
+    }
+
+    private static string NormalizeHeaderSignature(string? value) {
+        string signature = PdfTextSimilarity.NormalizeSignaturePreservingDigits(value);
+        return System.Text.RegularExpressions.Regex.Replace(
+            signature,
+            @"(?:^|\s+)(?:page|pg|p)\.?\s+\d+(?:(?:\s+of\s+|/)\d+)?$",
+            string.Empty,
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+    }
+
+    private static bool HaveMatchingNumbers(string left, string right) {
+        System.Text.RegularExpressions.MatchCollection leftNumbers =
+            System.Text.RegularExpressions.Regex.Matches(left, @"\d+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        System.Text.RegularExpressions.MatchCollection rightNumbers =
+            System.Text.RegularExpressions.Regex.Matches(right, @"\d+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+        if (leftNumbers.Count != rightNumbers.Count) return false;
+        for (int index = 0; index < leftNumbers.Count; index++) {
+            if (!string.Equals(leftNumbers[index].Value, rightNumbers[index].Value, StringComparison.Ordinal)) return false;
         }
 
         return true;
@@ -429,7 +470,7 @@ public sealed class PdfLogicalTableContinuationGroup {
     }
 }
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Returns bounded cross-page table continuation groups in document order.</summary>
     public IReadOnlyList<PdfLogicalTableContinuationGroup> GetTableContinuationGroups(
         PdfLogicalTableContinuationOptions? options = null) =>

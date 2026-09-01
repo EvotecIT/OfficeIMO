@@ -19,13 +19,13 @@ internal static partial class PdfAnnotationFlattener {
         FlattenVisualAnnotations(pdf, options, readOptions: null);
 
     /// <summary>Flattens matching supported visual annotations using explicit read limits or credentials.</summary>
-    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfReadOptions? readOptions) =>
+    public static byte[] FlattenVisualAnnotations(byte[] pdf, PdfAnnotationFlattenOptions? options, PdfLoadOptions? readOptions) =>
         FlattenVisualAnnotations(pdf, options, readOptions, out _);
 
     internal static byte[] FlattenVisualAnnotations(
         byte[] pdf,
         PdfAnnotationFlattenOptions? options,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         out PdfGeneratedOutputGrowth generatedGrowth) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFlattenOptions(options);

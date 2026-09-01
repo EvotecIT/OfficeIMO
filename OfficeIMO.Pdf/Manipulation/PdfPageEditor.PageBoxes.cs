@@ -6,7 +6,7 @@ internal static partial class PdfPageEditor {
         return SetPageBoxWithReadOptions(pdf, box, left, bottom, right, top, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, PdfReadOptions? readOptions, params int[] pageNumbers) =>
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, PdfPageBoundaryBox box, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         SetPageBoxWithReadOptions(pdf, GetPageBoxName(box), left, bottom, right, top, readOptions, pageNumbers);
 
     /// <summary>Sets the media box for selected pages, or every page when no page numbers are supplied.</summary>
@@ -36,7 +36,7 @@ internal static partial class PdfPageEditor {
         return SetPageBoxWithReadOptions(pdf, boxName, left, bottom, right, top, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] SetPageBoxWithReadOptions(byte[] pdf, string boxName, double left, double bottom, double right, double top, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         string normalizedBoxName = NormalizePageBoxName(boxName);

@@ -118,11 +118,11 @@ public partial class Word {
         Assert.Contains(emptyBody.Descendants<Text>(), text => text.Text == "Nothing tabular was detected.");
     }
 
-    private static PdfCore.PdfLogicalDocument LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
+    private static PdfCore.PdfDocumentReadResult LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
         var layout = new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true };
         return ranges.Length == 0
-            ? PdfCore.PdfLogicalDocument.Load(pdf, layout)
-            : PdfCore.PdfLogicalDocument.LoadPageRanges(pdf, layout, ranges);
+            ? PdfCore.PdfDocumentReadResult.Load(pdf, layout)
+            : PdfCore.PdfDocumentReadResult.LoadPageRanges(pdf, layout, ranges);
     }
 
     private static Body GetBody(WordprocessingDocument package) {

@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Canonical extraction, removal, and stamping coordinator for existing-page text edits.</summary>
 internal static partial class PdfTextEditor {
-    internal static PdfRegionText Inspect(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    internal static PdfRegionText Inspect(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
@@ -15,11 +15,11 @@ internal static partial class PdfTextEditor {
         return OffsetRegionText(InspectSource(page, sourceRegion), -originX, -originY);
     }
 
-    internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options, PdfReadOptions? readOptions) {
+    internal static IReadOnlyList<PdfTextMatch> Find(byte[] pdf, string text, PdfTextSearchOptions? options, PdfLoadOptions? readOptions) {
         return FindHits(pdf, text, options, readOptions).Select(static hit => hit.Match).ToArray();
     }
 
-    internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
+    internal static TextMutationResult Add(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         if (!HasRenderableTextLine(text)) throw new ArgumentException("Added text must contain at least one renderable line.", nameof(text));
         region = TranslateRegionToSource(pdf, region, readOptions);
@@ -30,7 +30,7 @@ internal static partial class PdfTextEditor {
         return new TextMutationResult(output, 1, Array.Empty<string>());
     }
 
-    internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
+    internal static TextMutationResult Replace(byte[] pdf, PdfPageRegion region, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         region = TranslateRegionToSource(pdf, region, readOptions);
         EnsureRegionIsSafelyEditable(pdf, region, readOptions);
@@ -50,7 +50,7 @@ internal static partial class PdfTextEditor {
         return new TextMutationResult(output, detected.Spans.Count, removal.Warnings.Concat(BuildSubstitutionWarnings(detected, style.Font)));
     }
 
-    internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfReadOptions? readOptions) {
+    internal static TextMutationResult Move(byte[] pdf, PdfPageRegion source, double deltaX, double deltaY, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
         source = TranslateRegionToSource(pdf, source, readOptions);
@@ -76,7 +76,7 @@ internal static partial class PdfTextEditor {
         return new TextMutationResult(output, detected.Spans.Count, warnings);
     }
 
-    internal static TextMutationResult ReplaceAll(byte[] pdf, string text, string replacement, PdfTextSearchOptions? searchOptions, PdfTextEditOptions? editOptions, PdfReadOptions? readOptions) {
+    internal static TextMutationResult ReplaceAll(byte[] pdf, string text, string replacement, PdfTextSearchOptions? searchOptions, PdfTextEditOptions? editOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(replacement, nameof(replacement));
         if (text.Length == 0) throw new ArgumentException("Search text cannot be empty.", nameof(text));
@@ -146,7 +146,7 @@ internal static partial class PdfTextEditor {
     internal static byte[] RemoveExactContentSafetySpans(
         byte[] pdf,
         IReadOnlyList<(int PageNumber, PdfTextSpan Span)> targets,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(targets);
 #else
@@ -171,7 +171,7 @@ internal static partial class PdfTextEditor {
         byte[] pdf,
         IReadOnlyList<(int PageNumber, PdfTextSpan Span)> removals,
         IReadOnlyList<(int PageNumber, PdfTextSpan Span, int Start, int Length)> textEdits,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(removals);
         ArgumentNullException.ThrowIfNull(textEdits);
@@ -228,7 +228,7 @@ internal static partial class PdfTextEditor {
     private static TextRemovalResult RemoveTextPreservingUnmatchedSpans(
         byte[] pdf,
         IReadOnlyList<PdfRedactionArea> areas,
-        PdfReadOptions? readOptions,
+        PdfLoadOptions? readOptions,
         IReadOnlyList<PageSpanKey>? exactTargets = null,
         bool allowInvisibleTargetRemoval = false) {
         PdfReadDocument before = PdfReadDocument.Open(pdf, readOptions);
@@ -252,7 +252,7 @@ internal static partial class PdfTextEditor {
         }
 
         byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, areas, readOptions: readOptions);
-        PdfReadOptions afterReadOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
+        PdfLoadOptions afterReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
         PdfReadDocument after = PdfReadDocument.Open(removed, afterReadOptions);
         var remainingByPage = affectedPages.ToDictionary(
             static page => page,
@@ -318,7 +318,7 @@ internal static partial class PdfTextEditor {
             value.BaselineY + deltaY);
     }
 
-    private static byte[] StampLines(byte[] pdf, int pageNumber, double x, double baselineY, string text, PdfResolvedTextStyle style, PdfReadOptions? readOptions) {
+    private static byte[] StampLines(byte[] pdf, int pageNumber, double x, double baselineY, string text, PdfResolvedTextStyle style, PdfLoadOptions? readOptions) {
         var requests = new List<PdfStamper.TextStampRequest>();
         AddStampLines(requests, pageNumber, x, baselineY, text, style);
         return ApplyStampRequests(pdf, requests, readOptions);
@@ -350,10 +350,10 @@ internal static partial class PdfTextEditor {
         return false;
     }
 
-    private static byte[] ApplyStampRequests(byte[] pdf, List<PdfStamper.TextStampRequest> requests, PdfReadOptions? readOptions) =>
+    private static byte[] ApplyStampRequests(byte[] pdf, List<PdfStamper.TextStampRequest> requests, PdfLoadOptions? readOptions) =>
         requests.Count == 0
             ? pdf
-            : PdfStamper.StampTextBatch(pdf, requests, PdfReadOptions.WithMinimumInputBytes(readOptions, pdf.LongLength));
+            : PdfStamper.StampTextBatch(pdf, requests, PdfLoadOptions.WithMinimumInputBytes(readOptions, pdf.LongLength));
 
     private static void AddReflowedRewriteRequests(List<PdfStamper.TextStampRequest> requests, IReadOnlyList<PositionedRewrite> rewrites) {
         foreach (IGrouping<RewriteLineKey, PositionedRewrite> rotationGroup in rewrites.GroupBy(static rewrite => RewriteLineKey.Create(rewrite))) {
@@ -680,10 +680,10 @@ internal static partial class PdfTextEditor {
         (!span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);
 
-    private static PdfReadDocument OpenForVisualTextEditing(byte[] pdf, PdfReadOptions? readOptions) =>
-        PdfReadDocument.Open(pdf, PdfReadOptions.WithArtifactText(readOptions));
+    private static PdfReadDocument OpenForVisualTextEditing(byte[] pdf, PdfLoadOptions? readOptions) =>
+        PdfReadDocument.Open(pdf, PdfLoadOptions.WithArtifactText(readOptions));
 
-    private static PdfPageRegion TranslateRegionToSource(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    private static PdfPageRegion TranslateRegionToSource(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
@@ -695,7 +695,7 @@ internal static partial class PdfTextEditor {
     private static PdfPageRegion OffsetRegion(PdfPageRegion region, double deltaX, double deltaY) =>
         new PdfPageRegion(region.PageNumber, region.X + deltaX, region.Y + deltaY, region.Width, region.Height);
 
-    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    private static PdfRegionText InspectSource(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         ValidatePage(region.PageNumber, document.Pages.Count, nameof(region));
         return InspectSource(document.Pages[region.PageNumber - 1], region);
@@ -706,7 +706,7 @@ internal static partial class PdfTextEditor {
             .Where(span => IsVisibleSearchSpan(span) && Intersects(region, GetBounds(span)))
             .ToArray());
 
-    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, PdfReadOptions? readOptions) {
+    private static void EnsureRegionIsSafelyEditable(byte[] pdf, PdfPageRegion region, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(region, nameof(region));
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
@@ -719,7 +719,7 @@ internal static partial class PdfTextEditor {
         }
     }
 
-    private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfReadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
+    private static void EnsureAppendOrderIsSafe(byte[] pdf, int pageNumber, IReadOnlyList<PdfTextSpan> spans, PdfLoadOptions? readOptions, IReadOnlyList<PdfStamper.TextStampRequest>? appendedRequests = null) {
         if (spans.Count == 0) return;
         PdfReadDocument document = OpenForVisualTextEditing(pdf, readOptions);
         IReadOnlyList<PdfReadPage.PdfAppendedTextBounds>? appendedBounds = appendedRequests?.Select(ToAppendedTextBounds).ToArray();

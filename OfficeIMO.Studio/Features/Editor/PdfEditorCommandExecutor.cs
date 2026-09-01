@@ -41,7 +41,7 @@ internal static class PdfEditorCommandExecutor {
         string? removedTextMarker = null) {
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(plan);
-        PdfDocument source = PdfDocument.Open(pdf);
+        PdfDocument source = PdfDocument.Load(pdf);
         PdfDocument redacted = source.Redactions.Apply(plan, new PdfRedactionApplyOptions {
             PaintUnmatchedAreas = true,
             UnsupportedImagePolicy = PdfRedactionUnsupportedImagePolicy.RemoveWholePlacement,
@@ -68,7 +68,7 @@ internal static class PdfEditorCommandExecutor {
             command.Bounds.Width,
             command.Bounds.Height,
             "OfficeIMO Studio area redaction");
-        return PdfDocument.Open(pdf).Redactions.Plan(new[] { area });
+        return PdfDocument.Load(pdf).Redactions.Plan(new[] { area });
     }
 
     private static byte[] AddAnnotation(
@@ -78,7 +78,7 @@ internal static class PdfEditorCommandExecutor {
         string? iconName = null,
         bool createPopup = false) {
         PdfPageRectangle bounds = command.Bounds;
-        PdfAnnotationEditResult result = PdfDocument.Open(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
@@ -95,7 +95,7 @@ internal static class PdfEditorCommandExecutor {
 
     private static byte[] AddMarkup(byte[] pdf, PdfEditorCommand command, string subtype) {
         PdfPageRectangle bounds = command.Bounds;
-        PdfAnnotationEditResult result = PdfDocument.Open(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
@@ -120,7 +120,7 @@ internal static class PdfEditorCommandExecutor {
         PdfPagePoint end = command.Path.Count > 1
             ? command.Path[^1]
             : new PdfPagePoint(command.Bounds.Right, command.Bounds.Top);
-        PdfAnnotationEditResult result = PdfDocument.Open(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Line",
             Rectangle = Rectangle(command.Bounds),
@@ -135,7 +135,7 @@ internal static class PdfEditorCommandExecutor {
 
     private static byte[] AddInk(byte[] pdf, PdfEditorCommand command) {
         if (command.Path.Count < 2) throw new InvalidOperationException("Ink requires a pointer path with at least two points.");
-        PdfAnnotationEditResult result = PdfDocument.Open(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Ink",
             Rectangle = Rectangle(command.Bounds),
@@ -150,7 +150,7 @@ internal static class PdfEditorCommandExecutor {
 
     private static byte[] AddText(byte[] pdf, PdfEditorCommand command) {
         PdfPageRectangle bounds = command.Bounds;
-        return PdfDocument.Open(pdf).Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
+        return PdfDocument.Load(pdf).Stamp.Text(command.Properties.Text, new PdfTextStampOptions {
             PageNumbers = new[] { command.PageNumber },
             X = bounds.Left,
             Y = bounds.Bottom,
@@ -163,7 +163,7 @@ internal static class PdfEditorCommandExecutor {
         byte[] image = command.Properties.ImageBytes
             ?? throw new InvalidOperationException("Choose an image before drawing its placement.");
         PdfPageRectangle bounds = command.Bounds;
-        return PdfDocument.Open(pdf).Stamp.Image(image, new PdfImageStampOptions {
+        return PdfDocument.Load(pdf).Stamp.Image(image, new PdfImageStampOptions {
             PageNumbers = new[] { command.PageNumber },
             X = bounds.Left,
             Y = bounds.Bottom,
@@ -173,7 +173,7 @@ internal static class PdfEditorCommandExecutor {
     }
 
     private static byte[] AddLink(byte[] pdf, PdfEditorCommand command) {
-        PdfAnnotationEditResult result = PdfDocument.Open(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
             Subtype = "Link",
             Rectangle = Rectangle(command.Bounds),

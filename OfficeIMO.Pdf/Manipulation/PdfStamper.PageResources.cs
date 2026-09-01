@@ -11,6 +11,13 @@ internal static partial class PdfStamper {
             indirect.Value is not PdfDictionary pageDictionary ||
             !pageDictionary.Items.TryGetValue("Contents", out PdfObject? contentsObject)) return;
 
+        pageDictionary.Items["Contents"] = IsolateContents(objects, contentsObject, ref nextObjectNumber);
+    }
+
+    private static PdfArray IsolateContents(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject contentsObject,
+        ref int nextObjectNumber) {
         var isolated = new PdfArray();
         int saveStateObjectNumber = nextObjectNumber++;
         int restoreStateObjectNumber = nextObjectNumber++;
@@ -19,7 +26,7 @@ internal static partial class PdfStamper {
         isolated.Items.Add(new PdfReference(saveStateObjectNumber, 0));
         AppendContentEntries(objects, isolated, contentsObject);
         isolated.Items.Add(new PdfReference(restoreStateObjectNumber, 0));
-        pageDictionary.Items["Contents"] = isolated;
+        return isolated;
     }
 
     private static Dictionary<string, PdfObject> BuildPageOverrides(

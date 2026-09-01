@@ -20,7 +20,7 @@ public sealed class PdfAesProviderPropagationTests {
         Assert.Same(provider, document.ReadOptions.AesCryptographyProvider);
 
         int readbackCount = provider.DecryptOperations;
-        Assert.Contains("Managed provider readback.", document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Managed provider readback.", document.Reader.Text(), StringComparison.Ordinal);
         Assert.True(provider.DecryptOperations > readbackCount);
 
         PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
@@ -51,7 +51,7 @@ public sealed class PdfAesProviderPropagationTests {
             source,
             "source-owner",
             outputEncryption,
-            new PdfReadOptions {
+            new PdfLoadOptions {
                 Password = "source-owner",
                 AesCryptographyProvider = sourceProvider
             });
@@ -59,19 +59,19 @@ public sealed class PdfAesProviderPropagationTests {
         Assert.Same(outputProvider, result.OutputReadOptions?.AesCryptographyProvider);
         Assert.True(outputProvider.DecryptOperations > 0);
         int readbackCount = outputProvider.DecryptOperations;
-        Assert.Contains("Provider replacement proof.", result.ToDocument().Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Provider replacement proof.", result.ToDocument().Reader.Text(), StringComparison.Ordinal);
         Assert.True(outputProvider.DecryptOperations > readbackCount);
     }
 
     [Fact]
     public void EmptyPasswordRewriteOptionsPreserveTheSuppliedProvider() {
         var provider = new CountingAesProvider();
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Password = "original",
             AesCryptographyProvider = provider
         };
 
-        PdfReadOptions emptyPasswordOptions = PdfReadOptions.WithPassword(options, string.Empty);
+        PdfLoadOptions emptyPasswordOptions = PdfLoadOptions.WithPassword(options, string.Empty);
 
         Assert.Equal(string.Empty, emptyPasswordOptions.Password);
         Assert.Same(provider, emptyPasswordOptions.AesCryptographyProvider);

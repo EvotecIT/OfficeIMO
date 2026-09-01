@@ -10,6 +10,13 @@ public sealed class PdfExcelTableImportOptions {
         public CancellationToken CancellationToken { get; set; }
 
         /// <summary>
+        /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
+        /// Null uses <see cref="OfficeIMO.Pdf.PdfReadOptions.Default"/>. This setting is ignored when the source is already
+        /// an <see cref="OfficeIMO.Pdf.PdfDocumentReadResult"/>.
+        /// </summary>
+        public OfficeIMO.Pdf.PdfReadOptions? ReadOptions { get; set; }
+
+        /// <summary>
         /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.
         /// </summary>
         public int MaxRows { get; set; }

@@ -122,7 +122,7 @@ public class PdfLogicalTableTextExportTests {
             })
             .ToBytes();
 
-        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        string markdown = PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
                 ForceSingleColumn = true
             })
             .ToMarkdownTables(new PdfLogicalTableTextExportOptions {

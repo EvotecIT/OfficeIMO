@@ -118,7 +118,7 @@ public sealed class PdfHtmlExportSummary {
     /// <summary>One-based source page numbers rendered into the HTML output, preserving duplicate selections.</summary>
     public IReadOnlyList<int> PageNumbers { get; }
 
-    /// <summary>Total page count in the loaded logical source document.</summary>
+    /// <summary>Total page count in the source PDF before page selection.</summary>
     public int SourcePageCount { get; }
 
     /// <summary>Number of page instances rendered into the HTML output.</summary>

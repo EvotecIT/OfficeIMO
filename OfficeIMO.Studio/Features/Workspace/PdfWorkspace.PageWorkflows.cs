@@ -35,7 +35,7 @@ internal sealed partial class PdfWorkspace {
                 int insertionPage = insertBeforePageNumber;
                 foreach (string sourcePath in sources) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    PdfDocument source = PdfDocument.Open(sourcePath);
+                    PdfDocument source = PdfDocument.Load(sourcePath);
                     int sourcePageCount = source.Inspect().PageCount;
                     document = document.Pages.Insert(insertionPage, source);
                     insertionPage += sourcePageCount;

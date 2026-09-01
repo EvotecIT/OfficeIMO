@@ -777,7 +777,7 @@ public sealed partial class PdfColorFunctionTests {
             "/Spot cs 0.5 scn 20 20 100 100 re f",
             "<< /ColorSpace << /Spot [/Separation /Brand /DeviceRGB 5 0 R] >> >>",
             CalculatorStreamObject(5, program));
-        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadPage page = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentOperations = 100 }
         }).Pages[0];
 

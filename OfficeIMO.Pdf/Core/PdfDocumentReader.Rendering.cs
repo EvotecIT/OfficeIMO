@@ -3,9 +3,9 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfDocumentReader {
+internal sealed partial class PdfDocumentReader {
     /// <summary>Projects a one-based PDF page into the shared editable drawing scene.</summary>
-    public OfficeDrawing Drawing(int pageNumber, PdfReadOptions? readOptions = null) {
+    public OfficeDrawing Drawing(int pageNumber, PdfLoadOptions? readOptions = null) {
         PdfReadDocument document = ReadDocument(readOptions);
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
@@ -16,7 +16,7 @@ public sealed partial class PdfDocumentReader {
     /// <summary>Returns managed-renderer capability diagnostics for a one-based PDF page.</summary>
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> RenderCapabilityDiagnostics(
         int pageNumber,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         PdfReadDocument document = ReadDocument(readOptions);
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
@@ -31,7 +31,7 @@ public sealed partial class PdfDocumentReader {
         OfficeImageExportFormat format,
         PdfImageExportOptions? options = null,
         PdfPageSelection? selection = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         return PdfImageExportEngine.Export(
             token => {
@@ -51,7 +51,7 @@ public sealed partial class PdfDocumentReader {
     public IReadOnlyList<PdfPageRenderResult> RenderPages(
         PdfPageSelection? selection = null,
         PdfPageRenderOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         return PdfPageImageRenderer.RenderPages(_document.GetBytesForOperation, selection, options, ResolveReadOptions(readOptions), cancellationToken);
     }
@@ -60,7 +60,7 @@ public sealed partial class PdfDocumentReader {
     public IReadOnlyList<PdfPageRenderResult> RenderPages(
         string pageRanges,
         PdfPageRenderOptions? options = null,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
         return PdfPageImageRenderer.RenderPages(_document.GetBytesForOperation, pageRanges, options, ResolveReadOptions(readOptions), cancellationToken);
     }

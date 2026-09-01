@@ -1,18 +1,18 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Fluent font-resource inspection operations for a <see cref="PdfDocument"/>.</summary>
-public sealed partial class PdfDocumentReader {
+internal sealed partial class PdfDocumentReader {
     /// <summary>Inspects unique fonts declared by all pages and nested Form XObjects.</summary>
     public PdfFontInventory Fonts(
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return PdfFontInspector.Inspect(ReadDocument(readOptions), inspectionOptions);
     }
 
     /// <summary>Attempts to inspect fonts, returning preflight diagnostics when blocked or failed.</summary>
     public PdfOperationResult<PdfFontInventory> TryFonts(
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return _document.TryOperation(
             "Inspect fonts",
             PdfPreflightCapability.ReadLogicalObjects,
@@ -24,7 +24,7 @@ public sealed partial class PdfDocumentReader {
     public PdfFontInventory Fonts(
         PdfPageSelection selection,
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return PdfFontInspector.Inspect(ReadDocument(readOptions), inspectionOptions, selection);
     }
@@ -33,7 +33,7 @@ public sealed partial class PdfDocumentReader {
     public PdfOperationResult<PdfFontInventory> TryFonts(
         PdfPageSelection selection,
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation(
             "Inspect fonts",
@@ -46,7 +46,7 @@ public sealed partial class PdfDocumentReader {
     public PdfFontInventory Fonts(
         string pageRanges,
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return Fonts(PdfPageSelection.Parse(pageRanges), inspectionOptions, readOptions);
     }
 
@@ -54,7 +54,7 @@ public sealed partial class PdfDocumentReader {
     public PdfOperationResult<PdfFontInventory> TryFonts(
         string pageRanges,
         PdfFontInspectionOptions? inspectionOptions = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         return TryFonts(PdfPageSelection.Parse(pageRanges), inspectionOptions, readOptions);
     }
 }

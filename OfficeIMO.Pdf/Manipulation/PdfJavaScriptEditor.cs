@@ -5,7 +5,7 @@ internal static class PdfJavaScriptEditor {
     internal static PdfJavaScriptEditResult Edit(
         byte[] pdf,
         Action<PdfJavaScriptEditSession> edit,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(edit, nameof(edit));
 
@@ -36,7 +36,7 @@ internal static class PdfJavaScriptEditor {
                     : null;
             });
 
-        PdfReadOptions rewrittenReadOptions = PdfReadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
+        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         PdfReadDocument savedDocument = PdfReadDocument.Open(output, rewrittenReadOptions);
         IReadOnlyList<PdfJavaScript> saved = savedDocument.JavaScripts;
         ValidateReadback(session.Commands, saved);
@@ -65,16 +65,16 @@ internal static class PdfJavaScriptEditor {
         byte[] pdf,
         string name,
         string script,
-        PdfReadOptions? readOptions = null) =>
+        PdfLoadOptions? readOptions = null) =>
         Edit(pdf, session => session.AddOrReplace(name, script), readOptions);
 
     internal static PdfJavaScriptEditResult Remove(
         byte[] pdf,
         string name,
-        PdfReadOptions? readOptions = null) =>
+        PdfLoadOptions? readOptions = null) =>
         Edit(pdf, session => session.Remove(name), readOptions);
 
-    internal static PdfJavaScriptEditResult Clear(byte[] pdf, PdfReadOptions? readOptions = null) =>
+    internal static PdfJavaScriptEditResult Clear(byte[] pdf, PdfLoadOptions? readOptions = null) =>
         Edit(pdf, static session => session.Clear(), readOptions);
 
     private static void ValidateReadback(

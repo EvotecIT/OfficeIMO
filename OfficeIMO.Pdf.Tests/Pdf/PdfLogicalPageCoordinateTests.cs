@@ -7,7 +7,7 @@ public sealed class PdfLogicalPageCoordinateTests {
     [Fact]
     public void MapVisualRectangleToUserSpace_MapsTopLeftCoordinatesOnUnrotatedPage() {
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(source).Pages);
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(source).Read().Pages);
 
         PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
 
@@ -20,8 +20,8 @@ public sealed class PdfLogicalPageCoordinateTests {
     [Fact]
     public void MapVisualRectangleToUserSpace_AccountsForInheritedPageRotation() {
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
-        byte[] rotated = PdfDocument.Open(source).Pages.Rotate(90, 1).ToBytes();
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(rotated).Pages);
+        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(90, 1).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(rotated).Read().Pages);
 
         PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
 
@@ -34,8 +34,8 @@ public sealed class PdfLogicalPageCoordinateTests {
     [Fact]
     public void MapVisualPointToUserSpace_UsesTheSameRotatedCoordinateContract() {
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
-        byte[] rotated = PdfDocument.Open(source).Pages.Rotate(90, 1).ToBytes();
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(rotated).Pages);
+        byte[] rotated = PdfDocument.Load(source).Pages.Rotate(90, 1).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(rotated).Read().Pages);
 
         PdfPagePoint point = page.MapVisualPointToUserSpace(40D, 50D);
 

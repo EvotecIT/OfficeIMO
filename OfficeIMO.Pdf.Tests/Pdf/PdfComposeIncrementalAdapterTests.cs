@@ -36,7 +36,7 @@ public class PdfComposeIncrementalAdapterTests {
             .Paragraph(paragraph => paragraph.Text("Attachment report"))));
 
         byte[] bytes = document.ToBytes();
-        var attachments = PdfDocument.Open(bytes).Read.Attachments();
+        var attachments = PdfDocument.Load(bytes).Reader.Attachments();
 
         Assert.Single(attachments);
         Assert.Equal("evidence.txt", attachments.Single().FileName);

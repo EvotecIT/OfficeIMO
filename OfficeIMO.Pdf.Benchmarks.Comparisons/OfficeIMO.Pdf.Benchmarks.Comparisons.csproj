@@ -12,10 +12,11 @@
 
   <PropertyGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
     <DefineConstants>$(DefineConstants);HTMLTINKERX_SOURCE</DefineConstants>
+    <HtmlTinkerXSourceProjectFullPath>$([System.IO.Path]::GetFullPath('$(HtmlTinkerXProjectPath)'))</HtmlTinkerXSourceProjectFullPath>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(HtmlTinkerXProjectPath)' != ''">
-    <AssemblyMetadata Include="HtmlTinkerXSourceProjectPath" Value="$([System.IO.Path]::GetFullPath('$(HtmlTinkerXProjectPath)'))" />
+    <AssemblyMetadata Include="HtmlTinkerXSourceProjectPath" Value="$(HtmlTinkerXSourceProjectFullPath)" />
   </ItemGroup>
 
   <ItemGroup>

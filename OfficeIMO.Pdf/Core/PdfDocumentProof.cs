@@ -7,7 +7,7 @@ public sealed class PdfDocumentProof {
     internal PdfDocumentProof(PdfDocument document) => _document = document;
 
     /// <summary>Compares this document with PDF bytes through the managed renderer.</summary>
-    public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfReadOptions? actualReadOptions = null) =>
+    public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfLoadOptions? actualReadOptions = null) =>
         _document.CompareVisual(actualPdf, selection, options, actualReadOptions);
 
     /// <summary>Compares this document with another PDF through the managed renderer.</summary>

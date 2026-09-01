@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Security, signature, and revision markers read from the source PDF bytes.</summary>
     public PdfDocumentSecurityInfo Security { get; }
 

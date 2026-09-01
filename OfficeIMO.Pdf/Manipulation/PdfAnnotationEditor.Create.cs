@@ -6,7 +6,7 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options) => AddAnnotation(pdf, options, readOptions: null);
 
     /// <summary>Adds a standard annotation using explicit read limits or credentials and validates readback.</summary>
-    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(options, nameof(options)); ValidateCreateOptions(options);
         PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
@@ -56,12 +56,12 @@ internal static partial class PdfAnnotationEditor {
         if (plan.ExecutionMode == PdfMutationExecutionMode.AppendOnly) {
             int[] changed = new[] { owner, annotationObjectNumber }.Concat(popupObjectNumber.HasValue ? new[] { popupObjectNumber.Value } : Array.Empty<int>()).Concat(generatedObjects).Distinct().ToArray();
             output = PdfIncrementalObjectWriter.Append(pdf, objects, plan.Preflight.Probe.Security, trailerRaw, changed, encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, plan.Preflight.Probe.Security));
-            PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+            PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
             PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, output, plan, readOptions, outputReadOptions); ValidateCreatedAnnotation(output, options, annotationObjectNumber, options.InReplyToObjectNumber, outputReadOptions); return new PdfAnnotationEditResult(output, 1, plan, proof, readOptions: outputReadOptions);
         }
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalog); output = RewriteAllObjects(objects, catalog, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf, out IReadOnlyDictionary<int, int> numberMap);
         int? rewrittenParent = options.InReplyToObjectNumber.HasValue ? numberMap[options.InReplyToObjectNumber.Value] : null;
-        PdfReadOptions rewrittenReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
+        PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output, generatedGrowth);
         ValidateCreatedAnnotation(output, options, numberMap[annotationObjectNumber], rewrittenParent, rewrittenReadOptions); return CreateFullRewriteResult(pdf, output, 1, plan, annotationsChanged: true, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
 
@@ -100,7 +100,7 @@ internal static partial class PdfAnnotationEditor {
             additionalRevisions);
     }
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
-    private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfReadOptions? readOptions) {
+    private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfLoadOptions? readOptions) {
         PdfDocumentInfo info = PdfInspector.Inspect(output, readOptions);
         PdfAnnotation? found = info.Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found == null || found.Subtype != options.Subtype || found.PageNumber != options.PageNumber) throw new InvalidOperationException("PDF annotation creation readback failed; the artifact was not returned.");
@@ -110,7 +110,7 @@ internal static partial class PdfAnnotationEditor {
         if (options.LinkUri != null && !info.GetLinkAnnotationsByUri(options.LinkUri).Any(link => link.PageNumber == options.PageNumber)) throw new InvalidOperationException("PDF link annotation readback failed; the URI target was not returned.");
     }
 
-    private static void ValidateUpdatedAnnotation(byte[] output, int expectedObjectNumber, PdfAnnotationUpdateOptions options, PdfReadOptions? readOptions) {
+    private static void ValidateUpdatedAnnotation(byte[] output, int expectedObjectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         if (!options.ReviewState.HasValue) return;
         PdfAnnotation? found = PdfInspector.Inspect(output, readOptions).Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found?.Review?.StandardState != options.ReviewState) throw new InvalidOperationException("PDF annotation review state readback failed; the artifact was not returned.");

@@ -422,7 +422,7 @@ public partial class PdfType3UncoloredPatternTests {
                 StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << /XObject << /Inner 9 0 R >> >>", outerContent),
                 StreamObject(9, "<< /Type /XObject /Subtype /Form /BBox [0 0 500 700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", innerContent)
             });
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxPageContentBytes = pageContent.Length + patternContent.Length + glyphContent.Length + outerContent.Length + innerContent.Length
             }
@@ -1243,7 +1243,7 @@ public partial class PdfType3UncoloredPatternTests {
             extraObjects: new[] {
                 StreamObject(8, "<< /Type /XObject /Subtype /Form /BBox [100000 100000 100500 100700] /Group << /Type /Group /S /Transparency /I true /CS /DeviceRGB >> /Resources << >>", new string(' ', 128) + "0 0 500 700 re f")
             });
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 64 }
         });
 

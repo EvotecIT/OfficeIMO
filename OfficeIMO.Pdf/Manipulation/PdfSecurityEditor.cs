@@ -7,7 +7,7 @@ internal static class PdfSecurityEditor {
     public static PdfSecurityMutationResult Encrypt(
         byte[] pdf,
         PdfStandardEncryptionOptions encryption,
-        PdfReadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(encryption, nameof(encryption));
         PdfDocumentSecurityInfo sourceSecurity = PdfSyntax.ReadDocumentSecurityInfo(pdf, sourceReadOptions);
@@ -22,12 +22,12 @@ internal static class PdfSecurityEditor {
     public static PdfSecurityMutationResult Decrypt(
         byte[] pdf,
         string ownerPassword,
-        PdfReadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(ownerPassword, nameof(ownerPassword));
         return Rewrite(
             pdf,
-            PdfReadOptions.WithPassword(sourceReadOptions, ownerPassword),
+            PdfLoadOptions.WithPassword(sourceReadOptions, ownerPassword),
             outputEncryption: null,
             PdfSecurityMutationKind.Decrypt);
     }
@@ -37,13 +37,13 @@ internal static class PdfSecurityEditor {
         byte[] pdf,
         string currentOwnerPassword,
         PdfStandardEncryptionOptions newEncryption,
-        PdfReadOptions? sourceReadOptions = null) {
+        PdfLoadOptions? sourceReadOptions = null) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(currentOwnerPassword, nameof(currentOwnerPassword));
         Guard.NotNull(newEncryption, nameof(newEncryption));
         return Rewrite(
             pdf,
-            PdfReadOptions.WithPassword(sourceReadOptions, currentOwnerPassword),
+            PdfLoadOptions.WithPassword(sourceReadOptions, currentOwnerPassword),
             newEncryption,
             PdfSecurityMutationKind.Reencrypt);
     }
@@ -71,7 +71,7 @@ internal static class PdfSecurityEditor {
 
     private static PdfSecurityMutationResult Rewrite(
         byte[] sourcePdf,
-        PdfReadOptions? sourceReadOptions,
+        PdfLoadOptions? sourceReadOptions,
         PdfStandardEncryptionOptions? outputEncryption,
         PdfSecurityMutationKind kind) {
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(
@@ -82,9 +82,9 @@ internal static class PdfSecurityEditor {
         PdfDocumentSecurityInfo sourceSecurity = plan.Preflight.Probe.Security;
         ValidateSourceSecurity(kind, sourceSecurity);
         byte[] rewrittenPdf = PdfDocumentObjectGraphRewriter.Rewrite(sourcePdf, sourceReadOptions, outputEncryption);
-        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
-            PdfReadOptions.WithAesCryptographyProvider(
-                PdfReadOptions.WithPassword(
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
+            PdfLoadOptions.WithAesCryptographyProvider(
+                PdfLoadOptions.WithPassword(
                     sourceReadOptions,
                     outputEncryption?.OwnerPassword ?? outputEncryption?.UserPassword),
                 outputEncryption?.AesCryptographyProvider ?? sourceReadOptions?.AesCryptographyProvider),

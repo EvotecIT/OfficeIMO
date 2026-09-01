@@ -250,7 +250,7 @@ function Assert-PdfArtifactContract {
     }
 
     $pdfBytes = [System.IO.File]::ReadAllBytes($fullPath)
-    $documentInfo = [OfficeIMO.Pdf.PdfDocument]::Open($pdfBytes).Inspect()
+    $documentInfo = [OfficeIMO.Pdf.PdfDocument]::Load($pdfBytes).Inspect()
     $tagged = $documentInfo.TaggedContent
     $actualTypeCounts = if ($null -eq $tagged) {
         [string]::Empty
@@ -355,7 +355,7 @@ function Assert-ManagedPreviewMatchesPdf {
     $options.Dpi = 120D
     $options.ContinueOnError = $false
     $options.MaxPages = 1
-    $rendered = @([OfficeIMO.Pdf.PdfDocument]::Open([System.IO.File]::ReadAllBytes($pdfPath)).Read.RenderPages('1', $options))
+    $rendered = @([OfficeIMO.Pdf.PdfDocument]::Load([System.IO.File]::ReadAllBytes($pdfPath)).Render.Pages('1', $options))
     if ($rendered.Count -ne 1 -or $null -eq $rendered[0].Bytes) {
         throw "Independent managed rendering failed for artifact: $PdfRelativePath"
     }

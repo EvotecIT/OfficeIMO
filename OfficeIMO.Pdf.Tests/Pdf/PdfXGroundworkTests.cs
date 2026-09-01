@@ -978,7 +978,7 @@ public class PdfXGroundworkTests {
                 "13 0 obj\n14 0 R\nendobj\n" +
                 "14 0 obj\n15 0 R\nendobj\n" +
                 "15 0 obj\n/DeviceRGB\nendobj\n");
-        var options = new PdfReadOptions {
+        var options = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxObjectNestingDepth = 8 }
         };
         PdfReadDocument document = PdfReadDocument.Open(pdf, options);

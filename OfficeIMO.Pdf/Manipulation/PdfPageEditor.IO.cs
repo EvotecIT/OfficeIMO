@@ -8,7 +8,7 @@ internal static partial class PdfPageEditor {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        long limit = PdfReadOptions.Default.Limits.MaxInputBytes;
+        long limit = PdfLoadOptions.Default.Limits.MaxInputBytes;
         long observedBytes = limit + 1L;
         if (stream.CanSeek) {
             try {

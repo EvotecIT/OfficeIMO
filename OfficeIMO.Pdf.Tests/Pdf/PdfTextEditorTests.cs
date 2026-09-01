@@ -12,9 +12,9 @@ public class PdfTextEditorTests {
         IReadOnlyList<PdfTextSpan> spans = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans();
         PdfPageRegion region = RegionAround(spans);
 
-        PdfRegionText inspected = PdfDocument.Open(pdf).Text.Inspect(region);
-        IReadOnlyList<PdfTextMatch> contains = PdfDocument.Open(pdf).Text.Find("alpha");
-        IReadOnlyList<PdfTextMatch> words = PdfDocument.Open(pdf).Text.Find("alpha", new PdfTextSearchOptions { WholeWords = true });
+        PdfRegionText inspected = PdfDocument.Load(pdf).Text.Inspect(region);
+        IReadOnlyList<PdfTextMatch> contains = PdfDocument.Load(pdf).Text.Find("alpha");
+        IReadOnlyList<PdfTextMatch> words = PdfDocument.Load(pdf).Text.Find("alpha", new PdfTextSearchOptions { WholeWords = true });
 
         Assert.Contains("Alpha beta alphabet", inspected.Text, StringComparison.Ordinal);
         Assert.NotEmpty(inspected.Spans);
@@ -32,7 +32,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 50 700 Td (sans source) Tj ET\n",
             firstBaseFont: "GenericSansSerif");
 
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find(
             "sans source",
             new PdfTextSearchOptions { MatchCase = true }));
 
@@ -42,12 +42,12 @@ public class PdfTextEditorTests {
     [Fact]
     public void FindAndReplaceAllBoundMaterializedMatches() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (aaaa) Tj ET\n");
-        var options = new PdfReadOptions { Limits = new PdfReadLimits { MaxTextSearchMatches = 2 } };
+        var options = new PdfLoadOptions { Limits = new PdfReadLimits { MaxTextSearchMatches = 2 } };
 
         PdfReadLimitException findException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source).Text.Find("a", new PdfTextSearchOptions { MatchCase = true }, options));
+            PdfDocument.Load(source).Text.Find("a", new PdfTextSearchOptions { MatchCase = true }, options));
         PdfReadLimitException replaceException = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source).Text.ReplaceAll("a", "b", new PdfTextSearchOptions { MatchCase = true }, readOptions: options));
+            PdfDocument.Load(source).Text.ReplaceAll("a", "b", new PdfTextSearchOptions { MatchCase = true }, readOptions: options));
 
         Assert.Equal(PdfReadLimitKind.TextSearchMatches, findException.Kind);
         Assert.Equal(PdfReadLimitKind.TextSearchMatches, replaceException.Kind);
@@ -63,14 +63,14 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "q " + renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (managed color) Tj ET Q\n",
             additionalResources);
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("managed color", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        PdfTextEditResult moved = PdfDocument.Open(source).Text.Move(region, 10D, 0D);
-        PdfTextEditResult replaced = PdfDocument.Open(source).Text.Replace(region, "replacement");
+        PdfTextEditResult moved = PdfDocument.Load(source).Text.Move(region, 10D, 0D);
+        PdfTextEditResult replaced = PdfDocument.Load(source).Text.Replace(region, "replacement");
 
-        Assert.Contains("managed color", moved.Document.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("replacement", replaced.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("managed color", moved.Document.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("replacement", replaced.Document.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -79,12 +79,12 @@ public class PdfTextEditorTests {
     public void PortableTextRestampsRejectMalformedRenderingIntentOperands(string renderingIntentOperation) {
         byte[] source = BuildRawTextPdf(
             renderingIntentOperation + " BT /F1 12 Tf 50 700 Td (unsafe intent) Tj ET\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find(
             "unsafe intent",
             new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 10D, 0D));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Move(region, 10D, 0D));
     }
 
     [Fact]
@@ -94,24 +94,24 @@ public class PdfTextEditorTests {
             .Paragraph(paragraph => paragraph.Text("Replace this sentence"))
             .Paragraph(paragraph => paragraph.Text("Keep line below"))
             .ToBytes();
-        PdfTextMatch sourceMatch = Assert.Single(PdfDocument.Open(source).Text.Find("Replace this sentence", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch sourceMatch = Assert.Single(PdfDocument.Load(source).Text.Find("Replace this sentence", new PdfTextSearchOptions { MatchCase = true }));
         PdfPageRegion region = new PdfPageRegion(1, sourceMatch.X, sourceMatch.Y, sourceMatch.Width, sourceMatch.Height);
-        PdfAnnotationEditResult annotated = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        PdfAnnotationEditResult annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
             Subtype = "Highlight",
             Rectangle = new[] { region.X, region.Y, region.Right, region.Top },
             QuadPoints = new[] { region.X, region.Top, region.Right, region.Top, region.X, region.Y, region.Right, region.Y }
         });
 
-        PdfTextEditResult result = PdfDocument.Open(annotated.Bytes).Text.Replace(region, "Replacement text");
-        string text = result.Document.Read.Text();
+        PdfTextEditResult result = PdfDocument.Load(annotated.Bytes).Text.Replace(region, "Replacement text");
+        string text = result.Document.Reader.Text();
 
         Assert.True(result.AffectedCount > 0);
         Assert.DoesNotContain("Replace this sentence", text, StringComparison.Ordinal);
         Assert.Contains("Replacement text", text, StringComparison.Ordinal);
         Assert.Contains("Keep line above", text, StringComparison.Ordinal);
         Assert.Contains("Keep line below", text, StringComparison.Ordinal);
-        Assert.Single(result.Document.Read.AnnotationsBySubtype("Highlight"));
+        Assert.Single(result.Document.Reader.AnnotationsBySubtype("Highlight"));
     }
 
     [Fact]
@@ -121,16 +121,16 @@ public class PdfTextEditorTests {
             .Paragraph(paragraph => paragraph.Text("Move me"))
             .Paragraph(paragraph => paragraph.Text("Stationary line below"))
             .ToBytes();
-        PdfTextMatch originalMatch = Assert.Single(PdfDocument.Open(source).Text.Find("Move me", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch originalMatch = Assert.Single(PdfDocument.Load(source).Text.Find("Move me", new PdfTextSearchOptions { MatchCase = true }));
         PdfPageRegion sourceRegion = new PdfPageRegion(1, originalMatch.X, originalMatch.Y, originalMatch.Width, originalMatch.Height);
 
-        PdfTextEditResult moved = PdfDocument.Open(source).Text.Move(sourceRegion, 80D, -40D);
+        PdfTextEditResult moved = PdfDocument.Load(source).Text.Move(sourceRegion, 80D, -40D);
         IReadOnlyList<PdfTextMatch> movedMatches = moved.Document.Text.Find("Move me", new PdfTextSearchOptions { MatchCase = true });
         PdfTextMatch movedMatch = Assert.Single(movedMatches);
         Assert.InRange(movedMatch.X, originalMatch.X + 79D, originalMatch.X + 81D);
         Assert.InRange(movedMatch.Y, sourceRegion.Y - 41D, sourceRegion.Top - 39D);
-        Assert.Contains("Stationary line above", moved.Document.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("Stationary line below", moved.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Stationary line above", moved.Document.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("Stationary line below", moved.Document.Reader.Text(), StringComparison.Ordinal);
 
         var addRegion = new PdfPageRegion(1, 72D, 120D, 200D, 40D);
         PdfTextEditResult added = moved.Document.Text.Add(addRegion, "Added caption", new PdfTextEditOptions {
@@ -151,11 +151,11 @@ public class PdfTextEditorTests {
             .Paragraph(paragraph => paragraph.Text("Keep footer"))
             .ToBytes();
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             "fox",
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true });
-        string text = result.Document.Read.Text();
+        string text = result.Document.Reader.Text();
 
         Assert.Equal(2, result.AffectedCount);
         Assert.Contains("fox fox dog", text, StringComparison.Ordinal);
@@ -170,10 +170,10 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 50 700 Td (left cat) Tj ET\n" +
             "BT /F2 20 Tf 350 700 Td (right cat) Tj ET\n");
 
-        IReadOnlyList<PdfTextMatch> matches = PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true });
+        IReadOnlyList<PdfTextMatch> matches = PdfDocument.Load(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true });
         PdfTextMatch right = Assert.Single(matches, static match => match.X > 300D);
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("left cat", "left fox", new PdfTextSearchOptions { MatchCase = true });
-        string text = result.Document.Read.Text();
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("left cat", "left fox", new PdfTextSearchOptions { MatchCase = true });
+        string text = result.Document.Reader.Text();
 
         Assert.Equal(PdfStandardFont.Courier, right.SuggestedFont);
         Assert.Equal(20D, right.FontSize, 2);
@@ -187,10 +187,10 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 50 700 Td (cat) Tj ET\n" +
             "BT /F1 12 Tf 350 700 Td (cat) Tj ET\n");
         PdfTextMatch originalRight = Assert.Single(
-            PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }),
+            PdfDocument.Load(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }),
             static match => match.X > 300D);
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             "a much longer replacement",
             new PdfTextSearchOptions { MatchCase = true });
@@ -207,10 +207,10 @@ public class PdfTextEditorTests {
     [Fact]
     public void ReplaceAllPreservesExactUnmatchedWhitespaceAndCarriesInputBudgetAcrossRewrites() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat  cat dog) Tj ET\n");
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxInputBytes = source.Length } };
         string decodedSource = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans()).Text;
 
-        PdfTextEditResult result = PdfDocument.Open(source, readOptions).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source, readOptions).Text.ReplaceAll(
             "cat",
             "longer-fox",
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true });
@@ -230,20 +230,20 @@ public class PdfTextEditorTests {
         byte[] clipped = BuildRawTextPdf(
             "q 0 0 10 10 re W n BT /F1 12 Tf 50 700 Td (clipped secret) Tj ET Q\n");
 
-        Assert.Empty(PdfDocument.Open(invisible).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
-        Assert.Empty(PdfDocument.Open(clipped).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextMatch visible = Assert.Single(PdfDocument.Open(invisible).Text.Find("visible", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Load(invisible).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Load(clipped).Text.Find("secret", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch visible = Assert.Single(PdfDocument.Load(invisible).Text.Find("visible", new PdfTextSearchOptions { MatchCase = true }));
         var visibleRegion = new PdfPageRegion(1, visible.X, visible.Y, visible.Width, visible.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(invisible).Text.Replace(visibleRegion, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(invisible).Text.Replace(visibleRegion, "updated"));
     }
 
     [Fact]
     public void RotatedMatchUsesMatchedSliceGeometryAndPreservesRotationDuringReplacement() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 0 1 -1 0 200 300 Tm (rotate cat) Tj ET\n");
 
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("cat", "fox", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("cat", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("cat", "fox", new PdfTextSearchOptions { MatchCase = true });
         PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("fox", new PdfTextSearchOptions { MatchCase = true }));
 
         Assert.InRange(match.RotationDegrees, 89.9D, 90.1D);
@@ -256,9 +256,9 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta tail) Tj ET\n");
 
-        PdfTextMatch phrase = Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("alpha beta", "gamma", new PdfTextSearchOptions { MatchCase = true });
-        string text = result.Document.Read.Text();
+        PdfTextMatch phrase = Assert.Single(PdfDocument.Load(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("alpha beta", "gamma", new PdfTextSearchOptions { MatchCase = true });
+        string text = result.Document.Reader.Text();
 
         Assert.True(phrase.Width > 38D);
         Assert.Contains("gamma", text, StringComparison.Ordinal);
@@ -271,8 +271,8 @@ public class PdfTextEditorTests {
     public void FindUsesDecodedGlyphAdvancesForSubstringGeometry() {
         byte[] source = BuildRawTextPdf("BT /F1 20 Tf 50 700 Td (iiiiWWWW) Tj ET\n");
 
-        PdfTextMatch narrow = Assert.Single(PdfDocument.Open(source).Text.Find("iiii", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextMatch wide = Assert.Single(PdfDocument.Open(source).Text.Find("WWWW", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch narrow = Assert.Single(PdfDocument.Load(source).Text.Find("iiii", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch wide = Assert.Single(PdfDocument.Load(source).Text.Find("WWWW", new PdfTextSearchOptions { MatchCase = true }));
 
         Assert.True(wide.Width > narrow.Width * 2D);
     }
@@ -283,7 +283,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 0 1 -1 0 200 300 Tm (alpha) Tj ET\n" +
             "BT /F1 12 Tf 0 1 -1 0 200 340 Tm (beta) Tj ET\n");
 
-        PdfTextMatch phrase = Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch phrase = Assert.Single(PdfDocument.Load(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
 
         Assert.InRange(phrase.RotationDegrees, 89.9D, 90.1D);
     }
@@ -294,7 +294,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 0 1 -1 0 200 300 Tm (alpha) Tj ET\n" +
             "BT /F1 12 Tf 0 1 -1 0 200 340 Tm (beta) Tj ET\n");
 
-        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(
+        PdfRegionText inspected = PdfDocument.Load(source).Text.Inspect(
             new PdfPageRegion(1, 180D, 280D, 50D, 100D));
 
         Assert.Equal("alpha beta", inspected.Text);
@@ -307,7 +307,7 @@ public class PdfTextEditorTests {
             "0 0 1 rg BT /F2 18 Tf 90 700 Td (blue) Tj ET\n");
         var region = new PdfPageRegion(1, 45D, 680D, 140D, 45D);
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.Move(region, 40D, -30D);
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Move(region, 40D, -30D);
         PdfReadPage page = PdfReadDocument.Open(result.Document.ToBytes()).Pages[0];
         PdfTextSpan red = Assert.Single(page.GetTextSpans(), static span => span.Text == "red");
         PdfTextSpan blue = Assert.Single(page.GetTextSpans(), static span => span.Text == "blue");
@@ -326,7 +326,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 0 0 1 rg 50 700 Td (x) Tj ET\n" +
             "BT /F1 12 Tf 1 0 0 rg 65 700 Td (dominant-red) Tj ET\n");
 
-        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(new PdfPageRegion(1, 45D, 680D, 180D, 45D));
+        PdfRegionText inspected = PdfDocument.Load(source).Text.Inspect(new PdfPageRegion(1, 45D, 680D, 180D, 45D));
 
         Assert.True(inspected.Color.R > inspected.Color.B);
     }
@@ -336,7 +336,7 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("alpha beta", "a much wider replacement", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("alpha beta", "a much wider replacement", new PdfTextSearchOptions { MatchCase = true });
         PdfTextMatch replacement = Assert.Single(result.Document.Text.Find("a much wider replacement", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch tail = Assert.Single(result.Document.Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
         string syntax = System.Text.Encoding.GetEncoding(28591).GetString(result.Document.ToBytes());
@@ -349,12 +349,12 @@ public class PdfTextEditorTests {
     [Fact]
     public void ReplaceAllPreflightsTheCompleteBatchStreamAgainstDecodedByteLimits() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat cat) Tj ET\n");
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxDecodedStreamBytes = 256 }
         };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source).Text.ReplaceAll(
+            PdfDocument.Load(source).Text.ReplaceAll(
                 "cat",
                 new string('x', 300),
                 new PdfTextSearchOptions { MatchCase = true },
@@ -372,7 +372,7 @@ public class PdfTextEditorTests {
         content.Append("ET\n");
         byte[] source = BuildRawTextPdf(content.ToString());
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "a",
             "b",
             new PdfTextSearchOptions { MatchCase = true });
@@ -387,7 +387,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 50 700 Td (cat) Tj ET\n" +
             "BT /F1 12 Tf 75 700 Td (tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             "a much wider replacement",
             new PdfTextSearchOptions { MatchCase = true });
@@ -411,7 +411,7 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf " + renderingMode + " 50 700 Td (clip source) Tj ET\n");
         var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "replacement"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "replacement"));
     }
 
     [Theory]
@@ -422,16 +422,16 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf " + matrix + " (transformed) Tj ET\n");
         var region = new PdfPageRegion(1, 0D, 650D, 300D, 100D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "replacement"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "replacement"));
     }
 
     [Fact]
     public void ConformalTextScaleIsPreservedAndMutationRecordsContentOperationAndReadOptions() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 2 0 0 2 50 350 Tm (scaled) Tj ET\n");
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxContentOperations = 321 } };
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("scaled", new PdfTextSearchOptions { MatchCase = true }));
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxContentOperations = 321 } };
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("scaled", new PdfTextSearchOptions { MatchCase = true }));
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("scaled", "updated", readOptions: readOptions);
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("scaled", "updated", readOptions: readOptions);
         PdfTextMatch updated = Assert.Single(result.Document.Text.Find("updated", new PdfTextSearchOptions { MatchCase = true }));
         PdfPipelineStep mutation = Assert.Single(result.Document.Pipeline.Steps, static step => step.Kind == PdfPipelineStepKind.Mutation);
 
@@ -448,7 +448,7 @@ public class PdfTextEditorTests {
             "1 1 1 rg 45 685 100 30 re f\n");
         var region = new PdfPageRegion(1, 45D, 680D, 110D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "changed"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "changed"));
     }
 
     [Fact]
@@ -458,7 +458,7 @@ public class PdfTextEditorTests {
             "1 1 1 rg 295 685 110 30 re f\n");
         var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 250D, 0D));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Move(region, 250D, 0D));
     }
 
     [Fact]
@@ -467,10 +467,10 @@ public class PdfTextEditorTests {
             "BT /F1 20 Tf 50 700 Td (move me) Tj ET\n" +
             "1 1 1 rg 295 685 110 30 re f\n",
             pageEntries: "/Rotate 90");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("move me", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("move me", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X - 5D, match.Y - 5D, match.Width + 10D, match.Height + 10D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(region, 250D, 0D));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Move(region, 250D, 0D));
     }
 
     [Fact]
@@ -480,7 +480,7 @@ public class PdfTextEditorTests {
             "1 1 1 rg 45 362 120 4 re f\n");
         var region = new PdfPageRegion(1, 45D, 325D, 150D, 60D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Theory]
@@ -491,19 +491,19 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td " + showText + " ET\n");
         var region = new PdfPageRegion(1, 45D, 680D, 180D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
     public void FindReturnsVisibleTextThatMutationCannotSafelyRestamp() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td 2 Tc (spaced) Tj ET\n");
 
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find(
             "spaced",
             new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -511,11 +511,11 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BT /F2 20 Tf 50 700 Td (remove me) Tj ET\n" +
             "BT 50 650 Td (keep me) Tj ET\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find(
             "remove me",
             new PdfTextSearchOptions { MatchCase = true }));
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
             new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
             "updated"));
     }
@@ -527,10 +527,10 @@ public class PdfTextEditorTests {
             "/Span << /ActualText <FEFF00720065030100730075006D00650301> >> BDC " +
             "BT /F1 12 Tf 50 700 Td (resume) Tj ET EMC\n");
 
-        Assert.Empty(PdfDocument.Open(source).Text.Find(
+        Assert.Empty(PdfDocument.Load(source).Text.Find(
             "re",
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
-        Assert.Single(PdfDocument.Open(source).Text.Find(
+        Assert.Single(PdfDocument.Load(source).Text.Find(
             decomposed,
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
     }
@@ -542,10 +542,10 @@ public class PdfTextEditorTests {
             "/Span << /ActualText <FEFF006300610074D801DC00> >> BDC " +
             "BT /F1 12 Tf 50 700 Td (catX) Tj ET EMC\n");
 
-        Assert.Empty(PdfDocument.Open(source).Text.Find(
+        Assert.Empty(PdfDocument.Load(source).Text.Find(
             "cat",
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
-        Assert.Single(PdfDocument.Open(source).Text.Find(
+        Assert.Single(PdfDocument.Load(source).Text.Find(
             text,
             new PdfTextSearchOptions { MatchCase = true, WholeWords = true }));
     }
@@ -555,9 +555,9 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (alpha) Tj 38 0 Td (beta) Tj ET\n");
 
-        Assert.Empty(PdfDocument.Open(source).Text.Find(" ", new PdfTextSearchOptions { MatchCase = true }));
-        Assert.Empty(PdfDocument.Open(source).Text.Find(" beta", new PdfTextSearchOptions { MatchCase = true }));
-        Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Load(source).Text.Find(" ", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Empty(PdfDocument.Load(source).Text.Find(" beta", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(PdfDocument.Load(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
     }
 
     [Fact]
@@ -565,7 +565,7 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "1 0 0 rg BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             "a much wider replacement",
             new PdfTextSearchOptions { MatchCase = true },
@@ -584,8 +584,8 @@ public class PdfTextEditorTests {
             "BT /F2 72 Tf 50 700 Td (alpha) Tj ET\n" +
             "BT /F2 72 Tf 310 700 Td (beta) Tj ET\n");
 
-        Assert.Single(PdfDocument.Open(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        Assert.Single(PdfDocument.Load(source).Text.Find("alpha beta", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "alpha",
             "a",
             new PdfTextSearchOptions { MatchCase = true });
@@ -597,18 +597,18 @@ public class PdfTextEditorTests {
     [Fact]
     public void ReplaceSelectsATextSpanThatOnlyIntersectsTheRegionEdge() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (long source text) Tj ET\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find(
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find(
             "long source text",
             new PdfTextSearchOptions { MatchCase = true }));
         var edge = new PdfPageRegion(1, match.X + 0.25D, match.Y, 1D, match.Height);
 
-        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(edge);
-        PdfTextEditResult result = PdfDocument.Open(source).Text.Replace(edge, "updated");
+        PdfRegionText inspected = PdfDocument.Load(source).Text.Inspect(edge);
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Replace(edge, "updated");
 
         Assert.Contains("long source text", inspected.Text, StringComparison.Ordinal);
         Assert.Equal(1, result.AffectedCount);
-        Assert.DoesNotContain("long source text", result.Document.Read.Text(), StringComparison.Ordinal);
-        Assert.Contains("updated", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("long source text", result.Document.Reader.Text(), StringComparison.Ordinal);
+        Assert.Contains("updated", result.Document.Reader.Text(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -622,8 +622,8 @@ public class PdfTextEditorTests {
             "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Group << /S /Transparency /CS /DeviceRGB >> /Length 0 >>\nstream\nendstream\nendobj\n");
         var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(blend).Text.Replace(region, "updated"));
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(masked).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(blend).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(masked).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -636,8 +636,8 @@ public class PdfTextEditorTests {
             "/ExtGState << /GSMask << /SMask << /S /Alpha >> >> >>");
         var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(blend).Text.Replace(region, "updated"));
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(masked).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(blend).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(masked).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -649,7 +649,7 @@ public class PdfTextEditorTests {
             "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
         var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -661,7 +661,7 @@ public class PdfTextEditorTests {
             "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GSOpacity << /ca 0.5 >> >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
         var region = new PdfPageRegion(1, 45D, 680D, 160D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -670,7 +670,7 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 50 700 Td (edit) Tj ET\n" +
             "BT /F1 12 Tf 50 650 Td (survivor) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "edit",
             "updated",
             new PdfTextSearchOptions { MatchCase = true });
@@ -687,7 +687,7 @@ public class PdfTextEditorTests {
             "7 0 obj\n<< /ShadingType 4 /ColorSpace /DeviceRGB >>\nendobj\n");
         var region = new PdfPageRegion(1, 45D, 680D, 120D, 45D);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -696,20 +696,20 @@ public class PdfTextEditorTests {
             "/PCS cs /P1 scn BT /F1 12 Tf 50 700 Td (pattern text) Tj ET\n",
             "/ColorSpace << /PCS /Pattern >> /Pattern << /P1 7 0 R >>",
             "7 0 obj\n<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 8 8] /XStep 8 /YStep 8 /Resources << >> /Length 0 >>\nstream\nendstream\nendobj\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("pattern text", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("pattern text", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
     public void MutationRejectsTextAfterAnUnresolvedFillColorSpaceSelection() {
         byte[] source = BuildRawTextPdf(
             "1 0 0 rg /Missing cs 0 1 0 scn BT /F1 12 Tf 50 700 Td (unknown color) Tj ET\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("unknown color", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("unknown color", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Theory]
@@ -718,10 +718,10 @@ public class PdfTextEditorTests {
     public void MutationRejectsTextBoundToTaggedOrOptionalContent(string beginMarkedContent, string endMarkedContent) {
         byte[] source = BuildRawTextPdf(
             beginMarkedContent + " BT /F1 12 Tf 50 700 Td (structured text) Tj ET " + endMarkedContent + "\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("structured text", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("structured text", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -729,10 +729,10 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 1 0 0 rg 50 700 Td (stateful text) Tj ET\n" +
             "0 0 40 40 re f\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("stateful text", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("stateful text", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated"));
     }
 
     [Fact]
@@ -742,8 +742,8 @@ public class PdfTextEditorTests {
             "/Span << /ActualText <FEFF05E205D505DC05DD> >> BDC BT /F1 12 Tf 205 700 Td (x) Tj ET EMC\n");
         Assert.Equal(new[] { "שלום", "עולם" }, PdfReadDocument.Open(source).Pages[0].GetTextSpans().Select(static span => span.Text).ToArray());
 
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("שלום עולם", new PdfTextSearchOptions { MatchCase = true }));
-        PdfRegionText inspected = PdfDocument.Open(source).Text.Inspect(new PdfPageRegion(1, 190, 680, 60, 40));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("שלום עולם", new PdfTextSearchOptions { MatchCase = true }));
+        PdfRegionText inspected = PdfDocument.Load(source).Text.Inspect(new PdfPageRegion(1, 190, 680, 60, 40));
 
         Assert.Equal("שלום עולם", match.Text);
         Assert.Equal("שלום עולם", inspected.Text);
@@ -753,7 +753,7 @@ public class PdfTextEditorTests {
     public void ReplaceAllContinuesSuffixFromTheFinalReplacementLine() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll("cat", "foo\nbar", new PdfTextSearchOptions { MatchCase = true });
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll("cat", "foo\nbar", new PdfTextSearchOptions { MatchCase = true });
 
         Assert.Single(result.Document.Text.Find("bar tail", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch bar = Assert.Single(result.Document.Text.Find("bar", new PdfTextSearchOptions { MatchCase = true }));
@@ -768,7 +768,7 @@ public class PdfTextEditorTests {
     public void ReplaceAllContinuesSuffixAfterTrailingEmptyReplacementLine(string replacement) {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             replacement,
             new PdfTextSearchOptions { MatchCase = true });
@@ -782,7 +782,7 @@ public class PdfTextEditorTests {
     public void ReplaceAllProjectsRotatedReplacementAdvanceOntoSourceFlow() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td (cat tail) Tj ET\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.ReplaceAll(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
             "cat",
             "fox",
             new PdfTextSearchOptions { MatchCase = true },
@@ -798,17 +798,17 @@ public class PdfTextEditorTests {
     [Fact]
     public void SearchIncludesVisibleArtifactTextButMutationFailsClosed() {
         byte[] source = BuildRawTextPdf("/Artifact BMC BT /F1 12 Tf 50 700 Td (visible footer) Tj ET EMC\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("visible footer", new PdfTextSearchOptions { MatchCase = true }));
         var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(region, "updated footer"));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(region, "updated footer"));
     }
 
     [Fact]
     public void TextBatchStampIsolatesInheritedTransformAndClipState() {
         byte[] source = BuildRawTextPdf("2 0 0 2 0 0 cm 0 0 10 10 re W n\n");
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.Add(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Add(
             new PdfPageRegion(1, 100D, 100D, 160D, 30D),
             "isolated stamp");
         PdfTextMatch match = Assert.Single(result.Document.Text.Find("isolated stamp", new PdfTextSearchOptions { MatchCase = true }));
@@ -824,7 +824,7 @@ public class PdfTextEditorTests {
             "/Fm Do\n",
             "/XObject << /Fm 7 0 R >>",
             "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 600 800] /Group << /S /Transparency >> /Resources << /Font << /F1 5 0 R >> >> /Length " + System.Text.Encoding.ASCII.GetByteCount(formText) + " >>\nstream\n" + formText + "endstream\nendobj\n");
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
             new PdfPageRegion(1, 45, 680, 100, 40),
             "updated"));
     }
@@ -835,11 +835,11 @@ public class PdfTextEditorTests {
             "BT /F1 12 Tf 150 650 Td (existing) Tj ET\n",
             pageEntries: "/CropBox [100 100 500 700]");
 
-        PdfTextMatch existing = Assert.Single(PdfDocument.Open(source).Text.Find("existing", new PdfTextSearchOptions { MatchCase = true }));
-        PdfTextEditResult replaced = PdfDocument.Open(source).Text.Replace(
+        PdfTextMatch existing = Assert.Single(PdfDocument.Load(source).Text.Find("existing", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextEditResult replaced = PdfDocument.Load(source).Text.Replace(
             new PdfPageRegion(1, existing.X, existing.Y, existing.Width, existing.Height),
             "changed");
-        PdfTextEditResult added = PdfDocument.Open(source).Text.Add(new PdfPageRegion(1, 0, 0, 120, 40), "origin text");
+        PdfTextEditResult added = PdfDocument.Load(source).Text.Add(new PdfPageRegion(1, 0, 0, 120, 40), "origin text");
         PdfTextMatch addedMatch = Assert.Single(added.Document.Text.Find("origin text", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch changed = Assert.Single(replaced.Document.Text.Find("changed", new PdfTextSearchOptions { MatchCase = true }));
 
@@ -857,7 +857,7 @@ public class PdfTextEditorTests {
     public void AddRejectsLineBreakOnlyText(string text) {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page")).ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Text.Add(new PdfPageRegion(1, 20, 20, 100, 30), text));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Text.Add(new PdfPageRegion(1, 20, 20, 100, 30), text));
     }
 
     [Fact]
@@ -866,7 +866,7 @@ public class PdfTextEditorTests {
             "/GSOverprint gs BT /F1 12 Tf 50 700 Td (overprint) Tj ET\n",
             "/ExtGState << /GSOverprint << /op true /OPM 1 >> >>");
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Replace(
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
             new PdfPageRegion(1, 45D, 680D, 160D, 45D),
             "updated"));
     }
@@ -876,9 +876,9 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "/Span << /ActualText <FEFF006600660069> >> BDC " +
             "BT /F1 12 Tf 50 700 Td (x) Tj ET EMC\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("ffi", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("ffi", new PdfTextSearchOptions { MatchCase = true }));
 
-        Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Text.Move(
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Move(
             new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
             20D,
             0D));
@@ -887,9 +887,9 @@ public class PdfTextEditorTests {
     [Fact]
     public void MovePreservesAuthoredEdgeWhitespace() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 50 700 Td ( tail ) Tj ET\n");
-        PdfTextMatch match = Assert.Single(PdfDocument.Open(source).Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("tail", new PdfTextSearchOptions { MatchCase = true }));
 
-        PdfTextEditResult result = PdfDocument.Open(source).Text.Move(
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Move(
             new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height),
             20D,
             0D);
@@ -902,7 +902,7 @@ public class PdfTextEditorTests {
     [Fact]
     public void TextMutationsPreserveAnExistingAcroFormCatalogGraph() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Form and text edit")).ToBytes();
-        byte[] form = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] form = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "customer.notes",
             Kind = PdfFormFieldCreationKind.Text,
             X = 72D,
@@ -912,7 +912,7 @@ public class PdfTextEditorTests {
             Value = "kept"
         })).ToBytes();
 
-        PdfTextEditResult added = PdfDocument.Open(form).Text.Add(new PdfPageRegion(1, 72D, 520D, 180D, 30D), "added text");
+        PdfTextEditResult added = PdfDocument.Load(form).Text.Add(new PdfPageRegion(1, 72D, 520D, 180D, 30D), "added text");
         PdfTextMatch sourceMatch = Assert.Single(added.Document.Text.Find("Form and text edit", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextEditResult moved = added.Document.Text.Move(
             new PdfPageRegion(1, sourceMatch.X, sourceMatch.Y, sourceMatch.Width, sourceMatch.Height),
@@ -934,10 +934,10 @@ public class PdfTextEditorTests {
     public void ReplaceCarriesConfiguredContentNestingLimitThroughTextRemoval() {
         string nestedOperand = new string('[', 129) + "0" + new string(']', 129) + " n\n";
         byte[] source = BuildRawTextPdf(nestedOperand + "BT /F1 12 Tf 50 700 Td (replace me) Tj ET\n");
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxContentNestingDepth = 130 }
         };
-        PdfDocument document = PdfDocument.Open(source, readOptions);
+        PdfDocument document = PdfDocument.Load(source, readOptions);
         PdfTextMatch match = Assert.Single(document.Text.Find("replace me", new PdfTextSearchOptions { MatchCase = true }));
 
         PdfTextEditResult result = document.Text.Replace(
@@ -952,7 +952,7 @@ public class PdfTextEditorTests {
         byte[] source = BuildRawTextPdf(
             "BI /W 1 /H 1 /BPC 8 /CS /RGB ID BT EI " +
             "BT /F1 12 Tf 50 700 Td /ET MP (replace me) Tj ET\n");
-        PdfDocument document = PdfDocument.Open(source);
+        PdfDocument document = PdfDocument.Load(source);
         PdfTextMatch match = Assert.Single(document.Text.Find("replace me", new PdfTextSearchOptions { MatchCase = true }));
 
         PdfTextEditResult result = document.Text.Replace(
@@ -973,7 +973,7 @@ public class PdfTextEditorTests {
             "<< /Type /Catalog /Pages 2 0 R /MarkInfo << /Marked true >> /StructTreeRoot 7 0 R >>");
 
         PdfMutationBlockedException exception = Assert.Throws<PdfMutationBlockedException>(() =>
-            PdfDocument.Open(PdfEncoding.Latin1GetBytes(taggedText)).Text.Add(
+            PdfDocument.Load(PdfEncoding.Latin1GetBytes(taggedText)).Text.Add(
                 new PdfPageRegion(1, 100D, 100D, 160D, 30D),
                 "new text"));
 
@@ -1000,17 +1000,17 @@ public class PdfTextEditorTests {
             .ToBytes();
         IReadOnlyList<PdfTextSpan> spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans();
         PdfPageRegion region = RegionAround(spans);
-        byte[] annotated = PdfDocument.Open(source).Annotations.Add(new PdfAnnotationCreateOptions {
+        byte[] annotated = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = 1,
             Subtype = "Highlight",
             Rectangle = new[] { region.X, region.Y, region.Right, region.Top },
             QuadPoints = new[] { region.X, region.Top, region.Right, region.Top, region.X, region.Y, region.Right, region.Y }
         }).Bytes;
 
-        PdfDocument redacted = PdfDocument.Open(annotated).Redactions.Apply(new[] { region.ToRedactionAreaForTest() });
+        PdfDocument redacted = PdfDocument.Load(annotated).Redactions.Apply(new[] { region.ToRedactionAreaForTest() });
 
-        Assert.DoesNotContain("Secret marker", redacted.Read.Text(), StringComparison.Ordinal);
-        Assert.Empty(redacted.Read.AnnotationsBySubtype("Highlight"));
+        Assert.DoesNotContain("Secret marker", redacted.Reader.Text(), StringComparison.Ordinal);
+        Assert.Empty(redacted.Reader.AnnotationsBySubtype("Highlight"));
     }
 
     private static PdfPageRegion RegionAround(IReadOnlyList<PdfTextSpan> spans) {

@@ -29,12 +29,12 @@ public sealed class PdfWorkspaceTests {
             Assert.True(workspace.IsDirty);
             Assert.True(workspace.CanUndo);
             Assert.Equal(PdfWorkspaceOperationKind.Annotation, Assert.Single(workspace.Journal).Kind);
-            Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
 
             await workspace.UndoAsync(CancellationToken.None);
-            Assert.Empty(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Empty(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
             await workspace.RedoAsync(CancellationToken.None);
-            Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().GetAnnotationsBySubtype("Text"));
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -54,13 +54,13 @@ public sealed class PdfWorkspaceTests {
             Assert.True(workspace.CanFlattenForms);
 
             await workspace.FillFormFieldAsync("Customer.Name", "After", flatten: false, CancellationToken.None);
-            PdfFormField filled = Assert.Single(PdfDocument.Open(workspace.CopyBytes()).Inspect().FormFields);
+            PdfFormField filled = Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFields);
             Assert.Equal("After", filled.Value);
 
             await workspace.FlattenFormFieldsAsync(CancellationToken.None);
-            PdfDocument flattened = PdfDocument.Open(workspace.CopyBytes());
+            PdfDocument flattened = PdfDocument.Load(workspace.CopyBytes());
             Assert.Empty(flattened.Inspect().FormFields);
-            Assert.Contains("After", flattened.Read.Text(), StringComparison.Ordinal);
+            Assert.Contains("After", flattened.Read().Text, StringComparison.Ordinal);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -80,11 +80,11 @@ public sealed class PdfWorkspaceTests {
             await workspace.ApplyPageNumbersAsync(CancellationToken.None);
             await workspace.SaveAsync(saved, CancellationToken.None);
 
-            PdfDocument reopened = PdfDocument.Open(saved);
-            string text = reopened.Read.Text();
+            PdfDocument reopened = PdfDocument.Load(saved);
+            string text = reopened.Read().Text;
             Assert.Contains("INTERNAL", text, StringComparison.Ordinal);
             Assert.Contains("1 / 1", text, StringComparison.Ordinal);
-            Assert.True(Assert.Single(reopened.Read.RenderPages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+            Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -97,7 +97,7 @@ public sealed class PdfWorkspaceTests {
         string source = Path.Combine(root, "certified.pdf");
         byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Certified content")))))).ToBytes();
-        PdfExternalSignaturePreparation preparation = PdfDocument.Open(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
+        PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(new PdfExternalSignatureOptions {
             Profile = PdfSignatureProfile.Certification,
             CertificationPermission = PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures,
             FieldName = "Certification",
@@ -117,7 +117,7 @@ public sealed class PdfWorkspaceTests {
 
             byte[] edited = workspace.CopyBytes();
             Assert.True(edited.AsSpan(0, signed.Length).SequenceEqual(signed));
-            Assert.Single(PdfDocument.Open(edited).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(edited).Inspect().GetAnnotationsBySubtype("Text"));
             await Assert.ThrowsAnyAsync<Exception>(() => workspace.ApplyWatermarkAsync("BLOCKED", CancellationToken.None));
         } finally {
             Directory.Delete(root, recursive: true);
@@ -174,7 +174,7 @@ public sealed class PdfWorkspaceTests {
 
             Assert.Contains("changed after this redaction was reviewed", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(afterNote, workspace.CopyBytes());
-            Assert.Single(PdfDocument.Open(afterNote).Inspect().GetAnnotationsBySubtype("Text"));
+            Assert.Single(PdfDocument.Load(afterNote).Inspect().GetAnnotationsBySubtype("Text"));
         } finally {
             Directory.Delete(root, recursive: true);
         }
@@ -318,8 +318,8 @@ public sealed class PdfWorkspaceTests {
             IReadOnlyList<string> outputs = await workspace.SplitAsync(output, 2, CancellationToken.None);
 
             Assert.Equal(2, outputs.Count);
-            Assert.Equal(2, PdfDocument.Open(outputs[0]).Inspect().PageCount);
-            Assert.Single(PdfDocument.Open(outputs[1]).Inspect().Pages);
+            Assert.Equal(2, PdfDocument.Load(outputs[0]).Inspect().PageCount);
+            Assert.Single(PdfDocument.Load(outputs[1]).Inspect().Pages);
             Assert.Empty(Directory.EnumerateDirectories(output, ".officeimo-studio-split-*"));
         } finally {
             Directory.Delete(root, recursive: true);
@@ -474,7 +474,7 @@ public sealed class PdfWorkspaceTests {
         byte[] plain = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
             item.Paragraph(paragraph => paragraph.Text("Protected content")))))).ToBytes();
         var encryption = new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" };
-        await File.WriteAllBytesAsync(source, PdfDocument.Open(plain).Security.Encrypt(encryption).Pdf);
+        await File.WriteAllBytesAsync(source, PdfDocument.Load(plain).Security.Encrypt(encryption).Pdf);
 
         try {
             PdfPasswordRequiredException exception = await Assert.ThrowsAsync<PdfPasswordRequiredException>(

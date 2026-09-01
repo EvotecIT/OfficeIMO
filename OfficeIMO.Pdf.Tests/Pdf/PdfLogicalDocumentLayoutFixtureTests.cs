@@ -4,12 +4,12 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ReadsTwoPageStatementFixtureAsLogicalPagesAndTables() {
         byte[] pdf = PdfDocumentRasterVisualBaselineTests.CreateLineItemsTwoPage();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
         Assert.Equal(2, logical.PageCount);
         Assert.True(logical.HasSourcePage(1));
@@ -33,7 +33,7 @@ public partial class PdfLogicalDocumentTests {
             table.Rows.Any(row => RowContains(row, "Subtotal", "5201,32PLN")) &&
             table.Rows.Any(row => RowContains(row, "Total", "6397,62PLN")));
 
-        PdfLogicalDocument selected = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1"));
+        PdfDocumentReadResult selected = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1"));
 
         Assert.Equal(new[] { 2, 1 }, selected.Pages.Select(page => page.PageNumber).ToArray());
         Assert.Contains(selected.Pages[0].TextBlocks, block => Normalize(block.Text).Contains("Subtotal", StringComparison.Ordinal));
@@ -61,7 +61,7 @@ public partial class PdfLogicalDocumentTests {
             })
             .ToBytes();
 
-        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }).Pages);
 
@@ -80,7 +80,7 @@ public partial class PdfLogicalDocumentTests {
         stream.Position = source.Length / 2;
         long originalPosition = stream.Position;
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(stream);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(stream);
 
         Assert.Single(logical.Pages);
         Assert.Contains(logical.Pages[0].TextBlocks, block => block.Text.Contains("Logical stream marker", StringComparison.Ordinal));

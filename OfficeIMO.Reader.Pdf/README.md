@@ -74,6 +74,15 @@ IReadOnlyList<OfficeDocumentMetadataEntry> continuations = document.Metadata
     .ToArray();
 ```
 
+The semantic reader processes at most 1,000 selected pages by default. Set the
+adapter limit explicitly when a larger document is expected:
+
+```csharp
+OfficeDocumentReader largePdfReader = new OfficeDocumentReaderBuilder()
+    .AddPdfHandler(new ReaderPdfOptions { MaxPages = 2_500 })
+    .Build();
+```
+
 ### Read a stream with input limits
 
 ```csharp

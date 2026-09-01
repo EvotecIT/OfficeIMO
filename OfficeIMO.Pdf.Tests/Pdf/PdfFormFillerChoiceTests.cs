@@ -21,7 +21,7 @@ public partial class PdfFormFillerTests {
         byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Country"] = "PL"
         });
-        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+        PdfDocument appended = PdfDocument.Load(appendable).Forms.AppendRevision(
             new Dictionary<string, string> { ["Country"] = string.Empty },
             new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
 
@@ -46,7 +46,7 @@ public partial class PdfFormFillerTests {
         byte[] appendable = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdfWithEmptyOption(), new Dictionary<string, string> {
             ["Country"] = "PL"
         });
-        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+        PdfDocument appended = PdfDocument.Load(appendable).Forms.AppendRevision(
             new Dictionary<string, string> { ["Country"] = string.Empty },
             new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
 
@@ -63,7 +63,7 @@ public partial class PdfFormFillerTests {
         byte[] appendable = PdfFormFiller.FillFields(
             source,
             new Dictionary<string, string> { ["Selection.Country"] = "PL" });
-        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+        PdfDocument appended = PdfDocument.Load(appendable).Forms.AppendRevision(
             new Dictionary<string, string> { ["Selection.Country"] = string.Empty },
             new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
 
@@ -80,7 +80,7 @@ public partial class PdfFormFillerTests {
         byte[] appendable = PdfFormFiller.FillFields(BuildMultiSelectChoiceWidgetFormPdf(), new Dictionary<string, PdfFormFieldValue> {
             ["Country"] = PdfFormFieldValue.FromValues("PL", "US")
         });
-        PdfDocument appended = PdfDocument.Open(appendable).Forms.AppendRevision(
+        PdfDocument appended = PdfDocument.Load(appendable).Forms.AppendRevision(
             new Dictionary<string, string> { ["Country"] = string.Empty },
             new PdfIncrementalFormFieldUpdateOptions { GenerateAppearanceStreams = true });
 

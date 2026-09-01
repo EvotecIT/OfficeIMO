@@ -296,7 +296,7 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void LogicalDocument_Load_ReadsSignatureAndRevisionSecurityState() {
-        PdfLogicalDocument document = PdfLogicalDocument.Load(BuildSignedIncrementalPdf());
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(BuildSignedIncrementalPdf());
 
         Assert.True(document.HasSecurityState);
         Assert.True(document.Security.HasSignatures);

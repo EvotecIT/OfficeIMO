@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfTableStreamExportContracts {
     [Fact]
     public void WordTableExport_WritesToNonSeekableDestination() {
-        PdfLogicalDocument logical = CreateLogicalDocument();
+        PdfDocumentReadResult logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
         logical.SaveAsWord(destination, PdfWordImportOptions.CreateTablesOnly());
@@ -25,7 +25,7 @@ public class PdfTableStreamExportContracts {
 
     [Fact]
     public void PowerPointTableExport_WritesToNonSeekableDestination() {
-        PdfLogicalDocument logical = CreateLogicalDocument();
+        PdfDocumentReadResult logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
         logical.SaveAsPowerPoint(destination);
@@ -36,7 +36,7 @@ public class PdfTableStreamExportContracts {
 
     [Fact]
     public async Task TableConversions_ProvideReportsAndAsyncCallerOwnedStreamWrites() {
-        PdfLogicalDocument logical = CreateLogicalDocument();
+        PdfDocumentReadResult logical = CreateLogicalDocument();
 
         PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfWordImportOptions.CreateTablesOnly());
         PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
@@ -76,7 +76,7 @@ public class PdfTableStreamExportContracts {
 
     [Fact]
     public async Task TableConversionAsyncWrites_HonorPreCanceledTokens() {
-        PdfLogicalDocument logical = CreateLogicalDocument();
+        PdfDocumentReadResult logical = CreateLogicalDocument();
         using var destination = new MemoryStream();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
@@ -107,7 +107,7 @@ public class PdfTableStreamExportContracts {
                 CellPaddingY = 4
             })
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         Assert.NotEmpty(logical.Pages[0].Tables);
@@ -131,7 +131,7 @@ public class PdfTableStreamExportContracts {
                 strokeWidth: 2,
                 fillColor: PdfColor.FromRgb(204, 238, 255))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         PdfExcelTableImportResult excelResult = logical.ImportTablesToExcelDocumentResult();
         PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult();
@@ -157,7 +157,7 @@ public class PdfTableStreamExportContracts {
                 strokeWidth: 2,
                 fillColor: PdfColor.FromRgb(204, 238, 255))
             .ToBytes();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(
             PdfPowerPointImportOptions.CreateEditableContent());
@@ -204,7 +204,7 @@ public class PdfTableStreamExportContracts {
         };
 
         Assert.All(sources, source => {
-            PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+            PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
             PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
             Assert.Equal(0, logical.Pages[0].VectorPrimitiveCount);
@@ -230,8 +230,8 @@ public class PdfTableStreamExportContracts {
             f
             """);
 
-        PdfLogicalDocument cleared = PdfLogicalDocument.Load(clearPath);
-        PdfLogicalDocument restored = PdfLogicalDocument.Load(restoreState);
+        PdfDocumentReadResult cleared = PdfDocumentReadResult.Load(clearPath);
+        PdfDocumentReadResult restored = PdfDocumentReadResult.Load(restoreState);
 
         Assert.Equal(0, cleared.Pages[0].VectorPrimitiveCount);
         Assert.Equal(1, restored.Pages[0].VectorPrimitiveCount);
@@ -248,7 +248,7 @@ public class PdfTableStreamExportContracts {
             f
             EMC
             """);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
         Assert.Equal(0, logical.Pages[0].VectorPrimitiveCount);
@@ -267,7 +267,7 @@ public class PdfTableStreamExportContracts {
             -2 100 l
             S
             """);
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
         Assert.Equal(2, logical.Pages[0].VectorPrimitiveCount);
@@ -277,7 +277,7 @@ public class PdfTableStreamExportContracts {
 
     [Fact]
     public void TableConversions_CountTilingPatternFormsVisibleWithinNestedClips() {
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(
             BuildPatternWithClippedForm(hiddenByClip: false));
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(logical);
 
@@ -302,7 +302,7 @@ public class PdfTableStreamExportContracts {
             f
             """);
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         Assert.Equal(1, logical.Pages[0].VectorPrimitiveCount);
     }
@@ -352,7 +352,7 @@ public class PdfTableStreamExportContracts {
             f
             """);
 
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
 
         Assert.Equal(1, logical.Pages[0].VectorPrimitiveCount);
     }
@@ -369,10 +369,10 @@ public class PdfTableStreamExportContracts {
 
         Assert.Equal(
             0,
-            PdfLogicalDocument.Load(transparentCell).Pages[0].VectorPrimitiveCount);
+            PdfDocumentReadResult.Load(transparentCell).Pages[0].VectorPrimitiveCount);
         Assert.Equal(
             1,
-            PdfLogicalDocument.Load(paintedCell).Pages[0].VectorPrimitiveCount);
+            PdfDocumentReadResult.Load(paintedCell).Pages[0].VectorPrimitiveCount);
     }
 
     [Fact]
@@ -398,7 +398,7 @@ public class PdfTableStreamExportContracts {
             "<< /ExtGState << /GS1 6 0 R >> >>",
             "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj");
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
         timer.Stop();
 
         Assert.Equal(0, vectorPrimitiveCount);
@@ -442,7 +442,7 @@ public class PdfTableStreamExportContracts {
             "6 0 obj\n<< /Type /ExtGState /ca 0 /CA 0 >>\nendobj",
             formObject);
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
         timer.Stop();
 
         Assert.Equal(0, vectorPrimitiveCount);
@@ -471,7 +471,7 @@ public class PdfTableStreamExportContracts {
 
         byte[] source = BuildSingleStreamPdf(content.ToString());
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        int vectorPrimitiveCount = PdfLogicalDocument.Load(source).Pages[0].VectorPrimitiveCount;
+        int vectorPrimitiveCount = PdfDocumentReadResult.Load(source).Pages[0].VectorPrimitiveCount;
         timer.Stop();
 
         Assert.Equal(primitiveCount, vectorPrimitiveCount);
@@ -497,7 +497,7 @@ public class PdfTableStreamExportContracts {
 
         byte[] source = BuildSingleStreamPdf(content.ToString());
         var timer = System.Diagnostics.Stopwatch.StartNew();
-        PdfLogicalDocument logical = PdfLogicalDocument.Load(source);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.Load(source);
         int vectorPrimitiveCount = logical.Pages[0].VectorPrimitiveCount;
         timer.Stop();
 
@@ -507,11 +507,11 @@ public class PdfTableStreamExportContracts {
             "Complex visibility analysis exceeded the bounded contract: " + timer.Elapsed + ".");
     }
 
-    private static PdfLogicalDocument CreateLogicalDocument() {
+    private static PdfDocumentReadResult CreateLogicalDocument() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Non-seekable table export proof"))
             .ToBytes();
-        return PdfLogicalDocument.Load(source);
+        return PdfDocumentReadResult.Load(source);
     }
 
     private static byte[] BuildPatternWithClippedForm(bool hiddenByClip) {

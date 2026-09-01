@@ -17,10 +17,10 @@ public class PdfAcroFormEditorTests {
             .ToBytes();
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "France")));
+            PdfDocument.Load(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "France")));
 
-        PdfAcroFormEditResult listed = PdfDocument.Open(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "Germany"));
-        PdfAcroFormEditResult arbitrary = PdfDocument.Open(editableCombo).Forms.Edit(edit => edit.SetDefaultValue("Country", "France"));
+        PdfAcroFormEditResult listed = PdfDocument.Load(list).Forms.Edit(edit => edit.SetDefaultValue("Country", "Germany"));
+        PdfAcroFormEditResult arbitrary = PdfDocument.Load(editableCombo).Forms.Edit(edit => edit.SetDefaultValue("Country", "France"));
         Assert.Equal("Germany", Assert.Single(listed.Fields).DefaultValue);
         Assert.Equal("France", Assert.Single(arbitrary.Fields).DefaultValue);
     }
@@ -31,25 +31,25 @@ public class PdfAcroFormEditorTests {
         byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetDefaultValue("Choice", "No")));
+            PdfDocument.Load(checkBox).Forms.Edit(edit => edit.SetDefaultValue("Choice", "No")));
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Three")));
+            PdfDocument.Load(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Three")));
 
-        PdfAcroFormEditResult valid = PdfDocument.Open(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Two"));
+        PdfAcroFormEditResult valid = PdfDocument.Load(radio).Forms.Edit(edit => edit.SetDefaultValue("Choice", "Two"));
         Assert.Equal("Two", Assert.Single(valid.Fields).DefaultValue);
     }
 
     [Fact]
     public void Edit_RejectsDefaultValuesForPushButtons() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push default")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Submit"
         })).ToBytes();
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Open(authored).Forms.Edit(edit => edit.SetDefaultValue("Submit", "On")));
+            PdfDocument.Load(authored).Forms.Edit(edit => edit.SetDefaultValue("Submit", "On")));
 
         Assert.Contains("push-button", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -61,7 +61,7 @@ public class PdfAcroFormEditorTests {
             .TextField("Second", value: "2")
             .ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetTabOrder(1, PdfPageTabOrder.Column)
             .SetCalculationOrder("First", "Second")
             .SetTabOrder(1, PdfPageTabOrder.Row)
@@ -79,7 +79,7 @@ public class PdfAcroFormEditorTests {
             .TextField("RemoveMe", value: "three")
             .ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetCalculationOrder("RenameMe", "RemoveMe")
             .Flatten("FlattenMe")
             .Rename("FlattenMe", "FlattenedName")
@@ -94,7 +94,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_AllowsRecreatingOriginalNameAfterFlattenedFieldIsRenamed() {
         byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Flatten("f")
             .Rename("f", "g")
             .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "new" }));
@@ -108,15 +108,15 @@ public class PdfAcroFormEditorTests {
     public void Edit_AllowsReplacingAFieldAfterEarlierFlagsAndFlattenCommands() {
         byte[] source = PdfDocument.Create().TextField("f", value: "old").ToBytes();
 
-        PdfAcroFormEditResult afterFlags = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult afterFlags = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetFlags("f", 1)
             .Remove("f")
             .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flags replacement" }));
-        PdfAcroFormEditResult afterFlatten = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult afterFlatten = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Flatten("f")
             .Remove("f")
             .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "flatten replacement" }));
-        PdfAcroFormEditResult afterDefaultValue = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult afterDefaultValue = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetDefaultValue("f", "old default")
             .Remove("f")
             .Create(new PdfFormFieldCreateOptions { Name = "f", Value = "default replacement", DefaultValue = "new default" }));
@@ -209,7 +209,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_CreatesAcroFormInDocumentWithoutFields() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("No form yet")).ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Created.Name",
             Value = "Ada",
             X = 72,
@@ -238,20 +238,20 @@ public class PdfAcroFormEditorTests {
     [Fact]
     public void Edit_RejectsTerminalNamesThatCollideWithNonterminalParents() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Field hierarchy collisions")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit
             .Create(new PdfFormFieldCreateOptions { Name = "Customer.Notes", Value = "kept" })
             .Create(new PdfFormFieldCreateOptions { Name = "Other", Value = "rename source" }))
             .ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Create(
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(authored).Forms.Edit(edit => edit.Create(
             new PdfFormFieldCreateOptions { Name = "Customer", Value = "invalid" })));
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(authored).Forms.Edit(edit => edit.Rename("Other", "Customer")));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(authored).Forms.Edit(edit => edit.Rename("Other", "Customer")));
     }
 
     [Fact]
     public void Edit_MoveRegeneratesAnEmptyChoiceAppearanceForTheNewBounds() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Empty choice move")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Country",
             Kind = PdfFormFieldCreationKind.Choice,
             ChoiceOptions = new[] { "Poland", "Germany" },
@@ -259,7 +259,7 @@ public class PdfAcroFormEditorTests {
             Height = 24D
         })).ToBytes();
 
-        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Country", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        byte[] moved = PdfDocument.Load(authored).Forms.Edit(edit => edit.Move("Country", 1, 72D, 440D, 200D, 40D)).ToBytes();
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
         PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
             item.Value is PdfDictionary dictionary &&
@@ -276,7 +276,7 @@ public class PdfAcroFormEditorTests {
     [Fact]
     public void Edit_MoveRegeneratesPushButtonCaptionAppearanceForTheNewBounds() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Push button move")).ToBytes();
-        byte[] authored = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Submit",
@@ -284,7 +284,7 @@ public class PdfAcroFormEditorTests {
             Height = 24D
         })).ToBytes();
 
-        byte[] moved = PdfDocument.Open(authored).Forms.Edit(edit => edit.Move("Submit", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        byte[] moved = PdfDocument.Load(authored).Forms.Edit(edit => edit.Move("Submit", 1, 72D, 440D, 200D, 40D)).ToBytes();
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(moved, null).Map;
         PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>
             item.Value is PdfDictionary dictionary &&
@@ -303,7 +303,7 @@ public class PdfAcroFormEditorTests {
         byte[] source = BuildIconPushButtonPdf();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Icon", 1, 20D, 80D, 120D, 40D)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.Move("Icon", 1, 20D, 80D, 120D, 40D)));
 
         Assert.Contains("icon", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -315,7 +315,7 @@ public class PdfAcroFormEditorTests {
             .PageBreak()
             .Paragraph(p => p.Text("Second page"))
             .ToBytes();
-        source = PdfDocument.Open(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
+        source = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "Submit",
             Kind = PdfFormFieldCreationKind.PushButton,
             Caption = "Submit",
@@ -335,12 +335,12 @@ public class PdfAcroFormEditorTests {
                 : null;
         });
 
-        byte[] samePageMove = PdfDocument.Open(source).Forms.Edit(edit =>
+        byte[] samePageMove = PdfDocument.Load(source).Forms.Edit(edit =>
             edit.Move("Submit", 1, 80D, 430D, 120D, 24D)).ToBytes();
         Assert.NotEmpty(samePageMove);
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Submit", 2, 72D, 440D, 120D, 24D)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.Move("Submit", 2, 72D, 440D, 120D, 24D)));
 
         Assert.Contains("page resources", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -381,9 +381,9 @@ public class PdfAcroFormEditorTests {
                 : null;
         });
 
-        Assert.NotEmpty(PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 1, 80, 450, 180, 40)).ToBytes());
+        Assert.NotEmpty(PdfDocument.Load(source).Forms.Edit(edit => edit.Move("Approval", 1, 80, 450, 180, 40)).ToBytes());
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Approval", 2, 80, 450, 180, 40)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.Move("Approval", 2, 80, 450, 180, 40)));
 
         Assert.Contains("appearance resources", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -410,7 +410,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_SetFlagsRejectsConvertingAButtonFieldToPushButton() {
         byte[] source = PdfDocument.Create().CheckBox("Action", isChecked: true).ToBytes();
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfDocument.Open(source).Forms.Edit(edit =>
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Forms.Edit(edit =>
             edit.SetFlags("Action", 1 << 16)));
 
         Assert.Contains("Converting", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -422,9 +422,9 @@ public class PdfAcroFormEditorTests {
         byte[] radio = PdfDocument.Create().RadioButtonGroup("Choice", new[] { "One", "Two" }, value: "One").ToBytes();
 
         NotSupportedException checkBoxException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(checkBox).Forms.Edit(edit => edit.SetFlags("Choice", 1 << 15)));
+            PdfDocument.Load(checkBox).Forms.Edit(edit => edit.SetFlags("Choice", 1 << 15)));
         NotSupportedException radioException = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(radio).Forms.Edit(edit => edit.SetFlags("Choice", 0)));
+            PdfDocument.Load(radio).Forms.Edit(edit => edit.SetFlags("Choice", 0)));
 
         Assert.Contains("radio-button", checkBoxException.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("radio-button", radioException.Message, StringComparison.OrdinalIgnoreCase);
@@ -442,7 +442,7 @@ public class PdfAcroFormEditorTests {
         byte[] source = PdfDocument.Create().TextField("Name", value: "Ada", style: style).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Name", flags)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Name", flags)));
 
         Assert.Contains("comb", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -456,7 +456,7 @@ public class PdfAcroFormEditorTests {
             .ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", flags)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Country", flags)));
 
         Assert.Contains(expectedMessage, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -468,7 +468,7 @@ public class PdfAcroFormEditorTests {
             .ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
 
         Assert.Contains("array value", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -488,7 +488,7 @@ public class PdfAcroFormEditorTests {
         });
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Regions", 0)));
 
         Assert.Contains("default value", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -500,10 +500,10 @@ public class PdfAcroFormEditorTests {
             new[] { "Poland", "Germany" },
             value: "Poland",
             style: new PdfFormFieldStyle { IsEditableChoice = true }).ToBytes();
-        source = PdfDocument.Open(source).Forms.Edit(edit => edit.SetDefaultValue("Country", "Custom")).ToBytes();
+        source = PdfDocument.Load(source).Forms.Edit(edit => edit.SetDefaultValue("Country", "Custom")).ToBytes();
 
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Country", 1 << 17)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Country", 1 << 17)));
 
         Assert.Contains("authored options", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -515,7 +515,7 @@ public class PdfAcroFormEditorTests {
         const int fileSelectFlag = 1 << 20;
         byte[] source = PdfDocument.Create().TextField("Upload", value: "file.txt").ToBytes();
 
-        Assert.Throws<ArgumentException>(() => PdfDocument.Open(source).Forms.Edit(edit => edit.Create(
+        Assert.Throws<ArgumentException>(() => PdfDocument.Load(source).Forms.Edit(edit => edit.Create(
             new PdfFormFieldCreateOptions {
                 Name = "InvalidUpload",
                 Kind = PdfFormFieldCreationKind.Text,
@@ -523,7 +523,7 @@ public class PdfAcroFormEditorTests {
                 FieldFlags = fileSelectFlag | incompatibleFlag
             })));
         NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Upload", fileSelectFlag | incompatibleFlag)));
+            PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Upload", fileSelectFlag | incompatibleFlag)));
 
         Assert.Contains("file-select", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -537,7 +537,7 @@ public class PdfAcroFormEditorTests {
             .ToBytes();
         string[] expectedOrder = ReadPageAnnotationNames(source);
 
-        byte[] moved = PdfDocument.Open(source).Forms.Edit(edit => edit.Move("Moved", 1, 72D, 440D, 200D, 40D)).ToBytes();
+        byte[] moved = PdfDocument.Load(source).Forms.Edit(edit => edit.Move("Moved", 1, 72D, 440D, 200D, 40D)).ToBytes();
 
         Assert.Equal(expectedOrder, ReadPageAnnotationNames(moved));
     }
@@ -546,7 +546,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_UsesTheLastFlagsAssignmentInOneTransaction() {
         byte[] source = PdfDocument.Create().TextField("Name", value: "Ada").ToBytes();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit
             .SetFlags("Name", 1)
             .SetFlags("Name", 2));
 
@@ -557,7 +557,7 @@ public class PdfAcroFormEditorTests {
     public void Edit_SetFlagsRegeneratesAppearanceFromInheritedValue() {
         byte[] source = BuildInheritedValueFieldPdf();
 
-        PdfAcroFormEditResult result = PdfDocument.Open(source).Forms.Edit(edit => edit.SetFlags("Group.Name", 4096));
+        PdfAcroFormEditResult result = PdfDocument.Load(source).Forms.Edit(edit => edit.SetFlags("Group.Name", 4096));
         Assert.Equal("Inherited value", Assert.Single(result.Fields).Value);
         Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(result.ToBytes(), null).Map;
         PdfDictionary widget = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values, static item =>

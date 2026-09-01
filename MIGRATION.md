@@ -7,7 +7,108 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.2 is a coordinated package-ownership cleanup. Upgrade every OfficeIMO package in an application to the same `3.2.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.3 contains an intentional PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+
+## OfficeIMO 3.3: one PDF load and semantic read contract
+
+The PDF lifecycle now uses `PdfDocument.Load(...)` for existing bytes, files, and
+streams. `PdfDocument.Read(...)` is the only semantic reconstruction entry point
+and returns `PdfDocumentReadResult`. The old `PdfDocument.Open(...)`, public
+`PdfDocument.Reader`, `pdf.Read.*`, `PdfLogicalDocument`, and public static
+logical-document loaders were removed rather than retained as parallel APIs.
+
+```csharp
+// OfficeIMO 3.2
+PdfDocument pdf = PdfDocument.Open("input.pdf");
+PdfLogicalDocument logical = pdf.Read.Logical();
+
+// OfficeIMO 3.3
+PdfDocument pdf = PdfDocument.Load("input.pdf");
+PdfDocumentReadResult result = pdf.Read();
+
+foreach (PdfLogicalPage page in result.Pages) {
+    foreach (PdfLogicalParagraph paragraph in page.Paragraphs) {
+        Console.WriteLine(paragraph.Text);
+    }
+
+    foreach (PdfLogicalTable table in page.Tables) {
+        Console.WriteLine($"Page {page.PageNumber}: {table.Rows.Count} rows");
+    }
+}
+```
+
+`PdfReadOptions` now controls semantic reconstruction. Parser limits,
+credentials, artifact-text inclusion, and source buffering moved to
+`PdfLoadOptions`, which is supplied to `Load(...)`. The default semantic profile
+is `PdfReadProfile.Structured`. `PdfReadProfile.Fast` omits optional
+document-wide enrichment but returns the same `PdfDocumentReadResult`; it is not
+a second logical model.
+
+| OfficeIMO 3.2 | OfficeIMO 3.3 |
+| --- | --- |
+| `PdfDocument.Open(...)` | `PdfDocument.Load(...)` |
+| `PdfDocument.OpenAsync(pathOrStream, ..., cancellationToken)` | `PdfDocument.LoadAsync(pathOrStream, loadOptions, cancellationToken)`; parser, limit, credential, and buffering settings belong in `PdfLoadOptions` |
+| parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
+| `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
+| selected `pdf.Read.Logical(selection, ...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection, LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions() })` |
+| `pdf.Read.TryLogical(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary |
+| `PdfLogicalDocument` | `PdfDocumentReadResult` |
+| `pdf.Read.Text()` | `pdf.Read().Text`; this is canonical semantic text rather than the former direct extraction surface |
+| selected `pdf.Read.Text(...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection }).Text` |
+| `pdf.Read.TextBlocks(...)` | `result.TextBlocks`; for a selection, set `PdfReadOptions.PageSelection` before reading |
+| `pdf.Read.Markdown()` | `pdf.Read().ToMarkdown()` |
+| `pdf.Read.TryText(...)` / `TryTextByPage(...)` / `TryMarkdown(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary and use `result.Text`, project `result.Pages[*].TextBlocks`, or call `result.ToMarkdown()` |
+| `pdf.Read.ExportStructured(format)` | `pdf.Read().ExportStructured(format)`; pass semantic options to `Read(...)` and load/security options to `Load(...)` |
+| `pdf.Read.TextByPage()` | project `result.Pages[*].TextBlocks` for the application's text shape |
+| `pdf.Read.Images(...)` | `pdf.Images.Extract(...)` |
+| `pdf.Read.ImagePlacements(...)` | `pdf.Images.Placements(...)` |
+| `pdf.Read.TryImages()` / `TryImagePlacements()` | `pdf.Images.TryExtract()` / `pdf.Images.TryPlacements()` for an all-page non-throwing result |
+| selected `pdf.Read.TryImages(selection)` / `TryImagePlacements(selection)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ExtractImages)`, then call `pdf.Images.Extract(selection)` / `Placements(selection)` inside the application's exception or result boundary |
+| `pdf.Read.SaveImages(...)` | Call `pdf.Images.Extract(...)`; for each result where `IsImageFile` is true, write `Bytes` using a caller-owned deterministic name and `FileExtension`. The caller now owns overwrite policy. |
+| `pdf.Read.Fonts(...)` / `pdf.Read.RawStructure(...)` | `pdf.Resources.Fonts(...)` / `pdf.Resources.RawStructure(...)` |
+| `pdf.Read.TryFonts()` / `pdf.Read.TryRawStructure()` | `pdf.Resources.TryFonts()` / `pdf.Resources.TryRawStructure()` for all-page non-throwing results |
+| selected `pdf.Read.TryFonts(selection)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Resources.Fonts(selection)` inside the application's exception or result boundary; `pdf.Resources.TryFonts()` is intentionally all-page only |
+| `pdf.Read.RenderPages(...)` / `pdf.Read.Drawing(...)` | `pdf.Render.Pages(...)` / `pdf.Render.Drawing(...)` |
+| `pdf.Read.ExportImages(...)` | `pdf.Render.ExportImages(...)` |
+| `pdf.Read.LayoutDebugOverlay(...)` / `pdf.Read.RenderCapabilityDiagnostics(...)` | `pdf.Render.LayoutDebugOverlay(...)` / `pdf.Render.CapabilityDiagnostics(...)` |
+| `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
+| `pdf.Read.Attachments()` / `TryAttachments()` | `pdf.Attachments.Extract()` / `pdf.Attachments.TryExtract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.JavaScripts()` | `pdf.JavaScript.List()` |
+| `pdf.Read.TryJavaScripts()` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.JavaScript.List()` inside the application's existing exception or result boundary |
+| `pdf.Read.Links()` / `LinksByUri(...)` and other link filters | `result.Links`, `result.GetLinksByUri(...)`, and the matching `result.GetLinksBy...(...)` helper |
+| `pdf.Read.FormField(name)` / `FormFields(...)` | `result.TryGetFormField(name, out PdfFormField? field)`, `result.FormFields`, `result.GetFormFields(kind)`, or `result.GetFormFields(pageNumber)` |
+| `pdf.Read.FormWidgets(...)` and widget filters | `result.FormWidgets`, `result.GetFormWidgets(fieldName)`, or `result.GetFormWidgets(pageNumber)` |
+| `pdf.Read.Outlines()` | `result.Outlines` |
+| `pdf.Read.PageLabels()` | `result.PageLabels` |
+| `pdf.Read.NamedDestinations()` | `result.NamedDestinations` |
+| `pdf.Read.TryTextBlocks(...)`, `TryLinks...(...)`, `TryFormFields(...)`, `TryFormWidgets(...)`, `TryOutlines()`, `TryPageLabels()`, or `TryNamedDestinations()` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the corresponding result property or filter helper above |
+| `pdf.Read.DocumentInfo()` / `pdf.Read.Pages()` / `pdf.Read.Annotations()` | `PdfDocumentInfo info = pdf.Inspect()`; use `info`, `info.Pages`, and `info.Annotations` |
+| `pdf.Read.Page(pageNumber)` | `pdf.Inspect().Pages.FirstOrDefault(page => page.PageNumber == pageNumber)` |
+| `pdf.Read.AnnotationsBySubtype(...)` / `AnnotationsByActionType(...)` | `info.GetAnnotationsBySubtype(...)` / `info.GetAnnotationsByActionType(...)` |
+| `pdf.Read.Metadata()` / `Security()` / `HeaderVersion()` / `EffectiveVersion()` / `IsPdf20OrLater()` | use `info.Metadata`, `info.Security`, `info.HeaderVersion`, `info.EffectiveVersion`, and `info.IsPdf20OrLater` |
+| `pdf.Read.XmpMetadata()` / `TaggedContent()` / `OptionalContent()` / `OptionalContentGroups()` | use `info.XmpMetadata`, `info.TaggedContent`, `info.OptionalContent`, and `info.OptionalContentGroups`; use `info.GetOptionalContentGroupsByName(...)` for name filtering |
+| `pdf.Read.OutputIntents()` and output-intent filters | use `info.OutputIntents`, `info.GetOutputIntentsBySubtype(...)`, or `info.GetOutputIntentsByOutputConditionIdentifier(...)` |
+| `pdf.Read.AttachmentMetadata()` and attachment-metadata filters | use `info.Attachments` and the matching `info.GetAttachmentsByName(...)`, `GetAttachmentsByFileName(...)`, `GetAttachmentsBySource(...)`, or `GetAttachmentsByRelationship(...)` helper |
+| `pdf.Read.CatalogActions()` / `PageActions()` and action filters | use `info.CatalogActions`, `info.PageActions`, `info.GetCatalogActionsByActionType(...)`, `GetCatalogActionsBySource(...)`, or the corresponding `GetPageActions...(...)` helper |
+| `pdf.Read.OpenAction()` / `ViewerPreferences()` | use `result.OpenAction` / `result.ViewerPreferences`, or the matching `info` properties when already using `pdf.Inspect()` |
+| `pdf.Read.CatalogPageMode()` / `CatalogPageLayout()` / `CatalogVersion()` / `CatalogLanguage()` | use `result.CatalogPageMode`, `result.CatalogPageLayout`, `result.CatalogVersion`, and `result.CatalogLanguage`, or the matching `info` properties |
+| `pdf.Read.TryDocumentInfo()` / `TryPages()` / `TryAnnotations()` and other inspection `Try*` calls | There is no parallel `Try*` inspection surface. Use `PdfDocument.Preflight(...)` for non-throwing capability diagnosis, then call `pdf.Inspect()` inside the application's existing exception or result boundary. |
+| `pdf.Read.ParagraphContinuations(...)` | `result.GetParagraphContinuationGroups(...)` |
+| `pdf.Read.TableContinuations(...)` | `result.GetTableContinuationGroups(...)` |
+| `pdf.Read.TryParagraphContinuations(...)` / `TryTableContinuations(...)` | Check `ReadLogicalObjects` with `pdf.Preflight()`, call `pdf.Read(readOptions)` inside the application's exception or result boundary, then use the matching continuation helper |
+| `pdf.Read.Interactions(pageNumber, ...)` | `PdfPageInteractionMap.Create(pdf.ToBytes(), pageNumber, interactionOptions, loadOptions)` |
+| `pdf.Read.Understand(options, selection, readOptions)` | `pdf.Read(new PdfReadOptions { Pipeline = options, PageSelection = selection })`; move the former parser, limit, credential, and buffering settings to `PdfLoadOptions` when calling `PdfDocument.Load(...)` |
+| `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
+| `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
+
+`ExportStructured(PdfStructuredExportFormat.PageXml)` remains page scoped. For
+a multi-page read result, call `result.ToPageXmlDocuments()` to produce one
+schema-valid PAGE XML document per logical page.
+
+Page-local `page.Tables`, `page.Paragraphs`, `page.Headings`, and the other
+logical collections remain available. `Analyze()` continues to report PDF
+health, preflight, and rewrite safety; it does not build the semantic document
+model and is not an alternative to `Read()`.
 
 ## OfficeIMO 3.2: aggregate Reader legacy-format registrations
 
@@ -797,11 +898,11 @@ The 3.1 PDF adapters use destination-shaped names for general conversion and exp
 
 Excel remains explicitly table-shaped because its PDF adapter recovers detected tables rather than arbitrary page content. Keep using `PdfExcelTableImportOptions`, `PdfExcelTableImportReport`, `PdfExcelTableImportResult`, `ImportTablesToExcelDocument`, and `SaveTablesAsExcel`.
 
-PowerPoint behavior broadens in 3.1: an opened `PdfDocument` now reconstructs supported text, detected tables, safe vector primitives, and images as editable slide objects by default. `PdfPowerPointImportOptions.Mode` defaults to `Auto`, which resolves an opened PDF to `EditableContent` and an already reduced `PdfLogicalDocument` to `EditableTables`. This intentionally changes the no-options behavior of `ToPowerPointPresentation*`, `SaveAsPowerPoint*`, and the opened-PDF-to-ODP bridge. Use `PdfPowerPointImportOptions.CreateVisualPages()` to retain the previous one-rendered-page-image-per-slide behavior. Use `CreateHybrid()` for visual pages with editable table overlays or `CreateEditableTables()` for detected tables only. None of these profiles claims recovery of original themes, masters, charts, groups, animations, notes, or authoring intent.
+PowerPoint behavior broadens in 3.1: an opened `PdfDocument` now reconstructs supported text, detected tables, safe vector primitives, and images as editable slide objects by default. `PdfPowerPointImportOptions.Mode` defaults to `Auto`, which resolves an opened PDF to `EditableContent` and an already reduced `PdfDocumentReadResult` to `EditableTables`. This intentionally changes the no-options behavior of `ToPowerPointPresentation*`, `SaveAsPowerPoint*`, and the opened-PDF-to-ODP bridge. Use `PdfPowerPointImportOptions.CreateVisualPages()` to retain the previous one-rendered-page-image-per-slide behavior. Use `CreateHybrid()` for visual pages with editable table overlays or `CreateEditableTables()` for detected tables only. None of these profiles claims recovery of original themes, masters, charts, groups, animations, notes, or authoring intent.
 
 Use `PdfWordImportOptions.CreateTablesOnly()` for narrow Word table recovery. PowerPoint table details remain available through `PdfPowerPointConversionReport.TableEntries` when the editable-table profile is selected.
 
-Open a source once with `PdfDocument.Open(...)`. Destination adapters also accept `PdfLogicalDocument` when an application performs custom layout analysis or page selection before conversion. Word and RTF semantic import consume shared `PdfLogicalTextRun` fragments so color, font size, and best-effort bold or italic classification do not need to be reconstructed independently in each adapter.
+Open a source once with `PdfDocument.Load(...)`. Destination adapters also accept `PdfDocumentReadResult` when an application performs custom layout analysis or page selection before conversion. Word and RTF semantic import consume shared `PdfLogicalTextRun` fragments so color, font size, and best-effort bold or italic classification do not need to be reconstructed independently in each adapter.
 
 The common conversion grammar is:
 
@@ -834,7 +935,7 @@ The reverse-route boundaries are:
 | PDF to PowerPoint with `EditableTables` | Detected tables on editable slides | Other page content is reported as omitted |
 | PDF to RTF | Semantic text, lists, page breaks, and detected run styling | Unsupported tables, images, links, and widgets produce loss diagnostics |
 | PDF to HTML | Semantic or positioned review HTML | Neither profile claims browser-clone fidelity for arbitrary PDFs |
-| PDF to Markdown | Logical readable text through `pdf.Read.Markdown(...)` | Portable text rather than visual fidelity |
+| PDF to Markdown | Logical readable text through `pdf.Read().ToMarkdown(...)` | Portable text rather than visual fidelity |
 | PDF to ODT, ODS, or ODP | Composed Word-semantic, Excel-table, or PowerPoint-editable routes | Inspect both conversion stages and their loss reports; logical PDF input remains table-shaped for ODP |
 
 `PdfResourcePolicy.CreateDefault()` is the balanced adapter default: installed and document fonts are available while arbitrary local-file and remote-resource access remains denied. Use `PdfResourcePolicy.CreatePortableDeterministic()` for untrusted or reproducible conversion. Use `PdfResourcePolicy.CreateTrustedHost()` only when the operation intentionally resolves host or remote resources.
@@ -1016,7 +1117,7 @@ OpenDocument save methods now return `OdfSaveResult` directly. Replace the disca
 
 Reusable conversion options no longer retain operation state in members such as `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings`. Read that evidence from the returned result.
 
-The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfLogicalDocument` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
+The canonical forward PDF result method is `ToPdfDocumentResult()`. Reverse PDF adapters extend `PdfDocument` and `PdfDocumentReadResult` with destination-shaped result methods such as `ToWordDocumentResult()`, `ToPowerPointPresentationResult()`, and `ToRtfDocumentResult()`. `SaveAsPdf(...)` returns `PdfSaveResult` evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF adapters, while `ToPdf()` remains the encoded-byte convenience API. Opening a generated file in another application is an explicit application action, not part of saving.
 
 `VisioDocument.Load(path)` and `Load(stream)` now apply a 512 MiB default input
 limit before opening the package. For trusted documents that intentionally

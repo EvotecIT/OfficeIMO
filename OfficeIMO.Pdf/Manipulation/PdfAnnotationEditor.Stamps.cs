@@ -6,7 +6,7 @@ internal static partial class PdfAnnotationEditor {
         AddStampAnnotation(pdf, options, readOptions: null);
 
     /// <summary>Adds a visual Stamp annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfReadOptions? readOptions) {
+    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfStampAnnotationOptions effective = options ?? new PdfStampAnnotationOptions();
         ValidateStampOptions(effective);
@@ -71,7 +71,7 @@ internal static partial class PdfAnnotationEditor {
                 trailerRaw,
                 changedObjectNumbers,
                 encryptionHandler: GetAppendEncryptionHandler(objects, trailerRaw, readOptions, mutationPlan.Preflight.Probe.Security));
-            PdfReadOptions outputReadOptions = PdfReadOptions.ForGeneratedOutput(readOptions, pdf, appended, generatedGrowth);
+            PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, appended, generatedGrowth);
             PdfSignatureMutationReport proof = BuildAppendOnlyProof(pdf, appended, mutationPlan, readOptions, outputReadOptions);
             return new PdfAnnotationEditResult(appended, 1, mutationPlan, proof, readOptions: outputReadOptions);
         }

@@ -11,7 +11,7 @@ public sealed class PdfSecurityMutationResult {
         PdfRewritePreservationReport preservationReport,
         PdfDocumentSecurityInfo sourceSecurity,
         PdfDocumentSecurityInfo outputSecurity,
-        PdfReadOptions? outputReadOptions) {
+        PdfLoadOptions? outputReadOptions) {
         Kind = kind;
         _pdf = (byte[])pdf.Clone();
         MutationPlan = mutationPlan;
@@ -42,8 +42,8 @@ public sealed class PdfSecurityMutationResult {
     /// <summary>True when the output is protected by Standard password security.</summary>
     public bool IsEncrypted => OutputSecurity.HasEncryption;
 
-    internal PdfReadOptions? OutputReadOptions { get; }
+    internal PdfLoadOptions? OutputReadOptions { get; }
 
     /// <summary>Opens the rewritten bytes through the normal fluent document API.</summary>
-    public PdfDocument ToDocument() => PdfDocument.Open(_pdf, OutputReadOptions);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, OutputReadOptions);
 }

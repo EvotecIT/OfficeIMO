@@ -52,7 +52,7 @@ public class PdfSanitizerTests {
             EmbeddedFiles = PdfEmbeddedFileSanitizationMode.Quarantine
         };
 
-        PdfSanitizationResult result = PdfDocument.Open(source).Sanitize(policy);
+        PdfSanitizationResult result = PdfDocument.Load(source).Sanitize(policy);
         PdfDocumentInfo info = result.ToDocument().Inspect();
 
         PdfExtractedAttachment attachment = Assert.Single(result.QuarantinedAttachments);
@@ -187,7 +187,7 @@ public class PdfSanitizerTests {
             Encoding.ASCII.GetString(BuildUnsafeWidgetUriPdf())
                 .Replace("javascript:unsafe", "https://example.com"));
 
-        PdfFormWidgetAction action = Assert.Single(Assert.Single(Assert.Single(PdfDocument.Open(source).Inspect().FormFields).Widgets).Actions);
+        PdfFormWidgetAction action = Assert.Single(Assert.Single(Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets).Actions);
 
         Assert.Equal("URI", action.ActionType);
         Assert.Equal("https://example.com", action.Uri);
@@ -236,10 +236,10 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_BoundsSharedRetainedActionDagExpansion() {
         byte[] source = BuildSharedRetainedActionDagPdf(depth: 8);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 16 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 16 } };
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
-            PdfDocument.Open(source, readOptions).Sanitize());
+            PdfDocument.Load(source, readOptions).Sanitize());
 
         Assert.Equal(PdfReadLimitKind.IndirectObjects, exception.Kind);
         Assert.Equal(16, exception.Limit);
@@ -249,9 +249,9 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_CountsEachRetainedNextActionOnce() {
         byte[] source = BuildLinearRetainedActionChainPdf(actionCount: 5);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 5 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 5 } };
 
-        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+        PdfSanitizationResult result = PdfDocument.Load(source, readOptions).Sanitize();
 
         Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
         PdfPageAction[] actions = result.ToDocument().Inspect().Pages[0].PageActions.ToArray();
@@ -262,9 +262,9 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_DoesNotRecountIndirectRetainedNextActionsDuringObjectSweep() {
         byte[] source = BuildForbiddenOpenActionWithRetainedNextPdf();
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxWidgetActions = 1 } };
 
-        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+        PdfSanitizationResult result = PdfDocument.Load(source, readOptions).Sanitize();
 
         Assert.Equal("GoTo", result.ToDocument().Inspect().OpenAction?.ActionType);
         Assert.True(result.PreservationReport.IsPreserved, result.PreservationReport.Summary);
@@ -282,9 +282,9 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_CountsPromotedRetainedActionSiblingsOnce() {
         byte[] source = BuildForbiddenActionWithRetainedSiblingsPdf(actionCount: 5);
-        var readOptions = new PdfReadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 6 } };
+        var readOptions = new PdfLoadOptions { Limits = new PdfReadLimits { MaxIndirectObjects = 6 } };
 
-        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+        PdfSanitizationResult result = PdfDocument.Load(source, readOptions).Sanitize();
 
         PdfPageAction[] actions = result.ToDocument().Inspect().Pages[0].PageActions.ToArray();
         Assert.Equal(5, actions.Length);
@@ -295,14 +295,14 @@ public class PdfSanitizerTests {
     [Fact]
     public void Sanitize_ReusesCustomReadLimitsForItsRewrittenArtifact() {
         byte[] source = BuildActiveContentPdf();
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxInputBytes = source.LongLength,
                 MaxJavaScripts = PdfReadLimits.DefaultMaxJavaScripts + 17
             }
         };
 
-        PdfSanitizationResult result = PdfDocument.Open(source, readOptions).Sanitize();
+        PdfSanitizationResult result = PdfDocument.Load(source, readOptions).Sanitize();
         PdfDocument reopened = result.ToDocument();
 
         Assert.True(result.IsSanitized);

@@ -3,7 +3,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Reader.Pdf;
 
 internal static partial class PdfReaderAdapter {
-    private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, bool includeDocumentActions) {
+    private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfDocumentReadResult document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, bool includeDocumentActions) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentOpenAction? scopedOpenAction = includeDocumentActions ? GetScopedOpenAction(document.OpenAction, scope) : null;
         IReadOnlyList<PdfCatalogAction> catalogActions = includeDocumentActions
@@ -40,7 +40,7 @@ internal static partial class PdfReaderAdapter {
         return actions.Count == 0 ? null : actions.AsReadOnly();
     }
 
-    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfLogicalDocument document) =>
+    private static IReadOnlyList<PdfCatalogAction> GetScopedCatalogActions(PdfDocumentReadResult document) =>
         document.CatalogActions;
 
     private static PdfDocumentOpenAction? GetScopedOpenAction(PdfDocumentOpenAction? openAction, IReadOnlyList<PdfLogicalPage> scope) {

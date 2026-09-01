@@ -14,14 +14,21 @@ Supported import coverage includes PDF Info metadata, first-page paper size, log
 using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
-PdfDocument pdf = PdfDocument.Open("source.pdf");
-PdfRtfConversionResult result = pdf.ToRtfDocumentResult();
+PdfDocument pdf = PdfDocument.Load("source.pdf");
+PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfRtfImportOptions {
+    ReadOptions = new PdfReadOptions {
+        PageSelection = PdfPageSelection.Parse("1-10"),
+        Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }
+    }
+});
 
 result.Value.Save("source.rtf");
 foreach (var warning in result.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```
+
+`ReadOptions` is the same canonical semantic configuration used by `PdfDocument.Read(...)`, including page selection, Fast/Structured profile choice, layout settings, and resource budgets. It is ignored when converting an existing `PdfDocumentReadResult`.
 
 The semantic importer preserves detected run color, font size, bold, and italic through shared logical PDF runs. Tables, images, links, and form widgets currently produce structured loss diagnostics instead of disappearing silently.
 

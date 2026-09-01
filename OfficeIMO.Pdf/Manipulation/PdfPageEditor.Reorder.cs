@@ -8,7 +8,7 @@ internal static partial class PdfPageEditor {
         return ReorderPagesWithReadOptions(pdf, null, pageNumbers);
     }
 
-    internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] ReorderPagesWithReadOptions(byte[] pdf, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);

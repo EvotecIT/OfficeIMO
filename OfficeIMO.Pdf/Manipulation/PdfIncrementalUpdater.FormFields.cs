@@ -32,7 +32,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         return UpdateFormFields(pdf, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
     }
 
@@ -54,7 +54,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static byte[] UpdateFormFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
         PdfIncrementalFormFieldUpdateOptions effectiveOptions = options ?? new PdfIncrementalFormFieldUpdateOptions();
@@ -145,7 +145,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         return UpdateFormFields(input, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
     }
 
@@ -163,7 +163,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
-    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(input, nameof(input));
         if (!input.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(input));
@@ -188,7 +188,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         UpdateFormFields(inputPath, outputPath, ToIncrementalFormFieldValues(fieldValues), options, readOptions);
     }
 
@@ -206,7 +206,7 @@ internal static partial class PdfIncrementalUpdater {
     }
 
     /// <summary>Appends a form-field revision to a PDF file using optional password and parsing settings.</summary>
-    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfReadOptions? readOptions) {
+    public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         OfficeFileCommit.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options, readOptions));

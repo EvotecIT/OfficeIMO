@@ -17,7 +17,7 @@ public partial class PdfType3UncoloredPatternTests {
             glyphContent,
             firstFormContent,
             secondFormContent);
-        var readOptions = new PdfReadOptions {
+        var readOptions = new PdfLoadOptions {
             Limits = new PdfReadLimits {
                 MaxPageContentBytes = pageContent.Length + glyphContent.Length + firstFormContent.Length + 8
             }
@@ -119,7 +119,7 @@ public partial class PdfType3UncoloredPatternTests {
             "12 0 obj\n<< /Type /OCG /Name (Hidden) >>\nendobj"
         };
         byte[] pdf = Encoding.ASCII.GetBytes("%PDF-1.4\n" + string.Join("\n", objects) + "\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
-        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfReadOptions {
+        PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxType3GlyphInvocationsPerPage = 2 }
         });
 

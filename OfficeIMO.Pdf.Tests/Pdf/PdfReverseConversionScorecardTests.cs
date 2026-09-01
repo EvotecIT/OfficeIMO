@@ -43,10 +43,16 @@ public sealed class PdfReverseConversionScorecardTests {
             string sourcePath = Path.Combine(repositoryRoot, producer.GetProperty("path").GetString()!.Replace('/', Path.DirectorySeparatorChar));
             Assert.True(File.Exists(sourcePath), "Missing scorecard fixture: " + sourcePath);
             byte[] source = File.ReadAllBytes(sourcePath);
-            PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(source);
+            PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(source);
             Assert.NotEmpty(logical.Pages);
             HashSet<string> sourceTokens = GetTokens(string.Join(" ", logical.Pages.SelectMany(static page => page.TextBlocks).Select(static block => block.Text)));
-            Assert.NotEmpty(sourceTokens);
+            Assert.True(sourceTokens.Count > 0,
+                "No source tokens were extracted for scorecard producer '" + producerId + "'. Page artifacts: " +
+                string.Join(", ", logical.Pages.Select(static page =>
+                    page.PageNumber + ": runs=" + page.Analysis.DecodedRuns.Count +
+                    ", words=" + page.Analysis.Words.Count +
+                    ", lines=" + page.Analysis.Lines.Count +
+                    ", blocks=" + page.TextBlocks.Count)));
             bool expectedTables = producer.GetProperty("expectedTables").GetBoolean();
             if (expectedTables) Assert.NotEmpty(logical.Tables);
 
@@ -77,7 +83,7 @@ public sealed class PdfReverseConversionScorecardTests {
             OcrAt(request, "Scanned", 36, 120, 52, 14),
             OcrAt(request, "invoice", 96, 120, 44, 14)
         }));
-        PdfCore.PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Open(scanned).Read.OcrAsync(scannedProvider);
+        PdfCore.PdfOcrMergeResult scannedResult = await PdfCore.PdfDocument.Load(scanned).Reader.OcrAsync(scannedProvider);
         Assert.Empty(scannedResult.NativeDocument.TextBlocks);
         Assert.Equal(2, scannedResult.AcceptedWordCount);
         Assert.All(scannedResult.EnrichedDocument.TextBlocks, block => Assert.Equal(PdfCore.PdfLogicalContentSourceKind.Ocr, block.SourceKind));
@@ -95,7 +101,7 @@ public sealed class PdfReverseConversionScorecardTests {
             OcrAt(request, "duplicate", nativeQuad.Left, nativeQuad.Top, nativeQuad.Width, nativeQuad.Height),
             OcrAt(request, "OCR-retained", 36, 260, 74, 14)
         }));
-        PdfCore.PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Open(mixed).Read.OcrAsync(mixedProvider);
+        PdfCore.PdfOcrMergeResult mixedResult = await PdfCore.PdfDocument.Load(mixed).Reader.OcrAsync(mixedProvider);
         Assert.Equal(1, mixedResult.Pages[0].RejectedNativeOverlapCount);
         Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Native && block.Text.Contains("Native retained", StringComparison.Ordinal));
         Assert.Contains(mixedResult.EnrichedDocument.TextBlocks, block => block.SourceKind == PdfCore.PdfLogicalContentSourceKind.Ocr && block.Text.Contains("OCR-retained", StringComparison.Ordinal));
@@ -103,16 +109,16 @@ public sealed class PdfReverseConversionScorecardTests {
         byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Credentialed conversion"))
             .ToBytes();
-        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfLogicalDocument.Load(encrypted));
-        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfLogicalDocument.Load(encrypted, null, new PdfCore.PdfReadOptions { Password = "wrong" }));
-        PdfCore.PdfLogicalDocument decrypted = PdfCore.PdfLogicalDocument.Load(encrypted, null, new PdfCore.PdfReadOptions { Password = "open" });
+        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfDocumentReadResult.Load(encrypted));
+        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfDocumentReadResult.Load(encrypted, null, new PdfCore.PdfLoadOptions { Password = "wrong" }));
+        PdfCore.PdfDocumentReadResult decrypted = PdfCore.PdfDocumentReadResult.Load(encrypted, null, new PdfCore.PdfLoadOptions { Password = "open" });
         Assert.Contains(decrypted.TextBlocks, block => block.Text.Contains("Credentialed conversion", StringComparison.Ordinal));
         Assert.Contains("Credentialed", decrypted.ToHtml(), StringComparison.Ordinal);
 
         JsonElement malformedCase = stressCases.Single(static item => item.GetProperty("kind").GetString() == "malformed");
         string malformedPath = Path.Combine(repositoryRoot, malformedCase.GetProperty("path").GetString()!.Replace('/', Path.DirectorySeparatorChar));
         byte[] malformed = File.ReadAllBytes(malformedPath);
-        PdfCore.PdfLogicalDocument recovered = PdfCore.PdfLogicalDocument.Load(malformed);
+        PdfCore.PdfDocumentReadResult recovered = PdfCore.PdfDocumentReadResult.Load(malformed);
         Assert.NotEmpty(recovered.Pages);
         Assert.Contains("<!doctype html", recovered.ToHtml(), StringComparison.OrdinalIgnoreCase);
         byte[] recoveredPng = PdfCore.PdfPageImageRenderer.RenderPageAsPng(malformed);
@@ -122,7 +128,7 @@ public sealed class PdfReverseConversionScorecardTests {
     private static void ExecuteAndReopen(
         JsonElement routeConfiguration,
         byte[] source,
-        PdfCore.PdfLogicalDocument logical,
+        PdfCore.PdfDocumentReadResult logical,
         HashSet<string> sourceTokens,
         bool expectedTables) {
         string route = routeConfiguration.GetProperty("id").GetString()!;
@@ -164,7 +170,7 @@ public sealed class PdfReverseConversionScorecardTests {
                 }
                 return;
             case "pdf-to-pptx":
-                PdfPowerPointConversionResult result = PdfCore.PdfDocument.Open(source)
+                PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(source)
                     .ToPowerPointPresentationResult(PdfPowerPointImportOptions.CreateEditableContent());
                 using (result.Value) {
                     using var stream = new MemoryStream();

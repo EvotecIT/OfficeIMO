@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Result of a dependency-free PDF annotation edit operation.</summary>
 public sealed class PdfAnnotationEditResult {
     private readonly byte[] _bytes;
-    private readonly PdfReadOptions? _readOptions;
+    private readonly PdfLoadOptions? _readOptions;
 
     internal PdfAnnotationEditResult(
         byte[] bytes,
@@ -11,9 +11,9 @@ public sealed class PdfAnnotationEditResult {
         PdfMutationPlan mutationPlan,
         PdfSignatureMutationReport? signatureMutationReport = null,
         PdfRewritePreservationReport? rewritePreservationReport = null,
-        PdfReadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null) {
         _bytes = (byte[])bytes.Clone();
-        _readOptions = PdfReadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
+        _readOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, _bytes.LongLength);
         AffectedAnnotationCount = affectedAnnotationCount;
         MutationPlan = mutationPlan;
         SignatureMutationReport = signatureMutationReport;
@@ -39,7 +39,7 @@ public sealed class PdfAnnotationEditResult {
     public bool Applied => AffectedAnnotationCount > 0;
 
     /// <summary>Opens the edited bytes through the fluent document API.</summary>
-    public PdfDocument ToDocument(PdfReadOptions? readOptions = null) => PdfDocument.Open(_bytes, readOptions ?? _readOptions);
+    public PdfDocument ToDocument(PdfLoadOptions? readOptions = null) => PdfDocument.Load(_bytes, readOptions ?? _readOptions);
 
-    internal PdfReadOptions OutputReadOptions => _readOptions!;
+    internal PdfLoadOptions OutputReadOptions => _readOptions!;
 }

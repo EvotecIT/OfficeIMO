@@ -114,7 +114,7 @@ internal static class RichWordPdfCorpusGenerator {
 
     private static void ValidateGeneratedPdf(string pdfPath) {
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        var readOptions = new PdfReadOptions { IncludeArtifactText = true };
+        var readOptions = new PdfLoadOptions { IncludeArtifactText = true };
         PdfReadDocument readDocument = PdfReadDocument.Open(bytes, readOptions);
         if (readDocument.Pages.Count != PageCount) {
             throw new InvalidDataException(
@@ -137,8 +137,8 @@ internal static class RichWordPdfCorpusGenerator {
             }
         }
 
-        OfficeIMO.Pdf.PdfDocument opened = OfficeIMO.Pdf.PdfDocument.Open(bytes, readOptions);
-        if (opened.Read.Images().Count == 0) {
+        OfficeIMO.Pdf.PdfDocument opened = OfficeIMO.Pdf.PdfDocument.Load(bytes, readOptions);
+        if (opened.Images.Placements().Count == 0) {
             throw new InvalidDataException("Rich Word PDF did not preserve its embedded image.");
         }
 

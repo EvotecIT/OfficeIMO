@@ -253,7 +253,7 @@ public sealed class OfficeWorkflowRunnerTests {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "signed.pdf");
         byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Signed source")))))).ToBytes();
-        PdfExternalSignaturePreparation preparation = PdfDocument.Open(unsigned).Security.PrepareExternalSignature(
+        PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(
             new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
         byte[] signed = preparation.Complete([0x30, 0x01, 0x00]).ToBytes();
         await File.WriteAllBytesAsync(path, signed);

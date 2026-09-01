@@ -25,9 +25,9 @@ public sealed class PdfEditorCommandTests {
         PdfEditorCommand command = PdfEditorCommandFactory.Create(source, tool, CreateGesture(), CreateProperties());
 
         byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
-        PdfDocument reopened = PdfDocument.Open(edited);
+        PdfDocument reopened = PdfDocument.Load(edited);
         PdfAnnotation annotation = Assert.Single(reopened.Inspect().GetAnnotationsBySubtype(subtype));
-        PdfPageRenderResult render = Assert.Single(reopened.Read.RenderPages("1", new PdfPageRenderOptions {
+        PdfPageRenderResult render = Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions {
             Format = PdfPageRenderFormat.Svg,
             ContinueOnError = false
         }));
@@ -44,7 +44,7 @@ public sealed class PdfEditorCommandTests {
 
         byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
 
-        PdfLinkAnnotation link = Assert.Single(PdfDocument.Open(edited).Inspect().GetLinkAnnotationsByUri("https://officeimo.com"));
+        PdfLinkAnnotation link = Assert.Single(PdfDocument.Load(edited).Inspect().GetLinkAnnotationsByUri("https://officeimo.com"));
         Assert.Equal(1, link.PageNumber);
     }
 
@@ -60,17 +60,17 @@ public sealed class PdfEditorCommandTests {
             withText,
             PdfEditorCommandFactory.Create(withText, PdfEditorTool.AddImage, CreateGesture(), imageProperties));
 
-        PdfDocument reopened = PdfDocument.Open(withImage);
-        Assert.Contains("Added overlay", reopened.Read.Text(), StringComparison.Ordinal);
-        Assert.NotEmpty(PdfLogicalDocument.Load(withImage).Images);
-        Assert.True(Assert.Single(reopened.Read.RenderPages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
+        PdfDocument reopened = PdfDocument.Load(withImage);
+        Assert.Contains("Added overlay", reopened.Read().Text, StringComparison.Ordinal);
+        Assert.NotEmpty(reopened.Read().Images);
+        Assert.True(Assert.Single(reopened.Render.Pages("1", new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg })).Succeeded);
     }
 
     [Fact]
     public void VerifiedRedaction_RemovesMatchedTextFromExtractedRawAndDecodedContent() {
         const string secret = "Secret account 123-45";
         byte[] source = CreateSource(secret);
-        PdfPageInteractionMap interactions = PdfDocument.Open(source).Read.Interactions(1);
+        PdfPageInteractionMap interactions = PdfDocument.Load(source).Render.Interactions(1);
         PdfPageInteractionRegion[] regions = interactions.TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
             .ToArray();
@@ -87,7 +87,7 @@ public sealed class PdfEditorCommandTests {
 
         Assert.True(result.Plan.HasMatches);
         Assert.True(result.Verification.IsVerified, result.Verification.Summary);
-        Assert.DoesNotContain(secret, PdfDocument.Open(result.Bytes).Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain(secret, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
         Assert.True(result.Verification.RawPdfBytesChecked);
         Assert.True(result.Verification.DecodedPdfStreamsChecked);
         Assert.True(result.Verification.ManagedRenderingChecked);
@@ -100,7 +100,7 @@ public sealed class PdfEditorCommandTests {
             compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
             compose.Page(page => page.Size(600D, 800D).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(repeated)))));
         }).ToBytes();
-        PdfPageInteractionRegion[] regions = PdfDocument.Open(source).Read.Interactions(1).TextRegions
+        PdfPageInteractionRegion[] regions = PdfDocument.Load(source).Render.Interactions(1).TextRegions
             .Where(region => !string.IsNullOrWhiteSpace(region.Text))
             .ToArray();
         var gesture = new PdfEditorGesture(
@@ -116,8 +116,8 @@ public sealed class PdfEditorCommandTests {
             PdfEditorCommandFactory.Create(source, PdfEditorTool.Redact, gesture, CreateProperties()));
 
         Assert.True(result.Verification.IsVerified, result.Verification.Summary);
-        Assert.Contains(repeated, PdfDocument.Open(result.Bytes).Read.Text(), StringComparison.Ordinal);
-        Assert.Empty(PdfDocument.Open(result.Bytes).Redactions.Plan(result.Plan.Areas).Matches);
+        Assert.Contains(repeated, PdfDocument.Load(result.Bytes).Read().Text, StringComparison.Ordinal);
+        Assert.Empty(PdfDocument.Load(result.Bytes).Redactions.Plan(result.Plan.Areas).Matches);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class PdfEditorCommandTests {
 
         Assert.Contains(imageResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
         Assert.True(imageResult.Verification.IsVerified, imageResult.Verification.Summary);
-        Assert.Empty(PdfDocument.Open(imageResult.Bytes).Redactions.Plan(imageResult.Plan.Areas).Matches);
+        Assert.Empty(PdfDocument.Load(imageResult.Bytes).Redactions.Plan(imageResult.Plan.Areas).Matches);
 
         byte[] withAnnotation = PdfEditorCommandExecutor.Apply(
             blank,
@@ -144,7 +144,7 @@ public sealed class PdfEditorCommandTests {
 
         Assert.Contains(annotationResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.Annotation);
         Assert.True(annotationResult.Verification.IsVerified, annotationResult.Verification.Summary);
-        Assert.Empty(PdfDocument.Open(annotationResult.Bytes).Redactions.Plan(annotationResult.Plan.Areas).Matches);
+        Assert.Empty(PdfDocument.Load(annotationResult.Bytes).Redactions.Plan(annotationResult.Plan.Areas).Matches);
     }
 
     private static byte[] CreateSource(string text = "Existing content") =>

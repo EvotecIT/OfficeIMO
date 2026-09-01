@@ -28,15 +28,15 @@ public class PdfRawStructureTests {
         byte[] bytes = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text(new string('x', 200)))
             .ToBytes();
-        PdfDocument document = PdfDocument.Open(bytes);
+        PdfDocument document = PdfDocument.Load(bytes);
 
-        PdfRawDocumentView raw = document.Read.RawStructure(new PdfRawStructureOptions {
+        PdfRawDocumentView raw = document.Resources.RawStructure(new PdfRawStructureOptions {
             MaxObjects = 2,
             MaxDepth = 1,
             MaxCollectionItems = 1,
             MaxTextLength = 8
         });
-        PdfOperationResult<PdfRawDocumentView> attempted = document.Read.TryRawStructure();
+        PdfOperationResult<PdfRawDocumentView> attempted = document.Resources.TryRawStructure();
 
         Assert.Equal(2, raw.Objects.Count);
         Assert.True(raw.IsTruncated);

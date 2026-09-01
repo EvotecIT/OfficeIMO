@@ -4,12 +4,12 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public partial class PdfLogicalDocumentTests {
+public partial class PdfDocumentReadResultTests {
     [Fact]
     public void LoadPageRanges_BuildsLogicalModelForSelectedSourcePagesInCallerOrder() {
         byte[] pdf = BuildThreePageLogicalPdf();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, new PdfTextLayoutOptions {
+        PdfDocumentReadResult logical = PdfDocumentReadResult.LoadPageRanges(pdf, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         }, PdfPageRange.ParseMany("3,1-2,3"));
 
@@ -28,7 +28,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(2, logical.GetElements(3).OfType<PdfLogicalTextBlock>().Count(block => block.Text.Contains("Third logical page", StringComparison.Ordinal)));
 
         PdfReadDocument document = PdfReadDocument.Open(pdf);
-        PdfLogicalDocument fromDocument = PdfLogicalDocument.FromPageRanges(document, PdfPageRange.From(2, 2));
+        PdfDocumentReadResult fromDocument = PdfDocumentReadResult.FromPageRanges(document, PdfPageRange.From(2, 2));
 
         PdfLogicalPage selected = Assert.Single(fromDocument.Pages);
         Assert.Equal(2, selected.PageNumber);
@@ -52,7 +52,7 @@ public partial class PdfLogicalDocumentTests {
             .TextField("Third.Page", width: 120, height: 20, value: "three")
             .ToBytes();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+        PdfDocumentReadResult logical = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
 
         Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
         Assert.Equal(2, logical.FormFields.Count);
@@ -75,7 +75,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Contains(logical.Pages[1].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
         Assert.Contains(logical.Pages[2].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
 
-        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(pdf);
         Assert.Contains("Third.Page", full.FormFieldNames);
         Assert.Equal(3, full.FormFields.Count);
     }
@@ -84,7 +84,7 @@ public partial class PdfLogicalDocumentTests {
     public void LoadPageRanges_FiltersNavigationObjectsToSelectedSourcePages() {
         byte[] pdf = BuildThreePageNavigationPdf();
 
-        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+        PdfDocumentReadResult logical = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
 
         Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
         Assert.Equal(new[] { "First", "Second" }, logical.NamedDestinations.Select(destination => destination.Name).OrderBy(name => name).ToArray());
@@ -100,7 +100,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.False(logical.HasReadableOpenAction);
         Assert.Null(logical.OpenAction);
 
-        PdfLogicalDocument thirdPage = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(3, 3));
+        PdfDocumentReadResult thirdPage = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.From(3, 3));
 
         PdfNamedDestination thirdDestination = Assert.Single(thirdPage.NamedDestinations);
         Assert.Equal("Third", thirdDestination.Name);
@@ -111,7 +111,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.True(thirdPage.HasReadableOpenAction);
         Assert.Equal(3, thirdPage.OpenAction!.PageNumber);
 
-        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(pdf);
 
         Assert.Equal(3, full.NamedDestinations.Count);
         Assert.Equal(3, full.Outlines.Count);
@@ -122,7 +122,7 @@ public partial class PdfLogicalDocumentTests {
     public void LoadPageRanges_FiltersPageLabelsToSelectedSourcePages() {
         byte[] pdf = BuildThreePageLabelPdf();
 
-        PdfLogicalDocument pageTwo = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(2, 2));
+        PdfDocumentReadResult pageTwo = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.From(2, 2));
 
         PdfPageLabel inheritedLabel = Assert.Single(pageTwo.PageLabels);
         Assert.Equal(1, inheritedLabel.StartPageIndex);
@@ -131,7 +131,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal("A-", inheritedLabel.Prefix);
         Assert.Equal(11, inheritedLabel.StartNumber);
 
-        PdfLogicalDocument selected = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("3,1,3"));
+        PdfDocumentReadResult selected = PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.ParseMany("3,1,3"));
 
         Assert.Equal(new[] { 3, 1, 3 }, selected.Pages.Select(page => page.PageNumber).ToArray());
         Assert.Equal(2, selected.PageLabels.Count);
@@ -139,7 +139,7 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(new[] { "A-", "B-" }, selected.PageLabels.Select(label => label.Prefix).ToArray());
         Assert.Equal(new[] { 10, 3 }, selected.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
 
-        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+        PdfDocumentReadResult full = PdfDocumentReadResult.Load(pdf);
 
         Assert.Equal(2, full.PageLabels.Count);
         Assert.Equal(new[] { 0, 2 }, full.PageLabels.Select(label => label.StartPageIndex).ToArray());
@@ -154,11 +154,11 @@ public partial class PdfLogicalDocumentTests {
         try {
             File.WriteAllBytes(path, pdf);
 
-            PdfLogicalDocument fromPath = PdfLogicalDocument.LoadPageRanges(path, PdfPageRange.From(2, 2));
+            PdfDocumentReadResult fromPath = PdfDocumentReadResult.LoadPageRanges(path, PdfPageRange.From(2, 2));
             using var stream = new MemoryStream(pdf);
             stream.Position = pdf.Length / 2;
             long originalPosition = stream.Position;
-            PdfLogicalDocument fromStream = PdfLogicalDocument.LoadPageRanges(stream, PdfPageRange.From(1, 1));
+            PdfDocumentReadResult fromStream = PdfDocumentReadResult.LoadPageRanges(stream, PdfPageRange.From(1, 1));
 
             Assert.Equal(2, Assert.Single(fromPath.Pages).PageNumber);
             Assert.Contains(fromPath.TextBlocks, block => block.Text.Contains("Second logical page", StringComparison.Ordinal));
@@ -176,14 +176,14 @@ public partial class PdfLogicalDocumentTests {
     public void LoadPageRanges_RejectsInvalidInputs() {
         byte[] pdf = BuildThreePageLogicalPdf();
 
-        Assert.Throws<ArgumentNullException>(() => PdfLogicalDocument.LoadPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
-        Assert.Throws<ArgumentNullException>(() => PdfLogicalDocument.LoadPageRanges((string)null!, PdfPageRange.From(1, 1)));
-        Assert.Throws<ArgumentException>(() => PdfLogicalDocument.LoadPageRanges(" ", PdfPageRange.From(1, 1)));
-        Assert.Throws<ArgumentNullException>(() => PdfLogicalDocument.LoadPageRanges((Stream)null!, PdfPageRange.From(1, 1)));
-        Assert.Throws<ArgumentNullException>(() => PdfLogicalDocument.LoadPageRanges(pdf, (PdfPageRange[])null!));
-        Assert.Throws<ArgumentException>(() => PdfLogicalDocument.LoadPageRanges(pdf));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfLogicalDocument.LoadPageRanges(pdf, default(PdfPageRange)));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(4, 4)));
-        Assert.Throws<ArgumentNullException>(() => PdfLogicalDocument.FromPageRanges((PdfReadDocument)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfDocumentReadResult.LoadPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfDocumentReadResult.LoadPageRanges((string)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentException>(() => PdfDocumentReadResult.LoadPageRanges(" ", PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfDocumentReadResult.LoadPageRanges((Stream)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfDocumentReadResult.LoadPageRanges(pdf, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfDocumentReadResult.LoadPageRanges(pdf));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocumentReadResult.LoadPageRanges(pdf, default(PdfPageRange)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocumentReadResult.LoadPageRanges(pdf, PdfPageRange.From(4, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfDocumentReadResult.FromPageRanges((PdfReadDocument)null!, PdfPageRange.From(1, 1)));
     }
 }

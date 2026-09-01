@@ -9,12 +9,19 @@ namespace OfficeIMO.Studio.Features.Reader;
 /// </summary>
 internal sealed class PdfDocumentSession {
     private readonly PdfDocument _document;
+    private readonly PdfDocumentReadResult _semanticDocument;
 
-    private PdfDocumentSession(string path, long fileSize, PdfDocument document, PdfDocumentInfo documentInfo) {
+    private PdfDocumentSession(
+        string path,
+        long fileSize,
+        PdfDocument document,
+        PdfDocumentInfo documentInfo,
+        PdfDocumentReadResult semanticDocument) {
         Path = path;
         FileSize = fileSize;
         _document = document;
         DocumentInfo = documentInfo;
+        _semanticDocument = semanticDocument;
     }
 
     internal string Path { get; }
@@ -38,10 +45,12 @@ internal sealed class PdfDocumentSession {
             int pageCount = Pages.Count;
             for (int index = 0; index < pageCount; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                IReadOnlyList<string> pageText = _document.Read.TextByPage(
-                    (index + 1).ToString(CultureInfo.InvariantCulture));
+                PdfLogicalPage? page = _semanticDocument.Pages.FirstOrDefault(
+                    candidate => candidate.PageNumber == index + 1);
                 cancellationToken.ThrowIfCancellationRequested();
-                string text = pageText.Count == 0 ? string.Empty : pageText[0];
+                string text = page is null
+                    ? string.Empty
+                    : string.Join(Environment.NewLine, page.TextBlocks.Select(static block => block.Text));
                 int match = text.IndexOf(needle, StringComparison.OrdinalIgnoreCase);
                 if (match >= 0) {
                     int start = Math.Max(0, match - 32);
@@ -58,11 +67,13 @@ internal sealed class PdfDocumentSession {
 
     internal static PdfDocumentSession FromWorkspace(PdfWorkspace workspace) {
         ArgumentNullException.ThrowIfNull(workspace);
+        PdfDocument document = workspace.CreateDocumentSnapshot();
         return new PdfDocumentSession(
             workspace.Path,
             workspace.FileSize,
-            workspace.CreateDocumentSnapshot(),
-            workspace.DocumentInfo);
+            document,
+            workspace.DocumentInfo,
+            document.Read(new PdfReadOptions { Profile = PdfReadProfile.Fast }));
     }
 
     internal async Task<PdfPageScene> LoadPageSceneAsync(
@@ -74,11 +85,11 @@ internal sealed class PdfDocumentSession {
 
         return await Task.Run(() => {
             cancellationToken.ThrowIfCancellationRequested();
-            OfficeIMO.Drawing.OfficeDrawing drawing = _document.Read.Drawing(pageNumber);
+            OfficeIMO.Drawing.OfficeDrawing drawing = _document.Render.Drawing(pageNumber);
             cancellationToken.ThrowIfCancellationRequested();
-            PdfPageInteractionMap interactions = _document.Read.Interactions(pageNumber);
+            PdfPageInteractionMap interactions = _document.Render.Interactions(pageNumber);
             IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics =
-                _document.Read.RenderCapabilityDiagnostics(pageNumber);
+                _document.Render.CapabilityDiagnostics(pageNumber);
             IReadOnlyList<string> adapterDiagnostics =
                 OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing);
             cancellationToken.ThrowIfCancellationRequested();
@@ -109,15 +120,22 @@ internal sealed class PdfDocumentSession {
         cancellationToken.ThrowIfCancellationRequested();
         var file = new FileInfo(fullPath);
         PdfDocument document = await PdfDocument
-            .OpenAsync(fullPath, cancellationToken: cancellationToken)
+            .LoadAsync(fullPath, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         PdfDocumentInfo documentInfo = await Task
-            .Run(() => document.Read.DocumentInfo(), cancellationToken)
+            .Run(() => document.Inspect(), cancellationToken)
+            .ConfigureAwait(false);
+        PdfDocumentReadResult semanticDocument = await Task
+            .Run(
+                () => document.Read(
+                    new PdfReadOptions { Profile = PdfReadProfile.Fast },
+                    cancellationToken),
+                cancellationToken)
             .ConfigureAwait(false);
 
         cancellationToken.ThrowIfCancellationRequested();
-        return new PdfDocumentSession(fullPath, file.Length, document, documentInfo);
+        return new PdfDocumentSession(fullPath, file.Length, document, documentInfo, semanticDocument);
     }
 
     internal async Task<PdfRenderedPage> RenderPageAsync(
@@ -138,7 +156,7 @@ internal sealed class PdfDocumentSession {
         };
 
         IReadOnlyList<PdfPageRenderResult> results = await Task.Run(
-            () => _document.Read.RenderPages(
+            () => _document.Render.Pages(
                 pageNumber.ToString(CultureInfo.InvariantCulture),
                 options,
                 cancellationToken: cancellationToken),

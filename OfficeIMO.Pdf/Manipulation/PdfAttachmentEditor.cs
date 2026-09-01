@@ -8,7 +8,7 @@ internal static class PdfAttachmentEditor {
     public static PdfAttachmentEditResult Edit(
         byte[] pdf,
         Action<PdfAttachmentEditSession> edit,
-        PdfReadOptions? readOptions = null,
+        PdfLoadOptions? readOptions = null,
         long? maxDecodedAttachmentBytes = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(edit, nameof(edit));
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
@@ -47,8 +47,8 @@ internal static class PdfAttachmentEditor {
                 objects, security, targetEntries, retainedOriginalNames);
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value) ? security.InfoObjectNumber : null;
         });
-        PdfReadOptions outputReadOptions = PdfReadOptions.WithMinimumInputBytes(
-            PdfReadOptions.Resolve(readOptions),
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(
+            PdfLoadOptions.Resolve(readOptions),
             output.LongLength);
         IReadOnlyList<PdfAttachmentValidation> validations = Validate(output, target, outputReadOptions);
         ValidateAttachmentGraph(output, target.Length, outputReadOptions);
@@ -64,13 +64,13 @@ internal static class PdfAttachmentEditor {
     }
 
     /// <summary>Adds one attachment.</summary>
-    public static PdfAttachmentEditResult Add(byte[] pdf, PdfEmbeddedFile attachment, PdfReadOptions? readOptions = null) => Edit(pdf, session => session.Add(attachment), readOptions);
+    public static PdfAttachmentEditResult Add(byte[] pdf, PdfEmbeddedFile attachment, PdfLoadOptions? readOptions = null) => Edit(pdf, session => session.Add(attachment), readOptions);
     /// <summary>Replaces one attachment by file name.</summary>
-    public static PdfAttachmentEditResult Replace(byte[] pdf, string fileName, PdfEmbeddedFile replacement, PdfReadOptions? readOptions = null) => Edit(pdf, session => session.Replace(fileName, replacement), readOptions);
+    public static PdfAttachmentEditResult Replace(byte[] pdf, string fileName, PdfEmbeddedFile replacement, PdfLoadOptions? readOptions = null) => Edit(pdf, session => session.Replace(fileName, replacement), readOptions);
     /// <summary>Renames one attachment.</summary>
-    public static PdfAttachmentEditResult Rename(byte[] pdf, string fileName, string newFileName, PdfReadOptions? readOptions = null) => Edit(pdf, session => session.Rename(fileName, newFileName), readOptions);
+    public static PdfAttachmentEditResult Rename(byte[] pdf, string fileName, string newFileName, PdfLoadOptions? readOptions = null) => Edit(pdf, session => session.Rename(fileName, newFileName), readOptions);
     /// <summary>Removes one attachment.</summary>
-    public static PdfAttachmentEditResult Remove(byte[] pdf, string fileName, PdfReadOptions? readOptions = null) => Edit(pdf, session => session.Remove(fileName), readOptions);
+    public static PdfAttachmentEditResult Remove(byte[] pdf, string fileName, PdfLoadOptions? readOptions = null) => Edit(pdf, session => session.Remove(fileName), readOptions);
 
     private static bool RewriteAttachmentGraph(
         Dictionary<int, PdfIndirectObject> objects,
@@ -360,7 +360,7 @@ internal static class PdfAttachmentEditor {
         }
     }
 
-    private static void ValidateAttachmentGraph(byte[] pdf, int expectedCount, PdfReadOptions? readOptions) {
+    private static void ValidateAttachmentGraph(byte[] pdf, int expectedCount, PdfLoadOptions? readOptions) {
         var (objects, _) = PdfSyntax.ParseObjects(pdf, readOptions);
         int embeddedStreams = 0;
         int fileSpecifications = 0;
@@ -398,7 +398,7 @@ internal static class PdfAttachmentEditor {
         return dictionary;
     }
 
-    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target, PdfReadOptions readOptions) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfAttachmentValidation> Validate(byte[] pdf, PdfEmbeddedFile[] target, PdfLoadOptions readOptions) {
         IReadOnlyList<PdfExtractedAttachment> actual = PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions));
         var unmatched = actual.ToList();
         var result = new List<PdfAttachmentValidation>(target.Length);

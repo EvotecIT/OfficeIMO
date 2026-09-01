@@ -26,9 +26,13 @@ internal static class TableDetector {
 
     public static List<(TextLayoutEngine.TextLine Line, string[] Cells)> DetectLineRows(
         List<TextLayoutEngine.TextLine> lines,
-        double? pageHeight = null) {
+        double? pageHeight = null,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
         var rows = new List<(TextLayoutEngine.TextLine Line, string[] Cells)>();
         foreach (var ln in lines) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             if (!CanRecoverTableLine(ln, pageHeight) || ln.Spans.Count < 2) continue;
             var cells = SplitByGaps(ln);
             if (cells.Length >= 2 && LooksTabular(cells)) rows.Add((ln, cells));
@@ -38,15 +42,26 @@ internal static class TableDetector {
 
     public static List<StructuredTable> DetectTablesFromBands(
         List<List<TextLayoutEngine.TextLine>> bands,
-        double? pageHeight = null) {
-        bands = bands
-            .Select(band => band.Where(line => CanRecoverTableLine(line, pageHeight)).ToList())
-            .Where(static band => band.Count > 0)
-            .ToList();
+        double? pageHeight = null,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        var recoverableBands = new List<List<TextLayoutEngine.TextLine>>(bands.Count);
+        for (int bandIndex = 0; bandIndex < bands.Count; bandIndex++) {
+            cancellationCheck?.Invoke();
+            List<TextLayoutEngine.TextLine> sourceBand = bands[bandIndex];
+            if (sourceBand.Count > 0) consumeWork?.Invoke(sourceBand.Count);
+            List<TextLayoutEngine.TextLine> recoverable = sourceBand
+                .Where(line => CanRecoverTableLine(line, pageHeight))
+                .ToList();
+            if (recoverable.Count > 0) recoverableBands.Add(recoverable);
+        }
+        bands = recoverableBands;
         var tables = new List<StructuredTable>();
         // Leader-dominated bands should become leader tables, not generic band tables
         foreach (var band in bands) {
+            cancellationCheck?.Invoke();
             if (band.Count == 0) continue;
+            consumeWork?.Invoke(band.Count);
             if (IsLeaderBand(band)) {
                 var leader = BuildLeaderTableForBand(band);
                 if (leader != null && leader.Rows.Count > 0) tables.Add(leader);
@@ -54,12 +69,14 @@ internal static class TableDetector {
         }
         // Then, attempt to form multi-band table groups with similar split positions (non-leader bands only)
         var nonLeaderBands = bands.Where(b => b.Count > 0 && !IsLeaderBand(b)).ToList();
-        var grouped = DetectTablesAcrossBandGroups(nonLeaderBands);
+        var grouped = DetectTablesAcrossBandGroups(nonLeaderBands, consumeWork, cancellationCheck);
         tables.AddRange(grouped);
 
         // Fallback per-band splits for remaining non-leader bands
         if (tables.Count == 0) {
             foreach (var band in nonLeaderBands) {
+                cancellationCheck?.Invoke();
+                if (band.Count > 0) consumeWork?.Invoke(band.Count);
                 var splits = InferSplits(band);
                 if (splits.Count == 0) continue;
                 var table = BuildTableFromLinesAndSplits(band, splits, "band-splits");
@@ -71,7 +88,11 @@ internal static class TableDetector {
             .Where(line => !IsCoveredByDetectedTable(line, tables))
             .Take(MaximumPositionedRecoveryLines)
             .ToList();
-        List<StructuredTable> positionedTables = DetectPositionedCellTables(unmatchedLines, pageHeight);
+        List<StructuredTable> positionedTables = DetectPositionedCellTables(
+            unmatchedLines,
+            pageHeight,
+            consumeWork,
+            cancellationCheck);
         if (positionedTables.Count > 0) {
             tables.RemoveAll(table =>
                 table.Rows.Count < 3 &&
@@ -143,12 +164,16 @@ internal static class TableDetector {
 
     internal static List<StructuredTable> DetectPositionedCellTables(
         IReadOnlyList<TextLayoutEngine.TextLine> lines,
-        double? pageHeight = null) {
+        double? pageHeight = null,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
         var result = new List<StructuredTable>();
         var group = new List<PositionedRow>();
         int inspectedLines = 0;
         int inspectedCells = 0;
         foreach (TextLayoutEngine.TextLine line in lines.OrderByDescending(static line => line.Y)) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             if (inspectedLines++ == MaximumPositionedRecoveryLines) break;
             if (!CanRecoverTableLine(line, pageHeight)) {
                 AddPositionedGroup(result, group);
@@ -391,11 +416,16 @@ internal static class TableDetector {
         return t;
     }
 
-    private static List<StructuredTable> DetectTablesAcrossBandGroups(List<List<TextLayoutEngine.TextLine>> bands) {
+    private static List<StructuredTable> DetectTablesAcrossBandGroups(
+        List<List<TextLayoutEngine.TextLine>> bands,
+        Action<long>? consumeWork,
+        Action? cancellationCheck) {
         var result = new List<StructuredTable>();
         // Pre-compute splits per band
         var bandSplits = new List<(int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits)>();
         for (int i = 0; i < bands.Count; i++) {
+            cancellationCheck?.Invoke();
+            if (bands[i].Count > 0) consumeWork?.Invoke(bands[i].Count);
             var b = bands[i]; if (b.Count == 0) continue;
             var sp = InferSplits(b);
             if (sp.Count == 0) continue;
@@ -403,6 +433,8 @@ internal static class TableDetector {
         }
         int k = 0;
         while (k < bandSplits.Count) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1);
             int start = k;
             var baseSplits = bandSplits[k].splits;
             int end = k;
@@ -895,7 +927,12 @@ internal static class TableDetector {
 
     public static StructuredTable? DetectLeaderTable(
         List<TextLayoutEngine.TextLine> lines,
-        double? pageHeight = null) {
+        double? pageHeight = null,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
+        if (lines.Count == 0) return null;
+        consumeWork?.Invoke(lines.Count);
         var candidates = lines
             .Where(line => CanRecoverTableLine(line, pageHeight))
             .Where(static line => !string.IsNullOrWhiteSpace(line.Text))
@@ -905,6 +942,7 @@ internal static class TableDetector {
         double leftMin = double.MaxValue, leftMax = double.MinValue;
         double rightMin = double.MaxValue, rightMax = double.MinValue;
         foreach (var ln in candidates) {
+            cancellationCheck?.Invoke();
             if (TryLeaderRowFromLine(ln, out var row, out var leftBounds, out var rightBounds)) {
                 rows.Add(row);
                 leftMin = Math.Min(leftMin, leftBounds.From);

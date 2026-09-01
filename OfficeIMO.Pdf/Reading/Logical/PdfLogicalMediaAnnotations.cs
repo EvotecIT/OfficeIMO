@@ -31,6 +31,13 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
     /// <summary>True when at least one placement invocation was detected for this image.</summary>
     public bool HasPlacements => Placements.Count > 0;
 
+    internal PdfLogicalImage ForPlacement(int placementIndex) {
+        if (placementIndex < 0 || placementIndex >= Placements.Count) {
+            throw new ArgumentOutOfRangeException(nameof(placementIndex));
+        }
+        return new PdfLogicalImage(SourceImage, new[] { Placements[placementIndex] });
+    }
+
     /// <summary>First detected placement invocation for this image resource, or null when placement geometry is unavailable.</summary>
     public PdfImagePlacement? PrimaryPlacement => Placements.Count > 0 ? Placements[0] : null;
 

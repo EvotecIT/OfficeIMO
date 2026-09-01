@@ -16,10 +16,10 @@ public sealed class PdfImageInspectionContractTests {
             StreamObject("q 20 30 100 80 re W n /Perceptual ri /GS1 gs 100 0 0 80 20 30 cm /Im1 Do Q"),
             StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Decode [1 0 1 0 1 0] /DecodeParms << /Predictor 1 >> /Intent /Perceptual /Interpolate true"),
             "<< /Type /ExtGState /ca 0.5 /BM /Multiply >>");
-        PdfDocument source = PdfDocument.Open(pdf);
+        PdfDocument source = PdfDocument.Load(pdf);
 
-        PdfExtractedImage image = Assert.Single(source.Read.Images());
-        PdfImagePlacement placement = Assert.Single(source.Read.ImagePlacements());
+        PdfExtractedImage image = Assert.Single(source.Reader.Images());
+        PdfImagePlacement placement = Assert.Single(source.Reader.ImagePlacements());
 
         Assert.Equal(OfficeIccRenderingIntent.Perceptual, image.RenderingIntent);
         Assert.True(image.HasAuthoredRenderingIntent);
@@ -56,7 +56,7 @@ public sealed class PdfImageInspectionContractTests {
             StreamObject("q 10 0 0 10 10 10 cm /Im1 Do Q q /RelativeColorimetric ri 10 0 0 10 30 10 cm /Im1 Do Q"),
             StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB"));
 
-        PdfExtractedImage image = Assert.Single(PdfDocument.Open(pdf).Read.Images());
+        PdfExtractedImage image = Assert.Single(PdfDocument.Load(pdf).Reader.Images());
 
         Assert.Equal(OfficeIccRenderingIntent.RelativeColorimetric, image.RenderingIntent);
         Assert.True(image.HasAuthoredRenderingIntent);
@@ -70,10 +70,10 @@ public sealed class PdfImageInspectionContractTests {
             "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
             StreamObject("q /Saturation ri 10 0 0 10 10 10 cm /Im1 Do Q q /AbsoluteColorimetric ri 10 0 0 10 30 10 cm BI /W 1 /H 1 /BPC 8 /CS /RGB /Intent /Perceptual ID abc EI Q"),
             StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB /Intent /Perceptual"));
-        PdfDocument source = PdfDocument.Open(pdf);
+        PdfDocument source = PdfDocument.Load(pdf);
 
-        PdfImagePlacement[] placements = source.Read.ImagePlacements().ToArray();
-        PdfExtractedImage[] images = source.Read.Images().ToArray();
+        PdfImagePlacement[] placements = source.Reader.ImagePlacements().ToArray();
+        PdfExtractedImage[] images = source.Reader.Images().ToArray();
 
         Assert.Equal(2, placements.Length);
         Assert.All(placements, placement => {
@@ -98,7 +98,7 @@ public sealed class PdfImageInspectionContractTests {
             "<< /Type /ExtGState /BM /Normal >>",
             "<< /Type /ExtGState /BM /NotSupported >>");
 
-        PdfImagePlacement[] placements = PdfDocument.Open(pdf).Read.ImagePlacements().ToArray();
+        PdfImagePlacement[] placements = PdfDocument.Load(pdf).Reader.ImagePlacements().ToArray();
 
         Assert.Equal(4, placements.Length);
         Assert.Null(placements[0].BlendMode);
@@ -127,7 +127,7 @@ public sealed class PdfImageInspectionContractTests {
             StreamObject("abc", "/Type /XObject /Subtype /Image /Width 1 /Height 1 /BitsPerComponent 8 /ColorSpace /DeviceRGB"),
             "<< /Type /ExtGState /BM /Screen >>");
 
-        PdfImagePlacement placement = Assert.Single(PdfDocument.Open(pdf).Read.ImagePlacements());
+        PdfImagePlacement placement = Assert.Single(PdfDocument.Load(pdf).Reader.ImagePlacements());
 
         Assert.Equal(OfficeBlendMode.Screen, placement.BlendMode);
         Assert.Equal(OfficeBlendMode.Screen, placement.AuthoredBlendMode);

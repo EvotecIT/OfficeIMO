@@ -208,7 +208,7 @@ public partial class Excel {
             .Table(rows, style: style)
             .ToBytes();
 
-        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
         PdfCore.PdfLogicalTableContinuationGroup bounded = Assert.Single(
             PdfCore.PdfLogicalTableContinuations.Group(logical, 2, true, true, 64, 4D));
         Assert.All(bounded.Segments, segment => Assert.InRange(segment.Data.Rows.Count, 0, 6));
@@ -247,10 +247,10 @@ public partial class Excel {
     [Fact]
     public void PdfTables_ContinuationGroupingUsesTheVisibleCropOrigin() {
         byte[] pdf = BuildContinuationTablePdf(120D, 120D);
-        byte[] cropped = PdfCore.PdfDocument.Open(pdf)
+        byte[] cropped = PdfCore.PdfDocument.Load(pdf)
             .Pages.SetCropBox(10, 10, 310, 210)
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadTables(cropped);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(cropped);
 
         PdfCore.PdfLogicalTableContinuationGroup group = Assert.Single(
             PdfCore.PdfLogicalTableContinuations.Group(logical, 0, true, true, 64, 4D));
@@ -262,10 +262,10 @@ public partial class Excel {
     [Fact]
     public void PdfTables_ContinuationGroupingDoesNotMergeSidewaysRotatedTables() {
         byte[] pdf = BuildContinuationTablePdf(45D, 45D);
-        byte[] rotated = PdfCore.PdfDocument.Open(pdf)
+        byte[] rotated = PdfCore.PdfDocument.Load(pdf)
             .Pages.Rotate(90)
             .ToBytes();
-        PdfCore.PdfLogicalDocument logical = LoadTables(rotated);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(rotated);
         Assert.True(logical.Pages.Count > 1);
 
         IReadOnlyList<PdfCore.PdfLogicalTableContinuationGroup> groups =
@@ -303,7 +303,7 @@ public partial class Excel {
             })
             .ToBytes();
 
-        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
             workbook,
@@ -405,7 +405,7 @@ public partial class Excel {
             })
             .ToBytes();
 
-        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
             workbook,
@@ -606,7 +606,7 @@ public partial class Excel {
             })
             .ToBytes();
 
-        PdfCore.PdfLogicalDocument logical = LoadTables(pdf);
+        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = logical.SaveTablesAsExcel(
             workbook,
@@ -855,11 +855,11 @@ public partial class Excel {
         Assert.Equal("No PDF tables detected.", emptyValues[0, 0]);
     }
 
-    private static PdfCore.PdfLogicalDocument LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
+    private static PdfCore.PdfDocumentReadResult LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
         var layout = new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true };
         return ranges.Length == 0
-            ? PdfCore.PdfLogicalDocument.Load(pdf, layout)
-            : PdfCore.PdfLogicalDocument.LoadPageRanges(pdf, layout, ranges);
+            ? PdfCore.PdfDocumentReadResult.Load(pdf, layout)
+            : PdfCore.PdfDocumentReadResult.LoadPageRanges(pdf, layout, ranges);
     }
 
     private static byte[] BuildContinuationTablePdf(double firstColumnWidth, double secondColumnWidth) {

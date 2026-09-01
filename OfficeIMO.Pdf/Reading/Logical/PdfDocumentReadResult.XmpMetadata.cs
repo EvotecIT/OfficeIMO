@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-public sealed partial class PdfLogicalDocument {
+public sealed partial class PdfDocumentReadResult {
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
     public PdfXmpMetadataInfo? XmpMetadata { get; }
 

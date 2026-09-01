@@ -4,7 +4,7 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">net472;$(TargetFrameworks)</TargetFrameworks>
     <EnableOfficeIMOHtmlPackageSmoke Condition="'$(EnableOfficeIMOHtmlPackageSmoke)' == ''">false</EnableOfficeIMOHtmlPackageSmoke>
-    <OfficeIMOHtmlPackageVersion Condition="'$(OfficeIMOHtmlPackageVersion)' == ''">3.2.1-htmlapi-local</OfficeIMOHtmlPackageVersion>
+    <OfficeIMOHtmlPackageVersion Condition="'$(OfficeIMOHtmlPackageVersion)' == ''">3.3.0</OfficeIMOHtmlPackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>

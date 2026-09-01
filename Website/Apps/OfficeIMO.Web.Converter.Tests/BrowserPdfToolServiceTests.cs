@@ -47,7 +47,7 @@ public sealed class BrowserPdfToolServiceTests {
         SelectedDocument second = Document(CreatePdf("Second"), "second.pdf");
         PdfToolResult merged = _service.Execute(Request("merge", [first, second]));
 
-        Assert.Equal(2, PdfDocument.Open(merged.Artifact.Bytes).Inspect().PageCount);
+        Assert.Equal(2, PdfDocument.Load(merged.Artifact.Bytes).Inspect().PageCount);
         Assert.NotNull(merged.Report);
 
         PdfToolResult split = _service.Execute(Request("split", [Document(CreateThreePagePdf())], pagesPerDocument: 2));
@@ -64,14 +64,14 @@ public sealed class BrowserPdfToolServiceTests {
     public void PageTools_ApplySelectorsAndRequireDestructiveConfirmation() {
         SelectedDocument source = Document(CreateThreePagePdf());
         PdfToolResult extracted = _service.Execute(Request("extract", [source], pageSelection: "3..2"));
-        Assert.Equal(2, PdfDocument.Open(extracted.Artifact.Bytes).Inspect().PageCount);
+        Assert.Equal(2, PdfDocument.Load(extracted.Artifact.Bytes).Inspect().PageCount);
 
         InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
             _service.Execute(Request("delete", [source], pageSelection: "1")));
         Assert.Contains("Confirm", error.Message, StringComparison.Ordinal);
 
         PdfToolResult deleted = _service.Execute(Request("delete", [source], pageSelection: "1", confirmed: true));
-        Assert.Equal(2, PdfDocument.Open(deleted.Artifact.Bytes).Inspect().PageCount);
+        Assert.Equal(2, PdfDocument.Load(deleted.Artifact.Bytes).Inspect().PageCount);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class BrowserPdfToolServiceTests {
         PdfToolResult result = _service.Execute(Request("optimize", [Document(CreatePdf("Lossless"))]));
 
         Assert.Equal("application/pdf", result.Artifact.ContentType);
-        Assert.Equal(1, PdfDocument.Open(result.Artifact.Bytes).Inspect().PageCount);
+        Assert.Equal(1, PdfDocument.Load(result.Artifact.Bytes).Inspect().PageCount);
         using JsonDocument report = JsonDocument.Parse(result.Report!.Bytes);
         Assert.Equal("Balanced", report.RootElement.GetProperty("details").GetProperty("profile").GetString());
     }
@@ -126,7 +126,7 @@ public sealed class BrowserPdfToolServiceTests {
             [Document(protectedPdf.Artifact.Bytes, protectedPdf.Artifact.FileName)],
             ownerPassword: "owner-2026"));
 
-        PdfDocumentPreflight protectedPreflight = PdfDocument.Preflight(protectedPdf.Artifact.Bytes, new PdfReadOptions {
+        PdfDocumentPreflight protectedPreflight = PdfDocument.Preflight(protectedPdf.Artifact.Bytes, new PdfLoadOptions {
             Password = "reader-2026",
             AesCryptographyProvider = OfficeManagedAesCryptographyProvider.Default
         });
@@ -169,7 +169,7 @@ public sealed class BrowserPdfToolServiceTests {
 
     [Fact]
     public void BrowserReadPolicy_UsesWebAssemblyScaleBudgets() {
-        PdfReadOptions options = BrowserPdfPolicy.CreateReadOptions();
+        PdfLoadOptions options = BrowserPdfPolicy.CreateReadOptions();
 
         Assert.Same(OfficeManagedAesCryptographyProvider.Default, options.AesCryptographyProvider);
         Assert.Equal(BrowserPdfPolicy.MaxInputBytes, options.Limits.MaxInputBytes);

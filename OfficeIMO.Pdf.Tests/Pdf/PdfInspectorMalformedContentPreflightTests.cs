@@ -51,7 +51,7 @@ public partial class PdfInspectorTests {
     [Fact]
     public void AppliedRedactionPlanVerificationFailsWhenResidualInspectionIsBlocked() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed secret")).ToBytes();
-        PdfRedactionPlan reviewedPlan = PdfDocument.Open(source).Redactions.Plan([
+        PdfRedactionPlan reviewedPlan = PdfDocument.Load(source).Redactions.Plan([
             new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "reviewed")
         ]);
 

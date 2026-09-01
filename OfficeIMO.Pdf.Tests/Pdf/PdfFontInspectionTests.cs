@@ -24,7 +24,7 @@ public sealed class PdfFontInspectionTests {
     public void Fonts_ReportsSubsetEmbeddingToUnicodeAndNestedReferences() {
         byte[] pdf = BuildFontPdf();
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             IncludeEmbeddedProgramBytes = true
         });
 
@@ -56,7 +56,7 @@ public sealed class PdfFontInspectionTests {
 
     [Fact]
     public void Fonts_DoesNotRetainEmbeddedProgramBytesByDefault() {
-        PdfFontInfo font = Assert.Single(PdfDocument.Open(BuildFontPdf()).Read.Fonts().Fonts);
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(BuildFontPdf()).Resources.Fonts().Fonts);
 
         Assert.True(font.IsEmbedded);
         Assert.Equal(14, font.EmbeddedProgramEncodedLength);
@@ -72,7 +72,7 @@ public sealed class PdfFontInspectionTests {
             .Paragraph(paragraph => paragraph.Text("AB"))
             .ToBytes();
 
-        PdfFontInfo font = Assert.Single(PdfDocument.Open(pdf).Read.Fonts().Fonts, static candidate => candidate.IsEmbedded);
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts().Fonts, static candidate => candidate.IsEmbedded);
         PdfOpenTypeFontInfo program = Assert.IsType<PdfOpenTypeFontInfo>(font.EmbeddedOpenTypeInfo);
 
         Assert.True(program.IsTrueType);
@@ -92,7 +92,7 @@ public sealed class PdfFontInspectionTests {
             .Paragraph(paragraph => paragraph.Text("A"))
             .ToBytes();
 
-        PdfFontInfo font = Assert.Single(PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             InspectEmbeddedProgramMetadata = false
         }).Fonts, static candidate => candidate.IsEmbedded);
 
@@ -101,7 +101,7 @@ public sealed class PdfFontInspectionTests {
 
     [Fact]
     public void Fonts_ReturnsDefensiveCopiesOfEmbeddedProgramBytes() {
-        PdfFontInfo font = Assert.Single(PdfDocument.Open(BuildFontPdf()).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(BuildFontPdf()).Resources.Fonts(new PdfFontInspectionOptions {
             IncludeEmbeddedProgramBytes = true
         }).Fonts);
 
@@ -120,18 +120,18 @@ public sealed class PdfFontInspectionTests {
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
             StreamObject("BT /F1 12 Tf 10 200 Td (Hello) Tj ET"));
 
-        PdfFontInfo font = Assert.Single(PdfDocument.Open(pdf).Read.Fonts().Fonts);
+        PdfFontInfo font = Assert.Single(PdfDocument.Load(pdf).Resources.Fonts().Fonts);
 
         Assert.False(font.HasToUnicode);
         Assert.False(font.HasReadableToUnicodeMap);
         Assert.False(font.IsEmbedded);
         Assert.Contains(font.Diagnostics, diagnostic => diagnostic.Code == PdfFontInspectionDiagnosticCode.MissingToUnicode);
-        Assert.Equal(1, PdfDocument.Open(pdf).Read.Fonts().MissingToUnicodeFontCount);
+        Assert.Equal(1, PdfDocument.Load(pdf).Resources.Fonts().MissingToUnicodeFontCount);
     }
 
     [Fact]
     public void Fonts_StopsAtConfiguredReferenceLimitWithStructuredDiagnostic() {
-        PdfFontInventory inventory = PdfDocument.Open(BuildFontPdf()).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(BuildFontPdf()).Resources.Fonts(new PdfFontInspectionOptions {
             MaxResourceReferences = 1
         });
 
@@ -156,7 +156,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject("font-one", "/Length1 8"),
             StreamObject("font-two", "/Length1 8"));
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             IncludeEmbeddedProgramBytes = true,
             MaxEmbeddedProgramBytes = 16,
             MaxTotalDecodedFontBytes = 8
@@ -181,7 +181,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject(string.Empty),
             StreamObject(toUnicode));
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxToUnicodeBytes = 16,
             MaxTotalDecodedFontBytes = 1_024
         });
@@ -207,7 +207,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject(toUnicode),
             StreamObject(toUnicode));
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxToUnicodeBytes = 1_024,
             MaxTotalDecodedFontBytes = Encoding.ASCII.GetByteCount(toUnicode)
         });
@@ -236,7 +236,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject("bad", "/Filter /DCTDecode"),
             StreamObject("bad", "/Filter /DCTDecode"));
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxToUnicodeBytes = 16,
             MaxTotalDecodedFontBytes = 32
         });
@@ -260,7 +260,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 8 0 R >> >>"),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxFormResourceTraversals = 4
         });
 
@@ -287,7 +287,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << /Font << /F1 10 0 R >> >>"),
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxResourceDepth = 3,
             MaxFormResourceTraversals = 10
         });
@@ -308,7 +308,7 @@ public sealed class PdfFontInspectionTests {
             StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>"),
             StreamObject(string.Empty));
 
-        PdfFontInventory inventory = PdfDocument.Open(pdf).Read.Fonts(new PdfFontInspectionOptions {
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
             MaxFormResourceTraversals = 1
         });
 
@@ -319,7 +319,7 @@ public sealed class PdfFontInspectionTests {
 
     [Fact]
     public void TryFonts_UsesLogicalContentPermissionGate() {
-        PdfOperationResult<PdfFontInventory> result = PdfDocument.Open(BuildFontPdf()).Read.TryFonts();
+        PdfOperationResult<PdfFontInventory> result = PdfDocument.Load(BuildFontPdf()).Reader.TryFonts();
 
         Assert.True(result.Succeeded);
         Assert.Equal(PdfPreflightCapability.ReadLogicalObjects, result.Capability);
@@ -328,10 +328,10 @@ public sealed class PdfFontInspectionTests {
 
     [Fact]
     public void Fonts_PageSelector_UsesDocumentRelativeSelectionContract() {
-        PdfDocument source = PdfDocument.Open(BuildFontPdf());
+        PdfDocument source = PdfDocument.Load(BuildFontPdf());
 
-        PdfFontInventory inventory = source.Read.Fonts(PdfPageSelector.Parse("last"));
-        PdfOperationResult<PdfFontInventory> attempt = source.Read.TryFonts(PdfPageSelector.Parse("1"));
+        PdfFontInventory inventory = source.Resources.Fonts(PdfPageSelector.Parse("last"));
+        PdfOperationResult<PdfFontInventory> attempt = source.Reader.TryFonts(PdfPageSelector.Parse("1"));
 
         Assert.Equal(1, inventory.FontCount);
         Assert.True(attempt.Succeeded);

@@ -27,7 +27,7 @@ internal static partial class PdfIncrementalUpdater {
     internal static PdfExternalSignaturePreparation PrepareExternalSignature(
         byte[] pdf,
         PdfExternalSignatureOptions? options,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfExternalSignatureOptions effectiveOptions = options ?? new PdfExternalSignatureOptions();
         ValidateSigningInput(pdf.LongLength, effectiveOptions);
@@ -152,7 +152,7 @@ internal static partial class PdfIncrementalUpdater {
     internal static byte[] ApplyExternalSignature(
         byte[] preparedPdf,
         byte[] signatureContents,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(preparedPdf, nameof(preparedPdf));
         Guard.NotNull(signatureContents, nameof(signatureContents));
         _ = PdfReadDocument.Open(preparedPdf, readOptions);
@@ -241,7 +241,7 @@ internal static partial class PdfIncrementalUpdater {
         ResolveSignatureSubFilter(options);
     }
 
-    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName, PdfReadOptions? readOptions) {
+    private static void EnsureSignatureFieldNameAvailable(byte[] pdf, string fieldName, PdfLoadOptions? readOptions) {
         PdfDocumentInfo info = PdfInspector.Inspect(pdf, readOptions);
         if (info.FormFields.Any(field => string.Equals(field.Name, fieldName, StringComparison.Ordinal))) {
             throw new ArgumentException("PDF already contains a form field named " + fieldName + ".", nameof(fieldName));
@@ -375,7 +375,7 @@ internal static partial class PdfIncrementalUpdater {
         byte[] prepared,
         PdfExternalSignatureOptions options,
         int signatureObjectNumber,
-        PdfReadOptions? readOptions) {
+        PdfLoadOptions? readOptions) {
         byte[] output = (byte[])prepared.Clone();
         byte[] objectHeader = PdfEncoding.Latin1GetBytes(signatureObjectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj");
         int objectStart = IndexOf(output, objectHeader, 0);

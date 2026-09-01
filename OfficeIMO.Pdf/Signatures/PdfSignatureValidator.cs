@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Dependency-free PDF signature structure validator.</summary>
 internal static class PdfSignatureValidator {
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a PDF byte array.</summary>
-    public static PdfSignatureValidationReport Validate(byte[] pdf, PdfReadOptions? options = null) {
+    public static PdfSignatureValidationReport Validate(byte[] pdf, PdfLoadOptions? options = null) {
         return ValidateCore(pdf, cryptographyProvider: null, options, security: null);
     }
 
@@ -11,7 +11,7 @@ internal static class PdfSignatureValidator {
     public static PdfSignatureValidationReport Validate(
         byte[] pdf,
         IPdfSignatureCryptographyProvider cryptographyProvider,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
         return ValidateCore(pdf, cryptographyProvider, options, security: null);
     }
@@ -24,7 +24,7 @@ internal static class PdfSignatureValidator {
     private static PdfSignatureValidationReport ValidateCore(
         byte[] pdf,
         IPdfSignatureCryptographyProvider? cryptographyProvider,
-        PdfReadOptions? options,
+        PdfLoadOptions? options,
         PdfDocumentSecurityInfo? security) {
         Guard.NotNull(pdf, nameof(pdf));
 
@@ -77,7 +77,7 @@ internal static class PdfSignatureValidator {
     }
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a PDF file.</summary>
-    public static PdfSignatureValidationReport Validate(string path, PdfReadOptions? options = null) {
+    public static PdfSignatureValidationReport Validate(string path, PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return Validate(File.ReadAllBytes(path), options);
     }
@@ -86,14 +86,14 @@ internal static class PdfSignatureValidator {
     public static PdfSignatureValidationReport Validate(
         string path,
         IPdfSignatureCryptographyProvider cryptographyProvider,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
         return Validate(File.ReadAllBytes(path), cryptographyProvider, options);
     }
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a readable PDF stream.</summary>
-    public static PdfSignatureValidationReport Validate(Stream stream, PdfReadOptions? options = null) {
+    public static PdfSignatureValidationReport Validate(Stream stream, PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
@@ -108,7 +108,7 @@ internal static class PdfSignatureValidator {
     public static PdfSignatureValidationReport Validate(
         Stream stream,
         IPdfSignatureCryptographyProvider cryptographyProvider,
-        PdfReadOptions? options = null) {
+        PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
         if (!stream.CanRead) {

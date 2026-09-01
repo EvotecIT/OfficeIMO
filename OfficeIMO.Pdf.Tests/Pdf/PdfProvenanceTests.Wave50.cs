@@ -42,7 +42,7 @@ public sealed partial class PdfProvenanceTests {
                 "application/c2pa",
                 PdfAssociatedFileRelationship.C2paManifest))
             .ToBytes();
-        var readOptions = new PdfReadOptions { Password = "owner" };
+        var readOptions = new PdfLoadOptions { Password = "owner" };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
             PdfProvenance.Remove(encrypted, readOptions: readOptions));

@@ -43,6 +43,14 @@ public sealed class PdfHtmlSaveOptions {
     /// </summary>
     public PdfHtmlProfile Profile { get; set; } = PdfHtmlProfile.Semantic;
 
+    /// <summary>
+    /// Canonical semantic-read settings used when exporting an opened <see cref="PdfCore.PdfDocument"/>.
+    /// Null uses <see cref="PdfCore.PdfReadOptions.Default"/>. <see cref="PageRanges"/> overrides the configured
+    /// <see cref="PdfCore.PdfReadOptions.PageSelection"/> when both are supplied. This setting is ignored when the source
+    /// is already a <see cref="PdfCore.PdfDocumentReadResult"/>.
+    /// </summary>
+    public PdfCore.PdfReadOptions? ReadOptions { get; set; }
+
     /// <summary>Composed document-versus-fragment, theme, title, language, style, and newline settings.</summary>
     public OfficeHtmlDocumentOptions DocumentOutput {
         get => _documentOutput;
@@ -133,6 +141,7 @@ public sealed class PdfHtmlSaveOptions {
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
         CancellationToken = CancellationToken,
         Profile = Profile,
+        ReadOptions = ReadOptions,
         DocumentOutput = DocumentOutput.Clone(),
         PageRanges = PageRanges?.ToArray(),
         UseSharedPageReadingOrder = UseSharedPageReadingOrder,

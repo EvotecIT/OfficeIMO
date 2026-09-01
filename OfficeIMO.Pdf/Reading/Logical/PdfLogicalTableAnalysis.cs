@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
-/// Shared analysis helpers for logical PDF tables produced by <see cref="PdfLogicalDocument"/>.
+/// Shared analysis helpers for logical PDF tables produced by <see cref="PdfDocumentReadResult"/>.
 /// </summary>
 public static class PdfLogicalTableAnalysis {
     private const int DefaultMaximumScopeAnalysisComparisons = 10_000;
@@ -65,7 +65,7 @@ public static class PdfLogicalTableAnalysis {
     /// <param name="document">Logical PDF document to inspect.</param>
     /// <param name="maxRows">Maximum number of body rows per table. Values less than or equal to zero return all body rows.</param>
     /// <returns>Page-aware normalized table extractions.</returns>
-    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(PdfLogicalDocument document, int maxRows = 0) {
+    public static IReadOnlyList<PdfLogicalTableExtraction> ExtractTables(PdfDocumentReadResult document, int maxRows = 0) {
         Guard.NotNull(document, nameof(document));
 
         return ExtractTables(document.Pages, maxRows);
@@ -116,7 +116,7 @@ public static class PdfLogicalTableAnalysis {
     /// <returns>
     /// Table counts plus visible and interactive page content that a table-only adapter will not import.
     /// </returns>
-    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(PdfLogicalDocument document) {
+    public static PdfTableExtractionScopeReport AnalyzeExtractionScope(PdfDocumentReadResult document) {
         return AnalyzeExtractionScope(document, DefaultMaximumScopeAnalysisComparisons);
     }
 
@@ -124,7 +124,7 @@ public static class PdfLogicalTableAnalysis {
     /// Describes table extraction scope while bounding attacker-controlled text/table comparisons.
     /// </summary>
     public static PdfTableExtractionScopeReport AnalyzeExtractionScope(
-        PdfLogicalDocument document,
+        PdfDocumentReadResult document,
         int maximumComparisons) {
         Guard.NotNull(document, nameof(document));
         return AnalyzeExtractionScope(

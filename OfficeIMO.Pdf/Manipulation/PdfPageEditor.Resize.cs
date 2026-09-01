@@ -11,7 +11,7 @@ internal static partial class PdfPageEditor {
         return ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions: null, pageNumbers);
     }
 
-    internal static byte[] ResizePages(byte[] pdf, PageSize pageSize, PdfReadOptions? readOptions, params int[] pageNumbers) =>
+    internal static byte[] ResizePages(byte[] pdf, PageSize pageSize, PdfLoadOptions? readOptions, params int[] pageNumbers) =>
         ResizePages(pdf, new PdfPageResizeOptions(pageSize), readOptions, pageNumbers);
 
     /// <summary>
@@ -22,7 +22,7 @@ internal static partial class PdfPageEditor {
         return ResizePages(pdf, options, readOptions: null, pageNumbers);
     }
 
-    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfReadOptions? readOptions, params int[] pageNumbers) {
+    internal static byte[] ResizePages(byte[] pdf, PdfPageResizeOptions options, PdfLoadOptions? readOptions, params int[] pageNumbers) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         Guard.NotNull(pageNumbers, nameof(pageNumbers));
