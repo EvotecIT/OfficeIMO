@@ -77,7 +77,7 @@ namespace OfficeIMO.Internal {
             string normalizedCandidate = Normalize(candidate, caseInsensitive);
             string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
             if (string.Equals(normalizedCandidate, normalizedRoot, StringComparison.Ordinal)) return true;
-            return normalizedCandidate.StartsWith(normalizedRoot + Path.DirectorySeparatorChar,
+            return normalizedCandidate.StartsWith(DirectoryPrefix(normalizedRoot),
                 StringComparison.Ordinal);
         }
 
@@ -111,6 +111,103 @@ namespace OfficeIMO.Internal {
             }
             throw new PlatformNotSupportedException("Physical file identity is not supported on this platform.");
         }
+
+        internal static SafeFileHandle OpenDirectoryForIdentity(string path, out string physicalPath) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            string fullPath = Path.GetFullPath(path);
+            SafeFileHandle handle;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                handle = OpenWindowsDirectoryForIdentity(fullPath);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                       RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                handle = OpenUnixDirectoryForIdentity(fullPath);
+            } else {
+                throw new PlatformNotSupportedException("Directory identity is not supported on this platform.");
+            }
+            try {
+                physicalPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? GetWindowsFinalPath(handle)
+                    : GetUnixOpenedPath(handle) ?? ResolvePhysicalPath(fullPath);
+                EnsurePathMatchesOpenedDirectory(fullPath, handle);
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
+        internal static void EnsurePathMatchesOpenedDirectory(string path, SafeFileHandle handle) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            OfficeFileMetadata opened = GetMetadata(path, handle);
+            if (!opened.IsDirectory) {
+                throw new InvalidDataException("The opened filesystem entry is not a directory.");
+            }
+            try {
+                OfficeFileMetadata current = GetMetadata(path);
+                if (!current.IsDirectory || !AreIdentitiesEquivalent(current.Identity, opened.Identity)) {
+                    throw new InvalidDataException("The source directory changed while it was being read.");
+                }
+            } catch (InvalidDataException) {
+                throw;
+            } catch (Exception exception) when (exception is IOException ||
+                                                 exception is UnauthorizedAccessException) {
+                throw new InvalidDataException("The source directory changed while it was being read.", exception);
+            }
+        }
+
+        internal static FileStream OpenRegularFileForRead(string path, string physicalRoot, int bufferSize) {
+            if (path == null) throw new ArgumentNullException(nameof(path));
+            if (physicalRoot == null) throw new ArgumentNullException(nameof(physicalRoot));
+            if (bufferSize <= 0) throw new ArgumentOutOfRangeException(nameof(bufferSize));
+            string fullPath = Path.GetFullPath(path);
+            FileStream stream;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+                stream = OpenWindowsRegularFileForRead(fullPath, bufferSize);
+            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) || RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                stream = OpenUnixRegularFileForRead(fullPath, bufferSize);
+            } else {
+                throw new PlatformNotSupportedException("Regular-file opening is not supported on this platform.");
+            }
+            try {
+                string? openedPath = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+                    ? GetWindowsFinalPath(stream.SafeFileHandle)
+                    : GetUnixOpenedPath(stream.SafeFileHandle);
+                bool isWithinRoot = openedPath != null
+                    ? IsPhysicalPathWithinRoot(openedPath, physicalRoot)
+                    : RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
+                        && IsOpenedFileWithinRootByIdentity(fullPath, physicalRoot, stream.SafeFileHandle);
+                if (!isWithinRoot) {
+                    throw new InvalidDataException("The opened filesystem entry resolves outside the source directory.");
+                }
+                return stream;
+            } catch {
+                stream.Dispose();
+                throw;
+            }
+        }
+
+        internal static bool IsOpenedFileWithinRootByIdentity(string path, string physicalRoot,
+            SafeFileHandle handle) {
+            string resolvedPath = ResolvePhysicalPath(path);
+            if (!IsPhysicalPathWithinRoot(resolvedPath, physicalRoot)) return false;
+            OfficeFileMetadata pathMetadata = GetMetadata(resolvedPath);
+            OfficeFileMetadata handleMetadata = GetMetadata(resolvedPath, handle);
+            return AreIdentitiesEquivalent(pathMetadata.Identity, handleMetadata.Identity);
+        }
+
+        private static bool IsPhysicalPathWithinRoot(string candidatePath, string physicalRoot) {
+            string root = TrimEndingDirectorySeparators(Path.GetFullPath(physicalRoot));
+            bool caseInsensitive = IsCaseInsensitiveFileSystem(root);
+            string candidate = Normalize(candidatePath, caseInsensitive);
+            string normalizedRoot = TrimEndingDirectorySeparators(Normalize(root, caseInsensitive));
+            return candidate.StartsWith(DirectoryPrefix(normalizedRoot), StringComparison.Ordinal);
+        }
+
+        private static string DirectoryPrefix(string normalizedRoot) =>
+            normalizedRoot.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                || normalizedRoot.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    ? normalizedRoot
+                    : normalizedRoot + Path.DirectorySeparatorChar;
 
         internal static bool IsCaseInsensitiveFileSystem(string path) {
             return TryGetFileSystemCaseBehavior(path, out bool caseInsensitive)

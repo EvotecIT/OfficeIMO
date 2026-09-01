@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 210,
-    "productionComponentCount": 111,
-    "testProjectCount": 39,
+    "projectCount": 212,
+    "productionComponentCount": 112,
+    "testProjectCount": 40,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41858
+    "conceptualWordCount": 41893
   },
   "categories": [
     {
@@ -18,7 +18,7 @@
     },
     {
       "name": "Formats and interoperability",
-      "componentCount": 16
+      "componentCount": 17
     },
     {
       "name": "Foundations and integrations",
@@ -300,8 +300,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 991,
-      "referencingTestProjectCount": 9,
+      "sourceFileCount": 993,
+      "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Excel"
@@ -500,6 +500,19 @@
       "docsUrl": "/docs/html/",
       "apiUrl": "/api/html-rtf/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Html.Rtf"
+    },
+    {
+      "name": "OfficeIMO.IWork",
+      "packageId": "OfficeIMO.IWork",
+      "category": "Formats and interoperability",
+      "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
+      "sourceFileCount": 29,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.IWork"
     },
     {
       "name": "OfficeIMO.Latex",
@@ -833,8 +846,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft PowerPoint PPT, PPTX, PPTM, POT, PPS, and related presentations without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
-      "sourceFileCount": 464,
-      "referencingTestProjectCount": 8,
+      "sourceFileCount": 468,
+      "referencingTestProjectCount": 9,
       "docsUrl": "/docs/powerpoint/",
       "apiUrl": "/api/powerpoint/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.PowerPoint"
@@ -1379,8 +1392,8 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Word DOC, DOCX, DOCM, DOT, DOTX, and DOTM documents without Microsoft Office.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word/OfficeIMO.Word.csproj",
-      "sourceFileCount": 657,
-      "referencingTestProjectCount": 12,
+      "sourceFileCount": 659,
+      "referencingTestProjectCount": 13,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word"

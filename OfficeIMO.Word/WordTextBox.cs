@@ -103,6 +103,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordElement> Elements => GetWordElements();
 
+        /// <summary>Gets or sets the accessibility description for the text box.</summary>
+        public string? Description {
+            get => (_anchor?.GetFirstChild<DocProperties>() ?? _inline?.DocProperties)?.Description?.Value
+                ?? VmlShape?.Alternate?.Value;
+            set {
+                DocProperties? properties = _anchor?.GetFirstChild<DocProperties>() ?? _inline?.DocProperties;
+                if (properties != null) properties.Description = value;
+                if (VmlShape != null) VmlShape.Alternate = value;
+            }
+        }
+
         /// <summary>
         /// Gets or sets horizontal relative position of the text box
         /// </summary>

@@ -36,6 +36,83 @@ namespace OfficeIMO.Internal {
         private const uint UnixFileTypeMask = 0xf000;
         private const uint UnixDirectoryType = 0x4000;
 
+        private static FileStream OpenUnixRegularFileForRead(string path, int bufferSize) {
+            int nonBlocking = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x0004 : 0x0800;
+            int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
+            int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+            int descriptor = LinuxOpen(path, nonBlocking | closeOnExec | noFollow);
+            if (descriptor < 0) throw UnixIdentityError(path);
+
+            var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+            try {
+                if (!GetUnixMetadata(handle).IsRegularFile) {
+                    throw new InvalidDataException("The filesystem entry is not a regular file.");
+                }
+                return new FileStream(handle, FileAccess.Read, bufferSize, isAsync: false);
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
+        private static SafeFileHandle OpenUnixDirectoryForIdentity(string path) {
+            int directory = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00100000 : 0x00010000;
+            int closeOnExec = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x01000000 : 0x00080000;
+            int noFollow = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? 0x00000100 : 0x00020000;
+            int descriptor = LinuxOpen(path, directory | closeOnExec | noFollow);
+            if (descriptor < 0) throw UnixIdentityError(path);
+
+            var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+            try {
+                if (!GetUnixMetadata(handle).IsDirectory) {
+                    throw new InvalidDataException("The filesystem entry is not a directory.");
+                }
+                return handle;
+            } catch {
+                handle.Dispose();
+                throw;
+            }
+        }
+
+        private static string? GetUnixOpenedPath(SafeFileHandle handle) {
+            int descriptor = checked((int)handle.DangerousGetHandle().ToInt64());
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
+                if (!TryReadUnixLinkTarget("/proc/self/fd/" + descriptor, out string? target)
+                    || string.IsNullOrEmpty(target)) {
+                    return null;
+                }
+                string resolved = target!;
+                if (!Path.IsPathRooted(resolved)
+                    || resolved.EndsWith(" (deleted)", StringComparison.Ordinal)) {
+                    return null;
+                }
+                return resolved;
+            }
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
+                const int vnodePathInfoSize = 1200;
+                const int pathOffset = 176;
+                const int maximumPathBytes = 1024;
+                IntPtr buffer = Marshal.AllocHGlobal(vnodePathInfoSize);
+                try {
+                    ZeroBuffer(buffer, vnodePathInfoSize);
+                    if (MacProcPidFdInfo(GetProcessId(), descriptor, 2, buffer, vnodePathInfoSize)
+                        < pathOffset + 1) {
+                        throw UnixIdentityError("open descriptor");
+                    }
+                    var pathBytes = new byte[maximumPathBytes];
+                    Marshal.Copy(IntPtr.Add(buffer, pathOffset), pathBytes, 0, pathBytes.Length);
+                    int length = Array.IndexOf(pathBytes, (byte)0);
+                    if (length <= 0) {
+                        throw new IOException("The opened file's physical macOS path was empty.");
+                    }
+                    return Encoding.UTF8.GetString(pathBytes, 0, length);
+                } finally {
+                    Marshal.FreeHGlobal(buffer);
+                }
+            }
+            throw new PlatformNotSupportedException("Opened-file path resolution is not supported on this platform.");
+        }
+
         private static string ResolveUnixExistingPath(string path) {
             IntPtr pointer = IntPtr.Zero;
             try {
@@ -373,6 +450,13 @@ namespace OfficeIMO.Internal {
 
         [DllImport("libc", EntryPoint = "pathconf", CharSet = CharSet.Ansi, SetLastError = true)]
         private static extern long MacPathConf(string path, int name);
+
+        [DllImport("libc", EntryPoint = "getpid")]
+        private static extern int GetProcessId();
+
+        [DllImport("libproc", EntryPoint = "proc_pidfdinfo", SetLastError = true)]
+        private static extern int MacProcPidFdInfo(int processId, int descriptor, int flavor,
+            IntPtr buffer, int bufferSize);
 
         [DllImport("libc", EntryPoint = "stat$INODE64", CharSet = CharSet.Ansi, SetLastError = true)]
         private static extern int MacStatInode64(string path, IntPtr buffer);

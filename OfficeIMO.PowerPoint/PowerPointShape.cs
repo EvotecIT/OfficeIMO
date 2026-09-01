@@ -81,6 +81,10 @@ namespace OfficeIMO.PowerPoint {
                     GetNonVisualDrawingProperties(create: false)?
                         .GetFirstChild<A.HyperlinkOnClick>());
             }
+            set {
+                if (value == null) ClearHyperlink();
+                else SetHyperlink(value);
+            }
         }
 
         /// <summary>

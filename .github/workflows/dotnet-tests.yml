@@ -972,6 +972,7 @@ jobs:
             dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
             dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj
             dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
+            dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
             dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
@@ -1024,6 +1025,7 @@ jobs:
             dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1268,6 +1270,7 @@ jobs:
               run_drawing_tests
               dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_googleworkspace_tests
+              dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_markup_tests
               run_opendocument_tests
               dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
