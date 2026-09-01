@@ -48,6 +48,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var warnings = new List<PdfCore.PdfConversionWarning>();
 
         for (int pageIndex = 0; pageIndex < logical.Pages.Count; pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalPage page = logical.Pages[pageIndex];
             OfficeDrawing? drawing = sourceDocument == null
                 ? null

@@ -88,4 +88,26 @@ internal static class PdfVisualCoordinateMapper {
             Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)),
             Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
     }
+
+    internal static (double X, double Y) TransformVisualPointToUser(
+        PdfPageBox pageBox,
+        int rotationDegrees,
+        double x,
+        double y) {
+        Matrix2D transform = CreateTransform(pageBox, rotationDegrees);
+        double determinant = (transform.A * transform.D) - (transform.B * transform.C);
+        if (Math.Abs(determinant) <= 0.000000001D) {
+            throw new InvalidOperationException("The page visual transform is not invertible.");
+        }
+
+        (double Width, double Height) size = GetVisualSize(pageBox, rotationDegrees);
+        Matrix2D inverse = new Matrix2D(
+            transform.D / determinant,
+            -transform.B / determinant,
+            -transform.C / determinant,
+            transform.A / determinant,
+            ((transform.C * transform.F) - (transform.D * transform.E)) / determinant,
+            ((transform.B * transform.E) - (transform.A * transform.F)) / determinant);
+        return inverse.Transform(x, size.Height - y);
+    }
 }

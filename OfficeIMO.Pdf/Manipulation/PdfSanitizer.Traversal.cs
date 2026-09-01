@@ -73,12 +73,15 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         int maximumActionNodes) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
         }
 
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             RemoveEmptyContainers(objects, item.Value);
         }
     }

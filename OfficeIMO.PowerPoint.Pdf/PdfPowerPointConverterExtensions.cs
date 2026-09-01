@@ -23,6 +23,7 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         PdfPowerPointImportOptions operation = options ?? new PdfPowerPointImportOptions();
+        operation.CancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointImportMode mode = operation.Mode == PdfPowerPointImportMode.Auto
             ? PdfPowerPointImportMode.EditableContent
             : operation.Mode;
@@ -238,12 +239,14 @@ public static partial class PowerPointPdfConverterExtensions {
 
         var results = new List<PdfPowerPointTableImportEntry>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTableContinuationGroup continuation = tables[i];
             PdfCore.PdfLogicalTableExtraction extraction = continuation.Primary;
             PdfCore.PdfLogicalTableData data = continuation.Data;
             bool headerRowIncluded = options.IncludeColumnHeaderRows && HasHeaderRow(data);
             List<TableSegment> segments = BuildTableSegments(data, options);
             for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 TableSegment segment = segments[segmentIndex];
                 int tableRowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
                 if (tableRowCount <= 0) {
@@ -306,6 +309,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         var entries = new List<PdfPowerPointVisualPageEntry>(rendered.Count);
         for (int i = 0; i < rendered.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PptCore.PowerPointSlide slide = presentation.AddSlide();
             AddVisualPage(presentation, slide, rendered[i]);
             entries.Add(new PdfPowerPointVisualPageEntry(rendered[i], i));
@@ -341,6 +345,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     static group => (IReadOnlyList<PdfCore.PdfLogicalTableExtraction>)group.ToArray());
 
         for (int pageIndex = 0; pageIndex < rendered.Count; pageIndex++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfPageRenderResult render = rendered[pageIndex];
             PdfCore.PdfLogicalPage? page = pageIndex < logical.Pages.Count ? logical.Pages[pageIndex] : null;
             IReadOnlyList<PdfCore.PdfLogicalTableExtraction> tables =
@@ -349,11 +354,13 @@ public static partial class PowerPointPdfConverterExtensions {
                     : Array.Empty<PdfCore.PdfLogicalTableExtraction>();
             bool addedTableSlide = false;
             for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 PdfCore.PdfLogicalTableExtraction extraction = tables[tableIndex];
                 PdfCore.PdfLogicalTableData data = extraction.Data;
                 if (data.Columns.Count <= 0) continue;
                 List<TableSegment> segments = BuildTableSegments(data, options);
                 for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     TableSegment segment = segments[segmentIndex];
                     bool headerRowIncluded = options.IncludeColumnHeaderRows
                         && HasSourceHeaderRow(data);
@@ -485,7 +492,8 @@ public static partial class PowerPointPdfConverterExtensions {
         };
         return document.Render.Pages(
             options.PageSelection,
-            renderOptions);
+            renderOptions,
+            cancellationToken: options.CancellationToken);
     }
 
     private static void ConfigureSlideSize(

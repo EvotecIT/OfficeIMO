@@ -1,6 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
+    private static readonly double[] InvisibleLinkBorder = { 0D, 0D, 0D };
     /// <summary>Adds a standard annotation to an existing page and validates readback.</summary>
     public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options) => AddAnnotation(pdf, options, readOptions: null);
 
@@ -32,6 +33,13 @@ internal static partial class PdfAnnotationEditor {
             ReplyType = options.ReplyType, ReviewState = options.ReviewState, Subject = options.Subject, Intent = options.Intent,
             RegenerateAppearance = options.GenerateAppearance && IsAppearanceSubtype(options.Subtype)
         };
+        if (options.LinkUri != null) {
+            var action = new PdfDictionary();
+            action.Items["S"] = new PdfName("URI");
+            action.Items["URI"] = new PdfStringObj(options.LinkUri, useTextStringEncoding: true);
+            annotation.Items["A"] = action;
+            annotation.Items["Border"] = CreateNumberArray(InvisibleLinkBorder);
+        }
         if (options.IconName != null) annotation.Items["Name"] = new PdfName(options.IconName);
         IReadOnlyList<int> generatedObjects = ApplyUpdates(objects, annotation, update);
         var references = new List<PdfReference> { new PdfReference(annotationObjectNumber, 0) }; if (popupObjectNumber.HasValue) references.Add(new PdfReference(popupObjectNumber.Value, 0));
@@ -69,10 +77,16 @@ internal static partial class PdfAnnotationEditor {
         if (options.Subtype == "Line" && options.Line is null) throw new ArgumentException("Line annotations require endpoint coordinates.", nameof(options));
         if ((options.Subtype == "Polygon" || options.Subtype == "PolyLine") && options.Vertices is null) throw new ArgumentException("Path annotations require vertices.", nameof(options));
         if (options.Subtype == "Ink" && options.InkPaths is null) throw new ArgumentException("Ink annotations require ink paths.", nameof(options));
+        if (options.Subtype == "Link") {
+            Guard.NotNullOrWhiteSpace(options.LinkUri, nameof(options.LinkUri));
+            Guard.UriAction(options.LinkUri!, nameof(options.LinkUri));
+        } else if (options.LinkUri != null) {
+            throw new ArgumentException("LinkUri can be used only with Link annotations.", nameof(options));
+        }
     }
 
     private static bool IsAppearanceSubtype(string subtype) => subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
-    private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || IsAppearanceSubtype(subtype);
+    private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || subtype == "Link" || IsAppearanceSubtype(subtype);
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
         Dictionary<int, PdfIndirectObject> objects,
@@ -93,6 +107,7 @@ internal static partial class PdfAnnotationEditor {
         if (options.GenerateAppearance && IsAppearanceSubtype(options.Subtype) && !found.HasNormalAppearance) throw new InvalidOperationException("PDF annotation appearance readback failed; the artifact was not returned.");
         if (expectedParentObjectNumber.HasValue && found.Review?.InReplyToObjectNumber != expectedParentObjectNumber) throw new InvalidOperationException("PDF annotation reply relationship readback failed; the artifact was not returned.");
         if (options.ReviewState.HasValue && found.Review?.StandardState != options.ReviewState) throw new InvalidOperationException("PDF annotation review state readback failed; the artifact was not returned.");
+        if (options.LinkUri != null && !info.GetLinkAnnotationsByUri(options.LinkUri).Any(link => link.PageNumber == options.PageNumber)) throw new InvalidOperationException("PDF link annotation readback failed; the URI target was not returned.");
     }
 
     private static void ValidateUpdatedAnnotation(byte[] output, int expectedObjectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {

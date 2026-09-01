@@ -114,6 +114,30 @@ public sealed partial class PdfLogicalPage {
     internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
         PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetVisualBoundaryBox(), RotationDegrees, left, top, right, bottom);
 
+    /// <summary>
+    /// Converts a top-left visual page rectangle into PDF default user-space coordinates.
+    /// This accounts for the effective crop box origin and inherited page rotation.
+    /// </summary>
+    public PdfPageRectangle MapVisualRectangleToUserSpace(double left, double top, double right, double bottom) {
+        if (right <= left) throw new ArgumentOutOfRangeException(nameof(right), "Visual rectangle right must be greater than left.");
+        if (bottom <= top) throw new ArgumentOutOfRangeException(nameof(bottom), "Visual rectangle bottom must be greater than top.");
+        PdfVisualBounds mapped = TransformVisualBoundsToUser(left, top, right, bottom);
+        return new PdfPageRectangle(mapped.Left, mapped.Top, mapped.Right, mapped.Bottom);
+    }
+
+    /// <summary>
+    /// Converts a point from top-left visual page coordinates into PDF default user-space coordinates.
+    /// This accounts for the effective crop box origin and inherited page rotation.
+    /// </summary>
+    public PdfPagePoint MapVisualPointToUserSpace(double x, double y) {
+        (double mappedX, double mappedY) = PdfVisualCoordinateMapper.TransformVisualPointToUser(
+            GetVisualBoundaryBox(),
+            RotationDegrees,
+            x,
+            y);
+        return new PdfPagePoint(mappedX, mappedY);
+    }
+
     private PdfPageBox GetVisualBoundaryBox() =>
         CropBox ?? MediaBox ?? new PdfPageBox("MediaBox", 0D, 0D, Width, Height);
 

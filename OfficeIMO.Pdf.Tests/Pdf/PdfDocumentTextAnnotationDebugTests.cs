@@ -283,24 +283,35 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void LoadedPdfImageExport_StillReportsUnsupportedMissingAnnotationAppearances() {
+    public void LoadedPdfImageExport_SynthesizesTextNoteAppearance() {
         byte[] annotated = PdfDocument.Create()
-            .TextAnnotation("Unsupported icon annotation")
+            .TextAnnotation("Review note")
             .Paragraph(paragraph => paragraph.Text("Page content"))
             .ToBytes();
         PdfReadPage page = PdfReadDocument.Open(annotated).Pages[0];
 
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilities =
             page.GetRenderCapabilityDiagnostics();
+        OfficeImageExportResult result = page.ExportImage(OfficeImageExportFormat.Png);
 
+        Assert.True(result.Bytes.Length > 100);
         Assert.Contains(
             capabilities,
             item =>
-                item.Code == PdfRenderCapabilities.AnnotationAppearanceId &&
+                item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId &&
                 item.Subject?.StartsWith("Text[", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(
             capabilities,
+            item => item.Code == PdfRenderCapabilities.AnnotationAppearanceId);
+        Assert.Contains(
+            result.Diagnostics,
             item => item.Code == PdfRenderCapabilities.SynthesizedAnnotationAppearanceId);
+
+        byte[] flattened = PdfAnnotationFlattener.FlattenVisualAnnotations(annotated);
+        string flattenedPdf = Encoding.ASCII.GetString(flattened);
+        Assert.Equal(0, PdfInspector.Inspect(flattened).AnnotationCount);
+        Assert.DoesNotContain("/Subtype /Text", flattenedPdf, StringComparison.Ordinal);
+        Assert.Contains("1 0.9 0.2 rg", flattenedPdf, StringComparison.Ordinal);
     }
 
     [Fact]

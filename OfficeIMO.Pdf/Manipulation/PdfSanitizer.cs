@@ -24,8 +24,11 @@ internal static partial class PdfSanitizer {
     internal static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
+        System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
         IReadOnlyList<PdfSanitizationFinding> before = Analyze(pdf, policy, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfExtractedAttachment> quarantined = policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine
             ? PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions))
             : Array.Empty<PdfExtractedAttachment>();
@@ -38,13 +41,16 @@ internal static partial class PdfSanitizer {
             sourceReadOptions: readOptions,
             outputEncryption: null,
             (objects, security) => {
+                cancellationToken.ThrowIfCancellationRequested();
                 SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
                 return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                     ? security.InfoObjectNumber
                     : null;
             });
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
         IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (remaining.Count > 0) {
             throw new InvalidOperationException(
                 "PDF sanitization post-save validation found " + remaining.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -80,6 +86,7 @@ internal static partial class PdfSanitizer {
             }
         }
         PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined, rewrittenReadOptions);
     }

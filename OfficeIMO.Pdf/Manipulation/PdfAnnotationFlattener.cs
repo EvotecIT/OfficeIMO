@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// Flattens supported visual PDF annotations into regular page content.
 /// </summary>
 internal static partial class PdfAnnotationFlattener {
-    private const string UnsupportedVisualAnnotationMessage = "Only FreeText, text markup, shape, line, ink, path, stamp, and caret annotations with a normal appearance stream or supported synthesis data can be visually flattened by OfficeIMO.Pdf.";
+    private const string UnsupportedVisualAnnotationMessage = "Only text notes, FreeText, text markup, shape, line, ink, path, stamp, and caret annotations with a normal appearance stream or supported synthesis data can be visually flattened by OfficeIMO.Pdf.";
 
     /// <summary>
     /// Returns a new PDF with supported visual annotations painted into page content and removed from page annotations.

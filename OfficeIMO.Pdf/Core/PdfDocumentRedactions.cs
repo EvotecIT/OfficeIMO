@@ -31,4 +31,12 @@ public sealed class PdfDocumentRedactions {
 
     /// <summary>Verifies configured markers and throws when redaction proof fails.</summary>
     public PdfRedactionVerificationReport AssertVerified(PdfRedactionVerificationOptions options) => _document.AssertRedactionsVerified(options);
+
+    /// <summary>Verifies configured markers and reports any content still intersecting the reviewed plan areas.</summary>
+    public PdfRedactionVerificationReport VerifyAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
+        PdfRedactionVerification.VerifyAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
+
+    /// <summary>Verifies a reviewed plan and throws when planned content remains in its areas.</summary>
+    public PdfRedactionVerificationReport AssertAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
+        PdfRedactionVerification.AssertAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
 }

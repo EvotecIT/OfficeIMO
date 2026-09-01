@@ -1,10 +1,14 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options for extracting logical PDF tables into an Excel workbook.
     /// </summary>
 public sealed class PdfExcelTableImportOptions {
+        /// <summary>Cancellation observed at table, row, and column-analysis boundaries.</summary>
+        public CancellationToken CancellationToken { get; set; }
+
         /// <summary>
         /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
         /// Null uses <see cref="OfficeIMO.Pdf.PdfReadOptions.Default"/>. This setting is ignored when the source is already

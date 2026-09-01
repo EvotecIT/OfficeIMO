@@ -108,6 +108,7 @@
     "OfficeIMO.Word.Markdown": "3.3.X",
     "OfficeIMO.Word.Pdf": "3.3.X",
     "OfficeIMO.Word.Rtf": "3.3.X",
+    "OfficeIMO.Workflows": "3.3.X",
     "OfficeIMO.Zip": "3.3.X"
   },
   "VersionBindings": [

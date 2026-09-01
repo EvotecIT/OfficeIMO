@@ -1,6 +1,55 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationDictionaryBuilder {
+    internal static string BuildTextNoteAppearanceContent(double width, double height, PdfColor? color = null) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        PdfColor resolvedColor = color ?? new PdfColor(1D, 0.9D, 0.2D);
+        double borderWidth = Math.Min(1D, Math.Min(width, height) / 4D);
+        double inset = borderWidth / 2D;
+        double fold = Math.Max(2D, Math.Min(Math.Min(width, height) * 0.28D, Math.Min(width, height) - 1D));
+        double innerWidth = Math.Max(0D, width - borderWidth);
+        double innerHeight = Math.Max(0D, height - borderWidth);
+        double lineLeft = Math.Min(width * 0.2D, width / 2D);
+        double lineRight = Math.Max(lineLeft, width - Math.Max(2D, width * 0.2D));
+        double firstLineY = Math.Max(1D, height * 0.48D);
+        double secondLineY = Math.Max(1D, height * 0.28D);
+
+        var builder = new StringBuilder();
+        builder.Append("q\n")
+            .Append(FormatColor(resolvedColor)).Append(" rg ")
+            .Append(FormatColor(PdfColor.Black)).Append(" RG ")
+            .Append(FormatCoordinate(borderWidth)).Append(" w ")
+            .Append(FormatCoordinate(inset)).Append(' ')
+            .Append(FormatCoordinate(inset)).Append(' ')
+            .Append(FormatCoordinate(innerWidth)).Append(' ')
+            .Append(FormatCoordinate(innerHeight)).Append(" re B\n")
+            .Append("1 1 1 rg ")
+            .Append(FormatCoordinate(width - fold)).Append(' ')
+            .Append(FormatCoordinate(height)).Append(" m ")
+            .Append(FormatCoordinate(width)).Append(' ')
+            .Append(FormatCoordinate(height - fold)).Append(" l ")
+            .Append(FormatCoordinate(width - fold)).Append(' ')
+            .Append(FormatCoordinate(height - fold)).Append(" l h f\n")
+            .Append(FormatColor(PdfColor.Black)).Append(" RG ")
+            .Append(FormatCoordinate(width - fold)).Append(' ')
+            .Append(FormatCoordinate(height)).Append(" m ")
+            .Append(FormatCoordinate(width - fold)).Append(' ')
+            .Append(FormatCoordinate(height - fold)).Append(" l ")
+            .Append(FormatCoordinate(width)).Append(' ')
+            .Append(FormatCoordinate(height - fold)).Append(" l S\n")
+            .Append(FormatCoordinate(lineLeft)).Append(' ')
+            .Append(FormatCoordinate(firstLineY)).Append(" m ")
+            .Append(FormatCoordinate(lineRight)).Append(' ')
+            .Append(FormatCoordinate(firstLineY)).Append(" l S\n")
+            .Append(FormatCoordinate(lineLeft)).Append(' ')
+            .Append(FormatCoordinate(secondLineY)).Append(" m ")
+            .Append(FormatCoordinate(lineRight)).Append(' ')
+            .Append(FormatCoordinate(secondLineY)).Append(" l S\nQ\n");
+        return builder.ToString();
+    }
+
     internal static string BuildStampAppearanceContent(double width, double height, string stampName, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 2D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));

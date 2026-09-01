@@ -1,11 +1,15 @@
 using PdfCore = OfficeIMO.Pdf;
 using DrawingCore = OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Excel.Pdf {
     /// <summary>
     /// Options controlling first-party OfficeIMO Excel-to-PDF export.
     /// </summary>
     public sealed class ExcelPdfSaveOptions {
+        /// <summary>Cancellation observed at worksheet and table-chunk boundaries during conversion.</summary>
+        public CancellationToken CancellationToken { get; set; }
+
         private int _headerRowCount = 1;
         private int? _maxRowsPerSheet;
         private PdfCore.PdfOptions? _pdfOptions;

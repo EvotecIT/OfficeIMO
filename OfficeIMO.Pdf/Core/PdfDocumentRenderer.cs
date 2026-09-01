@@ -28,6 +28,13 @@ public sealed class PdfDocumentRenderer {
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics(int pageNumber) =>
         _document.Reader.RenderCapabilityDiagnostics(pageNumber);
 
+    /// <summary>Builds text-selection and interactive hit regions for a one-based page.</summary>
+    public PdfPageInteractionMap Interactions(
+        int pageNumber,
+        PdfPageInteractionOptions? options = null,
+        PdfLoadOptions? loadOptions = null) =>
+        _document.Reader.Interactions(pageNumber, options, loadOptions);
+
     /// <summary>Exports all pages or a caller-ordered selection through the shared image-export contract.</summary>
     public IReadOnlyList<OfficeImageExportResult> ExportImages(
         OfficeImageExportFormat format,

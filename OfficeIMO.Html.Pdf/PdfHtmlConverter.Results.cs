@@ -19,6 +19,7 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
+        options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
         string html = options.Profile switch {
@@ -48,6 +49,7 @@ public static partial class PdfHtmlConverterExtensions {
         ActionDiagnosticSummary actionSummary = BuildActionDiagnosticSummary(document, pages);
 
         for (int i = 0; i < pages.Count; i++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalPage page = pages[i];
             pageNumbers[i] = page.PageNumber;
             textBlockCount += page.TextBlocks.Count;

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
@@ -141,6 +142,8 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, WordPdfSaveOptions? options) {
+            CancellationToken cancellationToken = options?.CancellationToken ?? CancellationToken.None;
+            cancellationToken.ThrowIfCancellationRequested();
             ResetNativeStyleLookupCache(document);
             WordBuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             var nativeFontMap = new NativeFontMap(options?.Report);
@@ -163,6 +166,7 @@ namespace OfficeIMO.Word.Pdf {
             var footnoteNumbersById = new Dictionary<long, int>();
             IReadOnlyList<WordSection> sections = document.Sections;
             for (int sectionIndex = 0; sectionIndex < sections.Count;) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int sectionGroupEnd = GetNativePdfSectionGroupEnd(sections, sectionIndex, options);
                 WordSection firstSection = sections[sectionIndex];
                 PdfCore.PageSize sectionPageSize = GetNativePageSize(firstSection, options);
@@ -177,6 +181,7 @@ namespace OfficeIMO.Word.Pdf {
                     INativePdfFlow flow = new NativeSpacingCollapseFlow(new NativePdfDocumentFlow(pdf));
 
                     for (int currentSectionIndex = sectionIndex; currentSectionIndex < sectionGroupEnd; currentSectionIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         WordSection section = sections[currentSectionIndex];
                         IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                         List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
@@ -198,6 +203,7 @@ namespace OfficeIMO.Word.Pdf {
                         }
 
                         for (int i = 0; i < elements.Count; i++) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             WordElement element = elements[i];
                             if (element is WordFootNote) {
                                 continue;
@@ -242,6 +248,7 @@ namespace OfficeIMO.Word.Pdf {
             // The lookup cache is conversion-scoped. Releasing it here preserves the pre-existing
             // post-conversion behavior and prevents disposed document state from being reused.
             ResetNativeStyleLookupCache(document);
+            cancellationToken.ThrowIfCancellationRequested();
             return pdf;
         }
 
