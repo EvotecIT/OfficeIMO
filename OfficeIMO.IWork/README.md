@@ -2,19 +2,6 @@
 
 `OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and unsupported-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
-Keep `OfficeIMO.IWork`, `OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` on the same coordinated OfficeIMO version.
-
-## Install
-
-Install the bounded reader and the destination owner for the format you need. For example, Numbers-to-Excel uses:
-
-```powershell
-dotnet add package OfficeIMO.IWork
-dotnet add package OfficeIMO.Excel
-```
-
-Use `OfficeIMO.Word` with `OfficeIMO.IWork` for Pages, or `OfficeIMO.PowerPoint` with `OfficeIMO.IWork` for Keynote.
-
 ## Reference from a source checkout
 
 For source-based development, reference the bounded reader and the semantic owner you need:
@@ -59,7 +46,8 @@ IWorkSourceDocument source = IWorkSourceDocument.Open(
         MaximumPackageBytes = 64 * 1024 * 1024,
         MaximumArchiveReferenceCount = 1_000_000,
         MaximumMaterializedCells = 1_000_000,
-        MaximumTableCatalogEntries = 100_000
+        MaximumTableCatalogEntries = 100_000,
+        MaximumFormulaRenderingOperations = 64L * 1024 * 1024
     });
 
 IWorkNumbersProjection workbook = source.ReadNumbers();

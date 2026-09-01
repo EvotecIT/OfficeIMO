@@ -242,18 +242,21 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
-    public void Keynote_owner_projects_source_canvas_geometry_and_rich_text() {
+    public void Keynote_owner_falls_back_when_rich_text_uses_pagination_flags() {
         using var result = PowerPointPresentation.LoadKeynoteWithReport(Fixture("iwork-converter/a.key"));
 
+        Assert.True(result.IsVisualFallback);
         Assert.Equal(1920d, result.Document.SlideSize.WidthPoints, 3);
         Assert.Equal(1080d, result.Document.SlideSize.HeightPoints, 3);
-        PowerPointSlide slide = Assert.Single(result.Document.Slides);
-        PowerPointTextBox box = slide.TextBoxes.First(item => item.Text == "账户passport");
-        Assert.InRange(box.LeftPoints, 371.74d, 371.75d);
-        Assert.InRange(box.TopPoints, 537.95d, 537.96d);
-        PowerPointTextRun run = Assert.Single(Assert.Single(box.Paragraphs).Runs);
-        Assert.Equal(28d, run.FontSizePoints);
-        Assert.Equal("HelveticaNeue-Medium", run.FontName);
+        PowerPointPicture preview = Assert.Single(Assert.Single(result.Document.Slides).Pictures);
+        Assert.Equal("Visual fallback from the source Keynote package", preview.AltText);
+        IWorkTextBox box = Assert.Single(result.Projection.Slides)
+            .TextBoxes.First(item => item.Content.PlainText == "账户passport");
+        Assert.InRange(box.Geometry!.LeftPoints, 371.74d, 371.75d);
+        Assert.InRange(box.Geometry.TopPoints, 537.95d, 537.96d);
+        IWorkTextRun run = Assert.Single(Assert.Single(box.Content.Paragraphs).Runs);
+        Assert.Equal(28d, run.Style.FontSizePoints);
+        Assert.Equal("HelveticaNeue-Medium", run.Style.FontName);
     }
 
     [Fact]
@@ -307,14 +310,14 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
-    public void Semantic_owner_adapters_save_and_reopen_editable_outputs() {
+    public void Owner_adapters_save_and_reopen_semantic_or_visual_outputs() {
         using var pages = WordDocument.LoadPagesWithReport(Fixture("nim-iwork/simple.pages"));
         using var numbers = ExcelDocument.LoadNumbersWithReport(Fixture("nim-iwork/simple.numbers"));
         using var keynote = PowerPointPresentation.LoadKeynoteWithReport(Fixture("nim-iwork/simple.key"));
 
         Assert.False(pages.IsVisualFallback);
         Assert.False(numbers.IsVisualFallback);
-        Assert.False(keynote.IsVisualFallback);
+        Assert.True(keynote.IsVisualFallback);
         using var wordBytes = new MemoryStream();
         using var excelBytes = new MemoryStream();
         using var powerPointBytes = new MemoryStream();
@@ -331,7 +334,8 @@ public sealed class IWorkCorpusTests {
         Assert.Contains(word.Paragraphs, paragraph => paragraph.Text == "hello pages");
         Assert.Single(excel.Sheets);
         Assert.Equal("a", excel.Sheets[0].CellAt(1, 1).GetValue<string>());
-        Assert.Equal(2, powerPoint.Slides.Count);
+        Assert.Single(powerPoint.Slides);
+        Assert.Single(powerPoint.Slides[0].Pictures);
     }
 
     [Theory]

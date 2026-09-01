@@ -11,6 +11,7 @@ internal sealed class IWorkProjectionBudget {
     private long _textCharacterCount;
     private long _decodedImageByteCount;
     private long _projectedImageByteCount;
+    private long _formulaRenderingOperations;
 
     internal IWorkProjectionBudget(IWorkReadOptions options) {
         _options = options;
@@ -100,6 +101,15 @@ internal sealed class IWorkProjectionBudget {
                 $"Text character count exceeds the configured projection limit of {_options.MaximumProjectedTextCharacters}.");
         }
         _textCharacterCount += count;
+    }
+
+    internal void AddFormulaRenderingOperations(long count) {
+        if (count < 0
+            || _formulaRenderingOperations > _options.MaximumFormulaRenderingOperations - count) {
+            throw new InvalidDataException(
+                $"Formula rendering work exceeds the configured source-wide limit of {_options.MaximumFormulaRenderingOperations} operations.");
+        }
+        _formulaRenderingOperations += count;
     }
 
     internal void AddTextContentUse(IWorkTextContent content, bool includeCharacters = false) {

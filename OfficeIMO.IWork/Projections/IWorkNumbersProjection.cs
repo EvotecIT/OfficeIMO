@@ -1059,10 +1059,16 @@ internal static class IWorkNumbersReader {
         object? cachedValue = null,
         IWorkCellKind? cachedValueKind = null,
         bool cachedValueIsComplete = true) {
-        IWorkFormulaResult result = formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)
-            ? IWorkFormulaReader.Render(formula, row - 1, column - 1,
-                options.MaximumFormulaNodes, options.MaximumFormulaCharacters)
-            : new IWorkFormulaResult("=?", false);
+        IWorkFormulaResult result;
+        if (formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)) {
+            projectionBudget.AddFormulaRenderingOperations(
+                IWorkFormulaReader.MeasureRenderingOperations(formula,
+                    options.MaximumFormulaNodes));
+            result = IWorkFormulaReader.Render(formula, row - 1, column - 1,
+                options.MaximumFormulaNodes, options.MaximumFormulaCharacters);
+        } else {
+            result = new IWorkFormulaResult("=?", false);
+        }
         string formulaText = result.Text.Length == 0 ? "=?" : result.Text;
         projectionBudget.AddTextCharacters(formulaText.Length);
         projectionBudget.AddTextItem();

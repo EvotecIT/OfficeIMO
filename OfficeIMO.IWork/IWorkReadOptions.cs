@@ -86,6 +86,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum reconstructed formula length in characters.</summary>
     public int MaximumFormulaCharacters { get; set; } = 8192;
 
+    /// <summary>Gets or sets the maximum combined formula-rendering work across one semantic projection, counting repeated formula uses.</summary>
+    public long MaximumFormulaRenderingOperations { get; set; } = 64L * 1024 * 1024;
+
     /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>
     public int MaximumProjectedTextItems { get; set; } = 100_000;
 
@@ -128,6 +131,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumTableMergedRanges, nameof(MaximumTableMergedRanges));
         ValidatePositive(MaximumFormulaNodes, nameof(MaximumFormulaNodes));
         ValidatePositive(MaximumFormulaCharacters, nameof(MaximumFormulaCharacters));
+        ValidatePositive(MaximumFormulaRenderingOperations, nameof(MaximumFormulaRenderingOperations));
         ValidatePositive(MaximumProjectedTextItems, nameof(MaximumProjectedTextItems));
         ValidatePositive(MaximumProjectedTextCharacters, nameof(MaximumProjectedTextCharacters));
         ValidatePositive(MaximumTextStyleInheritanceDepth, nameof(MaximumTextStyleInheritanceDepth));

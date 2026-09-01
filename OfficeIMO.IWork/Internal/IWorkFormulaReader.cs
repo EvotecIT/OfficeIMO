@@ -215,6 +215,24 @@ internal static class IWorkFormulaReader {
         return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0);
     }
 
+    internal static long MeasureRenderingOperations(IWorkWireMessage formula, int maximumNodes) {
+        if (formula.FieldCount(1) != 1
+            || formula.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
+            || formula.GetBytes(1) is not byte[] nodeArrayBytes) return 1;
+        int totalFieldCount;
+        try {
+            formula.CountNestedFields(nodeArrayBytes, 1, out totalFieldCount);
+        } catch (InvalidDataException) {
+            return 1;
+        }
+        if (totalFieldCount > maximumNodes) {
+            throw new InvalidDataException(
+                $"An iWork formula exceeds the configured syntax-node limit of {maximumNodes}.");
+        }
+        long nodeCount = Math.Max(1, totalFieldCount);
+        return checked(nodeCount * nodeCount);
+    }
+
     private readonly struct FunctionDefinition {
         internal FunctionDefinition(string name, int minimumArguments, int maximumArguments) {
             Name = name;

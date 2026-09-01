@@ -284,6 +284,10 @@ public sealed partial class PowerPointPresentation {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
                     IWorkParagraphStyle style = paragraph.Style;
+                    if (style.PageBreakBefore == true || style.KeepWithNext == true
+                        || style.KeepLinesTogether == true) {
+                        return $"Keynote slide {slide.Index} contains paragraph pagination formatting that the PPTX owner cannot preserve.";
+                    }
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
                         || !FitsTextCoordinate(style.LeftIndentPoints)
                         || !FitsTextCoordinate(style.RightIndentPoints)

@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(9)]
     [InlineData(10)]
     [InlineData(14)]
-    public void Keynote_paragraph_pagination_flags_are_explicitly_diagnosed(int styleField) {
+    public void Keynote_paragraph_pagination_flags_are_diagnosed_and_use_visual_fallback(int styleField) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -94,8 +94,9 @@ public sealed partial class IWorkBoundaryTests {
 
         using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
 
-        Assert.False(result.IsVisualFallback);
+        Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
+        Assert.Single(Assert.Single(result.Document.Slides).Pictures);
         Assert.Contains(result.ImportReport.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED");
     }
