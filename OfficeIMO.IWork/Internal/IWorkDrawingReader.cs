@@ -20,13 +20,15 @@ internal static class IWorkDrawingReader {
         return value;
     }
 
-    internal static IWorkGeometry? ReadGeometry(IWorkWireMessage drawable, out bool complete) {
+    internal static IWorkGeometry? ReadGeometry(IWorkWireMessage drawable, out bool complete,
+        bool requirePositiveSize = false) {
         IWorkWireMessage? geometry = IWorkObjectIndex.TryGetMessage(drawable, 1, out bool malformedGeometry);
         complete = !malformedGeometry
             && !drawable.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             && (!drawable.HasField(1) || geometry != null);
         if (geometry == null) return null;
-        IWorkGeometry? result = ReadGeometryArchive(geometry, out bool archiveComplete);
+        IWorkGeometry? result = ReadGeometryArchive(geometry, out bool archiveComplete,
+            requirePositiveSize);
         if (!archiveComplete || result == null) complete = false;
         return result;
     }
@@ -35,7 +37,8 @@ internal static class IWorkDrawingReader {
         return ReadGeometryArchive(geometry, out _);
     }
 
-    internal static IWorkGeometry? ReadGeometryArchive(IWorkWireMessage geometry, out bool complete) {
+    internal static IWorkGeometry? ReadGeometryArchive(IWorkWireMessage geometry, out bool complete,
+        bool requirePositiveSize = false) {
         IWorkWireMessage? position = IWorkObjectIndex.TryGetMessage(geometry, 1, out bool malformedPosition);
         IWorkWireMessage? size = IWorkObjectIndex.TryGetMessage(geometry, 2, out bool malformedSize);
         complete = !malformedPosition && !malformedSize
@@ -56,7 +59,10 @@ internal static class IWorkDrawingReader {
             return null;
         }
         if (!IsFinite(left) || !IsFinite(top) || !IsFinite(width) || !IsFinite(height)
-            || !IsFinite(rotation) || width < 0 || height < 0) {
+            || !IsFinite(rotation) || width < 0 || height < 0
+            || requirePositiveSize && (size == null
+                || size.FieldCount(1) != 1 || size.FieldCount(2) != 1
+                || width <= 0 || height <= 0)) {
             complete = false;
             return null;
         }

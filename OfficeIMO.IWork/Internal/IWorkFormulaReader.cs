@@ -16,38 +16,39 @@ internal static class IWorkFormulaReader {
     private const int PrimaryPrecedence = 10;
     private const int SumFunctionIndex = 168;
     private const int UnaryPrecedence = 6;
-    private static readonly IReadOnlyDictionary<int, string> FunctionNames = new Dictionary<int, string> {
-        [1] = "ABS",
-        [7] = "AND",
-        [15] = "AVERAGE",
-        [22] = "COLUMN",
-        [30] = "COUNT",
-        [31] = "COUNTA",
-        [32] = "COUNTBLANK",
-        [33] = "COUNTIF",
-        [39] = "DATE",
-        [41] = "DAY",
-        [52] = "FALSE",
-        [53] = "FIND",
-        [60] = "HOUR",
-        [61] = "HYPERLINK",
-        [62] = "IF",
-        [63] = "INDEX",
-        [77] = "LEN",
-        [76] = "LEFT",
-        [84] = "MAX",
-        [86] = "MEDIAN",
-        [87] = "MID",
-        [88] = "MIN",
-        [89] = "MINUTE",
-        [97] = "NOW",
-        [101] = "OR",
-        [102] = "PI",
-        [112] = "ROUND",
-        [119] = "SECOND",
-        [124] = "RIGHT",
-        [SumFunctionIndex] = "SUM",
-        [169] = "SUMIF"
+    private static readonly IReadOnlyDictionary<int, FunctionDefinition> Functions =
+        new Dictionary<int, FunctionDefinition> {
+        [1] = new("ABS", 1, 1),
+        [7] = new("AND", 1, 255),
+        [15] = new("AVERAGE", 1, 255),
+        [22] = new("COLUMN", 0, 1),
+        [30] = new("COUNT", 1, 255),
+        [31] = new("COUNTA", 1, 255),
+        [32] = new("COUNTBLANK", 1, 1),
+        [33] = new("COUNTIF", 2, 2),
+        [39] = new("DATE", 3, 3),
+        [41] = new("DAY", 1, 1),
+        [52] = new("FALSE", 0, 0),
+        [53] = new("FIND", 2, 3),
+        [60] = new("HOUR", 1, 1),
+        [61] = new("HYPERLINK", 1, 2),
+        [62] = new("IF", 2, 3),
+        [63] = new("INDEX", 2, 4),
+        [76] = new("LEFT", 1, 2),
+        [77] = new("LEN", 1, 1),
+        [84] = new("MAX", 1, 255),
+        [86] = new("MEDIAN", 1, 255),
+        [87] = new("MID", 3, 3),
+        [88] = new("MIN", 1, 255),
+        [89] = new("MINUTE", 1, 1),
+        [97] = new("NOW", 0, 0),
+        [101] = new("OR", 1, 255),
+        [102] = new("PI", 0, 0),
+        [112] = new("ROUND", 2, 2),
+        [119] = new("SECOND", 1, 1),
+        [124] = new("RIGHT", 1, 2),
+        [SumFunctionIndex] = new("SUM", 1, 255),
+        [169] = new("SUMIF", 2, 3)
     };
 
     internal static IWorkFormulaResult Render(IWorkWireMessage formula, int zeroBasedRow, int zeroBasedColumn,
@@ -93,7 +94,12 @@ internal static class IWorkFormulaReader {
                     int functionIndex = rawFunctionIndex <= int.MaxValue ? (int)rawFunctionIndex : -1;
                     int argumentCount = BoundedCount(node.GetUnsigned(3), maximumNodes);
                     Operand[] arguments = Pop(stack, argumentCount, ref complete);
-                    if (!FunctionNames.TryGetValue(functionIndex, out string? name)) {
+                    string name;
+                    if (Functions.TryGetValue(functionIndex, out FunctionDefinition function)) {
+                        name = function.Name;
+                        if (argumentCount < function.MinimumArguments
+                            || argumentCount > function.MaximumArguments) complete = false;
+                    } else {
                         name = functionIndex == 212
                             ? "DURATION"
                             : "FUNCTION_" + functionIndex.ToString(CultureInfo.InvariantCulture);
@@ -207,6 +213,18 @@ internal static class IWorkFormulaReader {
         if (stack.Count != 1) return new IWorkFormulaResult(string.Empty, false);
         string text = stack[0].Text;
         return new IWorkFormulaResult(text.Length == 0 ? string.Empty : "=" + text, complete && text.Length > 0);
+    }
+
+    private readonly struct FunctionDefinition {
+        internal FunctionDefinition(string name, int minimumArguments, int maximumArguments) {
+            Name = name;
+            MinimumArguments = minimumArguments;
+            MaximumArguments = maximumArguments;
+        }
+
+        internal string Name { get; }
+        internal int MinimumArguments { get; }
+        internal int MaximumArguments { get; }
     }
 
     internal static bool TryReadAbsoluteRange(IWorkWireMessage formula, int maximumNodes,

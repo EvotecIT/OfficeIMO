@@ -500,9 +500,13 @@ internal static class IWorkTextReader {
             complete = false;
             return false;
         }
-        color = new IWorkColor(Component(red), Component(green), Component(blue), Component(alpha));
+        color = new IWorkColor(Component(red), Component(green), Component(blue), AlphaComponent(alpha));
         return true;
     }
+
+    private static byte AlphaComponent(float value) => value >= 1f
+        ? byte.MaxValue
+        : (byte)Math.Floor(Math.Max(0f, value) * byte.MaxValue);
 
     private static void OverlayFinite(IWorkWireMessage message, int field, Action<double> apply,
         ref bool complete) {

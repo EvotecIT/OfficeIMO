@@ -176,7 +176,8 @@ internal static class IWorkNumbersReader {
                         out bool drawableComplete);
                     bool geometryComplete = true;
                     if (drawableMessage != null) {
-                        IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete);
+                        IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete,
+                            requirePositiveSize: true);
                     }
                     bool metadataComplete = true;
                     string? hyperlink = IWorkDrawingReader.ReadOptionalString(drawableMessage, 4,

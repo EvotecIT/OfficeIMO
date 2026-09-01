@@ -50,8 +50,10 @@ public sealed partial class IWorkBoundaryTests {
 
     private static byte[] CreatePaddedValidPng() {
         byte[] source = ValidPreviewPng();
+        byte[] text = System.Text.Encoding.ASCII.GetBytes(
+            "Comment\0" + new string('x', 4088));
         return Message(source[..^12],
-            CreatePngChunk("tEXt", new byte[4096]), source[^12..]);
+            CreatePngChunk("tEXt", text), source[^12..]);
     }
 
     private static MemoryStream CreateKeynotePackageWithSharedImage(byte[] imageBytes) {

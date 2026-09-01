@@ -268,7 +268,8 @@ internal static class IWorkPagesReader {
             bool geometryComplete = true;
             IWorkGeometry? geometry = drawable == null
                 ? null
-                : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete);
+                : IWorkDrawingReader.ReadGeometry(drawable, out geometryComplete,
+                    requirePositiveSize: true);
             if (drawable != null && !geometryComplete) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED")) {

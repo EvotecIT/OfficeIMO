@@ -312,6 +312,14 @@ internal static class IWorkKeynoteReader {
                 slide.EntryPath, slide.Identifier));
         }
         IWorkArchiveRecord? bodyPlaceholder = index.Dereference(message, 6);
+        if (titlePlaceholder != null && bodyPlaceholder != null
+            && titlePlaceholder.Identifier == bodyPlaceholder.Identifier) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED",
+                "A Keynote slide assigns one drawable to both title and body placeholder roles; editable reconstruction is incomplete.",
+                slide.EntryPath, slide.Identifier));
+        }
         var candidates = new List<IWorkArchiveRecord>();
         var candidateIdentifiers = new HashSet<ulong>();
         bool hasUnresolvedDrawable = false;
@@ -422,7 +430,8 @@ internal static class IWorkKeynoteReader {
             bool geometryComplete = true;
             IWorkGeometry? geometry = drawableMessage == null
                 ? null
-                : IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete);
+                : IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete,
+                    requirePositiveSize: true);
             if (drawableMessage != null && !geometryComplete) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
@@ -436,7 +445,8 @@ internal static class IWorkKeynoteReader {
                 if (IWorkObjectIndex.TryGetMessage(message, 11, out bool malformedTitleGeometry)
                     is IWorkWireMessage titleGeometry) {
                     IWorkGeometry? placeholderGeometry = IWorkDrawingReader.ReadGeometryArchive(
-                        titleGeometry, out bool titleGeometryComplete);
+                        titleGeometry, out bool titleGeometryComplete,
+                        requirePositiveSize: true);
                     if (titleGeometryComplete) geometry = placeholderGeometry;
                     else MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 } else if (malformedTitleGeometry) {
@@ -461,7 +471,8 @@ internal static class IWorkKeynoteReader {
                         message, 14, out bool malformedBodyGeometry);
                     if (bodyGeometry != null) {
                         IWorkGeometry? placeholderGeometry = IWorkDrawingReader.ReadGeometryArchive(
-                            bodyGeometry, out bool bodyGeometryComplete);
+                            bodyGeometry, out bool bodyGeometryComplete,
+                            requirePositiveSize: true);
                         if (bodyGeometryComplete) geometry = placeholderGeometry;
                         else MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                     } else if (malformedBodyGeometry) {

@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] imageBytes = CreateSizedPreviewPng(20, 20);
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 2, imageBytes: imageBytes);
-        var options = new IWorkReadOptions { MaximumPackageBytes = 700 };
+        var options = new IWorkReadOptions { MaximumPackageBytes = 2_000 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord[] images = source.Records
@@ -75,8 +75,9 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.NotNull(IWorkDrawingReader.ReadImage(source, images[0], budget, out bool firstComplete));
         Assert.True(firstComplete);
-        Assert.Null(IWorkDrawingReader.ReadImage(source, images[1], budget, out bool secondComplete));
-        Assert.False(secondComplete);
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            IWorkDrawingReader.ReadImage(source, images[1], budget, out _));
+        Assert.Contains("Decoded image data", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -280,21 +280,15 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Keynote_owner_preserves_explicit_zero_sized_text_boxes() {
-        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: 0f);
+    public void Keynote_text_boxes_without_positive_geometry_use_visual_fallback() {
+        using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, rotation: 0f,
+            omitPositiveSize: true);
 
         using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
 
-        PowerPointTextBox textBox = Assert.Single(Assert.Single(result.Document.Slides).TextBoxes);
-        Assert.Equal(0d, textBox.WidthPoints);
-        Assert.Equal(0d, textBox.HeightPoints);
-        using var bytes = new MemoryStream();
-        result.Document.Save(bytes);
-        bytes.Position = 0;
-        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
-        PowerPointTextBox persisted = Assert.Single(Assert.Single(reopened.Slides).TextBoxes);
-        Assert.Equal(0d, persisted.WidthPoints);
-        Assert.Equal(0d, persisted.HeightPoints);
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED");
     }
 
     private static MemoryStream CreateKeynotePackageWithRepeatedSlides(int referenceCount,
@@ -306,7 +300,7 @@ public sealed partial class IWorkBoundaryTests {
         bool naturalAlignment = false, bool duplicateDrawableInField = false,
         bool aliasDrawableAcrossFields = false, int? drawableReferenceCount = null,
         int unexpectedSlideTreeFieldCount = 0, float? spaceBefore = null,
-        float? spaceAfter = null) {
+        float? spaceAfter = null, bool omitPositiveSize = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -320,7 +314,10 @@ public sealed partial class IWorkBoundaryTests {
             .ToArray());
         var shapeFields = new List<byte[]> { ReferenceField(2, storageId) };
         if (rotation.HasValue) {
-            byte[] geometry = Message(FloatField(4, rotation.Value));
+            byte[] geometry = Message(
+                omitPositiveSize ? Array.Empty<byte>() : BytesField(2,
+                    Message(FloatField(1, 100f), FloatField(2, 50f))),
+                FloatField(4, rotation.Value));
             byte[] drawable = Message(BytesField(1, geometry));
             byte[] shape = Message(BytesField(1, drawable));
             shapeFields.Insert(0, BytesField(1, shape));

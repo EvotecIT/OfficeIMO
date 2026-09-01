@@ -137,7 +137,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(diagnostics, diagnostic => diagnostic.Code == diagnosticCode);
     }
 
-    private static MemoryStream CreatePagesPackageWithColor(float red) {
+    private static MemoryStream CreatePagesPackageWithColor(float red, float? alpha = null,
+        bool includePreview = false) {
         const ulong documentId = 1;
         const ulong bodyId = 2;
         const ulong styleId = 3;
@@ -148,8 +149,15 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(bodyId, 2001,
                 Message(StringField(3, "Color"), BytesField(8, styleTable)), new[] { styleId }),
             ArchiveRecord(styleId, 2021,
-                Message(BytesField(11, Message(BytesField(7, Message(FloatField(3, red))))))));
-        return CreatePackage(("Index/Document.iwa", FrameIwa(records)));
+                Message(BytesField(11, Message(BytesField(7, Message(
+                    FloatField(3, red),
+                    FloatField(4, 0f),
+                    FloatField(5, 0f),
+                    alpha.HasValue ? FloatField(6, alpha.Value) : Array.Empty<byte>())))))));
+        return includePreview
+            ? CreatePackage(("Index/Document.iwa", FrameIwa(records)),
+                ("preview.png", ValidPreviewPng()))
+            : CreatePackage(("Index/Document.iwa", FrameIwa(records)));
     }
 
     private static MemoryStream CreatePagesPackageWithSurrogateSplitBoundary() {

@@ -100,7 +100,8 @@ internal static class IWorkImageInfo {
         width = 0;
         height = 0;
         decodedBytes = 0;
-        if (bytes.Length < 33 || !HasPngSignature(bytes)) return false;
+        if (maximumDecodedBytes < 0 || bytes.Length < 33 || !HasPngSignature(bytes)
+            || !OfficePngReader.TryGetFrameCount(bytes, out _)) return false;
 
         bool hasHeader = false;
         bool hasImageData = false;
@@ -110,6 +111,7 @@ internal static class IWorkImageInfo {
         byte bitDepth = 0;
         byte colorType = 0;
         byte interlace = 0;
+        long rasterDecodedBytes = 0;
         using var imageData = new MemoryStream();
         int offset = 8;
         while (offset <= bytes.Length - 12) {
@@ -138,6 +140,13 @@ internal static class IWorkImageInfo {
                 if (width <= 0 || height <= 0
                     || bytes[dataOffset + 10] != 0 || bytes[dataOffset + 11] != 0
                     || interlace > 1 || !IsValidPngColorFormat(bitDepth, colorType)) return false;
+                try {
+                    rasterDecodedBytes = checked((long)width * height * 4);
+                } catch (OverflowException) {
+                    return false;
+                }
+                decodedBytes = rasterDecodedBytes;
+                if (rasterDecodedBytes > maximumDecodedBytes) return false;
                 hasHeader = true;
             } else if (isHeader) {
                 return false;
@@ -163,10 +172,13 @@ internal static class IWorkImageInfo {
             if (isUnknownCritical) return false;
             offset = crcOffset + 4;
             if (isEnd) {
-                bool valid = dataLength == 0 && hasImageData && offset == bytes.Length
-                    && ValidatePngImageData(imageData.ToArray(), width, height,
+                bool valid = dataLength == 0 && hasImageData && offset == bytes.Length;
+                if (valid) {
+                    valid = ValidatePngImageData(imageData.ToArray(), width, height,
                         bitDepth, colorType, interlace, paletteEntryCount,
                         maximumDecodedBytes, out decodedBytes);
+                    if (valid) decodedBytes = Math.Max(decodedBytes, rasterDecodedBytes);
+                }
                 return valid;
             }
         }

@@ -81,15 +81,14 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Keynote_drawable_aliases_across_fields_are_materialized_once() {
+    public void Keynote_drawables_cannot_fill_both_title_and_body_roles() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             aliasDrawableAcrossFields: true);
 
         using var result = PowerPointPresentation.LoadKeynoteWithReport(package);
 
-        Assert.False(result.IsVisualFallback);
-        Assert.Single(Assert.Single(result.Document.Slides).TextBoxes);
-        Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_KEYNOTE_DUPLICATE_DRAWABLE");
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED");
     }
 }

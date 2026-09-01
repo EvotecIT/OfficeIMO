@@ -1448,20 +1448,21 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] ValidPreviewPng() => Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-    private static byte[] CreateSizedPreviewPng(int width, int height) {
+    private static byte[] CreateSizedPreviewPng(int width, int height, byte bitDepth = 8) {
         var header = new byte[13];
         WriteBigEndian32(header, 0, width);
         WriteBigEndian32(header, 4, height);
-        header[8] = 8;
+        header[8] = bitDepth;
         header[9] = 0;
         using var imageData = new MemoryStream();
         imageData.WriteByte(0x78);
         imageData.WriteByte(0x9c);
         using (var deflate = new DeflateStream(imageData, CompressionMode.Compress, leaveOpen: true)) {
-            var row = new byte[checked(width + 1)];
+            int rowBytes = checked((int)(((long)width * bitDepth + 7) / 8));
+            var row = new byte[checked(rowBytes + 1)];
             for (int index = 0; index < height; index++) deflate.Write(row, 0, row.Length);
         }
-        long decodedLength = checked((long)(width + 1) * height);
+        long decodedLength = checked((((long)width * bitDepth + 7) / 8 + 1) * height);
         uint adler = (uint)(decodedLength % 65521) << 16 | 1u;
         var checksum = new byte[4];
         WriteBigEndian32(checksum, 0, unchecked((int)adler));

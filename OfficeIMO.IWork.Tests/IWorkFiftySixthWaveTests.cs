@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Failed_semantic_image_decodes_consume_the_shared_budget() {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 1, imageBytes: CreateInvalidAdlerPng(20, 20));
-        var options = new IWorkReadOptions { MaximumPackageBytes = 700 };
+        var options = new IWorkReadOptions { MaximumPackageBytes = 2_000 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord image = Assert.Single(source.Records,
@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.Null(asset);
         Assert.False(complete);
-        Assert.InRange(budget.RemainingDecodedImageBytes, 0, 699);
+        Assert.InRange(budget.RemainingDecodedImageBytes, 0, 1_999);
     }
 
     [Fact]
