@@ -1490,7 +1490,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfCore.PdfDocumentReadResult.Load(pdf).ToHtml(options);
+        string html = PdfCore.PdfDocument.Load(pdf).ToHtml(options);
 
         Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
         Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));

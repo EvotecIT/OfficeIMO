@@ -222,7 +222,9 @@ public sealed class PdfUnderstandingPageResult {
         IReadOnlyList<PdfUnderstandingStageTrace> trace,
         Action<long>? consumeWork = null,
         Action? cancellationCheck = null,
-        Action? completeOperation = null) {
+        Action? completeOperation = null,
+        IReadOnlyList<PdfUnderstandingLine>? logicalProjectionLines = null,
+        bool restrictLogicalProjectionToReadingOrder = false) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -232,6 +234,8 @@ public sealed class PdfUnderstandingPageResult {
         ReadingOrderEvidence = readingOrderEvidence;
         Elements = elements;
         Trace = trace;
+        LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
+        RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
         CancellationCheck = cancellationCheck;
         _completeOperation = completeOperation;
@@ -256,7 +260,24 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
+    /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
+    internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
+    /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
+    internal bool RestrictLogicalProjectionToReadingOrder { get; }
     internal void CompleteOperation() => _completeOperation?.Invoke();
+
+    private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(
+        IReadOnlyList<PdfUnderstandingRegion> readingOrder) {
+        var result = new List<PdfUnderstandingLine>();
+        var seen = new HashSet<PdfUnderstandingLine>();
+        for (int regionIndex = 0; regionIndex < readingOrder.Count; regionIndex++) {
+            IReadOnlyList<PdfUnderstandingLine> lines = readingOrder[regionIndex].Lines;
+            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                if (seen.Add(lines[lineIndex])) result.Add(lines[lineIndex]);
+            }
+        }
+        return result.Count == 0 ? Array.Empty<PdfUnderstandingLine>() : result.AsReadOnly();
+    }
 
     internal static PdfUnderstandingPageResult Empty(int pageNumber) => new PdfUnderstandingPageResult(
         pageNumber,

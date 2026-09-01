@@ -75,6 +75,7 @@ internal sealed class PdfUnderstandingPipeline {
     private readonly PdfTextLayoutOptions _layout;
     private readonly int _maxPages;
     private readonly PdfUnderstandingPipelineOptions _limits;
+    private readonly bool _restrictLogicalProjectionToReadingOrder;
 
     /// <summary>Creates a pipeline by overlaying caller stages on the canonical structured stage set.</summary>
     internal PdfUnderstandingPipeline(PdfTextLayoutOptions layout, PdfUnderstandingPipelineOptions? options = null) {
@@ -85,6 +86,11 @@ internal sealed class PdfUnderstandingPipeline {
         _pageSegmentation = effective.PageSegmentation!;
         _readingOrder = effective.ReadingOrder!;
         _semanticClassification = effective.SemanticClassification!;
+        _restrictLogicalProjectionToReadingOrder =
+            !ReferenceEquals(_wordGrouping, PdfAdvancedUnderstandingStages.WordGrouping) ||
+            !ReferenceEquals(_lineGrouping, PdfAdvancedUnderstandingStages.LineGrouping) ||
+            !ReferenceEquals(_pageSegmentation, PdfAdvancedUnderstandingStages.PageSegmentation) ||
+            !ReferenceEquals(_readingOrder, PdfAdvancedUnderstandingStages.ReadingOrder);
         _layout = layout ?? throw new ArgumentNullException(nameof(layout));
         _maxPages = effective.MaxPages;
         _limits = effective;
@@ -173,7 +179,9 @@ internal sealed class PdfUnderstandingPipeline {
             trace.AsReadOnly(),
             context.ConsumeWork,
             context.ThrowIfCancellationRequested,
-            context.CompleteOperation);
+            context.CompleteOperation,
+            logicalProjectionLines: null,
+            restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {

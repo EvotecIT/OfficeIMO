@@ -64,7 +64,9 @@ internal static class PdfDocumentSemanticEnricher {
                 page.Trace,
                 page.ConsumeWork,
                 page.CancellationCheck,
-                page.CompleteOperation);
+                page.CompleteOperation,
+                page.LogicalProjectionLines,
+                page.RestrictLogicalProjectionToReadingOrder);
         }
         return Array.AsReadOnly(result);
     }

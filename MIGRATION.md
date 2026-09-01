@@ -66,6 +66,8 @@ a second logical model.
 | `pdf.Read.LayoutDebugOverlay(...)` / `pdf.Read.RenderCapabilityDiagnostics(...)` | `pdf.Render.LayoutDebugOverlay(...)` / `pdf.Render.CapabilityDiagnostics(...)` |
 | `pdf.Read.OcrAsync(...)` | `pdf.Ocr.ReadAsync(...)` |
 | `pdf.Read.Attachments()` | `pdf.Attachments.Extract()`; metadata remains on `result.Attachments` |
+| `pdf.Read.JavaScripts()` | `pdf.JavaScript.List()` |
+| `pdf.Read.TryJavaScripts()` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.JavaScript.List()` inside the application's existing exception or result boundary |
 | `pdf.Read.LinksByUri(...)` and other link filters | `result.GetLinksByUri(...)` and the matching `result.GetLinksBy...(...)` helper |
 | `pdf.Read.FormFields()` | `result.FormFields` |
 | `pdf.Read.FormWidgets(...)` and widget filters | `result.GetFormWidgets(fieldName)` or `result.GetFormWidgets(pageNumber)` |

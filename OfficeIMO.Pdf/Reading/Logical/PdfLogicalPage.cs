@@ -245,9 +245,11 @@ public sealed partial class PdfLogicalPage {
         List<PdfUnderstandingLine>? retainedLines = analysis is null
             ? null
             : GetRetainedProjectionLines(analysis);
-        System.Collections.ObjectModel.ReadOnlyCollection<PdfTextSpan>? retainedRuns = retainedLines is null
+        IReadOnlyList<PdfTextSpan>? retainedRuns = analysis is null
             ? null
-            : GetRetainedProjectionRuns(retainedLines, cancellationToken);
+            : analysis.RestrictLogicalProjectionToReadingOrder
+                ? GetRetainedProjectionRuns(retainedLines!, cancellationToken)
+                : analysis.DecodedRuns;
         var structured = analysis is null
             ? page.ExtractStructured(options)
             : page.ExtractStructured(
@@ -384,15 +386,7 @@ public sealed partial class PdfLogicalPage {
     }
 
     private static List<PdfUnderstandingLine> GetRetainedProjectionLines(PdfUnderstandingPageResult analysis) {
-        var retained = new List<PdfUnderstandingLine>();
-        var seen = new HashSet<PdfUnderstandingLine>();
-        for (int regionIndex = 0; regionIndex < analysis.ReadingOrder.Count; regionIndex++) {
-            IReadOnlyList<PdfUnderstandingLine> lines = analysis.ReadingOrder[regionIndex].Lines;
-            for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
-                if (seen.Add(lines[lineIndex])) retained.Add(lines[lineIndex]);
-            }
-        }
-        return retained;
+        return new List<PdfUnderstandingLine>(analysis.LogicalProjectionLines);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfTextSpan> GetRetainedProjectionRuns(
