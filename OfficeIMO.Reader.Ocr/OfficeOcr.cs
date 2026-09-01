@@ -14,6 +14,8 @@ public static class OfficeOcr {
         if (source.Pdf == null) throw new ArgumentException("PDF OCR options cannot be null.", nameof(options));
         if (source.LanguageData == null) throw new ArgumentException("Language-data options cannot be null.", nameof(options));
         TesseractOcrEngineOptions engineOptions = source.Tesseract.Clone();
+        string languageExpression = ResolveLanguageExpression(source);
+        engineOptions.Language = languageExpression;
         TesseractRuntimeInfo runtime = TesseractRuntime.Discover(engineOptions.ExecutablePath);
         engineOptions.ExecutablePath = runtime.ExecutablePath;
         if (string.IsNullOrWhiteSpace(engineOptions.TessdataDirectory) && runtime.TessdataDirectory != null) {
@@ -23,7 +25,6 @@ public static class OfficeOcr {
         var engine = new TesseractOcrEngine(engineOptions);
         string version = await engine.GetVersionAsync(cancellationToken).ConfigureAwait(false);
         IReadOnlyList<string> languages = await engine.GetLanguagesAsync(cancellationToken).ConfigureAwait(false);
-        string languageExpression = string.IsNullOrWhiteSpace(engineOptions.Language) ? "eng" : engineOptions.Language!;
         string[] requestedLanguages = ParseLanguages(languageExpression);
         TesseractLanguageDataResult? provisioned = null;
         if (requestedLanguages.Any(language => !languages.Contains(language, StringComparer.Ordinal))) {
@@ -85,6 +86,44 @@ public static class OfficeOcr {
         .Where(static language => language.Length > 0)
         .Distinct(StringComparer.Ordinal)
         .ToArray();
+
+    internal static string ResolveLanguageExpression(OfficeOcrOptions options) {
+        if (options == null) throw new ArgumentNullException(nameof(options));
+        if (options.Tesseract == null) throw new ArgumentException("Tesseract options cannot be null.", nameof(options));
+
+        string? custom = string.IsNullOrWhiteSpace(options.CustomLanguageExpression)
+            ? null
+            : options.CustomLanguageExpression!.Trim();
+        string? legacy = string.IsNullOrWhiteSpace(options.Tesseract.Language)
+            ? null
+            : options.Tesseract.Language!.Trim();
+        string typed = options.Languages.ToTesseractExpression();
+        bool hasLegacyOverride = legacy != null && !string.Equals(legacy, "eng", StringComparison.Ordinal);
+        bool hasTypedOverride = options.Languages != OfficeOcrLanguage.English;
+
+        if (custom != null) {
+            if (hasTypedOverride) {
+                throw new ArgumentException(
+                    "Use Languages or CustomLanguageExpression, not both.",
+                    nameof(options));
+            }
+            if (hasLegacyOverride) {
+                throw new ArgumentException(
+                    "Use CustomLanguageExpression or Tesseract.Language, not both.",
+                    nameof(options));
+            }
+            return custom;
+        }
+        if (hasTypedOverride) {
+            if (hasLegacyOverride) {
+                throw new ArgumentException(
+                    "Use Languages or the advanced Tesseract.Language setting, not both.",
+                    nameof(options));
+            }
+            return typed;
+        }
+        return legacy ?? typed;
+    }
 
     private static string MediaTypeFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch {
         ".png" => "image/png",

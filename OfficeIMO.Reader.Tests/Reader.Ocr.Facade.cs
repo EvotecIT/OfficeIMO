@@ -10,6 +10,47 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrFacadeTests {
+    [Theory]
+    [InlineData(OfficeOcrLanguage.English, "eng")]
+    [InlineData(OfficeOcrLanguage.Polish, "pol")]
+    [InlineData(OfficeOcrLanguage.English | OfficeOcrLanguage.Polish, "eng+pol")]
+    public void Languages_MapDiscoverableValuesToStableProviderExpressions(OfficeOcrLanguage languages, string expected) {
+        Assert.Equal(expected, languages.ToTesseractExpression());
+    }
+
+    [Fact]
+    public void Languages_RejectEmptyAndUndefinedSelections() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => ((OfficeOcrLanguage) 0).ToTesseractExpression());
+        Assert.Throws<ArgumentOutOfRangeException>(() => ((OfficeOcrLanguage) 8).ToTesseractExpression());
+    }
+
+    [Fact]
+    public void Languages_PreserveLegacyConfigurationAndRejectAmbiguousOverrides() {
+        Assert.Equal("eng", OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions()));
+        Assert.Equal("eng+pol", OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            Languages = OfficeOcrLanguage.English | OfficeOcrLanguage.Polish
+        }));
+        Assert.Equal("pol", OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            Tesseract = new TesseractOcrEngineOptions { Language = "pol" }
+        }));
+        Assert.Equal("deu", OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            CustomLanguageExpression = "deu"
+        }));
+
+        Assert.Throws<ArgumentException>(() => OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            Languages = OfficeOcrLanguage.English | OfficeOcrLanguage.Polish,
+            Tesseract = new TesseractOcrEngineOptions { Language = "pol" }
+        }));
+        Assert.Throws<ArgumentException>(() => OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            CustomLanguageExpression = "deu",
+            Tesseract = new TesseractOcrEngineOptions { Language = "pol" }
+        }));
+        Assert.Throws<ArgumentException>(() => OfficeOcr.ResolveLanguageExpression(new OfficeOcrOptions {
+            Languages = OfficeOcrLanguage.Polish,
+            CustomLanguageExpression = "deu"
+        }));
+    }
+
     [Fact]
     public async Task Session_RecognizesImageWithStableSourceEvidenceAndConfiguredLanguage() {
         OfficeOcrEngineRequest? captured = null;
