@@ -85,7 +85,8 @@ def main() -> None:
     args = parser.parse_args()
     if not args.image.is_file():
         raise FileNotFoundError(args.image)
-    args.rapid_models.mkdir(parents=True, exist_ok=True)
+    if not args.rapid_models.is_dir():
+        raise FileNotFoundError(args.rapid_models)
     result = tesseract_result(args) if args.engine == "tesseract" else rapid_result(args)
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
 

@@ -45,6 +45,29 @@ foreach ($entry in $requiredPaths.GetEnumerator()) {
     }
 }
 
+$lockPath = Join-Path $PSScriptRoot 'environment.lock.json'
+$environmentLock = Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json
+if ($environmentLock.schemaVersion -ne 1) {
+    throw "Unsupported OCR comparison environment lock schema '$($environmentLock.schemaVersion)'."
+}
+
+$lockedModels = @($environmentLock.rapidOcr.models.PSObject.Properties)
+$actualModels = @(Get-ChildItem -LiteralPath $requiredPaths.RapidModels -File -Filter '*.onnx')
+if ($actualModels.Count -ne $lockedModels.Count) {
+    throw "RapidOCR model set does not match '$lockPath'. Expected $($lockedModels.Count) ONNX files and found $($actualModels.Count)."
+}
+foreach ($model in $lockedModels) {
+    $modelPath = Join-Path $requiredPaths.RapidModels $model.Name
+    if (-not (Test-Path -LiteralPath $modelPath -PathType Leaf)) {
+        throw "Locked RapidOCR model '$($model.Name)' is missing from '$($requiredPaths.RapidModels)'."
+    }
+    $actualHash = (Get-FileHash -LiteralPath $modelPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $expectedHash = ([string] $model.Value).ToLowerInvariant()
+    if ($actualHash -ne $expectedHash) {
+        throw "RapidOCR model '$($model.Name)' failed the SHA-256 lock check."
+    }
+}
+
 $fixtures = Join-Path $EnvironmentRoot 'fixtures'
 $fixtureManifest = Join-Path $fixtures 'cases.json'
 $prepareScript = Join-Path $PSScriptRoot 'tools\prepare_fixtures.py'
@@ -90,6 +113,15 @@ $pythonVersions = & wsl.exe -- env "PYTHONPATH=$rapidPackagesWsl" python3 -c `
     "import importlib.metadata; print(importlib.metadata.version('rapidocr')); print(importlib.metadata.version('onnxruntime'))"
 if ($LASTEXITCODE -ne 0 -or @($pythonVersions).Count -ne 2) {
     throw 'Could not resolve RapidOCR and ONNX Runtime versions.'
+}
+if ($tesseractVersion -notmatch ('^tesseract\s+' + [regex]::Escape([string] $environmentLock.tesseract.version) + '(?:\s|$)')) {
+    throw "Tesseract version '$tesseractVersion' does not match the locked version '$($environmentLock.tesseract.version)'."
+}
+if ([string] $pythonVersions[0] -ne [string] $environmentLock.rapidOcr.version) {
+    throw "RapidOCR version '$($pythonVersions[0])' does not match the locked version '$($environmentLock.rapidOcr.version)'."
+}
+if ([string] $pythonVersions[1] -ne [string] $environmentLock.rapidOcr.onnxRuntimeVersion) {
+    throw "ONNX Runtime version '$($pythonVersions[1])' does not match the locked version '$($environmentLock.rapidOcr.onnxRuntimeVersion)'."
 }
 
 function Get-DirectoryBytes {

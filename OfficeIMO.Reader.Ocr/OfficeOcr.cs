@@ -71,10 +71,11 @@ public static class OfficeOcr {
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input PDF path cannot be empty.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("Output PDF path cannot be empty.", nameof(outputPath));
-        var session = await CreateSessionAsync(options, cancellationToken).ConfigureAwait(false);
+        OfficeOcrOptions effective = options ?? new OfficeOcrOptions();
+        var session = await CreateSessionAsync(effective, cancellationToken).ConfigureAwait(false);
         PdfDocument document = await PdfDocument.LoadAsync(inputPath, cancellationToken: cancellationToken).ConfigureAwait(false);
         PdfSearchableOcrResult result = await session.MakePdfSearchableAsync(document, cancellationToken).ConfigureAwait(false);
-        await result.Document.SaveAsync(outputPath, cancellationToken).ConfigureAwait(false);
+        await result.Document.SaveAsync(outputPath, effective.OutputConflictPolicy, cancellationToken).ConfigureAwait(false);
         return result;
     }
 

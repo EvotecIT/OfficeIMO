@@ -174,6 +174,27 @@ public class PdfDocumentIOTests {
     }
 
     [Fact]
+    public async Task SaveAsync_FailIfExists_PreservesDestinationAtCommitBoundary() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-save-conflict-" + Guid.NewGuid().ToString("N"));
+        string outputPath = Path.Combine(directory, "document.pdf");
+
+        try {
+            Directory.CreateDirectory(directory);
+            byte[] existing = Encoding.UTF8.GetBytes("caller-owned destination");
+            File.WriteAllBytes(outputPath, existing);
+
+            await Assert.ThrowsAsync<IOException>(() => BuildDocument("Must not replace")
+                .SaveAsync(outputPath, OfficeConversionFileConflictPolicy.FailIfExists));
+
+            Assert.Equal(existing, File.ReadAllBytes(outputPath));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public async Task SaveAsync_WithCanceledToken_DoesNotCreatePathOutput() {
         string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-save-canceled-" + Guid.NewGuid().ToString("N"));
         string outputPath = Path.Combine(directory, "out", "document.pdf");

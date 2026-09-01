@@ -438,6 +438,26 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public async Task MakeSearchableAsync_DeduplicatesSelectedPhysicalPagesBeforeRecognition() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Once", 42, 160, 40, 14)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider, new PdfOcrMergeOptions {
+            Selection = PdfPageSelection.From(1, 1),
+            DetectAlignedTables = false
+        });
+
+        Assert.Equal(1, provider.CallCount);
+        Assert.Equal(1, result.AddedWordCount);
+        Assert.Equal(new[] { 1 }, result.ModifiedPages);
+        Assert.Contains("Once", PdfReadDocument.Open(result.Document.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task MakeSearchableAsync_LeavesDocumentUnchangedWhenNoWordsAreAccepted() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Already searchable")).ToBytes();
         var provider = new StubOcrProvider(_ => new PdfOcrResponse(Array.Empty<PdfOcrWord>()));

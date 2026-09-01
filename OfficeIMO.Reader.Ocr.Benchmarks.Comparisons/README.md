@@ -43,4 +43,4 @@ No benchmark dependency belongs in the solution or a runtime project. After prep
 .\OfficeIMO.Reader.Ocr.Benchmarks.Comparisons\Invoke-OcrEngineComparison.ps1 -IterationCount 3
 ```
 
-The wrapper uses PSPublishModule/PowerForge for matrix expansion, rotated ordering, measurement, validation, metrics, and JSON/CSV/Markdown artifacts. Successful lanes must emit non-empty text and positive geometry, and must remain below a 50% normalized character-error validity ceiling.
+Before planning or measuring, the wrapper fails closed unless the live Tesseract, RapidOCR, and ONNX Runtime versions and the complete ONNX model set match `environment.lock.json`; model files are verified by SHA-256 and are never populated by the runner. The wrapper then uses PSPublishModule/PowerForge for matrix expansion, rotated ordering, measurement, validation, metrics, and JSON/CSV/Markdown artifacts. Successful lanes must emit non-empty text and positive geometry, and must remain below a 50% normalized character-error validity ceiling.

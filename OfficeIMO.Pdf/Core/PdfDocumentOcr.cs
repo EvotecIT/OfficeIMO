@@ -33,7 +33,17 @@ public sealed class PdfDocumentOcr {
         IPdfOcrProvider provider,
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
-        PdfOcrMergeResult ocr = await ReadAsync(provider, options, cancellationToken).ConfigureAwait(false);
+        PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
+        if (effectiveOptions.Selection != null) {
+            int pageCount = _document.Inspect(_document.ReadOptions).PageCount;
+            int[] uniquePages = effectiveOptions.Selection
+                .ToPageNumbers(pageCount, nameof(options))
+                .Distinct()
+                .ToArray();
+            effectiveOptions.Selection = PdfPageSelection.From(uniquePages);
+        }
+
+        PdfOcrMergeResult ocr = await ReadAsync(provider, effectiveOptions, cancellationToken).ConfigureAwait(false);
         int[] modifiedPages = ocr.Pages
             .Where(static page => page.Words.Count > 0)
             .Select(static page => page.PageNumber)

@@ -5,6 +5,11 @@ namespace OfficeIMO.Reader.Ocr;
 
 /// <summary>Configures the easy local OCR facade without hiding its runtime or PDF policies.</summary>
 public sealed class OfficeOcrOptions {
+    /// <summary>
+    /// Controls the final atomic searchable-PDF commit. The safe default rejects an existing destination.
+    /// </summary>
+    public OfficeConversionFileConflictPolicy OutputConflictPolicy { get; set; } = OfficeConversionFileConflictPolicy.FailIfExists;
+
     /// <summary>Tesseract process, language, timeout, and resource limits.</summary>
     public TesseractOcrEngineOptions Tesseract { get; set; } = new TesseractOcrEngineOptions();
 
