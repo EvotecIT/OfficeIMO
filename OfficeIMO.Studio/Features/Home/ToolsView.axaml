@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Home.ToolsView"
+             x:DataType="shell:MainWindowViewModel">
+  <ScrollViewer Background="{DynamicResource StudioPanelBrush}" VerticalScrollBarVisibility="Auto">
+    <StackPanel Margin="28,24" Spacing="22" MaxWidth="1080" HorizontalAlignment="Stretch">
+      <StackPanel Spacing="5"><TextBlock Text="Tools" Classes="pageTitle" /><TextBlock Classes="muted" Text="Choose a focused task. Advanced work opens in a guided workbench." /></StackPanel>
+
+      <StackPanel Spacing="10">
+        <TextBlock Text="Organize" Classes="sectionTitle" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Merge PDFs" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Combine and reorder pages visually." /></StackPanel></Grid></Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Split PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Extract ranges into verified files." /></StackPanel></Grid></Button>
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowPageToolsCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconTools}" Width="22" Height="22" Foreground="#7047EB" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Organize pages" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Rotate, crop, duplicate, and move." /></StackPanel></Grid></Button>
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Spacing="10">
+        <TextBlock Text="Convert and improve" Classes="sectionTitle" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconConvert}" Width="22" Height="22" Foreground="#7047EB" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Convert files" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Office, web, markup, PDF, and images." /></StackPanel></Grid></Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowOptimizeCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Compress PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Optimize deterministically and validate." /></StackPanel></Grid></Button>
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowDocumentHealthCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconSettings}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Repair PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Recover explicitly, reopen, and report." /></StackPanel></Grid></Button>
+        </Grid>
+      </StackPanel>
+
+      <StackPanel Spacing="10">
+        <TextBlock Text="Review and protect" Classes="sectionTitle" />
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowCompareCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconCompare}" Width="22" Height="22" Foreground="#2587A0" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Compare PDFs" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Structure and managed visual comparison." /></StackPanel></Grid></Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowProtectCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Protect and redact" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Review irreversible changes before save." /></StackPanel></Grid></Button>
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowInspectCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconSearch}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Inspect PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Security, signatures, tags, and diagnostics." /></StackPanel></Grid></Button>
+        </Grid>
+        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowRepairPlanCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconSettings}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Plan repair" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Assess recoveries and blockers without writing." /></StackPanel></Grid></Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowSanitizeCommand}"><Grid ColumnDefinitions="40,*" ColumnSpacing="10"><PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" /><StackPanel Grid.Column="1" Spacing="3"><TextBlock Text="Sanitize PDF" FontWeight="SemiBold" /><TextBlock Classes="muted" FontSize="11" Text="Remove forbidden actions and payloads, then verify." /></StackPanel></Grid></Button>
+        </Grid>
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -4,6 +4,7 @@ using Avalonia.Input;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using OfficeIMO.Studio.Features.Organizer;
+using OfficeIMO.Studio.Features.Home;
 
 namespace OfficeIMO.Studio.Features.Shell;
 
@@ -30,7 +31,8 @@ public sealed partial class MainWindow : Window {
             confirmUnsavedChanges: ConfirmUnsavedChangesAsync,
             pickImage: PickImageAsync,
             confirmPageDeletion: ConfirmPageDeletionAsync,
-            pickWorkflowFiles: PickWorkflowFilesAsync);
+            pickWorkflowFiles: PickWorkflowFilesAsync,
+            recentDocumentStore: JsonRecentDocumentStore.CreateDefault());
         DataContext = ViewModel;
 
         SizeChanged += OnWindowSizeChanged;
@@ -69,15 +71,21 @@ public sealed partial class MainWindow : Window {
 
     internal bool IsDocumentHealthCompact => DocumentHealthView.IsCompactLayout;
 
+    private ListBox PagesList => DocumentWorkspace.PagesListControl;
+
+    private ListBox OrganizerList => DocumentWorkspace.OrganizerListControl;
+
+    private Button FitWidthButton => DocumentWorkspace.FitWidthButtonControl;
+
+    private Button FitPageButton => DocumentWorkspace.FitPageButtonControl;
+
     private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) => ApplyResponsiveLayout(e.NewSize.Width);
 
     internal void ApplyResponsiveLayout(double width) {
         IsCompactLayout = width < 1180D;
-        DocumentNameText.MaxWidth = IsCompactLayout ? 150D : 230D;
-        SelectedPagePositionText.MinWidth = IsCompactLayout ? 78D : 110D;
         FitWidthButton.IsVisible = !IsCompactLayout;
         FitPageButton.IsVisible = !IsCompactLayout;
-        double workspaceWidth = Math.Max(0D, width - 204D);
+        double workspaceWidth = Math.Max(0D, width - 58D);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
     }

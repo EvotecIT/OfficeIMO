@@ -127,8 +127,20 @@ public sealed partial class MainWindowViewModel {
         OnPropertyChanged(nameof(CanFillAndFlattenForms));
     }
 
+    [RelayCommand]
+    private void SelectEditorTool(string? label) {
+        PdfEditorToolChoice? choice = EditorTools.FirstOrDefault(tool =>
+            string.Equals(tool.Label, label, StringComparison.OrdinalIgnoreCase));
+        if (choice is not null) SelectedEditorToolChoice = choice;
+    }
+
     private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
-        if (_workspace is null || ActiveEditorTool == PdfEditorTool.Select || IsWorkspaceBusy) return;
+        bool acceptsEditorGesture = DocumentMode is StudioDocumentMode.Annotate or StudioDocumentMode.Edit ||
+                                    DocumentMode == StudioDocumentMode.Protect && ActiveEditorTool == PdfEditorTool.Redact;
+        if (_workspace is null ||
+            !acceptsEditorGesture ||
+            ActiveEditorTool == PdfEditorTool.Select ||
+            IsWorkspaceBusy) return;
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;
         PdfEditorTool tool = ActiveEditorTool;

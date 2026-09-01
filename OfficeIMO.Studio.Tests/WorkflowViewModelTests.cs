@@ -7,23 +7,88 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WorkflowViewModelTests {
     [Fact]
-    public void ShellSwitchesBetweenHomeReaderConversionAndHealthWithoutChangingDocumentState() {
+    public void ShellSwitchesBetweenPrimaryDestinationsAndDocumentModesWithoutChangingDocumentState() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
 
         Assert.True(viewModel.IsHomeMode);
+        viewModel.ShowToolsCommand.Execute(null);
+        Assert.True(viewModel.IsToolsMode);
+        viewModel.ShowJobsCommand.Execute(null);
+        Assert.True(viewModel.IsJobsMode);
         viewModel.ShowPdfWorkspaceCommand.Execute(null);
         Assert.True(viewModel.IsPdfWorkspaceMode);
         Assert.False(viewModel.IsHomeMode);
+        viewModel.ShowAnnotateModeCommand.Execute(null);
+        Assert.True(viewModel.IsAnnotateDocumentMode);
+        viewModel.ShowPagesModeCommand.Execute(null);
+        Assert.True(viewModel.IsPagesDocumentMode);
         viewModel.ShowConversionWorkbenchCommand.Execute(null);
         Assert.True(viewModel.IsConversionMode);
         Assert.False(viewModel.IsPdfWorkspaceMode);
         viewModel.ShowDocumentHealthCommand.Execute(null);
         Assert.True(viewModel.IsDocumentHealthMode);
+        Assert.Equal(OfficeWorkflowOperation.Repair, viewModel.DocumentHealth.SelectedOperation.Value);
+        viewModel.ShowInspectCommand.Execute(null);
+        Assert.Equal(OfficeWorkflowOperation.Inspect, viewModel.DocumentHealth.SelectedOperation.Value);
+        viewModel.ShowRepairPlanCommand.Execute(null);
+        Assert.Equal(OfficeWorkflowOperation.RepairPlan, viewModel.DocumentHealth.SelectedOperation.Value);
+        viewModel.ShowSanitizeCommand.Execute(null);
+        Assert.Equal(OfficeWorkflowOperation.Sanitize, viewModel.DocumentHealth.SelectedOperation.Value);
         viewModel.ShowPdfWorkspaceCommand.Execute(null);
         Assert.True(viewModel.IsPdfWorkspaceMode);
         Assert.False(viewModel.HasDocument);
         viewModel.ShowHomeCommand.Execute(null);
         Assert.True(viewModel.IsHomeMode);
+    }
+
+    [Fact]
+    public async Task GuidedRepairProgressesThroughFilesOptionsAndReviewWithHonestLabels() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        using var viewModel = new DocumentHealthViewModel(
+            _ => Task.FromResult<string?>(input),
+            _ => Task.FromResult<string?>(scope.Path));
+
+        viewModel.PrepareRepairWorkflow();
+        Assert.Equal("Repair PDF", viewModel.WorkbenchTitle);
+        Assert.Equal("Run repair", viewModel.RunActionLabel);
+        Assert.Equal(GuidedWorkflowStep.Files, viewModel.CurrentStep);
+        Assert.False(viewModel.ContinueCommand.CanExecute(null));
+
+        await viewModel.ChooseInputCommand.ExecuteAsync(null);
+        Assert.True(viewModel.ContinueCommand.CanExecute(null));
+        viewModel.ContinueCommand.Execute(null);
+        Assert.Equal(GuidedWorkflowStep.Options, viewModel.CurrentStep);
+        viewModel.ContinueCommand.Execute(null);
+        Assert.Equal(GuidedWorkflowStep.Review, viewModel.CurrentStep);
+        Assert.EndsWith("source.repaired.pdf", viewModel.OutputPreviewPath, StringComparison.OrdinalIgnoreCase);
+
+        viewModel.BackCommand.Execute(null);
+        Assert.Equal(GuidedWorkflowStep.Options, viewModel.CurrentStep);
+    }
+
+    [Fact]
+    public async Task CompareRequiresBothFilesAndUsesComparisonOutput() {
+        using var scope = new TestDirectory();
+        string first = Path.Combine(scope.Path, "first.pdf");
+        string second = Path.Combine(scope.Path, "second.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(first);
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(second);
+        var picks = new Queue<string>([first, second]);
+        using var viewModel = new DocumentHealthViewModel(
+            _ => Task.FromResult<string?>(picks.Dequeue()),
+            _ => Task.FromResult<string?>(scope.Path));
+
+        viewModel.PrepareWorkflow(OfficeWorkflowOperation.Compare);
+        await viewModel.ChooseInputCommand.ExecuteAsync(null);
+        Assert.False(viewModel.ContinueCommand.CanExecute(null));
+        await viewModel.ChooseComparisonCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.ContinueCommand.CanExecute(null));
+        Assert.Equal("Compare PDFs", viewModel.WorkbenchTitle);
+        Assert.Equal("Run compare", viewModel.RunActionLabel);
+        Assert.EndsWith("first.comparison.html", viewModel.OutputPreviewPath, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -102,6 +167,30 @@ public sealed class WorkflowViewModelTests {
     }
 
     [Fact]
+    public async Task FailedRunClearsPreviousHealthEvidenceAndUsesFailureState() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.pdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Size(600, 800))).Save(input);
+        using var viewModel = new DocumentHealthViewModel(
+            _ => Task.FromResult<string?>(input),
+            _ => Task.FromResult<string?>(scope.Path));
+        await viewModel.ChooseInputCommand.ExecuteAsync(null);
+        await viewModel.RunCommand.ExecuteAsync(null);
+        Assert.True(viewModel.HasHealthReport);
+        Assert.True(viewModel.IsResultSuccessful);
+
+        viewModel.InputPath = Path.Combine(scope.Path, "missing.pdf");
+        await viewModel.RunCommand.ExecuteAsync(null);
+
+        Assert.True(viewModel.IsResultFailed);
+        Assert.False(viewModel.IsResultSuccessful);
+        Assert.False(viewModel.HasHealthReport);
+        Assert.Equal("—", viewModel.BeforeSummary);
+        Assert.Equal("—", viewModel.AfterSummary);
+        Assert.Contains("failed", viewModel.Summary, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task ConversionQueueCannotMutateWhileRunningAndDisposeCancelsWithoutRacingFinally() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.html");
@@ -144,6 +233,10 @@ public sealed class WorkflowViewModelTests {
         Task run = viewModel.RunCommand.ExecuteAsync(null);
         await runner.Started.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(viewModel.IsBusy);
+
+        viewModel.PrepareWorkflow(OfficeWorkflowOperation.Compare);
+
+        Assert.Equal(OfficeWorkflowOperation.Inspect, viewModel.SelectedOperation.Value);
 
         viewModel.Dispose();
         await run.WaitAsync(TimeSpan.FromSeconds(5));

@@ -1,9 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
-        xmlns:reader="using:OfficeIMO.Studio.Features.Reader"
-        xmlns:organizer="using:OfficeIMO.Studio.Features.Organizer"
-        xmlns:editor="using:OfficeIMO.Studio.Features.Editor"
+        xmlns:workspace="using:OfficeIMO.Studio.Features.Workspace"
         xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
         xmlns:home="using:OfficeIMO.Studio.Features.Home"
         x:Class="OfficeIMO.Studio.Features.Shell.MainWindow"
@@ -12,623 +10,101 @@
         Title="OfficeIMO Studio"
         Width="1280"
         Height="820"
-        MinWidth="1050"
-        MinHeight="560"
+        MinWidth="960"
+        MinHeight="620"
         Background="{DynamicResource StudioWindowBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        WindowDecorations="Full"
+        ExtendClientAreaTitleBarHeightHint="42"
         DragDrop.AllowDrop="True">
-  <Grid ColumnDefinitions="204,*">
-    <Border Grid.Column="0"
-            Background="{DynamicResource StudioNavBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
-            BorderThickness="0,0,1,0"
-            Padding="14,18">
-      <Grid RowDefinitions="Auto,32,Auto,*,Auto">
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Margin="4,0,0,18">
-          <Border Width="32" Height="32" CornerRadius="9"
-                  Background="{DynamicResource StudioAccentBrush}">
-            <TextBlock Text="O" Foreground="White" FontSize="17" FontWeight="Bold"
-                       HorizontalAlignment="Center" VerticalAlignment="Center" />
-          </Border>
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock Text="OfficeIMO" Foreground="White" FontWeight="SemiBold" />
-            <TextBlock Text="STUDIO" Foreground="{DynamicResource StudioNavTextBrush}"
-                       FontSize="9" FontWeight="SemiBold" LetterSpacing="1.4" />
-          </StackPanel>
-        </StackPanel>
+  <Grid RowDefinitions="42,*" ColumnDefinitions="58,*">
+    <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="170,Auto,*,Auto" Margin="12,0,138,0">
 
-        <TextBlock Grid.Row="1" Text="WORKSPACE" Margin="10,0"
-                   Foreground="{DynamicResource StudioNavTextBrush}"
-                   FontSize="9" FontWeight="SemiBold" LetterSpacing="1.1" />
+        <Border Grid.Column="0" Background="Transparent"
+                WindowDecorationProperties.ElementRole="TitleBar" />
 
-        <StackPanel Grid.Row="2" Spacing="5">
-          <RadioButton Classes="nav" GroupName="StudioWorkspace"
-                       IsChecked="{Binding IsHomeMode, Mode=OneWay}"
-                       Command="{Binding ShowHomeCommand}" Content="⌂   Home" />
-          <RadioButton Classes="nav" GroupName="StudioWorkspace"
-                       IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}"
-                       Command="{Binding ShowPdfWorkspaceCommand}" Content="▤   PDF Workspace" />
-          <RadioButton Classes="nav" GroupName="StudioWorkspace"
-                       IsChecked="{Binding IsConversionMode, Mode=OneWay}"
-                       Command="{Binding ShowConversionWorkbenchCommand}" Content="⇄   Convert" />
-          <RadioButton Classes="nav" GroupName="StudioWorkspace"
-                       IsChecked="{Binding IsDocumentHealthMode, Mode=OneWay}"
-                       Command="{Binding ShowDocumentHealthCommand}" Content="◇   Document Health" />
-        </StackPanel>
-
-        <StackPanel Grid.Row="4" Spacing="8">
-          <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="2,0,2,8" />
-          <Button Classes="ghost" Click="OnToggleThemeClick"
-                  Foreground="{DynamicResource StudioNavTextBrush}"
-                  HorizontalContentAlignment="Left" Content="◐   Switch theme"
-                  ToolTip.Tip="Switch between light and dark themes" />
-        </StackPanel>
-      </Grid>
-    </Border>
-
-    <Grid Grid.Column="1" RowDefinitions="56,78,Auto,Auto,Auto,*">
-    <Border Grid.Row="0"
-            Background="{DynamicResource StudioPanelBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
-            BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Margin="20,0">
-        <StackPanel Grid.Column="0"
-                    Orientation="Horizontal"
-                    Spacing="10"
-                    VerticalAlignment="Center">
-          <StackPanel VerticalAlignment="Center">
-            <TextBlock x:Name="DocumentNameText"
-                       Text="{Binding DocumentName}"
-                       FontWeight="SemiBold"
-                       MaxWidth="230"
-                       TextTrimming="CharacterEllipsis" />
-            <TextBlock Text="{Binding DocumentDescription}"
-                       Foreground="{DynamicResource StudioMutedTextBrush}"
-                       FontSize="11" />
-          </StackPanel>
-        </StackPanel>
-
-        <StackPanel Grid.Column="1"
-                    IsVisible="{Binding IsPdfWorkspaceMode}"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    Margin="18,0,0,0"
-                    VerticalAlignment="Center">
-          <Button Classes="tool" Command="{Binding UndoCommand}" Content="↶"
-                  IsVisible="{Binding HasDocument}" IsEnabled="{Binding CanUndo}" ToolTip.Tip="Undo" />
-          <Button Classes="tool" Command="{Binding RedoCommand}" Content="↷"
-                  IsVisible="{Binding HasDocument}" IsEnabled="{Binding CanRedo}" ToolTip.Tip="Redo" />
-        </StackPanel>
-
-        <StackPanel Grid.Column="2"
-                    IsVisible="{Binding ShowPdfDocumentControls}"
-                    Orientation="Horizontal"
-                    Spacing="6"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
-          <Button Classes="tool"
-                  Command="{Binding PreviousPageCommand}"
-                  IsEnabled="{Binding CanGoPrevious}"
-                  Content="‹"
-                  FontSize="20"
-                  ToolTip.Tip="Previous page" />
-          <TextBlock x:Name="SelectedPagePositionText"
-                     Text="{Binding SelectedPagePosition}"
-                     MinWidth="110"
-                     TextAlignment="Center"
-                     VerticalAlignment="Center" />
-          <Button Classes="tool"
-                  Command="{Binding NextPageCommand}"
-                  IsEnabled="{Binding CanGoNext}"
-                  Content="›"
-                  FontSize="20"
-                  ToolTip.Tip="Next page" />
-
-          <Border Width="1"
-                  Height="24"
-                  Background="{DynamicResource StudioBorderBrush}"
-                  Margin="8,0" />
-
-          <Button Classes="tool"
-                  Command="{Binding ZoomOutCommand}"
-                  Content="−"
-                  FontSize="17"
-                  ToolTip.Tip="Zoom out" />
-          <Button Classes="tool"
-                  Command="{Binding ActualSizeCommand}"
-                  Content="{Binding ZoomLabel}"
-                  MinWidth="62"
-                  ToolTip.Tip="Actual size" />
-          <Button Classes="tool"
-                  Command="{Binding ZoomInCommand}"
-                  Content="+"
-                  FontSize="17"
-                  ToolTip.Tip="Zoom in" />
-          <Button x:Name="FitWidthButton"
-                  Classes="tool"
-                  Command="{Binding FitWidthCommand}"
-                  Content="Width"
-                  ToolTip.Tip="Fit page width" />
-          <Button x:Name="FitPageButton"
-                  Classes="tool"
-                  Command="{Binding FitPageCommand}"
-                  Content="Page"
-                  ToolTip.Tip="Fit one page" />
-        </StackPanel>
-
-        <Button Grid.Column="3"
-                Classes="tool"
-                IsVisible="{Binding ShowPdfDocumentControls}"
-                IsEnabled="{Binding CanStartDocumentTransition}"
-                Command="{Binding CloseDocumentCommand}"
-                Content="Close"
-                VerticalAlignment="Center" />
-        <Button Grid.Column="4" Classes="tool" Click="OnToggleThemeClick"
-                Content="◐" Margin="8,0,0,0" VerticalAlignment="Center"
-                ToolTip.Tip="Switch theme" />
-      </Grid>
-    </Border>
-
-    <Border Grid.Row="1"
-            Background="{DynamicResource StudioPanelBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
-            BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto" Margin="22,0">
-        <StackPanel IsVisible="{Binding IsHomeMode}" VerticalAlignment="Center">
-          <TextBlock Classes="pageTitle" Text="Home" />
-          <TextBlock Classes="muted" Text="Your document toolkit, ready when you are." FontSize="12" />
-        </StackPanel>
-        <StackPanel IsVisible="{Binding IsPdfWorkspaceMode}" VerticalAlignment="Center">
-          <TextBlock Classes="pageTitle" Text="PDF Workspace" />
-          <TextBlock Classes="muted" Text="Read, organize, annotate, fill, and finish PDFs." FontSize="12" />
-        </StackPanel>
-        <StackPanel IsVisible="{Binding IsConversionMode}" VerticalAlignment="Center">
-          <TextBlock Classes="pageTitle" Text="Convert" />
-          <TextBlock Classes="muted" Text="Build a queue and choose exactly how every file is produced." FontSize="12" />
-        </StackPanel>
-        <StackPanel IsVisible="{Binding IsDocumentHealthMode}" VerticalAlignment="Center">
-          <TextBlock Classes="pageTitle" Text="Document Health" />
-          <TextBlock Classes="muted" Text="Inspect, compare, optimize, and repair with evidence." FontSize="12" />
-        </StackPanel>
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
-          <Button Classes="tool" Command="{Binding SaveCommand}" Content="Save"
-                  IsVisible="{Binding ShowPdfDocumentControls}" IsEnabled="{Binding IsDirty}" />
-          <Button Classes="tool" Command="{Binding SaveAsCommand}" Content="Save as"
-                  IsVisible="{Binding ShowPdfDocumentControls}" />
-          <Button Classes="primary" Command="{Binding OpenCommand}"
-                  IsEnabled="{Binding CanStartDocumentTransition}" Content="Open document" />
-        </StackPanel>
-      </Grid>
-    </Border>
-
-    <Border Grid.Row="2"
-            IsVisible="{Binding HasError}"
-            Background="{DynamicResource StudioErrorSoftBrush}"
-            BorderBrush="{DynamicResource StudioErrorBrush}"
-            BorderThickness="0,0,0,1"
-            Padding="16,10">
-      <Grid ColumnDefinitions="*,Auto">
-        <TextBlock Text="{Binding ErrorMessage}"
-                   Foreground="{DynamicResource StudioErrorBrush}"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center" />
-        <Button Grid.Column="1"
-                Classes="tool"
-                Command="{Binding DismissErrorCommand}"
-                Content="Dismiss"
-                Margin="12,0,0,0" />
-      </Grid>
-    </Border>
-
-    <Border Grid.Row="3"
-            IsVisible="{Binding HasSecurityWarning}"
-            Background="#FFF8E7"
-            BorderBrush="#E9B949"
-            BorderThickness="0,0,0,1"
-            Padding="16,9">
-      <TextBlock Text="{Binding SecurityWarning}"
-                 Foreground="#7A4D00"
-                 TextWrapping="Wrap" />
-    </Border>
-
-    <Border Grid.Row="4"
-            IsVisible="{Binding HasOperationStatus}"
-            Background="{DynamicResource StudioAccentSoftBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}"
-            BorderThickness="0,0,0,1"
-            Padding="16,7">
-      <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
-        <TextBlock Text="{Binding OperationStatus}"
-                   Foreground="{DynamicResource StudioAccentBrush}" />
-        <Button Grid.Column="1" Classes="tool" Content="Restore recovered edits"
-                IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
-        <Button Grid.Column="2" Classes="tool" Content="Discard"
-                IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" Margin="6,0" />
-        <ProgressBar Grid.Column="3" IsVisible="{Binding IsWorkspaceBusy}"
-                     Width="100" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
-        <Button Grid.Column="4" Classes="tool" Content="Cancel"
-                IsVisible="{Binding CanCancelOperation}" Command="{Binding CancelOperationCommand}"
-                Margin="8,0,0,0" />
-      </Grid>
-    </Border>
-
-    <home:HomeView Grid.Row="5" IsVisible="{Binding IsHomeMode}" />
-
-    <Grid Grid.Row="5" x:Name="PageViewport" ColumnDefinitions="238,*,300"
-          IsVisible="{Binding IsPdfWorkspaceMode}"
-          Background="{DynamicResource StudioCanvasBrush}">
-      <Border IsVisible="{Binding IsEmpty}"
-              Grid.ColumnSpan="3"
-              Margin="24"
-              Background="{DynamicResource StudioPanelBrush}"
-              BorderBrush="{DynamicResource StudioBorderBrush}"
-              BorderThickness="1"
-              CornerRadius="16">
-        <StackPanel HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Spacing="14"
-                    MaxWidth="540">
-          <Border Width="72"
-                  Height="88"
-                  Background="{DynamicResource StudioAccentSoftBrush}"
-                  BorderBrush="{DynamicResource StudioAccentBrush}"
-                  BorderThickness="1"
-                  CornerRadius="8">
-            <TextBlock Text="PDF"
-                       Foreground="{DynamicResource StudioAccentBrush}"
-                       FontWeight="Bold"
-                       FontSize="16"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center" />
-          </Border>
-          <TextBlock Text="Open a PDF document"
-                     FontSize="24"
-                     FontWeight="SemiBold"
-                     HorizontalAlignment="Center" />
-          <TextBlock Text="Choose a file or drop one anywhere in this window."
-                     Foreground="{DynamicResource StudioMutedTextBrush}"
-                     FontSize="14"
-                     HorizontalAlignment="Center"
-                     TextAlignment="Center" />
-          <WrapPanel HorizontalAlignment="Center" Margin="0,2,0,0">
-            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="12" Padding="11,5" Margin="3">
-              <TextBlock Text="Read" FontSize="11" FontWeight="SemiBold" />
-            </Border>
-            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="12" Padding="11,5" Margin="3">
-              <TextBlock Text="Organize" FontSize="11" FontWeight="SemiBold" />
-            </Border>
-            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="12" Padding="11,5" Margin="3">
-              <TextBlock Text="Annotate" FontSize="11" FontWeight="SemiBold" />
-            </Border>
-            <Border Background="{DynamicResource StudioPanelMutedBrush}" CornerRadius="12" Padding="11,5" Margin="3">
-              <TextBlock Text="Fill forms" FontSize="11" FontWeight="SemiBold" />
-            </Border>
-          </WrapPanel>
-          <Button Classes="primary"
-                  Command="{Binding OpenCommand}"
-                  Content="Choose PDF"
-                  HorizontalAlignment="Center"
-                  Margin="0,8,0,0" />
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Column="2"
-              IsVisible="{Binding HasDocument}"
-              Background="{DynamicResource StudioPanelBrush}"
-              BorderBrush="{DynamicResource StudioBorderBrush}"
-              BorderThickness="1,0,0,0">
-        <TabControl>
-          <TabItem Header="Edit">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel Margin="14" Spacing="10">
-                <TextBlock Text="Tool" FontWeight="SemiBold" />
-                <ComboBox ItemsSource="{Binding EditorTools}"
-                          SelectedItem="{Binding SelectedEditorToolChoice, Mode=TwoWay}">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="editor:PdfEditorToolChoice">
-                      <TextBlock Text="{Binding Label}" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Text="{Binding EditorInstruction}"
-                           Foreground="{DynamicResource StudioMutedTextBrush}"
-                           TextWrapping="Wrap" FontSize="11" />
-
-                <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,3" />
-                <TextBlock Text="Properties" FontWeight="SemiBold" />
-                <TextBlock Text="Text / comment" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                <TextBox Text="{Binding EditorText}" AcceptsReturn="True" MinHeight="54" TextWrapping="Wrap" />
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="Author" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding EditorAuthor}" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="Color" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding EditorColorHex}" />
-                  </StackPanel>
-                </Grid>
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                  <StackPanel Spacing="3">
-                    <TextBlock Text="Font size" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <NumericUpDown Value="{Binding EditorFontSize}" Minimum="4" Maximum="144" Increment="1" />
-                  </StackPanel>
-                  <StackPanel Grid.Column="1" Spacing="3">
-                    <TextBlock Text="Stamp name" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding EditorStampName}" />
-                  </StackPanel>
-                </Grid>
-                <TextBlock Text="Link URI" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                <TextBox Text="{Binding EditorLinkUri}" />
-
-                <Border IsVisible="{Binding HasSelectedAnnotation}"
-                        Background="{DynamicResource StudioAccentSoftBrush}"
-                        BorderBrush="{DynamicResource StudioAccentBrush}"
-                        BorderThickness="1" CornerRadius="7" Padding="10" Margin="0,4">
-                  <StackPanel Spacing="7">
-                    <TextBlock Text="Selected annotation" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding SelectedAnnotationSummary}" FontSize="11"
-                               Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
-                    <TextBlock Text="Contents" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding SelectedAnnotationContents}" AcceptsReturn="True" MinHeight="48" TextWrapping="Wrap" />
-                    <TextBlock Text="Author" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding SelectedAnnotationAuthor}" />
-                    <Button Classes="primary" Content="Update annotation" Command="{Binding UpdateSelectedAnnotationCommand}" />
-                    <TextBlock Text="Reply" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding AnnotationReplyText}" AcceptsReturn="True" MinHeight="42" TextWrapping="Wrap" />
-                    <Button Classes="tool" Content="Add reply" Command="{Binding ReplyToSelectedAnnotationCommand}" />
-                    <WrapPanel>
-                      <Button Classes="tool" Content="Flatten" Command="{Binding FlattenSelectedAnnotationCommand}" />
-                      <Button Classes="tool" Content="Remove" Command="{Binding RemoveSelectedAnnotationCommand}" Margin="6,0,0,0" />
-                    </WrapPanel>
-                    <TextBlock Text="Flatten and remove require a safe full rewrite. Signed append-only files will remain protected."
-                               FontSize="10" Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Border>
-
-                <Border IsVisible="{Binding HasPendingRedaction}"
-                        Background="#FFF4F2" BorderBrush="#D92D20" BorderThickness="1"
-                        CornerRadius="7" Padding="10" Margin="0,4">
-                  <StackPanel Spacing="7">
-                    <TextBlock Text="Permanent redaction" Foreground="#B42318" FontWeight="SemiBold" />
-                    <TextBlock Text="{Binding PendingRedactionSummary}" TextWrapping="Wrap" FontSize="11" />
-                    <TextBlock Text="Optional text marker that must be absent after rewriting" TextWrapping="Wrap"
-                               FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                    <TextBox Text="{Binding RedactionRemovedMarker}" PlaceholderText="Sensitive text" />
-                    <WrapPanel>
-                      <Button Classes="primary" Content="Apply &amp; verify" Command="{Binding ApplyPendingRedactionCommand}" />
-                      <Button Classes="tool" Content="Cancel" Command="{Binding CancelPendingRedactionCommand}" Margin="6,0,0,0" />
-                    </WrapPanel>
-                  </StackPanel>
-                </Border>
-
-                <Border Height="1" Background="{DynamicResource StudioBorderBrush}" Margin="0,3" />
-                <TextBlock Text="Document overlays" FontWeight="SemiBold" />
-                <TextBlock Text="Watermark text" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}" />
-                <TextBox Text="{Binding WatermarkText}" />
-                <WrapPanel>
-                  <Button Classes="tool" Content="Add watermark" Command="{Binding ApplyWatermarkCommand}"
-                          IsEnabled="{Binding CanEditPageContent}" />
-                  <Button Classes="tool" Content="Add page numbers" Command="{Binding ApplyPageNumbersCommand}"
-                          IsEnabled="{Binding CanEditPageContent}" Margin="6,0,0,0" />
-                </WrapPanel>
-                <TextBlock Text="Added text and images are explicit overlays. Existing PDF text is not reflow-edited."
-                           Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" FontSize="11" />
-              </StackPanel>
-            </ScrollViewer>
-          </TabItem>
-
-          <TabItem Header="Forms">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <StackPanel Margin="14" Spacing="10">
-                <TextBlock Text="AcroForm fields" FontWeight="SemiBold" />
-                <TextBlock IsVisible="{Binding !HasFormFields}"
-                           Text="This PDF has no supported named form fields."
-                           Foreground="{DynamicResource StudioMutedTextBrush}" TextWrapping="Wrap" />
-                <ComboBox ItemsSource="{Binding FormFields}"
-                          SelectedItem="{Binding SelectedFormField, Mode=TwoWay}"
-                          IsVisible="{Binding HasFormFields}">
-                  <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="editor:PdfFormFieldViewModel">
-                      <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-                    </DataTemplate>
-                  </ComboBox.ItemTemplate>
-                </ComboBox>
-                <TextBlock Text="Value" FontSize="11" Foreground="{DynamicResource StudioMutedTextBrush}"
-                           IsVisible="{Binding HasFormFields}" />
-                <TextBox Text="{Binding FormFieldValue}" IsVisible="{Binding HasFormFields}" />
-                <Button Classes="primary" Content="Fill field" Command="{Binding FillFormFieldCommand}"
-                        IsEnabled="{Binding CanFillForms}" IsVisible="{Binding HasFormFields}" />
-                <Button Classes="tool" Content="Fill and flatten field" Command="{Binding FillAndFlattenFormFieldCommand}"
-                        IsEnabled="{Binding CanFillAndFlattenForms}" IsVisible="{Binding HasFormFields}" />
-                <Border Background="#FFF8E7" BorderBrush="#E9B949" BorderThickness="1"
-                        CornerRadius="7" Padding="10" IsVisible="{Binding HasFormFields}">
-                  <StackPanel Spacing="7">
-                    <TextBlock Text="Flattening is explicit" FontWeight="SemiBold" Foreground="#7A4D00" />
-                    <TextBlock Text="Flattening turns supported widgets into permanent page content and removes their interactivity."
-                               TextWrapping="Wrap" FontSize="11" />
-                    <Button Classes="tool" Content="Flatten all fields" Command="{Binding FlattenAllFormFieldsCommand}"
-                            IsEnabled="{Binding CanFlattenForms}" />
-                  </StackPanel>
-                </Border>
-              </StackPanel>
-            </ScrollViewer>
-          </TabItem>
-        </TabControl>
-      </Border>
-
-      <Border Grid.Column="0"
-              IsVisible="{Binding HasDocument}"
-              Background="{DynamicResource StudioPanelBrush}"
-              BorderBrush="{DynamicResource StudioBorderBrush}"
-              BorderThickness="0,0,1,0">
-        <TabControl>
-          <TabItem Header="Pages">
-            <Grid RowDefinitions="Auto,Auto,*">
-              <TextBlock Grid.Row="0" Text="{Binding OrganizerSelectionLabel}"
-                         Margin="12,10,12,6"
-                         FontWeight="SemiBold" />
-              <StackPanel Grid.Row="1" Margin="8,0,8,10" Spacing="5">
-                <WrapPanel Orientation="Horizontal">
-                  <Button Classes="tool" Content="Select all" Command="{Binding SelectAllPagesCommand}" />
-                  <Button Classes="tool" Content="Clear" Command="{Binding ClearPageSelectionCommand}"
-                          IsEnabled="{Binding HasOrganizerSelection}" />
-                </WrapPanel>
-                <WrapPanel Orientation="Horizontal">
-                  <Button Classes="tool" Content="↑" Command="{Binding MoveSelectedUpCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages up"
-                          AutomationProperties.Name="Move selected pages up" />
-                  <Button Classes="tool" Content="↓" Command="{Binding MoveSelectedDownCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Move selected pages down"
-                          AutomationProperties.Name="Move selected pages down" />
-                  <Button Classes="tool" Content="↶ 90°" Command="{Binding RotateLeftCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate left" />
-                  <Button Classes="tool" Content="↷ 90°" Command="{Binding RotateRightCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" ToolTip.Tip="Rotate right" />
-                </WrapPanel>
-                <WrapPanel Orientation="Horizontal">
-                  <Button Classes="tool" Content="Duplicate" Command="{Binding DuplicateSelectedCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" />
-                  <Button Classes="tool" Content="Delete" Command="{Binding DeleteSelectedCommand}"
-                          IsEnabled="{Binding CanDeleteSelection}" />
-                  <Button Classes="tool" Content="Extract" Command="{Binding ExtractSelectedCommand}"
-                          IsEnabled="{Binding CanExtractSelection}" />
-                </WrapPanel>
-                <WrapPanel Orientation="Horizontal">
-                  <Button Classes="tool" Content="Add PDFs" Command="{Binding ImportPagesCommand}"
-                          IsEnabled="{Binding CanImportPages}"
-                          ToolTip.Tip="Insert one or more PDFs before the first selected page, or append them when nothing is selected" />
-                  <Button Classes="tool" Content="Blank" Command="{Binding InsertBlankCommand}"
-                          IsEnabled="{Binding CanMutatePages}" />
-                </WrapPanel>
-                <Grid ColumnDefinitions="Auto,58,Auto" ColumnSpacing="5">
-                  <TextBlock Text="Crop margin" VerticalAlignment="Center" FontSize="11" />
-                  <TextBox Grid.Column="1" Text="{Binding CropMargin}" PlaceholderText="pt" />
-                  <Button Grid.Column="2" Classes="tool" Content="Crop" Command="{Binding CropSelectedCommand}"
-                          IsEnabled="{Binding CanMutateSelection}" />
-                </Grid>
-                <TextBlock Text="Split into consecutive files" FontSize="11" FontWeight="SemiBold" Margin="0,3,0,0" />
-                <Grid ColumnDefinitions="Auto,105" ColumnSpacing="6">
-                  <TextBlock Text="Pages per file" VerticalAlignment="Center" FontSize="11" />
-                  <NumericUpDown Grid.Column="1" Minimum="1" Maximum="9999"
-                                 Value="{Binding SplitPagesPerDocument}" FormatString="0" />
-                </Grid>
-                <Button Classes="tool" Content="Split to folder" Command="{Binding SplitCommand}"
-                        IsEnabled="{Binding CanExtractPages}"
-                        HorizontalAlignment="Left"
-                        ToolTip.Tip="Create consecutive PDFs without partially publishing a cancelled batch" />
-              </StackPanel>
-              <ListBox Grid.Row="2"
-                       x:Name="OrganizerList"
-                       DragDrop.AllowDrop="True"
-                       ItemsSource="{Binding OrganizerPages}"
-                       SelectionMode="Multiple,Toggle"
-                       Background="Transparent"
-                       BorderThickness="0"
-                       ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                <ListBox.Styles>
-                  <Style Selector="ListBoxItem">
-                    <Setter Property="IsSelected" Value="{ReflectionBinding IsSelected, Mode=TwoWay}" />
-                  </Style>
-                </ListBox.Styles>
-                <ListBox.ItemsPanel>
-                  <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="organizer:PdfOrganizerPageViewModel">
-                    <organizer:PdfOrganizerPageView />
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-          </TabItem>
-          <TabItem Header="Bookmarks">
-            <ListBox ItemsSource="{Binding Bookmarks}"
-                     SelectedItem="{Binding SelectedBookmark, Mode=TwoWay}"
-                     BorderThickness="0"
-                     Background="Transparent">
-              <ListBox.ItemTemplate>
-                <DataTemplate x:DataType="reader:PdfBookmarkViewModel">
-                  <TextBlock Text="{Binding IndentedTitle}" Margin="8,5" TextTrimming="CharacterEllipsis" />
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </TabItem>
-          <TabItem Header="Search">
-            <Grid RowDefinitions="Auto,*" Margin="8">
-              <Grid ColumnDefinitions="*,Auto">
-                <TextBox Text="{Binding SearchQuery}" PlaceholderText="Find in PDF" />
-                <Button Grid.Column="1" Classes="tool" Content="Find" Command="{Binding SearchCommand}" Margin="6,0,0,0" />
-              </Grid>
-              <ListBox Grid.Row="1" Margin="0,8,0,0"
-                       ItemsSource="{Binding SearchResults}"
-                       SelectedItem="{Binding SelectedSearchResult, Mode=TwoWay}"
-                       BorderThickness="0" Background="Transparent">
-                <ListBox.ItemTemplate>
-                  <DataTemplate x:DataType="reader:PdfSearchHit">
-                    <TextBlock Text="{Binding Label}" Margin="6" TextWrapping="Wrap" FontSize="11" />
-                  </DataTemplate>
-                </ListBox.ItemTemplate>
-              </ListBox>
-            </Grid>
-          </TabItem>
-        </TabControl>
-      </Border>
-
-      <ListBox x:Name="PagesList"
-               Grid.Column="1"
-               IsVisible="{Binding HasDocument}"
-               ItemsSource="{Binding Pages}"
-               SelectedItem="{Binding SelectedPage, Mode=TwoWay}"
-               Background="{DynamicResource StudioCanvasBrush}"
-               BorderThickness="0"
-               ScrollViewer.HorizontalScrollBarVisibility="Auto"
-               ScrollViewer.VerticalScrollBarVisibility="Auto">
-        <ListBox.ItemsPanel>
-          <ItemsPanelTemplate>
-            <VirtualizingStackPanel />
-          </ItemsPanelTemplate>
-        </ListBox.ItemsPanel>
-        <ListBox.Styles>
-          <Style Selector="ListBoxItem">
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="Margin" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-          </Style>
-          <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-            <Setter Property="Background" Value="Transparent" />
-          </Style>
-        </ListBox.Styles>
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="reader:PdfPageViewModel">
-            <reader:PdfPageView />
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-
-      <Border IsVisible="{Binding IsOpening}"
-              Grid.ColumnSpan="3"
-              Background="#66000000">
-        <Border Background="{DynamicResource StudioPanelBrush}"
-                BorderBrush="{DynamicResource StudioBorderBrush}"
-                BorderThickness="1"
-                CornerRadius="10"
-                Padding="28,22"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center">
-          <StackPanel Spacing="12">
-            <ProgressBar Width="180" IsIndeterminate="True" />
-            <TextBlock Text="Opening PDF…"
-                       FontWeight="SemiBold"
-                       HorizontalAlignment="Center" />
-          </StackPanel>
+        <Border Grid.Column="1" IsVisible="{Binding HasDocument}" Margin="22,6,0,0" Padding="12,5"
+                MinWidth="210" MaxWidth="330" Background="{DynamicResource StudioWindowBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,1,1,0" CornerRadius="7,7,0,0">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+            <TextBlock Text="{Binding DocumentName}" FontSize="11" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseDocumentCommand}" Content="×" Padding="4,0"
+                    />
+          </Grid>
         </Border>
-      </Border>
-    </Grid>
 
-    <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="5" IsVisible="{Binding IsConversionMode}" />
-    <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="5" IsVisible="{Binding IsDocumentHealthMode}" />
+        <Border Grid.Column="2" IsVisible="{Binding ShowPdfDocumentControls}" Width="260" Height="28"
+                HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="6"
+                Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                >
+          <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
+            <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
+            <TextBox Grid.Column="1" Text="{Binding SearchQuery}" PlaceholderText="Search this document" BorderThickness="0" Background="Transparent" FontSize="11" />
+            <Button Grid.Column="2" Classes="ghost" Command="{Binding SearchCommand}" Content="Find" FontSize="10" Padding="5,2" />
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+          <Button Classes="tool" IsVisible="{Binding ShowPdfDocumentControls}" Command="{Binding SaveAsCommand}" Content="Save as" />
+          <Button Classes="tool" Click="OnToggleThemeClick" Content="Theme" ToolTip.Tip="Switch light and dark appearance" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource StudioNavBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0" Padding="6,10">
+      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+        <ToggleButton Grid.Row="0" Classes="nav"
+                     IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding ShowHomeCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="Home" FontSize="9" /></StackPanel>
+        </ToggleButton>
+        <ToggleButton Grid.Row="1" Classes="nav"
+                     IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding ShowToolsCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="Tools" FontSize="9" /></StackPanel>
+        </ToggleButton>
+        <ToggleButton Grid.Row="2" Classes="nav"
+                     IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding ShowJobsCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="Jobs" FontSize="9" /></StackPanel>
+        </ToggleButton>
+        <Button Grid.Row="4" Classes="ghost" Click="OnToggleThemeClick" Foreground="{DynamicResource StudioNavTextBrush}" ToolTip.Tip="Switch light and dark appearance">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="Theme" FontSize="9" /></StackPanel>
+        </Button>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1" Grid.Column="1" RowDefinitions="Auto,*">
+      <StackPanel Grid.Row="0">
+        <Border IsVisible="{Binding HasError}" Background="{DynamicResource StudioErrorSoftBrush}"
+                BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+          <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" /><Button Grid.Column="1" Classes="ghost" Command="{Binding DismissErrorCommand}" Content="Dismiss" /></Grid>
+        </Border>
+        <Border IsVisible="{Binding HasSecurityWarning}" Background="{DynamicResource StudioWarningSoftBrush}"
+                BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+          <TextBlock Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
+        </Border>
+        <Border IsVisible="{Binding HasOperationStatus}" Background="{DynamicResource StudioAccentSoftBrush}"
+                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="12,7">
+          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+            <TextBlock Text="{Binding OperationStatus}" Foreground="{DynamicResource StudioAccentBrush}" />
+            <Button Grid.Column="1" Classes="tool" Content="Restore recovered edits" IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
+            <Button Grid.Column="2" Classes="tool" Content="Discard" IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" Margin="6,0" />
+            <ProgressBar Grid.Column="3" IsVisible="{Binding IsWorkspaceBusy}" Width="100" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
+            <Button Grid.Column="4" Classes="tool" Content="Cancel" IsVisible="{Binding CanCancelOperation}" Command="{Binding CancelOperationCommand}" Margin="8,0,0,0" />
+          </Grid>
+        </Border>
+      </StackPanel>
+
+      <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
+      <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
+      <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
+      <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
+        <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="Jobs" Classes="pageTitle" /><TextBlock Text="Prepare, run, and inspect conversion jobs." Classes="muted" /></StackPanel></Border>
+        <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
+      </Grid>
+      <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
     </Grid>
   </Grid>
 </Window>

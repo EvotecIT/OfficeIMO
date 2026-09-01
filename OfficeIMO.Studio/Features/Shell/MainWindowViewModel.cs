@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OfficeIMO.Studio.Features.Organizer;
 using OfficeIMO.Studio.Features.Editor;
+using OfficeIMO.Studio.Features.Home;
 using OfficeIMO.Studio.Features.Reader;
 using OfficeIMO.Studio.Features.Workspace;
 using OfficeIMO.Studio.Features.Workflows;
@@ -18,6 +19,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     private readonly Func<Uri, Task> _openUri;
     private readonly Func<Task<UnsavedChangesDecision>> _confirmUnsavedChanges;
     private readonly Func<int, Task<bool>> _confirmPageDeletion;
+    private readonly IRecentDocumentStore? _recentDocumentStore;
     private PdfWorkspace? _workspace;
     private PdfDocumentSession? _session;
     private PageSceneCoordinator? _sceneCoordinator;
@@ -67,7 +69,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<Task<UnsavedChangesDecision>>? confirmUnsavedChanges = null,
         Func<CancellationToken, Task<string?>>? pickImage = null,
         Func<int, Task<bool>>? confirmPageDeletion = null,
-        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null) {
+        Func<CancellationToken, Task<IReadOnlyList<string>>>? pickWorkflowFiles = null,
+        IRecentDocumentStore? recentDocumentStore = null) {
         _pickPdf = pickPdf ?? throw new ArgumentNullException(nameof(pickPdf));
         _pickSavePdf = pickSavePdf ?? (_ => Task.FromResult<string?>(null));
         _pickImportPdfs = pickImportPdfs ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>()));
@@ -76,17 +79,23 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         _openUri = openUri ?? (_ => Task.CompletedTask);
         _confirmUnsavedChanges = confirmUnsavedChanges ?? (() => Task.FromResult(UnsavedChangesDecision.Discard));
         _confirmPageDeletion = confirmPageDeletion ?? (_ => Task.FromResult(false));
+        _recentDocumentStore = recentDocumentStore;
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder);
         DocumentHealth = new DocumentHealthViewModel(_pickPdf, _pickOutputFolder);
         ConversionWorkbench.PropertyChanged += OnWorkflowPropertyChanged;
         DocumentHealth.PropertyChanged += OnWorkflowPropertyChanged;
+        foreach (RecentDocumentViewModel document in _recentDocumentStore?.Load() ?? []) RecentDocuments.Add(document);
     }
 
     public ObservableCollection<PdfPageViewModel> Pages { get; } = new();
 
     public ObservableCollection<PdfOrganizerPageViewModel> OrganizerPages { get; } = new();
+
+    public ObservableCollection<RecentDocumentViewModel> RecentDocuments { get; } = new();
+
+    public bool HasRecentDocuments => RecentDocuments.Count > 0;
 
     public bool IsEmpty => !HasDocument && !IsOpening;
 
@@ -199,6 +208,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 candidateRenderCoordinator,
                 candidatePages,
                 candidateOrganizerPages);
+            RecordRecentDocument(path);
             WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
             installed = true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
@@ -241,6 +251,26 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     [RelayCommand]
     private void DismissError() {
         ErrorMessage = null;
+    }
+
+    [RelayCommand]
+    private async Task OpenRecentAsync(RecentDocumentViewModel? document, CancellationToken cancellationToken) {
+        if (document is null) return;
+        if (!File.Exists(document.Path)) {
+            RecentDocuments.Remove(document);
+            _recentDocumentStore?.Save(RecentDocuments);
+            OnPropertyChanged(nameof(HasRecentDocuments));
+            ErrorMessage = "That recent document is no longer available.";
+            return;
+        }
+        await OpenDocumentAsync(document.Path, cancellationToken).ConfigureAwait(true);
+    }
+
+    [RelayCommand]
+    private void ClearRecentDocuments() {
+        RecentDocuments.Clear();
+        _recentDocumentStore?.Save(RecentDocuments);
+        OnPropertyChanged(nameof(HasRecentDocuments));
     }
 
     [RelayCommand]
@@ -430,6 +460,20 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
 
         return $"{value:0.#} {units[unit]}";
     }
+
+    private void RecordRecentDocument(string path) {
+        string fullPath = Path.GetFullPath(path);
+        RecentDocumentViewModel? existing = RecentDocuments.FirstOrDefault(document =>
+            string.Equals(document.Path, fullPath, RecentDocumentPathComparison));
+        if (existing is not null) RecentDocuments.Remove(existing);
+        RecentDocuments.Insert(0, new RecentDocumentViewModel(fullPath, DateTimeOffset.UtcNow));
+        while (RecentDocuments.Count > 12) RecentDocuments.RemoveAt(RecentDocuments.Count - 1);
+        _recentDocumentStore?.Save(RecentDocuments);
+        OnPropertyChanged(nameof(HasRecentDocuments));
+    }
+
+    internal static StringComparison RecentDocumentPathComparison =>
+        OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
 
     private void ThrowIfDisposed() {
         ObjectDisposedException.ThrowIf(_disposed, this);

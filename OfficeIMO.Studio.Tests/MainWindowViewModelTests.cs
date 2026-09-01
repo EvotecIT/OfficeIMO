@@ -8,6 +8,30 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class MainWindowViewModelTests {
     [Fact]
+    public void ReadOnlyDocumentModesClearPreviouslySelectedMutationTool() {
+        using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+        viewModel.ShowAnnotateModeCommand.Execute(null);
+        viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Highlight);
+
+        viewModel.ShowViewModeCommand.Execute(null);
+
+        Assert.True(viewModel.IsViewDocumentMode);
+        Assert.Equal(PdfEditorTool.Select, viewModel.ActiveEditorTool);
+
+        viewModel.ShowEditModeCommand.Execute(null);
+        viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddText);
+        viewModel.ShowProtectModeCommand.Execute(null);
+
+        Assert.True(viewModel.IsProtectDocumentMode);
+        Assert.Equal(PdfEditorTool.Select, viewModel.ActiveEditorTool);
+
+        viewModel.BeginSignatureAppearanceCommand.Execute(null);
+
+        Assert.True(viewModel.IsEditDocumentMode);
+        Assert.Equal(PdfEditorTool.SignatureAppearance, viewModel.ActiveEditorTool);
+    }
+
+    [Fact]
     public async Task RedactionPreviewPersistsOnPageUntilCancelled() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-redaction-preview-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -20,7 +44,10 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await viewModel.OpenDocumentAsync(path);
-            viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.Redact);
+            viewModel.ShowProtectModeCommand.Execute(null);
+            viewModel.BeginRedactionCommand.Execute(null);
+            Assert.True(viewModel.IsProtectDocumentMode);
+            Assert.Equal(PdfEditorTool.Redact, viewModel.ActiveEditorTool);
             var gesture = new PdfEditorGesture(
                 1,
                 36D,
@@ -62,6 +89,7 @@ public sealed class MainWindowViewModelTests {
         try {
             using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
             await viewModel.OpenDocumentAsync(path);
+            viewModel.ShowEditModeCommand.Execute(null);
             int objectNumber = Assert.Single(PdfDocument.Open(annotated).Inspect().GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
             viewModel.Pages[0].SelectAnnotation(new PdfEditorSelection(1, objectNumber, "Text"));
             Assert.True(viewModel.HasSelectedAnnotation);
@@ -132,6 +160,7 @@ public sealed class MainWindowViewModelTests {
                     return Task.FromResult<string?>(imagePath);
                 });
             await viewModel.OpenDocumentAsync(path);
+            viewModel.ShowEditModeCommand.Execute(null);
             viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddImage);
             var gesture = new PdfEditorGesture(1, 40D, 50D, 80D, 90D, Array.Empty<PdfEditorVisualPoint>());
             PdfPageViewModel firstPage = viewModel.Pages[0];
@@ -151,6 +180,7 @@ public sealed class MainWindowViewModelTests {
     public async Task FailedEditorGestureKeepsFailureStatus() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
         await viewModel.OpenDocumentAsync(GetFixturePath());
+        viewModel.ShowEditModeCommand.Execute(null);
         viewModel.SelectedEditorToolChoice = viewModel.EditorTools.Single(choice => choice.Tool == PdfEditorTool.AddText);
 
         viewModel.Pages[0].CompleteEditorGesture(new PdfEditorGesture(1, 40D, 50D, 180D, 100D, Array.Empty<PdfEditorVisualPoint>()));

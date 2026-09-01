@@ -1,123 +1,114 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:home="using:OfficeIMO.Studio.Features.Home"
              x:Class="OfficeIMO.Studio.Features.Home.HomeView"
              x:DataType="shell:MainWindowViewModel">
-  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-    <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="18" MaxWidth="1220"
-          HorizontalAlignment="Stretch">
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
-        <StackPanel>
-          <TextBlock Classes="eyebrow" Text="QUICK TOOLS" />
-          <TextBlock Classes="sectionTitle" Text="What would you like to do?" Margin="0,5,0,0" />
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                Background="{DynamicResource StudioPanelBrush}">
+    <Grid Margin="28,24,28,30" RowDefinitions="Auto,Auto,Auto,*" RowSpacing="22"
+          MaxWidth="1160" HorizontalAlignment="Stretch">
+      <TextBlock Grid.Row="0" Text="Home" Classes="pageTitle" />
+
+      <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+              CornerRadius="8" Padding="24" Background="{DynamicResource StudioPanelMutedBrush}">
+        <StackPanel HorizontalAlignment="Center" Spacing="10">
+          <PathIcon Data="{StaticResource IconOpen}" Width="34" Height="34"
+                    Foreground="{DynamicResource StudioMutedTextBrush}" />
+          <TextBlock Text="Drag and drop files here" FontSize="14" HorizontalAlignment="Center" />
+          <Button Classes="primary" Command="{Binding OpenCommand}" IsEnabled="{Binding CanStartDocumentTransition}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <PathIcon Data="{StaticResource IconOpen}" Width="16" Height="16" />
+              <TextBlock Text="Open file" />
+            </StackPanel>
+          </Button>
         </StackPanel>
-        <TextBlock Grid.Column="1" Classes="muted" Text="Choose a workspace to get started"
-                   VerticalAlignment="Bottom" />
-      </Grid>
+      </Border>
 
-      <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="12">
-        <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPdfWorkspaceCommand}"
-                AutomationProperties.Name="Work with PDFs">
-          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
-            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioAccentSoftBrush}">
-              <TextBlock Text="PDF" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="Bold"
-                         HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-              <TextBlock Text="Work with PDFs" FontWeight="SemiBold" FontSize="14" />
-              <TextBlock Classes="muted" Text="Read, organize, annotate, fill forms, and redact."
-                         TextWrapping="Wrap" FontSize="11" />
+      <StackPanel Grid.Row="2" Spacing="10">
+        <TextBlock Text="Quick tasks" FontSize="15" FontWeight="SemiBold" />
+        <Grid ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="8">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPageToolsCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" />
+              <TextBlock Text="Merge" FontWeight="SemiBold" />
             </StackPanel>
-          </Grid>
-        </Button>
-        <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}"
-                AutomationProperties.Name="Convert files">
-          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
-            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioSuccessSoftBrush}">
-              <TextBlock Text="⇄" Foreground="{DynamicResource StudioSuccessBrush}" FontSize="20"
-                         FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-              <TextBlock Text="Convert files" FontWeight="SemiBold" FontSize="14" />
-              <TextBlock Classes="muted" Text="Queue conversions with clear profiles and results."
-                         TextWrapping="Wrap" FontSize="11" />
+          </Button>
+          <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowPageToolsCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconSplit}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
+              <TextBlock Text="Split" FontWeight="SemiBold" />
             </StackPanel>
-          </Grid>
-        </Button>
-        <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowDocumentHealthCommand}"
-                AutomationProperties.Name="Check document health">
-          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
-            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioWarningSoftBrush}">
-              <TextBlock Text="◇" Foreground="{DynamicResource StudioWarningBrush}" FontSize="20"
-                         FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
-            </Border>
-            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
-              <TextBlock Text="Check document health" FontWeight="SemiBold" FontSize="14" />
-              <TextBlock Classes="muted" Text="Inspect and repair with before-and-after evidence."
-                         TextWrapping="Wrap" FontSize="11" />
+          </Button>
+          <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconConvert}" Width="22" Height="22" Foreground="#7047EB" />
+              <TextBlock Text="Convert" FontWeight="SemiBold" />
             </StackPanel>
-          </Grid>
-        </Button>
-      </Grid>
+          </Button>
+          <Button Grid.Column="3" Classes="cardAction" Command="{Binding ShowOptimizeCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" />
+              <TextBlock Text="Compress" FontWeight="SemiBold" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="4" Classes="cardAction" Command="{Binding ShowCompareCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconCompare}" Width="22" Height="22" Foreground="#2587A0" />
+              <TextBlock Text="Compare" FontWeight="SemiBold" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="5" Classes="cardAction" Command="{Binding ShowProtectCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconProtect}" Width="22" Height="22" Foreground="{DynamicResource StudioWarningBrush}" />
+              <TextBlock Text="Protect" FontWeight="SemiBold" />
+            </StackPanel>
+          </Button>
+        </Grid>
+      </StackPanel>
 
-      <Grid Grid.Row="2" ColumnDefinitions="1.45*,*" ColumnSpacing="14">
-        <Border Classes="card" Grid.Column="0">
-          <Grid RowDefinitions="Auto,*,Auto">
-            <StackPanel>
-              <TextBlock Classes="eyebrow" Text="GET STARTED" />
-              <TextBlock Classes="sectionTitle" Text="Open a document and keep control" Margin="0,5,0,0" />
-              <TextBlock Classes="muted" Margin="0,7,0,0" TextWrapping="Wrap"
-                         Text="Choose a PDF to enter the full workspace, or start with a focused tool above." />
+      <Grid Grid.Row="3" RowDefinitions="Auto,*" RowSpacing="8">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Text="Recent" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="ghost" Command="{Binding ClearRecentDocumentsCommand}"
+                  IsVisible="{Binding HasRecentDocuments}" Content="Clear list"
+                  Foreground="{DynamicResource StudioAccentBrush}" />
+        </Grid>
+
+        <Border Grid.Row="1" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1"
+                CornerRadius="8" Background="{DynamicResource StudioPanelBrush}">
+          <Grid>
+            <StackPanel IsVisible="{Binding !HasRecentDocuments}" Margin="24" Spacing="5" HorizontalAlignment="Center">
+              <TextBlock Text="No recent documents" FontWeight="SemiBold" HorizontalAlignment="Center" />
+              <TextBlock Classes="muted" Text="Documents you open will appear here." HorizontalAlignment="Center" />
             </StackPanel>
-            <StackPanel Grid.Row="1" Margin="0,18,0,16" Spacing="10">
-              <Grid ColumnDefinitions="32,*">
-                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
-                  <TextBlock Text="1" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <TextBlock Grid.Column="1" Text="Open or drop a PDF anywhere in the window." VerticalAlignment="Center" />
-              </Grid>
-              <Grid ColumnDefinitions="32,*">
-                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
-                  <TextBlock Text="2" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <TextBlock Grid.Column="1" Text="Use Reader, Organizer, Edit, Forms, Search, and Security tools."
-                           VerticalAlignment="Center" TextWrapping="Wrap" />
-              </Grid>
-              <Grid ColumnDefinitions="32,*">
-                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
-                  <TextBlock Text="3" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
-                             HorizontalAlignment="Center" VerticalAlignment="Center" />
-                </Border>
-                <TextBlock Grid.Column="1" Text="Save only when the result is exactly what you expect."
-                           VerticalAlignment="Center" TextWrapping="Wrap" />
-              </Grid>
-            </StackPanel>
-            <Button Grid.Row="2" Classes="primary" Command="{Binding OpenCommand}"
-                    IsEnabled="{Binding CanStartDocumentTransition}" Content="Choose a PDF"
-                    HorizontalAlignment="Left" />
+            <ItemsControl IsVisible="{Binding HasRecentDocuments}" ItemsSource="{Binding RecentDocuments}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="home:RecentDocumentViewModel">
+                  <Button Background="Transparent" BorderThickness="0" Padding="14,10"
+                          HorizontalContentAlignment="Stretch"
+                          Command="{ReflectionBinding $parent[UserControl].DataContext.OpenRecentCommand}"
+                          CommandParameter="{Binding}">
+                    <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="10">
+                      <Border Width="30" Height="30" CornerRadius="6" Background="{DynamicResource StudioErrorSoftBrush}">
+                        <TextBlock Text="PDF" FontSize="9" FontWeight="Bold" Foreground="{DynamicResource StudioErrorBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding DirectoryName}" Classes="muted" FontSize="11" TextTrimming="CharacterEllipsis" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" HorizontalAlignment="Right" Spacing="2">
+                        <TextBlock Text="{Binding OpenedLabel}" HorizontalAlignment="Right" FontSize="11" />
+                        <TextBlock Text="{Binding FileSizeLabel}" Classes="muted" HorizontalAlignment="Right" FontSize="11" />
+                      </StackPanel>
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </Grid>
         </Border>
-
-        <StackPanel Grid.Column="1" Spacing="14">
-          <Border Classes="card">
-            <StackPanel Spacing="8">
-              <TextBlock Classes="eyebrow" Text="BUILT FOR REAL WORK" />
-              <TextBlock Classes="sectionTitle" Text="One clear workspace" />
-              <TextBlock Classes="muted" TextWrapping="Wrap"
-                         Text="Tools stay grouped by task, results stay visible, and every destructive operation remains explicit." />
-            </StackPanel>
-          </Border>
-          <Border Classes="card">
-            <StackPanel Spacing="8">
-              <TextBlock Classes="eyebrow" Text="TIP" />
-              <TextBlock Classes="sectionTitle" Text="Drop files to move faster" />
-              <TextBlock Classes="muted" TextWrapping="Wrap"
-                         Text="Drag a PDF onto the application to open it directly in the workspace." />
-            </StackPanel>
-          </Border>
-        </StackPanel>
       </Grid>
     </Grid>
   </ScrollViewer>
