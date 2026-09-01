@@ -127,10 +127,12 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(workbookPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(workbookPath, cancellationToken: operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }
@@ -144,10 +146,12 @@ namespace OfficeIMO.Excel.Pdf {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
             if (!workbookStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(workbookStream));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(workbookStream, cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(workbookStream, operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }

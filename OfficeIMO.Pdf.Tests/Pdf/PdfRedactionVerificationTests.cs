@@ -45,6 +45,20 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void ReviewedPlanCannotBeAppliedToDifferentSourceBytes() {
+        byte[] reviewed = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reviewed source")).ToBytes();
+        byte[] different = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Different source")).ToBytes();
+        PdfRedactionPlan plan = PdfDocument.Load(reviewed).Redactions.Plan([
+            new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page")
+        ]);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfRedactionApplier.Apply(different, plan));
+
+        Assert.Contains("different source PDF bytes", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AssertVerified_ConfirmsRemovedAndRetainedTextMarkersAfterApply() {
         PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
 

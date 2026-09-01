@@ -122,10 +122,12 @@ namespace OfficeIMO.Word.Pdf {
             PdfWordImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Document path cannot be empty.", nameof(path));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfWordConversionResult result = document.ToWordDocumentResult(options);
+            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
+            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfWordConversionResult result = document.ToWordDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }
@@ -138,10 +140,12 @@ namespace OfficeIMO.Word.Pdf {
             CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfWordConversionResult result = document.ToWordDocumentResult(options);
+            PdfWordImportOptions operation = (options ?? new PdfWordImportOptions()).CloneForConversion();
+            if (cancellationToken.CanBeCanceled) operation.CancellationToken = cancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfWordConversionResult result = document.ToWordDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }

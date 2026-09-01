@@ -115,7 +115,7 @@ Existing output is refused unless --force is supplied.
             PagesPerSheet = parsed.PagesPerSheet,
             ScaleMode = parsed.ScaleMode,
             Margin = parsed.Margin
-        }), cancellationToken).ConfigureAwait(false);
+        }, cancellationToken), cancellationToken).ConfigureAwait(false);
         await output.WriteLineAsync("Source pages: " + plan.SourcePageCount.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
         await output.WriteLineAsync("Selected pages: " + string.Join(',', plan.SelectedPages)).ConfigureAwait(false);
         await output.WriteLineAsync("Sheets: " + plan.Sheets.Count.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);

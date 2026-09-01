@@ -135,8 +135,11 @@ public sealed class PdfPrintPlan {
 /// <summary>Creates print-preview sheet geometry without depending on a platform print driver.</summary>
 public static class PdfPrintPlanner {
     /// <summary>Creates a validated print-preview plan.</summary>
-    public static PdfPrintPlan Create(PdfPrintPlanRequest request) {
+    public static PdfPrintPlan Create(
+        PdfPrintPlanRequest request,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         if (request.PagesPerSheet is not 1 and not 2 and not 4) throw new ArgumentOutOfRangeException(nameof(request.PagesPerSheet));
         if (request.Margin < 0D || double.IsNaN(request.Margin) || double.IsInfinity(request.Margin)) {
@@ -148,7 +151,9 @@ public static class PdfPrintPlanner {
         PdfDocument document = PdfDocument.Load(
             Path.GetFullPath(request.InputPath),
             new PdfLoadOptions { Password = request.PdfPassword });
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = document.Inspect();
+        cancellationToken.ThrowIfCancellationRequested();
         int[] pages = string.IsNullOrWhiteSpace(request.Pages)
             ? Enumerable.Range(1, info.PageCount).ToArray()
             : PdfPageSelector.Parse(request.Pages)
@@ -156,17 +161,26 @@ public static class PdfPrintPlanner {
                 .Ranges
                 .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))
                 .ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
         if (pages.Length == 0) throw new ArgumentException("The page selection is empty.", nameof(request));
 
         var sheets = new List<PdfPrintSheet>((pages.Length + request.PagesPerSheet - 1) / request.PagesPerSheet);
         for (int offset = 0; offset < pages.Length; offset += request.PagesPerSheet) {
+            cancellationToken.ThrowIfCancellationRequested();
             int count = Math.Min(request.PagesPerSheet, pages.Length - offset);
             PdfPageInfo firstPage = info.Pages[pages[offset] - 1];
             PageSize paper = ResolvePaper(request, firstPage.Width > firstPage.Height);
             if (paper.Width <= request.Margin * 2D || paper.Height <= request.Margin * 2D) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
-            IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(request, info, pages, offset, count, paper);
+            IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(
+                request,
+                info,
+                pages,
+                offset,
+                count,
+                paper,
+                cancellationToken);
             sheets.Add(new PdfPrintSheet(sheets.Count + 1, paper, placements));
         }
         return new PdfPrintPlan(info.PageCount, pages, sheets);
@@ -184,7 +198,8 @@ public static class PdfPrintPlanner {
         IReadOnlyList<int> pages,
         int offset,
         int count,
-        PageSize paper) {
+        PageSize paper,
+        CancellationToken cancellationToken) {
         int columns = request.PagesPerSheet == 1 ? 1 : 2;
         int rows = request.PagesPerSheet == 4 ? 2 : 1;
         double printableWidth = paper.Width - request.Margin * 2D;
@@ -194,6 +209,7 @@ public static class PdfPrintPlanner {
         var placements = new List<PdfPrintPlacement>(count);
 
         for (int index = 0; index < count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pages[offset + index];
             PdfPageInfo source = info.Pages[pageNumber - 1];
             int column = index % columns;

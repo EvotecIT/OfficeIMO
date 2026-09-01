@@ -21,7 +21,13 @@ internal static partial class PdfRedactionPlanner {
                 findings.Add(new PdfDiagnosticFinding(PdfDiagnosticSeverity.Error, "RedactionPlanBlocked", message));
             }
 
-            return new PdfRedactionPlan(preflight, areaArray, Array.Empty<PdfRedactionMatch>(), findings.AsReadOnly());
+            return new PdfRedactionPlan(
+                preflight,
+                areaArray,
+                Array.Empty<PdfRedactionMatch>(),
+                findings.AsReadOnly(),
+                searchCriteria: null,
+                PdfRedactionPlan.ComputeSourceSha256(pdf));
         }
 
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(PdfReadDocument.Open(pdf, options), layoutOptions);
@@ -39,7 +45,13 @@ internal static partial class PdfRedactionPlanner {
             "RedactionPlanOnly",
             "This plan reports rectangle intersections only. It does not remove or rewrite PDF content."));
 
-        return new PdfRedactionPlan(preflight, areaArray, matches.AsReadOnly(), findings.AsReadOnly());
+        return new PdfRedactionPlan(
+            preflight,
+            areaArray,
+            matches.AsReadOnly(),
+            findings.AsReadOnly(),
+            searchCriteria: null,
+            PdfRedactionPlan.ComputeSourceSha256(pdf));
     }
 
     /// <summary>Plans rectangle-based redaction impact for a PDF file.</summary>

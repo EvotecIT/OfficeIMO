@@ -31,6 +31,7 @@ public sealed partial class OfficeWorkflowRunner {
         int sourceCount = 0;
         int pageCount = 0;
         long inputBytes = 0L;
+        long normalizedBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
         try {
@@ -55,18 +56,28 @@ public sealed partial class OfficeWorkflowRunner {
                 AssemblySource source = sources[index];
                 double fraction = 0.12D + (double)index / Math.Max(1, sources.Count) * 0.55D;
                 Report(progress, validated.Id, "normalize", $"Preparing {index + 1:N0} of {sources.Count:N0} inputs", fraction);
-                documents.Add(NormalizeAssemblySource(source, validated, diagnostics, cancellationToken));
+                long remainingOutputBytes = validated.Limits.MaximumOutputBytes - normalizedBytes;
+                if (remainingOutputBytes <= 0L) {
+                    throw new InvalidOperationException(
+                        $"Normalized inputs exceed the configured {validated.Limits.MaximumOutputBytes:N0}-byte output limit.");
+                }
+                PdfDocument normalized = NormalizeAssemblySource(
+                    source,
+                    validated,
+                    remainingOutputBytes,
+                    diagnostics,
+                    cancellationToken);
+                using (var measurement = new OfficeWorkflowBoundedCountingStream(remainingOutputBytes)) {
+                    normalized.Save(measurement);
+                    normalizedBytes = checked(normalizedBytes + measurement.Length);
+                }
+                documents.Add(normalized);
             }
 
             Report(progress, validated.Id, "merge", "Combining normalized PDF pages", 0.7D);
             failureStage = WorkflowFailureStage.Operation;
             cancellationToken.ThrowIfCancellationRequested();
             PdfDocument merged = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents);
-            byte[] output = merged.ToBytes();
-            if (output.LongLength > validated.Limits.MaximumOutputBytes) {
-                throw new InvalidOperationException(
-                    $"Generated PDF is {output.LongLength:N0} bytes, above the configured {validated.Limits.MaximumOutputBytes:N0}-byte limit.");
-            }
 
             string outputDirectory = Path.GetDirectoryName(validated.OutputPath)!;
             failureStage = WorkflowFailureStage.Output;
@@ -74,8 +85,21 @@ public sealed partial class OfficeWorkflowRunner {
             stagingPath = Path.Combine(
                 outputDirectory,
                 "." + Path.GetFileName(validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-            await File.WriteAllBytesAsync(stagingPath, output, cancellationToken).ConfigureAwait(false);
+            await using (var outputStream = new FileStream(
+                stagingPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                81920,
+                FileOptions.Asynchronous | FileOptions.SequentialScan))
+            await using (var boundedOutput = new OfficeWorkflowBoundedWriteStream(
+                outputStream,
+                validated.Limits.MaximumOutputBytes,
+                leaveOpen: false)) {
+                await merged.SaveAsync(boundedOutput, cancellationToken).ConfigureAwait(false);
+            }
             cancellationToken.ThrowIfCancellationRequested();
+            long stagedOutputBytes = new FileInfo(stagingPath).Length;
 
             Report(progress, validated.Id, "validate-output", "Reopening the assembled PDF", 0.84D);
             PdfDocumentInfo info = PdfDocument.Load(stagingPath).Inspect();
@@ -88,7 +112,8 @@ public sealed partial class OfficeWorkflowRunner {
                 details: new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["sourceCount"] = sources.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["pageCount"] = pageCount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                    ["outputBytes"] = output.LongLength.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    ["normalizedBytes"] = normalizedBytes.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    ["outputBytes"] = stagedOutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
 
             Report(progress, validated.Id, "publish", "Publishing the validated PDF", 0.93D);
@@ -359,6 +384,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static PdfDocument NormalizeAssemblySource(
         AssemblySource source,
         ValidatedAssemblyRequest request,
+        long maximumNormalizedBytes,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -384,7 +410,10 @@ public sealed partial class OfficeWorkflowRunner {
                     source.Route,
                     request.ConflictPolicy,
                     request.OutputProfile,
-                    request.Limits,
+                    new OfficeWorkflowLimits {
+                        MaximumInputBytes = request.Limits.MaximumInputBytes,
+                        MaximumOutputBytes = maximumNormalizedBytes
+                    },
                     request.PdfLoadOptions,
                     request.PdfLoadOptions);
                 OperationArtifact artifact = Convert(conversionRequest, diagnostics, cancellationToken);

@@ -84,6 +84,11 @@ internal static partial class PdfRedactionVerification {
     /// Verifies configured markers and proves that the reviewed plan no longer finds text, image,
     /// or annotation intersections in the rewritten document.
     /// </summary>
+    /// <remarks>
+    /// The plan fingerprint binds review and application to the original source through
+    /// <c>Apply(PdfRedactionPlan)</c>. This method verifies the supplied rewritten artifact's
+    /// page shape and residual content; it does not independently prove rewrite lineage.
+    /// </remarks>
     public static PdfRedactionVerificationReport VerifyAppliedPlan(
         byte[] redactedPdf,
         PdfRedactionPlan reviewedPlan,
@@ -93,6 +98,19 @@ internal static partial class PdfRedactionVerification {
         PdfRedactionVerificationReport markerReport = Verify(redactedPdf, options, readOptions);
         PdfRedactionPlan residualPlan = PdfRedactionPlanner.Plan(redactedPdf, reviewedPlan.Areas, options: readOptions);
         var issues = new List<PdfRedactionVerificationIssue>(markerReport.Issues);
+        PdfDiagnosticFinding[] reviewedBlockingFindings = reviewedPlan.Findings
+            .Where(static finding => finding.Severity == PdfDiagnosticSeverity.Error)
+            .ToArray();
+        if (!reviewedPlan.Preflight.CanReadLogicalObjects || reviewedBlockingFindings.Length > 0) {
+            string detail = reviewedBlockingFindings.Length == 0
+                ? string.Join(" ", reviewedPlan.Preflight.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects))
+                : string.Join(" ", reviewedBlockingFindings.Select(static finding => finding.Message));
+            issues.Add(new PdfRedactionVerificationIssue(
+                "ReviewedRedactionPlanBlocked",
+                "ReviewedSource",
+                "The original redaction plan was blocked and cannot provide redaction proof." +
+                (string.IsNullOrWhiteSpace(detail) ? string.Empty : " " + detail)));
+        }
         int? reviewedPageCount = reviewedPlan.Preflight.UncheckedDocumentInfo?.PageCount;
         int? rewrittenPageCount = residualPlan.Preflight.UncheckedDocumentInfo?.PageCount;
         if (reviewedPageCount.HasValue &&

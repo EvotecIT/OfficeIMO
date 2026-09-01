@@ -40,7 +40,7 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         await using FileStream publicationLock = await AcquireDirectoryPublicationLockAsync(requestedDirectory, cancellationToken)
             .ConfigureAwait(false);
-        RecoverInterruptedDirectoryReplacement(requestedDirectory);
+        RecoverInterruptedDirectoryReplacement(requestedDirectory, diagnostics);
 
         if (File.Exists(requestedDirectory)) {
             throw new IOException("A file already occupies the requested output directory path.");
@@ -83,18 +83,36 @@ public sealed partial class OfficeWorkflowRunner {
                 }));
             return requestedDirectory;
         }
-        TryDeleteDirectory(retiredDirectory);
+        Exception? retirementCleanupFailure = TryDeleteDirectory(retiredDirectory);
+        if (retirementCleanupFailure is not null) {
+            diagnostics.Add(CreateRetainedOutputDiagnostic(requestedDirectory, retiredDirectory, retirementCleanupFailure));
+        }
         return requestedDirectory;
     }
 
-    private static void RecoverInterruptedDirectoryReplacement(string requestedDirectory) {
+    private static void RecoverInterruptedDirectoryReplacement(
+        string requestedDirectory,
+        ICollection<OfficeWorkflowDiagnostic> diagnostics) {
         string parent = Path.GetDirectoryName(requestedDirectory)!;
-        string prefix = Path.GetFileName(requestedDirectory) + ".officeimo-recovery-";
+        string destinationName = Path.GetFileName(requestedDirectory);
+        string recoveryPrefix = destinationName + ".officeimo-recovery-";
+        string retiredPrefix = destinationName + ".officeimo-retired-";
         StringComparison pathComparison = OfficeWorkflowPathIdentity.GetComparison(parent);
         StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(parent);
+        foreach (string retiredDirectory in Directory
+            .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
+            .Where(path => Path.GetFileName(path).StartsWith(retiredPrefix, pathComparison))
+            .OrderBy(static path => path, pathComparer)
+            .ThenBy(static path => path, StringComparer.Ordinal)) {
+            Exception? cleanupFailure = TryDeleteDirectory(retiredDirectory);
+            if (cleanupFailure is not null) {
+                diagnostics.Add(CreateRetainedOutputDiagnostic(requestedDirectory, retiredDirectory, cleanupFailure));
+            }
+        }
+
         string[] recoveryDirectories = Directory
             .EnumerateDirectories(parent, "*", SearchOption.TopDirectoryOnly)
-            .Where(path => Path.GetFileName(path).StartsWith(prefix, pathComparison))
+            .Where(path => Path.GetFileName(path).StartsWith(recoveryPrefix, pathComparison))
             .OrderBy(static path => path, pathComparer)
             .ThenBy(static path => path, StringComparer.Ordinal)
             .ToArray();
@@ -110,6 +128,20 @@ public sealed partial class OfficeWorkflowRunner {
             requestedDirectory,
             recoveryDirectories);
     }
+
+    private static OfficeWorkflowDiagnostic CreateRetainedOutputDiagnostic(
+        string requestedDirectory,
+        string retainedDirectory,
+        Exception exception) => new(
+            "PreviousOutputRetained",
+            "The new output is available, but a retired previous output remains and will be retried during the next replacement.",
+            OfficeWorkflowDiagnosticSeverity.Warning,
+            "publish",
+            new Dictionary<string, string>(StringComparer.Ordinal) {
+                ["destination"] = requestedDirectory,
+                ["recoveryPaths"] = retainedDirectory,
+                ["exceptionType"] = exception.GetType().Name
+            });
 
     private static async Task<FileStream> AcquireDirectoryPublicationLockAsync(
         string requestedDirectory,
@@ -146,13 +178,14 @@ public sealed partial class OfficeWorkflowRunner {
         path.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
         " (" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
 
-    private static void TryDeleteDirectory(string path) {
+    private static Exception? TryDeleteDirectory(string path) {
         try {
             if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
-        } catch (IOException) {
-            // Best-effort cleanup of a task-owned staging, extraction, or retired directory.
-        } catch (UnauthorizedAccessException) {
-            // Best-effort cleanup of a task-owned staging, extraction, or retired directory.
+            return null;
+        } catch (IOException exception) {
+            return exception;
+        } catch (UnauthorizedAccessException exception) {
+            return exception;
         }
     }
 

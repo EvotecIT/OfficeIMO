@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 212,
-    "productionComponentCount": 112,
-    "testProjectCount": 40,
+    "projectCount": 214,
+    "productionComponentCount": 113,
+    "testProjectCount": 41,
     "benchmarkProjectCount": 33,
     "validationProjectCount": 28,
     "apiReferenceCount": 21,
     "conceptualPageCount": 95,
-    "conceptualWordCount": 41893
+    "conceptualWordCount": 41927
   },
   "categories": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Specialized components",
-      "componentCount": 10
+      "componentCount": 11
     }
   ],
   "components": [
@@ -300,7 +300,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 993,
+      "sourceFileCount": 994,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -508,7 +508,7 @@
       "description": "Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.",
       "kind": "package",
       "projectPath": "OfficeIMO.IWork/OfficeIMO.IWork.csproj",
-      "sourceFileCount": 29,
+      "sourceFileCount": 30,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -833,7 +833,7 @@
       "description": "First-party PDF builder, reader, editor, renderer, and signature workflow for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
-      "sourceFileCount": 1066,
+      "sourceFileCount": 1080,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf/",
@@ -1350,10 +1350,10 @@
       "name": "OfficeIMO.Tool",
       "packageId": "OfficeIMO.Tool",
       "category": "Specialized components",
-      "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, and capability discovery.",
+      "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 34,
+      "sourceFileCount": 36,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1488,6 +1488,19 @@
       "docsUrl": "/docs/word/",
       "apiUrl": null,
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Word.Rtf"
+    },
+    {
+      "name": "OfficeIMO.Workflows",
+      "packageId": "OfficeIMO.Workflows",
+      "category": "Specialized components",
+      "description": "Typed local document workflows that compose first-party OfficeIMO conversion and PDF capabilities.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
+      "sourceFileCount": 13,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": null,
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Workflows"
     },
     {
       "name": "OfficeIMO.Zip",

@@ -928,6 +928,22 @@ public class PdfReadLimitTests {
     }
 
     [Fact]
+    public void BlockedReviewedPlanCannotProduceSuccessfulVerification() {
+        byte[] blockedSource = BuildMalformedFlatePageContentPdf();
+        var area = new PdfRedactionArea(1, 0, 0, 200, 200, "fail-closed");
+        PdfRedactionPlan blockedPlan = PdfRedactionPlanner.Plan(blockedSource, new[] { area });
+        byte[] readableRewrite = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Readable rewrite")).ToBytes();
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            readableRewrite,
+            blockedPlan,
+            new PdfRedactionVerificationOptions());
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "ReviewedRedactionPlanBlocked");
+    }
+
+    [Fact]
     public void MalformedFilterArrayBlocksPreflightAndRedaction() {
         byte[] pdf = BuildMalformedFlatePageContentPdf("[42 /FlateDecode]");
         var area = new PdfRedactionArea(1, 0, 0, 200, 200, "malformed-filter");

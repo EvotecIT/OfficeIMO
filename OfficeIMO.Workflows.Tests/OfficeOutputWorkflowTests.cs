@@ -59,6 +59,29 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportRetriesCleanupOfRetiredPreviousOutput() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
+        string output = Path.Combine(scope.Path, "pages");
+        string retired = output + ".officeimo-retired-interrupted";
+        Directory.CreateDirectory(output);
+        Directory.CreateDirectory(retired);
+        await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
+        await File.WriteAllTextAsync(Path.Combine(retired, "previous.txt"), "previous output");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.False(Directory.Exists(retired));
+        Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-retired-*"));
+    }
+
+    [Fact]
     public async Task PageImageExportRefusesAmbiguousInterruptedReplacementWithRecoveryDetails() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
@@ -389,6 +412,39 @@ public sealed class OfficeOutputWorkflowTests {
             Assert.True(placement.SlotX + placement.SlotWidth <= sheet.PaperSize.Width);
             Assert.True(placement.SlotY + placement.SlotHeight <= sheet.PaperSize.Height);
         });
+    }
+
+    [Fact]
+    public async Task AssemblyBoundsNormalizedDocumentsBeforeMergeAndPublication() {
+        using var scope = new TestDirectory();
+        string first = CreatePdf(scope.Path, "first.pdf", new string('A', 1024));
+        string second = CreatePdf(scope.Path, "second.pdf", new string('B', 1024));
+        string output = Path.Combine(scope.Path, "bounded.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [first, second],
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 256L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("while it was being serialized", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void PrintPlannerObservesCancellationBeforeInspectingTheSource() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "cancel-print-plan.pdf", "Cancelled");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfPrintPlanner.Create(
+            new PdfPrintPlanRequest { InputPath = input },
+            cancellation.Token));
     }
 
     private static string CreatePdf(string root, string fileName, params string[] pages) {

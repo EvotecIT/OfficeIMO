@@ -119,6 +119,7 @@
     <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
   </ItemGroup>
 
@@ -226,6 +227,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Word.OpenDocument" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Workflows" />
     <TrimmerRootAssembly Include="OfficeIMO.Zip" />
   </ItemGroup>
 </Project>
