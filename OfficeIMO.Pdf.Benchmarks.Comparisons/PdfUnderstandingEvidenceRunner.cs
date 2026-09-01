@@ -8,7 +8,8 @@ internal static class PdfUnderstandingEvidenceRunner {
         PdfBenchmarkScale scale = ParseScale(ReadOption(args, "--scale") ?? "Medium");
         PdfUnderstandingBenchmarkCorpus corpus = PdfUnderstandingBenchmarkCorpusFactory.Create(scale);
         PdfDocument document = PdfDocument.Load(corpus.Pdf);
-        PdfDocumentReadResult structured = document.Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
+        PdfDocumentReadResult structured = document.Read(
+            PdfUnderstandingBenchmarkReadOptions.Create(PdfReadProfile.Structured, corpus.Pages.Count));
         PdfSemanticCorrectnessObservation correctness = PdfUnderstandingBenchmarkValidation.Evaluate(structured, corpus);
         PdfStructuredReadObservation structure = PdfUnderstandingBenchmarkValidation.Observe(structured);
         PdfUnderstandingBenchmarkValidation.RequireDeterministicQuality(correctness);

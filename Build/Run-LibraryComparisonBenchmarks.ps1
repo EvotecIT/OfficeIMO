@@ -465,7 +465,7 @@ $definitions = [ordered]@{
     }
     pdfstructuredread = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
-        Filter = '*PdfStructuredReadBenchmarks*'
+        Filter = '*PdfStructuredRead*Benchmarks*'
         ComparisonId = "officeimo-pdf-read-profile-route-health-$Framework"
         Suite = 'OfficeIMO.Pdf.ReadProfileRouteHealth'
         CatalogEligible = $false

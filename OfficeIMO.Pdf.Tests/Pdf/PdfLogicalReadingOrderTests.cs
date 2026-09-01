@@ -193,6 +193,8 @@ public sealed class PdfLogicalReadingOrderTests {
             UseSharedPageReadingOrder = true
         });
         AssertArtifactSequence(html, header, "First page body marker.", footer);
+        Assert.Contains("<header class=\"pdf-header\">" + header + "</header>", html, StringComparison.Ordinal);
+        Assert.Contains("<footer class=\"pdf-footer\">" + footer + "</footer>", html, StringComparison.Ordinal);
 
         byte[] odt = logical.ToOdtDocument().ToBytes();
         AssertArtifactSequence(ReadOpenDocumentText(odt), header, "First page body marker.", footer);

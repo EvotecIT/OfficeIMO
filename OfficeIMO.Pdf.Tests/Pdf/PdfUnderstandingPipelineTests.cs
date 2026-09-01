@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Html.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 using System.Threading;
@@ -250,7 +251,9 @@ public class PdfUnderstandingPipelineTests {
         PdfUnderstandingPipelineOptions options = PdfUnderstandingPipelineOptions.Structured();
         options.GlyphDecoding = glyphs;
 
-        PdfUnderstandingPageResult page = Assert.Single(Read(pdf, options).Pages).Analysis;
+        PdfDocumentReadResult result = Read(pdf, options);
+        PdfLogicalPage logicalPage = Assert.Single(result.Pages);
+        PdfUnderstandingPageResult page = logicalPage.Analysis;
 
         Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footer);
         Assert.DoesNotContain(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Table);
@@ -258,6 +261,15 @@ public class PdfUnderstandingPipelineTests {
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Paragraph && element.Region.Text.Contains("Item Amount", StringComparison.Ordinal));
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Caption);
         Assert.Contains(page.Elements, element => element.Kind == PdfUnderstandingSemanticKind.Footnote);
+
+        Assert.Equal("Quarterly report", Assert.Single(logicalPage.Headers).Text);
+        Assert.Equal("Figure 1. Revenue by region", Assert.Single(logicalPage.Captions).Text);
+        Assert.Equal("1 Audited values exclude pending adjustments.", Assert.Single(logicalPage.Footnotes).Text);
+
+        string html = result.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic });
+        Assert.Contains("<header class=\"pdf-header\">Quarterly report</header>", html, StringComparison.Ordinal);
+        Assert.Contains("<figure class=\"pdf-caption\"><figcaption>Figure 1. Revenue by region</figcaption></figure>", html, StringComparison.Ordinal);
+        Assert.Contains("<aside class=\"pdf-footnote\" role=\"doc-footnote\">1 Audited values exclude pending adjustments.</aside>", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1281,6 +1293,26 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void LogicalProjection_PreservesWrappedTaggedHeadingAtBodyFontSize() {
+        PdfDocumentReadResult result = PdfDocument.Load(CreateWrappedTaggedHeadingPdf()).Read();
+        PdfLogicalPage page = Assert.Single(result.Pages);
+
+        Assert.Equal(2, page.Headings.Count);
+        Assert.All(page.TextBlocks.Where(static block =>
+                block.Text is "Wrapped tagged" or "heading title"),
+            static block => Assert.Equal(PdfLogicalElementKind.Heading, block.Kind));
+        Assert.All(page.Headings, static heading => {
+            Assert.Equal(2, heading.Level);
+            Assert.Contains(heading.Evidence, static evidence => evidence.Code == "semantic.tagged-pdf-role");
+        });
+        Assert.NotEmpty(result.Sections);
+
+        string html = result.ToHtml(new PdfHtmlSaveOptions { Profile = PdfHtmlProfile.Semantic });
+        Assert.Contains("<h2>Wrapped tagged</h2>", html, StringComparison.Ordinal);
+        Assert.Contains("<h2>heading title</h2>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StructuredRead_IgnoresInvalidTaggedHeadingLevels() {
         byte[] pdf = CreateInvalidTaggedHeadingPdf();
 
@@ -1939,6 +1971,26 @@ public class PdfUnderstandingPipelineTests {
             "<< /Type /StructTreeRoot /K [7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 1 >>",
             "<< /Type /StructElem /S /H0 /P 6 0 R /Pg 3 0 R /K 0 >>",
             "<< /Nums [0 [7 0 R]] >>");
+    }
+
+    private static byte[] CreateWrappedTaggedHeadingPdf() {
+        string content = "/Span << /MCID 0 >> BDC\n" +
+            "BT /F1 12 Tf 72 700 Td (Wrapped tagged) Tj ET\nEMC\n" +
+            "/Span << /MCID 1 >> BDC\n" +
+            "BT /F1 12 Tf 72 680 Td (heading title) Tj ET\nEMC\n" +
+            "/P << /MCID 2 >> BDC\n" +
+            "BT /F1 12 Tf 72 640 Td (Body paragraph) Tj ET\nEMC\n";
+        return BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R /StructTreeRoot 6 0 R /MarkInfo << /Marked true >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /StructParents 0 " +
+                "/Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty, content),
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "<< /Type /StructTreeRoot /K [7 0 R 8 0 R] /ParentTree 9 0 R /ParentTreeNextKey 1 >>",
+            "<< /Type /StructElem /S /H2 /P 6 0 R /Pg 3 0 R /K [0 1] >>",
+            "<< /Type /StructElem /S /P /P 6 0 R /Pg 3 0 R /K 2 >>",
+            "<< /Nums [0 [7 0 R 7 0 R 8 0 R]] >>");
     }
 
     private static byte[] CreateNestedTaggedHeadingPdf() {

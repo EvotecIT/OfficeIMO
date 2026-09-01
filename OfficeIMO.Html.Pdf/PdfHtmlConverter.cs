@@ -815,8 +815,19 @@ public static partial class PdfHtmlConverterExtensions {
                 continue;
             }
 
-            items.Add(new HtmlItem(block.BaselineY, block.XStart, sequence++, "<p>" + HtmlText(block.Text) + "</p>", GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i)));
+            items.Add(new HtmlItem(block.BaselineY, block.XStart, sequence++, RenderSemanticTextBlock(block), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i)));
         }
+    }
+
+    private static string RenderSemanticTextBlock(PdfCore.PdfLogicalTextBlock block) {
+        string text = HtmlText(block.Text);
+        return block.Kind switch {
+            PdfCore.PdfLogicalElementKind.Header => "<header class=\"pdf-header\">" + text + "</header>",
+            PdfCore.PdfLogicalElementKind.Footer => "<footer class=\"pdf-footer\">" + text + "</footer>",
+            PdfCore.PdfLogicalElementKind.Caption => "<figure class=\"pdf-caption\"><figcaption>" + text + "</figcaption></figure>",
+            PdfCore.PdfLogicalElementKind.Footnote => "<aside class=\"pdf-footnote\" role=\"doc-footnote\">" + text + "</aside>",
+            _ => "<p>" + text + "</p>"
+        };
     }
 
     private static bool IsTextBlockRepresented(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalPage page) {

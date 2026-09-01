@@ -72,7 +72,7 @@ $pdfStructuredRead = @(
     & $runner -Workload pdfstructuredread -RunMode quick -PlanOnly
 )
 if ($pdfStructuredRead.Count -ne 1 -or
-    $pdfStructuredRead[0].Filter -ne '*PdfStructuredReadBenchmarks*' -or
+    $pdfStructuredRead[0].Filter -ne '*PdfStructuredRead*Benchmarks*' -or
     $pdfStructuredRead[0].ComparisonId -ne 'officeimo-pdf-read-profile-route-health-net10.0' -or
     $pdfStructuredRead[0].ExpectedCaseCount -ne 6 -or
     $pdfStructuredRead[0].CatalogEligible) {

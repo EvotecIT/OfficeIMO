@@ -727,6 +727,7 @@ public sealed partial class PdfLogicalPage {
     };
 
     private static bool SupportsRegionHeadingProjection(PdfUnderstandingSemanticElement semantic, StructuredLine line) {
+        if (HasExplicitStructuralEvidence(semantic)) return true;
         if (semantic.Region.Lines.Count == 1) return true;
         double[] sizes = semantic.Region.Lines.Select(static candidate => candidate.FontSize).OrderBy(static size => size).ToArray();
         double median = sizes[sizes.Length / 2];
