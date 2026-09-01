@@ -405,6 +405,82 @@ public class PdfOcrTests {
         Assert.True(result.HasAcceptedOcrContent);
     }
 
+    [Fact]
+    public async Task MakeSearchableAsync_WritesGeometryAlignedInvisibleTextWithoutVisualChanges() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Searchable", 42, 160, 88, 14),
+            At(request, "document", 138, 160, 70, 14),
+            At(request, "Zażółć", 42, 200, 58, 14)
+        }, provider: "fixture", model: "fixture-v1", language: "eng"));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        byte[] searchable = result.Document.ToBytes();
+
+        Assert.True(result.WasModified);
+        Assert.Equal(3, result.AddedWordCount);
+        Assert.Equal(new[] { 1 }, result.ModifiedPages);
+        Assert.Contains("Searchable document", PdfReadDocument.Open(searchable).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Zażółć", PdfReadDocument.Open(searchable).ExtractText(), StringComparison.Ordinal);
+        PdfPageInteractionMap interactions = PdfPageInteractionMap.Create(
+            searchable,
+            1,
+            new PdfPageInteractionOptions { IncludeInvisibleText = true });
+        PdfPageInteractionRegion[] word = interactions.TextRegions.Take("Searchable".Length).ToArray();
+        Assert.Equal("Searchable", string.Concat(word.Select(static region => region.Text)));
+        Assert.Equal(42D, word[0].Quad.Left, 2);
+        Assert.Equal(88D, word[^1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
+        Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
+        Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_LeavesDocumentUnchangedWhenNoWordsAreAccepted() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Already searchable")).ToBytes();
+        var provider = new StubOcrProvider(_ => new PdfOcrResponse(Array.Empty<PdfOcrWord>()));
+        PdfDocument document = PdfDocument.Load(source);
+
+        PdfSearchableOcrResult result = await document.Ocr.MakeSearchableAsync(provider);
+
+        Assert.False(result.WasModified);
+        Assert.Equal(0, result.AddedWordCount);
+        Assert.Empty(result.ModifiedPages);
+        Assert.Same(document, result.Document);
+        Assert.Equal(source, result.Document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(90)]
+    [InlineData(180)]
+    [InlineData(270)]
+    public async Task MakeSearchableAsync_PreservesVisualCoordinatesAcrossCropAndRotation(int rotation) {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        source = PdfPageEditor.SetCropBox(source, 20, 40, 500, 700);
+        source = PdfPageEditor.RotatePages(source, rotation);
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Rotated", 24, 180, 64, 12)
+        }));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        PdfPageInteractionMap interactions = PdfPageInteractionMap.Create(
+            result.Document.ToBytes(),
+            1,
+            new PdfPageInteractionOptions { IncludeInvisibleText = true });
+        PdfPageInteractionRegion[] word = interactions.TextRegions.ToArray();
+
+        Assert.Equal("Rotated", string.Concat(word.Select(static region => region.Text)));
+        Assert.Equal(24D, word[0].Quad.Left, 2);
+        Assert.Equal(180D, word[0].Quad.Top, 2);
+        Assert.Equal(64D, word[^1].Quad.Right - word[0].Quad.Left, 2);
+        Assert.True(PdfVisualComparer.Compare(source, result.Document.ToBytes()).IsMatch);
+    }
+
     private static PdfOcrWord At(PdfOcrRequest request, string text, double x, double y, double width, double height, double confidence = 0.95D) =>
         new PdfOcrWord(text, x * request.Scale, y * request.Scale, width * request.Scale, height * request.Scale, confidence);
 

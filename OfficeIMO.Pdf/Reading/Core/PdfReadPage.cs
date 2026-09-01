@@ -97,7 +97,7 @@ public sealed partial class PdfReadPage {
     internal IReadOnlyList<PdfTextSpan> GetInteractionTextSpans() {
         _demandTextExtraction?.Invoke();
         (double Width, double Height) size = GetVisualPageSize();
-        return GetVisualTextSpans(size.Height, GetVisualPageTransform());
+        return GetVisualTextSpans(size.Height, GetVisualPageTransform(), useLogicalTextFilters: true);
     }
 
     private PdfPageBox GetPageBoundaryBox() {
