@@ -56,7 +56,10 @@ public sealed class PdfOcrResponse {
         Model = NormalizeMetadata(model, nameof(model));
         Language = NormalizeMetadata(language, nameof(language));
     }
-    /// <summary>Recognized words in pixel coordinates from the top-left.</summary>
+    /// <summary>
+    /// Recognized words in the provider's logical reading sequence, with pixel coordinates from the top-left.
+    /// Preserve logical sequence for right-to-left and mixed-direction text; OfficeIMO uses geometry separately.
+    /// </summary>
     public IReadOnlyList<PdfOcrWord> Words { get; }
     /// <summary>Provider diagnostics retained in the merge report.</summary>
     public IReadOnlyList<string> Diagnostics { get; }

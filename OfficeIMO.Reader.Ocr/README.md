@@ -2,11 +2,7 @@
 
 `OfficeIMO.Reader.Ocr` is the one-call facade for local image OCR and searchable PDFs. It uses the engine-neutral Reader contracts, the optional Tesseract CLI provider, and the OfficeIMO.Pdf 3.3 rendering and mutation pipeline.
 
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Reader.Ocr
-```
+## Runtime prerequisite
 
 Install Tesseract once with the operating-system package manager. The facade discovers common installations and `PATH` automatically:
 

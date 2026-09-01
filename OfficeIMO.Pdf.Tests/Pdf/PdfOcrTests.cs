@@ -354,7 +354,7 @@ public class PdfOcrTests {
             .ToBytes();
         PdfDocumentReadResult native = PdfDocumentReadResult.Load(pdf);
         PdfRecognizedWord[] words = Enumerable.Range(0, 50_000)
-            .Select(static _ => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D))
+            .Select(static index => new PdfRecognizedWord("x", 30, 50, 1, 10, 0.99D, index))
             .ToArray();
         var pageMerge = new PdfOcrPageMergeResult(1, words, 0, 0, Array.Empty<string>(), string.Empty);
         var timer = System.Diagnostics.Stopwatch.StartNew();
@@ -469,6 +469,34 @@ public class PdfOcrTests {
         Assert.Empty(PdfPageInteractionMap.Create(searchable, 1).TextRegions);
         Assert.True(PdfVisualComparer.Compare(source, searchable).IsMatch);
         Assert.Equal("fixture", result.Ocr.Pages[0].Provider);
+    }
+
+    [Fact]
+    public async Task MakeSearchableAsync_PreservesProviderLogicalOrderForRightToLeftWords() {
+        byte[] source = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "שלום", 150, 160, 48, 14),
+            At(request, "עולם", 100, 160, 42, 14)
+        }, diagnostics: null, provider: "fixture", model: "fixture-v1", language: "heb"));
+
+        PdfSearchableOcrResult result = await PdfDocument.Load(source).Ocr.MakeSearchableAsync(provider);
+        byte[] searchable = result.Document.ToBytes();
+
+        Assert.Contains("שלום עולם", result.Ocr.Pages[0].Text, StringComparison.Ordinal);
+        Assert.Contains(result.Ocr.EnrichedDocument.TextBlocks,
+            block => block.SourceKind == PdfLogicalContentSourceKind.Ocr && block.Text == "שלום עולם");
+        string decodedContent = string.Join(
+            Environment.NewLine,
+            PdfDocument.Load(searchable).Debug(new PdfDebuggerOptions {
+                IncludeDecodedStreamPreviews = true,
+                MaxDecodedStreamPreviewBytes = 64 * 1024
+            }).Objects.Select(static item => item.DecodedStreamPreview ?? string.Empty));
+        int firstWord = decodedContent.IndexOf(PdfSyntaxEscaper.TextString("שלום"), StringComparison.Ordinal);
+        int secondWord = decodedContent.IndexOf(PdfSyntaxEscaper.TextString("עולם"), StringComparison.Ordinal);
+        Assert.True(firstWord >= 0, "The searchable layer did not contain the first logical word.");
+        Assert.True(secondWord > firstWord, "The searchable layer reversed the provider's right-to-left logical word sequence.");
     }
 
     [Fact]

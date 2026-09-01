@@ -92,7 +92,7 @@ internal static class PdfOcr {
                 continue;
             }
 
-            var normalized = new PdfRecognizedWord(word.Text, word.X / request.Scale, word.Y / request.Scale, word.Width / request.Scale, word.Height / request.Scale, word.Confidence);
+            var normalized = new PdfRecognizedWord(word.Text, word.X / request.Scale, word.Y / request.Scale, word.Width / request.Scale, word.Height / request.Scale, word.Confidence, i);
             if (OverlapsNativeText(
                     normalized,
                     nativeTextBounds,
@@ -111,7 +111,7 @@ internal static class PdfOcr {
             int y = left.Y.CompareTo(right.Y);
             return y != 0 ? y : left.X.CompareTo(right.X);
         });
-        string text = BuildMergedText(nativePage, readPage, accepted, options.MaxMergedTextCharactersPerPage);
+        string text = BuildMergedText(nativePage, readPage, accepted, options.MaxMergedTextCharactersPerPage, cancellationToken);
         return new PdfOcrPageMergeResult(nativePage.PageNumber, accepted.AsReadOnly(), lowConfidence, nativeOverlap, diagnostics.AsReadOnly(), text, response.Provider, response.Model, response.Language);
     }
 
@@ -143,8 +143,14 @@ internal static class PdfOcr {
         return false;
     }
 
-    private static string BuildMergedText(PdfLogicalPage page, PdfReadPage readPage, List<PdfRecognizedWord> words, int maximumCharacters) {
-        var items = new List<(double Y, double X, string Text)>(page.TextBlocks.Count + words.Count);
+    private static string BuildMergedText(
+        PdfLogicalPage page,
+        PdfReadPage readPage,
+        List<PdfRecognizedWord> words,
+        int maximumCharacters,
+        CancellationToken cancellationToken) {
+        IReadOnlyList<PdfOcrLogicalTextLine> ocrLines = PdfOcrLogicalDocumentBuilder.BuildTextLines(words, cancellationToken);
+        var items = new List<(double Y, double X, string Text)>(page.TextBlocks.Count + ocrLines.Count);
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfLogicalTextBlock block = page.TextBlocks[i];
             double blockHeight = Math.Max(block.FontSize, 1D);
@@ -156,7 +162,7 @@ internal static class PdfOcr {
             items.Add((bounds.Top, bounds.Left, block.Text));
         }
 
-        for (int i = 0; i < words.Count; i++) items.Add((words[i].Y, words[i].X, words[i].Text));
+        for (int i = 0; i < ocrLines.Count; i++) items.Add((ocrLines[i].Top, ocrLines[i].Left, ocrLines[i].Text));
         var builder = new System.Text.StringBuilder(Math.Min(maximumCharacters, 4096));
         foreach ((double _, double _, string text) in items.OrderBy(static item => item.Y).ThenBy(static item => item.X)) {
             int separatorLength = builder.Length == 0 ? 0 : Environment.NewLine.Length;

@@ -135,14 +135,6 @@ New-BenchmarkSuite 'officeimo-ocr-engine-comparison' {
         param($case, $run)
         $run.CharacterErrorRate
     }
-    Add-BenchmarkMetric RecognizedRegions {
-        param($case, $run)
-        @($run.Recognition.words).Count
-    }
-    Add-BenchmarkMetric MeanConfidence {
-        param($case, $run)
-        (@($run.Recognition.words) | Measure-Object confidence -Average).Average
-    }
     Add-BenchmarkMetric InstalledMiB {
         param($case, $run)
         $run.FootprintMiB

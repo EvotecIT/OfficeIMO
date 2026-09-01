@@ -62,8 +62,9 @@ public sealed class PdfDocumentOcr {
             (canvas, context) => {
                 cancellationToken.ThrowIfCancellationRequested();
                 IReadOnlyList<PdfRecognizedWord> words = wordsByPage[context.PageNumber];
-                for (int i = 0; i < words.Count; i++) {
-                    PdfRecognizedWord word = words[i];
+                IReadOnlyList<PdfRecognizedWord> logicalWords = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(words, cancellationToken);
+                for (int i = 0; i < logicalWords.Count; i++) {
+                    PdfRecognizedWord word = logicalWords[i];
                     canvas.SearchableText(word.Text, word.X, word.Y, word.Width, word.Height);
                 }
             },

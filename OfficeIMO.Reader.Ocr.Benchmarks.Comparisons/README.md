@@ -24,7 +24,7 @@ The checked-in evidence is from 2026-09-01 on Windows with Ubuntu 24.04.3 under 
 | Dense table | 571 ms / 0.000 | 6.16 s / 0.010 | RapidOCR added one digit |
 | Low contrast and 1.8-degree skew | 488 ms / 0.000 | 6.03 s / 0.000 | Both exact |
 
-The footprint recorded for the isolated test payload was 25.32 MiB for the extracted Tesseract packages and language data, versus 425.02 MiB for RapidOCR, ONNX Runtime, Python dependencies, and models. This is not a universal benchmark: persistent neural inference or GPU execution changes the latency profile, and a broader real-scan corpus is required before selecting a neural provider for a particular product.
+The footprint recorded for the isolated test payload was 25.32 MiB for the extracted Tesseract packages and language data, versus 425.02 MiB for RapidOCR, ONNX Runtime, Python dependencies, and models. Region counts and confidence scores are intentionally omitted from cross-engine results because the pinned Tesseract lane emits word geometry while RapidOCR emits line geometry, and their confidence contracts are engine-specific. This is not a universal benchmark: persistent neural inference or GPU execution changes the latency profile, and a broader real-scan corpus is required before selecting a neural provider for a particular product.
 
 ## Run
 

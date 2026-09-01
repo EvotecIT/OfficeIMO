@@ -23,11 +23,11 @@
     }
   },
   "results": [
-    { "case": "clean-english", "engine": "Tesseract", "medianMs": 571.3, "characterErrorRate": 0.0, "recognizedRegions": 15, "meanConfidence": 0.9589 },
-    { "case": "clean-english", "engine": "RapidOCR", "medianMs": 6466.7, "characterErrorRate": 0.0, "recognizedRegions": 4, "meanConfidence": 0.9913 },
-    { "case": "dense-table", "engine": "Tesseract", "medianMs": 570.7, "characterErrorRate": 0.0, "recognizedRegions": 22, "meanConfidence": 0.9453 },
-    { "case": "dense-table", "engine": "RapidOCR", "medianMs": 6164.4, "characterErrorRate": 0.0104, "recognizedRegions": 18, "meanConfidence": 0.9988 },
-    { "case": "low-contrast-skew", "engine": "Tesseract", "medianMs": 488.0, "characterErrorRate": 0.0, "recognizedRegions": 12, "meanConfidence": 0.9565 },
-    { "case": "low-contrast-skew", "engine": "RapidOCR", "medianMs": 6025.5, "characterErrorRate": 0.0, "recognizedRegions": 3, "meanConfidence": 0.9871 }
+    { "case": "clean-english", "engine": "Tesseract", "medianMs": 571.3, "characterErrorRate": 0.0 },
+    { "case": "clean-english", "engine": "RapidOCR", "medianMs": 6466.7, "characterErrorRate": 0.0 },
+    { "case": "dense-table", "engine": "Tesseract", "medianMs": 570.7, "characterErrorRate": 0.0 },
+    { "case": "dense-table", "engine": "RapidOCR", "medianMs": 6164.4, "characterErrorRate": 0.0104 },
+    { "case": "low-contrast-skew", "engine": "Tesseract", "medianMs": 488.0, "characterErrorRate": 0.0 },
+    { "case": "low-contrast-skew", "engine": "RapidOCR", "medianMs": 6025.5, "characterErrorRate": 0.0 }
   ]
 }
