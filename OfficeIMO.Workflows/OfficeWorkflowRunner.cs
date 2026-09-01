@@ -449,9 +449,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             if (!string.Equals(Path.GetExtension(outputPath), NormalizeExtension(route.TargetExtension), StringComparison.OrdinalIgnoreCase)) {
                 throw new ArgumentException($"Route '{route.Id}' requires a '{NormalizeExtension(route.TargetExtension)}' output.", nameof(request));
             }
-            if (route.Id == "html-pdf" && request.OutputProfile != OfficeWorkflowOutputProfile.Faithful) {
+            if ((route.Id == "html-pdf" || route.Id.StartsWith("pdf-", StringComparison.Ordinal)) &&
+                request.OutputProfile != OfficeWorkflowOutputProfile.Faithful) {
                 throw new ArgumentException(
-                    "The html-pdf route currently supports only the Faithful output profile.",
+                    $"The {route.Id} route currently supports only the Faithful output profile.",
                     nameof(request));
             }
         } else if (request.Operation == OfficeWorkflowOperation.Compare) {
@@ -532,7 +533,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     try {
                         File.Move(stagingPath, candidate, overwrite: false);
                         return candidate;
-                    } catch (IOException) when (File.Exists(candidate)) {
+                    } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
                         // Another request owns this candidate. Try the next deterministic suffix.
                     }
                 }

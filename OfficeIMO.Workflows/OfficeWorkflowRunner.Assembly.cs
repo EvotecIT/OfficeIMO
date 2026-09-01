@@ -108,7 +108,7 @@ public sealed partial class OfficeWorkflowRunner {
             long stagedOutputBytes = new FileInfo(stagingPath).Length;
 
             Report(progress, validated.Id, "validate-output", "Reopening the assembled PDF", 0.84D);
-            PdfDocumentInfo info = PdfDocument.Load(stagingPath).Inspect();
+            PdfDocumentInfo info = PdfDocument.Load(stagingPath, validated.PdfLoadOptions).Inspect();
             pageCount = info.PageCount;
             if (pageCount < 1) throw new InvalidOperationException("The assembled PDF has no pages.");
             diagnostics.Add(new OfficeWorkflowDiagnostic(

@@ -144,7 +144,18 @@ public static class PdfPrintPlanner {
     public static async Task<PdfPrintPlan> CreateAsync(
         PdfPrintPlanRequest request,
         CancellationToken cancellationToken = default) {
+        return await CreateAsync(
+            request,
+            static (path, options, token) => PdfDocument.LoadAsync(path, options, token),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async Task<PdfPrintPlan> CreateAsync(
+        PdfPrintPlanRequest request,
+        Func<string, PdfLoadOptions, CancellationToken, Task<PdfDocument>> loadDocument,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(loadDocument);
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         if (request.PagesPerSheet is not 1 and not 2 and not 4) throw new ArgumentOutOfRangeException(nameof(request.PagesPerSheet));
@@ -154,16 +165,26 @@ public static class PdfPrintPlanner {
         if (!Enum.IsDefined(request.Orientation)) throw new ArgumentOutOfRangeException(nameof(request.Orientation));
         if (!Enum.IsDefined(request.ScaleMode)) throw new ArgumentOutOfRangeException(nameof(request.ScaleMode));
 
-        PdfDocument document = await PdfDocument.LoadAsync(
+        var validated = new ValidatedPrintPlanRequest(
             Path.GetFullPath(request.InputPath),
-            new PdfLoadOptions { Password = request.PdfPassword },
+            request.Pages,
+            request.PaperSize,
+            request.Orientation,
+            request.PagesPerSheet,
+            request.Margin,
+            request.ScaleMode,
+            request.PdfPassword);
+
+        PdfDocument document = await loadDocument(
+            validated.InputPath,
+            new PdfLoadOptions { Password = validated.PdfPassword },
             cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = document.Inspect(options: null, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        int[] pages = string.IsNullOrWhiteSpace(request.Pages)
+        int[] pages = string.IsNullOrWhiteSpace(validated.Pages)
             ? Enumerable.Range(1, info.PageCount).ToArray()
-            : PdfPageSelector.Parse(request.Pages)
+            : PdfPageSelector.Parse(validated.Pages)
                 .ResolveSelection(info.PageCount)
                 .Ranges
                 .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))
@@ -171,18 +192,18 @@ public static class PdfPrintPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         if (pages.Length == 0) throw new ArgumentException("The page selection is empty.", nameof(request));
 
-        var sheets = new List<PdfPrintSheet>((pages.Length + request.PagesPerSheet - 1) / request.PagesPerSheet);
-        for (int offset = 0; offset < pages.Length; offset += request.PagesPerSheet) {
+        var sheets = new List<PdfPrintSheet>((pages.Length + validated.PagesPerSheet - 1) / validated.PagesPerSheet);
+        for (int offset = 0; offset < pages.Length; offset += validated.PagesPerSheet) {
             cancellationToken.ThrowIfCancellationRequested();
-            int count = Math.Min(request.PagesPerSheet, pages.Length - offset);
+            int count = Math.Min(validated.PagesPerSheet, pages.Length - offset);
             PdfPageInfo firstPage = info.Pages[pages[offset] - 1];
             (double firstPageWidth, double firstPageHeight) = GetVisualPageSize(firstPage);
-            PageSize paper = ResolvePaper(request, firstPageWidth > firstPageHeight);
-            if (paper.Width <= request.Margin * 2D || paper.Height <= request.Margin * 2D) {
+            PageSize paper = ResolvePaper(validated, firstPageWidth > firstPageHeight);
+            if (paper.Width <= validated.Margin * 2D || paper.Height <= validated.Margin * 2D) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
             IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(
-                request,
+                validated,
                 info,
                 pages,
                 offset,
@@ -194,14 +215,14 @@ public static class PdfPrintPlanner {
         return new PdfPrintPlan(info.PageCount, pages, sheets);
     }
 
-    private static PageSize ResolvePaper(PdfPrintPlanRequest request, bool sourceLandscape) => request.Orientation switch {
+    private static PageSize ResolvePaper(ValidatedPrintPlanRequest request, bool sourceLandscape) => request.Orientation switch {
         PdfPrintOrientation.Portrait => request.PaperSize.Portrait(),
         PdfPrintOrientation.Landscape => request.PaperSize.Landscape(),
         _ => sourceLandscape ? request.PaperSize.Landscape() : request.PaperSize.Portrait()
     };
 
     private static IReadOnlyList<PdfPrintPlacement> CreatePlacements(
-        PdfPrintPlanRequest request,
+        ValidatedPrintPlanRequest request,
         PdfDocumentInfo info,
         IReadOnlyList<int> pages,
         int offset,
@@ -252,8 +273,19 @@ public static class PdfPrintPlanner {
 
     private static (double Width, double Height) GetVisualPageSize(PdfPageInfo page) {
         int rotation = ((page.RotationDegrees % 360) + 360) % 360;
+        double userUnit = page.UserUnit is double scale && scale > 0D && double.IsFinite(scale) ? scale : 1D;
         return rotation is 90 or 270
-            ? (page.Height, page.Width)
-            : (page.Width, page.Height);
+            ? (page.Height * userUnit, page.Width * userUnit)
+            : (page.Width * userUnit, page.Height * userUnit);
     }
+
+    private sealed record ValidatedPrintPlanRequest(
+        string InputPath,
+        string? Pages,
+        PageSize PaperSize,
+        PdfPrintOrientation Orientation,
+        int PagesPerSheet,
+        double Margin,
+        PdfPrintScaleMode ScaleMode,
+        string? PdfPassword);
 }

@@ -137,6 +137,8 @@ namespace OfficeIMO.Excel.Pdf {
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) {
             try {
                 return document.ToPdfDocumentResult(options).TrySave(path);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -154,6 +156,8 @@ namespace OfficeIMO.Excel.Pdf {
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) {
             try {
                 return document.ToPdfDocumentResult(options).TrySave(stream);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
@@ -190,7 +194,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return await document.ToPdfDocumentResult(options)
                     .TrySaveAsync(path, cancellationToken)
                     .ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
@@ -208,7 +212,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return await document.ToPdfDocumentResult(options)
                     .TrySaveAsync(stream, cancellationToken)
                     .ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);

@@ -86,6 +86,7 @@ public sealed class PdfPageInteractionMap {
         for (int i = 0; i < placements.Count; i++) {
             PdfImagePlacement placement = placements[i];
             PdfSelectionQuad quad = FromImagePlacement(page, placement, originX, originY, pageHeight);
+            if (!TryApplyImageClip(page, placement, pageHeight, ref quad)) continue;
             if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) continue;
             if (emitted >= options.MaxImageRegions) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxImageRegions, emitted + 1L);
@@ -330,6 +331,48 @@ public sealed class PdfPageInteractionMap {
             ToTopLeft(topRight, pageHeight),
             ToTopLeft(bottomRight, pageHeight),
             ToTopLeft(bottomLeft, pageHeight));
+    }
+
+    private static bool TryApplyImageClip(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        double pageHeight,
+        ref PdfSelectionQuad quad) {
+        PdfImageClipInfo? clip = placement.Clip;
+        if (clip is null) return true;
+        if (!clip.IsRectangle || !clip.IsExact || clip.Width <= 0D || clip.Height <= 0D) return false;
+        double sourceHeight = page.GetPageSize().Height;
+        if (!TryFromUserRectangle(
+                page,
+                clip.X,
+                sourceHeight - (clip.Y + clip.Height),
+                clip.X + clip.Width,
+                sourceHeight - clip.Y,
+                pageHeight,
+                out PdfSelectionQuad? clipQuad)) {
+            return false;
+        }
+
+        const double tolerance = 0.001D;
+        if (clipQuad!.Left <= quad.Left + tolerance &&
+            clipQuad.Top <= quad.Top + tolerance &&
+            clipQuad.Right >= quad.Right - tolerance &&
+            clipQuad.Bottom >= quad.Bottom - tolerance) {
+            return true;
+        }
+        if (!placement.IsAxisAligned) return false;
+
+        double left = Math.Max(quad.Left, clipQuad.Left);
+        double top = Math.Max(quad.Top, clipQuad.Top);
+        double right = Math.Min(quad.Right, clipQuad.Right);
+        double bottom = Math.Min(quad.Bottom, clipQuad.Bottom);
+        if (right <= left || bottom <= top) return false;
+        quad = new PdfSelectionQuad(
+            new PdfSelectionPoint(left, top),
+            new PdfSelectionPoint(right, top),
+            new PdfSelectionPoint(right, bottom),
+            new PdfSelectionPoint(left, bottom));
+        return true;
     }
 
     private static PdfSelectionPoint ToTopLeft((double X, double Y) point, double pageHeight) =>

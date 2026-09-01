@@ -88,7 +88,7 @@ internal static partial class PdfTextEditor {
         ValidateFinite(deltaX, nameof(deltaX));
         ValidateFinite(deltaY, nameof(deltaY));
         TextSearchHit hit = ResolveHit(pdf, match, readOptions);
-        PdfTextSpan[] targetSpans = hit.LineSpans.Distinct().ToArray();
+        PdfTextSpan[] targetSpans = hit.Segments.Select(static segment => segment.Span).Distinct().ToArray();
         EnsureAppendOrderIsSafe(pdf, hit.PageNumber, targetSpans, readOptions);
 
         PageSpanKey[] keys = targetSpans.Select(span => new PageSpanKey(hit.PageNumber, span)).ToArray();

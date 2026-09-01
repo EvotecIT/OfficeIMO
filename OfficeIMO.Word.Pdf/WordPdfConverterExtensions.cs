@@ -71,6 +71,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return document.ToPdfDocumentResult(options).TrySave(path);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -117,6 +119,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return result;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
@@ -179,7 +183,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return await document.ToPdfDocumentResult(options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
@@ -232,7 +236,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return result;
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);

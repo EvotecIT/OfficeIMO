@@ -100,6 +100,8 @@ public static partial class PowerPointPdfConverterExtensions {
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) {
         try {
             return presentation.ToPdfDocumentResult(options).TrySave(path);
+        } catch (OperationCanceledException) {
+            throw;
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
@@ -117,6 +119,8 @@ public static partial class PowerPointPdfConverterExtensions {
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) {
         try {
             return presentation.ToPdfDocumentResult(options).TrySave(stream);
+        } catch (OperationCanceledException) {
+            throw;
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
@@ -153,7 +157,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return await presentation.ToPdfDocumentResult(options)
                 .TrySaveAsync(path, cancellationToken)
                 .ConfigureAwait(false);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
@@ -171,7 +175,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return await presentation.ToPdfDocumentResult(options)
                 .TrySaveAsync(stream, cancellationToken)
                 .ConfigureAwait(false);
-        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);

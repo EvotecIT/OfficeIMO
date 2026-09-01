@@ -120,4 +120,17 @@ public partial class Word {
             }
         }
     }
+
+    [Fact]
+    public async Task TrySaveAsPdf_PropagatesCancellationFromOptions() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Option cancellation");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        var options = new WordPdfSaveOptions { CancellationToken = cancellation.Token };
+
+        Assert.ThrowsAny<OperationCanceledException>(() => document.TrySaveAsPdf(new MemoryStream(), options));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            document.TrySaveAsPdfAsync(new MemoryStream(), options));
+    }
 }

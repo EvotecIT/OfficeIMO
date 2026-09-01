@@ -194,6 +194,30 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task SingleEncryptedPdfAssemblyReusesItsPasswordDuringValidation() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "encrypted.pdf");
+        await File.WriteAllBytesAsync(
+            input,
+            PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected assembly"))))),
+                new PdfOptions().SetEncryption("open", "owner"))
+                .ToBytes());
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [input],
+            OutputPath = output,
+            PdfPassword = "open",
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(1, result.PageCount);
+        Assert.True(PdfDocument.Load(output, new PdfLoadOptions { Password = "open" }).Inspect().Security.HasEncryption);
+    }
+
+    [Fact]
     public async Task AssemblyRejectsUnsupportedOutputProfileForDiscoveredHtmlSource() {
         using var scope = new TestDirectory();
         string folder = Path.Combine(scope.Path, "sources");
@@ -506,6 +530,72 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.True(placement.Width > placement.Height);
         Assert.True(placement.X + placement.Width <= sheet.PaperSize.Width + 0.01D);
         Assert.True(placement.Y + placement.Height <= sheet.PaperSize.Height + 0.01D);
+    }
+
+    [Fact]
+    public void PrintPlannerAppliesUserUnitToActualPhysicalPageSize() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "user-unit.pdf");
+        File.WriteAllBytes(input, System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /UserUnit 2 /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        })));
+
+        PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+            InputPath = input,
+            PaperSize = new PageSize(1000D, 1000D),
+            Orientation = PdfPrintOrientation.Portrait,
+            ScaleMode = PdfPrintScaleMode.ActualSize,
+            Margin = 0D
+        });
+
+        PdfPrintPlacement placement = Assert.Single(Assert.Single(plan.Sheets).Placements);
+        Assert.Equal(600D, placement.Width, 3);
+        Assert.Equal(600D, placement.Height, 3);
+        Assert.Equal(1D, placement.Scale, 3);
+    }
+
+    [Fact]
+    public async Task PrintPlannerSnapshotsMutableRequestBeforeLoadingTheDocument() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "snapshot.pdf", "One", "Two", "Three", "Four");
+        var request = new PdfPrintPlanRequest {
+            InputPath = input,
+            PagesPerSheet = 2,
+            PaperSize = PageSizes.A4,
+            Orientation = PdfPrintOrientation.Portrait,
+            ScaleMode = PdfPrintScaleMode.Fit,
+            Margin = 18D
+        };
+        var loadStarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseLoad = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task<PdfPrintPlan> pending = PdfPrintPlanner.CreateAsync(
+            request,
+            async (path, options, cancellationToken) => {
+                loadStarted.TrySetResult();
+                await releaseLoad.Task.WaitAsync(cancellationToken);
+                return await PdfDocument.LoadAsync(path, options, cancellationToken);
+            });
+        await loadStarted.Task;
+        request.PagesPerSheet = 3;
+        request.Margin = double.NaN;
+        releaseLoad.TrySetResult();
+
+        PdfPrintPlan plan = await pending;
+
+        Assert.Equal(2, plan.Sheets.Count);
+        Assert.All(plan.Sheets, sheet => Assert.Equal(2, sheet.Placements.Count));
+        Assert.All(plan.Sheets.SelectMany(static sheet => sheet.Placements), placement => {
+            Assert.True(double.IsFinite(placement.X));
+            Assert.True(double.IsFinite(placement.Y));
+            Assert.True(double.IsFinite(placement.Width));
+            Assert.True(double.IsFinite(placement.Height));
+        });
     }
 
     [Fact]

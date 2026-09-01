@@ -94,6 +94,30 @@ public sealed class OfficeWorkflowRunnerTests {
             diagnostic.Message.Contains("supports only the Faithful output profile", StringComparison.Ordinal));
     }
 
+    [Theory]
+    [InlineData("pdf-docx")]
+    [InlineData("pdf-xlsx")]
+    [InlineData("pdf-pptx")]
+    [InlineData("pdf-html")]
+    public async Task PdfImportRoutesRejectOutputProfilesTheyCannotHonor(string routeId) {
+        using var scope = new TestDirectory();
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
+        string input = CreateInput(scope.Path, routeId);
+        string output = System.IO.Path.Combine(scope.Path, "unsupported" + NormalizeExtension(route.TargetExtension));
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = routeId,
+            InputPath = input,
+            OutputPath = output,
+            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("supports only the Faithful output profile", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
     [Fact]
     public async Task CancellationDuringActiveHtmlConversionStopsBeforePublication() {
         using var scope = new TestDirectory();
@@ -189,6 +213,22 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(replaced.Succeeded, replaced.Summary);
         Assert.NotEqual("existing", await File.ReadAllTextAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task RenamePolicySkipsARequestedPathOccupiedByADirectory() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = System.IO.Path.Combine(scope.Path, "optimized.pdf");
+        Directory.CreateDirectory(output);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(
+            Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(System.IO.Path.Combine(scope.Path, "optimized (1).pdf"), result.OutputPath);
+        Assert.True(Directory.Exists(output));
+        Assert.True(File.Exists(result.OutputPath));
     }
 
     [Fact]

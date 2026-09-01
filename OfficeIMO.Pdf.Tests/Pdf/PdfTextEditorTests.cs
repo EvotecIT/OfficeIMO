@@ -192,6 +192,27 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void LocatedOccurrenceMoveLeavesIndependentSameBaselineSpanUntouched() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (target) Tj ET\n" +
+            "BT /F2 20 Tf 350 700 Td (neighbor) Tj ET\n");
+        PdfDocument original = PdfDocument.Load(source);
+        PdfTextMatch target = Assert.Single(original.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch neighborBefore = Assert.Single(original.Text.Find("neighbor", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult moved = original.Text.Move(target, 12D, -4D);
+        PdfTextMatch targetAfter = Assert.Single(moved.Document.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch neighborAfter = Assert.Single(moved.Document.Text.Find("neighbor", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Equal(target.X + 12D, targetAfter.X, 2);
+        Assert.Equal(target.Y - 4D, targetAfter.Y, 2);
+        Assert.Equal(neighborBefore.X, neighborAfter.X, 2);
+        Assert.Equal(neighborBefore.Y, neighborAfter.Y, 2);
+        Assert.Equal(PdfStandardFont.Courier, neighborAfter.SuggestedFont);
+        Assert.Equal(20D, neighborAfter.FontSize, 2);
+    }
+
+    [Fact]
     public void ReplaceAllKeepsSameBaselineColumnsSeparateAndUsesMatchedSpanStyle() {
         byte[] source = BuildRawTextPdf(
             "BT /F1 12 Tf 50 700 Td (left cat) Tj ET\n" +
