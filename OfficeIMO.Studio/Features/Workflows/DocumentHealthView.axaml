@@ -1,0 +1,157 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.DocumentHealthView"
+             x:DataType="shell:MainWindowViewModel">
+  <Grid x:Name="WorkspaceGrid" ColumnDefinitions="286,*,320" RowDefinitions="*,64"
+        Background="{DynamicResource StudioWindowBrush}">
+    <Border Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18" Spacing="10">
+          <TextBlock Classes="eyebrow" Text="HEALTH OPERATION" />
+          <TextBlock Classes="sectionTitle" Text="Choose what to inspect" />
+          <TextBlock Classes="muted" Text="Nothing changes until you run the selected operation."
+                     TextWrapping="Wrap" FontSize="11" />
+
+          <TextBlock Text="Operation" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <ComboBox ItemsSource="{Binding DocumentHealth.Operations}"
+                    SelectedItem="{Binding DocumentHealth.SelectedOperation, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="workflow:HealthOperationChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding DocumentHealth.SelectedOperation.Description}"
+                     TextWrapping="Wrap" FontSize="11" />
+
+          <TextBlock Text="PDF" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBox Text="{Binding DocumentHealth.InputPath, Mode=TwoWay}" PlaceholderText="Choose a PDF" />
+          <Button Classes="tool" Content="Choose PDF" Command="{Binding DocumentHealth.ChooseInputCommand}"
+                  HorizontalAlignment="Left" />
+
+          <StackPanel IsVisible="{Binding DocumentHealth.NeedsComparison}" Spacing="7">
+            <TextBlock Text="Compare with" FontWeight="SemiBold" Margin="0,7,0,0" />
+            <TextBox Text="{Binding DocumentHealth.ComparisonPath, Mode=TwoWay}"
+                     PlaceholderText="Choose the second PDF" />
+            <Button Classes="tool" Content="Choose comparison PDF"
+                    Command="{Binding DocumentHealth.ChooseComparisonCommand}" HorizontalAlignment="Left" />
+          </StackPanel>
+
+          <StackPanel IsVisible="{Binding DocumentHealth.ShowsOptimizationProfile}" Spacing="7">
+            <TextBlock Text="Optimization profile" FontWeight="SemiBold" Margin="0,7,0,0" />
+            <ComboBox ItemsSource="{Binding DocumentHealth.Profiles}"
+                      SelectedItem="{Binding DocumentHealth.SelectedProfile, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:WorkflowProfileChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <TextBlock Classes="muted" Text="{Binding DocumentHealth.SelectedProfile.Description}"
+                       TextWrapping="Wrap" FontSize="11" />
+          </StackPanel>
+
+          <TextBlock Text="Password (if required)" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBox Text="{Binding DocumentHealth.PdfPassword, Mode=TwoWay}" PasswordChar="●" />
+          <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBox Text="{Binding DocumentHealth.OutputFolder, Mode=TwoWay}"
+                   PlaceholderText="Use the source folder" />
+          <Button Classes="tool" Content="Choose folder" Command="{Binding DocumentHealth.ChooseOutputFolderCommand}"
+                  HorizontalAlignment="Left" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+      <StackPanel Margin="22" Spacing="14">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel>
+            <TextBlock Classes="eyebrow" Text="RESULT" />
+            <TextBlock Classes="sectionTitle" Text="Evidence report" Margin="0,4,0,0" />
+          </StackPanel>
+          <Border Grid.Column="1" Background="{DynamicResource StudioAccentSoftBrush}"
+                  CornerRadius="10" Padding="12,7" VerticalAlignment="Center">
+            <TextBlock Text="{Binding DocumentHealth.Status}" Foreground="{DynamicResource StudioAccentBrush}"
+                       FontWeight="SemiBold" />
+          </Border>
+        </Grid>
+
+        <Border Classes="card">
+          <TextBlock Text="{Binding DocumentHealth.Summary}" FontSize="14" TextWrapping="Wrap" />
+        </Border>
+
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="eyebrow" Text="BEFORE" />
+              <TextBlock Text="{Binding DocumentHealth.BeforeSummary}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+          <Border Grid.Column="1" Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="eyebrow" Text="AFTER" />
+              <TextBlock Text="{Binding DocumentHealth.AfterSummary}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <Border Classes="card">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="sectionTitle" Text="Operation evidence" />
+            <ItemsControl ItemsSource="{Binding DocumentHealth.Metrics}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate><TextBlock Text="{Binding}" Margin="0,3" TextWrapping="Wrap" /></DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Classes="muted" FontSize="11" TextWrapping="Wrap"
+                       Text="A saved artifact is published only after format-specific reopen validation succeeds." />
+          </StackPanel>
+        </Border>
+
+        <Border IsVisible="{Binding DocumentHealth.HasOutput}"
+                Background="{DynamicResource StudioSuccessSoftBrush}"
+                BorderBrush="{DynamicResource StudioSuccessBrush}" BorderThickness="1"
+                CornerRadius="11" Padding="15">
+          <StackPanel Spacing="5">
+            <TextBlock Text="Published artifact" Foreground="{DynamicResource StudioSuccessBrush}"
+                       FontWeight="SemiBold" />
+            <TextBlock Text="{Binding DocumentHealth.OutputPath}" TextWrapping="Wrap" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
+    <Border x:Name="DetailsPanel" Grid.Column="2" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18" Spacing="11">
+          <TextBlock Classes="eyebrow" Text="DETAILS" />
+          <TextBlock Classes="sectionTitle" Text="Diagnostics" />
+          <TextBlock Classes="muted" Text="Structured messages from the selected operation appear here."
+                     TextWrapping="Wrap" FontSize="11" />
+          <ItemsControl ItemsSource="{Binding DocumentHealth.Diagnostics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="7" Padding="10" Margin="0,2">
+                  <TextBlock Text="{Binding}" TextWrapping="Wrap" FontSize="11" />
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="1" Grid.ColumnSpan="3" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,220,Auto,Auto" Margin="18,12">
+        <TextBlock Text="{Binding DocumentHealth.Status}" VerticalAlignment="Center" />
+        <ProgressBar Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding DocumentHealth.ProgressFraction}"
+                     Height="7" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Classes="primary" Content="Run operation"
+                Command="{Binding DocumentHealth.RunCommand}" Margin="14,0,0,0" />
+        <Button Grid.Column="3" Classes="tool" Content="Cancel" Command="{Binding DocumentHealth.CancelCommand}"
+                IsEnabled="{Binding DocumentHealth.CanCancel}" Margin="7,0,0,0" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

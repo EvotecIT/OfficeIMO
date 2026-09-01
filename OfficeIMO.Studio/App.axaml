@@ -6,28 +6,48 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="StudioWindowBrush" Color="#F4F6F9" />
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#F5F7FB" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#E9EDF3" />
-          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#DCE1E8" />
-          <SolidColorBrush x:Key="StudioBorderBrush" Color="#D5DAE2" />
-          <SolidColorBrush x:Key="StudioTextBrush" Color="#172033" />
-          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#667085" />
-          <SolidColorBrush x:Key="StudioAccentBrush" Color="#356AE6" />
-          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#E8EFFF" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#EEF2F8" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#E9EDF4" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#111827" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#AEB8CA" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#263758" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#DCE2EC" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#111827" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#64748B" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#4F67E8" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#4057D3" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#EEF0FF" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#16845B" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#E5F7EF" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#A15C07" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#FFF4DD" />
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#B42318" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#FEE4E2" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="StudioWindowBrush" Color="#10141C" />
-          <SolidColorBrush x:Key="StudioPanelBrush" Color="#171C26" />
-          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#202735" />
-          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#0B0E14" />
-          <SolidColorBrush x:Key="StudioBorderBrush" Color="#2C3443" />
-          <SolidColorBrush x:Key="StudioTextBrush" Color="#F1F4F9" />
-          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#98A2B3" />
-          <SolidColorBrush x:Key="StudioAccentBrush" Color="#7AA2FF" />
-          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#243557" />
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#0D111B" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#151B27" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#1B2332" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#202A3A" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#090D15" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#090D15" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#8F9AAF" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#222D48" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#293345" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#F4F7FB" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#93A0B5" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#8296FF" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#98A8FF" />
+          <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#0B1020" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#252F50" />
+          <SolidColorBrush x:Key="StudioSuccessBrush" Color="#6ED7AC" />
+          <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#173B31" />
+          <SolidColorBrush x:Key="StudioWarningBrush" Color="#F1C46B" />
+          <SolidColorBrush x:Key="StudioWarningSoftBrush" Color="#49391B" />
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#FDA29B" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#4A1D1F" />
         </ResourceDictionary>
@@ -42,14 +62,95 @@
       <Setter Property="MinWidth" Value="36" />
       <Setter Property="Height" Value="34" />
       <Setter Property="Padding" Value="10,4" />
-      <Setter Property="CornerRadius" Value="6" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
     </Style>
 
     <Style Selector="Button.primary">
       <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
-      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
       <Setter Property="Padding" Value="18,9" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" />
+    </Style>
+
+    <Style Selector="Button.ghost">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+
+    <Style Selector="Button.cardAction">
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="16" />
+    </Style>
+
+    <Style Selector="RadioButton.nav">
+      <Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="12,10" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+
+    <Style Selector="RadioButton.nav:checked">
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" />
+    </Style>
+
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="18" />
+    </Style>
+
+    <Style Selector="TextBlock.pageTitle">
+      <Setter Property="FontSize" Value="24" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.sectionTitle">
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style Selector="TextBlock.eyebrow">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" />
+    </Style>
+
+    <Style Selector="TextBox">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
       <Setter Property="CornerRadius" Value="7" />
+    </Style>
+
+    <Style Selector="ComboBox">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+      <Setter Property="CornerRadius" Value="7" />
+    </Style>
+
+    <Style Selector="TabItem">
+      <Setter Property="Padding" Value="12,9" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="FontSize" Value="11" />
     </Style>
   </Application.Styles>
 </Application>

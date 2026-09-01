@@ -199,6 +199,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 candidateRenderCoordinator,
                 candidatePages,
                 candidateOrganizerPages);
+            WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
             installed = true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             // A newer open request, document close, or application shutdown superseded this operation.

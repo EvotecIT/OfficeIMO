@@ -196,6 +196,8 @@ public sealed class MainWindowViewModelTests {
 
         Assert.True(viewModel.HasDocument);
         Assert.False(viewModel.IsEmpty);
+        Assert.True(viewModel.IsPdfWorkspaceMode);
+        Assert.False(viewModel.IsHomeMode);
         Assert.Equal(System.IO.Path.GetFileName(fixture), viewModel.DocumentName);
         Assert.NotEmpty(viewModel.Pages);
         Assert.Same(viewModel.Pages[0], viewModel.SelectedPage);
@@ -212,6 +214,7 @@ public sealed class MainWindowViewModelTests {
 
         Assert.False(viewModel.HasDocument);
         Assert.True(viewModel.IsEmpty);
+        Assert.True(viewModel.IsHomeMode);
         Assert.True(viewModel.HasError);
         Assert.Contains("no longer exists", viewModel.ErrorMessage, StringComparison.OrdinalIgnoreCase);
 

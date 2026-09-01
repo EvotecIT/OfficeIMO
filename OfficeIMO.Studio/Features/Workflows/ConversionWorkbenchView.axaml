@@ -1,0 +1,181 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
+             x:Class="OfficeIMO.Studio.Features.Workflows.ConversionWorkbenchView"
+             x:DataType="shell:MainWindowViewModel">
+  <Grid x:Name="WorkspaceGrid" ColumnDefinitions="270,*,300" RowDefinitions="*,64"
+        Background="{DynamicResource StudioWindowBrush}">
+    <Border Grid.Column="0" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="18" Spacing="12">
+          <TextBlock Classes="eyebrow" Text="CONVERSION SETUP" />
+          <TextBlock Classes="sectionTitle" Text="Choose the result" />
+
+          <TextBlock Text="Route" FontWeight="SemiBold" Margin="0,6,0,0" />
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.Routes}"
+                    SelectedItem="{Binding ConversionWorkbench.SelectedRoute, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="workflow:ConversionRouteChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedRoute.Description}"
+                     FontSize="11" TextWrapping="Wrap" />
+
+          <TextBlock Text="Output profile" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.Profiles}"
+                    SelectedItem="{Binding ConversionWorkbench.SelectedProfile, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="workflow:WorkflowProfileChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedProfile.Description}"
+                     FontSize="11" TextWrapping="Wrap" />
+
+          <TextBlock Text="If a file exists" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <ComboBox ItemsSource="{Binding ConversionWorkbench.ConflictPolicies}"
+                    SelectedItem="{Binding ConversionWorkbench.SelectedConflict, Mode=TwoWay}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="workflow:WorkflowConflictChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedConflict.Description}"
+                     FontSize="11" TextWrapping="Wrap" />
+
+          <TextBlock Text="Output folder" FontWeight="SemiBold" Margin="0,7,0,0" />
+          <TextBox Text="{Binding ConversionWorkbench.OutputFolder, Mode=TwoWay}"
+                   PlaceholderText="Use each source folder" />
+          <Button Classes="tool" Content="Choose folder"
+                  Command="{Binding ConversionWorkbench.ChooseOutputFolderCommand}"
+                  HorizontalAlignment="Left" />
+        </StackPanel>
+      </ScrollViewer>
+    </Border>
+
+    <Grid Grid.Column="1" RowDefinitions="68,*" Margin="18,0">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <StackPanel>
+          <TextBlock Classes="sectionTitle" Text="Conversion queue" />
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.QueueSummary}" FontSize="11" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7">
+          <Button Classes="primary" Content="Add files" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+          <Button Classes="tool" Content="Remove" Command="{Binding ConversionWorkbench.RemoveSelectedCommand}" />
+          <Button Classes="tool" Content="Clear" Command="{Binding ConversionWorkbench.ClearQueueCommand}" />
+        </StackPanel>
+      </Grid>
+
+      <Border Grid.Row="1" Classes="card" Padding="0" ClipToBounds="True">
+        <Grid>
+          <Border IsVisible="{Binding !ConversionWorkbench.HasJobs}" Padding="36">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="360">
+              <Border Width="58" Height="58" CornerRadius="16" Background="{DynamicResource StudioAccentSoftBrush}">
+                <TextBlock Text="⇄" FontSize="26" Foreground="{DynamicResource StudioAccentBrush}"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <TextBlock Text="Build your conversion queue" FontSize="18" FontWeight="SemiBold"
+                         HorizontalAlignment="Center" />
+              <TextBlock Classes="muted" Text="Add one or more matching files. The selected route, profile, and conflict policy apply to the queue."
+                         TextAlignment="Center" TextWrapping="Wrap" />
+              <Button Classes="primary" Content="Add files" Command="{Binding ConversionWorkbench.AddFilesCommand}" />
+            </StackPanel>
+          </Border>
+
+          <Grid IsVisible="{Binding ConversionWorkbench.HasJobs}" RowDefinitions="42,*">
+            <Grid Background="{DynamicResource StudioPanelMutedBrush}" ColumnDefinitions="2.2*,1.2*,1.25*,1.1*">
+              <TextBlock Text="FILE" Classes="eyebrow" Margin="12,0,0,0" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="ROUTE" Classes="eyebrow" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="2" Text="STATUS" Classes="eyebrow" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="3" Text="PROGRESS" Classes="eyebrow" VerticalAlignment="Center" />
+            </Grid>
+            <ListBox Grid.Row="1" ItemsSource="{Binding ConversionWorkbench.Jobs}"
+                     SelectedItem="{Binding ConversionWorkbench.SelectedJob, Mode=TwoWay}"
+                     BorderThickness="0" Background="Transparent">
+              <ListBox.ItemContainerTheme>
+                <ControlTheme TargetType="ListBoxItem">
+                  <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                  <Setter Property="Padding" Value="0" />
+                </ControlTheme>
+              </ListBox.ItemContainerTheme>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="workflow:ConversionJobViewModel">
+                  <Grid ColumnDefinitions="2.2*,1.2*,1.25*,1.1*" Margin="12,11">
+                    <StackPanel>
+                      <TextBlock Text="{Binding FileName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Classes="muted" Text="{Binding InputPath}" FontSize="10" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding RouteLabel}" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding Status}" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <ProgressBar Grid.Column="3" Minimum="0" Maximum="1" Value="{Binding ProgressFraction}"
+                                 Height="7" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <Border x:Name="DetailsPanel" Grid.Column="2" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1,0,0,0">
+      <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+          <StackPanel IsVisible="{Binding ConversionWorkbench.HasJobs}" Margin="18" Spacing="11">
+          <TextBlock Classes="eyebrow" Text="SELECTED JOB" />
+          <TextBlock Classes="sectionTitle" Text="Details and fidelity" />
+          <Border Height="1" Background="{DynamicResource StudioBorderBrush}" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Route.Description}" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Fidelity}"
+                     Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold" />
+          <TextBlock Text="Engine" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Engine}" FontFamily="Consolas,Menlo,monospace" />
+          <TextBlock Text="Known limitations" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.KnownLimitations}" TextWrapping="Wrap" />
+          <TextBlock Text="Result" Classes="muted" FontSize="11" Margin="0,5,0,0" />
+          <TextBlock Text="{Binding ConversionWorkbench.SelectedJob.Summary}" TextWrapping="Wrap" />
+          <TextBlock Classes="muted" Text="{Binding ConversionWorkbench.SelectedJob.OutputPath}"
+                     FontSize="10" TextWrapping="Wrap" />
+          <ItemsControl ItemsSource="{Binding ConversionWorkbench.SelectedJob.Diagnostics}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Background="{DynamicResource StudioAccentSoftBrush}" CornerRadius="7" Padding="9" Margin="0,2">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Code}" FontWeight="SemiBold" FontSize="11" />
+                    <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="11" />
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+          </StackPanel>
+          <StackPanel IsVisible="{Binding !ConversionWorkbench.HasJobs}"
+                      Margin="22" Spacing="9" VerticalAlignment="Center">
+            <Border Width="42" Height="42" CornerRadius="12" HorizontalAlignment="Left"
+                    Background="{DynamicResource StudioPanelMutedBrush}">
+              <TextBlock Text="i" FontWeight="Bold" Foreground="{DynamicResource StudioMutedTextBrush}"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <TextBlock Classes="sectionTitle" Text="No job selected" />
+            <TextBlock Classes="muted" TextWrapping="Wrap"
+                       Text="Add files to see route fidelity, engine details, diagnostics, and the published result." />
+          </StackPanel>
+        </Grid>
+      </ScrollViewer>
+    </Border>
+
+    <Border Grid.Row="1" Grid.ColumnSpan="3" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0">
+      <Grid ColumnDefinitions="*,220,Auto,Auto" Margin="18,12">
+        <TextBlock Text="{Binding ConversionWorkbench.Status}" VerticalAlignment="Center" />
+        <ProgressBar Grid.Column="1" Minimum="0" Maximum="1" Value="{Binding ConversionWorkbench.ProgressFraction}"
+                     Height="7" VerticalAlignment="Center" />
+        <Button Grid.Column="2" Classes="primary" Content="Run queue"
+                Command="{Binding ConversionWorkbench.RunQueueCommand}" Margin="14,0,0,0" />
+        <Button Grid.Column="3" Classes="tool" Content="Cancel" Command="{Binding ConversionWorkbench.CancelCommand}"
+                IsEnabled="{Binding ConversionWorkbench.CanCancel}" Margin="7,0,0,0" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

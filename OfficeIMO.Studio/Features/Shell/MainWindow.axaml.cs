@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
+using Avalonia.Styling;
 using OfficeIMO.Studio.Features.Organizer;
 
 namespace OfficeIMO.Studio.Features.Shell;
@@ -32,6 +33,7 @@ public sealed partial class MainWindow : Window {
             pickWorkflowFiles: PickWorkflowFilesAsync);
         DataContext = ViewModel;
 
+        SizeChanged += OnWindowSizeChanged;
         AddHandler(DragDrop.DragOverEvent, OnDragOver);
         AddHandler(DragDrop.DropEvent, OnDrop);
         PagesList.SizeChanged += (_, _) =>
@@ -58,6 +60,34 @@ public sealed partial class MainWindow : Window {
     }
 
     internal MainWindowViewModel ViewModel { get; }
+
+    internal bool IsCompactLayout { get; private set; }
+
+    internal bool AreFitShortcutsVisible => FitWidthButton.IsVisible && FitPageButton.IsVisible;
+
+    internal bool IsConversionCompact => ConversionView.IsCompactLayout;
+
+    internal bool IsDocumentHealthCompact => DocumentHealthView.IsCompactLayout;
+
+    private void OnWindowSizeChanged(object? sender, SizeChangedEventArgs e) => ApplyResponsiveLayout(e.NewSize.Width);
+
+    internal void ApplyResponsiveLayout(double width) {
+        IsCompactLayout = width < 1180D;
+        DocumentNameText.MaxWidth = IsCompactLayout ? 150D : 230D;
+        SelectedPagePositionText.MinWidth = IsCompactLayout ? 78D : 110D;
+        FitWidthButton.IsVisible = !IsCompactLayout;
+        FitPageButton.IsVisible = !IsCompactLayout;
+        double workspaceWidth = Math.Max(0D, width - 204D);
+        ConversionView.ApplyResponsiveLayout(workspaceWidth);
+        DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
+    }
+
+    private void OnToggleThemeClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e) {
+        if (Application.Current is not { } application) return;
+        application.RequestedThemeVariant = application.ActualThemeVariant == ThemeVariant.Dark
+            ? ThemeVariant.Light
+            : ThemeVariant.Dark;
+    }
 
     internal void OpenInitialDocument(string[]? args) {
         string? candidate = args?.FirstOrDefault(static argument => !string.IsNullOrWhiteSpace(argument));

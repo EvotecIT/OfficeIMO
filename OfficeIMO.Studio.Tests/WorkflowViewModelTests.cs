@@ -7,10 +7,13 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class WorkflowViewModelTests {
     [Fact]
-    public void ShellSwitchesBetweenReaderConversionAndHealthWithoutChangingDocumentState() {
+    public void ShellSwitchesBetweenHomeReaderConversionAndHealthWithoutChangingDocumentState() {
         using var viewModel = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
 
+        Assert.True(viewModel.IsHomeMode);
+        viewModel.ShowPdfWorkspaceCommand.Execute(null);
         Assert.True(viewModel.IsPdfWorkspaceMode);
+        Assert.False(viewModel.IsHomeMode);
         viewModel.ShowConversionWorkbenchCommand.Execute(null);
         Assert.True(viewModel.IsConversionMode);
         Assert.False(viewModel.IsPdfWorkspaceMode);
@@ -19,6 +22,8 @@ public sealed class WorkflowViewModelTests {
         viewModel.ShowPdfWorkspaceCommand.Execute(null);
         Assert.True(viewModel.IsPdfWorkspaceMode);
         Assert.False(viewModel.HasDocument);
+        viewModel.ShowHomeCommand.Execute(null);
+        Assert.True(viewModel.IsHomeMode);
     }
 
     [Fact]

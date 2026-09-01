@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Home.HomeView"
+             x:DataType="shell:MainWindowViewModel">
+  <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid Margin="24" RowDefinitions="Auto,Auto,*" RowSpacing="18" MaxWidth="1220"
+          HorizontalAlignment="Stretch">
+      <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+        <StackPanel>
+          <TextBlock Classes="eyebrow" Text="QUICK TOOLS" />
+          <TextBlock Classes="sectionTitle" Text="What would you like to do?" Margin="0,5,0,0" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Classes="muted" Text="Choose a workspace to get started"
+                   VerticalAlignment="Bottom" />
+      </Grid>
+
+      <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="12">
+        <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPdfWorkspaceCommand}"
+                AutomationProperties.Name="Work with PDFs">
+          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
+            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioAccentSoftBrush}">
+              <TextBlock Text="PDF" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="Bold"
+                         HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="Work with PDFs" FontWeight="SemiBold" FontSize="14" />
+              <TextBlock Classes="muted" Text="Read, organize, annotate, fill forms, and redact."
+                         TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
+          </Grid>
+        </Button>
+        <Button Grid.Column="1" Classes="cardAction" Command="{Binding ShowConversionWorkbenchCommand}"
+                AutomationProperties.Name="Convert files">
+          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
+            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioSuccessSoftBrush}">
+              <TextBlock Text="⇄" Foreground="{DynamicResource StudioSuccessBrush}" FontSize="20"
+                         FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="Convert files" FontWeight="SemiBold" FontSize="14" />
+              <TextBlock Classes="muted" Text="Queue conversions with clear profiles and results."
+                         TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
+          </Grid>
+        </Button>
+        <Button Grid.Column="2" Classes="cardAction" Command="{Binding ShowDocumentHealthCommand}"
+                AutomationProperties.Name="Check document health">
+          <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
+            <Border Width="44" Height="44" CornerRadius="11" Background="{DynamicResource StudioWarningSoftBrush}">
+              <TextBlock Text="◇" Foreground="{DynamicResource StudioWarningBrush}" FontSize="20"
+                         FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Border>
+            <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+              <TextBlock Text="Check document health" FontWeight="SemiBold" FontSize="14" />
+              <TextBlock Classes="muted" Text="Inspect and repair with before-and-after evidence."
+                         TextWrapping="Wrap" FontSize="11" />
+            </StackPanel>
+          </Grid>
+        </Button>
+      </Grid>
+
+      <Grid Grid.Row="2" ColumnDefinitions="1.45*,*" ColumnSpacing="14">
+        <Border Classes="card" Grid.Column="0">
+          <Grid RowDefinitions="Auto,*,Auto">
+            <StackPanel>
+              <TextBlock Classes="eyebrow" Text="GET STARTED" />
+              <TextBlock Classes="sectionTitle" Text="Open a document and keep control" Margin="0,5,0,0" />
+              <TextBlock Classes="muted" Margin="0,7,0,0" TextWrapping="Wrap"
+                         Text="Choose a PDF to enter the full workspace, or start with a focused tool above." />
+            </StackPanel>
+            <StackPanel Grid.Row="1" Margin="0,18,0,16" Spacing="10">
+              <Grid ColumnDefinitions="32,*">
+                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
+                  <TextBlock Text="1" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Open or drop a PDF anywhere in the window." VerticalAlignment="Center" />
+              </Grid>
+              <Grid ColumnDefinitions="32,*">
+                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
+                  <TextBlock Text="2" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Use Reader, Organizer, Edit, Forms, Search, and Security tools."
+                           VerticalAlignment="Center" TextWrapping="Wrap" />
+              </Grid>
+              <Grid ColumnDefinitions="32,*">
+                <Border Width="26" Height="26" CornerRadius="13" Background="{DynamicResource StudioAccentSoftBrush}">
+                  <TextBlock Text="3" Foreground="{DynamicResource StudioAccentBrush}" FontWeight="SemiBold"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Save only when the result is exactly what you expect."
+                           VerticalAlignment="Center" TextWrapping="Wrap" />
+              </Grid>
+            </StackPanel>
+            <Button Grid.Row="2" Classes="primary" Command="{Binding OpenCommand}"
+                    IsEnabled="{Binding CanStartDocumentTransition}" Content="Choose a PDF"
+                    HorizontalAlignment="Left" />
+          </Grid>
+        </Border>
+
+        <StackPanel Grid.Column="1" Spacing="14">
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="eyebrow" Text="BUILT FOR REAL WORK" />
+              <TextBlock Classes="sectionTitle" Text="One clear workspace" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="Tools stay grouped by task, results stay visible, and every destructive operation remains explicit." />
+            </StackPanel>
+          </Border>
+          <Border Classes="card">
+            <StackPanel Spacing="8">
+              <TextBlock Classes="eyebrow" Text="TIP" />
+              <TextBlock Classes="sectionTitle" Text="Drop files to move faster" />
+              <TextBlock Classes="muted" TextWrapping="Wrap"
+                         Text="Drag a PDF onto the application to open it directly in the workspace." />
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </Grid>
+    </Grid>
+  </ScrollViewer>
+</UserControl>

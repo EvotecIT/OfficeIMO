@@ -6,6 +6,7 @@ using System.ComponentModel;
 namespace OfficeIMO.Studio.Features.Shell;
 
 public enum StudioWorkspaceMode {
+    Home,
     PdfWorkspace,
     Convert,
     DocumentHealth
@@ -13,6 +14,7 @@ public enum StudioWorkspaceMode {
 
 public sealed partial class MainWindowViewModel {
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsHomeMode))]
     [NotifyPropertyChangedFor(nameof(IsPdfWorkspaceMode))]
     [NotifyPropertyChangedFor(nameof(IsConversionMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
@@ -23,10 +25,14 @@ public sealed partial class MainWindowViewModel {
 
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
+    public bool IsHomeMode => WorkspaceMode == StudioWorkspaceMode.Home;
     public bool IsPdfWorkspaceMode => WorkspaceMode == StudioWorkspaceMode.PdfWorkspace;
     public bool ShowPdfDocumentControls => IsPdfWorkspaceMode && HasDocument;
     public bool IsConversionMode => WorkspaceMode == StudioWorkspaceMode.Convert;
     public bool IsDocumentHealthMode => WorkspaceMode == StudioWorkspaceMode.DocumentHealth;
+
+    [RelayCommand]
+    private void ShowHome() => WorkspaceMode = StudioWorkspaceMode.Home;
 
     [RelayCommand]
     private void ShowPdfWorkspace() => WorkspaceMode = StudioWorkspaceMode.PdfWorkspace;
