@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(documentId, 1,
                 Message(ReferenceField(2, showId)), new[] { showId }),
             ArchiveRecord(showId, 2,
-                Message(BytesField(3, slideTree)), new[] { nodeId }),
+                KeynoteShow(slideTree), new[] { nodeId }),
             ArchiveRecord(nodeId, 4, Message()));
         return CreatePackage(("Index/Slide.iwa", FrameIwa(records)));
     }

@@ -10,8 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_nodes_with_multiple_slide_references_are_incomplete() {
         byte[] records = Message(
             ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
-            ArchiveRecord(2, 2, Message(BytesField(3,
-                Message(ReferenceField(2, 3))))),
+            ArchiveRecord(2, 2, KeynoteShow(Message(ReferenceField(2, 3)))),
             ArchiveRecord(3, 4, Message(ReferenceField(2, 4), ReferenceField(2, 5))),
             ArchiveRecord(4, 5, Message()),
             ArchiveRecord(5, 5, Message()));

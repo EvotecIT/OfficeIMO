@@ -157,9 +157,12 @@ internal static class IWorkNumbersReader {
                     sheetRecord.EntryPath, sheetRecord.Identifier));
                 continue;
             }
+            int drawableReferenceCount;
             try {
-                IWorkProtobuf.CountFields(sheetRecord.Payload, 2, int.MaxValue);
-            } catch (InvalidDataException) {
+                drawableReferenceCount = IWorkProtobuf.CountFields(
+                    sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
+            } catch (InvalidDataException exception)
+                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_SHEET_MALFORMED",
@@ -167,8 +170,6 @@ internal static class IWorkNumbersReader {
                     sheetRecord.EntryPath, sheetRecord.Identifier));
                 continue;
             }
-            int drawableReferenceCount = IWorkProtobuf.CountFields(
-                sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
             projectionBudget.AddDrawableReferences(drawableReferenceCount);
             var tables = new List<IWorkTable>();
@@ -201,6 +202,12 @@ internal static class IWorkNumbersReader {
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                         out bool drawableComplete);
+                    IWorkWireMessage? storageOwner = null;
+                    try {
+                        storageOwner = index.Message(drawable);
+                    } catch (InvalidDataException) {
+                        drawableComplete = false;
+                    }
                     bool geometryComplete = true;
                     if (drawableMessage != null) {
                         IWorkDrawingReader.ReadGeometry(drawableMessage, out geometryComplete,
@@ -222,15 +229,22 @@ internal static class IWorkNumbersReader {
                                 drawable.EntryPath, drawable.Identifier));
                         }
                     }
-                    IWorkWireMessage storageOwner = index.Message(drawable);
-                    bool storageReferenceComplete = storageOwner.FieldCount(2) == 1
+                    bool storageReferenceComplete = storageOwner != null
+                        && storageOwner.FieldCount(2) == 1
                         && !storageOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
                     IWorkArchiveRecord? storage = storageReferenceComplete
-                        ? index.Dereference(storageOwner, 2)
+                        ? index.Dereference(storageOwner!, 2)
                         : null;
                     if (storage != null && storage.MessageType == TextStorageArchive) {
-                        string text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
-                            out bool textComplete);
+                        string text;
+                        bool textComplete;
+                        try {
+                            text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
+                                out textComplete);
+                        } catch (InvalidDataException) {
+                            text = string.Empty;
+                            textComplete = false;
+                        }
                         if (!textComplete) {
                             supportsEditableReconstruction = false;
                             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED")) {

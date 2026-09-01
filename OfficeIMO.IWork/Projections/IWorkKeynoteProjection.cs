@@ -638,7 +638,10 @@ internal static class IWorkKeynoteReader {
 
     private static IWorkCanvasSize? ReadSlideSize(IWorkWireMessage show, out bool complete) {
         complete = true;
-        if (!show.HasField(4)) return null;
+        if (!show.HasField(4)) {
+            complete = false;
+            return null;
+        }
         IWorkWireMessage? size = IWorkObjectIndex.TryGetMessage(show, 4, out bool malformedSize);
         if (show.HasUnexpectedWireKind(4, IWorkWireKind.Bytes) || malformedSize || size == null) {
             complete = false;

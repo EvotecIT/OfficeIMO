@@ -360,7 +360,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 0), ReferenceField(2, hyperlinkId))));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId)), new[] { showId }),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree)), new[] { nodeId }),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree), new[] { nodeId }),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId)), new[] { slideId }),
             ArchiveRecord(slideId, 5, Message(ReferenceField(27, noteId)), new[] { noteId }),
             ArchiveRecord(noteId, 15, Message(ReferenceField(1, storageId)), new[] { storageId }),

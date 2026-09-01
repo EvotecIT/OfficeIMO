@@ -149,7 +149,7 @@ public sealed partial class IWorkBoundaryTests {
         var slideReferences = new List<ulong>();
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree)),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId)))
         };
         for (int index = 0; index < tableCount; index++) {

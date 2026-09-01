@@ -76,7 +76,13 @@ internal static class IWorkDrawingReader {
     internal static IWorkWireMessage? DrawableMessage(IWorkObjectIndex index, IWorkArchiveRecord record,
         out bool complete) {
         complete = true;
-        IWorkWireMessage message = index.Message(record);
+        IWorkWireMessage message;
+        try {
+            message = index.Message(record);
+        } catch (InvalidDataException) {
+            complete = false;
+            return null;
+        }
         if (record.MessageType is ImageArchive or 6000) {
             IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedDrawable);
             complete = !malformedDrawable
@@ -107,7 +113,13 @@ internal static class IWorkDrawingReader {
         IWorkArchiveRecord record, IWorkProjectionBudget projectionBudget, out bool complete) {
         complete = true;
         if (record.MessageType != ImageArchive) return null;
-        IWorkWireMessage message = source.Index.Message(record);
+        IWorkWireMessage message;
+        try {
+            message = source.Index.Message(record);
+        } catch (InvalidDataException) {
+            complete = false;
+            return null;
+        }
         IWorkWireMessage? drawable = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedDrawable);
         if (malformedDrawable || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
             || drawable == null) {
@@ -147,9 +159,15 @@ internal static class IWorkDrawingReader {
             if (!IsEditableOwnerImageMediaType(candidateMediaType)) continue;
             (int? candidateWidth, int? candidateHeight) = IWorkImageInfo.Read(
                 candidateEntry.Bytes, candidateMediaType,
-                projectionBudget.RemainingDecodedImageBytes, out long candidateDecodedBytes);
+                projectionBudget.RemainingDecodedImageBytes, out long candidateDecodedBytes,
+                out bool decodedLimitExceeded);
+            if (!candidateWidth.HasValue || !candidateHeight.HasValue) {
+                if (decodedLimitExceeded) {
+                    projectionBudget.AddDecodedImageBytes(candidateDecodedBytes);
+                }
+                continue;
+            }
             projectionBudget.AddDecodedImageBytes(candidateDecodedBytes);
-            if (!candidateWidth.HasValue || !candidateHeight.HasValue) continue;
             resolved = (candidateData, candidateEntry, candidateMediaType,
                 candidateWidth.Value, candidateHeight.Value);
             break;

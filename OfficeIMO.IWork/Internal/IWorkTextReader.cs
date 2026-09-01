@@ -270,7 +270,13 @@ internal static class IWorkTextReader {
                 complete = false;
                 break;
             }
-            IWorkWireMessage message = index.Message(record);
+            IWorkWireMessage message;
+            try {
+                message = index.Message(record);
+            } catch (InvalidDataException) {
+                complete = false;
+                break;
+            }
             chain.Add(message);
             IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
             if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
@@ -462,8 +468,13 @@ internal static class IWorkTextReader {
         if (record == null || record.MessageType != HyperlinkArchive) {
             resolvedCompletely = false;
         } else {
-            IWorkWireMessage message = index.Message(record);
-            if (message.FieldCount(2) != 1
+            IWorkWireMessage? message = null;
+            try {
+                message = index.Message(record);
+            } catch (InvalidDataException) {
+                resolvedCompletely = false;
+            }
+            if (message == null || message.FieldCount(2) != 1
                 || message.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                 || !TryDecodeUtf8(message.GetBytes(2)!, projectionBudget, out string value)) {
                 resolvedCompletely = false;

@@ -9,27 +9,38 @@ internal static class IWorkImageInfo {
         long maximumDecodedBytes) => Read(bytes, mediaType, maximumDecodedBytes, out _);
 
     internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
-        long maximumDecodedBytes, out long decodedBytes) {
+        long maximumDecodedBytes, out long decodedBytes) =>
+        Read(bytes, mediaType, maximumDecodedBytes, out decodedBytes, out _);
+
+    internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
+        long maximumDecodedBytes, out long decodedBytes, out bool decodedLimitExceeded) {
         decodedBytes = 0;
+        decodedLimitExceeded = false;
         if (string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase)
             && TryReadPng(bytes, maximumDecodedBytes, out int width, out int height,
-                out decodedBytes)) {
+                out decodedBytes, out decodedLimitExceeded)) {
             return (width, height);
         }
         if (string.Equals(mediaType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) {
-            return ReadJpeg(bytes, maximumDecodedBytes, out decodedBytes);
+            return ReadJpeg(bytes, maximumDecodedBytes, out decodedBytes,
+                out decodedLimitExceeded);
         }
         return (null, null);
     }
 
     private static (int? Width, int? Height) ReadJpeg(byte[] bytes, long maximumDecodedBytes,
-        out long decodedBytes) {
+        out long decodedBytes, out bool decodedLimitExceeded) {
         decodedBytes = 0;
+        decodedLimitExceeded = false;
         (int? width, int? height) = ReadJpegMetadata(bytes);
         if (!width.HasValue || !height.HasValue) return (null, null);
         long expectedDecodedBytes = checked((long)width.Value * height.Value * 4);
-        if (expectedDecodedBytes > maximumDecodedBytes
-            || bytes.Length < 2 || bytes[bytes.Length - 2] != 0xff || bytes[bytes.Length - 1] != 0xd9) {
+        if (expectedDecodedBytes > maximumDecodedBytes) {
+            decodedBytes = expectedDecodedBytes;
+            decodedLimitExceeded = true;
+            return (null, null);
+        }
+        if (bytes.Length < 2 || bytes[bytes.Length - 2] != 0xff || bytes[bytes.Length - 1] != 0xd9) {
             return (null, null);
         }
         decodedBytes = expectedDecodedBytes;
@@ -97,10 +108,12 @@ internal static class IWorkImageInfo {
         && bytes[4] == 0x0d && bytes[5] == 0x0a && bytes[6] == 0x1a && bytes[7] == 0x0a;
 
     private static bool TryReadPng(byte[] bytes, long maximumDecodedBytes,
-        out int width, out int height, out long decodedBytes) {
+        out int width, out int height, out long decodedBytes,
+        out bool decodedLimitExceeded) {
         width = 0;
         height = 0;
         decodedBytes = 0;
+        decodedLimitExceeded = false;
         if (maximumDecodedBytes < 0 || bytes.Length < 33 || !HasPngSignature(bytes)
             || !OfficePngReader.TryGetFrameCount(bytes, out _)) return false;
 
@@ -147,7 +160,10 @@ internal static class IWorkImageInfo {
                     return false;
                 }
                 decodedBytes = rasterDecodedBytes;
-                if (rasterDecodedBytes > maximumDecodedBytes) return false;
+                if (rasterDecodedBytes > maximumDecodedBytes) {
+                    decodedLimitExceeded = true;
+                    return false;
+                }
                 hasHeader = true;
             } else if (isHeader) {
                 return false;

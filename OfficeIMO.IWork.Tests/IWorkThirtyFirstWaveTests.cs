@@ -158,7 +158,7 @@ public sealed partial class IWorkBoundaryTests {
         var records = new List<byte[]> {
             ArchiveRecord(documentId, 1,
                 Message(ReferenceField(2, showId)), new[] { showId }),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree)), new[] { nodeId }),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree), new[] { nodeId }),
             ArchiveRecord(nodeId, 4,
                 Message(ReferenceField(2, slideId)), new[] { slideId }),
             ArchiveRecord(slideId, 5,

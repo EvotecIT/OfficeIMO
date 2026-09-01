@@ -181,6 +181,11 @@ internal sealed class IWorkWireMessage {
 }
 
 internal static class IWorkProtobuf {
+    private const string FieldLimitMarker = "OfficeIMO.IWork.ProtobufFieldLimit";
+
+    internal static bool IsFieldLimitException(InvalidDataException exception) =>
+        exception.Data.Contains(FieldLimitMarker);
+
     internal static int CountFields(byte[] data, int targetField, int maximumFields) {
         return CountFields(data, targetField, maximumFields, out _);
     }
@@ -225,8 +230,10 @@ internal static class IWorkProtobuf {
             }
             fieldCount++;
             if (fieldCount > maximumFields) {
-                throw new InvalidDataException(
+                var exception = new InvalidDataException(
                     $"A protobuf message exceeds the configured field limit of {maximumFields}.");
+                exception.Data[FieldLimitMarker] = true;
+                throw exception;
             }
         }
         totalFieldCount = fieldCount;

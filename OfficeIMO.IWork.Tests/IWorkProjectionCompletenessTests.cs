@@ -300,7 +300,8 @@ public sealed partial class IWorkBoundaryTests {
         bool naturalAlignment = false, bool duplicateDrawableInField = false,
         bool aliasDrawableAcrossFields = false, int? drawableReferenceCount = null,
         int unexpectedSlideTreeFieldCount = 0, float? spaceBefore = null,
-        float? spaceAfter = null, bool omitPositiveSize = false) {
+        float? spaceAfter = null, bool omitPositiveSize = false,
+        bool omitSlideSize = false) {
         const ulong documentId = 1;
         const ulong showId = 2;
         const ulong nodeId = 3;
@@ -354,9 +355,10 @@ public sealed partial class IWorkBoundaryTests {
             extraRecords.Add(ArchiveRecord(paragraphStyleId, 2022,
                 Message(BytesField(12, Message(paragraphFields.ToArray())))));
         }
-        byte[] slideSize = slideWidth.HasValue && slideHeight.HasValue
-            ? BytesField(4, Message(FloatField(1, slideWidth.Value), FloatField(2, slideHeight.Value)))
-            : Array.Empty<byte>();
+        byte[] slideSize = omitSlideSize
+            ? Array.Empty<byte>()
+            : BytesField(4, Message(FloatField(1, slideWidth ?? 960f),
+                FloatField(2, slideHeight ?? 540f)));
         byte[] showPayload = wrongWireSlideSize
             ? Message(BytesField(3, slideTree), VarintField(4, 1))
             : Message(BytesField(3, slideTree), slideSize);
@@ -392,7 +394,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree)),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5, Message(ReferenceField(5, shapeId))),
             ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))),

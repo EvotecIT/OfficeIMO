@@ -127,7 +127,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] keynoteRecords = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, bodyOrShowId))),
             ArchiveRecord(bodyOrShowId, 2,
-                Message(BytesField(3, Message(ReferenceField(2, nodeId))))),
+                KeynoteShow(Message(ReferenceField(2, nodeId)))),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5,
                 Message(ReferenceField(7, firstShapeId), ReferenceField(7, keynoteSecondShapeId))),
@@ -185,7 +185,7 @@ public sealed partial class IWorkBoundaryTests {
         } else {
             records.Add(ArchiveRecord(documentId, 1, Message(ReferenceField(2, bodyOrShowId))));
             records.Add(ArchiveRecord(bodyOrShowId, 2,
-                Message(BytesField(3, Message(ReferenceField(2, nodeId))))));
+                KeynoteShow(Message(ReferenceField(2, nodeId)))));
             records.Add(ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))));
             records.Add(ArchiveRecord(slideId, 5, Message(ReferenceField(6, tableId))));
         }

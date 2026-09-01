@@ -802,7 +802,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree)),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, missingSlideId))));
         return CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)),
@@ -818,7 +818,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] slideTree = Message(ReferenceField(2, nodeId));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree))),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree)),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5, Message(ReferenceField(27, missingNoteId))));
         return CreatePackage(
@@ -1388,6 +1388,10 @@ public sealed partial class IWorkBoundaryTests {
         } while (value != 0);
         return result.ToArray();
     }
+
+    private static byte[] KeynoteShow(byte[] slideTree) => Message(
+        BytesField(3, slideTree),
+        BytesField(4, Message(FloatField(1, 960f), FloatField(2, 540f))));
 
     private static byte[] Message(params byte[][] parts) {
         int length = parts.Sum(part => part.Length);

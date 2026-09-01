@@ -240,7 +240,7 @@ public sealed partial class IWorkBoundaryTests {
             FloatField(5, 1f), FloatField(6, 0.5f));
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId))),
-            ArchiveRecord(showId, 2, Message(BytesField(3, Message(ReferenceField(2, nodeId))))),
+            ArchiveRecord(showId, 2, KeynoteShow(Message(ReferenceField(2, nodeId)))),
             ArchiveRecord(nodeId, 4, Message(ReferenceField(2, slideId))),
             ArchiveRecord(slideId, 5, Message(ReferenceField(5, shapeId))),
             ArchiveRecord(shapeId, 2011, Message(ReferenceField(2, storageId))),

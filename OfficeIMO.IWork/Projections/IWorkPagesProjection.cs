@@ -416,33 +416,52 @@ internal static class IWorkPagesReader {
         if (documentMessage.HasUnexpectedWireKind(20, IWorkWireKind.Bytes)
             || documentMessage.HasField(20) && zOrder == null) complete = false;
         if (zOrder != null) {
-            projectionBudget.AddDrawableReferences(IWorkProtobuf.CountFields(
-                zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount));
-            int unresolvedZOrderCount;
-            var zOrderOccurrences = new HashSet<ulong>();
-            foreach (IWorkArchiveRecord record in index.DereferenceAll(
-                         index.Message(zOrder), 1, out unresolvedZOrderCount)) {
-                if (!zOrderOccurrences.Add(record.Identifier)) complete = false;
-                Add(record);
+            int zOrderReferenceCount = 0;
+            IWorkWireMessage? zOrderMessage = null;
+            try {
+                zOrderReferenceCount = IWorkProtobuf.CountFields(
+                    zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount);
+                if (!TryReadMessage(index, zOrder, out zOrderMessage)) complete = false;
+            } catch (InvalidDataException exception)
+                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                complete = false;
             }
-            if (unresolvedZOrderCount > 0) complete = false;
+            if (zOrderMessage != null) {
+                projectionBudget.AddDrawableReferences(zOrderReferenceCount);
+                int unresolvedZOrderCount;
+                var zOrderOccurrences = new HashSet<ulong>();
+                foreach (IWorkArchiveRecord record in index.DereferenceAll(
+                             zOrderMessage, 1, out unresolvedZOrderCount)) {
+                    if (!zOrderOccurrences.Add(record.Identifier)) complete = false;
+                    Add(record);
+                }
+                if (unresolvedZOrderCount > 0) complete = false;
+            }
         }
         IWorkArchiveRecord? floating = index.Dereference(documentMessage, 3);
         if (documentMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
             || documentMessage.HasField(3) && floating == null) complete = false;
         if (floating != null) {
-            int pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
-                projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
-            projectionBudget.AddDrawableReferences(pageGroupCount);
             IReadOnlyList<IWorkWireMessage> pageGroups;
-            if (totalFieldCount != pageGroupCount) {
+            int pageGroupCount = 0;
+            try {
+                pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
+                    projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
+                if (totalFieldCount != pageGroupCount
+                    || !TryReadMessage(index, floating, out IWorkWireMessage floatingMessage)) {
+                    complete = false;
+                    pageGroups = Array.Empty<IWorkWireMessage>();
+                } else {
+                    pageGroups = IWorkObjectIndex.TryGetMessages(floatingMessage, 1,
+                        out bool malformedPageGroups);
+                    if (malformedPageGroups) complete = false;
+                }
+            } catch (InvalidDataException exception)
+                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
                 complete = false;
                 pageGroups = Array.Empty<IWorkWireMessage>();
-            } else {
-                pageGroups = IWorkObjectIndex.TryGetMessages(index.Message(floating), 1,
-                    out bool malformedPageGroups);
-                if (malformedPageGroups) complete = false;
             }
+            projectionBudget.AddDrawableReferences(pageGroupCount);
             for (int pageGroupIndex = 0; pageGroupIndex < pageGroups.Count; pageGroupIndex++) {
                 IWorkWireMessage pageGroup = pageGroups[pageGroupIndex];
                 foreach (int field in new[] { 2, 3, 4 }) {

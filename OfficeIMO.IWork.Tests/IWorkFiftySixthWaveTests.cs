@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
-    public void Failed_semantic_image_decodes_consume_the_shared_budget() {
+    public void Failed_semantic_image_decodes_do_not_consume_the_shared_budget() {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 1, imageBytes: CreateInvalidAdlerPng(20, 20));
         var options = new IWorkReadOptions { MaximumPackageBytes = 2_000 };
@@ -21,14 +21,14 @@ public sealed partial class IWorkBoundaryTests {
 
         Assert.Null(asset);
         Assert.False(complete);
-        Assert.InRange(budget.RemainingDecodedImageBytes, 0, 1_999);
+        Assert.Equal(options.MaximumPackageBytes, budget.RemainingDecodedImageBytes);
     }
 
     [Fact]
     public void Repeated_Keynote_title_placeholders_disable_editable_reconstruction() {
         byte[] records = Message(
             ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
-            ArchiveRecord(2, 2, Message(BytesField(3, Message(ReferenceField(2, 3))))),
+            ArchiveRecord(2, 2, KeynoteShow(Message(ReferenceField(2, 3)))),
             ArchiveRecord(3, 4, Message(ReferenceField(2, 4))),
             ArchiveRecord(4, 5, Message(ReferenceField(5, 5), ReferenceField(5, 7))),
             ArchiveRecord(5, 2011, Message(ReferenceField(2, 6))),
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(1, 0), ReferenceField(2, styleId))));
         byte[] records = Message(
             ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
-            ArchiveRecord(2, 2, Message(BytesField(3, Message(ReferenceField(2, 3))))),
+            ArchiveRecord(2, 2, KeynoteShow(Message(ReferenceField(2, 3)))),
             ArchiveRecord(3, 4, Message(ReferenceField(2, 4))),
             ArchiveRecord(4, 5, Message(ReferenceField(5, 5))),
             ArchiveRecord(5, 2011, Message(ReferenceField(2, 6))),

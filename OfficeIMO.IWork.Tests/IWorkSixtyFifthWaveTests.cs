@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] records = Message(
             ArchiveRecord(documentId, 1, Message(ReferenceField(2, showId)),
                 new[] { showId }),
-            ArchiveRecord(showId, 2, Message(BytesField(3, slideTree)),
+            ArchiveRecord(showId, 2, KeynoteShow(slideTree),
                 new[] { firstNodeId, secondNodeId }),
             ArchiveRecord(firstNodeId, 4, Message(ReferenceField(2, firstSlideId)),
                 new[] { firstSlideId }),
