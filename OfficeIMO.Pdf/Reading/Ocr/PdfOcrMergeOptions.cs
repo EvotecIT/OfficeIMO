@@ -41,6 +41,29 @@ public sealed class PdfOcrMergeOptions {
     /// <summary>Maximum inferred OCR tables retained for one page.</summary>
     public int MaxInferredTablesPerPage { get; set; } = 32;
 
+    /// <summary>Creates an independent option snapshot.</summary>
+    public PdfOcrMergeOptions Clone() => new PdfOcrMergeOptions {
+        Selection = Selection,
+        Dpi = Dpi,
+        MinimumConfidence = MinimumConfidence,
+        NativeTextOverlapThreshold = NativeTextOverlapThreshold,
+        MaxPages = MaxPages,
+        MaxPixelsPerPage = MaxPixelsPerPage,
+        MaxOcrWordsPerPage = MaxOcrWordsPerPage,
+        MaxOcrTextCharactersPerPage = MaxOcrTextCharactersPerPage,
+        MaxDiagnosticsPerPage = MaxDiagnosticsPerPage,
+        MaxDiagnosticCharactersPerPage = MaxDiagnosticCharactersPerPage,
+        MaxNativeTextBlocksPerPage = MaxNativeTextBlocksPerPage,
+        MaxNativeTextOverlapComparisonsPerPage = MaxNativeTextOverlapComparisonsPerPage,
+        MaxMergedTextCharactersPerPage = MaxMergedTextCharactersPerPage,
+        BuildEnrichedLogicalDocument = BuildEnrichedLogicalDocument,
+        DetectAlignedTables = DetectAlignedTables,
+        MinimumAlignedTableRows = MinimumAlignedTableRows,
+        MinimumTableColumnGapPoints = MinimumTableColumnGapPoints,
+        TableColumnTolerancePoints = TableColumnTolerancePoints,
+        MaxInferredTablesPerPage = MaxInferredTablesPerPage
+    };
+
     internal void Validate() {
         Guard.Positive(Dpi, nameof(Dpi));
         ValidateRatio(MinimumConfidence, nameof(MinimumConfidence));

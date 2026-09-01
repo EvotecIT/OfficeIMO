@@ -246,4 +246,41 @@ public class PdfPageInteractionMapTests {
         Assert.Equal(20D, image.ImagePlacement!.X, 3);
         Assert.Equal(20D, image.ImagePlacement.Y, 3);
     }
+
+    [Fact]
+    public void InteractionMap_IncludesVisibleArtifactTextAndUsesItsActualTextReplacement() {
+        const string content =
+            "/Artifact BMC\n" +
+            "/Span << /ActualText (Logical footer) >> BDC\n" +
+            "BT /F1 12 Tf 20 50 Td (painted) Tj ET\n" +
+            "EMC\n" +
+            "EMC";
+        byte[] source = BuildSinglePagePdf(content);
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Contains("Logical footer", string.Concat(map.TextRegions.Select(static region => region.Text)), StringComparison.Ordinal);
+        Assert.DoesNotContain("painted", string.Concat(map.TextRegions.Select(static region => region.Text)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InteractionMap_UsesExtractedAdvanceForNarrowGlyphHitRegions() {
+        byte[] source = BuildSinglePagePdf("BT /F1 12 Tf 20 50 Td (iiii) Tj ET");
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Equal(4, map.TextRegions.Count);
+        Assert.Contains(map.TextRegions[0], map.HitTest(21D, 145D));
+        Assert.DoesNotContain(map.HitTest(40D, 145D), static region => region.Kind == PdfInteractionKind.Text);
+    }
+
+    private static byte[] BuildSinglePagePdf(string content) => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.7",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+        "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+    }));
 }

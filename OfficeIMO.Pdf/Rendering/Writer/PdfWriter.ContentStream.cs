@@ -223,6 +223,15 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder HorizontalTextScaling(double percentage) {
+        if (percentage <= 0D || double.IsNaN(percentage) || double.IsInfinity(percentage)) {
+            throw new ArgumentOutOfRangeException(nameof(percentage), "PDF horizontal text scaling must be positive and finite.");
+        }
+
+        _sb.Append(F(percentage)).Append(" Tz\n");
+        return this;
+    }
+
     public ContentStreamBuilder TextRise(double rise) {
         _sb.Append(F(rise)).Append(" Ts\n");
         return this;

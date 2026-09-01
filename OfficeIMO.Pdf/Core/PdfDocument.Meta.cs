@@ -275,7 +275,10 @@ public sealed partial class PdfDocument {
         }
     }
 
-    internal byte[] GetBytesForOperation() => _source?.Bytes ?? RenderBytesCore();
+    internal byte[] GetBytesForOperation() => GetBytesForOperation(CancellationToken.None);
+
+    internal byte[] GetBytesForOperation(CancellationToken cancellationToken) =>
+        _source?.Bytes ?? RenderBytesCore(cancellationToken);
 
     internal PdfReadDocument GetReadDocument(
         PdfLoadOptions? options = null,

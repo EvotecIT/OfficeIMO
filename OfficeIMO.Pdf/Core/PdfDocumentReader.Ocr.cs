@@ -10,6 +10,6 @@ internal sealed partial class PdfDocumentReader {
         PdfOcrMergeOptions? options = null,
         PdfLoadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return PdfOcr.RecognizeAndMergeAsync(_document.GetBytesForOperation(), provider, options, ResolveReadOptions(readOptions), cancellationToken);
+        return PdfOcr.RecognizeAndMergeAsync(_document.GetBytesForOperation(cancellationToken), provider, options, ResolveReadOptions(readOptions), cancellationToken);
     }
 }

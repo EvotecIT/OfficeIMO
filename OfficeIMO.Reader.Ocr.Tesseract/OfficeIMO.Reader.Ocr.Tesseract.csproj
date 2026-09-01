@@ -29,6 +29,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Ocr" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>

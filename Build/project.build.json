@@ -83,6 +83,7 @@
     "OfficeIMO.Reader.Markdown": "3.3.X",
     "OfficeIMO.Reader.Notebook": "3.3.X",
     "OfficeIMO.Reader.OpenDocument": "3.3.X",
+    "OfficeIMO.Reader.Ocr": "3.3.X",
     "OfficeIMO.Reader.Ocr.Process": "3.3.X",
     "OfficeIMO.Reader.Ocr.Tesseract": "3.3.X",
     "OfficeIMO.Reader.OneNote": "3.3.X",

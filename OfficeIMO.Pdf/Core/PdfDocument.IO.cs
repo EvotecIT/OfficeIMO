@@ -219,7 +219,16 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Asynchronously saves the document to <paramref name="path"/>.
     /// </summary>
-    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
+    public System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) =>
+        SaveAsync(path, OfficeConversionFileConflictPolicy.Replace, cancellationToken);
+
+    /// <summary>
+    /// Asynchronously saves the document to <paramref name="path"/> using the requested destination conflict policy.
+    /// </summary>
+    public async System.Threading.Tasks.Task<PdfSaveResult> SaveAsync(
+        string path,
+        OfficeConversionFileConflictPolicy conflictPolicy,
+        System.Threading.CancellationToken cancellationToken) {
         var timer = System.Diagnostics.Stopwatch.StartNew();
         string fullPath = ValidateOutputPath(path);
         cancellationToken.ThrowIfCancellationRequested();
@@ -229,6 +238,11 @@ public sealed partial class PdfDocument {
         PdfArtifactSnapshot? output = null;
         long bytesWritten = 0L;
         PdfSerializationReport? serialization = null;
+        OfficeFileCommit.ConflictPolicy commitPolicy = conflictPolicy switch {
+            OfficeConversionFileConflictPolicy.FailIfExists => OfficeFileCommit.ConflictPolicy.FailIfExists,
+            OfficeConversionFileConflictPolicy.Replace => OfficeFileCommit.ConflictPolicy.Replace,
+            _ => throw new System.ArgumentOutOfRangeException(nameof(conflictPolicy))
+        };
         await OfficeFileCommit.WriteAsync(
             fullPath,
             stream => {
@@ -236,6 +250,7 @@ public sealed partial class PdfDocument {
                 (bytesWritten, int? pageCount, serialization) = WritePdfCore(hashingStream, cancellationToken);
                 output = hashingStream.Complete(pageCount);
             },
+            commitPolicy,
             cancellationToken: cancellationToken).ConfigureAwait(false);
         timer.Stop();
         PdfPipelineReport pipeline = AppendOutputStep("Save", output, timer.Elapsed);

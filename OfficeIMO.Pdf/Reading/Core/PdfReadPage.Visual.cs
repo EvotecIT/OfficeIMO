@@ -2409,7 +2409,9 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         Matrix2D pageTransform,
         TextContentParser.TextOutputBudget? textOutputBudget = null,
-        PageContentBudget? pageContentBudget = null) {
+        PageContentBudget? pageContentBudget = null,
+        bool useLogicalTextFilters = false,
+        bool includeArtifactText = false) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var spans = new List<PdfTextSpan>();
@@ -2432,7 +2434,8 @@ public sealed partial class PdfReadPage {
                 activeForms,
                 pageHeight,
                 paintOrderOffset: -transformedContentOffset,
-                useLogicalTextFilters: false,
+                useLogicalTextFilters: useLogicalTextFilters,
+                includeArtifactText: includeArtifactText,
                 textOutputBudget: textOutputBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,

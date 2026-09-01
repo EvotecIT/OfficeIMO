@@ -39,6 +39,15 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
     /// <inheritdoc />
     public string Id => "tesseract-cli";
 
+    /// <summary>Resolved executable path or command captured by this engine.</summary>
+    public string ExecutablePath => _options.ExecutablePath;
+
+    /// <summary>Default language expression captured by this engine.</summary>
+    public string? DefaultLanguage => _options.Language;
+
+    /// <summary>Configured trained-data directory captured by this engine.</summary>
+    public string? TessdataDirectory => _options.TessdataDirectory;
+
     /// <inheritdoc />
     public OfficeOcrEngineCapabilities Capabilities => _capabilities.Clone();
 
@@ -133,7 +142,8 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
             arguments.Add(_options.Dpi.Value.ToString(CultureInfo.InvariantCulture));
         }
         arguments.AddRange(_options.AdditionalArguments);
-        arguments.Add("tsv");
+        arguments.Add("-c");
+        arguments.Add("tessedit_create_tsv=1");
         return arguments;
     }
 
@@ -162,7 +172,6 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
 
         internal static OptionsSnapshot Create(TesseractOcrEngineOptions? options) {
             TesseractOcrEngineOptions source = options ?? new TesseractOcrEngineOptions();
-            if (string.IsNullOrWhiteSpace(source.ExecutablePath)) throw new ArgumentException("Tesseract executable path cannot be empty.", nameof(options));
             if (source.EngineMode.HasValue && (source.EngineMode.Value < 0 || source.EngineMode.Value > 3)) throw new ArgumentOutOfRangeException(nameof(source.EngineMode));
             if (source.PageSegmentationMode.HasValue && (source.PageSegmentationMode.Value < 0 || source.PageSegmentationMode.Value > 13)) throw new ArgumentOutOfRangeException(nameof(source.PageSegmentationMode));
             if (source.Dpi.HasValue && source.Dpi.Value < 1) throw new ArgumentOutOfRangeException(nameof(source.Dpi));
@@ -171,7 +180,7 @@ public sealed partial class TesseractOcrEngine : IOfficeOcrEngine {
             if (source.MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxInputBytes));
             if (source.MaxProcessOutputCharacters < 1) throw new ArgumentOutOfRangeException(nameof(source.MaxProcessOutputCharacters));
             return new OptionsSnapshot {
-                ExecutablePath = source.ExecutablePath.Trim(),
+                ExecutablePath = string.IsNullOrWhiteSpace(source.ExecutablePath) ? "tesseract" : source.ExecutablePath!.Trim(),
                 Language = string.IsNullOrWhiteSpace(source.Language) ? null : source.Language!.Trim(),
                 TessdataDirectory = string.IsNullOrWhiteSpace(source.TessdataDirectory) ? null : source.TessdataDirectory,
                 EngineMode = source.EngineMode,
