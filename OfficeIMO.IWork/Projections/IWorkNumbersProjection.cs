@@ -467,7 +467,7 @@ internal static class IWorkNumbersReader {
             out bool stringStorageComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
-            out bool formulaStorageComplete);
+            out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -476,6 +476,7 @@ internal static class IWorkNumbersReader {
                 model.EntryPath, model.Identifier));
         }
         if (!formulaStorageComplete) {
+            if (!formulaCatalogEnvelopeComplete) supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED",
                 "An iWork formula table contains malformed or duplicate entries; affected formulas retain cached values only.",
@@ -772,7 +773,11 @@ internal static class IWorkNumbersReader {
         fullyReconstructed = true;
         IWorkArchiveRecord? list = index.Dereference(store, 4);
         if (list == null) return strings;
-        int entryCount = EnsureCatalogEntryCount(list, maximumEntries, options, "string");
+        if (!TryGetCatalogEntryCount(list, maximumEntries, options, "string",
+                out int entryCount)) {
+            fullyReconstructed = false;
+            return strings;
+        }
         projectionBudget.AddTableCatalogEntries(entryCount);
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             index.Message(list), 3, out bool malformedEntries);
@@ -797,13 +802,19 @@ internal static class IWorkNumbersReader {
     private static IReadOnlyDictionary<uint, IWorkWireMessage> ReadFormulas(IWorkObjectIndex index,
         IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
         IWorkReadOptions options, int maximumEntries,
-        out bool fullyReconstructed) {
+        out bool fullyReconstructed, out bool catalogEnvelopeComplete) {
         var formulas = new Dictionary<uint, IWorkWireMessage>();
         var ambiguousIdentifiers = new HashSet<uint>();
         fullyReconstructed = true;
+        catalogEnvelopeComplete = true;
         IWorkArchiveRecord? list = index.Dereference(store, 6);
         if (list == null) return formulas;
-        int entryCount = EnsureCatalogEntryCount(list, maximumEntries, options, "formula");
+        if (!TryGetCatalogEntryCount(list, maximumEntries, options, "formula",
+                out int entryCount)) {
+            fullyReconstructed = false;
+            catalogEnvelopeComplete = false;
+            return formulas;
+        }
         projectionBudget.AddTableCatalogEntries(entryCount);
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             index.Message(list), 3, out bool malformedEntries);
@@ -831,26 +842,36 @@ internal static class IWorkNumbersReader {
         return formulas;
     }
 
-    private static int EnsureCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
-        IWorkReadOptions options, string catalogName) {
-        int declaredEntryCount = IWorkProtobuf.CountFields(
-            list.Payload, 3, options.MaximumProtobufFieldCount,
-            out int totalFieldCount);
-        int identifierFieldCount = IWorkProtobuf.CountFields(
-            list.Payload, 1, options.MaximumProtobufFieldCount);
-        int metadataFieldCount = IWorkProtobuf.CountFields(
-            list.Payload, 2, options.MaximumProtobufFieldCount);
+    private static bool TryGetCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
+        IWorkReadOptions options, string catalogName, out int declaredEntryCount) {
+        declaredEntryCount = 0;
+        int totalFieldCount;
+        int identifierFieldCount;
+        int metadataFieldCount;
+        try {
+            declaredEntryCount = IWorkProtobuf.CountFields(
+                list.Payload, 3, options.MaximumProtobufFieldCount,
+                out totalFieldCount);
+            identifierFieldCount = IWorkProtobuf.CountFields(
+                list.Payload, 1, options.MaximumProtobufFieldCount);
+            metadataFieldCount = IWorkProtobuf.CountFields(
+                list.Payload, 2, options.MaximumProtobufFieldCount);
+        } catch (InvalidDataException exception)
+            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            declaredEntryCount = 0;
+            return false;
+        }
         if (identifierFieldCount > 1 || metadataFieldCount > 1
             || totalFieldCount - declaredEntryCount
                 != identifierFieldCount + metadataFieldCount) {
-            throw new InvalidDataException(
-                $"An iWork {catalogName} catalog contains fields outside the supported entry envelope.");
+            declaredEntryCount = 0;
+            return false;
         }
         if (declaredEntryCount > maximumEntries) {
             throw new InvalidDataException(
                 $"An iWork {catalogName} catalog exceeds the remaining table-catalog limit of {maximumEntries}.");
         }
-        return declaredEntryCount;
+        return true;
     }
 
     private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>

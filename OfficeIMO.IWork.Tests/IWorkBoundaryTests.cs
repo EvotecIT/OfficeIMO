@@ -1104,7 +1104,9 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(modelId, 6001, model));
             if (table.TextValue != null) {
                 byte[] stringEntry = Message(VarintField(1, 1), StringField(3, table.TextValue));
-                byte[] stringPayload = table.MissingStringEntry
+                byte[] stringPayload = table.MalformedStringCatalog
+                    ? new byte[] { 0x80 }
+                    : table.MissingStringEntry
                     ? Message()
                     : table.DuplicateString
                     ? Message(BytesField(3, stringEntry), BytesField(3, stringEntry))
@@ -1126,7 +1128,9 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(5, table.FormulaPayload
                         ?? FormulaConstant(1d, table.MixedFormulaTypeWire)));
                 records.Add(ArchiveRecord(formulaListId, 6201,
-                    Message(new[] { BytesField(3, formulaEntry) }
+                    table.MalformedFormulaCatalog
+                        ? new byte[] { 0x80 }
+                        : Message(new[] { BytesField(3, formulaEntry) }
                         .Concat(Enumerable.Range(0, table.UnexpectedFormulaCatalogFieldCount)
                             .Select(value => VarintField(4, checked((ulong)value))))
                         .ToArray())));
@@ -1570,7 +1574,8 @@ public sealed partial class IWorkBoundaryTests {
             bool duplicateRowIndex = false, bool conflictingNumberValue = false,
             byte decimal128SpecialHighByte = 0, bool emptyTile = false,
             bool duplicatePopulatedOffset = false, bool missingStringEntry = false,
-            bool invalidWideOffsetFlag = false, bool emptyCellWithFormula = false) {
+            bool invalidWideOffsetFlag = false, bool emptyCellWithFormula = false,
+            bool malformedStringCatalog = false, bool malformedFormulaCatalog = false) {
             Name = name;
             Rows = rows;
             Columns = columns;
@@ -1624,6 +1629,8 @@ public sealed partial class IWorkBoundaryTests {
             MissingStringEntry = missingStringEntry;
             InvalidWideOffsetFlag = invalidWideOffsetFlag;
             EmptyCellWithFormula = emptyCellWithFormula;
+            MalformedStringCatalog = malformedStringCatalog;
+            MalformedFormulaCatalog = malformedFormulaCatalog;
         }
 
         internal string Name { get; }
@@ -1679,5 +1686,7 @@ public sealed partial class IWorkBoundaryTests {
         internal bool MissingStringEntry { get; }
         internal bool InvalidWideOffsetFlag { get; }
         internal bool EmptyCellWithFormula { get; }
+        internal bool MalformedStringCatalog { get; }
+        internal bool MalformedFormulaCatalog { get; }
     }
 }

@@ -258,7 +258,8 @@ public sealed partial class IWorkBoundaryTests {
         bool omitPageEndObject = false, bool trailCatalogDictionary = false,
         bool trailPagesDictionary = false, bool trailPageDictionary = false,
         bool commentCatalogDictionary = false, bool omitMediaBox = false,
-        string trailerPrefix = "", string trailerSuffix = "", int generation = 0) {
+        string trailerPrefix = "", string trailerSuffix = "", int generation = 0,
+        string pagesDictionaryPrefix = "", string resourceObjectDictionary = "") {
         const string header = "%PDF-1.4\n";
         string generationText = generation.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string xrefGeneration = generation.ToString("D5", System.Globalization.CultureInfo.InvariantCulture);
@@ -268,25 +269,36 @@ public sealed partial class IWorkBoundaryTests {
             + (commentCatalogDictionary ? "% valid comment\n" : string.Empty)
             + (omitCatalogEndObject ? string.Empty : "endobj\n");
         string pages = validKids
-            ? "2 " + generationText + " obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [3 " + generationText + " R] >>\n"
-            : "2 " + generationText + " obj\n<< /Type /Pages " + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [] >>\n";
+            ? "2 " + generationText + " obj\n<< /Type /Pages " + pagesDictionaryPrefix + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [3 " + generationText + " R] >>\n"
+            : "2 " + generationText + " obj\n<< /Type /Pages " + pagesDictionaryPrefix + (omitMediaBox ? string.Empty : "/MediaBox [0 0 612 792] ") + "/Count 1 /Kids [] >>\n";
         if (trailPagesDictionary) pages += "42\n";
         if (!omitPagesEndObject) pages += "endobj\n";
         string page = "3 " + generationText + " obj\n<< /Type /Page " + pageDictionaryPrefix
             + "/Parent 2 " + generationText + " R >>\n"
             + (trailPageDictionary ? "42\n" : string.Empty)
             + (omitPageEndObject ? string.Empty : "endobj\n");
+        string resourceObject = resourceObjectDictionary.Length == 0
+            ? string.Empty
+            : "4 " + generationText + " obj\n<< " + resourceObjectDictionary + " >>\nendobj\n";
         int catalogOffset = Encoding.ASCII.GetByteCount(header);
         int pagesOffset = Encoding.ASCII.GetByteCount(header + catalog);
         int pageOffset = Encoding.ASCII.GetByteCount(header + catalog + pages);
-        string prefix = header + catalog + pages + page;
+        int resourceObjectOffset = Encoding.ASCII.GetByteCount(header + catalog + pages + page);
+        string prefix = header + catalog + pages + page + resourceObject;
         int xrefOffset = Encoding.ASCII.GetByteCount(prefix);
-        string suffix = "xref\n0 4\n0000000000 65535 f \n"
+        int objectCount = resourceObject.Length == 0 ? 4 : 5;
+        string suffix = "xref\n0 "
+            + objectCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + "\n0000000000 65535 f \n"
             + catalogOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
             + pagesOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
             + pageOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture) + " " + xrefGeneration + " n \n"
+            + (resourceObject.Length == 0 ? string.Empty
+                : resourceObjectOffset.ToString("D10", System.Globalization.CultureInfo.InvariantCulture)
+                    + " " + xrefGeneration + " n \n")
             + "trailer\n" + trailerPrefix + "<< " + trailerDictionaryPrefix
-            + "/Size 4 /Root 1 " + generationText + " R >>" + trailerSuffix + "\nstartxref\n"
+            + "/Size " + objectCount.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " /Root 1 " + generationText + " R >>" + trailerSuffix + "\nstartxref\n"
             + xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture)
             + "\n%%EOF\n";
         return Encoding.ASCII.GetBytes(prefix + suffix);

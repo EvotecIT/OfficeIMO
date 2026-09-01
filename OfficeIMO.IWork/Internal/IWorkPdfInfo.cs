@@ -1,6 +1,6 @@
 namespace OfficeIMO.IWork.Internal;
 
-internal static class IWorkPdfInfo {
+internal static partial class IWorkPdfInfo {
     internal static bool IsComplete(byte[] bytes) {
         if (bytes.Length < 20 || !HasValidHeader(bytes)) return false;
 
@@ -69,7 +69,7 @@ internal static class IWorkPdfInfo {
         var visited = new HashSet<(long Object, long Generation)>();
         return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
             pagesObject, pagesGeneration, parent: null, hasInheritedMediaBox: false,
-            visited, depth: 0, out _);
+            inheritedResources: default, visited, depth: 0, out _);
     }
 
     private static bool HasValidHeader(byte[] bytes) {
@@ -217,6 +217,7 @@ internal static class IWorkPdfInfo {
         int offset, int limit, long expectedObject, long expectedGeneration,
         (long Object, long Generation)? parent,
         bool hasInheritedMediaBox,
+        ResourceDictionary inheritedResources,
         ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
         pageCount = 0;
         if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
@@ -225,9 +226,15 @@ internal static class IWorkPdfInfo {
                 out int dictionaryStart, out int dictionaryEnd)) return false;
         if (!TryResolveMediaBox(bytes, dictionaryStart, dictionaryEnd,
                 hasInheritedMediaBox, out bool hasMediaBox)) return false;
+        ResourceDictionary resources = ResolveResources(bytes, inUseOffsets,
+            orderedObjectOffsets, dictionaryStart, dictionaryEnd, limit,
+            inheritedResources);
         if (HasDictionaryNameValue(bytes, dictionaryStart, dictionaryEnd, "/Type", "/Page")) {
             if (!parent.HasValue
                 || !hasMediaBox
+                || resources.IsDeclared && (!resources.IsValid
+                    || !HasResolvableDictionaryReferences(bytes, resources.Start,
+                        resources.End, inUseOffsets))
                 || !TryReadDictionaryReference(bytes, dictionaryStart, dictionaryEnd, "/Parent",
                     out long parentObject, out long parentGeneration)
                 || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
@@ -251,7 +258,7 @@ internal static class IWorkPdfInfo {
             if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
                 || !IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, childOffset, limit,
                     childObject, childGeneration, (expectedObject, expectedGeneration),
-                    hasMediaBox, visited, depth + 1, out long childCount)
+                    hasMediaBox, resources, visited, depth + 1, out long childCount)
                 || total > long.MaxValue - childCount) return false;
             total += childCount;
         }

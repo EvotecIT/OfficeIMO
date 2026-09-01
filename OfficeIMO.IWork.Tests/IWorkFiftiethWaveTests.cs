@@ -1,3 +1,4 @@
+using OfficeIMO.Excel;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint;
 
@@ -5,20 +6,28 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Numbers_catalogs_reject_fields_outside_the_entry_envelope(bool formula) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Malformed_numbers_catalogs_use_visual_fallback(bool formula, bool malformedWire) {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Catalog", 1, 1, 1d,
                 textValue: formula ? null : "Value",
                 completeFormula: formula,
-                unexpectedStringCatalogFieldCount: formula ? 0 : 1,
-                unexpectedFormulaCatalogFieldCount: formula ? 1 : 0)
-        });
+                unexpectedStringCatalogFieldCount: !formula && !malformedWire ? 1 : 0,
+                unexpectedFormulaCatalogFieldCount: formula && !malformedWire ? 1 : 0,
+                malformedStringCatalog: !formula && malformedWire,
+                malformedFormulaCatalog: formula && malformedWire)
+        }, includePreview: true);
 
-        Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers)
-                .ReadNumbers());
+        using var result = ExcelDocument.LoadNumbersWithReport(package);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == (formula
+                ? "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED"
+                : "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED"));
     }
 
     [Fact]
