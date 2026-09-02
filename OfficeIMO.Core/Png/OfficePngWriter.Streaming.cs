@@ -53,6 +53,16 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         Stream destination,
         OfficePngEncodeOptions options) {
+        EncodeTo(image, destination, options, System.Threading.CancellationToken.None);
+    }
+
+    /// <summary>Encodes an RGBA image with physical-resolution metadata and cooperative cancellation.</summary>
+    /// <remarks>The destination remains open after encoding.</remarks>
+    public static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        OfficePngEncodeOptions options,
+        System.Threading.CancellationToken cancellationToken) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX));
@@ -65,7 +75,7 @@ public static partial class OfficePngWriter {
             options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
             options.WritePhysicalResolution ? options.DpiY : (double?)null,
-            System.Threading.CancellationToken.None);
+            cancellationToken);
     }
 
 #if NET8_0_OR_GREATER

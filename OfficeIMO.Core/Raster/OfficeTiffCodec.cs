@@ -438,10 +438,12 @@ public static partial class OfficeTiffCodec {
         byte[] pixels,
         int width,
         int height,
-        OfficeTiffEncodeOptions options) {
+        OfficeTiffEncodeOptions options,
+        CancellationToken cancellationToken = default) {
         if (!UsesHorizontalPredictor(options)) return pixels;
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] predicted = (byte[])pixels.Clone();
-        ApplyHorizontalPredictor(predicted, width, height);
+        ApplyHorizontalPredictor(predicted, width, height, cancellationToken);
         return predicted;
     }
 
@@ -449,17 +451,19 @@ public static partial class OfficeTiffCodec {
         byte[] pixels,
         int width,
         int height,
-        OfficeTiffEncodeOptions options) {
-        if (!UsesHorizontalPredictor(options)) return EncodeLzw(pixels, pixels.Length);
+        OfficeTiffEncodeOptions options,
+        CancellationToken cancellationToken = default) {
+        if (!UsesHorizontalPredictor(options)) return EncodeLzw(pixels, pixels.Length, cancellationToken);
 #if NET8_0_OR_GREATER
         byte[] scratch = ArrayPool<byte>.Shared.Rent(pixels.Length);
 #else
         byte[] scratch = new byte[pixels.Length];
 #endif
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             Buffer.BlockCopy(pixels, 0, scratch, 0, pixels.Length);
-            ApplyHorizontalPredictor(scratch, width, height);
-            return EncodeLzw(scratch, pixels.Length);
+            ApplyHorizontalPredictor(scratch, width, height, cancellationToken);
+            return EncodeLzw(scratch, pixels.Length, cancellationToken);
         } finally {
 #if NET8_0_OR_GREATER
             ArrayPool<byte>.Shared.Return(scratch);
@@ -467,10 +471,15 @@ public static partial class OfficeTiffCodec {
         }
     }
 
-    private static void ApplyHorizontalPredictor(byte[] pixels, int width, int height) {
+    private static void ApplyHorizontalPredictor(
+        byte[] pixels,
+        int width,
+        int height,
+        CancellationToken cancellationToken = default) {
         const int samples = 4;
         int rowBytes = checked(width * samples);
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int row = y * rowBytes;
             for (int offset = row + rowBytes - 1; offset >= row + samples; offset--) {
                 pixels[offset] = unchecked((byte)(pixels[offset] - pixels[offset - samples]));
@@ -492,13 +501,15 @@ public static partial class OfficeTiffCodec {
         int rowBytes,
         int rowCount,
         byte[]? output,
-        int outputOffset) {
+        int outputOffset,
+        CancellationToken cancellationToken = default) {
         if (rowBytes <= 0 || rowCount <= 0 || (long)rowBytes * rowCount != input.Length) {
             throw new ArgumentException("TIFF PackBits row dimensions do not match the input buffer.");
         }
         int target = outputOffset;
         for (int row = 0; row < rowCount; row++) {
-            target += EncodePackBits(input, row * rowBytes, rowBytes, output, target);
+            cancellationToken.ThrowIfCancellationRequested();
+            target += EncodePackBits(input, row * rowBytes, rowBytes, output, target, cancellationToken);
         }
         return checked(target - outputOffset);
     }
@@ -508,11 +519,13 @@ public static partial class OfficeTiffCodec {
         int inputOffset,
         int inputCount,
         byte[]? output,
-        int outputOffset) {
+        int outputOffset,
+        CancellationToken cancellationToken = default) {
         int index = inputOffset;
         int inputEnd = checked(inputOffset + inputCount);
         int target = outputOffset;
         while (index < inputEnd) {
+            if ((index & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int runLength = CountRun(input, index, inputEnd);
             if (runLength >= 3) {
                 if (output != null) {

@@ -70,12 +70,14 @@ internal static class PdfImageExportEngine {
             options.RenderTimeout,
             cancellationToken);
         try {
+            var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
             OfficeImageExportResult result = ExportCore(
                 page,
                 format,
                 options,
                 pageNumber,
                 initialDiagnostics,
+                encodingBudget,
                 execution.Token);
             execution.ThrowIfCancellationRequested();
             return result;
@@ -90,6 +92,7 @@ internal static class PdfImageExportEngine {
         PdfImageExportOptions options,
         int? pageNumber,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics,
+        OfficeImageExportEncodingBudget encodingBudget,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -128,6 +131,7 @@ internal static class PdfImageExportEngine {
                 fallbackCodec,
                 resourceIdPrefix: null,
                 cancellationToken: cancellationToken);
+            encodingBudget.Reserve(svg.Length);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(drawing.Width, effective.Scale),
@@ -163,7 +167,9 @@ internal static class PdfImageExportEngine {
         byte[] bytes = OfficeRasterImageEncoder.Encode(
             raster,
             format,
-            plan.CreateEncodingOptions());
+            plan.CreateEncodingOptions(),
+            encodingBudget,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return options.EnsureAccepted(new OfficeImageExportResult(
             format,
@@ -205,6 +211,7 @@ internal static class PdfImageExportEngine {
         try {
             int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
                 ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+            var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
 
             OfficeImageExportBatchProcessor.ForEachOrdered(
                 pages,
@@ -215,6 +222,7 @@ internal static class PdfImageExportEngine {
                     options,
                     pageNumber,
                     initialDiagnostics,
+                    encodingBudget,
                     token),
                 consumer,
                 execution.Token,

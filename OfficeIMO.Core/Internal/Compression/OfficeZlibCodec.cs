@@ -7,15 +7,25 @@ namespace OfficeIMO.Core.Internal {
     /// <summary>Encodes and decodes RFC 1950 zlib streams with checksum validation.</summary>
     internal static class OfficeZlibCodec {
         internal static byte[] Compress(byte[] bytes) {
+            return Compress(bytes, CancellationToken.None);
+        }
+
+        internal static byte[] Compress(byte[] bytes, CancellationToken cancellationToken) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            cancellationToken.ThrowIfCancellationRequested();
             using var output = new MemoryStream();
             output.WriteByte(0x78);
             output.WriteByte(0x9C);
             using (var deflate = new DeflateStream(output,
                        CompressionLevel.Optimal, leaveOpen: true)) {
-                deflate.Write(bytes, 0, bytes.Length);
+                const int chunkSize = 64 * 1024;
+                for (int offset = 0; offset < bytes.Length; offset += chunkSize) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int count = Math.Min(chunkSize, bytes.Length - offset);
+                    deflate.Write(bytes, offset, count);
+                }
             }
-            uint checksum = Adler32(bytes);
+            uint checksum = Adler32(bytes, cancellationToken);
             output.WriteByte(unchecked((byte)(checksum >> 24)));
             output.WriteByte(unchecked((byte)(checksum >> 16)));
             output.WriteByte(unchecked((byte)(checksum >> 8)));

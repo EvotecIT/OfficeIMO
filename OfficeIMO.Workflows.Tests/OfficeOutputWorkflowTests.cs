@@ -36,6 +36,66 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportNormalizesATrailingDirectorySeparatorBeforePublication() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Trailing separator");
+        string output = Path.Combine(scope.Path, "pages");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output + Path.DirectorySeparatorChar,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(output, result.OutputDirectory);
+        Assert.Single(Directory.GetFiles(output, "*.png"));
+        Assert.False(Directory.Exists(output + " (1)"));
+        Assert.Empty(Directory.GetDirectories(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task PageImageExportRejectsFilesystemRootsAsDestinations() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Root rejection");
+        string root = Path.GetPathRoot(scope.Path)!;
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = root
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.Contains("filesystem root", result.Summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PageImageExportEnforcesOutputBytesDuringEncoding() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Bounded image output");
+        string output = Path.Combine(scope.Path, "pages");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                Limits = new OfficeWorkflowLimits {
+                    MaximumInputBytes = 16L * 1024L * 1024L,
+                    MaximumOutputBytes = 32L
+                }
+            });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Contains(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), result.Summary, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(output));
+        Assert.Empty(Directory.GetDirectories(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
     public async Task PageImageExportCancellationFromPublishProgressPreservesExistingDirectory() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Cancelled publication");
@@ -1047,6 +1107,96 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.Equal(600D, placement.Width, 3);
         Assert.Equal(600D, placement.Height, 3);
         Assert.Equal(1D, placement.Scale, 3);
+    }
+
+    [Fact]
+    public void PrintPlannerReadsGeometryWhenPrintingIsAllowedButCopyingIsDenied() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "protected-print.pdf");
+        var encryption = new PdfStandardEncryptionOptions("reader") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.Print
+        };
+        PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text("Printable, not copyable"))))),
+                new PdfOptions().SetEncryption(encryption))
+            .Save(input);
+
+        PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+            InputPath = input,
+            PdfPassword = "reader"
+        });
+
+        Assert.Equal(1, plan.SourcePageCount);
+        Assert.Single(plan.SelectedPages);
+        Assert.Single(plan.Sheets);
+    }
+
+    [Fact]
+    public void PrintPlannerRejectsUserAuthorizationWithoutPrintingPermission() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "protected-no-print.pdf");
+        PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text("Not printable"))))),
+                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                    OwnerPassword = "owner",
+                    AllowedPermissions = PdfStandardPermissions.None
+                }))
+            .Save(input);
+
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+                InputPath = input,
+                PdfPassword = "reader"
+            }));
+
+        Assert.Equal(PdfStandardPermissions.Print, exception.Permission);
+        Assert.Equal(PdfPasswordAuthenticationRole.User, exception.AuthenticationRole);
+    }
+
+    [Fact]
+    public void PrintPlannerAllowsOwnerAuthorizationWhenUserPrintingIsDenied() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "owner-print.pdf");
+        PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text("Owner printable"))))),
+                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                    OwnerPassword = "owner",
+                    AllowedPermissions = PdfStandardPermissions.None
+                }))
+            .Save(input);
+
+        PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+            InputPath = input,
+            PdfPassword = "owner"
+        });
+
+        Assert.Single(plan.Sheets);
+    }
+
+    [Fact]
+    public void PrintPlannerCanExplicitlyIgnoreAuthenticatedUserRestrictions() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "override-print.pdf");
+        PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item =>
+                    item.Paragraph(paragraph => paragraph.Text("Authorized override"))))),
+                new PdfOptions().SetEncryption(new PdfStandardEncryptionOptions("reader") {
+                    OwnerPassword = "owner",
+                    AllowedPermissions = PdfStandardPermissions.None
+                }))
+            .Save(input);
+
+        PdfPrintPlan plan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+            InputPath = input,
+            PdfPassword = "reader",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        });
+
+        Assert.Single(plan.Sheets);
     }
 
     [Fact]

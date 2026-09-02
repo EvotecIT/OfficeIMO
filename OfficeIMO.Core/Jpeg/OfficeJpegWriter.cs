@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -107,22 +108,34 @@ internal static partial class OfficeJpegWriter {
     }
 
     public static void WriteRgba(Stream stream, int width, int height, byte[] rgba, int stride, int quality) {
-        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, BuildOptions(quality), nameof(rgba), "RGBA buffer too small.");
+        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, BuildOptions(quality), nameof(rgba), "RGBA buffer too small.", CancellationToken.None);
     }
 
     public static void WriteRgbaScanlines(Stream stream, int width, int height, byte[] scanlines, int stride, int quality) {
-        WriteRgbaCore(stream, width, height, scanlines, stride, rowOffset: 1, rowStride: stride + 1, BuildOptions(quality), nameof(scanlines), "Scanline buffer too small.");
+        WriteRgbaCore(stream, width, height, scanlines, stride, rowOffset: 1, rowStride: stride + 1, BuildOptions(quality), nameof(scanlines), "Scanline buffer too small.", CancellationToken.None);
     }
 
     public static void WriteRgba(Stream stream, int width, int height, byte[] rgba, int stride, OfficeJpegEncodeOptions options) {
-        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, options, nameof(rgba), "RGBA buffer too small.");
+        WriteRgba(stream, width, height, rgba, stride, options, CancellationToken.None);
+    }
+
+    internal static void WriteRgba(
+        Stream stream,
+        int width,
+        int height,
+        byte[] rgba,
+        int stride,
+        OfficeJpegEncodeOptions options,
+        CancellationToken cancellationToken) {
+        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, options, nameof(rgba), "RGBA buffer too small.", cancellationToken);
     }
 
     public static void WriteRgbaScanlines(Stream stream, int width, int height, byte[] scanlines, int stride, OfficeJpegEncodeOptions options) {
-        WriteRgbaCore(stream, width, height, scanlines, stride, rowOffset: 1, rowStride: stride + 1, options, nameof(scanlines), "Scanline buffer too small.");
+        WriteRgbaCore(stream, width, height, scanlines, stride, rowOffset: 1, rowStride: stride + 1, options, nameof(scanlines), "Scanline buffer too small.", CancellationToken.None);
     }
 
-    private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage) {
+    private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
         if (width > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(width), "JPEG width cannot exceed 65535 pixels.");
@@ -142,7 +155,7 @@ internal static partial class OfficeJpegWriter {
         var qY = ScaleQuantTable(StdLumaQuant, quality);
         var qC = ScaleQuantTable(StdChromaQuant, quality);
 
-        var grayscale = IsGrayscale(rgba, width, height, stride, rowOffset, rowStride);
+        var grayscale = IsGrayscale(rgba, width, height, stride, rowOffset, rowStride, cancellationToken);
         var sampling = grayscale ? OfficeJpegSubsampling.Y444 : options.Subsampling;
 
         BuildComponents(sampling, grayscale, out var components, out var maxH, out var maxV);
@@ -162,9 +175,10 @@ internal static partial class OfficeJpegWriter {
             maxH,
             maxV,
             qY,
-            qC);
+            qC,
+            cancellationToken);
 
-        var tables = BuildHuffmanTables(coeffs, components, options.OptimizeHuffman);
+        var tables = BuildHuffmanTables(coeffs, components, options.OptimizeHuffman, cancellationToken);
         Stream output = stream is MemoryStream memoryStream
             ? new JpegBudgetedMemoryStream(memoryStream, fixedManagedBytes)
             : stream;
@@ -189,9 +203,9 @@ internal static partial class OfficeJpegWriter {
         }
 
         if (options.Progressive) {
-            EncodeProgressive(output, width, height, maxH, maxV, components, coeffs, tables);
+            EncodeProgressive(output, width, height, maxH, maxV, components, coeffs, tables, cancellationToken);
         } else {
-            EncodeBaseline(output, components, coeffs, tables);
+            EncodeBaseline(output, components, coeffs, tables, cancellationToken);
         }
 
         WriteMarker(output, 0xFFD9);
@@ -323,7 +337,8 @@ internal static partial class OfficeJpegWriter {
         int maxH,
         int maxV,
         int[] qY,
-        int[] qC) {
+        int[] qC,
+        CancellationToken cancellationToken) {
         var mcuWidth = maxH * 8;
         var mcuHeight = maxV * 8;
         var mcuCols = (width + mcuWidth - 1) / mcuWidth;
@@ -356,6 +371,7 @@ internal static partial class OfficeJpegWriter {
         var hasChroma = cbCoeffs.HasValue && crCoeffs.HasValue;
 
         for (var my = 0; my < mcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < mcuCols; mx++) {
                 if (yCoeffs.HasValue) {
                     var yc = yCoeffs.Value;
@@ -405,7 +421,8 @@ internal static partial class OfficeJpegWriter {
         }
     }
 
-    private static HuffmanTableSet BuildHuffmanTables(ComponentCoefficients[] coeffs, ComponentSpec[] components, bool optimize) {
+    private static HuffmanTableSet BuildHuffmanTables(ComponentCoefficients[] coeffs, ComponentSpec[] components, bool optimize, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!optimize) {
             var dcLuma = new HuffmanSpec(DcLumaBits, DcValues, DcLumaTable);
             var acLuma = new HuffmanSpec(AcLumaBits, AcLumaValues, AcLumaTable);
@@ -419,7 +436,7 @@ internal static partial class OfficeJpegWriter {
         var freqDcChroma = new int[256];
         var freqAcChroma = new int[256];
 
-        AccumulateFrequencies(coeffs, components, freqDcLuma, freqAcLuma, freqDcChroma, freqAcChroma);
+        AccumulateFrequencies(coeffs, components, freqDcLuma, freqAcLuma, freqDcChroma, freqAcChroma, cancellationToken);
 
         var dcL = BuildOptimizedHuffman(freqDcLuma);
         var acL = BuildOptimizedHuffman(freqAcLuma);
@@ -941,8 +958,9 @@ internal static partial class OfficeJpegWriter {
         s.WriteByte((byte)((ah << 4) | al));
     }
 
-    private static bool IsGrayscale(byte[] rgba, int width, int height, int stride, int rowOffset, int rowStride) {
+    private static bool IsGrayscale(byte[] rgba, int width, int height, int stride, int rowOffset, int rowStride, CancellationToken cancellationToken) {
         for (var y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             var row = y * rowStride + rowOffset;
             for (var x = 0; x < width; x++) {
                 var p = row + x * 4;
@@ -966,7 +984,8 @@ internal static partial class OfficeJpegWriter {
         Stream stream,
         ComponentSpec[] components,
         ComponentCoefficients[] coeffs,
-        HuffmanTableSet tables) {
+        HuffmanTableSet tables,
+        CancellationToken cancellationToken) {
         var mcuCols = coeffs[0].BlocksPerRow / components[0].H;
         var mcuRows = coeffs[0].BlocksPerCol / components[0].V;
 
@@ -978,6 +997,7 @@ internal static partial class OfficeJpegWriter {
         var prevDc = new int[components.Length];
 
         for (var my = 0; my < mcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < mcuCols; mx++) {
                 for (var ci = 0; ci < components.Length; ci++) {
                     var comp = components[ci];
@@ -1006,7 +1026,8 @@ internal static partial class OfficeJpegWriter {
         int maxV,
         ComponentSpec[] components,
         ComponentCoefficients[] coeffs,
-        HuffmanTableSet tables) {
+        HuffmanTableSet tables,
+        CancellationToken cancellationToken) {
         var mcuCols = coeffs[0].BlocksPerRow / components[0].H;
         var mcuRows = coeffs[0].BlocksPerCol / components[0].V;
 
@@ -1018,6 +1039,7 @@ internal static partial class OfficeJpegWriter {
         var bw = new BitWriter(stream);
         var prevDc = new int[components.Length];
         for (var my = 0; my < mcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < mcuCols; mx++) {
                 for (var ci = 0; ci < components.Length; ci++) {
                     var comp = components[ci];
@@ -1039,6 +1061,7 @@ internal static partial class OfficeJpegWriter {
         // Progressive AC scans must be non-interleaved. Emit one scan per component and omit padded
         // edge blocks that belong only to interleaved MCU alignment.
         for (var ci = 0; ci < components.Length; ci++) {
+            cancellationToken.ThrowIfCancellationRequested();
             var componentIndex = new[] { ci };
             WriteSos(stream, components, componentIndex, 1, 63, 0, 0);
             bw = new BitWriter(stream);
@@ -1048,6 +1071,7 @@ internal static partial class OfficeJpegWriter {
             var blockRows = DivideRoundUp((long)height * comp.V, maxV * 8);
             var acTable = ci == 0 ? tables.AcLuma.Table : tables.AcChroma.Table;
             for (var blockY = 0; blockY < blockRows; blockY++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 for (var blockX = 0; blockX < blockCols; blockX++) {
                     var offset = (blockY * compCoeffs.BlocksPerRow + blockX) * 64;
                     EncodeAcFromQuantized(bw, compCoeffs.Data, offset, acTable, 1, 63);
@@ -1065,12 +1089,14 @@ internal static partial class OfficeJpegWriter {
         int[] dcLuma,
         int[] acLuma,
         int[] dcChroma,
-        int[] acChroma) {
+        int[] acChroma,
+        CancellationToken cancellationToken) {
         var mcuCols = coeffs[0].BlocksPerRow / components[0].H;
         var mcuRows = coeffs[0].BlocksPerCol / components[0].V;
         var prevDc = new int[components.Length];
 
         for (var my = 0; my < mcuRows; my++) {
+            cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < mcuCols; mx++) {
                 for (var ci = 0; ci < components.Length; ci++) {
                     var comp = components[ci];
