@@ -9,8 +9,12 @@ internal static partial class PdfSanitizer {
 
     internal static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        var parsed = PdfSyntax.ParseObjects(pdf, readOptions);
-        return Scan(parsed.Map, options ?? new PdfSanitizationOptions());
+        PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
+        System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Scan(parsed.Map, policy);
     }
 
     /// <summary>
@@ -32,9 +36,14 @@ internal static partial class PdfSanitizer {
         PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
         IReadOnlyList<PdfSanitizationFinding> before = Analyze(pdf, policy, readOptions);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<PdfExtractedAttachment> quarantined = policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine
-            ? PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions))
-            : Array.Empty<PdfExtractedAttachment>();
+        IReadOnlyList<PdfExtractedAttachment> quarantined;
+        if (policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine) {
+            PdfReadDocument quarantineDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+            quarantined = quarantineDocument.ExtractAttachments(cancellationToken);
+        } else {
+            quarantined = Array.Empty<PdfExtractedAttachment>();
+        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumActionDepth = readLimits.MaxObjectNestingDepth;

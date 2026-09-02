@@ -14,41 +14,58 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML.</summary>
     public static string ToHtml(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).ToHtml(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .ToHtml(CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         string path,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtmlAsync(path, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
+            return await logical.SaveAsHtmlAsync(
+                path,
+                CreateRenderOptionsAfterPreselection(renderOptions),
+                renderOptions.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         Stream stream,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtmlAsync(stream, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
+            return await logical.SaveAsHtmlAsync(
+                stream,
+                CreateRenderOptionsAfterPreselection(renderOptions),
+                renderOptions.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>

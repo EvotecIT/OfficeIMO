@@ -65,6 +65,7 @@ public sealed partial class OfficeWorkflowRunner {
             throw;
         }
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             Directory.Move(stagingDirectory, requestedDirectory);
         } catch (Exception publicationException) when (publicationException is not OutOfMemoryException and not StackOverflowException) {
             try {

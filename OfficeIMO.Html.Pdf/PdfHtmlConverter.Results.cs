@@ -7,7 +7,8 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
     public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).ToHtmlResult(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>
