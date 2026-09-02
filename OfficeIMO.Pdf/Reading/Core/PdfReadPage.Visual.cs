@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -104,7 +105,10 @@ public sealed partial class PdfReadPage {
     /// <summary>
     /// Projects supported page drawing operators, text spans, and image placements into a dependency-free drawing scene.
     /// </summary>
-    public OfficeDrawing ToDrawing() {
+    public OfficeDrawing ToDrawing() => ToDrawing(CancellationToken.None);
+
+    internal OfficeDrawing ToDrawing(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         _demandContentExtraction?.Invoke("visual content");
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
@@ -114,13 +118,17 @@ public sealed partial class PdfReadPage {
         var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         var invocationTextClippingBudget = new PdfTextClippingBudget();
         var patternTextClippingBudget = new PdfTextClippingBudget();
+        cancellationToken.ThrowIfCancellationRequested();
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
+        cancellationToken.ThrowIfCancellationRequested();
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+        cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
         var activeSoftMasks = new HashSet<PdfStream>();
         for (int i = 0; i < pageElements.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfPageDrawingElement element = pageElements[i].WithEffect(
                 pageElements[i].Effect.OverlayOn(ResolveDrawingEffect(
                     effects,
@@ -129,7 +137,9 @@ public sealed partial class PdfReadPage {
             AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return drawing;
     }

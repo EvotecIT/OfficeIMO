@@ -69,6 +69,40 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedTextPaintState() {
+        byte[] source = BuildTextPaintIdentityPdf("1 0 0 rg");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildTextPaintIdentityPdf("0 0 1 rg");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedAnnotationAppearanceGraph() {
+        byte[] source = BuildAnnotationAppearanceIdentityPdf("1 0 0 rg");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildAnnotationAppearanceIdentityPdf("0 0 1 rg");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationAcceptsPreservedUnredactedImageRenderingSemantics() {
         byte[] source = BuildImageIdentitySource(includeInvertedDecode: false);
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
@@ -831,6 +865,33 @@ public class PdfRedactionVerificationTests {
     private static byte[] BuildSimpleFlateImageRedactionSource() {
         const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n";
         return BuildSimpleFlateImagePdf(pageContent);
+    }
+
+    private static byte[] BuildTextPaintIdentityPdf(string colorOperator) {
+        string content = $"BT /F1 12 Tf {colorOperator} 20 100 Td (Visible text) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildAnnotationAppearanceIdentityPdf(string colorOperator) {
+        string appearance = $"q {colorOperator} 0 0 40 40 re f Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
+            "5 0 obj", "<< /Type /Annot /Subtype /Stamp /Rect [100 100 140 140] /NM (appearance-proof) /AP << /N 6 0 R >> >>", "endobj",
+            "6 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Length {appearance.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream", appearance, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
+        }));
     }
 
     private static byte[] BuildSparsePageObjectPdf() {

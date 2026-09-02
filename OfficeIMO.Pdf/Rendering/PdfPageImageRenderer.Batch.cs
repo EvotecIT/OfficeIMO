@@ -134,7 +134,7 @@ internal static partial class PdfPageImageRenderer {
         try {
             cancellationToken.ThrowIfCancellationRequested();
             capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics();
-            OfficeDrawing drawing = RenderPage(document, pageNumber);
+            OfficeDrawing drawing = RenderPage(document, pageNumber, cancellationToken);
             drawing.Fonts.AddRangePreservingExisting(options.Fonts);
             double scale = options.GetScale(drawing);
             int width = checked((int)Math.Ceiling(drawing.Width * scale));

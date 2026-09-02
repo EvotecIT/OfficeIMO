@@ -86,7 +86,7 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedTextIdentity(identity, page, pageAreas);
             AppendUnredactedPathIdentity(identity, page, pageAreas);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas);
-            AppendUnredactedAnnotationIdentity(identity, page, pageAreas);
+            AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
@@ -118,7 +118,11 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(span.Advance))
                 .Append(',').Append(FormatIdentityNumber(span.FontSize))
                 .Append(',').Append(FormatIdentityNumber(span.RotationDegrees))
-                .Append(',').Append(span.IsVisible ? '1' : '0');
+                .Append(',').Append(span.IsVisible ? '1' : '0')
+                .Append(',').Append(span.TextRenderingMode);
+            AppendIdentityString(identity, span.BaseFont ?? span.DrawingFontFamily ?? span.FontResource);
+            AppendIdentityColor(identity, span.Color);
+            PdfRedactionImageIdentity.AppendClip(identity, span.ClipPath);
         }
     }
 
@@ -271,6 +275,7 @@ public sealed class PdfRedactionPlan {
 
     private static void AppendUnredactedAnnotationIdentity(
         System.Text.StringBuilder identity,
+        PdfReadDocument document,
         PdfReadPage page,
         IReadOnlyList<PdfRedactionArea> pageAreas) {
         IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
@@ -290,6 +295,8 @@ public sealed class PdfRedactionPlan {
             AppendIdentityString(identity, annotation.ActionType);
             identity.Append(':').Append(annotation.Flags?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
                 .Append(':').Append(annotation.HasNormalAppearance ? '1' : '0');
+            identity.Append(":appearance:");
+            PdfRedactionImageIdentity.AppendObjectGraph(identity, annotation.NormalAppearanceObject, document.Objects);
             AppendIdentityNumbers(identity, annotation.Color);
             AppendIdentityNumbers(identity, annotation.InteriorColor);
             AppendIdentityNumbers(identity, annotation.QuadPoints);

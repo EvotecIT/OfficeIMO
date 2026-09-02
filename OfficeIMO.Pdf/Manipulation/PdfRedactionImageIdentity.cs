@@ -39,7 +39,7 @@ internal static class PdfRedactionImageIdentity {
         AppendObject(identity, imageStream, objects, activeReferences, 0, ref nodes);
     }
 
-    private static void AppendClip(StringBuilder identity, PdfPageClipPath? clipPath) {
+    internal static void AppendClip(StringBuilder identity, PdfPageClipPath? clipPath) {
         if (!clipPath.HasValue) {
             identity.Append(":clip:none");
             return;
@@ -66,6 +66,20 @@ internal static class PdfRedactionImageIdentity {
                 .Append(command.ControlPoint2.X.ToString("R", CultureInfo.InvariantCulture)).Append(',')
                 .Append(command.ControlPoint2.Y.ToString("R", CultureInfo.InvariantCulture));
         }
+    }
+
+    internal static void AppendObjectGraph(
+        StringBuilder identity,
+        PdfObject? value,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (value is null) {
+            identity.Append("none");
+            return;
+        }
+
+        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        int nodes = 0;
+        AppendObject(identity, value, objects, activeReferences, 0, ref nodes);
     }
 
     private static void AppendColor(StringBuilder identity, OfficeColor color) =>

@@ -105,14 +105,14 @@ public sealed partial class PdfLogicalPage {
 
     internal (double Width, double Height) GetVisualPageSize() {
         PdfPageBox pageBox = GetVisualBoundaryBox();
-        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, RotationDegrees);
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, RotationDegrees, Geometry.UserUnit ?? 1D);
     }
 
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
-        PdfVisualCoordinateMapper.TransformBounds(GetVisualBoundaryBox(), RotationDegrees, left, bottom, right, top);
+        PdfVisualCoordinateMapper.TransformBounds(GetVisualBoundaryBox(), RotationDegrees, left, bottom, right, top, Geometry.UserUnit ?? 1D);
 
     internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
-        PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetVisualBoundaryBox(), RotationDegrees, left, top, right, bottom);
+        PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetVisualBoundaryBox(), RotationDegrees, left, top, right, bottom, Geometry.UserUnit ?? 1D);
 
     /// <summary>
     /// Converts a top-left visual page rectangle into PDF default user-space coordinates.
@@ -134,7 +134,8 @@ public sealed partial class PdfLogicalPage {
             GetVisualBoundaryBox(),
             RotationDegrees,
             x,
-            y);
+            y,
+            Geometry.UserUnit ?? 1D);
         return new PdfPagePoint(mappedX, mappedY);
     }
 

@@ -285,6 +285,10 @@ public sealed partial class PdfReadPage {
 
             TryGetString(annotation.Items.TryGetValue("Contents", out var contentsObject) ? contentsObject : null, out string? contents);
             bool hasNormalAppearance = HasNormalAppearance(annotation);
+            PdfDictionary? appearances = ResolveDictionary(annotation.Items.TryGetValue("AP", out PdfObject? appearancesObject) ? appearancesObject : null);
+            PdfObject? normalAppearanceObject = appearances != null && appearances.Items.TryGetValue("N", out PdfObject? normalAppearance)
+                ? normalAppearance
+                : null;
             annotation.Items.TryGetValue("A", out var actionObject);
             annotation.Items.TryGetValue("AA", out var additionalActionsObject);
             string? actionType = TryReadActionType(actionObject);
@@ -329,7 +333,7 @@ public sealed partial class PdfReadPage {
                 out IReadOnlyList<double> vertices,
                 out IReadOnlyList<IReadOnlyList<double>> inkList);
             PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review));
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();

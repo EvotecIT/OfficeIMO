@@ -56,4 +56,19 @@ public sealed class PdfLogicalPageCoordinateTests {
         Assert.Equal(550D, point.X);
         Assert.Equal(760D, point.Y);
     }
+
+    [Fact]
+    public void VisualCoordinateMappingAccountsForPageUserUnitScale() {
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(PdfPageGeometrySupport.BuildPageGeometryPdf()).Read().Pages);
+
+        PdfPagePoint point = page.MapVisualPointToUserSpace(200D, 100D);
+        PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(200D, 100D, 400D, 200D);
+
+        Assert.Equal(110D, point.X);
+        Assert.Equal(230D, point.Y);
+        Assert.Equal(110D, rectangle.Left);
+        Assert.Equal(180D, rectangle.Bottom);
+        Assert.Equal(210D, rectangle.Right);
+        Assert.Equal(230D, rectangle.Top);
+    }
 }
