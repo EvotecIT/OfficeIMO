@@ -88,6 +88,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                     ["outputBytes"] = outputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
             Report(progress, validated.Id, "publish", "Publishing the validated image folder", 0.9D);
+            cancellationToken.ThrowIfCancellationRequested();
             string publishedDirectory = await PublishDirectoryAsync(
                     stagingDirectory,
                     validated.OutputDirectory,

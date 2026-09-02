@@ -210,7 +210,7 @@ public sealed class OfficeWorkflowRoute {
         Id = capability.Id;
         Source = capability.Source;
         Target = capability.Target;
-        SourceExtensions = capability.SourceExtensions.ToArray();
+        SourceExtensions = Array.AsReadOnly(capability.SourceExtensions.ToArray());
         TargetExtension = capability.TargetExtension;
         Description = capability.Description;
         Fidelity = capability.Fidelity.ToString();
@@ -250,13 +250,13 @@ public static class OfficeWorkflowCatalog {
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
     };
 
-    private static readonly IReadOnlyList<OfficeWorkflowRoute> RoutesValue =
+    private static readonly IReadOnlyList<OfficeWorkflowRoute> RoutesValue = Array.AsReadOnly(
         OfficeConversionCapabilityCatalog.All
             .Where(capability => SupportedIds.Contains(capability.Id))
             .Select(capability => new OfficeWorkflowRoute(capability))
             .OrderBy(route => route.Source, StringComparer.Ordinal)
             .ThenBy(route => route.Target, StringComparer.Ordinal)
-            .ToArray();
+            .ToArray());
 
     /// <summary>The eight first-party Office/PDF conversion routes exposed by the local runner.</summary>
     public static IReadOnlyList<OfficeWorkflowRoute> Routes => RoutesValue;

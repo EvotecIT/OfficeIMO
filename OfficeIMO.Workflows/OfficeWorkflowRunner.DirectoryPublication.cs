@@ -10,8 +10,10 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowConflictPolicy policy,
         ICollection<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (policy) {
             case OfficeWorkflowConflictPolicy.Fail:
+                cancellationToken.ThrowIfCancellationRequested();
                 Directory.Move(stagingDirectory, requestedDirectory);
                 return requestedDirectory;
             case OfficeWorkflowConflictPolicy.Rename:
@@ -40,12 +42,14 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken) {
         await using FileStream publicationLock = await AcquireDirectoryPublicationLockAsync(requestedDirectory, cancellationToken)
             .ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
         RecoverInterruptedDirectoryReplacement(requestedDirectory, diagnostics);
 
         if (File.Exists(requestedDirectory)) {
             throw new IOException("A file already occupies the requested output directory path.");
         }
         if (!Directory.Exists(requestedDirectory)) {
+            cancellationToken.ThrowIfCancellationRequested();
             Directory.Move(stagingDirectory, requestedDirectory);
             return requestedDirectory;
         }
@@ -54,6 +58,7 @@ public sealed partial class OfficeWorkflowRunner {
         string recoveryDirectory = requestedDirectory + ".officeimo-recovery-" + transactionId;
         string ownershipMarker = CreateDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             Directory.Move(requestedDirectory, recoveryDirectory);
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
             TryDeleteFile(ownershipMarker);

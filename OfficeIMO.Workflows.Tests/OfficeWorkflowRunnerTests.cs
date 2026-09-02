@@ -29,6 +29,21 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void CatalogAndRouteExtensionsCannotBeMutatedThroughRuntimeCollectionTypes() {
+        Assert.IsNotType<OfficeWorkflowRoute[]>(OfficeWorkflowCatalog.Routes);
+        IList<OfficeWorkflowRoute> routes = Assert.IsAssignableFrom<IList<OfficeWorkflowRoute>>(OfficeWorkflowCatalog.Routes);
+        Assert.True(routes.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => routes[0] = routes[1]);
+
+        OfficeWorkflowRoute route = routes[0];
+        Assert.IsNotType<string[]>(route.SourceExtensions);
+        IList<string> extensions = Assert.IsAssignableFrom<IList<string>>(route.SourceExtensions);
+        Assert.True(extensions.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => extensions[0] = ".mutated");
+        Assert.DoesNotContain(".mutated", OfficeWorkflowCatalog.Routes.SelectMany(static item => item.SourceExtensions));
+    }
+
     [Theory]
     [InlineData("docx-pdf")]
     [InlineData("xlsx-pdf")]
@@ -337,6 +352,29 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.Equal(OfficeWorkflowFailureKind.None, result.FailureKind);
         Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task CancellationFromPublishProgressPreservesTheExistingArtifact() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "existing.pdf");
+        await File.WriteAllTextAsync(output, "existing artifact");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "publish") cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+        }, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal("existing artifact", await File.ReadAllTextAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
     }
 

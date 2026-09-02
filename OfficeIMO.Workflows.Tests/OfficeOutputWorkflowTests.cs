@@ -35,6 +35,34 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportCancellationFromPublishProgressPreservesExistingDirectory() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Cancelled publication");
+        string output = Path.Combine(scope.Path, "pages");
+        Directory.CreateDirectory(output);
+        string existing = Path.Combine(output, "existing.txt");
+        await File.WriteAllTextAsync(existing, "existing output");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "publish") cancellation.Cancel();
+        });
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            progress,
+            cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal("existing output", await File.ReadAllTextAsync(existing));
+        Assert.Empty(Directory.GetDirectories(scope.Path, ".*.tmp"));
+        Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-recovery-*"));
+    }
+
+    [Fact]
     public async Task PageImageExportRestoresAndReplacesOneInterruptedRecoveryDirectory() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
@@ -353,6 +381,10 @@ public sealed class OfficeOutputWorkflowTests {
                 await scriptDecoyStream.WriteAsync(pixel);
             }
         }
+        long expectedInputBytes;
+        using (ZipArchive archive = ZipFile.OpenRead(archivePath)) {
+            expectedInputBytes = archive.Entries.Sum(static entry => entry.Length);
+        }
 
         string output = Path.Combine(scope.Path, "assembled.pdf");
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
@@ -366,6 +398,7 @@ public sealed class OfficeOutputWorkflowTests {
             string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
         Assert.Equal(3, result.SourceCount);
         Assert.Equal(3, result.PageCount);
+        Assert.Equal(expectedInputBytes, result.InputBytes);
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "cover.png"));
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "script-decoy.png"));
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "source.html"));
@@ -389,6 +422,7 @@ public sealed class OfficeOutputWorkflowTests {
         await File.WriteAllBytesAsync(Path.Combine(folder, "cover.png"), pixel);
         await File.WriteAllBytesAsync(Path.Combine(folder, "background.png"), pixel);
         await File.WriteAllBytesAsync(Path.Combine(folder, "script-decoy.png"), pixel);
+        long expectedInputBytes = Directory.EnumerateFiles(folder).Sum(static path => new FileInfo(path).Length);
 
         string output = Path.Combine(scope.Path, "assembled.pdf");
         PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
@@ -402,12 +436,41 @@ public sealed class OfficeOutputWorkflowTests {
             string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
         Assert.Equal(3, result.SourceCount);
         Assert.Equal(3, result.PageCount);
+        Assert.Equal(expectedInputBytes, result.InputBytes);
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "cover.png"));
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "script-decoy.png"));
         Assert.Contains(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "source.html"));
         Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "pixel.png"));
         Assert.DoesNotContain(result.Diagnostics, static item => IsNormalizedAssemblySource(item, "background.png"));
         Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
+    public async Task FolderAssemblyAppliesOneInputBudgetAcrossHtmlAndReferencedDependencies() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "source.html"),
+            "<!doctype html><html><body><img src='first.png'><img src='second.png'></body></html>");
+        await File.WriteAllBytesAsync(Path.Combine(folder, "first.png"), new byte[600]);
+        await File.WriteAllBytesAsync(Path.Combine(folder, "second.png"), new byte[600]);
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [folder],
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 1_250L,
+                MaximumOutputBytes = 16L * 1024L * 1024L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("Expanded inputs total", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("above the configured", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("byte limit", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]
@@ -694,6 +757,28 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
         Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task AssemblyCancellationFromPublishProgressPreservesTheExistingPdf() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "New content");
+        string output = CreatePdf(scope.Path, "existing.pdf", "Existing content");
+        byte[] existingBytes = await File.ReadAllBytesAsync(output);
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "publish") cancellation.Cancel();
+        });
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [input],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+        }, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal(existingBytes, await File.ReadAllBytesAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
     }
 

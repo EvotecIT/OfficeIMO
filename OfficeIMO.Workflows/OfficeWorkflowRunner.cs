@@ -91,7 +91,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "publish", "Publishing the validated artifact", 0.9D);
-            string publishedPath = Publish(stagingPath, validated.OutputPath!, validated.ConflictPolicy);
+            cancellationToken.ThrowIfCancellationRequested();
+            string publishedPath = Publish(stagingPath, validated.OutputPath!, validated.ConflictPolicy, cancellationToken);
             stagingPath = null;
             long outputBytes = new FileInfo(publishedPath).Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -577,16 +578,24 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private static string Publish(string stagingPath, string requestedPath, OfficeWorkflowConflictPolicy policy) {
+    private static string Publish(
+        string stagingPath,
+        string requestedPath,
+        OfficeWorkflowConflictPolicy policy,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (policy) {
             case OfficeWorkflowConflictPolicy.Fail:
+                cancellationToken.ThrowIfCancellationRequested();
                 File.Move(stagingPath, requestedPath, overwrite: false);
                 return requestedPath;
             case OfficeWorkflowConflictPolicy.Replace:
+                cancellationToken.ThrowIfCancellationRequested();
                 File.Move(stagingPath, requestedPath, overwrite: true);
                 return requestedPath;
             case OfficeWorkflowConflictPolicy.Rename:
                 for (int suffix = 0; suffix < 10_000; suffix++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
                     try {
                         File.Move(stagingPath, candidate, overwrite: false);
