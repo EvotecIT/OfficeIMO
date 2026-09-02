@@ -102,6 +102,56 @@ public class PdfAnnotationCreationTests {
     }
 
     [Fact]
+    public void ResizeDiagonalLineAnnotation_TransformsCaptionOffsetInTheLineBasis() {
+        byte[] source = BuildDiagonalLineCaptionGeometryPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Line"));
+
+        PdfAnnotationEditResult resized = PdfDocument.Load(source).Annotations.Resize(
+            annotation.ObjectNumber!.Value,
+            new PdfPageRectangle(10D, 10D, 210D, 110D));
+        PdfAnnotation result = Assert.Single(resized.ToDocument().Inspect().GetAnnotationsBySubtype("Line"));
+        var (objects, _) = PdfSyntax.ParseObjects(resized.Bytes);
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(objects[result.ObjectNumber!.Value].Value);
+        PdfArray captionOffset = Assert.IsType<PdfArray>(dictionary.Items["CO"]);
+
+        Assert.Equal(-9.4868329805D, Assert.IsType<PdfNumber>(captionOffset.Items[0]).Value, 3);
+        Assert.Equal(12.6491106407D, Assert.IsType<PdfNumber>(captionOffset.Items[1]).Value, 3);
+    }
+
+    [Fact]
+    public void MoveDegenerateLineAnnotation_PreservesCaptionOffset() {
+        byte[] source = BuildDegenerateLineCaptionGeometryPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Line"));
+
+        PdfAnnotationEditResult moved = PdfDocument.Load(source).Annotations.Move(
+            annotation.ObjectNumber!.Value,
+            20D,
+            30D);
+        var (objects, _) = PdfSyntax.ParseObjects(moved.Bytes);
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(objects[annotation.ObjectNumber.Value].Value);
+        PdfArray captionOffset = Assert.IsType<PdfArray>(dictionary.Items["CO"]);
+
+        Assert.Equal(4D, Assert.IsType<PdfNumber>(captionOffset.Items[0]).Value, 3);
+        Assert.Equal(5D, Assert.IsType<PdfNumber>(captionOffset.Items[1]).Value, 3);
+    }
+
+    [Fact]
+    public void UniformlyResizeDegenerateLineAnnotation_ScalesCaptionOffset() {
+        byte[] source = BuildDegenerateLineCaptionGeometryPdf();
+        PdfAnnotation annotation = Assert.Single(PdfInspector.Inspect(source).GetAnnotationsBySubtype("Line"));
+
+        PdfAnnotationEditResult resized = PdfDocument.Load(source).Annotations.Resize(
+            annotation.ObjectNumber!.Value,
+            new PdfPageRectangle(10D, 10D, 210D, 210D));
+        var (objects, _) = PdfSyntax.ParseObjects(resized.Bytes);
+        PdfDictionary dictionary = Assert.IsType<PdfDictionary>(objects[annotation.ObjectNumber.Value].Value);
+        PdfArray captionOffset = Assert.IsType<PdfArray>(dictionary.Items["CO"]);
+
+        Assert.Equal(8D, Assert.IsType<PdfNumber>(captionOffset.Items[0]).Value, 3);
+        Assert.Equal(10D, Assert.IsType<PdfNumber>(captionOffset.Items[1]).Value, 3);
+    }
+
+    [Fact]
     public void AddAnnotation_CreatesUriLinkWithReadback() {
         byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
 
@@ -512,6 +562,25 @@ public class PdfAnnotationCreationTests {
         "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
         "5 0 obj\n<< /Type /Annot /Subtype /Line /Rect [20 20 120 60] /L [20 40 120 40] /LL 10 /LLE 6 /CO [4 5] /Contents (Resize me) >>\nendobj\n" +
         "trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildDiagonalLineCaptionGeometryPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 200] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Line /Rect [20 20 120 120] /L [20 20 120 120] /CO [0 10] /Contents (Resize me) >>\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n0\n%%EOF\n");
+
+    private static byte[] BuildDegenerateLineCaptionGeometryPdf() => Encoding.ASCII.GetBytes(
+        "%PDF-1.7\n" +
+        "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n" +
+        "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj\n" +
+        "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Annots [5 0 R] >>\nendobj\n" +
+        "4 0 obj\n<< /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "5 0 obj\n<< /Type /Annot /Subtype /Line /Rect [20 20 120 120] /L [50 50 50 50] /CO [4 5] /Contents (Resize me) /AP << /N 6 0 R >> >>\nendobj\n" +
+        "6 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Length 0 >>\nstream\n\nendstream\nendobj\n" +
+        "trailer\n<< /Root 1 0 R /Size 7 >>\nstartxref\n0\n%%EOF\n");
 
     private static byte[] BuildLinkAppearanceAnnotationPdf() => Encoding.ASCII.GetBytes(
         "%PDF-1.7\n" +

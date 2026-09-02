@@ -122,7 +122,7 @@ public sealed partial class PdfReadPage {
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
         cancellationToken.ThrowIfCancellationRequested();
-        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+        List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height, pageContentBudget);
         var softMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
@@ -134,7 +134,7 @@ public sealed partial class PdfReadPage {
                     effects,
                     pageElements[i].PaintOrder,
                     contentOrderKey: pageElements[i].ContentOrderKey)));
-            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
         }
 
         cancellationToken.ThrowIfCancellationRequested();
@@ -177,7 +177,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
-        PdfTextClippingBudget patternTextClippingBudget) {
+        PdfTextClippingBudget patternTextClippingBudget,
+        CancellationToken cancellationToken = default) {
         var elements = new List<PdfPageDrawingElement>();
         var renderedType3PaintOrders = new RenderedType3TextTracker();
         IReadOnlyList<PdfPageVisualPrimitive> primitives = GetVisualPrimitives(
@@ -193,7 +194,8 @@ public sealed partial class PdfReadPage {
             (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
-                PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)));
+                PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)),
+            cancellationToken);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -242,7 +244,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
-        PdfTextClippingBudget patternTextClippingBudget) {
+        PdfTextClippingBudget patternTextClippingBudget,
+        CancellationToken cancellationToken = default) {
         if (element.Effect.IsDefault) {
             AddDrawingElementCore(drawing, pageHeight, element, invocationTextClippingBudget);
             return;
@@ -280,7 +283,8 @@ public sealed partial class PdfReadPage {
                     pageContentBudget,
                     type3GlyphBudget,
                     invocationTextClippingBudget,
-                    patternTextClippingBudget);
+                    patternTextClippingBudget,
+                    cancellationToken);
             }
             drawing.AddEffectDrawing(
                 element.GroupDrawing,
@@ -307,7 +311,8 @@ public sealed partial class PdfReadPage {
                 pageContentBudget,
                 type3GlyphBudget,
                 invocationTextClippingBudget,
-                patternTextClippingBudget);
+                patternTextClippingBudget,
+                cancellationToken);
         drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
     }
 
@@ -553,7 +558,8 @@ public sealed partial class PdfReadPage {
         PdfTextClippingBudget? patternTextClippingBudget = null,
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
-        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null) {
+        Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        CancellationToken cancellationToken = default) {
         textOutputBudget ??= CreateTextOutputBudget();
         pageContentBudget ??= new PageContentBudget(this);
         var primitives = new List<PdfPageVisualPrimitive>();
@@ -562,7 +568,7 @@ public sealed partial class PdfReadPage {
         var activeType3Glyphs = new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        var tilingPatternResourceCache = new TilingPatternResourceCache();
+        var tilingPatternResourceCache = new TilingPatternResourceCache(cancellationToken);
         string content = GetContentStreamContent(pageContentBudget);
         if (content.Length > 0) {
             CollectVisualPrimitivesAndForms(

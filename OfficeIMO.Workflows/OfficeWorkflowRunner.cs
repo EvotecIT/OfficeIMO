@@ -212,10 +212,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         byte[] actual = ReadInput(request.ComparisonPath!, request.Limits, cancellationToken);
         PdfHealthSnapshot before = CreateHealthSnapshot(expected, request.PdfLoadOptions, cancellationToken);
         PdfHealthSnapshot after = CreateHealthSnapshot(actual, request.ComparisonPdfLoadOptions, cancellationToken);
+        var comparisonOptions = new PdfVisualComparisonOptions {
+            MaxTotalOutputBytes = CalculateComparisonRetainedOutputBudget(
+                request.Limits.MaximumOutputBytes,
+                Math.Min(before.PageCount, after.PageCount))
+        };
         PdfVisualComparisonReport comparison = PdfVisualComparer.Compare(
             expected,
             actual,
             cancellationToken,
+            options: comparisonOptions,
             expectedReadOptions: request.PdfLoadOptions,
             actualReadOptions: request.ComparisonPdfLoadOptions);
         var metrics = new Dictionary<string, string>(StringComparer.Ordinal) {
@@ -242,6 +248,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken),
                 request.Limits.MaximumOutputBytes);
         return new OperationArtifact(gallery, summary, report);
+    }
+
+    private static long CalculateComparisonRetainedOutputBudget(long maximumOutputBytes, int pageCount) {
+        const long fixedGalleryOverheadBytes = 1024L;
+        const long perPageGalleryOverheadBytes = 1024L;
+        long estimatedMarkupBytes = checked(
+            fixedGalleryOverheadBytes + perPageGalleryOverheadBytes * Math.Max(0, pageCount));
+        long markupReserve = Math.Min(maximumOutputBytes - 1L, estimatedMarkupBytes);
+        long availableBase64Bytes = maximumOutputBytes - markupReserve;
+        return Math.Max(1L, (availableBase64Bytes / 4L) * 3L);
     }
 
     private static OperationArtifact Optimize(

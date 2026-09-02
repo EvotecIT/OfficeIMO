@@ -72,7 +72,11 @@ internal static partial class PdfAnnotationEditor {
                 : null,
             LineCaptionOffset = lineAuxiliary.CaptionOffset is null
                 ? null
-                : [lineAuxiliary.CaptionOffset[0] * scaleX, lineAuxiliary.CaptionOffset[1] * scaleY],
+                : TransformLineCaptionOffset(
+                    lineAuxiliary.CaptionOffset,
+                    annotation.LineCoordinates,
+                    scaleX,
+                    scaleY),
             InkPaths = annotation.InkList.Count == 0
                 ? null
                 : annotation.InkList.Select(path => (IReadOnlyList<double>)TransformPairs(path, annotation, target, scaleX, scaleY)!).ToArray(),
@@ -119,6 +123,46 @@ internal static partial class PdfAnnotationEditor {
         double normalX = -dy / length;
         double normalY = dx / length;
         return Math.Sqrt(normalX * normalX * scaleX * scaleX + normalY * normalY * scaleY * scaleY);
+    }
+
+    private static double[] TransformLineCaptionOffset(
+        double[] captionOffset,
+        IReadOnlyList<double> lineCoordinates,
+        double scaleX,
+        double scaleY) {
+        if (Math.Abs(scaleX - scaleY) <= 0.000000000001D) {
+            return [captionOffset[0] * scaleX, captionOffset[1] * scaleY];
+        }
+        if (lineCoordinates.Count != 4) {
+            throw new NotSupportedException("Line annotation caption offsets require exactly two line endpoints.");
+        }
+
+        double dx = lineCoordinates[2] - lineCoordinates[0];
+        double dy = lineCoordinates[3] - lineCoordinates[1];
+        double sourceLength = Math.Sqrt(dx * dx + dy * dy);
+        double transformedDx = dx * scaleX;
+        double transformedDy = dy * scaleY;
+        double transformedLength = Math.Sqrt(transformedDx * transformedDx + transformedDy * transformedDy);
+        if (sourceLength <= 0D || transformedLength <= 0D) {
+            throw new NotSupportedException("Line annotation caption offsets cannot be transformed for a zero-length line.");
+        }
+
+        double tangentX = dx / sourceLength;
+        double tangentY = dy / sourceLength;
+        double normalX = -tangentY;
+        double normalY = tangentX;
+        double pageOffsetX = captionOffset[0] * tangentX + captionOffset[1] * normalX;
+        double pageOffsetY = captionOffset[0] * tangentY + captionOffset[1] * normalY;
+        double transformedOffsetX = pageOffsetX * scaleX;
+        double transformedOffsetY = pageOffsetY * scaleY;
+        double transformedTangentX = transformedDx / transformedLength;
+        double transformedTangentY = transformedDy / transformedLength;
+        double transformedNormalX = -transformedTangentY;
+        double transformedNormalY = transformedTangentX;
+        return [
+            transformedOffsetX * transformedTangentX + transformedOffsetY * transformedTangentY,
+            transformedOffsetX * transformedNormalX + transformedOffsetY * transformedNormalY
+        ];
     }
 
     private static LineAuxiliaryGeometry ReadLineAuxiliaryGeometry(

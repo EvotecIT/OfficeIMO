@@ -225,7 +225,7 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
-    public async Task ComparisonStopsWhileRenderingGalleryAtTheConfiguredOutputLimit() {
+    public async Task ComparisonAppliesConfiguredOutputLimitWhileRetainingRenderArtifacts() {
         using var scope = new TestDirectory();
         string left = CreatePdf(scope.Path, "left.pdf", "Expected");
         string right = CreatePdf(scope.Path, "right.pdf", "Actual");
@@ -244,7 +244,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
-        Assert.Contains("being rendered", result.Summary, StringComparison.Ordinal);
+        Assert.Contains("RenderBytes", result.Summary, StringComparison.Ordinal);
         Assert.False(File.Exists(output));
     }
 

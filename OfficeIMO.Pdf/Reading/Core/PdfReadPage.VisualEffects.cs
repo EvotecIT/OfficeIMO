@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -971,7 +972,8 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
-        PdfTextClippingBudget patternTextClippingBudget) {
+        PdfTextClippingBudget patternTextClippingBudget,
+        CancellationToken cancellationToken) {
         var cacheKey = (resource.Group, resource.ParentResources, resource.Mode, resource.BackdropColor, pageTransform, width, height, renderingIntent);
         if (cache.TryGetValue(cacheKey, out OfficeDrawingSoftMask? existing)) return existing;
         if (!active.Add(resource.Group)) {
@@ -983,7 +985,7 @@ public sealed partial class PdfReadPage {
                 transform: null);
         }
         try {
-            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+            OfficeDrawing drawing = CreateFormDrawing(resource.Group, resource.ParentResources, width, height, pageTransform, renderingIntent, cache, active, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken: cancellationToken);
             var mask = OfficeDrawingSoftMask.CreateWithLuminosityStandard(
                 drawing,
                 OfficeSoftMaskLuminosityStandard.PdfDeviceRgb,
@@ -1011,7 +1013,8 @@ public sealed partial class PdfReadPage {
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
         PdfTextClippingBudget patternTextClippingBudget,
-        string? decodedContent = null) {
+        string? decodedContent = null,
+        CancellationToken cancellationToken = default) {
         var drawing = new OfficeDrawing(width, height);
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         PdfDictionary? resources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourceObject) ? resourceObject : null) ??
@@ -1043,7 +1046,7 @@ public sealed partial class PdfReadPage {
             type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
             type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
-            tilingPatternResourceCache: new TilingPatternResourceCache(),
+            tilingPatternResourceCache: new TilingPatternResourceCache(cancellationToken),
             textOutputBudget: textOutputBudget,
             invocationTextClippingBudget: invocationTextClippingBudget,
             patternTextClippingBudget: patternTextClippingBudget,
@@ -1124,7 +1127,8 @@ public sealed partial class PdfReadPage {
 
         SortDrawingElements(elements);
         for (int i = 0; i < elements.Count; i++) {
-            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+            cancellationToken.ThrowIfCancellationRequested();
+            AddDrawingElement(drawing, height, transform, elements[i], softMasks, activeSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
         }
         return drawing;
     }

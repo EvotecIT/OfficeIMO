@@ -86,6 +86,44 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedVectorClip() {
+        byte[] source = BuildVectorClipIdentityPdf("10 10 100 100 re W n");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 20D, 10D, 10D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildVectorClipIdentityPdf("30 30 30 30 re W n");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Theory]
+    [InlineData("0 0 1 rg 0 0 5 5 re f", 10D)]
+    [InlineData("1 0 0 rg 0 0 5 5 re f", 12D)]
+    public void AppliedPlanVerificationRejectsChangedUnredactedTilingPattern(
+        string rewrittenTileContent,
+        double rewrittenHorizontalStep) {
+        byte[] source = BuildTilingPatternIdentityPdf("1 0 0 rg 0 0 5 5 re f", 10D);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 20D, 10D, 10D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildTilingPatternIdentityPdf(rewrittenTileContent, rewrittenHorizontalStep);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsChangedUnredactedAnnotationAppearanceGraph() {
         byte[] source = BuildAnnotationAppearanceIdentityPdf("1 0 0 rg");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
@@ -876,6 +914,31 @@ public class PdfRedactionVerificationTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", $"<< /Length {content.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
             "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildVectorClipIdentityPdf(string clipOperators) {
+        string content = $"q {clipOperators} 1 0 0 rg 20 20 80 60 re f Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildTilingPatternIdentityPdf(string tileContent, double horizontalStep) {
+        const string content = "/Pattern cs /P1 scn 20 20 80 60 re f";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Pattern << /P1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep {horizontalStep.ToString("R", CultureInfo.InvariantCulture)} /YStep 10 /Resources << >> /Length {Encoding.ASCII.GetByteCount(tileContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", tileContent, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
     }

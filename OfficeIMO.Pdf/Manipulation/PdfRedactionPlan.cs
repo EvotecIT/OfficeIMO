@@ -171,9 +171,10 @@ public sealed class PdfRedactionPlan {
             AppendIdentityGradient(identity, primitive.StrokeGradient);
             AppendIdentityGradient(identity, primitive.FillRadialGradient);
             AppendIdentityGradient(identity, primitive.StrokeRadialGradient);
-            identity.Append(':').Append(primitive.FillTilingPattern != null ? '1' : '0')
-                .Append(':').Append(primitive.StrokeTilingPattern != null ? '1' : '0')
-                .Append(':').Append(primitive.PathCommands.Count);
+            PdfRedactionImageIdentity.AppendClip(identity, primitive.ClipPath);
+            AppendIdentityTilingPattern(identity, primitive.FillTilingPattern);
+            AppendIdentityTilingPattern(identity, primitive.StrokeTilingPattern);
+            identity.Append(':').Append(primitive.PathCommands.Count);
             for (int commandIndex = 0; commandIndex < primitive.PathCommands.Count; commandIndex++) {
                 OfficeIMO.Drawing.OfficePathCommand command = primitive.PathCommands[commandIndex];
                 identity.Append(';').Append((int)command.Kind)
@@ -185,6 +186,41 @@ public sealed class PdfRedactionPlan {
                     .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.Y));
             }
         }
+    }
+
+    private static void AppendIdentityTilingPattern(
+        System.Text.StringBuilder identity,
+        PdfPageTilingPatternPaint? pattern) {
+        if (pattern is null) {
+            identity.Append(":pattern:null");
+            return;
+        }
+
+        OfficeIMO.Drawing.OfficeTransform transform = pattern.Transform;
+        PdfPageTilingPatternResource resource = pattern.Resource;
+        identity.Append(":pattern:")
+            .Append(FormatIdentityNumber(pattern.Opacity)).Append(':')
+            .Append(FormatIdentityNumber(transform.M11)).Append(',')
+            .Append(FormatIdentityNumber(transform.M12)).Append(',')
+            .Append(FormatIdentityNumber(transform.M21)).Append(',')
+            .Append(FormatIdentityNumber(transform.M22)).Append(',')
+            .Append(FormatIdentityNumber(transform.OffsetX)).Append(',')
+            .Append(FormatIdentityNumber(transform.OffsetY)).Append(':')
+            .Append(FormatIdentityNumber(resource.HorizontalStep)).Append(',')
+            .Append(FormatIdentityNumber(resource.VerticalStep)).Append(',')
+            .Append(FormatIdentityNumber(resource.BoundingBoxX)).Append(',')
+            .Append(FormatIdentityNumber(resource.BoundingBoxTop)).Append(':')
+            .Append(FormatIdentityNumber(resource.Matrix.A)).Append(',')
+            .Append(FormatIdentityNumber(resource.Matrix.B)).Append(',')
+            .Append(FormatIdentityNumber(resource.Matrix.C)).Append(',')
+            .Append(FormatIdentityNumber(resource.Matrix.D)).Append(',')
+            .Append(FormatIdentityNumber(resource.Matrix.E)).Append(',')
+            .Append(FormatIdentityNumber(resource.Matrix.F)).Append(':')
+            .Append(resource.Uncolored ? '1' : '0')
+            .Append(resource.ConsumesInheritedLineState ? '1' : '0')
+            .Append(resource.HasMalformedStrictInvocation ? '1' : '0');
+        AppendIdentityColor(identity, pattern.Tint);
+        identity.Append(':').Append(resource.SourceIdentity);
     }
 
     private static bool IntersectsReviewedArea(
