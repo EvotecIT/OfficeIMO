@@ -46,6 +46,16 @@ For signed Office, OpenDocument, EPUB, or PDF packages, use the owning package's
 
 `OfficeTextIntegrityInspector` reports exact BOMs, zero-width characters, word joiners, bidi controls, Unicode tags, variation selectors, typographic spaces, selected invisible format characters, controls, and unpaired surrogates. Findings retain UTF-16 offsets and distinguish informational, context-dependent, and potentially dangerous values. `OfficeTextIntegrityCleaner` removes only findings explicitly selected by the caller and verifies that the selected code point still occupies the recorded range.
 
+## Workflow and command-line orchestration
+
+`OfficeIMO.Workflows` exposes `IOfficeProvenanceWorkflowRunner` and `OfficeProvenanceWorkflowCatalog` for desktop, PowerShell, command-line, and service hosts. Inspect and assess are report-only operations. Removal preserves the source format, calls the package-owned adapter, stages the result beside its destination, reopens it through the same owner, compares the reopened structural evidence with the removal result, and publishes it only after that check succeeds. Batches are sequential and have an explicit item limit.
+
+Files with unknown extensions remain signature-driven: recognized image, HTML, and PDF content can use the corresponding removal path, while a generic ZIP package remains inspection-only until a document owner establishes its mutation contract. Batch removal rejects duplicate effective output paths before processing any item, including collisions caused by equal basenames in one output directory.
+
+`OfficeIMO.Tool` exposes the same contract under `officeimo provenance`. Its default JSON envelopes carry versioned schema identifiers, while `--format text` provides an interactive summary. Structural findings do not by themselves produce a failing exit code. Invalid requests, missing or unsupported inputs, output failures, cancellation, and execution failures use the tool's stable shared exit codes.
+
+Provider-backed verification and signal detection are dependency-injected workflow services. The default CLI does not bundle credentials, trust material, vendor APIs, or a `c2patool` executable, so its `assess` command reports structural and text-integrity evidence unless a host composes additional providers.
+
 ## Package-owned adapters
 
 | Package | Inspected content | Signature policy during removal |

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Provenance;
 using Xunit;
 
@@ -70,6 +71,40 @@ public sealed class ProvenanceAssessmentContracts {
         }
     }
 
+    [Fact]
+    public void AssessmentComposesAnExistingStructuralReportWithoutChangingItsOwnerEvidence() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "text\u200B", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(path);
+
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.AssessFile(path, structural);
+
+            Assert.Same(structural, report.Structural);
+            Assert.Equal(OfficeTextIntegrityFindingKind.ZeroWidthSpace, Assert.Single(report.TextIntegrity!.Findings).Kind);
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void AssessmentObservesCancellationRaisedByASynchronousProvider() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "text", new UTF8Encoding(false));
+        using var cancellation = new CancellationTokenSource();
+        try {
+            OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(path);
+
+            Assert.Throws<OperationCanceledException>(() => OfficeProvenanceAssessment.AssessFile(
+                path,
+                structural,
+                signalDetectors: [new CancellingDetector(cancellation)],
+                cancellationToken: cancellation.Token));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
     private sealed class StubVerifier : IOfficeProvenanceVerifier {
         public string Name => "stub-verifier";
         internal OfficeProvenanceVerificationOptions? Options { get; private set; }
@@ -115,5 +150,19 @@ public sealed class ProvenanceAssessmentContracts {
                 "different",
                 OfficeProvenanceSignalKind.DurableMediaWatermark,
                 OfficeProvenanceSignalStatus.NotDetected);
+    }
+
+    private sealed class CancellingDetector : IOfficeProvenanceSignalDetector {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancellingDetector(CancellationTokenSource cancellation) => _cancellation = cancellation;
+
+        public string Name => "cancelling";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+
+        public OfficeProvenanceSignalResult Detect(string filePath) {
+            _cancellation.Cancel();
+            return new OfficeProvenanceSignalResult(Name, SignalKind, OfficeProvenanceSignalStatus.NotDetected);
+        }
     }
 }

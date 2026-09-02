@@ -62,6 +62,13 @@ officeimo workflow assemble cover.png report.docx appendices .\attachments.zip -
 
 # Inspect print-sheet placement without requiring a platform printer driver
 officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
+
+# Inspect or assess provenance with versioned JSON output
+officeimo provenance inspect report.docx
+officeimo provenance assess page.html
+
+# Remove selected, structurally valid carriers through the owning format package
+officeimo provenance remove report.docx --output report.cleaned.docx
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -77,6 +84,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
 - `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
+- `officeimo provenance` discovers format owners and runs bounded inspect, assess, selective-remove, and batch workflows with versioned JSON or readable text output.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
@@ -90,6 +98,29 @@ existing image folder or assembled PDF. Assembly preserves caller source order, 
 folders and ZIP entries in deterministic path order, and applies bounded archive entry,
 size, and compression checks before publication. Supported explicit inputs are PDF, DOCX,
 XLSX, PPTX, HTML, common raster image formats, folders, and ZIP archives.
+
+## Provenance workflows
+
+```powershell
+# Machine-readable output is the default
+officeimo provenance capabilities
+officeimo provenance inspect .\report.docx
+officeimo provenance assess .\page.html
+
+# Text output is available for interactive use
+officeimo provenance inspect .\image.png --format text
+
+# Existing output is refused unless --force is explicit
+officeimo provenance remove .\report.docx --output .\report.cleaned.docx
+
+# Batch work is sequential and bounded; removal requires an explicit destination directory
+officeimo provenance batch inspect .\one.docx .\two.pdf --max-items 20
+officeimo provenance batch remove .\one.docx .\two.pdf --output-directory .\cleaned
+```
+
+The JSON envelopes use `officeimo.provenance.capabilities.v1`, `officeimo.provenance.result.v1`, or `officeimo.provenance.batch.v1` schema identifiers. Successful inspection can still report provenance evidence; findings are data and do not change the process exit code. Execution failures use the shared exit-code table below.
+
+Removal preserves the input format, keeps malformed carriers by default, and routes package-aware changes to the owning OfficeIMO library. A mutation that would invalidate an Office package signature is blocked unless `--remove-invalidated-signatures` is supplied. Use `--keep-c2pa`, `--keep-external-c2pa`, or `--keep-ai-source` to preserve a carrier class, and `--no-embedded` to skip supported embedded assets. Generic ZIP files can be inspected but are not rewritten without a known document owner.
 
 Tabular conversion writes through an atomic sibling staging file and refuses to replace an
 existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,

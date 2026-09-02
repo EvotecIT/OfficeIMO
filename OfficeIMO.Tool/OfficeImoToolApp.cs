@@ -3,6 +3,7 @@ using OfficeIMO.Tool.Commands.Convert;
 using OfficeIMO.Tool.Commands.Html;
 using OfficeIMO.Tool.Commands.Markup;
 using OfficeIMO.Tool.Commands.Mcp;
+using OfficeIMO.Tool.Commands.Provenance;
 using OfficeIMO.Tool.Commands.Reader;
 using OfficeIMO.Tool.Commands.Tabular;
 using OfficeIMO.Tool.Commands.Workflow;
@@ -25,6 +26,7 @@ Usage:
   officeimo markup <command> [options]
   officeimo tabular <command> [options]
   officeimo workflow <command> [options]
+  officeimo provenance <command> [options]
   officeimo agent <command> [options]
   officeimo mcp serve --stdio
   officeimo --version
@@ -112,6 +114,14 @@ Run 'officeimo <area> --help' for area-specific commands and options.
                     return await WorkflowCommand.RunAsync(
                         commandArguments,
                         workflowOutput,
+                        standardError,
+                        cancellationToken).ConfigureAwait(false);
+                }
+            case "provenance":
+                using (var provenanceOutput = CreateUtf8Writer(standardOutput)) {
+                    return await ProvenanceCommand.RunAsync(
+                        commandArguments,
+                        provenanceOutput,
                         standardError,
                         cancellationToken).ConfigureAwait(false);
                 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -120,11 +121,35 @@ public static class OfficeProvenanceAssessment {
         options ??= new OfficeProvenanceAssessmentOptions();
 
         OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(fullPath, options.Structural);
+        return AssessFile(fullPath, structural, options, verifier, signalDetectors);
+    }
+
+    /// <summary>Combines an existing structural report with optional text, cryptographic, and provider evidence.</summary>
+    /// <remarks>
+    /// This overload lets workflow hosts preserve format-owner structural inspection while keeping evidence
+    /// composition and provider-result validation in the canonical provenance owner.
+    /// </remarks>
+    public static OfficeProvenanceAssessmentReport AssessFile(
+        string filePath,
+        OfficeProvenanceReport structural,
+        OfficeProvenanceAssessmentOptions? options = null,
+        IOfficeProvenanceVerifier? verifier = null,
+        IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
+        string fullPath = Path.GetFullPath(filePath);
+        if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
+        if (structural == null) throw new ArgumentNullException(nameof(structural));
+        options ??= new OfficeProvenanceAssessmentOptions();
+
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
         if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
             textIntegrity = OfficeTextIntegrityInspector.InspectFile(fullPath, options.TextIntegrity);
+            cancellationToken.ThrowIfCancellationRequested();
         }
         OfficeProvenanceVerificationResult? verification = verifier?.Verify(fullPath, options.Verification);
+        cancellationToken.ThrowIfCancellationRequested();
         if (verifier != null && verification == null) {
             throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned no result.");
         }
@@ -134,15 +159,18 @@ public static class OfficeProvenanceAssessment {
         var signals = new List<OfficeProvenanceSignalResult>();
         if (signalDetectors != null) {
             foreach (IOfficeProvenanceSignalDetector detector in signalDetectors) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
                 OfficeProvenanceSignalResult result = detector.Detect(fullPath) ??
                     throw new InvalidDataException($"The '{detector.Name}' signal detector returned no result.");
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(result.ProviderName, detector.Name, StringComparison.Ordinal) || result.SignalKind != detector.SignalKind) {
                     throw new InvalidDataException($"The '{detector.Name}' signal detector returned inconsistent provider metadata.");
                 }
                 signals.Add(result);
             }
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new OfficeProvenanceAssessmentReport(structural, verification, textIntegrity, signals.AsReadOnly());
     }
 
