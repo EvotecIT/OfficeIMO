@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Text;
 using OfficeIMO.Drawing;
 
@@ -34,9 +33,7 @@ internal static class PdfRedactionImageIdentity {
             return;
         }
 
-        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        int nodes = 0;
-        AppendObject(identity, imageStream, objects, activeReferences, 0, ref nodes);
+        AppendHashedObjectGraph(identity, imageStream, objects);
     }
 
     internal static void AppendClip(StringBuilder identity, PdfPageClipPath? clipPath) {
@@ -77,106 +74,23 @@ internal static class PdfRedactionImageIdentity {
             return;
         }
 
-        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        int nodes = 0;
-        AppendObject(identity, value, objects, activeReferences, 0, ref nodes);
+        AppendHashedObjectGraph(identity, value, objects);
     }
 
     private static void AppendColor(StringBuilder identity, OfficeColor color) =>
         identity.Append(":mask-color:").Append(color.R).Append(',').Append(color.G).Append(',').Append(color.B).Append(',').Append(color.A);
 
-    private static void AppendObject(
+    private static void AppendHashedObjectGraph(
         StringBuilder identity,
         PdfObject value,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<(int ObjectNumber, int Generation)> activeReferences,
-        int depth,
-        ref int nodes) {
-        nodes++;
-        if (depth > MaximumDepth || nodes > MaximumNodes) {
-            throw new InvalidDataException("Image rendering identity exceeded its bounded object graph.");
-        }
-
-        switch (value) {
-            case PdfNumber number:
-                identity.Append('n').Append(number.Value.ToString("R", CultureInfo.InvariantCulture));
-                break;
-            case PdfBoolean boolean:
-                identity.Append(boolean.Value ? "b1" : "b0");
-                break;
-            case PdfName name:
-                AppendText(identity, 'N', name.Name);
-                break;
-            case PdfStringObj text:
-                AppendText(identity, 'S', Convert.ToBase64String(text.RawBytes));
-                break;
-            case PdfNull:
-                identity.Append('z');
-                break;
-            case PdfReference reference:
-                AppendReference(identity, reference, objects, activeReferences, depth, ref nodes);
-                break;
-            case PdfArray array:
-                identity.Append('[');
-                for (int i = 0; i < array.Items.Count; i++) {
-                    AppendObject(identity, array.Items[i], objects, activeReferences, depth + 1, ref nodes);
-                    identity.Append(';');
-                }
-                identity.Append(']');
-                break;
-            case PdfDictionary dictionary:
-                AppendDictionary(identity, dictionary, objects, activeReferences, depth, ref nodes);
-                break;
-            case PdfStream stream:
-                identity.Append("stream{");
-                AppendDictionary(identity, stream.Dictionary, objects, activeReferences, depth + 1, ref nodes);
-                AppendText(identity, 'D', ComputeHash(stream.Data));
-                identity.Append(stream.DecodingFailed ? "!decode-failed!" : "!decoded!").Append('}');
-                break;
-            default:
-                AppendText(identity, '?', value.GetType().FullName ?? value.GetType().Name);
-                break;
-        }
-    }
-
-    private static void AppendReference(
-        StringBuilder identity,
-        PdfReference reference,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<(int ObjectNumber, int Generation)> activeReferences,
-        int depth,
-        ref int nodes) {
-        var key = (reference.ObjectNumber, reference.Generation);
-        if (!activeReferences.Add(key)) {
-            identity.Append("cycle");
-            return;
-        }
-        try {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) {
-                identity.Append("unresolved");
-                return;
-            }
-            AppendObject(identity, indirect.Value, objects, activeReferences, depth + 1, ref nodes);
-        } finally {
-            activeReferences.Remove(key);
-        }
-    }
-
-    private static void AppendDictionary(
-        StringBuilder identity,
-        PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject> objects,
-        HashSet<(int ObjectNumber, int Generation)> activeReferences,
-        int depth,
-        ref int nodes) {
-        identity.Append('{');
-        foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
-            if (string.Equals(entry.Key, "Length", StringComparison.Ordinal)) continue;
-            AppendText(identity, 'K', entry.Key);
-            AppendObject(identity, entry.Value, objects, activeReferences, depth + 1, ref nodes);
-            identity.Append(';');
-        }
-        identity.Append('}');
+        Dictionary<int, PdfIndirectObject> objects) {
+        using var fingerprint = new PdfObjectGraphFingerprint(
+            objects,
+            MaximumDepth,
+            MaximumNodes,
+            includeDictionaryKey: static key => !string.Equals(key, "Length", StringComparison.Ordinal));
+        fingerprint.AppendRoot(value);
+        AppendText(identity, 'H', Convert.ToBase64String(fingerprint.Complete()));
     }
 
     private static void AppendEffectiveColorSpace(
@@ -195,9 +109,7 @@ internal static class PdfRedactionImageIdentity {
         PdfDictionary? resources = placement.InlineImageResources ?? placement.EffectiveResources;
         if (!TryGetResource(resources, "ColorSpace", name.Name, objects, out PdfObject? resource)) return;
         identity.Append(":effective-color-space:");
-        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        int nodes = 0;
-        AppendObject(identity, resource, objects, activeReferences, 0, ref nodes);
+        AppendHashedObjectGraph(identity, resource, objects);
     }
 
     private static void AppendFillPattern(
@@ -221,9 +133,7 @@ internal static class PdfRedactionImageIdentity {
             .Append(transform.F.ToString("R", CultureInfo.InvariantCulture));
 
         if (!TryGetResource(placement.EffectiveResources, "Pattern", pattern.Name, objects, out PdfObject? resource)) return;
-        var activeReferences = new HashSet<(int ObjectNumber, int Generation)>();
-        int nodes = 0;
-        AppendObject(identity, resource, objects, activeReferences, 0, ref nodes);
+        AppendHashedObjectGraph(identity, resource, objects);
     }
 
     private static bool TryGetResource(
@@ -247,12 +157,4 @@ internal static class PdfRedactionImageIdentity {
     private static void AppendText(StringBuilder identity, char prefix, string value) =>
         identity.Append(prefix).Append(value.Length).Append(':').Append(value);
 
-    private static string ComputeHash(byte[] value) {
-#if NET6_0_OR_GREATER
-        return Convert.ToBase64String(SHA256.HashData(value));
-#else
-        using SHA256 sha256 = SHA256.Create();
-        return Convert.ToBase64String(sha256.ComputeHash(value));
-#endif
-    }
 }

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -59,23 +60,29 @@ public sealed partial class PdfDocument {
 
     internal static OfficeImageInfo ValidateImageBytes(byte[] data) => PrepareImageBytes(data).Info;
 
-    internal static PreparedImage PrepareImageBytes(byte[] data) {
+    internal static PreparedImage PrepareImageBytes(byte[] data) =>
+        PrepareImageBytes(data, CancellationToken.None);
+
+    internal static PreparedImage PrepareImageBytes(byte[] data, CancellationToken cancellationToken) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        if (!OfficeImageReader.TryIdentify(data, null, out OfficeImageInfo sourceInfo)) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!OfficeImageReader.TryIdentify(data, null, cancellationToken, out OfficeImageInfo sourceInfo)) {
             // Keep the established pass-through contract for JPEG streams whose dimensions are not
             // understood by the managed header reader. The PDF writer embeds JPEG data without
             // decoding it, and layout deliberately falls back to the requested/page box in this case.
             if (LooksLikeJpeg(data)) {
                 OfficeImageMetadataSnapshot jpegMetadata = OfficeImageMetadataInspector.Inspect(
                     data,
-                    OfficeImageFormat.Jpeg);
+                    OfficeImageFormat.Jpeg,
+                    retainedManagedBytes: 0L,
+                    cancellationToken: cancellationToken);
                 bool hasJpegIcc = (jpegMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
                 if (hasJpegIcc && jpegMetadata.Icc == null) {
                     throw new NotSupportedException(
                         SupportedImageMessage + " The embedded JPEG ICC profile cannot be retained or normalized safely.");
                 }
                 if (hasJpegIcc) {
-                    if (!PdfWriter.TryGetJpegComponentCount(data, out int jpegComponentCount)) {
+                    if (!PdfWriter.TryGetJpegComponentCount(data, cancellationToken, out int jpegComponentCount)) {
                         throw new NotSupportedException(
                             SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
                     }
@@ -85,7 +92,7 @@ public sealed partial class PdfDocument {
                     }
                 }
                 return new PreparedImage(
-                    (byte[])data.Clone(),
+                    CloneWithCancellation(data, cancellationToken),
                     new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0),
                     OfficeImageFormat.Jpeg,
                     wasTranscoded: false);
@@ -95,9 +102,9 @@ public sealed partial class PdfDocument {
             // shared raster budget. Preserve the PDF writer's more specific validation
             // diagnostic instead of collapsing those payloads into an unknown header.
             if (LooksLikePng(data)) {
-                if (PdfWriter.TryGetPngImageData(data, out PdfWriter.PdfImageStream pngImage, out string? pngReason)) {
+                if (PdfWriter.TryGetPngImageData(data, cancellationToken, out PdfWriter.PdfImageStream pngImage, out string? pngReason)) {
                     return new PreparedImage(
-                        (byte[])data.Clone(),
+                        CloneWithCancellation(data, cancellationToken),
                         new OfficeImageInfo(OfficeImageFormat.Png, pngImage.PixelWidth, pngImage.PixelHeight),
                         OfficeImageFormat.Png,
                         wasTranscoded: false);
@@ -110,7 +117,11 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + " The source image header is not recognized.");
         }
 
-        OfficeImageMetadataSnapshot sourceMetadata = OfficeImageMetadataInspector.Inspect(data, sourceInfo.Format);
+        OfficeImageMetadataSnapshot sourceMetadata = OfficeImageMetadataInspector.Inspect(
+            data,
+            sourceInfo.Format,
+            retainedManagedBytes: 0L,
+            cancellationToken: cancellationToken);
         bool hasEmbeddedIccProfile = (sourceMetadata.Kinds & OfficeImageMetadataKinds.Icc) != 0;
         if (hasEmbeddedIccProfile && sourceMetadata.Icc == null) {
             throw new NotSupportedException(
@@ -118,7 +129,7 @@ public sealed partial class PdfDocument {
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Jpeg) {
-            bool hasComponentCount = PdfWriter.TryGetJpegComponentCount(data, out int componentCount);
+            bool hasComponentCount = PdfWriter.TryGetJpegComponentCount(data, cancellationToken, out int componentCount);
             if (hasEmbeddedIccProfile && !hasComponentCount) {
                 throw new NotSupportedException(
                     SupportedImageMessage + " The tagged JPEG component count cannot be verified; four-component JPEG data cannot be normalized safely.");
@@ -134,8 +145,8 @@ public sealed partial class PdfDocument {
                         out string? jpegTranscodeLimitReason)) {
                     throw new NotSupportedException(SupportedImageMessage + " " + jpegTranscodeLimitReason);
                 }
-                if (!OfficeImagePngConverter.TryConvertToPng(data, out byte[] normalizedJpegPng) ||
-                    !OfficeImageReader.TryIdentify(normalizedJpegPng, null, out OfficeImageInfo normalizedJpegInfo)) {
+                if (!OfficeImagePngConverter.TryConvertToPng(data, cancellationToken, out byte[] normalizedJpegPng) ||
+                    !OfficeImageReader.TryIdentify(normalizedJpegPng, null, cancellationToken, out OfficeImageInfo normalizedJpegInfo)) {
                     throw new NotSupportedException(SupportedImageMessage + " Four-component JPEG data could not be normalized safely for PDF embedding.");
                 }
                 return new PreparedImage(normalizedJpegPng, normalizedJpegInfo, sourceInfo.Format, wasTranscoded: true);
@@ -143,12 +154,12 @@ public sealed partial class PdfDocument {
             if (componentCount != 0 && componentCount != 1 && componentCount != 3) {
                 throw new NotSupportedException(SupportedImageMessage + " JPEG component count is not supported for PDF embedding.");
             }
-            return new PreparedImage((byte[])data.Clone(), sourceInfo, sourceInfo.Format, wasTranscoded: false);
+            return new PreparedImage(CloneWithCancellation(data, cancellationToken), sourceInfo, sourceInfo.Format, wasTranscoded: false);
         }
 
         if (sourceInfo.Format == OfficeImageFormat.Png) {
-            if (PdfWriter.TryGetPngImageData(data, out _, out string? sourcePngReason)) {
-                return new PreparedImage((byte[])data.Clone(), sourceInfo, sourceInfo.Format, wasTranscoded: false);
+            if (PdfWriter.TryGetPngImageData(data, cancellationToken, out _, out string? sourcePngReason)) {
+                return new PreparedImage(CloneWithCancellation(data, cancellationToken), sourceInfo, sourceInfo.Format, wasTranscoded: false);
             }
 
             string suffix = string.IsNullOrWhiteSpace(sourcePngReason) ? string.Empty : " " + sourcePngReason;
@@ -167,12 +178,12 @@ public sealed partial class PdfDocument {
             throw new NotSupportedException(SupportedImageMessage + " " + transcodeLimitReason);
         }
 
-        if (!OfficeImagePngConverter.TryConvertToPng(data, out byte[] normalizedPng)) {
+        if (!OfficeImagePngConverter.TryConvertToPng(data, cancellationToken, out byte[] normalizedPng)) {
             throw new NotSupportedException(
                 $"{SupportedImageMessage} Detected {sourceInfo.Format} ({sourceInfo.MimeType}), but it could not be normalized.");
         }
 
-        if (!PdfWriter.TryGetPngImageData(normalizedPng, out PdfWriter.PdfImageStream normalizedImage, out string? normalizedReason)) {
+        if (!PdfWriter.TryGetPngImageData(normalizedPng, cancellationToken, out PdfWriter.PdfImageStream normalizedImage, out string? normalizedReason)) {
             string suffix = string.IsNullOrWhiteSpace(normalizedReason) ? string.Empty : " " + normalizedReason;
             throw new NotSupportedException(
                 $"{SupportedImageMessage} Detected {sourceInfo.Format} ({sourceInfo.MimeType}), but it could not be normalized.{suffix}");
@@ -181,6 +192,7 @@ public sealed partial class PdfDocument {
         OfficeImageInfo normalizedInfo = OfficeImageReader.TryIdentify(
             normalizedPng,
             null,
+            cancellationToken,
             out OfficeImageInfo identifiedNormalized)
                 ? identifiedNormalized
                 : new OfficeImageInfo(
@@ -190,6 +202,17 @@ public sealed partial class PdfDocument {
                     sourceInfo.DpiX,
                     sourceInfo.DpiY);
         return new PreparedImage(normalizedPng, normalizedInfo, sourceInfo.Format, wasTranscoded: true);
+    }
+
+    private static byte[] CloneWithCancellation(byte[] source, CancellationToken cancellationToken) {
+        var copy = new byte[source.Length];
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < source.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, source.Length - offset);
+            Buffer.BlockCopy(source, offset, copy, offset, count);
+        }
+        return copy;
     }
 
     private static bool LooksLikeJpeg(byte[] data) =>

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 namespace OfficeIMO.Drawing;
 
 internal sealed class OfficeImageMetadataSnapshot {
@@ -25,29 +26,37 @@ internal static class OfficeImageMetadataInspector {
     internal static OfficeImageMetadataSnapshot Inspect(
         byte[] data,
         OfficeImageFormat format,
-        long retainedManagedBytes = 0L) {
+        long retainedManagedBytes = 0L) =>
+        Inspect(data, format, retainedManagedBytes, CancellationToken.None);
+
+    internal static OfficeImageMetadataSnapshot Inspect(
+        byte[] data,
+        OfficeImageFormat format,
+        long retainedManagedBytes,
+        CancellationToken cancellationToken) {
         if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
+        cancellationToken.ThrowIfCancellationRequested();
         var snapshot = new OfficeImageMetadataSnapshot();
-        if (OfficeImageOrientationNormalizer.TryRead(data, out OfficeImageOrientation orientation) &&
+        if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation) &&
             orientation != OfficeImageOrientation.Normal) snapshot.Kinds |= OfficeImageMetadataKinds.Orientation;
         switch (format) {
             case OfficeImageFormat.Jpeg:
-                InspectJpeg(data, snapshot, retainedManagedBytes);
+                InspectJpeg(data, snapshot, retainedManagedBytes, cancellationToken);
                 break;
             case OfficeImageFormat.Png:
-                InspectPng(data, snapshot);
+                InspectPng(data, snapshot, cancellationToken);
                 break;
             case OfficeImageFormat.Webp:
-                InspectWebp(data, snapshot);
+                InspectWebp(data, snapshot, cancellationToken);
                 break;
             case OfficeImageFormat.Tiff:
-                InspectTiff(data, snapshot);
+                InspectTiff(data, snapshot, cancellationToken);
                 break;
             case OfficeImageFormat.Bmp:
-                InspectBmp(data, snapshot);
+                InspectBmp(data, snapshot, cancellationToken);
                 break;
             case OfficeImageFormat.Gif:
-                InspectGif(data, snapshot);
+                InspectGif(data, snapshot, cancellationToken);
                 break;
         }
         return snapshot;
@@ -56,12 +65,14 @@ internal static class OfficeImageMetadataInspector {
     private static void InspectJpeg(
         byte[] data,
         OfficeImageMetadataSnapshot snapshot,
-        long retainedManagedBytes) {
+        long retainedManagedBytes,
+        CancellationToken cancellationToken) {
         JpegIccPart?[]? iccParts = null;
         bool invalidIccSequence = false;
         int offset = 2;
         bool inScan = false;
         while (offset < data.Length - 1) {
+            if ((offset & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (inScan && data[offset] != 0xFF) {
                 offset++;
                 continue;
@@ -93,11 +104,11 @@ internal static class OfficeImageMetadataInspector {
             }
             if (marker == 0xE1 && StartsWith(data, payload, count, ExifPrefix)) {
                 if (snapshot.Exif != null) snapshot.HasDuplicateJpegExif = true;
-                snapshot.Exif = Slice(data, payload, count);
+                snapshot.Exif = Slice(data, payload, count, cancellationToken);
                 InspectExifPayload(snapshot.Exif, 0, snapshot.Exif.Length, snapshot);
             } else if (marker == 0xE1 && StartsWith(data, payload, count, XmpPrefix)) {
                 if (snapshot.Xmp != null) snapshot.HasDuplicateStandardJpegXmp = true;
-                snapshot.Xmp = Slice(data, payload, count);
+                snapshot.Xmp = Slice(data, payload, count, cancellationToken);
                 snapshot.Kinds |= OfficeImageMetadataKinds.Xmp;
             } else if (marker == 0xE1 && StartsWith(data, payload, count, ExtendedXmpPrefix)) {
                 snapshot.HasExtendedJpegXmp = true;
@@ -130,6 +141,7 @@ internal static class OfficeImageMetadataInspector {
         if (!invalidIccSequence && iccParts != null) {
             int length = 0;
             for (int index = 0; index < iccParts.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (!iccParts[index].HasValue) return;
                 JpegIccPart part = iccParts[index]!.Value;
                 if (part.Length > OfficeRasterGuards.MaximumEncodedBytes - length) return;
@@ -149,16 +161,18 @@ internal static class OfficeImageMetadataInspector {
             snapshot.Icc = new byte[length];
             int target = 0;
             for (int index = 0; index < iccParts.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 JpegIccPart part = iccParts[index]!.Value;
-                Buffer.BlockCopy(data, part.Offset, snapshot.Icc, target, part.Length);
+                CopyWithCancellation(data, part.Offset, snapshot.Icc, target, part.Length, cancellationToken);
                 target += part.Length;
             }
         }
     }
 
-    private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectPng(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 8;
         while (offset <= data.Length - 12) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = ReadBigEndian(data, offset);
             if (length < 0 || offset > data.Length - 12 - length) break;
             string type = ReadAscii(data, offset + 4, 4);
@@ -185,9 +199,10 @@ internal static class OfficeImageMetadataInspector {
         }
     }
 
-    private static void InspectWebp(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectWebp(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
         int offset = 12;
         while (offset <= data.Length - 8) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = ReadLittleEndian(data, offset + 4);
             if (length < 0 || offset > data.Length - 8 - length) break;
             string type = ReadAscii(data, offset, 4);
@@ -200,7 +215,8 @@ internal static class OfficeImageMetadataInspector {
         }
     }
 
-    private static void InspectTiff(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectTiff(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length < 10) return;
         bool little = data[0] == (byte)'I';
         int ifd = ReadUInt32(data, 4, little);
@@ -211,6 +227,7 @@ internal static class OfficeImageMetadataInspector {
         double? resolutionX = null;
         double? resolutionY = null;
         for (int index = 0; index < count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int entry = ifd + 2 + index * 12;
             if (entry > data.Length - 12) return;
             int tag = ReadUInt16(data, entry, little);
@@ -268,7 +285,8 @@ internal static class OfficeImageMetadataInspector {
         return data[payloadOffset + keyword.Length] == 0;
     }
 
-    private static void InspectBmp(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectBmp(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         const int dibHeaderOffset = 14;
         const int minimumInfoHeaderSize = 40;
         const int horizontalPixelsPerMeterOffset = 38;
@@ -403,21 +421,37 @@ internal static class OfficeImageMetadataInspector {
         for (int index = 0; index < prefix.Length; index++) if (data[offset + index] != prefix[index]) return false;
         return true;
     }
-    private static byte[] Slice(byte[] data, int offset, int count) {
+    private static byte[] Slice(byte[] data, int offset, int count, CancellationToken cancellationToken) {
         var result = new byte[count];
-        Buffer.BlockCopy(data, offset, result, 0, count);
+        CopyWithCancellation(data, offset, result, 0, count, cancellationToken);
         return result;
+    }
+    private static void CopyWithCancellation(
+        byte[] source,
+        int sourceOffset,
+        byte[] destination,
+        int destinationOffset,
+        int count,
+        CancellationToken cancellationToken) {
+        const int chunkSize = 64 * 1024;
+        for (int copied = 0; copied < count; copied += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int chunk = Math.Min(chunkSize, count - copied);
+            Buffer.BlockCopy(source, sourceOffset + copied, destination, destinationOffset + copied, chunk);
+        }
     }
     private static string ReadAscii(byte[] data, int offset, int count) =>
         System.Text.Encoding.ASCII.GetString(data, offset, count);
     private static bool Matches(byte[] data, int offset, int count, string value) =>
         count >= value.Length && ReadAscii(data, offset, value.Length) == value;
-    private static void InspectGif(byte[] data, OfficeImageMetadataSnapshot snapshot) {
+    private static void InspectGif(byte[] data, OfficeImageMetadataSnapshot snapshot, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length < 14) return;
         int offset = 13;
         int packed = data[10];
         if ((packed & 0x80) != 0) offset += 3 << ((packed & 7) + 1);
         while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int introducer = data[offset++];
             if (introducer == 0x3B) return;
             if (introducer == 0x21) {

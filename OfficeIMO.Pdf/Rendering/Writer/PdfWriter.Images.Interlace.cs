@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -11,6 +12,7 @@ internal static partial class PdfWriter {
         int height,
         int bitDepth,
         int colorType,
+        CancellationToken cancellationToken,
         out byte[] normalizedCompressedData,
         out string? unsupportedReason) {
         normalizedCompressedData = Array.Empty<byte>();
@@ -24,7 +26,7 @@ internal static partial class PdfWriter {
         int bitsPerPixel = channels * bitDepth;
         if (!TryGetPngRowByteCount(width, bitsPerPixel, out int fullRowBytes) ||
             !TryGetPngCheckedLength(fullRowBytes, height, 1, includeFilterByte: false, out int fullRowsLength) ||
-            !TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+            !TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             unsupportedReason ??= "PNG dimensions exceed supported limits.";
             return false;
         }
@@ -33,6 +35,7 @@ internal static partial class PdfWriter {
         int offset = 0;
 
         for (int pass = 0; pass < Adam7Passes.Length; pass++) {
+            cancellationToken.ThrowIfCancellationRequested();
             Adam7Pass adam7Pass = Adam7Passes[pass];
             int passWidth = CountAdam7Samples(width, adam7Pass.XStart, adam7Pass.XStep);
             int passHeight = CountAdam7Samples(height, adam7Pass.YStart, adam7Pass.YStep);
@@ -51,17 +54,17 @@ internal static partial class PdfWriter {
             }
 
             var passScanlines = new byte[passScanlineBytes];
-            Buffer.BlockCopy(decoded, offset, passScanlines, 0, passScanlineBytes);
+            CopyBytesWithCancellation(decoded, offset, passScanlines, 0, passScanlineBytes, cancellationToken);
             offset += passScanlineBytes;
 
             int filterBytesPerPixel = Math.Max(1, (bitsPerPixel + 7) / 8);
             int unfilterWidth = bitDepth < 8 ? passRowBytes : passWidth;
             int unfilterBytesPerPixel = bitDepth < 8 ? 1 : filterBytesPerPixel;
-            if (!TryUnfilterPngRows(passScanlines, unfilterWidth, passHeight, unfilterBytesPerPixel, out var passPixels, out unsupportedReason)) {
+            if (!TryUnfilterPngRows(passScanlines, unfilterWidth, passHeight, unfilterBytesPerPixel, cancellationToken, out var passPixels, out unsupportedReason)) {
                 return false;
             }
 
-            CopyAdam7PassPixels(passPixels, fullRows, width, bitDepth, bitsPerPixel, passWidth, passHeight, adam7Pass);
+            CopyAdam7PassPixels(passPixels, fullRows, width, bitDepth, bitsPerPixel, passWidth, passHeight, adam7Pass, cancellationToken);
         }
 
         if (!TryGetPngScanlineLength(fullRowBytes, height, out int normalizedRowsLength)) {
@@ -71,13 +74,14 @@ internal static partial class PdfWriter {
 
         var normalizedRows = new byte[normalizedRowsLength];
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int sourceRow = row * fullRowBytes;
             int targetRow = row * (fullRowBytes + 1);
             normalizedRows[targetRow] = 0;
-            Buffer.BlockCopy(fullRows, sourceRow, normalizedRows, targetRow + 1, fullRowBytes);
+            CopyBytesWithCancellation(fullRows, sourceRow, normalizedRows, targetRow + 1, fullRowBytes, cancellationToken);
         }
 
-        normalizedCompressedData = DeflateZlib(normalizedRows);
+        normalizedCompressedData = DeflateZlib(normalizedRows, cancellationToken);
         return true;
     }
 
@@ -89,13 +93,15 @@ internal static partial class PdfWriter {
         int bitsPerPixel,
         int passWidth,
         int passHeight,
-        Adam7Pass pass) {
+        Adam7Pass pass,
+        CancellationToken cancellationToken) {
         if (!TryGetPngRowByteCount(passWidth, bitsPerPixel, out int passRowBytes) ||
             !TryGetPngRowByteCount(width, bitsPerPixel, out int fullRowBytes)) {
             return;
         }
         if (bitDepth < 8) {
             for (int y = 0; y < passHeight; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int targetY = pass.YStart + y * pass.YStep;
                 int passRow = y * passRowBytes;
                 int fullRow = targetY * fullRowBytes;
@@ -110,6 +116,7 @@ internal static partial class PdfWriter {
 
         int bytesPerPixel = bitsPerPixel / 8;
         for (int y = 0; y < passHeight; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int targetY = pass.YStart + y * pass.YStep;
             int passRow = y * passRowBytes;
             int fullRow = targetY * fullRowBytes;

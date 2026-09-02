@@ -389,7 +389,7 @@ public sealed partial class PdfReadPage {
                 _objects,
                 _limits.MaxObjectNestingDepth,
                 Math.Min(1_000_000, Math.Max(16_384, _limits.MaxIndirectObjects)),
-                resourceCache.CancellationToken);
+                cancellationToken: resourceCache.CancellationToken);
             fingerprint.AppendRoot(stream);
             fingerprint.AppendRoot(resolvedResources);
             sourceIdentity = Convert.ToBase64String(fingerprint.Complete());

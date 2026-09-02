@@ -151,6 +151,18 @@ public sealed class PdfImageDocumentTests {
         }
     }
 
+    [Fact]
+    public void CreateFromImagePathsHonorsCancellationBeforeFileIo() {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.CreateFromImages(
+                new[] { "missing-image.png" },
+                options: null,
+                cancellation.Token));
+    }
+
     private static byte[] CreateExifOrientation(ushort orientation) => [
         (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
         0x01, 0x00,

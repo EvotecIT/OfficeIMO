@@ -121,6 +121,13 @@ public static partial class OfficeImageReader {
         return TryIdentifyCore(data, fileName, allowExtensionFallback: true, CancellationToken.None, out info);
     }
 
+    internal static bool TryIdentify(
+        byte[]? data,
+        string? fileName,
+        CancellationToken cancellationToken,
+        out OfficeImageInfo info) =>
+        TryIdentifyCore(data, fileName, allowExtensionFallback: true, cancellationToken, out info);
+
     /// <summary>
     /// Tries to identify image metadata from a byte array while requiring the content to match
     /// a supported format. The file name may select a content parser but cannot identify the

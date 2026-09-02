@@ -12,6 +12,8 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
     private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
     private readonly Dictionary<(int ObjectNumber, int Generation), int> _references = new();
     private readonly IReadOnlyDictionary<int, string>? _stableReferenceLabels;
+    private readonly Func<string, bool>? _includeDictionaryKey;
+    private readonly bool _preserveUnresolvedReferenceIdentity;
     private readonly int _maximumDepth;
     private readonly int _maximumNodes;
     private readonly CancellationToken _cancellationToken;
@@ -23,20 +25,17 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
         Dictionary<int, PdfIndirectObject> objects,
         int maximumDepth,
         int maximumNodes,
-        CancellationToken cancellationToken = default)
-        : this(objects, maximumDepth, maximumNodes, stableReferenceLabels: null, cancellationToken) { }
-
-    internal PdfObjectGraphFingerprint(
-        Dictionary<int, PdfIndirectObject> objects,
-        int maximumDepth,
-        int maximumNodes,
-        IReadOnlyDictionary<int, string>? stableReferenceLabels,
+        IReadOnlyDictionary<int, string>? stableReferenceLabels = null,
+        Func<string, bool>? includeDictionaryKey = null,
+        bool preserveUnresolvedReferenceIdentity = false,
         CancellationToken cancellationToken = default) {
         _objects = objects;
         _maximumDepth = maximumDepth;
         _maximumNodes = maximumNodes;
         _cancellationToken = cancellationToken;
         _stableReferenceLabels = stableReferenceLabels;
+        _includeDictionaryKey = includeDictionaryKey;
+        _preserveUnresolvedReferenceIdentity = preserveUnresolvedReferenceIdentity;
     }
 
     internal void AppendRoot(PdfObject value) {
@@ -119,13 +118,26 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
             AppendObject(indirect.Value, depth + 1);
         } else {
             AppendByte(15);
+            if (_preserveUnresolvedReferenceIdentity) {
+                AppendInt32(reference.ObjectNumber);
+                AppendInt32(reference.Generation);
+            }
         }
     }
 
     private void AppendDictionary(byte marker, PdfDictionary dictionary, int depth) {
         AppendByte(marker);
-        AppendInt32(dictionary.Items.Count);
+        int includedCount = 0;
+        foreach (string key in dictionary.Items.Keys) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (_includeDictionaryKey == null || _includeDictionaryKey(key)) includedCount++;
+        }
+        if (includedCount > _maximumNodes - _nodes) {
+            throw new InvalidDataException("PDF rendering identity exceeded its bounded object graph.");
+        }
+        AppendInt32(includedCount);
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
+            if (_includeDictionaryKey != null && !_includeDictionaryKey(item.Key)) continue;
             AppendString(item.Key);
             AppendObject(item.Value, depth + 1);
         }
