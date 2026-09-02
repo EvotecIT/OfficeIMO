@@ -8,6 +8,9 @@ internal static class PdfPermissionAuthorization {
     internal static bool CanExtractContent(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>
         IsAllowed(security, policy, PdfStandardPermissions.CopyContents);
 
+    internal static bool CanPrint(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>
+        IsAllowed(security, policy, PdfStandardPermissions.Print);
+
     internal static bool CanMutate(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy, PdfMutationOperation operation) {
         if (!security.HasEncryption || security.HasOwnerAuthorization) {
             return true;
@@ -68,6 +71,17 @@ internal static class PdfPermissionAuthorization {
             PdfStandardPermissions.CopyContents,
             security.PasswordAuthenticationRole,
             "PDF " + contentName + " extraction is restricted by the authenticated user-password permissions. Supply owner authorization or set PermissionPolicy to IgnoreRestrictions after confirming that the operation is authorized.");
+    }
+
+    internal static void DemandPrinting(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) {
+        if (CanPrint(security, policy)) {
+            return;
+        }
+
+        throw new PdfPermissionDeniedException(
+            PdfStandardPermissions.Print,
+            security.PasswordAuthenticationRole,
+            "PDF printing is restricted by the authenticated user-password permissions. Supply owner authorization or set PermissionPolicy to IgnoreRestrictions after confirming that printing is authorized.");
     }
 
     internal static bool RestrictionsIgnored(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>

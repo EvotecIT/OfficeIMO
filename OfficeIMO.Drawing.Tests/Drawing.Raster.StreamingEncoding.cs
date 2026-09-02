@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using System.IO;
+using System.Threading;
 using OfficeIMO.Drawing;
 using Xunit;
 
@@ -114,6 +115,24 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Fact]
+    public void BudgetGuardPreservesMemoryBackedDestinationClassification() {
+        using var memory = new MemoryStream();
+        using var guardedMemory = new OfficeImageExportEncodingStream(
+            memory,
+            new OfficeImageExportEncodingBudget(1024L),
+            CancellationToken.None);
+        using var forwardOnly = new ForwardOnlyWriteStream();
+        using var guardedForwardOnly = new OfficeImageExportEncodingStream(
+            forwardOnly,
+            new OfficeImageExportEncodingBudget(1024L),
+            CancellationToken.None);
+
+        Assert.True(OfficeRasterOutput.TryGetMemoryStream(guardedMemory, out MemoryStream? resolved));
+        Assert.Same(memory, resolved);
+        Assert.False(OfficeRasterOutput.TryGetMemoryStream(guardedForwardOnly, out _));
+    }
+
+    [Fact]
     public void SharedEncoderRejectsReadOnlyDestination() {
         OfficeRasterImage image = CreateSampleImage();
         using var destination = new MemoryStream(new byte[1], writable: false);
@@ -123,6 +142,131 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 image,
                 OfficeImageExportFormat.Png,
                 destination));
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void SharedEncoderEnforcesTheEncodedByteCeilingWhileWriting(
+        OfficeImageExportFormat format) {
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeRasterImageEncoder.Encode(
+                    CreateSampleImage(),
+                    format,
+                    CreateOptions(),
+                    maximumEncodedBytes: 8L,
+                    cancellationToken: CancellationToken.None));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.True(exception.Actual > exception.Maximum);
+        Assert.Equal(8L, exception.Maximum);
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void SharedStreamEncoderPreservesTheByteGuardForMemoryDestinations(
+        OfficeImageExportFormat format) {
+        using var destination = new MemoryStream();
+
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeRasterImageEncoder.EncodeTo(
+                    CreateSampleImage(),
+                    format,
+                    destination,
+                    CreateOptions(),
+                    maximumEncodedBytes: 8L,
+                    cancellationToken: CancellationToken.None));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Equal(8L, exception.Maximum);
+    }
+
+    [Fact]
+    public void MaterializedEncodingBudgetIncludesBackingBufferAndFinalCopy() {
+        Assert.True(OfficeImageExportEncodingMemoryStream.IsFinalMaterializationWithinLimit(
+            retainedManagedBytes: 8L * 1024L * 1024L,
+            backingBytes: 16L * 1024L * 1024L,
+            encodedLength: 12L * 1024L * 1024L));
+        Assert.False(OfficeImageExportEncodingMemoryStream.IsFinalMaterializationWithinLimit(
+            retainedManagedBytes: 128L * 1024L * 1024L,
+            backingBytes: 128L * 1024L * 1024L,
+            encodedLength: 128L * 1024L * 1024L));
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void SharedEncoderObservesCancellationBetweenWrites(OfficeImageExportFormat format) {
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CancellingWriteStream(cancellation);
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                CreateSampleImage(),
+                format,
+                destination,
+                CreateOptions(),
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token));
+
+        Assert.True(destination.WriteCount > 0);
+    }
+
+    [Fact]
+    public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite() {
+        OfficeRasterImage image = new OfficeRasterImage(64, 64, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CountingWriteStream();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                image,
+                OfficeImageExportFormat.Jpeg,
+                destination,
+                CreateOptions(),
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint == OfficeRasterEncodingCheckpoint.JpegCoefficientRow) cancellation.Cancel();
+                }));
+
+        Assert.Equal(0, destination.WriteCount);
+    }
+
+    [Theory]
+    [InlineData(OfficeTiffCompression.Lzw)]
+    [InlineData(OfficeTiffCompression.PackBits)]
+    [InlineData(OfficeTiffCompression.Deflate)]
+    public void TiffCancellationCanStopCompressionBeforeTheFirstWrite(
+        OfficeTiffCompression compression) {
+        OfficeRasterImage image = new OfficeRasterImage(2800, 2800, OfficeColor.CornflowerBlue);
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CountingWriteStream();
+        OfficeRasterEncodingOptions options = CreateOptions();
+        options.Tiff.Compression = compression;
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeRasterImageEncoder.EncodeTo(
+                image,
+                OfficeImageExportFormat.Tiff,
+                destination,
+                options,
+                maximumEncodedBytes: long.MaxValue,
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint == OfficeRasterEncodingCheckpoint.TiffCompressionRow) cancellation.Cancel();
+                }));
+
+        Assert.Equal(0, destination.WriteCount);
     }
 
     private static byte[] EncodeToForwardOnlyStream(
@@ -259,6 +403,57 @@ public sealed class DrawingRasterStreamingEncodingTests {
         protected override void Dispose(bool disposing) {
             if (disposing) _inner.Dispose();
             base.Dispose(disposing);
+        }
+    }
+
+    private sealed class CancellingWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancellingWriteStream(CancellationTokenSource cancellation) {
+            _cancellation = cancellation;
+        }
+
+        internal int WriteCount { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            base.Write(buffer, offset, count);
+            WriteCount++;
+            _cancellation.Cancel();
+        }
+
+#if NET8_0_OR_GREATER
+        public override void Write(ReadOnlySpan<byte> buffer) {
+            base.Write(buffer);
+            WriteCount++;
+            _cancellation.Cancel();
+        }
+#endif
+
+        public override void WriteByte(byte value) {
+            base.WriteByte(value);
+            WriteCount++;
+            _cancellation.Cancel();
+        }
+    }
+
+    private sealed class CountingWriteStream : MemoryStream {
+        internal int WriteCount { get; private set; }
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            base.Write(buffer, offset, count);
+            WriteCount++;
+        }
+
+#if NET8_0_OR_GREATER
+        public override void Write(ReadOnlySpan<byte> buffer) {
+            base.Write(buffer);
+            WriteCount++;
+        }
+#endif
+
+        public override void WriteByte(byte value) {
+            base.WriteByte(value);
+            WriteCount++;
         }
     }
 

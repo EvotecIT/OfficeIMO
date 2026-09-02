@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Security.Cryptography;
-using System.Text;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
@@ -10,6 +9,7 @@ internal static partial class PdfOptimizer {
         var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         long totalDecodedBytes = 0;
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfStream stream || !string.Equals(ReadName(stream.Dictionary, "Subtype"), "Image", StringComparison.Ordinal)) continue;
             long remainingDecodedBytes = options.MaximumTotalDecodedImageBytes - totalDecodedBytes;
             if (remainingDecodedBytes <= 0) {
@@ -35,10 +35,15 @@ internal static partial class PdfOptimizer {
             }
             totalDecodedBytes += decoded.LongLength;
             byte[] digest = ComputeSha256(decoded);
-            string fingerprint = BuildCanonicalDictionary(stream.Dictionary, "Length", "Filter", "DecodeParms") + "|sha256:" + Convert.ToBase64String(digest);
+            string fingerprint = BuildCanonicalDictionary(
+                stream.Dictionary,
+                options.CancellationToken,
+                "Length",
+                "Filter",
+                "DecodeParms") + "|sha256:" + Convert.ToBase64String(digest);
             AddGroup(groups, fingerprint, entry.Key);
         }
-        ApplyDuplicateGroups(objects, groups, "DeduplicateImage", "Reused a losslessly equivalent decoded image XObject.", actions);
+        ApplyDuplicateGroups(objects, groups, "DeduplicateImage", "Reused a losslessly equivalent decoded image XObject.", actions, options.CancellationToken);
     }
 
     private static byte[] ComputeSha256(byte[] value) {
@@ -51,31 +56,37 @@ internal static partial class PdfOptimizer {
 #endif
     }
 
-    private static void DeduplicateTypedDictionaries(Dictionary<int, PdfIndirectObject> objects, string typeName, string actionKind, List<PdfOptimizationAction> actions) {
+    private static void DeduplicateTypedDictionaries(Dictionary<int, PdfIndirectObject> objects, string typeName, string actionKind, List<PdfOptimizationAction> actions, System.Threading.CancellationToken cancellationToken) {
         var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.OrderBy(static item => item.Key)) {
-            if (entry.Value.Value is PdfDictionary dictionary && string.Equals(ReadName(dictionary, "Type"), typeName, StringComparison.Ordinal)) AddGroup(groups, BuildCanonicalObject(dictionary), entry.Key);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (entry.Value.Value is PdfDictionary dictionary && string.Equals(ReadName(dictionary, "Type"), typeName, StringComparison.Ordinal)) AddGroup(groups, BuildCanonicalObject(dictionary, cancellationToken), entry.Key);
         }
-        ApplyDuplicateGroups(objects, groups, actionKind, "Reused an identical " + typeName.ToLowerInvariant() + " dictionary.", actions);
+        ApplyDuplicateGroups(objects, groups, actionKind, "Reused an identical " + typeName.ToLowerInvariant() + " dictionary.", actions, cancellationToken);
     }
 
-    private static void DeduplicateResourceDictionaries(Dictionary<int, PdfIndirectObject> objects, List<PdfOptimizationAction> actions) {
+    private static void DeduplicateResourceDictionaries(Dictionary<int, PdfIndirectObject> objects, List<PdfOptimizationAction> actions, System.Threading.CancellationToken cancellationToken) {
         var resourceObjectNumbers = new HashSet<int>();
-        foreach (PdfIndirectObject indirect in objects.Values) CollectResourceReferences(indirect.Value, resourceObjectNumbers);
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
+            CollectResourceReferences(indirect.Value, resourceObjectNumbers, cancellationToken);
+        }
         var groups = new Dictionary<string, List<int>>(StringComparer.Ordinal);
         foreach (int objectNumber in resourceObjectNumbers.OrderBy(static value => value)) {
-            if (objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) && indirect.Value is PdfDictionary dictionary) AddGroup(groups, BuildCanonicalObject(dictionary), objectNumber);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (objects.TryGetValue(objectNumber, out PdfIndirectObject? indirect) && indirect.Value is PdfDictionary dictionary) AddGroup(groups, BuildCanonicalObject(dictionary, cancellationToken), objectNumber);
         }
-        ApplyDuplicateGroups(objects, groups, "DeduplicateResource", "Reused an identical indirect resource dictionary.", actions);
+        ApplyDuplicateGroups(objects, groups, "DeduplicateResource", "Reused an identical indirect resource dictionary.", actions, cancellationToken);
     }
 
-    private static void CollectResourceReferences(PdfObject value, HashSet<int> result) {
-        if (value is PdfArray array) { for (int i = 0; i < array.Items.Count; i++) CollectResourceReferences(array.Items[i], result); return; }
+    private static void CollectResourceReferences(PdfObject value, HashSet<int> result, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (value is PdfArray array) { for (int i = 0; i < array.Items.Count; i++) CollectResourceReferences(array.Items[i], result, cancellationToken); return; }
         PdfDictionary? dictionary = value is PdfDictionary direct ? direct : value is PdfStream stream ? stream.Dictionary : null;
         if (dictionary is null) return;
         foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items) {
             if (string.Equals(entry.Key, "Resources", StringComparison.Ordinal) && entry.Value is PdfReference reference) result.Add(reference.ObjectNumber);
-            if (entry.Value is not PdfReference) CollectResourceReferences(entry.Value, result);
+            if (entry.Value is not PdfReference) CollectResourceReferences(entry.Value, result, cancellationToken);
         }
     }
 
@@ -84,55 +95,53 @@ internal static partial class PdfOptimizer {
         group.Add(objectNumber);
     }
 
-    private static void ApplyDuplicateGroups(Dictionary<int, PdfIndirectObject> objects, Dictionary<string, List<int>> groups, string actionKind, string description, List<PdfOptimizationAction> actions) {
+    private static void ApplyDuplicateGroups(Dictionary<int, PdfIndirectObject> objects, Dictionary<string, List<int>> groups, string actionKind, string description, List<PdfOptimizationAction> actions, System.Threading.CancellationToken cancellationToken = default) {
         var replacements = new Dictionary<int, PdfReference>();
         foreach (List<int> group in groups.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (group.Count < 2) continue;
             PdfIndirectObject keeper = objects[group[0]];
             for (int i = 1; i < group.Count; i++) replacements[group[i]] = new PdfReference(keeper.ObjectNumber, keeper.Generation);
         }
         if (replacements.Count == 0) return;
         foreach (int objectNumber in objects.Keys.OrderBy(static value => value).ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfIndirectObject indirect = objects[objectNumber];
             PdfObject rewritten = ReplaceReferences(indirect.Value, replacements);
             if (!ReferenceEquals(rewritten, indirect.Value)) objects[objectNumber] = new PdfIndirectObject(indirect.ObjectNumber, indirect.Generation, rewritten);
         }
         foreach (KeyValuePair<int, PdfReference> replacement in replacements.OrderBy(static item => item.Key)) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!objects.TryGetValue(replacement.Key, out PdfIndirectObject? duplicate)) continue;
             long originalLength = EstimateObjectLength(duplicate); objects.Remove(replacement.Key);
             actions.Add(new PdfOptimizationAction(actionKind, replacement.Key, originalLength, 0, description + " Keeper object: " + replacement.Value.ObjectNumber.ToString(CultureInfo.InvariantCulture) + "."));
         }
     }
 
-    private static string BuildCanonicalDictionary(PdfDictionary dictionary, params string[] excludedKeys) {
+    private static string BuildCanonicalDictionary(
+        PdfDictionary dictionary,
+        System.Threading.CancellationToken cancellationToken,
+        params string[] excludedKeys) {
         var excluded = new HashSet<string>(excludedKeys, StringComparer.Ordinal);
-        var builder = new StringBuilder(); AppendCanonicalDictionary(builder, dictionary, excluded); return builder.ToString();
+        return BuildCanonicalObject(
+            dictionary,
+            cancellationToken,
+            key => !excluded.Contains(key));
     }
 
-    private static string BuildCanonicalObject(PdfObject value) { var builder = new StringBuilder(); AppendCanonical(builder, value, null); return builder.ToString(); }
-
-    private static void AppendCanonical(StringBuilder builder, PdfObject value, HashSet<string>? excludedKeys) {
-        switch (value) {
-            case PdfNumber number: builder.Append(number.Value.ToString("R", CultureInfo.InvariantCulture)); break;
-            case PdfBoolean boolean: builder.Append(boolean.Value ? "true" : "false"); break;
-            case PdfName name: builder.Append('/').Append(name.Name); break;
-            case PdfStringObj text: builder.Append('<').Append(Convert.ToBase64String(text.RawBytes)).Append('>'); break;
-            case PdfReference reference: builder.Append(reference.ObjectNumber.ToString(CultureInfo.InvariantCulture)).Append(':').Append(reference.Generation.ToString(CultureInfo.InvariantCulture)).Append('R'); break;
-            case PdfArray array:
-                builder.Append('['); for (int i = 0; i < array.Items.Count; i++) { AppendCanonical(builder, array.Items[i], excludedKeys); builder.Append(';'); } builder.Append(']'); break;
-            case PdfDictionary dictionary: AppendCanonicalDictionary(builder, dictionary, excludedKeys); break;
-            case PdfStream stream: AppendCanonicalDictionary(builder, stream.Dictionary, excludedKeys); builder.Append('|').Append(Convert.ToBase64String(stream.Data)); break;
-            case PdfNull: builder.Append("null"); break;
-        }
-    }
-
-    private static void AppendCanonicalDictionary(StringBuilder builder, PdfDictionary dictionary, HashSet<string>? excludedKeys) {
-        builder.Append("<<");
-        foreach (KeyValuePair<string, PdfObject> entry in dictionary.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
-            if (excludedKeys?.Contains(entry.Key) == true) continue;
-            builder.Append('/').Append(entry.Key).Append('='); AppendCanonical(builder, entry.Value, excludedKeys); builder.Append(';');
-        }
-        builder.Append(">>");
+    private static string BuildCanonicalObject(
+        PdfObject value,
+        System.Threading.CancellationToken cancellationToken,
+        Func<string, bool>? includeDictionaryKey = null) {
+        using var fingerprint = new PdfObjectGraphFingerprint(
+            new Dictionary<int, PdfIndirectObject>(),
+            maximumDepth: 256,
+            maximumNodes: 1_000_000,
+            includeDictionaryKey: includeDictionaryKey,
+            preserveUnresolvedReferenceIdentity: true,
+            cancellationToken: cancellationToken);
+        fingerprint.AppendRoot(value);
+        return Convert.ToBase64String(fingerprint.Complete());
     }
 
     private static string? ReadName(PdfDictionary dictionary, string key) => dictionary.Items.TryGetValue(key, out PdfObject? value) && value is PdfName name ? name.Name : null;

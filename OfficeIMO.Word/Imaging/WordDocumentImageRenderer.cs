@@ -60,6 +60,7 @@ namespace OfficeIMO.Word {
                     OfficeSvgSizeUnit.Pixel,
                     fallbackCodec,
                     resourceIdPrefix: null,
+                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
                     cancellationToken);
                 return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Page " + (options.PageIndex + 1), "Word document", diagnostics));
             }

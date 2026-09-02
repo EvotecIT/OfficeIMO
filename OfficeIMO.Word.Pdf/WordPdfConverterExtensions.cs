@@ -27,7 +27,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             WordPdfSaveOptions operation = (options ?? new WordPdfSaveOptions()).CloneForConversion();
+            operation.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfDocument pdf = CreateOfficeIMOPdfDocument(document, operation);
+            operation.CancellationToken.ThrowIfCancellationRequested();
             return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
         }
 
@@ -69,6 +71,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return document.ToPdfDocumentResult(options).TrySave(path);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -115,6 +119,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 return result;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
@@ -163,7 +169,8 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            return await document.ToPdfDocumentResult(options).SaveAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out WordPdfSaveOptions operation);
+            return await document.ToPdfDocumentResult(operation).SaveAsync(fullPath, operation.CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -176,8 +183,9 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                return await document.ToPdfDocumentResult(options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out WordPdfSaveOptions operation);
+                return await document.ToPdfDocumentResult(operation).TrySaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
@@ -207,7 +215,8 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            PdfCore.PdfSaveResult result = await document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out WordPdfSaveOptions operation);
+            PdfCore.PdfSaveResult result = await document.ToPdfDocumentResult(operation).SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
             if (stream.CanSeek) {
                 stream.Position = 0;
             }
@@ -224,17 +233,33 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                PdfCore.PdfSaveResult result = await document.ToPdfDocumentResult(options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out WordPdfSaveOptions operation);
+                PdfCore.PdfSaveResult result = await document.ToPdfDocumentResult(operation).TrySaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
                 if (result.Succeeded && stream != null && stream.CanSeek) {
                     stream.Position = 0;
                 }
 
                 return result;
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
+        }
+
+        private static CancellationTokenSource? CreateAsyncConversionOptions(
+            WordPdfSaveOptions? options,
+            CancellationToken methodToken,
+            out WordPdfSaveOptions operation) {
+            operation = (options ?? new WordPdfSaveOptions()).CloneForConversion();
+            if (!methodToken.CanBeCanceled || operation.CancellationToken == methodToken) return null;
+            if (!operation.CancellationToken.CanBeCanceled) {
+                operation.CancellationToken = methodToken;
+                return null;
+            }
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(operation.CancellationToken, methodToken);
+            operation.CancellationToken = linked.Token;
+            return linked;
         }
 
         private static string ValidateOutputPath(string path, string paramName) {

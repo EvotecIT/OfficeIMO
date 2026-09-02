@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
@@ -7,6 +9,15 @@ public sealed partial class PdfDocument {
     /// </summary>
     public static PdfDocumentPreflight Preflight(byte[] pdf, PdfLoadOptions? options = null) =>
         PdfInspector.Preflight(pdf, options);
+
+    /// <summary>
+    /// Reports read and rewrite capabilities for a PDF byte array with cooperative cancellation.
+    /// </summary>
+    public static PdfDocumentPreflight Preflight(
+        byte[] pdf,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) =>
+        PdfInspector.Preflight(pdf, options, cancellationToken);
 
     /// <summary>
     /// Reports read and rewrite capabilities for a PDF file without requiring the document to open successfully.
@@ -26,27 +37,49 @@ public sealed partial class PdfDocument {
     /// Produces one consolidated health and capability report.
     /// Supply a compliance profile to include artifact readback readiness.
     /// </summary>
-    public PdfAnalysisReport Analyze(PdfComplianceProfile complianceProfile = PdfComplianceProfile.None) {
-        var snapshot = GetReadSnapshot();
+    public PdfAnalysisReport Analyze(PdfComplianceProfile complianceProfile = PdfComplianceProfile.None) =>
+        Analyze(complianceProfile, CancellationToken.None);
+
+    /// <summary>
+    /// Produces one consolidated health and capability report with cooperative cancellation.
+    /// </summary>
+    public PdfAnalysisReport Analyze(
+        PdfComplianceProfile complianceProfile,
+        CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("analysis report");
-        PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+        PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,
             snapshot.Options,
-            () => snapshot.Document);
+            () => snapshot.Document,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDiagnosticReport diagnostics = PdfDiagnostics.Analyze(
             snapshot.Bytes,
             snapshot.Document,
             info,
-            preflight);
-        PdfOptimizationReport optimization = PdfDiagnostics.BuildOptimizationReport(diagnostics);
+            preflight,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfOptimizationReport optimization = PdfDiagnostics.BuildOptimizationReport(diagnostics, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfSignatureValidationReport signatures = PdfSignatureValidator.Validate(
             snapshot.Bytes,
-            info.Security);
+            info.Security,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfAppendOnlyMutationReport appendOnlyMutation = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(info.Security);
         PdfComplianceReadinessReport? compliance = complianceProfile == PdfComplianceProfile.None
             ? null
-            : PdfComplianceAnalyzer.AssessReadback(complianceProfile, snapshot.Document, info);
+            : PdfComplianceAnalyzer.AssessReadback(
+                complianceProfile,
+                snapshot.Document,
+                info,
+                cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfAnalysisReport(
             info,
@@ -62,10 +95,17 @@ public sealed partial class PdfDocument {
     /// <summary>
     /// Inspects metadata, pages, annotations, fields, and catalog-level state.
     /// </summary>
-    public PdfDocumentInfo Inspect(PdfLoadOptions? options = null) {
-        var snapshot = GetReadSnapshot(options);
+    public PdfDocumentInfo Inspect(PdfLoadOptions? options = null) =>
+        Inspect(options, CancellationToken.None);
+
+    /// <summary>
+    /// Inspects metadata, pages, annotations, fields, and catalog-level state with cooperative cancellation.
+    /// </summary>
+    public PdfDocumentInfo Inspect(PdfLoadOptions? options, CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         snapshot.Document.DemandContentExtraction("logical object");
-        return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
+        return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
     }
 
     /// <summary>
@@ -85,11 +125,24 @@ public sealed partial class PdfDocument {
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? options = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        var snapshot = GetReadSnapshot(options);
+        return PlanMutation(operation, fieldNames, options, executionPreference, CancellationToken.None);
+    }
+
+    /// <summary>Chooses a mutation path while observing cancellation during parsing and preflight.</summary>
+    public PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames,
+        PdfLoadOptions? options,
+        PdfMutationExecutionPreference executionPreference,
+        CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,
             snapshot.Options,
-            () => snapshot.Document);
+            () => snapshot.Document,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
     }
 
@@ -308,8 +361,21 @@ public sealed partial class PdfDocument {
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
     public static PdfDocument Merge(IEnumerable<PdfDocument> documents) {
+        return Merge(documents, CancellationToken.None);
+    }
+
+    /// <summary>Creates one PDF by merging all supplied documents in order through a cancellable single merge pass.</summary>
+    public static PdfDocument Merge(
+        IEnumerable<PdfDocument> documents,
+        CancellationToken cancellationToken) {
         Guard.NotNull(documents, nameof(documents));
-        PdfDocument[] sources = documents.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sourceList = new List<PdfDocument>();
+        foreach (PdfDocument document in documents) {
+            cancellationToken.ThrowIfCancellationRequested();
+            sourceList.Add(document);
+        }
+        PdfDocument[] sources = sourceList.ToArray();
         if (sources.Length == 0) {
             throw new ArgumentException("At least one PDF document must be supplied.", nameof(documents));
         }
@@ -318,12 +384,17 @@ public sealed partial class PdfDocument {
             throw new ArgumentException("PDF documents cannot contain null entries.", nameof(documents));
         }
 
-        byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
-        PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        Func<PdfReadDocument>?[] readDocumentFactories = sources
-            .Select(static document => document.GetOpenedReadDocumentFactory())
-            .ToArray();
-        PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories);
+        var bytes = new byte[sources.Length][];
+        var readOptions = new PdfLoadOptions[sources.Length];
+        var readDocumentFactories = new Func<PdfReadDocument>?[sources.Length];
+        for (int index = 0; index < sources.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfDocument source = sources[index];
+            bytes[index] = source.GetBytesForOperation(cancellationToken);
+            readOptions[index] = source.ReadOptions;
+            readDocumentFactories[index] = source.GetOpenedReadDocumentFactory(cancellationToken);
+        }
+        PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories, cancellationToken);
         return LoadOwned(mergeResult.OwnedBytes, mergeResult.ReadOptions, mergeResult.ReadDocument);
     }
 

@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -13,14 +14,24 @@ public static partial class OfficeJpegCodec {
         OfficeRasterImage image,
         Stream destination,
         OfficeJpegEncodeOptions? options = null) {
+        EncodeTo(image, destination, options, CancellationToken.None);
+    }
+
+    internal static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        OfficeJpegEncodeOptions? options,
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
+        cancellationToken.ThrowIfCancellationRequested();
         OfficeJpegEncodeOptions effectiveOptions = options ?? new OfficeJpegEncodeOptions();
         byte[] rgba = image.PixelBuffer;
-        if (HasTransparency(rgba)) {
+        if (HasTransparency(rgba, cancellationToken)) {
             effectiveOptions = effectiveOptions.WithAdditionalRetainedManagedBytes(rgba.LongLength + 24L);
             rgba = (byte[])rgba.Clone();
-            FlattenAlpha(rgba, effectiveOptions.Background);
+            FlattenAlpha(rgba, effectiveOptions.Background, cancellationToken);
         }
         OfficeJpegWriter.WriteRgba(
             destination,
@@ -28,7 +39,9 @@ public static partial class OfficeJpegCodec {
             image.Height,
             rgba,
             checked(image.Width * 4),
-            effectiveOptions);
+            effectiveOptions,
+            cancellationToken,
+            checkpointObserver);
     }
 
 #if NET8_0_OR_GREATER

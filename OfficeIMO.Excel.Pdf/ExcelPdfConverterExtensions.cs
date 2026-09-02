@@ -20,12 +20,15 @@ namespace OfficeIMO.Excel.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
+            CancellationToken cancellationToken = options.CancellationToken;
+            cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
             PdfCore.PdfStandardFont defaultFontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
             using ExcelDocumentReader reader = document.CreateReader();
             IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection, defaultFontFamily);
+            cancellationToken.ThrowIfCancellationRequested();
             ReportAccountingUnderlineApproximations(exportPlans, options);
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots);
             ApplyTextFallbacks(pdfOptions, options, preserveConfiguredFontSlots, registeredFontSlots, exportPlans);
@@ -33,6 +36,7 @@ namespace OfficeIMO.Excel.Pdf {
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (options.WorksheetLayout == ExcelPdfWorksheetLayoutMode.WorksheetCanvas) {
                     AddWorksheetCanvasPages(pdf, document, plan, options, sheetDestinations, cellDestinations, defaultFontFamily);
                     continue;
@@ -52,18 +56,21 @@ namespace OfficeIMO.Excel.Pdf {
 
                         IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>> imagesByCellReference = CreateWorksheetImageMap(plan);
                         foreach (WorksheetImageExportData image in plan.Images) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             if (!imagesByCellReference.ContainsKey(NormalizeCellReference(image.CellReference))) {
                                 item.Image(image.Bytes, image.WidthPoints, image.HeightPoints, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(image));
                             }
                         }
 
                         foreach (WorksheetChartExportData chart in plan.Charts) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             AddWorksheetChart(item, chart, plan.SheetName, options);
                         }
 
                         if (plan.HasTable) {
                             IReadOnlyList<TableChunk> chunks = CreateTableChunks(plan, options, columns);
                             for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 TableChunk chunk = chunks[chunkIndex];
                                 if (chunkIndex > 0) {
                                     item.PageBreak();
@@ -83,6 +90,7 @@ namespace OfficeIMO.Excel.Pdf {
                 pdf.Table(new[] { new[] { "No worksheet data found." } }, style: CreateEmptyWorkbookTableStyle(options));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             return pdf;
         }
 
@@ -129,6 +137,8 @@ namespace OfficeIMO.Excel.Pdf {
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) {
             try {
                 return document.ToPdfDocumentResult(options).TrySave(path);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -146,29 +156,33 @@ namespace OfficeIMO.Excel.Pdf {
         public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) {
             try {
                 return document.ToPdfDocumentResult(options).TrySave(stream);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF at the specified path.</summary>
-        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             string path,
             ExcelPdfSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+            return await document.ToPdfDocumentResult(operation).SaveAsync(path, operation.CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Converts synchronously, then asynchronously saves an Excel workbook PDF to a caller-owned stream.</summary>
-        public static Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
+        public static async Task<PdfCore.PdfSaveResult> SaveAsPdfAsync(
             this ExcelDocument document,
             Stream stream,
             ExcelPdfSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            return document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+            using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+            return await document.ToPdfDocumentResult(operation).SaveAsync(stream, operation.CancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>Attempts to asynchronously save an Excel workbook as PDF at the specified path.</summary>
@@ -179,10 +193,11 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                return await document.ToPdfDocumentResult(options)
-                    .TrySaveAsync(path, cancellationToken)
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+                return await document.ToPdfDocumentResult(operation)
+                    .TrySaveAsync(path, operation.CancellationToken)
                     .ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
@@ -197,14 +212,30 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
-                return await document.ToPdfDocumentResult(options)
-                    .TrySaveAsync(stream, cancellationToken)
+                using CancellationTokenSource? linked = CreateAsyncConversionOptions(options, cancellationToken, out ExcelPdfSaveOptions operation);
+                return await document.ToPdfDocumentResult(operation)
+                    .TrySaveAsync(stream, operation.CancellationToken)
                     .ConfigureAwait(false);
-            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            } catch (OperationCanceledException) {
                 throw;
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
             }
+        }
+
+        private static CancellationTokenSource? CreateAsyncConversionOptions(
+            ExcelPdfSaveOptions? options,
+            CancellationToken methodToken,
+            out ExcelPdfSaveOptions operation) {
+            operation = (options ?? new ExcelPdfSaveOptions()).CloneForConversion();
+            if (!methodToken.CanBeCanceled || operation.CancellationToken == methodToken) return null;
+            if (!operation.CancellationToken.CanBeCanceled) {
+                operation.CancellationToken = methodToken;
+                return null;
+            }
+            var linked = CancellationTokenSource.CreateLinkedTokenSource(operation.CancellationToken, methodToken);
+            operation.CancellationToken = linked.Token;
+            return linked;
         }
 
     }

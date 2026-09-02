@@ -125,6 +125,88 @@ public sealed class PdfLogicalTableContinuationContractTests {
         Assert.True(group.Evidence.HasFlag(PdfLogicalTableContinuationEvidence.RepeatedHeaders));
     }
 
+    [Fact]
+    public void TableContinuations_CompareColumnsAfterCropOriginNormalization() {
+        byte[] first = BuildSinglePageTablePdf(marginLeft: 30D);
+        byte[] second = BuildSinglePageTablePdf(marginLeft: 50D);
+        byte[] merged = PdfDocument.Merge(PdfDocument.Load(first), PdfDocument.Load(second))
+            .Pages.SetCropBox(20D, 0D, 320D, 220D, 2)
+            .ToBytes();
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(merged);
+
+        Assert.True(PdfLogicalTableContinuations.HasCompatibleColumns(
+            Assert.Single(document.Pages[0].Tables),
+            document.Pages[0],
+            Assert.Single(document.Pages[1].Tables),
+            document.Pages[1],
+            tolerance: 4D));
+    }
+
+    [Fact]
+    public void TableContinuations_RejectRawColumnsShiftedByCropOrigin() {
+        byte[] page = BuildSinglePageTablePdf(marginLeft: 30D);
+        byte[] merged = PdfDocument.Merge(PdfDocument.Load(page), PdfDocument.Load(page))
+            .Pages.SetCropBox(20D, 0D, 320D, 220D, 2)
+            .ToBytes();
+        PdfDocumentReadResult document = PdfDocumentReadResult.Load(merged);
+
+        Assert.False(PdfLogicalTableContinuations.HasCompatibleColumns(
+            Assert.Single(document.Pages[0].Tables),
+            document.Pages[0],
+            Assert.Single(document.Pages[1].Tables),
+            document.Pages[1],
+            tolerance: 4D));
+    }
+
+    [Fact]
+    public void TableContinuations_CompareColumnsAfterUserUnitNormalization() {
+        byte[] scaled = WithUserUnit(
+            BuildSinglePageTablePdf(30D, 60D, 50D, pageWidth: 600D),
+            userUnit: 2D);
+        byte[] unscaled = BuildSinglePageTablePdf(64D, 144D, 140D, pageWidth: 600D);
+        PdfLogicalPage scaledPage = Assert.Single(PdfDocumentReadResult.Load(scaled).Pages);
+        PdfLogicalPage unscaledPage = Assert.Single(PdfDocumentReadResult.Load(unscaled).Pages);
+
+        PdfLogicalTable scaledTable = Assert.Single(scaledPage.Tables);
+        PdfLogicalTable unscaledTable = Assert.Single(unscaledPage.Tables);
+        Assert.True(PdfLogicalTableContinuations.HasCompatibleColumns(
+            scaledTable,
+            scaledPage,
+            unscaledTable,
+            unscaledPage,
+            tolerance: 4D),
+            "scaled=" + string.Join("/", scaledTable.Columns.Select(static column => column.From + "-" + column.To)) +
+            "; unscaled=" + string.Join("/", unscaledTable.Columns.Select(static column => column.From + "-" + column.To)));
+    }
+
+    [Fact]
+    public void TableContinuations_DoNotTransformOcrVisualColumnsAgain() {
+        PdfLogicalPage scaledPage = Assert.Single(PdfDocumentReadResult.Load(WithUserUnit(
+            BuildSinglePageTablePdf(30D),
+            userUnit: 2D)).Pages);
+        PdfLogicalPage unscaledPage = Assert.Single(PdfDocumentReadResult.Load(BuildSinglePageTablePdf(30D)).Pages);
+        IReadOnlyList<IReadOnlyList<string>> rows = [new[] { "Description", "Amount" }];
+        PdfLogicalTable scaledTable = PdfLogicalTable.FromOcr(
+            1,
+            top: 20D,
+            bottom: 80D,
+            [(20D, 80D), (80D, 140D)],
+            rows);
+        PdfLogicalTable unscaledTable = PdfLogicalTable.FromOcr(
+            1,
+            top: 20D,
+            bottom: 80D,
+            [(20D, 80D), (80D, 140D)],
+            rows);
+
+        Assert.True(PdfLogicalTableContinuations.HasCompatibleColumns(
+            scaledTable,
+            scaledPage,
+            unscaledTable,
+            unscaledPage,
+            tolerance: 4D));
+    }
+
     private static byte[] BuildMultiPageTablePdf() {
         var rows = new List<string[]> {
             new[] { "Group", "State" },
@@ -197,4 +279,39 @@ public sealed class PdfLogicalTableContinuationContractTests {
             })
             .ToBytes();
     }
+
+    private static byte[] BuildSinglePageTablePdf(
+        double marginLeft,
+        double firstColumnWidth = 120D,
+        double secondColumnWidth = 100D,
+        double pageWidth = 320D) =>
+        PdfDocument.Create(new PdfOptions {
+                PageWidth = pageWidth,
+                PageHeight = 220,
+                MarginLeft = marginLeft,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20,
+                DefaultFontSize = 9
+            })
+            .Table(new[] {
+                new[] { "Description", "Amount" },
+                new[] { "First item", "10" },
+                new[] { "Second item", "20" }
+            }, style: new PdfTableStyle {
+                HeaderRowCount = 1,
+                ColumnWidthPoints = new List<double?> { firstColumnWidth, secondColumnWidth },
+                CellPaddingX = 4,
+                CellPaddingY = 2
+            })
+            .ToBytes();
+
+    private static byte[] WithUserUnit(byte[] source, double userUnit) =>
+        PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfIndirectObject page = Assert.Single(objects.Values, static item =>
+                item.Value is PdfDictionary dictionary &&
+                string.Equals(dictionary.Get<PdfName>("Type")?.Name, "Page", StringComparison.Ordinal));
+            Assert.IsType<PdfDictionary>(page.Value).Items["UserUnit"] = new PdfNumber(userUnit);
+            return security.InfoObjectNumber;
+        });
 }

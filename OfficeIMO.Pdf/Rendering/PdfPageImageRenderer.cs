@@ -44,9 +44,17 @@ internal static partial class PdfPageImageRenderer {
     /// Projects a one-based page from an already loaded PDF document into the shared OfficeIMO drawing scene.
     /// </summary>
     public static OfficeDrawing RenderPage(PdfReadDocument document, int pageNumber = 1) {
+        return RenderPage(document, pageNumber, CancellationToken.None);
+    }
+
+    internal static OfficeDrawing RenderPage(
+        PdfReadDocument document,
+        int pageNumber,
+        CancellationToken cancellationToken) {
         Guard.NotNull(document, nameof(document));
+        cancellationToken.ThrowIfCancellationRequested();
         ValidatePageNumber(document, pageNumber);
-        return document.Pages[pageNumber - 1].ToDrawing();
+        return document.Pages[pageNumber - 1].ToDrawing(cancellationToken);
     }
 
     /// <summary>

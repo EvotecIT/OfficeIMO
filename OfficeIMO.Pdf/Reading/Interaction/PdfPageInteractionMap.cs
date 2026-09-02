@@ -29,7 +29,7 @@ public sealed class PdfPageInteractionMap {
     /// <summary>Visual page height in PDF points after page rotation.</summary>
     public double Height { get; }
 
-    /// <summary>All text, link, annotation, and form-widget regions.</summary>
+    /// <summary>All text, image, link, annotation, and form-widget regions.</summary>
     public IReadOnlyList<PdfPageInteractionRegion> Regions { get; }
 
     /// <summary>Text-element regions in content extraction order.</summary>
@@ -50,6 +50,9 @@ public sealed class PdfPageInteractionMap {
         if (effective.MaxTextRegions <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), "Maximum text regions must be positive.");
         }
+        if (effective.MaxImageRegions <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum image regions must be positive.");
+        }
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         if (pageNumber > document.Pages.Count) {
@@ -61,10 +64,41 @@ public sealed class PdfPageInteractionMap {
         PdfPageInfo pageInfo = PdfInspector.Inspect(pdf, readOptions).Pages[pageNumber - 1];
         var regions = new List<PdfPageInteractionRegion>();
         AddTextRegions(page, size.Width, size.Height, effective, regions);
+        AddImageRegions(document, pdf, page, pageNumber, size.Width, size.Height, effective, regions);
         AddLinkRegions(page, pageInfo, size.Height, regions);
         AddAnnotationRegions(page, pageInfo, size.Height, regions);
         AddFormWidgetRegions(page, pageInfo, size.Height, regions);
         return new PdfPageInteractionMap(pageNumber, size.Width, size.Height, regions.AsReadOnly());
+    }
+
+    private static void AddImageRegions(
+        PdfReadDocument document,
+        byte[] pdf,
+        PdfReadPage page,
+        int pageNumber,
+        double pageWidth,
+        double pageHeight,
+        PdfPageInteractionOptions options,
+        List<PdfPageInteractionRegion> regions) {
+        IReadOnlyList<PdfImagePlacement> placements = PdfImageEditor.Placements(document, pdf, pageNumber);
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        int emitted = 0;
+        for (int i = 0; i < placements.Count; i++) {
+            PdfImagePlacement placement = placements[i];
+            PdfSelectionQuad quad = FromImagePlacement(page, placement, originX, originY, pageHeight);
+            if (!TryApplyImageClip(page, placement, pageHeight, ref quad)) continue;
+            if (!quad.Intersects(0D, 0D, pageWidth, pageHeight)) continue;
+            if (emitted >= options.MaxImageRegions) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, options.MaxImageRegions, emitted + 1L);
+            }
+            regions.Add(new PdfPageInteractionRegion(
+                PdfInteractionKind.Image,
+                quad,
+                subtype: "Image",
+                objectNumber: placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+                imagePlacement: placement));
+            emitted++;
+        }
     }
 
     internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page) {
@@ -177,18 +211,13 @@ public sealed class PdfPageInteractionMap {
                 continue;
             }
 
-            TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(span.Text);
-            int elementCount = 0;
-            while (enumerator.MoveNext()) {
-                elementCount++;
-            }
-
+            int[] elementStarts = StringInfo.ParseCombiningCharacters(span.Text);
+            int elementCount = elementStarts.Length;
             if (elementCount == 0) {
                 continue;
             }
 
-            double totalAdvance = Math.Max(Math.Abs(span.Advance), elementCount * Math.Max(1D, span.FontSize * 0.5D));
-            double elementAdvance = totalAdvance / elementCount;
+            double[] elementBoundaries = GetTextElementAdvanceBoundaries(span, elementStarts);
             double radians = span.RotationDegrees * Math.PI / 180D;
             double directionX = Math.Cos(radians);
             double directionY = Math.Sin(radians);
@@ -196,13 +225,12 @@ public sealed class PdfPageInteractionMap {
             double normalY = directionX;
             double ascent = Math.Max(1D, span.FontSize);
             double descent = Math.Max(0.5D, span.FontSize * 0.2D);
-            enumerator = StringInfo.GetTextElementEnumerator(span.Text);
-            int elementIndex = 0;
-            while (enumerator.MoveNext()) {
-                string element = (string)enumerator.Current!;
-                int currentElementIndex = elementIndex++;
-                double startAdvance = currentElementIndex * elementAdvance;
-                double endAdvance = (currentElementIndex + 1) * elementAdvance;
+            for (int elementIndex = 0; elementIndex < elementCount; elementIndex++) {
+                int startIndex = elementStarts[elementIndex];
+                int endIndex = elementIndex + 1 < elementCount ? elementStarts[elementIndex + 1] : span.Text.Length;
+                string element = span.Text.Substring(startIndex, endIndex - startIndex);
+                double startAdvance = elementBoundaries[elementIndex];
+                double endAdvance = elementBoundaries[elementIndex + 1];
                 double startX = span.X + directionX * startAdvance;
                 double startY = span.Y + directionY * startAdvance;
                 double endX = span.X + directionX * endAdvance;
@@ -224,6 +252,29 @@ public sealed class PdfPageInteractionMap {
                 textIndex++;
             }
         }
+    }
+
+    private static double[] GetTextElementAdvanceBoundaries(PdfTextSpan span, int[] elementStarts) {
+        if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] characterBoundaries)) {
+            var elementBoundaries = new double[elementStarts.Length + 1];
+            for (int elementIndex = 0; elementIndex < elementStarts.Length; elementIndex++) {
+                elementBoundaries[elementIndex] = characterBoundaries[elementStarts[elementIndex]];
+            }
+            elementBoundaries[elementBoundaries.Length - 1] = characterBoundaries[characterBoundaries.Length - 1];
+            return elementBoundaries;
+        }
+
+        double totalAdvance = Math.Abs(span.Advance);
+        if (!IsFinite(totalAdvance) || totalAdvance <= 0D) {
+            totalAdvance = elementStarts.Length * Math.Max(1D, span.FontSize * 0.5D);
+        }
+
+        var fallbackBoundaries = new double[elementStarts.Length + 1];
+        double elementAdvance = totalAdvance / elementStarts.Length;
+        for (int elementIndex = 1; elementIndex < fallbackBoundaries.Length; elementIndex++) {
+            fallbackBoundaries[elementIndex] = elementIndex * elementAdvance;
+        }
+        return fallbackBoundaries;
     }
 
     private static void AddLinkRegions(PdfReadPage page, PdfPageInfo info, double pageHeight, List<PdfPageInteractionRegion> regions) {
@@ -325,6 +376,71 @@ public sealed class PdfPageInteractionMap {
             ToTopLeft((endX + normalX * ascent, endY + normalY * ascent), pageHeight),
             ToTopLeft((endX - normalX * descent, endY - normalY * descent), pageHeight),
             ToTopLeft((startX - normalX * descent, startY - normalY * descent), pageHeight));
+    }
+
+    private static PdfSelectionQuad FromImagePlacement(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        double originX,
+        double originY,
+        double pageHeight) {
+        double e = placement.E + originX;
+        double f = placement.F + originY;
+        (double X, double Y) bottomLeft = page.TransformPointToVisual(e, f);
+        (double X, double Y) bottomRight = page.TransformPointToVisual(placement.A + e, placement.B + f);
+        (double X, double Y) topRight = page.TransformPointToVisual(
+            placement.A + placement.C + e,
+            placement.B + placement.D + f);
+        (double X, double Y) topLeft = page.TransformPointToVisual(placement.C + e, placement.D + f);
+        return new PdfSelectionQuad(
+            ToTopLeft(topLeft, pageHeight),
+            ToTopLeft(topRight, pageHeight),
+            ToTopLeft(bottomRight, pageHeight),
+            ToTopLeft(bottomLeft, pageHeight));
+    }
+
+    private static bool TryApplyImageClip(
+        PdfReadPage page,
+        PdfImagePlacement placement,
+        double pageHeight,
+        ref PdfSelectionQuad quad) {
+        PdfImageClipInfo? clip = placement.Clip;
+        if (clip is null) return true;
+        if (clip.Width <= 0D || clip.Height <= 0D) return false;
+        double sourceHeight = page.GetPageSize().Height;
+        if (!TryFromUserRectangle(
+                page,
+                clip.X,
+                sourceHeight - (clip.Y + clip.Height),
+                clip.X + clip.Width,
+                sourceHeight - clip.Y,
+                pageHeight,
+                out PdfSelectionQuad? clipQuad)) {
+            return false;
+        }
+
+        const double tolerance = 0.001D;
+        if (clipQuad!.Left <= quad.Left + tolerance &&
+            clipQuad.Top <= quad.Top + tolerance &&
+            clipQuad.Right >= quad.Right - tolerance &&
+            clipQuad.Bottom >= quad.Bottom - tolerance) {
+            return true;
+        }
+
+        // Interaction regions are quadrilateral, while PDF clips may be arbitrary paths.
+        // Retain the editable image identity using the intersection of their conservative
+        // visual bounds instead of dropping every nonrectangular or inexact clip.
+        double left = Math.Max(quad.Left, clipQuad.Left);
+        double top = Math.Max(quad.Top, clipQuad.Top);
+        double right = Math.Min(quad.Right, clipQuad.Right);
+        double bottom = Math.Min(quad.Bottom, clipQuad.Bottom);
+        if (right <= left || bottom <= top) return false;
+        quad = new PdfSelectionQuad(
+            new PdfSelectionPoint(left, top),
+            new PdfSelectionPoint(right, top),
+            new PdfSelectionPoint(right, bottom),
+            new PdfSelectionPoint(left, bottom));
+        return true;
     }
 
     private static PdfSelectionPoint ToTopLeft((double X, double Y) point, double pageHeight) =>

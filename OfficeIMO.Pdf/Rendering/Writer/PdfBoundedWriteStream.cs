@@ -36,7 +36,7 @@ internal sealed class PdfBoundedWriteStream : Stream {
 
     private void EnsureWithinLimit(long addedBytes) {
         if (_maximumBytes.HasValue && _inner.Position > _maximumBytes.Value - addedBytes) {
-            throw new InvalidDataException(_limitMessage);
+            throw PdfOutputLimitErrors.Create(_limitMessage);
         }
     }
 

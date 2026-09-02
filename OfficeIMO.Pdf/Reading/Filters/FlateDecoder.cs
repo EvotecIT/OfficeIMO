@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading;
 
 namespace OfficeIMO.Pdf.Filters;
 
@@ -26,7 +27,13 @@ internal static class FlateDecoder {
         return TryDecode(data, maxOutputBytes, out output, out _);
     }
 
-    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] output, out bool limitExceeded) {
+    public static bool TryDecode(
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         limitExceeded = false;
         if (maxOutputBytes < 0) {
             output = Array.Empty<byte>();
@@ -34,7 +41,7 @@ internal static class FlateDecoder {
         }
 
 #if NET6_0_OR_GREATER
-        if (TryZlib(data, maxOutputBytes, out var result, out bool zlibLimitExceeded)) {
+        if (TryZlib(data, maxOutputBytes, out var result, out bool zlibLimitExceeded, cancellationToken)) {
             output = result!;
             return true;
         }
@@ -46,7 +53,7 @@ internal static class FlateDecoder {
         }
 #endif
 
-        if (TryInflate(data, maxOutputBytes, out var result2, out bool inflateLimitExceeded)) {
+        if (TryInflate(data, maxOutputBytes, out var result2, out bool inflateLimitExceeded, cancellationToken)) {
             output = result2!;
             return true;
         }
@@ -60,7 +67,7 @@ internal static class FlateDecoder {
         if (data.Length > 2 && IsLikelyZlib(data)) {
             var sliced = new byte[data.Length - 2];
             Buffer.BlockCopy(data, 2, sliced, 0, sliced.Length);
-            if (TryInflate(sliced, maxOutputBytes, out var result3, out bool slicedLimitExceeded)) {
+            if (TryInflate(sliced, maxOutputBytes, out var result3, out bool slicedLimitExceeded, cancellationToken)) {
                 output = result3!;
                 return true;
             }
@@ -76,11 +83,18 @@ internal static class FlateDecoder {
         return false;
     }
 
-    private static bool TryInflate(byte[] input, int? maxOutputBytes, out byte[]? output, out bool limitExceeded) {
+    private static bool TryInflate(
+        byte[] input,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
         try {
             using var msIn = new MemoryStream(input);
             using var ds = new DeflateStream(msIn, CompressionMode.Decompress, leaveOpen: true);
-            return TryCopyToByteArray(ds, maxOutputBytes, out output, out limitExceeded);
+            return TryCopyToByteArray(ds, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch {
             output = null;
             limitExceeded = false;
@@ -89,11 +103,18 @@ internal static class FlateDecoder {
     }
 
 #if NET6_0_OR_GREATER
-    private static bool TryZlib(byte[] input, int? maxOutputBytes, out byte[]? output, out bool limitExceeded) {
+    private static bool TryZlib(
+        byte[] input,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
         try {
             using var msIn = new MemoryStream(input);
             using var zs = new ZLibStream(msIn, CompressionMode.Decompress, leaveOpen: true);
-            return TryCopyToByteArray(zs, maxOutputBytes, out output, out limitExceeded);
+            return TryCopyToByteArray(zs, maxOutputBytes, out output, out limitExceeded, cancellationToken);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch {
             output = null;
             limitExceeded = false;
@@ -102,12 +123,20 @@ internal static class FlateDecoder {
     }
 #endif
 
-    private static bool TryCopyToByteArray(Stream source, int? maxOutputBytes, out byte[]? output, out bool limitExceeded) {
+    private static bool TryCopyToByteArray(
+        Stream source,
+        int? maxOutputBytes,
+        out byte[]? output,
+        out bool limitExceeded,
+        CancellationToken cancellationToken = default) {
         limitExceeded = false;
         using var msOut = new MemoryStream();
         var buffer = new byte[81920];
         int read;
-        while ((read = source.Read(buffer, 0, buffer.Length)) > 0) {
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            read = source.Read(buffer, 0, buffer.Length);
+            if (read <= 0) break;
             if (maxOutputBytes.HasValue && msOut.Length + read > maxOutputBytes.Value) {
                 output = null;
                 limitExceeded = true;

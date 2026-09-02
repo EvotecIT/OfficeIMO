@@ -15,6 +15,12 @@ internal static partial class PdfRedactionApplier {
     /// <summary>Applies a previously reviewed plan, including exact form-field removal for field-derived search areas.</summary>
     public static byte[] Apply(byte[] pdf, PdfRedactionPlan plan, PdfRedactionApplyOptions? applyOptions = null, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? readOptions = null) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(plan, nameof(plan));
+        if (!plan.IsReviewable) {
+            throw new InvalidOperationException("The reviewed redaction plan is blocked and cannot be applied.");
+        }
+        if (!plan.MatchesSource(pdf)) {
+            throw new InvalidOperationException("The reviewed redaction plan belongs to different source PDF bytes.");
+        }
         if (plan.Areas.Count == 0) return (byte[])pdf.Clone();
         string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
         byte[] working = pdf;

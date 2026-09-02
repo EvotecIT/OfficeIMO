@@ -528,10 +528,11 @@ internal static partial class PdfRedactionApplier {
     }
 
     private static RedactionTextBounds AddSpanBounds(RedactionTextBounds? current, PdfTextSpan span) {
-        double left = Math.Min(span.X, span.X + Math.Max(span.Advance, 0D));
-        double right = Math.Max(span.X, span.X + Math.Max(span.Advance, 0D));
-        double bottom = span.Y - Math.Max(span.FontSize, 1D);
-        double top = span.Y + Math.Max(span.FontSize * 0.25D, 1D);
+        PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+        double left = spanBounds.Left;
+        double right = spanBounds.Right;
+        double bottom = spanBounds.Bottom;
+        double top = spanBounds.Top;
         if (current is null) {
             return new RedactionTextBounds(left, bottom, right, top);
         }

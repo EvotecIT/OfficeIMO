@@ -76,12 +76,61 @@ internal static partial class PdfTextEditor {
         return new TextMutationResult(output, detected.Spans.Count, warnings);
     }
 
+    internal static TextMutationResult Replace(byte[] pdf, PdfTextMatch match, string text, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
+        Guard.NotNull(match, nameof(match));
+        Guard.NotNull(text, nameof(text));
+        TextSearchHit hit = ResolveHit(pdf, match, readOptions);
+        return ReplaceHits(pdf, new[] { hit }, text, options, readOptions);
+    }
+
+    internal static TextMutationResult Move(byte[] pdf, PdfTextMatch match, double deltaX, double deltaY, PdfTextEditOptions? options, PdfLoadOptions? readOptions) {
+        Guard.NotNull(match, nameof(match));
+        ValidateFinite(deltaX, nameof(deltaX));
+        ValidateFinite(deltaY, nameof(deltaY));
+        TextSearchHit hit = ResolveHit(pdf, match, readOptions);
+        PdfTextSpan[] targetSpans = hit.Segments.Select(static segment => segment.Span).Distinct().ToArray();
+        EnsureAppendOrderIsSafe(pdf, hit.PageNumber, targetSpans, readOptions);
+
+        PageSpanKey[] keys = targetSpans.Select(span => new PageSpanKey(hit.PageNumber, span)).ToArray();
+        PdfRedactionArea[] areas = keys.Select(static key => {
+            SpanBounds bounds = GetBounds(key.Span);
+            return new PdfRedactionArea(key.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        }).ToArray();
+        TextRemovalResult removal = RemoveTextPreservingUnmatchedSpans(pdf, areas, readOptions, keys);
+        PdfTextEditOptions snapshot = (options ?? new PdfTextEditOptions()).Snapshot();
+        var warnings = new List<string>(removal.Warnings);
+        var requests = new List<PdfStamper.TextStampRequest>(removal.Restamps);
+        var movedRequests = new List<PdfStamper.TextStampRequest>();
+        foreach (PdfTextSpan sourceSpan in targetSpans) {
+            PdfRegionText detected = BuildRegionText(new[] { sourceSpan });
+            PdfResolvedTextStyle sourceStyle = ResolveStyle(new PdfTextEditOptions(), detected);
+            PdfResolvedTextStyle movedStyle = ResolveStyle(snapshot, detected);
+            warnings.AddRange(BuildSubstitutionWarnings(detected, movedStyle.Font));
+            AddExactMoveRequests(
+                movedRequests,
+                hit.PageNumber,
+                sourceSpan,
+                hit.Segments.Where(segment => ReferenceEquals(segment.Span, sourceSpan)).ToArray(),
+                deltaX,
+                deltaY,
+                sourceStyle,
+                movedStyle);
+        }
+        EnsureAppendOrderIsSafe(pdf, hit.PageNumber, targetSpans, readOptions, movedRequests);
+        requests.AddRange(movedRequests);
+        return new TextMutationResult(ApplyStampRequests(removal.Bytes, requests, readOptions), 1, warnings);
+    }
+
     internal static TextMutationResult ReplaceAll(byte[] pdf, string text, string replacement, PdfTextSearchOptions? searchOptions, PdfTextEditOptions? editOptions, PdfLoadOptions? readOptions) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(replacement, nameof(replacement));
         if (text.Length == 0) throw new ArgumentException("Search text cannot be empty.", nameof(text));
         IReadOnlyList<TextSearchHit> hits = FindHits(pdf, text, searchOptions, readOptions);
         if (hits.Count == 0) return new TextMutationResult(pdf.ToArray(), 0, Array.Empty<string>());
+        return ReplaceHits(pdf, hits, replacement, editOptions, readOptions);
+    }
+
+    private static TextMutationResult ReplaceHits(byte[] pdf, IReadOnlyList<TextSearchHit> hits, string replacement, PdfTextEditOptions? editOptions, PdfLoadOptions? readOptions) {
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
             EnsureAppendOrderIsSafe(pdf, pageHits.Key, pageHits.SelectMany(static hit => hit.Segments).Select(static segment => segment.Span).Distinct().ToArray(), readOptions);
         }
@@ -530,9 +579,11 @@ internal static partial class PdfTextEditor {
         double advance = Math.Max(Math.Abs(span.Advance), EffectiveFontSize(span) * Math.Max(1, span.Text.Length) * 0.45D);
         double offset;
         double sliceAdvance;
-        if (span.CharacterAdvances != null && span.CharacterAdvances.Count == span.Text.Length) {
-            offset = span.CharacterAdvances.Take(Math.Min(start, span.CharacterAdvances.Count)).Sum();
-            sliceAdvance = span.CharacterAdvances.Skip(Math.Min(start, span.CharacterAdvances.Count)).Take(length).Sum();
+        if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
+            int startIndex = Math.Min(start, boundaries.Length - 1);
+            int endIndex = Math.Min(start + length, boundaries.Length - 1);
+            offset = boundaries[startIndex];
+            sliceAdvance = boundaries[endIndex] - offset;
         } else {
             double textLength = Math.Max(1, span.Text.Length);
             offset = advance * start / textLength;

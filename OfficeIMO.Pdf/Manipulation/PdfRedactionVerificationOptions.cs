@@ -26,6 +26,12 @@ public sealed class PdfRedactionVerificationOptions {
     /// <summary>True when redaction verification should fail if a PDF stream cannot be decoded while decoded stream checks are enabled.</summary>
     public bool FailOnUndecodablePdfStreams { get; set; } = true;
 
+    /// <summary>
+    /// True when every PDF stream must be inspectable even when decoded-stream marker checks or undecodable-stream failures were disabled.
+    /// Use this for plan-aware verification where image or annotation removal also requires fail-closed proof.
+    /// </summary>
+    public bool RequireCompleteStreamInspection { get; set; }
+
     /// <summary>True to compare removed and retained text markers with ordinal casing; false to use ordinal case-insensitive comparison.</summary>
     public bool MatchCase { get; set; } = true;
 

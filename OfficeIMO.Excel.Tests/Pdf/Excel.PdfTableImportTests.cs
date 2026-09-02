@@ -761,6 +761,9 @@ public partial class Excel {
 
     [Fact]
     public void PdfTables_PositionedContinuationsMatchStableColumnStartsInsteadOfTextWidths() {
+        PdfCore.PdfLogicalPage page = Assert.Single(PdfCore.PdfDocumentReadResult.Load(
+            PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page geometry")).ToBytes()).Pages);
+
         static PdfCore.PdfLogicalTable Table(double firstWidth, double secondWidth) {
             var table = new PdfCore.StructuredTable {
                 Kind = "positioned-cells-bounded",
@@ -776,7 +779,9 @@ public partial class Excel {
 
         Assert.True(PdfCore.PdfLogicalTableContinuations.HasCompatibleColumns(
             Table(40, 30),
+            page,
             Table(160, 90),
+            page,
             tolerance: 4D));
     }
 

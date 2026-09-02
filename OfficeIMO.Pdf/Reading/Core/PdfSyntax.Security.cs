@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -14,8 +15,10 @@ internal static partial class PdfSyntax {
     internal static PdfDocumentSecurityInfo ReadDocumentSecurityInfo(
         byte[] pdf,
         PdfLoadOptions? options = null,
-        bool includeParsedDetails = true) {
+        bool includeParsedDetails = true,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfReadLimits limits = options?.Limits ?? new PdfReadLimits();
         limits.Validate();
         if (pdf.LongLength > limits.MaxInputBytes) {
@@ -23,20 +26,22 @@ internal static partial class PdfSyntax {
         }
 
         string text = PdfEncoding.Latin1GetString(pdf);
+        cancellationToken.ThrowIfCancellationRequested();
         int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         bool hasEncryption = encryptObjectNumber.HasValue;
-        bool hasSignatures = includeParsedDetails
-            ? HasSignatureMarkers(pdf)
-            : ContainsAnyPdfName(text, "ByteRange", "SigFlags", "Sig");
+        // The detailed path below already parses the object graph and derives signature
+        // fields and values from it. Keep this initial fallback marker scan raw so a
+        // cancellation-aware caller does not pay for a second, tokenless parse.
+        bool hasSignatures = ContainsAnyPdfName(text, cancellationToken, "ByteRange", "SigFlags", "Sig");
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text, limits.MaxRevisions);
         int startXrefCount = startXrefOffsets.Count;
         int? lastStartXrefOffset = startXrefOffsets.Count == 0 ? null : startXrefOffsets[startXrefOffsets.Count - 1];
         IReadOnlyList<int> previousXrefOffsets = ReadIntegerNameValues(text, "Prev", limits.MaxRevisions);
         bool hasPreviousRevision = previousXrefOffsets.Count > 0;
         IReadOnlyList<PdfDocumentRevisionInfo> revisions = BuildRevisionInfo(startXrefOffsets, previousXrefOffsets);
-        bool hasXrefStreams = ContainsPdfName(text, "XRef") && ContainsPdfName(text, "W");
-        bool hasObjectStreams = ContainsPdfName(text, "ObjStm");
-        bool hasTrailerId = ContainsPdfName(text, "ID");
+        bool hasXrefStreams = ContainsPdfName(text, "XRef", cancellationToken) && ContainsPdfName(text, "W", cancellationToken);
+        bool hasObjectStreams = ContainsPdfName(text, "ObjStm", cancellationToken);
+        bool hasTrailerId = ContainsPdfName(text, "ID", cancellationToken);
 
         PdfReference? rootReference = TryReadLastReference(text, "Root");
         int? rootObjectNumber = rootReference?.ObjectNumber;
@@ -83,7 +88,13 @@ internal static partial class PdfSyntax {
 
         if (includeParsedDetails) {
             try {
-                var (objects, trailerRaw) = ParseObjects(pdf, options);
+                var (objects, trailerRaw) = ParseObjects(
+                    pdf,
+                    options,
+                    out _,
+                    out _,
+                    cancellationToken);
+                cancellationToken.ThrowIfCancellationRequested();
                 rootReference = ReadTrailerReference(trailerRaw, "Root", limits);
                 if (rootReference is not null) {
                     rootObjectNumber = rootReference.ObjectNumber;
@@ -139,6 +150,7 @@ internal static partial class PdfSyntax {
                 }
 
                 foreach (var entry in objects.OrderBy(static item => item.Key)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
@@ -168,6 +180,7 @@ internal static partial class PdfSyntax {
                 }
 
                 foreach (var entry in objects.OrderBy(static item => item.Key)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PdfDictionary? dictionary = entry.Value.Value switch {
                         PdfDictionary directDictionary => directDictionary,
                         PdfStream stream => stream.Dictionary,
@@ -195,15 +208,17 @@ internal static partial class PdfSyntax {
                             currentByteRangeValues));
                     }
                 }
-            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
                 byteRangeValueCount = 0;
             }
         } else {
+            cancellationToken.ThrowIfCancellationRequested();
             signatureValueCount = CountPdfNameOccurrences(text, "ByteRange");
             byteRangeValueCount = 0;
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfDocumentSecurityInfo(
             hasEncryption,
             encryptObjectNumber,
@@ -220,7 +235,7 @@ internal static partial class PdfSyntax {
             signatureFieldNames.Count == 0 ? Array.Empty<string>() : signatureFieldNames.AsReadOnly(),
             signatures.Count == 0 ? Array.Empty<PdfSignatureInfo>() : signatures.AsReadOnly(),
             signatureValueCount,
-            byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange"),
+            byteRangeValueCount > 0 || ContainsPdfName(text, "ByteRange", cancellationToken),
             byteRangeValueCount,
             acroFormSignatureFlags,
             hasDocMDPPermissions,

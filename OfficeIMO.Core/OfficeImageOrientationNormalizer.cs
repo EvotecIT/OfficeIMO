@@ -40,7 +40,7 @@ public static class OfficeImageOrientationNormalizer {
         if (imageBytes[0] == 0xFF && imageBytes[1] == 0xD8) {
             return TryReadJpeg(imageBytes, cancellationToken, out orientation);
         }
-        return TryReadTiffOrientation(new OfficeByteView(imageBytes), out orientation);
+        return TryReadTiffOrientation(new OfficeByteView(imageBytes), cancellationToken, out orientation);
     }
 
     /// <summary>
@@ -63,35 +63,52 @@ public static class OfficeImageOrientationNormalizer {
         bool applyEmbeddedOrientation,
         out byte[] normalizedPng,
         out OfficeImageInfo? normalizedInfo) {
+        return TryNormalizeToPng(
+            imageBytes,
+            applyEmbeddedOrientation,
+            CancellationToken.None,
+            out normalizedPng,
+            out normalizedInfo);
+    }
+
+    internal static bool TryNormalizeToPng(
+        byte[]? imageBytes,
+        bool applyEmbeddedOrientation,
+        CancellationToken cancellationToken,
+        out byte[] normalizedPng,
+        out OfficeImageInfo? normalizedInfo) {
         normalizedPng = Array.Empty<byte>();
         normalizedInfo = null;
-        if (!TryRead(imageBytes, out OfficeImageOrientation orientation)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryRead(imageBytes, cancellationToken, out OfficeImageOrientation orientation)
             || orientation == OfficeImageOrientation.Normal) {
             return false;
         }
         byte[] source = imageBytes!;
         if (!applyEmbeddedOrientation) {
-            source = (byte[])imageBytes!.Clone();
-            if (!TryNeutralizeOrientation(source)) return false;
+            source = CloneWithCancellation(imageBytes!, cancellationToken);
+            if (!TryNeutralizeOrientation(source, cancellationToken)) return false;
         }
-        if (!OfficeImageReader.TryIdentify(source, null, out OfficeImageInfo sourceInfo)
-            || !OfficeImagePngConverter.TryConvertToPng(source, out normalizedPng)) {
+        if (!OfficeImageReader.TryIdentify(source, null, cancellationToken, out OfficeImageInfo sourceInfo)
+            || !OfficeImagePngConverter.TryConvertToPng(source, cancellationToken, out normalizedPng)) {
             normalizedPng = Array.Empty<byte>();
             return false;
         }
         if (applyEmbeddedOrientation
             && SwapsPhysicalAxes(orientation)
             && sourceInfo.Format != OfficeImageFormat.Tiff) {
-            if (!OfficePngReader.TryDecode(normalizedPng, out OfficeRasterImage? normalizedRaster) || normalizedRaster == null) {
+            if (!OfficePngReader.TryDecode(normalizedPng, cancellationToken, out OfficeRasterImage? normalizedRaster) || normalizedRaster == null) {
                 normalizedPng = Array.Empty<byte>();
                 return false;
             }
-            normalizedPng = OfficePngWriter.Encode(normalizedRaster, new OfficePngEncodeOptions {
+            using var output = new System.IO.MemoryStream();
+            OfficePngWriter.EncodeTo(normalizedRaster, output, new OfficePngEncodeOptions {
                 DpiX = sourceInfo.DpiY,
                 DpiY = sourceInfo.DpiX
-            });
+            }, cancellationToken);
+            normalizedPng = CopyOutput(output, cancellationToken);
         }
-        if (!OfficeImageReader.TryIdentify(normalizedPng, null, out OfficeImageInfo identified)) {
+        if (!OfficeImageReader.TryIdentify(normalizedPng, null, cancellationToken, out OfficeImageInfo identified)) {
             normalizedPng = Array.Empty<byte>();
             return false;
         }
@@ -105,7 +122,8 @@ public static class OfficeImageOrientationNormalizer {
         || orientation == OfficeImageOrientation.Transverse
         || orientation == OfficeImageOrientation.Rotate90CounterClockwise;
 
-    private static bool TryNeutralizeOrientation(byte[] data) {
+    private static bool TryNeutralizeOrientation(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length < 8) return false;
         if (data[0] != 0xFF || data[1] != 0xD8) {
             return TryWriteTiffOrientation(data, 0, data.Length);
@@ -114,6 +132,7 @@ public static class OfficeImageOrientationNormalizer {
         bool inScan = false;
         bool rewrittenOrientation = false;
         while (offset < data.Length) {
+            if ((offset & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (inScan && data[offset] != 0xFF) {
                 offset++;
                 continue;
@@ -147,6 +166,29 @@ public static class OfficeImageOrientationNormalizer {
             offset += segmentLength;
         }
         return false;
+    }
+
+    private static byte[] CloneWithCancellation(byte[] source, CancellationToken cancellationToken) {
+        var copy = new byte[source.Length];
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < source.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, source.Length - offset);
+            Buffer.BlockCopy(source, offset, copy, offset, count);
+        }
+        return copy;
+    }
+
+    private static byte[] CopyOutput(System.IO.MemoryStream output, CancellationToken cancellationToken) {
+        if (!output.TryGetBuffer(out ArraySegment<byte> segment)) return output.ToArray();
+        var bytes = new byte[output.Length];
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < bytes.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, bytes.Length - offset);
+            Buffer.BlockCopy(segment.Array!, segment.Offset + offset, bytes, offset, count);
+        }
+        return bytes;
     }
 
     internal static bool TryNeutralizeExifOrientation(byte[] exif, out byte[] neutralized) {
@@ -288,8 +330,15 @@ public static class OfficeImageOrientationNormalizer {
         return foundOrientation;
     }
 
-    private static bool TryReadTiffOrientation(OfficeByteView tiff, out OfficeImageOrientation orientation) {
+    private static bool TryReadTiffOrientation(OfficeByteView tiff, out OfficeImageOrientation orientation) =>
+        TryReadTiffOrientation(tiff, CancellationToken.None, out orientation);
+
+    private static bool TryReadTiffOrientation(
+        OfficeByteView tiff,
+        CancellationToken cancellationToken,
+        out OfficeImageOrientation orientation) {
         orientation = OfficeImageOrientation.Normal;
+        cancellationToken.ThrowIfCancellationRequested();
         if (tiff.Length < 8) return false;
         bool littleEndian = tiff[0] == (byte)'I' && tiff[1] == (byte)'I';
         bool bigEndian = tiff[0] == (byte)'M' && tiff[1] == (byte)'M';
@@ -301,6 +350,7 @@ public static class OfficeImageOrientationNormalizer {
         int entryCount = ReadUInt16(tiff, ifdOffset, littleEndian);
         if ((long)ifdOffset + 2L + (entryCount * 12L) > tiff.Length) return false;
         for (int index = 0; index < entryCount; index++) {
+            if ((index & 0xFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int entryOffset = ifdOffset + 2 + (index * 12);
             if (ReadUInt16(tiff, entryOffset, littleEndian) != 274) continue;
             if (ReadUInt16(tiff, entryOffset + 2, littleEndian) != 3

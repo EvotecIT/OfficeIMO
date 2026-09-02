@@ -131,7 +131,15 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(pdf, objectNumber, options, readOptions: null);
 
     /// <summary>Updates one indirect annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) =>
+        UpdateAnnotation(pdf, objectNumber, options, mutationPlan: null, readOptions);
+
+    private static PdfAnnotationEditResult UpdateAnnotation(
+        byte[] pdf,
+        int objectNumber,
+        PdfAnnotationUpdateOptions options,
+        PdfMutationPlan? mutationPlan,
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         if (objectNumber <= 0) {
@@ -139,7 +147,7 @@ internal static partial class PdfAnnotationEditor {
         }
 
         ValidateUpdateOptions(options);
-        PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
+        mutationPlan ??= PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
@@ -176,6 +184,24 @@ internal static partial class PdfAnnotationEditor {
         ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
+
+    private static PdfMutationPlan RequireAnnotationMutation(
+        byte[] pdf,
+        PdfLoadOptions? readOptions,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) =>
+        PdfMutationPlanner.Require(
+            pdf,
+            PdfMutationOperation.ModifyAnnotations,
+            readOptions,
+            executionPreference: executionPreference);
+
+    private static PdfDocumentInfo GetAnnotationMutationDocumentInfo(PdfMutationPlan mutationPlan) =>
+        mutationPlan.Preflight.UncheckedDocumentInfo
+        ?? throw new InvalidOperationException("PDF annotation metadata could not be read for the authorized mutation.");
+
+    private static PdfDocumentInfo ReadAnnotationMetadata(byte[] pdf, PdfLoadOptions? readOptions) =>
+        PdfInspector.Preflight(pdf, readOptions).UncheckedDocumentInfo
+        ?? throw new InvalidOperationException("PDF annotation metadata could not be read.");
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>
     public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(inputPath, outputPath, options, readOptions: null);
@@ -299,9 +325,13 @@ internal static partial class PdfAnnotationEditor {
         }
 
         if (options.Rectangle is not null) { annotation.Items["Rect"] = CreateNumberArray(options.Rectangle); invalidateAppearance = true; }
+        if (options.RectangleDifferences is not null) { annotation.Items["RD"] = CreateNumberArray(options.RectangleDifferences); invalidateAppearance = true; }
         if (options.QuadPoints is not null) { annotation.Items["QuadPoints"] = CreateNumberArray(options.QuadPoints); invalidateAppearance = true; }
         if (options.Vertices is not null) { annotation.Items["Vertices"] = CreateNumberArray(options.Vertices); invalidateAppearance = true; }
         if (options.Line is not null) { annotation.Items["L"] = CreateNumberArray(options.Line); invalidateAppearance = true; }
+        if (options.LineLeaderLength.HasValue) { annotation.Items["LL"] = new PdfNumber(options.LineLeaderLength.Value); invalidateAppearance = true; }
+        if (options.LineLeaderExtension.HasValue) { annotation.Items["LLE"] = new PdfNumber(options.LineLeaderExtension.Value); invalidateAppearance = true; }
+        if (options.LineCaptionOffset is not null) { annotation.Items["CO"] = CreateNumberArray(options.LineCaptionOffset); invalidateAppearance = true; }
         if (options.InkPaths is not null) {
             var paths = new PdfArray(); foreach (IReadOnlyList<double> path in options.InkPaths) paths.Items.Add(CreateNumberArray(path)); annotation.Items["InkList"] = paths; invalidateAppearance = true;
         }
@@ -332,7 +362,7 @@ internal static partial class PdfAnnotationEditor {
 
         if (options.RegenerateAppearance) {
             changedObjects.Add(PdfAnnotationFlattener.RegenerateNormalAppearance(objects, annotation));
-        } else if (invalidateAppearance) {
+        } else if (invalidateAppearance && !options.PreserveAppearance) {
             annotation.Items.Remove("AP");
         }
         return changedObjects.AsReadOnly();

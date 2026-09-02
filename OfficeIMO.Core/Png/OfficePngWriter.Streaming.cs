@@ -24,7 +24,27 @@ public static partial class OfficePngWriter {
             destination,
             compression,
             dpiX: null,
-            dpiY: null);
+            dpiY: null,
+            System.Threading.CancellationToken.None);
+    }
+
+    /// <summary>Encodes an RGBA image directly to a writable stream with cooperative cancellation.</summary>
+    /// <remarks>The destination remains open after encoding.</remarks>
+    public static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        System.Threading.CancellationToken cancellationToken,
+        OfficePngCompression compression = OfficePngCompression.Optimal) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+        EncodeRgbaStreaming(
+            image.Width,
+            image.Height,
+            image.PixelBuffer,
+            destination,
+            compression,
+            dpiX: null,
+            dpiY: null,
+            cancellationToken);
     }
 
     /// <summary>Encodes an RGBA image with physical-resolution metadata directly to a writable stream.</summary>
@@ -33,6 +53,16 @@ public static partial class OfficePngWriter {
         OfficeRasterImage image,
         Stream destination,
         OfficePngEncodeOptions options) {
+        EncodeTo(image, destination, options, System.Threading.CancellationToken.None);
+    }
+
+    /// <summary>Encodes an RGBA image with physical-resolution metadata and cooperative cancellation.</summary>
+    /// <remarks>The destination remains open after encoding.</remarks>
+    public static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        OfficePngEncodeOptions options,
+        System.Threading.CancellationToken cancellationToken) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateDpi(options.DpiX, nameof(options.DpiX));
@@ -44,7 +74,8 @@ public static partial class OfficePngWriter {
             destination,
             options.Compression,
             options.WritePhysicalResolution ? options.DpiX : (double?)null,
-            options.WritePhysicalResolution ? options.DpiY : (double?)null);
+            options.WritePhysicalResolution ? options.DpiY : (double?)null,
+            cancellationToken);
     }
 
 #if NET8_0_OR_GREATER
@@ -76,7 +107,9 @@ public static partial class OfficePngWriter {
         Stream destination,
         OfficePngCompression compression,
         double? dpiX,
-        double? dpiY) {
+        double? dpiY,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateRgba(width, height, rgba);
         OfficeRasterOutput.EnsureWritable(destination);
         if (compression != OfficePngCompression.Optimal && compression != OfficePngCompression.Stored) {
@@ -91,15 +124,21 @@ public static partial class OfficePngWriter {
 
         var idat = new PngIdatChunkStream(destination, StreamingIdatChunkSize);
         if (compression == OfficePngCompression.Optimal) {
-            WriteOptimalZlib(idat, width, height, rgba);
+            WriteOptimalZlib(idat, width, height, rgba, cancellationToken);
         } else {
-            WriteStoredZlib(idat, width, height, rgba);
+            WriteStoredZlib(idat, width, height, rgba, cancellationToken);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         idat.Complete();
         WriteChunk(destination, "IEND", Array.Empty<byte>());
     }
 
-    private static void WriteOptimalZlib(Stream destination, int width, int height, byte[] rgba) {
+    private static void WriteOptimalZlib(
+        Stream destination,
+        int width,
+        int height,
+        byte[] rgba,
+        System.Threading.CancellationToken cancellationToken) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x9C);
 
@@ -113,6 +152,7 @@ public static partial class OfficePngWriter {
 
         using (var deflate = new DeflateStream(destination, CompressionLevel.Optimal, leaveOpen: true)) {
             for (int y = 0; y < height; y++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int rowOffset = y * stride;
                 if (y == 0) {
                     filteredRow[0] = 1;
@@ -143,7 +183,12 @@ public static partial class OfficePngWriter {
         WriteAdler32(destination, (adlerB << 16) | adlerA);
     }
 
-    private static void WriteStoredZlib(Stream destination, int width, int height, byte[] rgba) {
+    private static void WriteStoredZlib(
+        Stream destination,
+        int width,
+        int height,
+        byte[] rgba,
+        System.Threading.CancellationToken cancellationToken) {
         destination.WriteByte(0x78);
         destination.WriteByte(0x01);
 
@@ -157,6 +202,7 @@ public static partial class OfficePngWriter {
         uint adlerB = 0;
 
         while (remaining > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int blockLength = Math.Min(65535, remaining);
             int target = 0;
             while (target < blockLength) {

@@ -78,6 +78,24 @@ public class PdfVisualComparerTests {
             PdfVisualComparer.Compare(pdf, pdf, cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public void ComparisonGallery_EnforcesUtf8OutputAndCancellationBudgetsDuringRendering() {
+        byte[] pdf = BuildPdf("Bounded gallery");
+        PdfVisualComparisonReport report = PdfVisualComparer.Compare(pdf, pdf);
+
+        InvalidOperationException output = Assert.Throws<InvalidOperationException>(() =>
+            report.ToHtmlGallery("Bounded gallery", maximumOutputBytes: 256L));
+        Assert.Contains("being rendered", output.Message, StringComparison.Ordinal);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            report.ToHtmlGallery(
+                "Cancelled gallery",
+                maximumOutputBytes: 1024L * 1024L,
+                cancellationToken: cancellation.Token));
+    }
+
     private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) })
         .Paragraph(paragraph => paragraph.Text(text))
         .ToBytes();

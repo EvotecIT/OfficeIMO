@@ -1,5 +1,6 @@
 using PdfCore = OfficeIMO.Pdf;
 using DrawingCore = OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
@@ -17,6 +18,9 @@ public enum PowerPointPdfPageLayout {
 /// Options controlling first-party OfficeIMO PowerPoint-to-PDF export.
 /// </summary>
 public sealed class PowerPointPdfSaveOptions {
+    /// <summary>Cancellation observed at slide and page-layout boundaries during conversion.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     private int _handoutSlidesPerPage = 6;
     private PdfCore.PdfOptions? _pdfOptions;
     private bool _pdfOptionsCreatedByRenderingProfile;

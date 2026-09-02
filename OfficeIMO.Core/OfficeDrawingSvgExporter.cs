@@ -54,9 +54,19 @@ public static partial class OfficeDrawingSvgExporter {
         sb.Append("<defs><style type=\"text/css\">");
         foreach (OfficeFontFace face in fonts.Faces) {
             cancellationToken.ThrowIfCancellationRequested();
-            AppendEmbeddedFontFace(sb, face, face.ResourceFamilyName, includeUnicodeRange: false);
+            AppendEmbeddedFontFace(
+                sb,
+                face,
+                face.ResourceFamilyName,
+                includeUnicodeRange: false,
+                cancellationToken);
             if (!string.Equals(face.ResourceFamilyName, face.FamilyName, StringComparison.Ordinal)) {
-                AppendEmbeddedFontFace(sb, face, face.FamilyName, includeUnicodeRange: true);
+                AppendEmbeddedFontFace(
+                    sb,
+                    face,
+                    face.FamilyName,
+                    includeUnicodeRange: true,
+                    cancellationToken);
             }
         }
 
@@ -67,12 +77,15 @@ public static partial class OfficeDrawingSvgExporter {
         StringBuilder sb,
         OfficeFontFace face,
         string familyName,
-        bool includeUnicodeRange) {
+        bool includeUnicodeRange,
+        System.Threading.CancellationToken cancellationToken) {
+        byte[] fontData = face.DataSnapshot;
+        EnsureBase64PayloadFits(sb, fontData.LongLength);
         sb.Append("@font-face{font-family:\"")
             .Append(EscapeCssString(familyName))
-            .Append("\";src:url(data:font/ttf;base64,")
-            .Append(Convert.ToBase64String(face.DataSnapshot))
-            .Append(") format(\"truetype\");font-weight:")
+            .Append("\";src:url(data:font/ttf;base64,");
+        OfficeSvgImageRenderer.AppendBase64(sb, fontData, cancellationToken);
+        sb.Append(") format(\"truetype\");font-weight:")
             .Append((face.Style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold ? "700" : "400")
             .Append(";font-style:")
             .Append((face.Style & OfficeFontStyle.Italic) == OfficeFontStyle.Italic ? "italic" : "normal");
@@ -89,6 +102,14 @@ public static partial class OfficeDrawingSvgExporter {
             }
         }
         sb.Append(";}");
+    }
+
+    private static void EnsureBase64PayloadFits(StringBuilder builder, long payloadBytes) {
+        long base64Characters = checked(((payloadBytes + 2L) / 3L) * 4L);
+        long remainingCharacters = builder.MaxCapacity - (long)builder.Length;
+        if (base64Characters > remainingCharacters) {
+            throw new ArgumentOutOfRangeException(nameof(payloadBytes), "The encoded SVG exceeds its configured character ceiling.");
+        }
     }
 
     private static string EscapeCssString(string value) {
@@ -159,7 +180,7 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendImage(sb, drawingImage, imageClipPathId, imageCodec, cancellationToken, nearestNeighborRectangleBudget);
                     break;
                 case OfficeDrawingImagePattern imagePattern:
-                    AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId);
+                    AppendImagePattern(sb, imagePattern, imageCodec, idPrefix, ref clipPathId, cancellationToken);
                     break;
                 case OfficeDrawingTilingPattern tilingPattern:
                     AppendTilingPattern(sb, tilingPattern, imageCodec, idPrefix, ref gradientId, ref clipPathId, cancellationToken, tilingExpansionBudget, nearestNeighborRectangleBudget);
@@ -374,7 +395,14 @@ public static partial class OfficeDrawingSvgExporter {
         string dataUri = string.Empty;
         OfficeRasterImage? nearestNeighborRaster = null;
         if (drawingImage.Interpolate) {
-            if (!OfficeSvgImageRenderer.TryCreateDataUri(drawingImage.ContentType, bytes, null, imageCodec, out dataUri)) {
+            if (!OfficeSvgImageRenderer.TryCreateDataUri(
+                    drawingImage.ContentType,
+                    bytes,
+                    null,
+                    imageCodec,
+                    sb.MaxCapacity - sb.Length,
+                    cancellationToken,
+                    out dataUri)) {
                 return;
             }
         } else if (!OfficeRasterImageDecoder.TryDecode(

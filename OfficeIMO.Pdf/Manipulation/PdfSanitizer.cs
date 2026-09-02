@@ -9,8 +9,12 @@ internal static partial class PdfSanitizer {
 
     internal static IReadOnlyList<PdfSanitizationFinding> Analyze(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
-        var parsed = PdfSyntax.ParseObjects(pdf, readOptions);
-        return Scan(parsed.Map, options ?? new PdfSanitizationOptions());
+        PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
+        System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return Scan(parsed.Map, policy);
     }
 
     /// <summary>
@@ -24,27 +28,53 @@ internal static partial class PdfSanitizer {
     internal static PdfSanitizationResult Sanitize(byte[] pdf, PdfSanitizationOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         PdfSanitizationOptions policy = options ?? new PdfSanitizationOptions();
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
+        if (policy.MaximumOutputBytes <= 0L) {
+            throw new ArgumentOutOfRangeException(nameof(options), "Maximum sanitized output bytes must be positive.");
+        }
+        System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
+        var (plan, sourceDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.Sanitize,
+            readOptions,
+            cancellationToken: cancellationToken);
         IReadOnlyList<PdfSanitizationFinding> before = Analyze(pdf, policy, readOptions);
-        IReadOnlyList<PdfExtractedAttachment> quarantined = policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine
-            ? PdfAttachmentExtractor.ExtractAttachments(PdfReadDocument.Open(pdf, readOptions))
-            : Array.Empty<PdfExtractedAttachment>();
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfExtractedAttachment> quarantined;
+        if (policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine) {
+            quarantined = sourceDocument.ExtractAttachments(cancellationToken);
+        } else {
+            quarantined = Array.Empty<PdfExtractedAttachment>();
+        }
+        cancellationToken.ThrowIfCancellationRequested();
 
         PdfReadLimits readLimits = readOptions?.Limits ?? new PdfReadLimits();
         int maximumActionDepth = readLimits.MaxObjectNestingDepth;
         int maximumActionNodes = readLimits.MaxIndirectObjects;
-        byte[] sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
-            pdf,
-            sourceReadOptions: readOptions,
-            outputEncryption: null,
-            (objects, security) => {
-                SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
-                return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
-                    ? security.InfoObjectNumber
-                    : null;
-            });
+        byte[] sanitized;
+        try {
+            sanitized = PdfDocumentObjectGraphRewriter.Rewrite(
+                pdf,
+                sourceReadOptions: readOptions,
+                outputEncryption: null,
+                (objects, security) => {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    SanitizeObjectGraph(objects, policy, maximumActionDepth, maximumActionNodes);
+                    return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
+                        ? security.InfoObjectNumber
+                        : null;
+                },
+                maximumOutputBytes: policy.MaximumOutputBytes,
+                cancellationToken: cancellationToken);
+        } catch (InvalidDataException exception) when (PdfDocumentObjectGraphRewriter.IsOutputLimitExceeded(exception)) {
+            throw new InvalidOperationException(
+                $"The sanitized PDF exceeded the configured {policy.MaximumOutputBytes:N0}-byte output limit while it was being serialized.",
+                exception);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions rewrittenReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, sanitized.LongLength);
         IReadOnlyList<PdfSanitizationFinding> remaining = Analyze(sanitized, policy, rewrittenReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         if (remaining.Count > 0) {
             throw new InvalidOperationException(
                 "PDF sanitization post-save validation found " + remaining.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -63,12 +93,12 @@ internal static partial class PdfSanitizer {
             PreserveFormWidgetActions = true,
             FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
-            PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
+            PreserveSecurityState = !sourceDocument.Security.HasEncryption
         };
         if (policy.RemoveRichMedia) {
             foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
         }
-        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, sourceDocument, cancellationToken);
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;
             if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
@@ -79,7 +109,12 @@ internal static partial class PdfSanitizer {
                 preservationOptions.ExcludedActionUris.Add(before[i].Detail);
             }
         }
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(
+            pdf,
+            sanitized,
+            preservationOptions,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined, rewrittenReadOptions);
     }

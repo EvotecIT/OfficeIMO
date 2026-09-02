@@ -1,5 +1,6 @@
 using System.Text;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Pdf.Filters;
 
@@ -41,7 +42,12 @@ internal static class AsciiHexDecoder {
         return bytes;
     }
 
-    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] output) {
+    public static bool TryDecode(
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] output,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         output = Array.Empty<byte>();
         if (maxOutputBytes < 0) {
             return false;
@@ -54,6 +60,7 @@ internal static class AsciiHexDecoder {
         using var stream = new MemoryStream();
         int? highNibble = null;
         for (int i = 0; i < data.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = (char)data[i];
             if (char.IsWhiteSpace(ch)) {
                 continue;

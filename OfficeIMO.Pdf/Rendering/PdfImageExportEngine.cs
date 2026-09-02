@@ -70,12 +70,14 @@ internal static class PdfImageExportEngine {
             options.RenderTimeout,
             cancellationToken);
         try {
+            var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
             OfficeImageExportResult result = ExportCore(
                 page,
                 format,
                 options,
                 pageNumber,
                 initialDiagnostics,
+                encodingBudget,
                 execution.Token);
             execution.ThrowIfCancellationRequested();
             return result;
@@ -90,10 +92,11 @@ internal static class PdfImageExportEngine {
         PdfImageExportOptions options,
         int? pageNumber,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics,
+        OfficeImageExportEncodingBudget encodingBudget,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
 
-        OfficeDrawing drawing = page.ToDrawing();
+        OfficeDrawing drawing = page.ToDrawing(cancellationToken);
         drawing.ApplyImageExportOptions(options);
         PdfImageExportOptions effective = options.Clone();
         double requestedScale = options.Scale;
@@ -121,13 +124,16 @@ internal static class PdfImageExportEngine {
         if (format == OfficeImageExportFormat.Svg) {
             effective.Scale = effective.GetEffectiveScale(drawing.Width, drawing.Height);
             drawing = AddBackground(drawing, effective.BackgroundColor);
-            byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
-                drawing,
-                effective.Scale,
-                OfficeSvgSizeUnit.Pixel,
-                fallbackCodec,
-                resourceIdPrefix: null,
-                cancellationToken: cancellationToken);
+            byte[] svg = encodingBudget.EncodeWithinRemainingBudget(
+                maximumBytes => OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    effective.Scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    maximumUtf8Bytes: maximumBytes,
+                    cancellationToken: cancellationToken),
+                cancellationToken);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(drawing.Width, effective.Scale),
@@ -163,7 +169,9 @@ internal static class PdfImageExportEngine {
         byte[] bytes = OfficeRasterImageEncoder.Encode(
             raster,
             format,
-            plan.CreateEncodingOptions());
+            plan.CreateEncodingOptions(),
+            encodingBudget,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         return options.EnsureAccepted(new OfficeImageExportResult(
             format,
@@ -205,6 +213,7 @@ internal static class PdfImageExportEngine {
         try {
             int[] pages = selection?.ToPageNumbers(document.Pages.Count, nameof(selection))
                 ?? Enumerable.Range(1, document.Pages.Count).ToArray();
+            var encodingBudget = new OfficeImageExportEncodingBudget(options.MaximumTotalEncodedBytes);
 
             OfficeImageExportBatchProcessor.ForEachOrdered(
                 pages,
@@ -215,6 +224,7 @@ internal static class PdfImageExportEngine {
                     options,
                     pageNumber,
                     initialDiagnostics,
+                    encodingBudget,
                     token),
                 consumer,
                 execution.Token,

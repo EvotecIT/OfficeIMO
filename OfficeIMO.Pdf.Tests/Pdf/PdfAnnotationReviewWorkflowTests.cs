@@ -79,6 +79,46 @@ public class PdfAnnotationReviewWorkflowTests {
     }
 
     [Fact]
+    public void ReplyAndReviewStateUseAnnotationPermissionWithoutCopyPermission() {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
+        };
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .TextAnnotation("Restricted parent")
+            .Paragraph(paragraph => paragraph.Text("Restricted review page"))
+            .ToBytes();
+        var ownerReadOptions = new PdfLoadOptions { Password = "owner" };
+        var userReadOptions = new PdfLoadOptions { Password = "open" };
+        int parentObjectNumber = Assert.Single(
+            PdfInspector.Inspect(source, ownerReadOptions).GetAnnotationsBySubtype("Text")).ObjectNumber!.Value;
+
+        PdfAnnotationEditResult replyResult = PdfAnnotationReviewEditor.AddReply(
+            source,
+            parentObjectNumber,
+            "Restricted reply",
+            readOptions: userReadOptions);
+        PdfAnnotation reply = Assert.Single(
+            PdfInspector.Inspect(replyResult.Bytes, ownerReadOptions).Annotations,
+            annotation => annotation.Review?.InReplyToObjectNumber == parentObjectNumber);
+        PdfAnnotationEditResult stateResult = PdfAnnotationReviewEditor.SetState(
+            replyResult.Bytes,
+            reply.ObjectNumber!.Value,
+            PdfAnnotationReviewState.Accepted,
+            allowResidualDataInAppendOnly: true,
+            readOptions: userReadOptions);
+        PdfAnnotation updatedReply = Assert.Single(
+            PdfInspector.Inspect(stateResult.Bytes, ownerReadOptions).Annotations,
+            annotation => annotation.ObjectNumber == reply.ObjectNumber);
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, replyResult.MutationPlan.ExecutionMode);
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, stateResult.MutationPlan.ExecutionMode);
+        Assert.True(stateResult.Bytes.AsSpan(0, replyResult.Bytes.Length).SequenceEqual(replyResult.Bytes));
+        Assert.True(PdfInspector.Probe(stateResult.Bytes, ownerReadOptions).HasEncryption);
+        Assert.Equal(PdfAnnotationReviewState.Accepted, updatedReply.Review!.StandardState);
+    }
+
+    [Fact]
     public void FullRewrite_TracksSparseAnnotationObjectNumbersAcrossReplyAndStateReadback() {
         byte[] source = BuildSparseAnnotationPdf();
 

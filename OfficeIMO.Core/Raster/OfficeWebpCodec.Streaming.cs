@@ -3,6 +3,7 @@ using System;
 using System.Buffers;
 #endif
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -10,7 +11,7 @@ public static partial class OfficeWebpCodec {
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
     public static void EncodeTo(OfficeRasterImage image, Stream destination) {
-        EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D);
+        EncodeStreaming(image, destination, includeResolutionMetadata: false, 96D, 96D, CancellationToken.None);
     }
 
     /// <summary>Encodes an RGBA image with Exif resolution metadata directly to a writable stream.</summary>
@@ -22,7 +23,21 @@ public static partial class OfficeWebpCodec {
         double dpiY) {
         ValidateDpi(dpiX, nameof(dpiX));
         ValidateDpi(dpiY, nameof(dpiY));
-        EncodeStreaming(image, destination, includeResolutionMetadata: true, dpiX, dpiY);
+        EncodeStreaming(image, destination, includeResolutionMetadata: true, dpiX, dpiY, CancellationToken.None);
+    }
+
+    internal static void EncodeTo(
+        OfficeRasterImage image,
+        Stream destination,
+        double? dpiX,
+        double? dpiY,
+        CancellationToken cancellationToken) {
+        bool writeResolution = dpiX.HasValue && dpiY.HasValue;
+        if (writeResolution) {
+            ValidateDpi(dpiX!.Value, nameof(dpiX));
+            ValidateDpi(dpiY!.Value, nameof(dpiY));
+        }
+        EncodeStreaming(image, destination, writeResolution, dpiX ?? 96D, dpiY ?? 96D, cancellationToken);
     }
 
 #if NET8_0_OR_GREATER
@@ -50,14 +65,16 @@ public static partial class OfficeWebpCodec {
         Stream destination,
         bool includeResolutionMetadata,
         double dpiX,
-        double dpiY) {
+        double dpiY,
+        CancellationToken cancellationToken) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
+        cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
         if (image.Height > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
 
         byte[] pixels = image.PixelBuffer;
-        bool hasAlpha = HasTransparency(pixels);
+        bool hasAlpha = HasTransparency(pixels, cancellationToken);
         int payloadLength = checked(1 + (int)((LiteralHeaderBitCount + pixels.LongLength * 8L + 7L) / 8L));
         int paddedPayloadLength = checked(payloadLength + (payloadLength & 1));
         byte[]? exif = includeResolutionMetadata
@@ -69,6 +86,19 @@ public static partial class OfficeWebpCodec {
             : checked(12 + 18 + 8 + paddedPayloadLength + 8 + paddedExifLength);
         if (fileLength > OfficeRasterGuards.MaximumEncodedBytes) {
             throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
+        }
+        try {
+            long retainedOutputCopies = OfficeRasterOutput.TryGetMemoryStream(destination, out _) ? 2L : 0L;
+            long peakBytes = checked(
+                pixels.LongLength + 24L +
+                retainedOutputCopies * (fileLength + 24L) +
+                (exif?.LongLength ?? 0L) + 24L +
+                16L * 1024L);
+            if (peakBytes > OfficeRasterGuards.MaximumDecodedBytes) {
+                throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
+            }
+        } catch (OverflowException) {
+            throw new ArgumentException("WebP encoding exceeds the managed working-set limit.", nameof(image));
         }
 
         byte[] header;
@@ -109,6 +139,7 @@ public static partial class OfficeWebpCodec {
         WriteLiteralTree(writer, 256);
         WriteSingleSymbolTree(writer);
         for (int offset = 0; offset < pixels.Length; offset += 4) {
+            if ((offset & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             writer.WriteBits(ReverseByte(pixels[offset + 1]), 8);
             writer.WriteBits(ReverseByte(pixels[offset]), 8);
             writer.WriteBits(ReverseByte(pixels[offset + 2]), 8);

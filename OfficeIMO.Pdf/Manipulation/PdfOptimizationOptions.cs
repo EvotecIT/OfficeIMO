@@ -24,6 +24,9 @@ public enum PdfOptimizationXrefFormat {
 
 /// <summary>Options for lossless PDF optimization actions.</summary>
 public sealed class PdfOptimizationOptions {
+    /// <summary>Cancellation observed between lossless analysis, object, stream, and validation stages.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     /// <summary>Named profile used to create this option set.</summary>
     public PdfOptimizationProfile Profile { get; set; } = PdfOptimizationProfile.Balanced;
     /// <summary>Compress unfiltered stream objects with FlateDecode when the compressed form is smaller.</summary>
@@ -59,6 +62,9 @@ public sealed class PdfOptimizationOptions {
     /// <summary>Maximum aggregate decoded image bytes inspected for semantic deduplication.</summary>
     public long MaximumTotalDecodedImageBytes { get; set; } = 256L * 1024L * 1024L;
 
+    /// <summary>Optional maximum bytes retained and emitted for the optimized artifact.</summary>
+    public long? MaximumOutputBytes { get; set; }
+
     /// <summary>Return the original PDF bytes when the optimized output would not be smaller.</summary>
     public bool KeepOriginalWhenNotSmaller { get; set; } = true;
 
@@ -85,6 +91,7 @@ public sealed class PdfOptimizationOptions {
 
     internal PdfOptimizationOptions Clone() {
         return new PdfOptimizationOptions {
+            CancellationToken = CancellationToken,
             CompressUnfilteredStreams = CompressUnfilteredStreams,
             RemoveUnreferencedObjects = RemoveUnreferencedObjects,
             DeduplicateIdenticalStreams = DeduplicateIdenticalStreams,
@@ -96,6 +103,7 @@ public sealed class PdfOptimizationOptions {
             Linearize = Linearize,
             MaximumDecodedImageBytes = MaximumDecodedImageBytes,
             MaximumTotalDecodedImageBytes = MaximumTotalDecodedImageBytes,
+            MaximumOutputBytes = MaximumOutputBytes,
             Profile = Profile,
             KeepOriginalWhenNotSmaller = KeepOriginalWhenNotSmaller,
             MinimumStreamCompressionBytes = MinimumStreamCompressionBytes

@@ -37,6 +37,17 @@ public static partial class OfficePngWriter {
         return EncodeRgba(image.Width, image.Height, image.PixelBuffer, compression);
     }
 
+    /// <summary>Encodes an RGBA image as PNG bytes with cooperative cancellation between scanlines.</summary>
+    public static byte[] Encode(
+        OfficeRasterImage image,
+        System.Threading.CancellationToken cancellationToken,
+        OfficePngCompression compression = OfficePngCompression.Optimal) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+        using var output = new MemoryStream();
+        EncodeTo(image, output, cancellationToken, compression);
+        return output.ToArray();
+    }
+
     /// <summary>Encodes an RGBA image with explicit compression and physical-resolution metadata.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficePngEncodeOptions options) {
         if (image == null) throw new ArgumentNullException(nameof(image));

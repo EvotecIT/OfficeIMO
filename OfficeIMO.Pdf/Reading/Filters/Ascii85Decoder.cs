@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class Ascii85Decoder {
@@ -57,7 +59,12 @@ internal static class Ascii85Decoder {
         return output.ToArray();
     }
 
-    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] outputBytes) {
+    public static bool TryDecode(
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] outputBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         outputBytes = Array.Empty<byte>();
         if (maxOutputBytes < 0) {
             return false;
@@ -72,6 +79,7 @@ internal static class Ascii85Decoder {
         int count = 0;
 
         for (int i = 0; i < data.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte b = data[i];
             if (IsWhitespace(b)) {
                 continue;

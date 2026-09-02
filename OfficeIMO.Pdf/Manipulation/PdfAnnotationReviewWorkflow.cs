@@ -208,7 +208,12 @@ public static class PdfAnnotationReviewEditor {
         Guard.PositiveInteger(parentObjectNumber, nameof(parentObjectNumber));
         if (string.IsNullOrWhiteSpace(contents)) throw new ArgumentException("Reply contents cannot be empty.", nameof(contents));
 
-        PdfAnnotation? parent = PdfInspector.Inspect(pdf, readOptions).Annotations
+        PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
+            pdf,
+            PdfMutationOperation.ModifyAnnotations,
+            readOptions,
+            executionPreference: options?.ExecutionPreference ?? PdfMutationExecutionPreference.Automatic);
+        PdfAnnotation? parent = mutationPlan.Preflight.UncheckedDocumentInfo?.Annotations
             .FirstOrDefault(annotation => annotation.ObjectNumber == parentObjectNumber);
         if (parent is null || !parent.PageNumber.HasValue) {
             throw new ArgumentException("Reply parent annotation object was not found on a page.", nameof(parentObjectNumber));

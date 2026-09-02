@@ -9,6 +9,9 @@ namespace OfficeIMO.Html.Pdf;
 /// Options for exporting parser-supported PDFs to HTML through the first-party OfficeIMO logical PDF model.
 /// </summary>
 public sealed class PdfHtmlSaveOptions {
+    /// <summary>Cancellation observed at page and export-summary boundaries.</summary>
+    public System.Threading.CancellationToken CancellationToken { get; set; }
+
     private OfficeHtmlDocumentOptions _documentOutput = new() {
         Title = "OfficeIMO PDF Export",
         Language = null,
@@ -105,6 +108,11 @@ public sealed class PdfHtmlSaveOptions {
     public long? MaxEmbeddedImageBytes { get; set; } = 10L * 1024L * 1024L;
 
     /// <summary>
+    /// Maximum UTF-16 characters retained by generated HTML. Set to null for the existing unbounded output behavior.
+    /// </summary>
+    public int? MaximumOutputCharacters { get; set; }
+
+    /// <summary>
     /// Emit link annotation placeholders. Semantic output emits a links section; positioned output emits positioned link frames.
     /// </summary>
     public bool IncludeLinkAnnotations { get; set; }
@@ -136,6 +144,7 @@ public sealed class PdfHtmlSaveOptions {
     internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
+        CancellationToken = CancellationToken,
         Profile = Profile,
         ReadOptions = ReadOptions,
         DocumentOutput = DocumentOutput.Clone(),
@@ -147,6 +156,7 @@ public sealed class PdfHtmlSaveOptions {
         IncludeImagePlaceholders = IncludeImagePlaceholders,
         ImageExportMode = ImageExportMode,
         MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
+        MaximumOutputCharacters = MaximumOutputCharacters,
         IncludeLinkAnnotations = IncludeLinkAnnotations,
         IncludeFormWidgets = IncludeFormWidgets,
     };
@@ -158,6 +168,9 @@ public sealed class PdfHtmlSaveOptions {
         DocumentOutput.Validate();
         if (MaxEmbeddedImageBytes.HasValue && MaxEmbeddedImageBytes.Value < 0L) {
             throw new ArgumentOutOfRangeException(nameof(MaxEmbeddedImageBytes), "Maximum embedded image bytes cannot be negative.");
+        }
+        if (MaximumOutputCharacters.HasValue && MaximumOutputCharacters.Value <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaximumOutputCharacters), "Maximum output characters must be positive.");
         }
     }
 }

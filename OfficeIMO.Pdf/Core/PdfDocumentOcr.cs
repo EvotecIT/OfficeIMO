@@ -18,7 +18,7 @@ public sealed class PdfDocumentOcr {
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) =>
         PdfOcr.RecognizeAndMergeAsync(
-            _document.GetBytesForOperation(),
+            _document.GetBytesForOperation(cancellationToken),
             provider,
             options,
             _document.ReadOptions,
@@ -35,7 +35,7 @@ public sealed class PdfDocumentOcr {
         CancellationToken cancellationToken = default) {
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();
         if (effectiveOptions.Selection != null) {
-            int pageCount = _document.Inspect(_document.ReadOptions).PageCount;
+            int pageCount = _document.Inspect(_document.ReadOptions, cancellationToken).PageCount;
             int[] uniquePages = effectiveOptions.Selection
                 .ToPageNumbers(pageCount, nameof(options))
                 .Distinct()

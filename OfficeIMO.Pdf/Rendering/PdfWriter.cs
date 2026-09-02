@@ -6,8 +6,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
-        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, System.Threading.CancellationToken.None, out _, out _, out _, out _)!;
-        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes);
+        return Write(doc, blocks, opts, title, author, subject, keywords, System.Threading.CancellationToken.None);
+    }
+
+    internal static byte[] Write(
+        PdfDocument doc,
+        IEnumerable<IPdfBlock> blocks,
+        PdfOptions opts,
+        string? title,
+        string? author,
+        string? subject,
+        string? keywords,
+        System.Threading.CancellationToken cancellationToken) {
+        byte[] bytes = WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, cancellationToken, out _, out _, out _, out _)!;
+        PdfComplianceValidator.ValidateGeneratedArtifact(opts, bytes, cancellationToken);
         return bytes;
     }
 
@@ -128,7 +140,7 @@ internal static partial class PdfWriter {
                 forwardBuffer = new MemoryStream();
                 outputStream = forwardBuffer;
             }
-            forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, opts.FileVersion);
+            forwardOnlyObjects = new PdfForwardOnlyObjectStore(outputStream, opts.FileVersion, cancellationToken);
         }
         using IPdfObjectStore objects = (IPdfObjectStore?)forwardOnlyObjects
             ?? new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);
@@ -1168,6 +1180,7 @@ internal static partial class PdfWriter {
                 opts.EncryptionSnapshot,
                 opts.ObjectBufferMemoryLimitBytes,
                 trailerIdEntry: null,
+                cancellationToken,
                 out PdfFileAssemblyBufferEvidence bufferEvidence);
             serializationReport = CreateSerializationReport(layout, bufferEvidence, opts, pageCount, bytesWritten, finalArtifactBuffered: false);
             return null;
@@ -1180,6 +1193,7 @@ internal static partial class PdfWriter {
             effectiveFileVersion,
             opts.EncryptionSnapshot,
             opts.ObjectBufferMemoryLimitBytes,
+            cancellationToken,
             out PdfFileAssemblyBufferEvidence inMemoryBufferEvidence);
         bytesWritten = bytes.LongLength;
         serializationReport = CreateSerializationReport(layout, inMemoryBufferEvidence, opts, pageCount, bytesWritten, finalArtifactBuffered: true);

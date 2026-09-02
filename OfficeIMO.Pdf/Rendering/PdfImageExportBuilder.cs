@@ -40,7 +40,8 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         PdfImageExportOptions? options = null,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
         : this(
-            PdfImageExportDocumentSource.FromDeferred(() => document.GetReadSnapshot().Document),
+            PdfImageExportDocumentSource.FromDeferred(
+                token => document.GetReadSnapshot(cancellationToken: token).Document),
             options?.Clone() ?? new PdfImageExportOptions(),
             new PageSelectionState(),
             initialDiagnostics) {
@@ -51,7 +52,8 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
         PdfImageExportOptions? options = null,
         IReadOnlyList<OfficeImageExportDiagnostic>? initialDiagnostics = null)
         : this(
-            PdfImageExportDocumentSource.FromDeferred(() => PdfReadDocument.Open(conversion.ToBytes())),
+            PdfImageExportDocumentSource.FromDeferred(
+                token => conversion.Value.GetReadSnapshot(cancellationToken: token).Document),
             options?.Clone() ?? new PdfImageExportOptions(),
             new PageSelectionState(),
             initialDiagnostics) {
@@ -147,7 +149,7 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
     }
 
     private sealed class PdfImageExportDocumentSource {
-        private readonly Func<PdfReadDocument>? _factory;
+        private readonly Func<CancellationToken, PdfReadDocument>? _factory;
         private readonly object _sync = new();
         private PdfReadDocument? _document;
 
@@ -155,7 +157,7 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             _document = document;
         }
 
-        private PdfImageExportDocumentSource(Func<PdfReadDocument> factory) {
+        private PdfImageExportDocumentSource(Func<CancellationToken, PdfReadDocument> factory) {
             _factory = factory;
         }
 
@@ -164,7 +166,7 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
             return new PdfImageExportDocumentSource(document);
         }
 
-        internal static PdfImageExportDocumentSource FromDeferred(Func<PdfReadDocument> factory) {
+        internal static PdfImageExportDocumentSource FromDeferred(Func<CancellationToken, PdfReadDocument> factory) {
             Guard.NotNull(factory, nameof(factory));
             return new PdfImageExportDocumentSource(factory);
         }
@@ -175,7 +177,7 @@ public sealed class PdfDocumentImageExportBuilder : OfficeImageExportBatchBuilde
 
             lock (_sync) {
                 cancellationToken.ThrowIfCancellationRequested();
-                return _document ??= _factory!();
+                return _document ??= _factory!(cancellationToken);
             }
         }
     }
@@ -194,7 +196,7 @@ public static class PdfImageExportExtensions {
         return PdfImageExportEngine.Export(
             token => {
                 token.ThrowIfCancellationRequested();
-                PdfReadDocument readDocument = document.GetReadSnapshot().Document;
+                PdfReadDocument readDocument = document.GetReadSnapshot(cancellationToken: token).Document;
                 token.ThrowIfCancellationRequested();
                 return readDocument;
             },

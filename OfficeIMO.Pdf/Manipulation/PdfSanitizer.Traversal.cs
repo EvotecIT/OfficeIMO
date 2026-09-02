@@ -10,6 +10,7 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy) {
         var findings = new List<PdfSanitizationFinding>();
         foreach (KeyValuePair<int, PdfIndirectObject> item in objects.OrderBy(static item => item.Key)) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             ScanObject(objects, item.Value.Value, policy, item.Key, "Object[" + item.Key + "]", findings);
         }
 
@@ -23,6 +24,7 @@ internal static partial class PdfSanitizer {
         int objectNumber,
         string path,
         List<PdfSanitizationFinding> findings) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         if (value is PdfStream stream) {
             ScanDictionary(objects, stream.Dictionary, policy, objectNumber, path, findings);
         } else if (value is PdfDictionary dictionary) {
@@ -43,6 +45,7 @@ internal static partial class PdfSanitizer {
         int objectNumber,
         string path,
         List<PdfSanitizationFinding> findings) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         if (TryGetForbiddenAction(objects, dictionary, policy, out PdfSanitizationFindingKind actionKind, out string? actionDetail)) {
             findings.Add(new PdfSanitizationFinding(actionKind, objectNumber, path, actionDetail!));
         }
@@ -52,6 +55,7 @@ internal static partial class PdfSanitizer {
         }
 
         foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             string itemPath = path + "/" + item.Key;
             if (item.Key == "EmbeddedFiles" || item.Key == "AF" || item.Key == "EF") {
                 findings.Add(new PdfSanitizationFinding(PdfSanitizationFindingKind.EmbeddedFile, objectNumber, itemPath, item.Key));
@@ -73,12 +77,15 @@ internal static partial class PdfSanitizer {
         PdfSanitizationOptions policy,
         int maximumActionDepth,
         int maximumActionNodes) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
         var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             SanitizeObject(objects, item.Value, policy, maximumActionDepth, actionBudget);
         }
 
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
+            policy.CancellationToken.ThrowIfCancellationRequested();
             RemoveEmptyContainers(objects, item.Value);
         }
     }

@@ -26,10 +26,22 @@ public sealed class PdfDocumentTextEditor {
         return Apply(input => PdfTextEditor.Replace(input, region, text, options, effectiveReadOptions), effectiveReadOptions);
     }
 
+    /// <summary>Replaces one located text occurrence while preserving unmatched source-span text.</summary>
+    public PdfTextEditResult Replace(PdfTextMatch match, string text, PdfTextEditOptions? options = null, PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.Replace(input, match, text, options, effectiveReadOptions), effectiveReadOptions);
+    }
+
     /// <summary>Moves text objects intersecting a region by a PDF user-space offset.</summary>
     public PdfTextEditResult Move(PdfPageRegion region, double deltaX, double deltaY, PdfTextEditOptions? options = null, PdfLoadOptions? readOptions = null) {
         PdfLoadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
         return Apply(input => PdfTextEditor.Move(input, region, deltaX, deltaY, options, effectiveReadOptions), effectiveReadOptions);
+    }
+
+    /// <summary>Moves one located text occurrence while leaving unmatched source-span text at its original position.</summary>
+    public PdfTextEditResult Move(PdfTextMatch match, double deltaX, double deltaY, PdfTextEditOptions? options = null, PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? effectiveReadOptions = readOptions ?? _document.ReadOptions;
+        return Apply(input => PdfTextEditor.Move(input, match, deltaX, deltaY, options, effectiveReadOptions), effectiveReadOptions);
     }
 
     /// <summary>Replaces every located occurrence while preserving exact unmatched source-span text and independent visual runs.</summary>

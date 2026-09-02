@@ -63,10 +63,18 @@ public sealed partial class PdfReadPage {
     public int ObjectNumber { get; }
 
     /// <summary>Extracts plain text from this page without column reordering.</summary>
-    public string ExtractText() {
-        var spans = GetTextSpans();
+    public string ExtractText() => ExtractText(System.Threading.CancellationToken.None);
+
+    internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var spans = GetTextSpans(cancellationToken);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
-        var lines = TextLayoutEngine.BuildLines(spans, opts);
+        var lines = TextLayoutEngine.BuildLines(
+            spans,
+            opts,
+            consumeWork: null,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
+        cancellationToken.ThrowIfCancellationRequested();
         return TextLayoutEngine.EmitText(lines, TextLayoutEngine.DetectColumns(lines, GetPageSize().Width, opts), null);
     }
 
@@ -81,14 +89,16 @@ public sealed partial class PdfReadPage {
 
     internal (double Width, double Height) GetVisualPageSize() {
         PdfPageBox pageBox = GetPageBoundaryBox();
-        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees());
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees(), GetEffectiveUserUnit());
     }
 
     internal Matrix2D GetVisualPageTransform() =>
-        PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees());
+        PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees(), GetEffectiveUserUnit());
 
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
-        PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top);
+        PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top, GetEffectiveUserUnit());
+
+    private double GetEffectiveUserUnit() => TryReadDirectPositiveNumber("UserUnit") ?? 1D;
 
     internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();
 
@@ -173,6 +183,7 @@ public sealed partial class PdfReadPage {
                 pageHeight,
                 includeArtifactText: includeArtifactText,
                 pageContentBudget: pageContentBudget,
+                contentOrderPrefix: PdfContentOrderKey.Root,
                 contentStreamObjectNumberAtOffset: contentSequence.GetObjectNumber,
                 cancellationCheck: cancellationToken.CanBeCanceled
                     ? cancellationToken.ThrowIfCancellationRequested
@@ -284,6 +295,10 @@ public sealed partial class PdfReadPage {
 
             TryGetString(annotation.Items.TryGetValue("Contents", out var contentsObject) ? contentsObject : null, out string? contents);
             bool hasNormalAppearance = HasNormalAppearance(annotation);
+            PdfDictionary? appearances = ResolveDictionary(annotation.Items.TryGetValue("AP", out PdfObject? appearancesObject) ? appearancesObject : null);
+            PdfObject? normalAppearanceObject = appearances != null && appearances.Items.TryGetValue("N", out PdfObject? normalAppearance)
+                ? normalAppearance
+                : null;
             annotation.Items.TryGetValue("A", out var actionObject);
             annotation.Items.TryGetValue("AA", out var additionalActionsObject);
             string? actionType = TryReadActionType(actionObject);
@@ -328,7 +343,8 @@ public sealed partial class PdfReadPage {
                 out IReadOnlyList<double> vertices,
                 out IReadOnlyList<IReadOnlyList<double>> inkList);
             PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review));
+            string? appearanceState = annotation.Get<PdfName>("AS")?.Name;
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState, annotation));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
@@ -1673,8 +1689,7 @@ public sealed partial class PdfReadPage {
     }
 
     private bool HasNormalAppearance(PdfDictionary annotation) {
-        var appearance = ResolveDictionary(annotation.Items.TryGetValue("AP", out var appearanceObject) ? appearanceObject : null);
-        return appearance != null && appearance.Items.ContainsKey("N");
+        return TryGetNormalAppearanceStream(annotation, out _);
     }
 
     private bool TryReadRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {

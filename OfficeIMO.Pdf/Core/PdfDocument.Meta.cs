@@ -275,7 +275,10 @@ public sealed partial class PdfDocument {
         }
     }
 
-    internal byte[] GetBytesForOperation() => _source?.Bytes ?? RenderBytesCore();
+    internal byte[] GetBytesForOperation() => GetBytesForOperation(CancellationToken.None);
+
+    internal byte[] GetBytesForOperation(CancellationToken cancellationToken) =>
+        _source?.Bytes ?? RenderBytesCore(cancellationToken);
 
     internal PdfReadDocument GetReadDocument(
         PdfLoadOptions? options = null,
@@ -284,13 +287,16 @@ public sealed partial class PdfDocument {
             return _source.Read(options, cancellationToken);
         }
 
-        return PdfReadDocument.Open(RenderBytesCore(), options, cancellationToken);
+        return PdfReadDocument.Open(RenderBytesCore(cancellationToken), options, cancellationToken);
     }
 
     /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>
-    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory() {
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory() =>
+        GetOpenedReadDocumentFactory(CancellationToken.None);
+
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(CancellationToken cancellationToken) {
         PdfDocumentSource? source = _source;
-        return source is null ? null : () => source.Read();
+        return source is null ? null : () => source.Read(cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -298,14 +304,17 @@ public sealed partial class PdfDocument {
     /// Generated documents are rendered once for the complete operation.
     /// </summary>
     internal (byte[] Bytes, PdfReadDocument Document, PdfLoadOptions Options) GetReadSnapshot(
-        PdfLoadOptions? options = null) {
+        PdfLoadOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options ?? ReadOptions);
         if (_source is not null) {
-            return (_source.Bytes, _source.Read(effectiveOptions), effectiveOptions);
+            return (_source.Bytes, _source.Read(effectiveOptions, cancellationToken), effectiveOptions);
         }
 
-        byte[] bytes = RenderBytesCore();
-        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions), effectiveOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = RenderBytesCore(cancellationToken);
+        return (bytes, PdfReadDocument.Open(bytes, effectiveOptions, cancellationToken), effectiveOptions);
     }
 
     internal PdfLoadOptions ReadOptions {

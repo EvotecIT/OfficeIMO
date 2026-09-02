@@ -17,11 +17,13 @@ internal readonly struct PdfPageGraphicsStateResource {
         bool hasUnsupportedSoftMask = false,
         bool hasUnsupportedBlendMode = false,
         bool hasUnsupportedEntries = false,
-        bool hasUnsupportedTextRestampEffect = false) {
+        bool hasUnsupportedTextRestampEffect = false,
+        PdfStrokeDashPattern? strokeDashPattern = null) {
         FillOpacity = fillOpacity;
         StrokeOpacity = strokeOpacity;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
+        StrokeDashPattern = strokeDashPattern;
         StrokeLineCap = strokeLineCap;
         StrokeLineJoin = strokeLineJoin;
         RenderingIntent = renderingIntent;
@@ -41,6 +43,8 @@ internal readonly struct PdfPageGraphicsStateResource {
     public double? StrokeWidth { get; }
 
     public OfficeStrokeDashStyle? StrokeDashStyle { get; }
+
+    internal PdfStrokeDashPattern? StrokeDashPattern { get; }
 
     public OfficeStrokeLineCap? StrokeLineCap { get; }
 

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -11,10 +12,12 @@ internal static class PdfLinearizationFileAssembler {
         int catalogObjectNumber,
         PdfMetadata metadata,
         byte[] sourcePdf,
-        string trailerIdEntry) {
+        string trailerIdEntry,
+        PdfOptimizationOptions options) {
+        options.CancellationToken.ThrowIfCancellationRequested();
         PdfLinearizationPlan plan = PdfLinearizationPlanner.Create(objects, catalogObjectNumber);
         Numbering numbering = CreateNumbering(plan);
-        SerializedObjects serialized = Serialize(objects, metadata, plan, numbering);
+        SerializedObjects serialized = Serialize(objects, metadata, plan, numbering, options);
 
         byte[] header = PdfEncoding.Latin1GetBytes(
             "%PDF-" + PdfFileAssembler.GetHeaderVersion(PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf))) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
@@ -90,20 +93,31 @@ internal static class PdfLinearizationFileAssembler {
         if (linearization.Length != placeholderLinearization.Length || firstXref.Length != placeholderFirstXref.Length) {
             throw new InvalidOperationException("Linearized PDF fixed-width planning changed between assembly passes.");
         }
+        if (options.MaximumOutputBytes.HasValue && fileLength > options.MaximumOutputBytes.Value) {
+            throw PdfOutputLimitErrors.Create("The optimized PDF exceeded the configured output limit while it was being serialized.");
+        }
 
         using var output = new MemoryStream(checked((int)fileLength));
-        Write(output, header);
-        Write(output, linearization);
-        Write(output, firstXref);
-        Write(output, serialized.Catalog);
-        Write(output, hintObject);
-        WriteGroup(output, serialized.PageGroups[0]);
-        for (int pageIndex = 1; pageIndex < serialized.PageGroups.Count; pageIndex++) WriteGroup(output, serialized.PageGroups[pageIndex]);
-        WriteGroup(output, serialized.SharedObjects);
-        WriteGroup(output, serialized.RemainingObjects);
-        Write(output, serialized.Info);
-        Write(output, mainXref);
+        using var boundedOutput = new PdfBoundedWriteStream(
+            output,
+            options.MaximumOutputBytes,
+            "The optimized PDF exceeded the configured output limit while it was being serialized.");
+        Write(boundedOutput, header);
+        Write(boundedOutput, linearization);
+        Write(boundedOutput, firstXref);
+        Write(boundedOutput, serialized.Catalog);
+        Write(boundedOutput, hintObject);
+        WriteGroup(boundedOutput, serialized.PageGroups[0], options.CancellationToken);
+        for (int pageIndex = 1; pageIndex < serialized.PageGroups.Count; pageIndex++) {
+            WriteGroup(boundedOutput, serialized.PageGroups[pageIndex], options.CancellationToken);
+        }
+        WriteGroup(boundedOutput, serialized.SharedObjects, options.CancellationToken);
+        WriteGroup(boundedOutput, serialized.RemainingObjects, options.CancellationToken);
+        options.CancellationToken.ThrowIfCancellationRequested();
+        Write(boundedOutput, serialized.Info);
+        Write(boundedOutput, mainXref);
         if (output.Position != fileLength) throw new InvalidOperationException("Linearized PDF output length did not match its /L parameter.");
+        options.CancellationToken.ThrowIfCancellationRequested();
         return output.ToArray();
     }
 
@@ -130,27 +144,51 @@ internal static class PdfLinearizationFileAssembler {
         Dictionary<int, PdfIndirectObject> objects,
         PdfMetadata metadata,
         PdfLinearizationPlan plan,
-        Numbering numbering) {
+        Numbering numbering,
+        PdfOptimizationOptions options) {
         var context = new PdfPageExtractor.SerializationContext(
             numbering.NumberMap,
             pagesObjectId: 0,
             new Dictionary<int, Dictionary<string, PdfObject>>(),
             objects);
 
-        byte[] SerializeObject(int sourceId) => PdfObjectBytes.WrapIndirectObject(
-            numbering.NumberMap[sourceId],
-            PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
+        long retainedBytes = 0L;
+        byte[] SerializeObject(int sourceId) {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes = PdfObjectBytes.WrapIndirectObject(
+                numbering.NumberMap[sourceId],
+                PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
+            retainedBytes = AddRetainedBytes(retainedBytes, bytes.LongLength, options.MaximumOutputBytes);
+            return bytes;
+        }
 
         var pageGroups = new List<IReadOnlyList<SerializedObject>>(plan.PageGroups.Count);
         foreach (IReadOnlyList<int> sourceGroup in plan.PageGroups) {
-            pageGroups.Add(sourceGroup.Select(sourceId => new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId))).ToList().AsReadOnly());
+            var serializedGroup = new List<SerializedObject>(sourceGroup.Count);
+            foreach (int sourceId in sourceGroup) {
+                serializedGroup.Add(new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId)));
+            }
+            pageGroups.Add(serializedGroup.AsReadOnly());
         }
 
-        var shared = plan.SharedObjects.Select(sourceId => new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId))).ToList().AsReadOnly();
-        var remaining = plan.RemainingObjects.Select(sourceId => new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId))).ToList().AsReadOnly();
+        var sharedItems = new List<SerializedObject>(plan.SharedObjects.Count);
+        foreach (int sourceId in plan.SharedObjects) sharedItems.Add(new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId)));
+        var shared = sharedItems.AsReadOnly();
+        var remainingItems = new List<SerializedObject>(plan.RemainingObjects.Count);
+        foreach (int sourceId in plan.RemainingObjects) remainingItems.Add(new SerializedObject(numbering.NumberMap[sourceId], sourceId, SerializeObject(sourceId)));
+        var remaining = remainingItems.AsReadOnly();
         byte[] catalog = SerializeObject(plan.CatalogObjectNumber);
         byte[] info = PdfObjectBytes.WrapIndirectObject(numbering.InfoObjectId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata)));
+        _ = AddRetainedBytes(retainedBytes, info.LongLength, options.MaximumOutputBytes);
         return new SerializedObjects(catalog, pageGroups.AsReadOnly(), shared, remaining, info);
+    }
+
+    private static long AddRetainedBytes(long current, long added, long? maximumOutputBytes) {
+        long total = checked(current + added);
+        if (maximumOutputBytes.HasValue && total > maximumOutputBytes.Value) {
+            throw PdfOutputLimitErrors.Create("The optimized PDF exceeded the configured output limit while it was being serialized.");
+        }
+        return total;
     }
 
     private static PageHintData BuildPageHints(
@@ -343,8 +381,11 @@ internal static class PdfLinearizationFileAssembler {
         }
     }
 
-    private static void WriteGroup(Stream destination, IReadOnlyList<SerializedObject> objects) {
-        foreach (SerializedObject item in objects) Write(destination, item.Bytes);
+    private static void WriteGroup(Stream destination, IReadOnlyList<SerializedObject> objects, CancellationToken cancellationToken) {
+        foreach (SerializedObject item in objects) {
+            cancellationToken.ThrowIfCancellationRequested();
+            Write(destination, item.Bytes);
+        }
     }
 
     private static void Write(Stream destination, byte[] bytes) => destination.Write(bytes, 0, bytes.Length);

@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
@@ -89,5 +91,53 @@ public static partial class OfficeRasterImageEncoder {
             OfficeImageExportFormat.Svg => throw new ArgumentException("SVG output requires a vector renderer.", nameof(format)),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
+    }
+
+    /// <summary>
+    /// Encodes an RGBA image while observing cancellation and enforcing an encoded-byte ceiling
+    /// as bytes are produced.
+    /// </summary>
+    public static byte[] Encode(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        OfficeRasterEncodingOptions? options,
+        long maximumEncodedBytes,
+        CancellationToken cancellationToken = default) {
+        var budget = new OfficeImageExportEncodingBudget(maximumEncodedBytes);
+        return Encode(image, format, options, budget, cancellationToken);
+    }
+
+    internal static byte[] Encode(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        OfficeRasterEncodingOptions? options,
+        OfficeImageExportEncodingBudget budget,
+        CancellationToken cancellationToken) {
+        if (image == null) throw new ArgumentNullException(nameof(image));
+        if (budget == null) throw new ArgumentNullException(nameof(budget));
+        OfficeRasterEncodingOptions effective =
+            (options ?? new OfficeRasterEncodingOptions()).Resolve(format);
+        using var output = new OfficeImageExportEncodingMemoryStream(
+            budget,
+            cancellationToken,
+            GetRetainedManagedBytes(image, format, effective));
+        EncodeToCore(image, format, output, effective, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return output.ToBoundedArray();
+    }
+
+    private static long GetRetainedManagedBytes(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        OfficeRasterEncodingOptions options) {
+        long retained = checked(image.PixelBuffer.LongLength + 24L);
+        if (format != OfficeImageExportFormat.Jpeg) return retained;
+
+        OfficeJpegEncodeOptions jpeg = options.Jpeg;
+        retained = checked(retained + jpeg.RetainedManagedBytes);
+        if (jpeg.Metadata.ExifBuffer != null) retained = checked(retained + jpeg.Metadata.ExifBuffer.LongLength + 24L);
+        if (jpeg.Metadata.XmpBuffer != null) retained = checked(retained + jpeg.Metadata.XmpBuffer.LongLength + 24L);
+        if (jpeg.Metadata.IccBuffer != null) retained = checked(retained + jpeg.Metadata.IccBuffer.LongLength + 24L);
+        return retained;
     }
 }

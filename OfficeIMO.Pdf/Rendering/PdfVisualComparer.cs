@@ -28,8 +28,11 @@ public static class PdfVisualComparer {
         Guard.NotNull(actualPdf, nameof(actualPdf));
         PdfVisualComparisonOptions effectiveOptions = options ?? new PdfVisualComparisonOptions();
         effectiveOptions.Validate();
-        PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions);
-        PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         var structural = new List<string>();
         if (expected.Pages.Count != actual.Pages.Count) {
             structural.Add("PageCount: expected " + expected.Pages.Count + ", actual " + actual.Pages.Count + ".");
@@ -70,17 +73,19 @@ public static class PdfVisualComparer {
     }
 
     private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int pageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
-        OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, pageNumber);
-        OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, pageNumber);
+        OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, pageNumber, cancellationToken);
+        OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, pageNumber, cancellationToken);
         AddPixelBudget(expectedDrawing.Width, expectedDrawing.Height, options.Scale, options, ref totalPixels);
         AddPixelBudget(actualDrawing.Width, actualDrawing.Height, options.Scale, options, ref totalPixels);
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] expectedPng = OfficeDrawingRasterRenderer.ToPng(expectedDrawing, options.Scale, options.Background);
-        byte[] actualPng = OfficeDrawingRasterRenderer.ToPng(actualDrawing, options.Scale, options.Background);
-        if (!OfficeRasterImageDecoder.TryDecode(expectedPng, out OfficeRasterImage? expectedImage) || expectedImage is null ||
-            !OfficeRasterImageDecoder.TryDecode(actualPng, out OfficeRasterImage? actualImage) || actualImage is null) {
-            throw new InvalidOperationException("Managed PDF comparison could not decode its rendered PNG output.");
-        }
+        var rasterOptions = new OfficeDrawingRasterRenderOptions {
+            Scale = options.Scale,
+            Background = options.Background,
+            MaximumRasterPixels = options.MaxPixelsPerImage,
+            CancellationToken = cancellationToken
+        };
+        OfficeRasterImage expectedImage = OfficeDrawingRasterRenderer.Render(expectedDrawing, rasterOptions);
+        OfficeRasterImage actualImage = OfficeDrawingRasterRenderer.Render(actualDrawing, rasterOptions);
 
         if (expectedImage.Width != actualImage.Width || expectedImage.Height != actualImage.Height) {
             structural.Add("Page " + pageNumber + " dimensions: expected " + expectedImage.Width + "x" + expectedImage.Height + ", actual " + actualImage.Width + "x" + actualImage.Height + ".");
@@ -127,7 +132,9 @@ public static class PdfVisualComparer {
 
         double ratio = compared == 0 ? 0D : different / (double)compared;
         double mean = compared == 0 ? 0D : channelDifferenceTotal / (double)(compared * 4L);
-        byte[] diffPng = OfficePngWriter.Encode(diff);
+        byte[] expectedPng = OfficePngWriter.Encode(expectedImage, cancellationToken);
+        byte[] actualPng = OfficePngWriter.Encode(actualImage, cancellationToken);
+        byte[] diffPng = OfficePngWriter.Encode(diff, cancellationToken);
         return new PdfVisualPageComparison(
             pageNumber,
             ratio <= options.AllowedDifferenceRatio,

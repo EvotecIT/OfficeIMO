@@ -26,6 +26,8 @@ public sealed class PdfAnnotationUpdateOptions {
     /// <summary>Replacement annotation rectangle as left, bottom, right, top coordinates.</summary>
     public IReadOnlyList<double>? Rectangle { get; set; }
 
+    internal IReadOnlyList<double>? RectangleDifferences { get; set; }
+
     /// <summary>Replacement text-markup quadrilaterals as groups of eight coordinates.</summary>
     public IReadOnlyList<double>? QuadPoints { get; set; }
 
@@ -34,6 +36,12 @@ public sealed class PdfAnnotationUpdateOptions {
 
     /// <summary>Replacement line endpoints as x1, y1, x2, y2.</summary>
     public IReadOnlyList<double>? Line { get; set; }
+
+    internal double? LineLeaderLength { get; set; }
+
+    internal double? LineLeaderExtension { get; set; }
+
+    internal IReadOnlyList<double>? LineCaptionOffset { get; set; }
 
     /// <summary>Replacement ink paths; every path is an x/y coordinate sequence.</summary>
     public IReadOnlyList<IReadOnlyList<double>>? InkPaths { get; set; }
@@ -67,6 +75,8 @@ public sealed class PdfAnnotationUpdateOptions {
 
     /// <summary>Regenerates a supported normal appearance stream after applying the update.</summary>
     public bool RegenerateAppearance { get; set; }
+
+    internal bool PreserveAppearance { get; set; }
 
     /// <summary>
     /// Allows append-only updates even though prior revisions retain replaced annotation data.

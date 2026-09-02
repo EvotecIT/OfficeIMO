@@ -90,6 +90,20 @@ public class PdfOptimizerAdvancedTests {
     }
 
     [Fact]
+    public void WebProfile_StopsLinearizationAtTheConfiguredOutputLimit() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text(new string('W', 4096)))
+            .ToBytes();
+        PdfOptimizationOptions options = PdfOptimizationOptions.Create(PdfOptimizationProfile.Web);
+        options.MaximumOutputBytes = 128L;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfOptimizer.Optimize(source, options));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_DeduplicatesEquivalentFontsAndResourceDictionaries() {
         byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",

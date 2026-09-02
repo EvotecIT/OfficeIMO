@@ -1,4 +1,5 @@
 using PptCore = OfficeIMO.PowerPoint;
+using System.Threading;
 
 namespace OfficeIMO.PowerPoint.Pdf;
 
@@ -23,6 +24,9 @@ public enum PdfPowerPointImportMode {
 /// Options for importing PDF content into a PowerPoint presentation.
 /// </summary>
 public sealed class PdfPowerPointImportOptions {
+    /// <summary>Cancellation observed during page rendering and at page, slide, and table boundaries.</summary>
+    public CancellationToken CancellationToken { get; set; }
+
     /// <summary>Import strategy. Defaults to the richest safe projection available from the supplied source model.</summary>
     public PdfPowerPointImportMode Mode { get; set; } = PdfPowerPointImportMode.Auto;
 

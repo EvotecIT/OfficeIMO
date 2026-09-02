@@ -1,5 +1,6 @@
 using OfficeIMO.Pdf;
 using System.IO;
+using System.Threading;
 
 namespace OfficeIMO.Pdf.Filters;
 
@@ -17,7 +18,9 @@ internal static class StreamDecoder {
         PdfDictionary dict,
         byte[] data,
         Dictionary<int, PdfIndirectObject>? objects = null,
-        int maxOutputBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) {
+        int maxOutputBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maxOutputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), maxOutputBytes, "Maximum decoded stream bytes must be positive.");
         }
@@ -37,12 +40,13 @@ internal static class StreamDecoder {
         byte[] original = data;
         byte[] current = data;
         for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string filterName = filterNames[filterIndex];
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
                         int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded)) {
+                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded, cancellationToken)) {
                             if (flateLimitExceeded) {
                                 throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
@@ -50,39 +54,42 @@ internal static class StreamDecoder {
                             return ReturnWithinDecodedLimit(original, maxOutputBytes);
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
                         break;
                     case DecodeFilterKind.Ascii85:
-                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
                         break;
                     case DecodeFilterKind.RunLength:
-                        if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
                         break;
                     case DecodeFilterKind.Lzw:
                         int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects))) {
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects), cancellationToken)) {
                             throw CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     default:
                         return ReturnWithinDecodedLimit(original, maxOutputBytes);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 ThrowIfDecodedLimitExceeded(current.LongLength, maxOutputBytes);
             } catch (PdfReadLimitException) {
+                throw;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
             } catch {
                 return ReturnWithinDecodedLimit(original, maxOutputBytes);
@@ -112,12 +119,14 @@ internal static class StreamDecoder {
         PdfDictionary dict,
         byte[] data,
         Dictionary<int, PdfIndirectObject>? objects = null,
-        int maxOutputBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes) {
+        int maxOutputBytes = PdfReadLimits.DefaultMaxDecodedStreamBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maxOutputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), maxOutputBytes, "Maximum decoded stream bytes must be positive.");
         }
 
-        if (TryDecodeCore(dict, data, maxOutputBytes, out byte[] decoded, out PdfReadLimitException? limitException, objects)) {
+        if (TryDecodeCore(dict, data, maxOutputBytes, out byte[] decoded, out PdfReadLimitException? limitException, objects, cancellationToken)) {
             return decoded;
         }
 
@@ -134,7 +143,9 @@ internal static class StreamDecoder {
         int maxOutputBytes,
         out byte[] decoded,
         out PdfReadLimitException? limitException,
-        Dictionary<int, PdfIndirectObject>? objects) {
+        Dictionary<int, PdfIndirectObject>? objects,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         decoded = Array.Empty<byte>();
         limitException = null;
         if (maxOutputBytes < 0) {
@@ -168,12 +179,13 @@ internal static class StreamDecoder {
 
         byte[] current = data;
         for (int filterIndex = 0; filterIndex < filterNames.Count; filterIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string filterName = filterNames[filterIndex];
             try {
                 switch (GetFilterKind(filterName)) {
                     case DecodeFilterKind.Flate:
                         int flateOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded)) {
+                        if (!FlateDecoder.TryDecode(current, flateOutputLimit, out current, out bool flateLimitExceeded, cancellationToken)) {
                             if (flateLimitExceeded) {
                                 limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             }
@@ -181,24 +193,24 @@ internal static class StreamDecoder {
                             return false;
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
                         break;
                     case DecodeFilterKind.AsciiHex:
-                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!AsciiHexDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
 
                         break;
                     case DecodeFilterKind.Ascii85:
-                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!Ascii85Decoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
 
                         break;
                     case DecodeFilterKind.RunLength:
-                        if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current)) {
+                        if (!RunLengthDecoder.TryDecode(current, maxOutputBytes, out current, cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
@@ -206,12 +218,12 @@ internal static class StreamDecoder {
                         break;
                     case DecodeFilterKind.Lzw:
                         int lzwOutputLimit = GetFilterOutputLimit(dict, filterIndex, objects, maxOutputBytes);
-                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects))) {
+                        if (!LzwDecoder.TryDecode(current, lzwOutputLimit, out current, GetEarlyChange(dict, filterIndex, objects), cancellationToken)) {
                             limitException = CreateDecodedLimitException(maxOutputBytes, (long)maxOutputBytes + 1L);
                             return false;
                         }
 
-                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes);
+                        current = ApplyDecodeParms(dict, filterIndex, current, objects, maxOutputBytes, cancellationToken);
 
                         break;
                     default:
@@ -220,10 +232,13 @@ internal static class StreamDecoder {
             } catch (PdfReadLimitException ex) {
                 limitException = ex;
                 return false;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                throw;
             } catch {
                 return false;
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             if (current.LongLength > maxOutputBytes) {
                 limitException = CreateDecodedLimitException(maxOutputBytes, current.LongLength);
                 return false;
@@ -331,7 +346,8 @@ internal static class StreamDecoder {
         int filterIndex,
         byte[] data,
         Dictionary<int, PdfIndirectObject>? objects,
-        int maxOutputBytes) {
+        int maxOutputBytes,
+        CancellationToken cancellationToken) {
         var decodeParms = GetDecodeParms(dict, filterIndex, objects);
         if (decodeParms is null) {
             return data;
@@ -354,10 +370,10 @@ internal static class StreamDecoder {
         }
 
         if (predictor == 2) {
-            return TiffPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes);
+            return TiffPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes, cancellationToken);
         }
 
-        return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes);
+        return PngPredictorDecoder.Decode(data, columns, colors, bitsPerComponent, maxOutputBytes, cancellationToken);
     }
 
     private static int GetFilterOutputLimit(

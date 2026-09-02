@@ -28,8 +28,11 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointImportOptions? options,
         CancellationToken cancellationToken) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        cancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointImportOptions operation = options ?? new PdfPowerPointImportOptions();
+        cancellationToken = cancellationToken.CanBeCanceled
+            ? cancellationToken
+            : operation.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointImportMode mode = operation.Mode == PdfPowerPointImportMode.Auto
             ? PdfPowerPointImportMode.EditableContent
             : operation.Mode;
@@ -58,7 +61,8 @@ public static partial class PowerPointPdfConverterExtensions {
             throw new ArgumentOutOfRangeException(nameof(options.MaxPages), "The page limit must be positive.");
         }
 
-        int selectedPageCount = options.ReadOptions?.PageSelection?.PageCount ?? document.Inspect().PageCount;
+        int selectedPageCount = options.ReadOptions?.PageSelection?.PageCount ??
+            document.Inspect(options: null, cancellationToken).PageCount;
         cancellationToken.ThrowIfCancellationRequested();
         if (selectedPageCount > options.MaxPages) {
             throw new InvalidOperationException(
@@ -112,9 +116,10 @@ public static partial class PowerPointPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, cancellationToken);
-        using (result.Value) await result.Value.SaveAsync(presentationPath, cancellationToken).ConfigureAwait(false);
+        using CancellationTokenSource? linked = LinkCancellationTokens(options?.CancellationToken ?? default, cancellationToken, out CancellationToken effectiveCancellationToken);
+        effectiveCancellationToken.ThrowIfCancellationRequested();
+        PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, effectiveCancellationToken);
+        using (result.Value) await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
         return result.Report;
     }
 
@@ -127,9 +132,10 @@ public static partial class PowerPointPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, cancellationToken);
-        using (result.Value) await result.Value.SaveAsync(presentationStream, cancellationToken).ConfigureAwait(false);
+        using CancellationTokenSource? linked = LinkCancellationTokens(options?.CancellationToken ?? default, cancellationToken, out CancellationToken effectiveCancellationToken);
+        effectiveCancellationToken.ThrowIfCancellationRequested();
+        PdfPowerPointConversionResult result = ToPowerPointPresentationResult(document, options, effectiveCancellationToken);
+        using (result.Value) await result.Value.SaveAsync(presentationStream, effectiveCancellationToken).ConfigureAwait(false);
         return result.Report;
     }
 
@@ -172,12 +178,14 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>Imports logical PDF tables into an editable PowerPoint presentation plus an explicit table-scope report.</summary>
     public static PdfPowerPointConversionResult ToPowerPointPresentationResult(
         this PdfCore.PdfDocumentReadResult document,
-        PdfPowerPointImportOptions? options = null) =>
-        ConvertLogicalResult(
+        PdfPowerPointImportOptions? options = null) {
+        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
+        return ConvertLogicalResult(
             document,
-            options ?? PdfPowerPointImportOptions.CreateEditableTables(),
+            operation,
             applyPageSelection: true,
-            CancellationToken.None);
+            operation.CancellationToken);
+    }
 
     private static PdfPowerPointConversionResult ConvertLogicalResult(
         PdfCore.PdfDocumentReadResult document,
@@ -222,14 +230,16 @@ public static partial class PowerPointPdfConverterExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(presentationPath)) throw new ArgumentException("Presentation path cannot be empty.", nameof(presentationPath));
-        cancellationToken.ThrowIfCancellationRequested();
+        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
+        using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+        effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ConvertLogicalResult(
             document,
-            options ?? PdfPowerPointImportOptions.CreateEditableTables(),
+            operation,
             applyPageSelection: true,
-            cancellationToken);
+            effectiveCancellationToken);
         using (result.Value) {
-            await result.Value.SaveAsync(presentationPath, cancellationToken).ConfigureAwait(false);
+            await result.Value.SaveAsync(presentationPath, effectiveCancellationToken).ConfigureAwait(false);
         }
         return result.Report;
     }
@@ -243,16 +253,31 @@ public static partial class PowerPointPdfConverterExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
         if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
-        cancellationToken.ThrowIfCancellationRequested();
+        PdfPowerPointImportOptions operation = options ?? PdfPowerPointImportOptions.CreateEditableTables();
+        using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+        effectiveCancellationToken.ThrowIfCancellationRequested();
         PdfPowerPointConversionResult result = ConvertLogicalResult(
             document,
-            options ?? PdfPowerPointImportOptions.CreateEditableTables(),
+            operation,
             applyPageSelection: true,
-            cancellationToken);
+            effectiveCancellationToken);
         using (result.Value) {
-            await result.Value.SaveAsync(presentationStream, cancellationToken).ConfigureAwait(false);
+            await result.Value.SaveAsync(presentationStream, effectiveCancellationToken).ConfigureAwait(false);
         }
         return result.Report;
+    }
+
+    private static CancellationTokenSource? LinkCancellationTokens(
+        CancellationToken optionsToken,
+        CancellationToken methodToken,
+        out CancellationToken effectiveToken) {
+        if (optionsToken.CanBeCanceled && methodToken.CanBeCanceled && optionsToken != methodToken) {
+            CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(optionsToken, methodToken);
+            effectiveToken = linked.Token;
+            return linked;
+        }
+        effectiveToken = methodToken.CanBeCanceled ? methodToken : optionsToken;
+        return null;
     }
 
     private static IReadOnlyList<PdfPowerPointTableImportEntry> ImportTables(
@@ -267,7 +292,8 @@ public static partial class PowerPointPdfConverterExtensions {
             options.MergePageContinuations,
             options.SuppressRepeatedBodyHeaderRows,
             options.MaximumContinuationSegments,
-            options.ContinuationGeometryTolerancePoints);
+            options.ContinuationGeometryTolerancePoints,
+            cancellationToken);
         if (tables.Count == 0) {
             AddEmptyPresentationSlide(presentation, options);
             return Array.Empty<PdfPowerPointTableImportEntry>();
@@ -376,7 +402,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var tableEntries = new List<PdfPowerPointTableImportEntry>();
         long embeddedVisualBytes = 0;
         Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
-            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
+            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows, cancellationToken)
                 .GroupBy(static extraction => extraction.PageIndex)
                 .ToDictionary(
                     static group => group.Key,

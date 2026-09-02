@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -8,6 +9,7 @@ namespace OfficeIMO.Pdf;
 internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     private readonly Stream _destination;
     private readonly HashAlgorithm _fileIdHash;
+    private readonly CancellationToken _cancellationToken;
     private readonly List<long> _offsets = new();
     private readonly List<bool> _materialized = new();
     private long _written;
@@ -15,10 +17,14 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     private bool _completed;
     private bool _disposed;
 
-    internal PdfForwardOnlyObjectStore(Stream destination, PdfFileVersion fileVersion) {
+    internal PdfForwardOnlyObjectStore(
+        Stream destination,
+        PdfFileVersion fileVersion,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(destination, nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         _destination = destination;
+        _cancellationToken = cancellationToken;
         _fileIdHash = SHA256.Create();
         byte[] header = PdfEncoding.Latin1GetBytes(
             "%PDF-" + PdfFileAssembler.GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
@@ -76,7 +82,9 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
 
     internal long Complete(int catalogId, int infoId, string? trailerIdEntry = null) {
         ThrowIfUnavailable();
+        _cancellationToken.ThrowIfCancellationRequested();
         for (int index = 0; index < _materialized.Count; index++) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (!_materialized[index]) {
                 throw new InvalidOperationException(
                     "PDF object " + (index + 1).ToString(CultureInfo.InvariantCulture) +
@@ -131,6 +139,7 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     }
 
     private void WriteObject(int index, byte[][] segments, long length) {
+        _cancellationToken.ThrowIfCancellationRequested();
         _offsets[index] = _written;
         for (int segmentIndex = 0; segmentIndex < segments.Length; segmentIndex++) {
             WriteSegment(segments[segmentIndex]);
@@ -140,8 +149,10 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     }
 
     private void WriteSegment(byte[] bytes) {
+        _cancellationToken.ThrowIfCancellationRequested();
         _fileIdHash.TransformBlock(bytes, 0, bytes.Length, bytes, 0);
         _destination.Write(bytes, 0, bytes.Length);
+        _cancellationToken.ThrowIfCancellationRequested();
         _written += bytes.LongLength;
     }
 
@@ -149,6 +160,7 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
     private void ThrowIfUnavailable() {
         if (_disposed) throw new ObjectDisposedException(nameof(PdfForwardOnlyObjectStore));
         if (_completed) throw new InvalidOperationException("Forward-only PDF serialization is already complete.");
+        _cancellationToken.ThrowIfCancellationRequested();
     }
     #pragma warning restore CA1513
 

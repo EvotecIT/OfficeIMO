@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfMerger {
@@ -7,7 +9,9 @@ internal static partial class PdfMerger {
         int primarySourceIndex,
         PdfMergeOptions? options,
         PdfLoadOptions outputReadOptions,
-        int[]? outputSourceIndexes = null) {
+        int[]? outputSourceIndexes = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfMergePolicy policy = options?.Policy ?? new PdfMergePolicy();
         Guard.NotNull(policy, nameof(policy));
         if (outputSourceIndexes is not null && outputSourceIndexes.Length != sources.Sum(static source => source.PageObjectNumbers.Length)) {
@@ -42,23 +46,31 @@ internal static partial class PdfMerger {
         // Apply them before any policy editor can rewrite and renumber the object graph.
         PdfLoadOptions currentReadOptions = outputReadOptions;
         merged = ApplyFormPolicy(merged, sources, primarySourceIndex, policy.Forms, policy.FormFieldCollisions, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyCatalogStatePolicy(merged, sources, primarySourceIndex, policy.CatalogState, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyMetadataPolicy(merged, sources, primarySourceIndex, policy.Metadata, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyNamedDestinationPolicy(merged, sources, primarySourceIndex, policy.NamedDestinations, policy.NamedDestinationCollisions, decisions, currentReadOptions, outputSourceIndexes);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyPageLabelPolicy(merged, sources, primarySourceIndex, policy.PageLabels, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyOutlinePolicy(merged, sources, primarySourceIndex, policy.Outlines, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyAttachmentPolicy(merged, sources, primarySourceIndex, policy.Attachments, policy.AttachmentCollisions, decisions, currentReadOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
         merged = ApplyViewerPolicy(merged, sources, primarySourceIndex, policy.ViewerPreferences, decisions, currentReadOptions, outputSourceIndexes);
+        cancellationToken.ThrowIfCancellationRequested();
         currentReadOptions = RefreshOwnedOutputReadOptions(currentReadOptions, merged);
 
-        PdfReadDocument readback = PdfReadDocument.Open(merged, currentReadOptions);
+        PdfReadDocument readback = PdfReadDocument.Open(merged, currentReadOptions, cancellationToken);
         int expectedPageCount = sources.Sum(static source => source.PageObjectNumbers.Length);
         if (readback.Pages.Count != expectedPageCount) {
             throw new InvalidOperationException("PDF merge post-save validation failed: output page count did not match the imported page count.");

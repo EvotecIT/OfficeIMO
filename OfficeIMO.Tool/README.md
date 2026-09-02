@@ -1,6 +1,6 @@
 # OfficeIMO.Tool
 
-OfficeIMO.Tool is the installable command-line interface for OfficeIMO document conversion, extraction, inspection, markup, and MCP workflows.
+OfficeIMO.Tool is the installable command-line interface for OfficeIMO document conversion, extraction, inspection, markup, output, intake, and MCP workflows.
 
 ## Install
 
@@ -53,6 +53,15 @@ officeimo tabular schema workbook.xlsx --sheet Data
 officeimo tabular convert input.csv output.xlsx
 officeimo tabular convert workbook.xlsb output.tsv --sheet Data
 officeimo tabular convert pipe-delimited.csv output.csv --delimiter '|' --output-delimiter ','
+
+# Export selected PDF pages to validated images
+officeimo workflow export-pages report.pdf --output .\report-pages --pages 1-3,last --format png
+
+# Assemble an ordered PDF from files, folders, images, and ZIP archives
+officeimo workflow assemble cover.png report.docx appendices .\attachments.zip --output complete.pdf
+
+# Inspect print-sheet placement without requiring a platform printer driver
+officeimo workflow print-plan complete.pdf --paper A4 --pages-per-sheet 2 --scale fit
 ```
 
 The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversion. When omitted, the tool writes a sibling `.pdf` file. `--output <path>` remains available for scripts that prefer named options.
@@ -67,6 +76,7 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
 - `officeimo inspect` is a convenient alias for `officeimo agent inspect`.
 - `officeimo tabular` lists workbook sheets, reports reader schemas, and converts CSV, TSV, XLSX, XLSB, or XLS tabular data.
+- `officeimo workflow` exports PDF pages, assembles mixed document sources, and creates deterministic print-sheet plans.
 - `officeimo html` converts HTML or MHTML to PDF and reports renderer capabilities.
 - `officeimo reader` extracts individual documents or folders as Markdown or JSON and reports supported formats.
 - `officeimo markup` parses, validates, emits, previews, and exports OfficeIMO Markup.
@@ -74,6 +84,12 @@ All `convert` destinations are protected from accidental replacement. Pass `--fo
 - `officeimo mcp serve --stdio` exposes the compact agent operations to MCP clients.
 
 Run `officeimo help` or append `<area> --help` for the complete command contract.
+
+Workflow output is protected from accidental replacement. Pass `--force` to replace an
+existing image folder or assembled PDF. Assembly preserves caller source order, expands
+folders and ZIP entries in deterministic path order, and applies bounded archive entry,
+size, and compression checks before publication. Supported explicit inputs are PDF, DOCX,
+XLSX, PPTX, HTML, common raster image formats, folders, and ZIP archives.
 
 Tabular conversion writes through an atomic sibling staging file and refuses to replace an
 existing destination unless `--force` is supplied. Workbook output is limited to `.xlsx`,

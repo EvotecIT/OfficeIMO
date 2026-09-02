@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Dependency-free PDF signature structure validator.</summary>
@@ -21,22 +23,33 @@ internal static class PdfSignatureValidator {
         return ValidateCore(pdf, cryptographyProvider: null, options: null, security);
     }
 
+    internal static PdfSignatureValidationReport Validate(
+        byte[] pdf,
+        PdfDocumentSecurityInfo security,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(security, nameof(security));
+        return ValidateCore(pdf, cryptographyProvider: null, options: null, security, cancellationToken);
+    }
+
     private static PdfSignatureValidationReport ValidateCore(
         byte[] pdf,
         IPdfSignatureCryptographyProvider? cryptographyProvider,
         PdfLoadOptions? options,
-        PdfDocumentSecurityInfo? security) {
+        PdfDocumentSecurityInfo? security,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
+        cancellationToken.ThrowIfCancellationRequested();
 
         bool objectGraphParsed = true;
         string? objectGraphError = null;
         if (security == null) {
             try {
-                security = PdfInspector.Inspect(pdf, options).Security;
-            } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+                PdfReadDocument document = PdfReadDocument.Open(pdf, options, cancellationToken);
+                security = PdfInspector.Inspect(pdf, document, cancellationToken).Security;
+            } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
                 objectGraphParsed = false;
                 objectGraphError = ex.Message;
-                security = PdfInspector.Probe(pdf).Security;
+                security = PdfInspector.Probe(pdf, options, cancellationToken).Security;
             }
         }
 
@@ -62,9 +75,17 @@ internal static class PdfSignatureValidator {
 
         var signatureResults = new List<PdfSignatureValidationResult>(security.Signatures.Count);
         foreach (PdfSignatureInfo signature in security.Signatures) {
-            signatureResults.Add(ValidateSignature(signature, pdf, security, cryptographyProvider, findings));
+            cancellationToken.ThrowIfCancellationRequested();
+            signatureResults.Add(ValidateSignature(
+                signature,
+                pdf,
+                security,
+                cryptographyProvider,
+                findings,
+                cancellationToken));
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         AddDocumentLevelFindings(security, findings, cryptographyProvider is not null);
 
         return new PdfSignatureValidationReport(
@@ -125,7 +146,9 @@ internal static class PdfSignatureValidator {
         byte[] pdf,
         PdfDocumentSecurityInfo security,
         IPdfSignatureCryptographyProvider? cryptographyProvider,
-        List<PdfSignatureValidationFinding> aggregateFindings) {
+        List<PdfSignatureValidationFinding> aggregateFindings,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         long fileLength = pdf.LongLength;
         var findings = new List<PdfSignatureValidationFinding>();
         IReadOnlyList<long> values = signature.ByteRangeValues;
@@ -219,9 +242,11 @@ internal static class PdfSignatureValidator {
                 completeShape,
                 ordered,
                 findings,
-                cryptographyProvider);
+                cryptographyProvider,
+                cancellationToken);
         }
 
+        cancellationToken.ThrowIfCancellationRequested();
         aggregateFindings.AddRange(findings);
         return new PdfSignatureValidationResult(
             signature,
@@ -244,7 +269,9 @@ internal static class PdfSignatureValidator {
         bool completeShape,
         bool ordered,
         List<PdfSignatureValidationFinding> findings,
-        IPdfSignatureCryptographyProvider provider) {
+        IPdfSignatureCryptographyProvider provider,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!completeShape || !ordered || signature.ContentsBytes is null || signature.ContentsBytes.Length == 0) {
             AddSignatureFinding(
                 findings,
@@ -257,7 +284,7 @@ internal static class PdfSignatureValidator {
         }
 
         try {
-            byte[] signedContent = ReadSignedContent(pdf, signature.ByteRangeValues);
+            byte[] signedContent = ReadSignedContent(pdf, signature.ByteRangeValues, cancellationToken);
             var input = new PdfSignatureCryptographyInput(
                 signature,
                 signedContent,
@@ -267,12 +294,13 @@ internal static class PdfSignatureValidator {
             PdfSignatureCryptographicResult result = provider.Verify(input) ??
                 throw new InvalidOperationException("Signature cryptography provider returned no result.");
             for (int i = 0; i < result.Findings.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfSignatureCryptographicFinding finding = result.Findings[i];
                 AddSignatureFinding(findings, signature, finding.Severity, finding.Code, finding.Message, isCryptographic: true);
             }
 
             return result;
-        } catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException) {
+        } catch (Exception ex) when (ex is not OperationCanceledException && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             AddSignatureFinding(
                 findings,
                 signature,
@@ -290,7 +318,11 @@ internal static class PdfSignatureValidator {
         }
     }
 
-    private static byte[] ReadSignedContent(byte[] pdf, IReadOnlyList<long> byteRangeValues) {
+    private static byte[] ReadSignedContent(
+        byte[] pdf,
+        IReadOnlyList<long> byteRangeValues,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         long totalLength = byteRangeValues[1] + byteRangeValues[3];
         if (totalLength > int.MaxValue) {
             throw new InvalidOperationException("Signed byte ranges exceed the current in-memory validation limit.");
@@ -299,10 +331,17 @@ internal static class PdfSignatureValidator {
         var content = new byte[(int)totalLength];
         int destinationOffset = 0;
         for (int i = 0; i < byteRangeValues.Count; i += 2) {
+            cancellationToken.ThrowIfCancellationRequested();
             int sourceOffset = checked((int)byteRangeValues[i]);
             int count = checked((int)byteRangeValues[i + 1]);
-            Buffer.BlockCopy(pdf, sourceOffset, content, destinationOffset, count);
-            destinationOffset += count;
+            while (count > 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int chunkLength = Math.Min(count, 1024 * 1024);
+                Buffer.BlockCopy(pdf, sourceOffset, content, destinationOffset, chunkLength);
+                sourceOffset += chunkLength;
+                destinationOffset += chunkLength;
+                count -= chunkLength;
+            }
         }
 
         return content;
