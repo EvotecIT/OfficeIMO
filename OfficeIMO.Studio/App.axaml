@@ -58,6 +58,8 @@
       <StreamGeometry x:Key="IconHome">M3,10.5 12,3 21,10.5 21,21 15,21 15,15 9,15 9,21 3,21Z</StreamGeometry>
       <StreamGeometry x:Key="IconTools">M4,4 10,4 10,10 4,10ZM14,4 20,4 20,10 14,10ZM4,14 10,14 10,20 4,20ZM14,14 20,14 20,20 14,20Z</StreamGeometry>
       <StreamGeometry x:Key="IconJobs">M4,7 9,7 10.5,5 13.5,5 15,7 20,7 20,20 4,20ZM9,11 15,11 15,13 9,13Z</StreamGeometry>
+      <StreamGeometry x:Key="IconDocument">M5,2 15,2 20,7 20,22 5,22ZM15,4 15,8 19,8ZM8,12 17,12 17,14 8,14ZM8,16 17,16 17,18 8,18Z</StreamGeometry>
+      <StreamGeometry x:Key="IconOcr">M4,3 9,3 9,5 6,5 6,8 4,8ZM15,3 20,3 20,8 18,8 18,5 15,5ZM4,16 6,16 6,19 9,19 9,21 4,21ZM18,16 20,16 20,21 15,21 15,19 18,19ZM8,9 16,9 16,11 8,11ZM8,13 16,13 16,15 8,15Z</StreamGeometry>
       <StreamGeometry x:Key="IconSettings">M12,8.2A3.8,3.8 0 1 0 12,15.8A3.8,3.8 0 1 0 12,8.2M19.4,13.5 21,14.7 19,18.2 17.1,17.4A8.2,8.2 0 0 1 14.2,19.1L14,21.2 10,21.2 9.8,19.1A8.2,8.2 0 0 1 6.9,17.4L5,18.2 3,14.7 4.6,13.5A8.4,8.4 0 0 1 4.6,10.5L3,9.3 5,5.8 6.9,6.6A8.2,8.2 0 0 1 9.8,4.9L10,2.8 14,2.8 14.2,4.9A8.2,8.2 0 0 1 17.1,6.6L19,5.8 21,9.3 19.4,10.5A8.4,8.4 0 0 1 19.4,13.5Z</StreamGeometry>
       <StreamGeometry x:Key="IconOpen">M3,6 10,6 12,8 21,8 19,19 3,19ZM3,6 3,4 10,4 12,6Z</StreamGeometry>
       <StreamGeometry x:Key="IconMerge">M4,4 12,4 12,10 18,10 18,4 21,4 21,13 12,13 12,20 4,20ZM7,9 10,12 7,15 5.5,13.5 7,12 5.5,10.5Z</StreamGeometry>
@@ -82,7 +84,7 @@
 
   <Application.Styles>
     <FluentTheme DensityStyle="Compact" />
-    <Style Selector="Window"><Setter Property="FontFamily" Value="Segoe UI, Inter, sans-serif" /><Setter Property="FontSize" Value="13" /></Style>
+    <Style Selector="Window"><Setter Property="FontFamily" Value="Segoe UI" /><Setter Property="FontSize" Value="13" /></Style>
     <Style Selector="Button.tool"><Setter Property="MinWidth" Value="34" /><Setter Property="Height" Value="32" /><Setter Property="Padding" Value="10,4" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
     <Style Selector="Button.tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
     <Style Selector="Button.primary"><Setter Property="MinHeight" Value="34" /><Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /><Setter Property="Padding" Value="16,8" /><Setter Property="CornerRadius" Value="6" /><Setter Property="FontWeight" Value="SemiBold" /></Style>

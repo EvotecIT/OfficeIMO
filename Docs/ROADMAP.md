@@ -49,6 +49,15 @@ Deliberately bounded compatibility contracts are not backlog by themselves. A pr
 - [ ] Add an opt-in local authoring preview and diagnostics tool for `PdfDocument.Create` and `Compose` with automatic re-execution, page thumbnails, layout-tree navigation, coordinate measurement, overflow and fallback diagnostics, and exact artifact export. Keep layout and rendering behavior in `OfficeIMO.Pdf` and `OfficeIMO.Drawing`; the tool is an observer and host, not another document engine, and it must not execute untrusted document code.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
 
+## Desktop Studio
+
+- [ ] Publish signed, reproducible Windows, macOS, and Linux Studio artifacts with stable application identity, icons, installer or portable choices, clean-machine launch evidence, upgrade and uninstall behavior, and an explicit update policy. Keep packaging in PowerForge rather than adding application-local release scripts.
+- [ ] Add an OCR review stage that overlays accepted and rejected word geometry, confidence, language, provider diagnostics, and native-text overlap before committing a searchable layer. Extend the same workbench to direct image OCR and reusable multi-file sessions while keeping execution in `OfficeIMO.Reader.Ocr` and rendering or mutation in `OfficeIMO.Pdf`.
+- [ ] Complete native print handoff after the existing OfficeIMO print planner and sheet preview, with operating-system printer selection, copies, duplex, color, paper capability reconciliation, cancellation, and physical-output evidence on each supported platform. Keep printer adapters optional and outside the PDF engine.
+- [ ] Add optional scan intake only through bounded platform adapters with explicit device and page settings, cancellation, and retained-source policy. Feed captured pages through the shared image cleanup, OCR, and PDF assembly owners instead of embedding TWAIN, WIA, ICA, or SANE behavior in the Studio view models.
+- [ ] Project the shared typed workflow runner into saveable Studio recipes and batch queues with dry-run plans, per-stage resource budgets, atomic publication, resumable result history, and the same serialized contract consumable by `OfficeIMO.Tool`. Do not introduce a desktop-only workflow engine.
+- [ ] Complete keyboard, focus, screen-reader, high-contrast, scaling, localization, settings, crash-recovery, and compact-window evidence across Windows, macOS, and Linux. Add rendered state-matrix checks for home, document, tools, OCR, conversion, output, health, empty, busy, error, and protected-document surfaces.
+
 ## HTML, RTF, and lightweight markup
 
 - [ ] Add Linux/macOS evidence for Confluence managed-section replacement and reduce compatible `netstandard2.0` / .NET Framework body-construction copies beyond the current pooled-hash path. Preserve exact owner content, marker validation, UTF-8 SHA-256 hashes, Unicode boundary behavior, and deterministic output bytes.

@@ -51,6 +51,11 @@ public sealed class MainWindowSmokeTests {
                 window.Arrange(new Avalonia.Rect(0, 0, 1280, 820));
                 Assert.True(window.ViewModel.OutputWorkbench.IsAssembly);
 
+                window.ViewModel.ShowOcrCommand.Execute(null);
+                window.Measure(new Avalonia.Size(1280, 820));
+                window.Arrange(new Avalonia.Rect(0, 0, 1280, 820));
+                Assert.True(window.ViewModel.IsOcrMode);
+
                 window.ViewModel.ShowDocumentHealthCommand.Execute(null);
                 window.Measure(new Avalonia.Size(1050, 560));
                 window.Arrange(new Avalonia.Rect(0, 0, 1050, 560));

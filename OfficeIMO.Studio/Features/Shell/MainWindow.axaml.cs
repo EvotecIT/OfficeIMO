@@ -126,7 +126,7 @@ public sealed partial class MainWindow : Window {
         IsCompactLayout = width < 1180D;
         FitWidthButton.IsVisible = !IsCompactLayout;
         FitPageButton.IsVisible = !IsCompactLayout;
-        double workspaceWidth = Math.Max(0D, width - 58D);
+        double workspaceWidth = Math.Max(0D, width - 80D);
         ConversionView.ApplyResponsiveLayout(workspaceWidth);
         DocumentHealthView.ApplyResponsiveLayout(workspaceWidth);
     }

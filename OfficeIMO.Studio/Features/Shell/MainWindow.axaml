@@ -18,7 +18,7 @@
         WindowDecorations="Full"
         ExtendClientAreaTitleBarHeightHint="42"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="42,*" ColumnDefinitions="58,*">
+  <Grid RowDefinitions="42,*" ColumnDefinitions="80,*">
     <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="170,*,260,Auto" Margin="12,0,138,0">
@@ -84,20 +84,28 @@
 
     <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource StudioNavBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0" Padding="6,10">
-      <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,*,Auto">
         <ToggleButton Grid.Row="0" Classes="nav"
                      IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding ShowHomeCommand}">
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="Home" FontSize="9" /></StackPanel>
         </ToggleButton>
-        <ToggleButton Grid.Row="1" Classes="nav"
+        <ToggleButton Grid.Row="1" Classes="nav" IsEnabled="{Binding HasDocument}"
+                     IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="Document" FontSize="9" /></StackPanel>
+        </ToggleButton>
+        <ToggleButton Grid.Row="2" Classes="nav"
                      IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding ShowToolsCommand}">
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="Tools" FontSize="9" /></StackPanel>
         </ToggleButton>
-        <ToggleButton Grid.Row="2" Classes="nav"
-                     IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding ShowJobsCommand}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="Jobs" FontSize="9" /></StackPanel>
+        <ToggleButton Grid.Row="3" Classes="nav"
+                     IsChecked="{Binding IsOcrMode, Mode=OneWay}" Command="{Binding ShowOcrCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="OCR" FontSize="9" /></StackPanel>
         </ToggleButton>
-        <Button Grid.Row="4" Classes="ghost" Click="OnToggleThemeClick" Foreground="{DynamicResource StudioNavTextBrush}" ToolTip.Tip="Switch light and dark appearance">
+        <ToggleButton Grid.Row="4" Classes="nav"
+                     IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding ShowJobsCommand}">
+          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="Convert" FontSize="9" /></StackPanel>
+        </ToggleButton>
+        <Button Grid.Row="6" Classes="ghost" Click="OnToggleThemeClick" Foreground="{DynamicResource StudioNavTextBrush}" ToolTip.Tip="Switch light and dark appearance">
           <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="Theme" FontSize="9" /></StackPanel>
         </Button>
       </Grid>
@@ -127,9 +135,10 @@
 
       <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
       <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
+      <workflow:SearchablePdfOcrView Grid.Row="1" IsVisible="{Binding IsOcrMode}" />
       <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
       <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
-        <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="Jobs" Classes="pageTitle" /><TextBlock Text="Prepare, run, and inspect conversion jobs." Classes="muted" /></StackPanel></Border>
+        <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="Convert" Classes="pageTitle" /><TextBlock Text="Prepare, run, and inspect conversion jobs." Classes="muted" /></StackPanel></Border>
         <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
       </Grid>
       <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />

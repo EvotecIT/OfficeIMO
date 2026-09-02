@@ -28,7 +28,7 @@
       <StackPanel Grid.Row="2" Spacing="10">
         <TextBlock Text="Quick tasks" FontSize="15" FontWeight="SemiBold" />
         <Grid ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="8">
-          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowPageToolsCommand}">
+          <Button Grid.Column="0" Classes="cardAction" Command="{Binding ShowAssemblyCommand}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconMerge}" Width="22" Height="22" Foreground="{DynamicResource StudioSuccessBrush}" />
               <TextBlock Text="Merge" FontWeight="SemiBold" />
@@ -46,16 +46,16 @@
               <TextBlock Text="Convert" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
-          <Button Grid.Column="3" Classes="cardAction" Command="{Binding ShowOptimizeCommand}">
+          <Button Grid.Column="3" Classes="cardAction" Command="{Binding ShowOcrCommand}">
+            <StackPanel Spacing="7" HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconOcr}" Width="22" Height="22" Foreground="{DynamicResource StudioAccentBrush}" />
+              <TextBlock Text="OCR" FontWeight="SemiBold" />
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="4" Classes="cardAction" Command="{Binding ShowOptimizeCommand}">
             <StackPanel Spacing="7" HorizontalAlignment="Center">
               <PathIcon Data="{StaticResource IconCompress}" Width="22" Height="22" Foreground="{DynamicResource StudioErrorBrush}" />
               <TextBlock Text="Compress" FontWeight="SemiBold" />
-            </StackPanel>
-          </Button>
-          <Button Grid.Column="4" Classes="cardAction" Command="{Binding ShowCompareCommand}">
-            <StackPanel Spacing="7" HorizontalAlignment="Center">
-              <PathIcon Data="{StaticResource IconCompare}" Width="22" Height="22" Foreground="#2587A0" />
-              <TextBlock Text="Compare" FontWeight="SemiBold" />
             </StackPanel>
           </Button>
           <Button Grid.Column="5" Classes="cardAction" Command="{Binding ShowProtectCommand}">

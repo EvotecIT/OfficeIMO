@@ -12,6 +12,7 @@ public enum StudioWorkspaceMode {
     Home,
     PdfWorkspace,
     Tools,
+    Ocr,
     Convert,
     Output,
     DocumentHealth
@@ -31,6 +32,7 @@ public sealed partial class MainWindowViewModel {
     [NotifyPropertyChangedFor(nameof(IsHomeMode))]
     [NotifyPropertyChangedFor(nameof(IsPdfWorkspaceMode))]
     [NotifyPropertyChangedFor(nameof(IsToolsMode))]
+    [NotifyPropertyChangedFor(nameof(IsOcrMode))]
     [NotifyPropertyChangedFor(nameof(IsConversionMode))]
     [NotifyPropertyChangedFor(nameof(IsOutputMode))]
     [NotifyPropertyChangedFor(nameof(IsDocumentHealthMode))]
@@ -52,9 +54,12 @@ public sealed partial class MainWindowViewModel {
 
     public DocumentHealthViewModel DocumentHealth { get; private set; } = null!;
 
+    public SearchablePdfOcrViewModel OcrWorkbench { get; private set; } = null!;
+
     public bool IsHomeMode => WorkspaceMode == StudioWorkspaceMode.Home;
     public bool IsPdfWorkspaceMode => WorkspaceMode == StudioWorkspaceMode.PdfWorkspace;
     public bool IsToolsMode => WorkspaceMode == StudioWorkspaceMode.Tools;
+    public bool IsOcrMode => WorkspaceMode == StudioWorkspaceMode.Ocr;
     public bool ShowPdfDocumentControls => IsPdfWorkspaceMode && HasDocument;
     public bool IsConversionMode => WorkspaceMode == StudioWorkspaceMode.Convert;
     public bool IsOutputMode => WorkspaceMode == StudioWorkspaceMode.Output;
@@ -93,6 +98,12 @@ public sealed partial class MainWindowViewModel {
 
     [RelayCommand]
     private void ShowTools() => WorkspaceMode = StudioWorkspaceMode.Tools;
+
+    [RelayCommand]
+    private void ShowOcr() {
+        OcrWorkbench.UseDocument(DocumentPath);
+        WorkspaceMode = StudioWorkspaceMode.Ocr;
+    }
 
     [RelayCommand]
     private void ShowJobs() => WorkspaceMode = StudioWorkspaceMode.Convert;
@@ -206,7 +217,8 @@ public sealed partial class MainWindowViewModel {
     private void OnWorkflowPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(ConversionWorkbenchViewModel.IsBusy) ||
             e.PropertyName == nameof(OutputIntakeWorkbenchViewModel.IsBusy) ||
-            e.PropertyName == nameof(DocumentHealthViewModel.IsBusy)) {
+            e.PropertyName == nameof(DocumentHealthViewModel.IsBusy) ||
+            e.PropertyName == nameof(SearchablePdfOcrViewModel.IsBusy)) {
             OnPropertyChanged(nameof(CanCancelOperation));
         }
     }

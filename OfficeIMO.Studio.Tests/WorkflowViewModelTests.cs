@@ -58,6 +58,8 @@ public sealed class WorkflowViewModelTests {
         Assert.True(viewModel.IsHomeMode);
         viewModel.ShowToolsCommand.Execute(null);
         Assert.True(viewModel.IsToolsMode);
+        viewModel.ShowOcrCommand.Execute(null);
+        Assert.True(viewModel.IsOcrMode);
         viewModel.ShowJobsCommand.Execute(null);
         Assert.True(viewModel.IsJobsMode);
         viewModel.ShowPdfWorkspaceCommand.Execute(null);
