@@ -469,8 +469,9 @@ internal static partial class TableDetector {
                                                  (BandsHaveCompatibleVerticalGap(current.lines, next.lines) ||
                                                   (previous is not null &&
                                                    BandsHaveCompatibleVerticalRhythm(previous, current.lines, next.lines)));
+                bool splitsAreSimilar = AreSplitsSimilar(baseSplits, next.splits);
                 if (next.idx > current.idx + 2 ||
-                    (!AreSplitsSimilar(baseSplits, next.splits) &&
+                    (!splitsAreSimilar &&
                      !hasNonLeftAlignedCells &&
                      !hasContinuousAlignedCells)) {
                     break;
@@ -490,7 +491,8 @@ internal static partial class TableDetector {
                     break;
                 }
 
-                bool nextRequiresAlignedCellSplits = hasNonLeftAlignedCells || hasContinuousAlignedCells;
+                bool nextRequiresAlignedCellSplits = !splitsAreSimilar &&
+                                                     (hasNonLeftAlignedCells || hasContinuousAlignedCells);
                 if (!alignedSplitAccumulator.TryAppend(
                     next.lines,
                     requiresAlignedCellSplits || nextRequiresAlignedCellSplits)) {
