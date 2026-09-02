@@ -6,6 +6,9 @@ namespace OfficeIMO.Workflows;
 internal static class OfficeWorkflowPathIdentity {
     internal static string Normalize(string path) => OfficePathIdentity.Normalize(path);
 
+    internal static string Normalize(string path, bool caseInsensitive) =>
+        OfficePathIdentity.Normalize(path, caseInsensitive);
+
     internal static bool AreEquivalent(string left, string right) => OfficePathIdentity.AreEquivalent(left, right);
 
     internal static bool IsSameOrDescendant(string candidatePath, string rootPath) =>
@@ -22,4 +25,7 @@ internal static class OfficeWorkflowPathIdentity {
     internal static StringComparer GetComparer(string path) => OfficePathIdentity.GetComparer(path);
 
     internal static StringComparison GetComparison(string path) => OfficePathIdentity.GetComparison(path);
+
+    internal static bool IsCaseInsensitiveFileSystem(string path) =>
+        OfficePathIdentity.IsCaseInsensitiveFileSystem(path);
 }

@@ -10,7 +10,7 @@ using System.Text;
 
 namespace OfficeIMO.Workflows.Tests;
 
-public sealed class OfficeProvenanceWorkflowTests {
+public sealed partial class OfficeProvenanceWorkflowTests {
     [Fact]
     public void CatalogRoutesFormatsToCanonicalOwners() {
         Assert.Equal("OfficeIMO.Word", OfficeProvenanceWorkflowCatalog.FindByPath("report.docx")?.OwnerPackage);

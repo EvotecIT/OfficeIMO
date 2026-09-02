@@ -120,7 +120,9 @@ internal static class OfficeProvenanceZip {
         Func<string, bool>? shouldReplacePackageMetadata = null,
         Func<string, byte[], bool, byte[]>? replacePackageMetadata = null) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata && !options.RemoveExternalC2paReferences) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
         ValidateEntryCount(data, options.Limits.MaxContainerEntries);
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
@@ -178,7 +180,7 @@ internal static class OfficeProvenanceZip {
             }
             if (nested.WasReserialized) reserialized = true;
         }
-        if (changes.Count == 0) return (byte[])data.Clone();
+        if (changes.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
 
         if (shouldReplacePackageMetadata != null) {
             if (replacePackageMetadata == null) throw new ArgumentNullException(nameof(replacePackageMetadata));
@@ -191,6 +193,9 @@ internal static class OfficeProvenanceZip {
                 ReserveExpandedBytes(ref inspectionBytes, entry.Length, options.Limits.MaxExpandedContainerBytes);
                 byte[] original = ReadEntry(entry, (int)entry.Length);
                 byte[] replacement = replacePackageMetadata(entryName, original, removable.Count != 0);
+                OfficeProvenanceBinary.EnsureOutputWithinLimit(
+                    replacement.LongLength,
+                    options.EffectiveMaxOutputBytes);
                 if (replacement.LongLength > options.Limits.MaxAssetBytes) {
                     throw OfficeProvenanceLimitException.Create("A rewritten package metadata entry exceeds the configured asset limit.");
                 }
@@ -213,7 +218,13 @@ internal static class OfficeProvenanceZip {
 
         if (removeOpcManifestReferences && removable.Count != 0 && removable.Count == occurrence &&
             entryMetadata.Values.Any(metadata => metadata.Name.Equals("[Content_Types].xml", StringComparison.Ordinal))) {
-            RemoveOpcManifestReferences(input, entryMetadata, embeddedRewrites, options.Limits, ref inspectionBytes);
+            RemoveOpcManifestReferences(
+                input,
+                entryMetadata,
+                embeddedRewrites,
+                options.Limits,
+                options.EffectiveMaxOutputBytes,
+                ref inspectionBytes);
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
@@ -234,7 +245,11 @@ internal static class OfficeProvenanceZip {
         if (remainingExpandedBytes <= 0 && outputEntries.Any(entry => entry.ExpectedLength > 0)) {
             throw new InvalidDataException("ZIP rewrite exceeds the configured expanded-byte limit.");
         }
-        return OfficeProvenanceZipWriter.Write(outputEntries, Math.Max(1, remainingExpandedBytes), ReadArchiveComment(data));
+        return OfficeProvenanceZipWriter.Write(
+            outputEntries,
+            Math.Max(1, remainingExpandedBytes),
+            ReadArchiveComment(data),
+            options.EffectiveMaxOutputBytes);
     }
 
     private static int CountManifestEntries(
@@ -252,6 +267,7 @@ internal static class OfficeProvenanceZip {
         IReadOnlyDictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata,
         IDictionary<ZipArchiveEntry, byte[]> replacements,
         OfficeProvenanceOptions limits,
+        long maximumOutputBytes,
         ref long expandedBytes) {
         foreach (ZipArchiveEntry entry in archive.Entries) {
             string entryName = entryMetadata[entry].Name;
@@ -290,7 +306,8 @@ internal static class OfficeProvenanceZip {
                 }
             }
             if (!changed) continue;
-            using var output = new MemoryStream();
+            using var output = new OfficeProvenanceBoundedMemoryStream(
+                Math.Min(limits.MaxAssetBytes, maximumOutputBytes));
             using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
                 Encoding = new UTF8Encoding(false),
                 Indent = false,
@@ -374,7 +391,8 @@ internal static class OfficeProvenanceZip {
         long maximumExpandedBytes,
         Func<string, bool>? shouldReplace = null,
         Func<string, byte[], byte[]>? replace = null,
-        long maximumReplacementBytes = long.MaxValue) {
+        long maximumReplacementBytes = long.MaxValue,
+        long maximumOutputBytes = int.MaxValue) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
         using var inputStream = new MemoryStream(data, writable: false);
@@ -382,7 +400,11 @@ internal static class OfficeProvenanceZip {
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
         bool hadMatches = input.Entries.Any(entry => shouldRemove(entryMetadata[entry].Name));
         bool hadReplacements = shouldReplace != null && input.Entries.Any(entry => shouldReplace(entryMetadata[entry].Name));
-        if (!hadMatches && !hadReplacements) return new OfficeProvenanceSignatureStripResult((byte[])data.Clone(), hadSignatures: false);
+        if (!hadMatches && !hadReplacements) {
+            return new OfficeProvenanceSignatureStripResult(
+                OfficeProvenanceBinary.CloneForOutput(data, maximumOutputBytes),
+                hadSignatures: false);
+        }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
         foreach (ZipArchiveEntry entry in input.Entries
@@ -395,6 +417,7 @@ internal static class OfficeProvenanceZip {
                     throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
                 }
                 replacement = replace(entryName, ReadEntry(entry, (int)entry.Length));
+                OfficeProvenanceBinary.EnsureOutputWithinLimit(replacement.LongLength, maximumOutputBytes);
                 if (replacement.LongLength > maximumReplacementBytes) {
                     throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
                 }
@@ -402,7 +425,7 @@ internal static class OfficeProvenanceZip {
             outputEntries.Add(CreateWriteEntry(entry, entryMetadata[entry], replacement));
         }
         return new OfficeProvenanceSignatureStripResult(
-            OfficeProvenanceZipWriter.Write(outputEntries, maximumExpandedBytes, ReadArchiveComment(data)),
+            OfficeProvenanceZipWriter.Write(outputEntries, maximumExpandedBytes, ReadArchiveComment(data), maximumOutputBytes),
             hadSignatures: hadMatches);
     }
 
@@ -1014,7 +1037,8 @@ internal static class OfficeProvenanceZip {
             RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
             SignatureMutationPolicy = source.SignatureMutationPolicy,
             ProcessEmbeddedAssets = false,
-            MaxEmbeddedAssets = source.MaxEmbeddedAssets
+            MaxEmbeddedAssets = source.MaxEmbeddedAssets,
+            MaxOutputBytes = Math.Min(source.EffectiveMaxOutputBytes, source.Limits.MaxAssetBytes)
         };
         nested.Limits.MaxAssetBytes = source.Limits.MaxAssetBytes;
         nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;

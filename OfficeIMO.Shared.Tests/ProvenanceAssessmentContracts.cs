@@ -1,11 +1,66 @@
 using System.Text;
 using System.Threading;
+using System.Runtime.InteropServices;
 using OfficeIMO.Provenance;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
 public sealed class ProvenanceAssessmentContracts {
+    [Fact]
+    public void SnapshotUsesPrivateUnixPermissionsAndRemovesItsPayload() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string source = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(source, "sensitive", new UTF8Encoding(false));
+        string snapshotPath;
+        string snapshotDirectory;
+        try {
+            using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(source, 1024)) {
+                snapshotPath = snapshot.FilePath;
+                snapshotDirectory = Path.GetDirectoryName(snapshotPath)!;
+                Assert.Equal(UnixFileMode.UserRead, File.GetUnixFileMode(snapshotPath));
+                Assert.Equal(
+                    UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(snapshotDirectory));
+                Assert.Equal("snapshot.txt", Path.GetFileName(snapshotPath));
+            }
+            Assert.False(File.Exists(snapshotPath));
+            Assert.False(Directory.Exists(snapshotDirectory));
+        } finally {
+            File.Delete(source);
+    }
+#endif
+    }
+
+    [Fact]
+    public void SnapshotCleanupCanBeRetriedAfterAWindowsSharingViolation() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string input = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(input, "snapshot");
+        OfficeProvenanceFileSnapshot? snapshot = null;
+        try {
+            snapshot = OfficeProvenanceFileSnapshot.Capture(input, maximumBytes: 1024);
+            string snapshotPath = snapshot.FilePath;
+            using (var blocker = new FileStream(
+                       snapshotPath,
+                       FileMode.Open,
+                       FileAccess.Read,
+                       FileShare.Read)) {
+                IOException exception = Assert.Throws<IOException>(() => snapshot.Dispose());
+                Assert.Contains(snapshotPath, exception.Message, StringComparison.Ordinal);
+                Assert.True(File.Exists(snapshotPath));
+            }
+
+            snapshot.Dispose();
+            Assert.False(File.Exists(snapshotPath));
+            snapshot = null;
+        } finally {
+            snapshot?.Dispose();
+            if (File.Exists(input)) File.Delete(input);
+        }
+    }
+
     [Fact]
     public void AssessmentKeepsStructuralVerificationTextAndProviderEvidenceDistinct() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".py");
@@ -88,6 +143,27 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void AssessmentInspectFileUsesOneImmutableSnapshotForEveryProvider() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "original marker\u200B", new UTF8Encoding(false));
+        var detector = new ReplacingDetector(path);
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(
+                path,
+                signalDetectors: [detector]);
+
+            Assert.Equal(OfficeTextIntegrityFindingKind.ZeroWidthSpace, Assert.Single(report.TextIntegrity!.Findings).Kind);
+            Assert.Equal(OfficeProvenanceSignalStatus.Detected, Assert.Single(report.ProviderSignals).Status);
+            Assert.NotNull(detector.ObservedPath);
+            Assert.NotEqual(Path.GetFullPath(path), detector.ObservedPath);
+            Assert.False(File.Exists(detector.ObservedPath));
+            Assert.Equal("replacement", File.ReadAllText(path));
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void AssessmentObservesCancellationRaisedByASynchronousProvider() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
         File.WriteAllText(path, "text", new UTF8Encoding(false));
@@ -150,6 +226,26 @@ public sealed class ProvenanceAssessmentContracts {
                 "different",
                 OfficeProvenanceSignalKind.DurableMediaWatermark,
                 OfficeProvenanceSignalStatus.NotDetected);
+    }
+
+    private sealed class ReplacingDetector : IOfficeProvenanceSignalDetector {
+        private readonly string _originalPath;
+
+        internal ReplacingDetector(string originalPath) => _originalPath = originalPath;
+
+        public string Name => "replacing";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+        internal string? ObservedPath { get; private set; }
+
+        public OfficeProvenanceSignalResult Detect(string filePath) {
+            ObservedPath = Path.GetFullPath(filePath);
+            File.WriteAllText(_originalPath, "replacement", new UTF8Encoding(false));
+            bool detected = File.ReadAllText(filePath).Contains("original marker", StringComparison.Ordinal);
+            return new OfficeProvenanceSignalResult(
+                Name,
+                SignalKind,
+                detected ? OfficeProvenanceSignalStatus.Detected : OfficeProvenanceSignalStatus.NotDetected);
+        }
     }
 
     private sealed class CancellingDetector : IOfficeProvenanceSignalDetector {

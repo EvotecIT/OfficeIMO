@@ -236,7 +236,7 @@ public partial class WordDocument {
             throw new InvalidOperationException("Content cleanup would invalidate existing Word package signatures. Select RemoveInvalidatedSignatures or PreserveSignatureMarkup explicitly.");
         }
         return signaturePolicy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
-            ? StripPackageSignatures(data, provenanceOptions.Limits).Data
+            ? StripPackageSignatures(data, provenanceOptions).Data
             : (byte[])data.Clone();
     }
 

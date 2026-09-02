@@ -16,8 +16,10 @@ internal static class OfficeProvenanceGif {
         List<OfficeProvenanceChange> changes,
         out bool reserialized) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
-        using var output = new MemoryStream(data.Length);
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
         int bodyOffset = GetBodyOffset(data);
         output.Write(data, 0, bodyOffset);
         Walk(data, options.Limits, context: null, output, options, changes, out reserialized);

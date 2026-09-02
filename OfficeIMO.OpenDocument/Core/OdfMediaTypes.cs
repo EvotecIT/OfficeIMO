@@ -8,6 +8,16 @@ public static class OdfMediaTypes {
     public const string Spreadsheet = "application/vnd.oasis.opendocument.spreadsheet";
     /// <summary>ODP package media type.</summary>
     public const string Presentation = "application/vnd.oasis.opendocument.presentation";
+    /// <summary>ODG package media type.</summary>
+    public const string Graphics = "application/vnd.oasis.opendocument.graphics";
+    /// <summary>OTT package media type.</summary>
+    public const string TextTemplate = "application/vnd.oasis.opendocument.text-template";
+    /// <summary>OTS package media type.</summary>
+    public const string SpreadsheetTemplate = "application/vnd.oasis.opendocument.spreadsheet-template";
+    /// <summary>OTP package media type.</summary>
+    public const string PresentationTemplate = "application/vnd.oasis.opendocument.presentation-template";
+    /// <summary>OTG package media type.</summary>
+    public const string GraphicsTemplate = "application/vnd.oasis.opendocument.graphics-template";
 
     internal static string ForKind(OdfDocumentKind kind) {
         switch (kind) {

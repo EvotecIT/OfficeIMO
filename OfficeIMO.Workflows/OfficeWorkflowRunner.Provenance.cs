@@ -33,6 +33,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         ValidatedProvenanceRequest? validated = null;
         string? stagingPath = null;
+        OfficeProvenanceFileSnapshot? inputSnapshot = null;
         long inputBytes = 0;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
@@ -44,17 +45,33 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             failureStage = WorkflowFailureStage.Input;
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
+            string operationInputPath = validated.InputPath;
+            if (validated.Operation is OfficeProvenanceWorkflowOperation.Assess or OfficeProvenanceWorkflowOperation.Remove) {
+                inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
+                    validated.InputPath,
+                    validated.Limits.MaximumInputBytes,
+                    cancellationToken);
+                operationInputPath = inputSnapshot.FilePath;
+                inputBytes = inputSnapshot.Length;
+                diagnostics.Add(new OfficeWorkflowDiagnostic(
+                    validated.Operation == OfficeProvenanceWorkflowOperation.Assess
+                        ? "AssessmentSnapshot"
+                        : "RemovalSnapshot",
+                    validated.Operation == OfficeProvenanceWorkflowOperation.Assess
+                        ? "Structural, text-integrity, verification, and provider evidence were collected from one bounded immutable input snapshot."
+                        : "Removal preflight and mutation used one bounded immutable input snapshot.",
+                    stage: "validate"));
+            }
 
             Report(progress, validated.Id, "inspect", "Inspecting through " + ownerPackage, 0.2D);
             failureStage = WorkflowFailureStage.Operation;
             OfficeProvenanceOptions inspectionOptions = validated.Operation switch {
                 OfficeProvenanceWorkflowOperation.Assess => validated.Assessment.Structural,
-                OfficeProvenanceWorkflowOperation.Remove => CreateInspectionOptions(
-                    validated.Removal, validated.Limits.MaximumInputBytes),
+                OfficeProvenanceWorkflowOperation.Remove => validated.RemovalInputInspection,
                 _ => validated.Inspection
             };
             OfficeProvenanceReport structural = await Task.Run(
-                () => OfficeProvenanceWorkflowAdapter.Inspect(validated.Owner, validated.InputPath, inspectionOptions),
+                () => OfficeProvenanceWorkflowAdapter.Inspect(validated.Owner, operationInputPath, inspectionOptions),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             ProvenanceOwner refinedOwner = Refine(validated.Owner, structural.Format);
@@ -76,7 +93,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 Report(progress, validated.Id, "assess", "Collecting optional verification and signal evidence", 0.55D);
                 OfficeProvenanceAssessmentReport assessment = await Task.Run(
                     () => OfficeProvenanceAssessment.AssessFile(
-                        validated.InputPath,
+                        operationInputPath,
                         structural,
                         validated.Assessment,
                         _provenanceVerifier,
@@ -84,6 +101,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         cancellationToken),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
+                inputSnapshot!.Dispose();
+                inputSnapshot = null;
                 Report(progress, validated.Id, "complete", "Provenance assessment is ready", 1D);
                 return CreateProvenanceResult(
                     validated, OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,
@@ -106,9 +125,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             Report(progress, validated.Id, "remove", "Removing selected carriers through " + ownerPackage, 0.48D);
             failureStage = WorkflowFailureStage.Operation;
             OfficeProvenanceRemovalResult removal = await Task.Run(
-                () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, validated.InputPath, stagingPath, validated.Removal),
+                () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            inputSnapshot!.Dispose();
+            inputSnapshot = null;
 
             failureStage = WorkflowFailureStage.Output;
             long stagedBytes = new FileInfo(stagingPath).Length;
@@ -122,7 +143,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 () => OfficeProvenanceWorkflowAdapter.Inspect(
                     refinedOwner,
                     stagingPath,
-                    CreateInspectionOptions(validated.Removal, validated.Limits.MaximumOutputBytes)),
+                    validated.RemovalOutputInspection),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             EnsureEquivalent(removal.After, reopened);
@@ -157,6 +178,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 wasReserialized: removal.WasReserialized,
                 wereInvalidatedSignaturesRemoved: removal.WereInvalidatedSignaturesRemoved);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "Cancelled",
                 "The provenance workflow was cancelled before publication; no staged artifact was retained.",
@@ -175,6 +197,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 "Cancelled",
                 diagnostics);
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "ProvenanceWorkflowFailed",
                 exception.Message,
@@ -196,102 +219,32 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 "Provenance workflow failed: " + exception.Message,
                 diagnostics);
         } finally {
-            if (stagingPath is not null) TryDelete(stagingPath);
-        }
-    }
-
-    /// <summary>Runs a bounded batch sequentially so providers and parsers share one predictable resource envelope.</summary>
-    public async Task<IReadOnlyList<OfficeProvenanceWorkflowResult>> RunProvenanceBatchAsync(
-        IEnumerable<OfficeProvenanceWorkflowRequest> requests,
-        OfficeProvenanceWorkflowBatchOptions? options = null,
-        IProgress<OfficeWorkflowProgress>? progress = null,
-        CancellationToken cancellationToken = default) {
-        ArgumentNullException.ThrowIfNull(requests);
-        OfficeProvenanceWorkflowBatchOptions validatedOptions = (options ?? new OfficeProvenanceWorkflowBatchOptions()).CloneAndValidate();
-        OfficeProvenanceWorkflowRequest[] materialized = requests.Take(validatedOptions.MaximumRequests + 1).ToArray();
-        if (materialized.Length > validatedOptions.MaximumRequests) {
-            throw new ArgumentException(
-                $"The provenance batch exceeds the configured limit of {validatedOptions.MaximumRequests:N0} requests.",
-                nameof(requests));
-        }
-        EnsureSafeBatchRemovalPaths(materialized);
-        if (materialized.Length == 0) cancellationToken.ThrowIfCancellationRequested();
-
-        var results = new List<OfficeProvenanceWorkflowResult>(materialized.Length);
-        for (int index = 0; index < materialized.Length; index++) {
-            int batchIndex = index;
-            var batchProgress = progress is null
-                ? null
-                : new InlineProgress<OfficeWorkflowProgress>(item => progress.Report(new OfficeWorkflowProgress(
-                    item.RequestId,
-                    item.Stage,
-                    $"{batchIndex + 1} of {materialized.Length} · {item.Message}",
-                    item.Fraction,
-                    (batchIndex + item.Fraction) / Math.Max(1, materialized.Length))));
-            OfficeProvenanceWorkflowResult result = await RunProvenanceAsync(
-                materialized[index], batchProgress, cancellationToken).ConfigureAwait(false);
-            results.Add(result);
-            if (result.Status == OfficeWorkflowStatus.Cancelled) break;
-            if (!validatedOptions.ContinueOnFailure && !result.Succeeded) break;
-        }
-        return results;
-    }
-
-    private static void EnsureSafeBatchRemovalPaths(IReadOnlyList<OfficeProvenanceWorkflowRequest> requests) {
-        var inputIdentities = new string?[requests.Count];
-        for (int index = 0; index < requests.Count; index++) {
-            OfficeProvenanceWorkflowRequest request = requests[index] ??
-                throw new ArgumentException("Provenance batches cannot contain null requests.", nameof(requests));
-            inputIdentities[index] = TryNormalizeBatchPath(request.InputPath);
-        }
-
-        var outputIdentities = new HashSet<string>(StringComparer.Ordinal);
-        for (int requestIndex = 0; requestIndex < requests.Count; requestIndex++) {
-            OfficeProvenanceWorkflowRequest request = requests[requestIndex];
-            if (request.Operation != OfficeProvenanceWorkflowOperation.Remove) continue;
-
-            string? outputPath = TryResolveBatchRemovalOutput(request);
-            if (outputPath is null) continue;
-            string? identity = TryNormalizeBatchPath(outputPath);
-            if (identity is null) continue;
-            if (!outputIdentities.Add(identity)) {
-                throw new ArgumentException(
-                    $"Multiple provenance removal requests resolve to the same output path '{outputPath}'.",
-                    nameof(requests));
-            }
-
-            for (int inputIndex = 0; inputIndex < inputIdentities.Length; inputIndex++) {
-                if (inputIndex == requestIndex || inputIdentities[inputIndex] is null) continue;
-                if (string.Equals(identity, inputIdentities[inputIndex], StringComparison.Ordinal)) {
-                    throw new ArgumentException(
-                        $"Provenance removal output '{outputPath}' overlaps another batch request's input path.",
-                        nameof(requests));
-                }
+            try {
+                inputSnapshot?.Dispose();
+            } catch (Exception) when (inputSnapshot is not null) {
+                // Catch paths already record cleanup failures. Never let one skip staged-output cleanup.
+            } finally {
+                if (stagingPath is not null) TryDelete(stagingPath);
             }
         }
     }
 
-    private static string? TryNormalizeBatchPath(string? path) {
+    private static void TryDisposeSnapshot(
+        ref OfficeProvenanceFileSnapshot? snapshot,
+        ICollection<OfficeWorkflowDiagnostic> diagnostics) {
+        if (snapshot is null) return;
         try {
-            return string.IsNullOrWhiteSpace(path) ? null : OfficeWorkflowPathIdentity.Normalize(path);
-        } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
-            // Defer path-access diagnostics to the item runner so batch failure behavior stays structured.
-            return null;
-        }
-    }
-
-    private static string? TryResolveBatchRemovalOutput(OfficeProvenanceWorkflowRequest request) {
-        try {
-            if (string.IsNullOrWhiteSpace(request.InputPath)) return null;
-            string inputPath = Path.GetFullPath(request.InputPath);
-            return string.IsNullOrWhiteSpace(request.OutputPath)
-                ? Path.Combine(
-                    Path.GetDirectoryName(inputPath)!,
-                    Path.GetFileNameWithoutExtension(inputPath) + ".provenance-cleaned" + Path.GetExtension(inputPath))
-                : Path.GetFullPath(request.OutputPath);
-        } catch (Exception exception) when (exception is ArgumentException or NotSupportedException or IOException or UnauthorizedAccessException) {
-            // RunProvenanceAsync owns request validation and converts invalid paths into per-item results.
-            return null;
+            snapshot.Dispose();
+            snapshot = null;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            diagnostics.Add(new OfficeWorkflowDiagnostic(
+                "ProvenanceSnapshotCleanupFailed",
+                exception.Message,
+                OfficeWorkflowDiagnosticSeverity.Error,
+                "cleanup",
+                new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["exceptionType"] = exception.GetType().Name
+                }));
         }
     }
 
@@ -313,9 +266,18 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceAssessmentOptions assessment = CloneAssessmentOptions(
             request.Assessment ?? throw new ArgumentException("Assessment options cannot be null.", nameof(request)),
             limits);
+        OfficeProvenanceRemovalOptions removalSource = request.Removal ??
+            throw new ArgumentException("Removal options cannot be null.", nameof(request));
         OfficeProvenanceRemovalOptions removal = CloneRemovalOptions(
-            request.Removal ?? throw new ArgumentException("Removal options cannot be null.", nameof(request)),
-            limits);
+            removalSource,
+            limits.MaximumInputBytes,
+            limits.MaximumOutputBytes);
+        OfficeProvenanceOptions removalInputInspection = CreateInspectionOptions(
+            removalSource,
+            limits.MaximumInputBytes);
+        OfficeProvenanceOptions removalOutputInspection = CreateInspectionOptions(
+            removalSource,
+            limits.MaximumOutputBytes);
         string? outputPath = string.IsNullOrWhiteSpace(request.OutputPath) ? null : Path.GetFullPath(request.OutputPath);
 
         if (request.Operation == OfficeProvenanceWorkflowOperation.Remove) {
@@ -339,7 +301,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             limits,
             inspection,
             assessment,
-            removal);
+            removal,
+            removalInputInspection,
+            removalOutputInspection);
     }
 
     private static OfficeProvenanceOptions CloneInspectionOptions(OfficeProvenanceOptions source, OfficeWorkflowLimits limits) => new() {
@@ -377,7 +341,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
     private static OfficeProvenanceRemovalOptions CloneRemovalOptions(
         OfficeProvenanceRemovalOptions source,
-        OfficeWorkflowLimits limits) {
+        long maximumInputBytes,
+        long maximumOutputBytes) {
         var clone = new OfficeProvenanceRemovalOptions {
             RemoveC2paManifests = source.RemoveC2paManifests,
             RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
@@ -385,9 +350,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
             SignatureMutationPolicy = source.SignatureMutationPolicy,
             ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
-            MaxEmbeddedAssets = source.MaxEmbeddedAssets
+            MaxEmbeddedAssets = source.MaxEmbeddedAssets,
+            MaxOutputBytes = Math.Min(source.EffectiveMaxOutputBytes, maximumOutputBytes)
         };
-        CopyInspectionOptions(source.Limits, clone.Limits, limits.MaximumInputBytes);
+        CopyInspectionOptions(source.Limits, clone.Limits, maximumInputBytes);
         return clone;
     }
 
@@ -486,5 +452,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeWorkflowLimits Limits,
         OfficeProvenanceOptions Inspection,
         OfficeProvenanceAssessmentOptions Assessment,
-        OfficeProvenanceRemovalOptions Removal);
+        OfficeProvenanceRemovalOptions Removal,
+        OfficeProvenanceOptions RemovalInputInspection,
+        OfficeProvenanceOptions RemovalOutputInspection);
 }

@@ -2,7 +2,9 @@ namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
     internal static OfficeWorkflowFailureKind ClassifyFailure(Exception exception, WorkflowFailureStage stage) {
-        if (stage == WorkflowFailureStage.Output) {
+        if (stage == WorkflowFailureStage.Output ||
+            OfficeIMO.Provenance.OfficeProvenanceLimitException.IsOutput(exception) ||
+            OfficeIMO.Pdf.PdfOutputLimitErrors.IsOutputLimitExceeded(exception)) {
             return OfficeWorkflowFailureKind.OutputFailed;
         }
         if (exception is FileNotFoundException or DirectoryNotFoundException) {

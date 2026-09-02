@@ -109,8 +109,7 @@ public static partial class HtmlProvenance {
         bool enforceUtf8Size,
         Encoding? outputEncoding,
         bool outputHadPreamble) {
-        OfficeProvenanceBinary.ValidateLimits(options.Limits);
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
         OfficeProvenanceReport before = InspectCore(html, inspectionOptions, enforceUtf8Size);
         int structuralEntries = 0;
@@ -128,7 +127,7 @@ public static partial class HtmlProvenance {
                 original = Array.Empty<byte>();
             } else {
                 int byteCount = Encoding.UTF8.GetByteCount(html);
-                if (byteCount > options.Limits.MaxAssetBytes) throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
+                OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
                 original = Encoding.UTF8.GetBytes(html);
             }
             return new OfficeProvenanceRemovalResult(original, before, before, changes.AsReadOnly(), false);
@@ -139,12 +138,15 @@ public static partial class HtmlProvenance {
         byte[] output;
         if (outputEncoding == null) {
             int byteCount = Encoding.UTF8.GetByteCount(outputHtml);
-            if (byteCount > options.Limits.MaxAssetBytes) throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+            OfficeProvenanceBinary.EnsureOutputWithinLimit(byteCount, options.EffectiveMaxOutputBytes);
             output = Encoding.UTF8.GetBytes(outputHtml);
         } else {
-            output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble, options.Limits.MaxAssetBytes);
+            output = EncodeHtml(outputHtml, outputEncoding, outputHadPreamble, options.EffectiveMaxOutputBytes);
         }
-        OfficeProvenanceReport after = InspectCore(outputHtml, inspectionOptions, enforceUtf8Size);
+        OfficeProvenanceReport after = InspectCore(
+            outputHtml,
+            CreateOutputInspectionOptions(options),
+            enforceUtf8Size);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
 
@@ -206,6 +208,7 @@ public static partial class HtmlProvenance {
         OfficeProvenanceRemovalResult result = RemoveCore(
             html, options, enforceUtf8Size: false, outputEncoding: encoding, outputHadPreamble: hadPreamble);
         if (!result.WasChanged) {
+            OfficeProvenanceBinary.EnsureOutputWithinLimit(input.LongLength, options.EffectiveMaxOutputBytes);
             OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), input);
             return new OfficeProvenanceRemovalResult(
                 (byte[])input.Clone(), result.Before, result.After, result.Changes, result.WasReserialized);
@@ -333,7 +336,15 @@ public static partial class HtmlProvenance {
                             CreateNestedRemovalOptions(options));
                         if (!nested.WasChanged) continue;
                         string metadata = CreateRewrittenDataUriMetadata(dataUri);
-                        replacements.Add((reference, "data:" + metadata + "," + Convert.ToBase64String(nested.ToArray()) + dataUri.Fragment));
+                        byte[] nestedOutput = nested.ToArray();
+                        long base64Characters = checked(((nestedOutput.LongLength + 2L) / 3L) * 4L);
+                        long replacementCharacters = checked(
+                            5L + metadata.Length + base64Characters + dataUri.Fragment.Length);
+                        OfficeProvenanceBinary.EnsureOutputWithinLimit(
+                            replacementCharacters,
+                            options.EffectiveMaxOutputBytes);
+                        replacements.Add((reference,
+                            "data:" + metadata + "," + Convert.ToBase64String(nestedOutput) + dataUri.Fragment));
                         foreach (OfficeProvenanceChange change in nested.Changes) {
                             changes.Add(new OfficeProvenanceChange(
                                 change.Carrier,
@@ -1342,6 +1353,16 @@ public static partial class HtmlProvenance {
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
 
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+        MaxAssetBytes = source.EffectiveMaxOutputBytes,
+        MaxManifestBytes = Math.Min(source.Limits.MaxManifestBytes, source.EffectiveMaxOutputBytes),
+        MaxCarriers = source.Limits.MaxCarriers,
+        MaxContainerEntries = source.Limits.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
+    };
+
     private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.MaxAssetBytes,
         MaxManifestBytes = source.MaxManifestBytes,
@@ -1359,7 +1380,8 @@ public static partial class HtmlProvenance {
             RemoveAiSourceMetadata = source.RemoveAiSourceMetadata,
             RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
             ProcessEmbeddedAssets = false,
-            MaxEmbeddedAssets = source.MaxEmbeddedAssets
+            MaxEmbeddedAssets = source.MaxEmbeddedAssets,
+            MaxOutputBytes = Math.Min(source.EffectiveMaxOutputBytes, source.Limits.MaxAssetBytes)
         };
         nested.Limits.MaxAssetBytes = source.Limits.MaxAssetBytes;
         nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
@@ -1394,7 +1416,8 @@ public static partial class HtmlProvenance {
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
         int bodyLength = strictEncoding.GetByteCount(encodableHtml);
         if (bodyLength > maximumBytes - preamble.Length) {
-            throw new InvalidDataException("The rewritten HTML document exceeds the configured asset limit.");
+            throw OfficeProvenanceLimitException.CreateOutput(
+                $"The rewritten HTML document exceeds the configured output limit of {maximumBytes} bytes.");
         }
         byte[] body = strictEncoding.GetBytes(encodableHtml);
         if (preamble.Length == 0) return body;

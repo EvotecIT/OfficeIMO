@@ -63,7 +63,9 @@ internal static class OfficeProvenanceText {
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
-        if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
         var candidates = new List<(int Offset, RemovalRange Range, OfficeProvenanceChange Change)>();
         StructuredBlock[] structuredBlocks = FindStructuredBlocks(
             data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries).ToArray();
@@ -87,10 +89,10 @@ internal static class OfficeProvenanceText {
                     wrapper.End - wrapper.Start)));
             }
         }
-        if (candidates.Count == 0) return (byte[])data.Clone();
+        if (candidates.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
         candidates.Sort((left, right) => left.Offset.CompareTo(right.Offset));
         foreach ((int _, RemovalRange _, OfficeProvenanceChange change) in candidates) changes.Add(change);
-        using var output = new MemoryStream(data.Length);
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
         int offset = 0;
         foreach (RemovalRange range in candidates.Select(item => item.Range).OrderBy(item => item.Start)) {
             if (range.Start < offset) continue;

@@ -54,14 +54,23 @@ public abstract partial class OdfDocument {
             shouldReplacePackageMetadata: path => path == "META-INF/manifest.xml",
             replacePackageMetadata: (_, manifest, nativeManifestRemoved) =>
                 nativeManifestRemoved
-                    ? RemoveManifestEntries(manifest, options.Limits, path => path == ProvenanceManifestPath)
+                    ? RemoveManifestEntries(
+                        manifest,
+                        options.Limits,
+                        options.EffectiveMaxOutputBytes,
+                        path => path == ProvenanceManifestPath)
                     : manifest);
     }
 
     private static readonly string[] SupportedMimetypes = {
         OdfMediaTypes.Text,
         OdfMediaTypes.Spreadsheet,
-        OdfMediaTypes.Presentation
+        OdfMediaTypes.Presentation,
+        OdfMediaTypes.Graphics,
+        OdfMediaTypes.TextTemplate,
+        OdfMediaTypes.SpreadsheetTemplate,
+        OdfMediaTypes.PresentationTemplate,
+        OdfMediaTypes.GraphicsTemplate
     };
 
     private static void ValidatePackage(byte[] data, OfficeProvenanceOptions options) {
@@ -128,17 +137,27 @@ public abstract partial class OdfDocument {
     private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) =>
         OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath);
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceOptions limits = options.Limits;
         return OfficeProvenanceZip.RemoveEntries(
             data,
             OdfPackage.IsSignaturePath,
             limits.MaxExpandedContainerBytes,
             path => path == "META-INF/manifest.xml",
-            (_, manifest) => RemoveManifestEntries(manifest, limits, OdfPackage.IsSignaturePath),
-            limits.MaxAssetBytes);
+            (_, manifest) => RemoveManifestEntries(
+                manifest,
+                limits,
+                options.EffectiveMaxOutputBytes,
+                OdfPackage.IsSignaturePath),
+            Math.Min(limits.MaxAssetBytes, options.EffectiveMaxOutputBytes),
+            options.EffectiveMaxOutputBytes);
     }
 
-    private static byte[] RemoveManifestEntries(byte[] data, OfficeProvenanceOptions limits, Func<string, bool> shouldRemove) {
+    private static byte[] RemoveManifestEntries(
+        byte[] data,
+        OfficeProvenanceOptions limits,
+        long maximumOutputBytes,
+        Func<string, bool> shouldRemove) {
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(data, limits, "ODF manifest");
         XDocument document;
         using (var stream = new MemoryStream(data, writable: false))
@@ -150,7 +169,8 @@ public abstract partial class OdfDocument {
             string? path = (string?)entry.Attribute(manifestNamespace + "full-path");
             if (path != null && shouldRemove(path)) entry.Remove();
         }
-        using var output = new MemoryStream();
+        using var output = new OfficeProvenanceBoundedMemoryStream(
+            Math.Min(limits.MaxAssetBytes, maximumOutputBytes));
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new System.Text.UTF8Encoding(false),
             Indent = false,

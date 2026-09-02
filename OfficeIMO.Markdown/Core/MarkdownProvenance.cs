@@ -40,7 +40,7 @@ public static class MarkdownProvenance {
         OfficeProvenanceRemovalOptions? options = null) {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new OfficeProvenanceRemovalOptions();
-        OfficeProvenanceBinary.ValidateLimits(options.Limits);
+        OfficeProvenanceBinary.ValidateRemovalOptions(options);
         return OfficeProvenanceRemover.RemoveStructuredText(
             EncodeUtf8Bounded(markdown, options.Limits.MaxAssetBytes),
             "document.md",
@@ -60,15 +60,19 @@ public static class MarkdownProvenance {
             input = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
         }
         string markdown = DecodeFileText(input, out Encoding encoding, out bool hadPreamble);
+        byte[] utf8Input = EncodeDecodedFileTextAsUtf8(markdown);
         OfficeProvenanceRemovalResult utf8Result = OfficeProvenanceRemover.RemoveStructuredText(
-            EncodeDecodedFileTextAsUtf8(markdown), inputPath, options);
+            utf8Input,
+            inputPath,
+            CloneForTranscodedProcessing(options, Math.Max(1L, utf8Input.LongLength)));
         if (!utf8Result.WasChanged) {
+            OfficeProvenanceBinary.EnsureOutputWithinLimit(input.LongLength, options.EffectiveMaxOutputBytes);
             OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), input);
             return new OfficeProvenanceRemovalResult(
                 input, utf8Result.Before, utf8Result.After, utf8Result.Changes, wasReserialized: false);
         }
         string cleaned = Encoding.UTF8.GetString(utf8Result.ToArray());
-        byte[] output = EncodeFileText(cleaned, encoding, hadPreamble, options.Limits.MaxAssetBytes);
+        byte[] output = EncodeFileText(cleaned, encoding, hadPreamble, options.EffectiveMaxOutputBytes);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), output);
         IReadOnlyList<OfficeProvenanceChange> physicalChanges = utf8Result.Changes;
         if (encoding.CodePage != Encoding.UTF8.CodePage) {
@@ -78,6 +82,29 @@ public static class MarkdownProvenance {
         }
         return new OfficeProvenanceRemovalResult(
             output, utf8Result.Before, utf8Result.After, physicalChanges, wasReserialized: true);
+    }
+
+    private static OfficeProvenanceRemovalOptions CloneForTranscodedProcessing(
+        OfficeProvenanceRemovalOptions source,
+        long maximumTranscodedBytes) {
+        var clone = new OfficeProvenanceRemovalOptions {
+            RemoveC2paManifests = source.RemoveC2paManifests,
+            RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
+            RemoveAiSourceMetadata = source.RemoveAiSourceMetadata,
+            RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
+            SignatureMutationPolicy = source.SignatureMutationPolicy,
+            ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
+            MaxEmbeddedAssets = source.MaxEmbeddedAssets,
+            MaxOutputBytes = maximumTranscodedBytes
+        };
+        clone.Limits.MaxAssetBytes = Math.Max(source.Limits.MaxAssetBytes, maximumTranscodedBytes);
+        clone.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
+        clone.Limits.MaxCarriers = source.Limits.MaxCarriers;
+        clone.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
+        clone.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        clone.Limits.ProcessEmbeddedAssets = source.Limits.ProcessEmbeddedAssets;
+        clone.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;
+        return clone;
     }
 
     private static string DecodeFileText(byte[] data, out Encoding encoding, out bool hadPreamble) {
@@ -117,7 +144,8 @@ public static class MarkdownProvenance {
         byte[] preamble = includePreamble ? encoding.GetPreamble() : Array.Empty<byte>();
         int bodyLength = encoding.GetByteCount(text);
         if (bodyLength > maximumBytes - preamble.Length) {
-            throw new InvalidDataException("The rewritten Markdown document exceeds the configured asset limit.");
+            throw OfficeProvenanceLimitException.CreateOutput(
+                $"The rewritten Markdown document exceeds the configured output limit of {maximumBytes} bytes.");
         }
         byte[] body = encoding.GetBytes(text);
         if (preamble.Length == 0) return body;

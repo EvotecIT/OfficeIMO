@@ -327,15 +327,27 @@ public static class OfficeProvenanceRemover {
                 break;
         }
 
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(output.LongLength, options.EffectiveMaxOutputBytes);
+        OfficeProvenanceOptions outputInspectionOptions = CreateOutputInspectionOptions(options);
         OfficeProvenanceReport after = forcedFormat.HasValue
-            ? OfficeProvenanceInspector.InspectStructuredText(output, inspectionOptions)
-            : OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
+            ? OfficeProvenanceInspector.InspectStructuredText(output, outputInspectionOptions)
+            : OfficeProvenanceInspector.InspectCore(output, fileName, outputInspectionOptions);
         return OfficeProvenanceRemovalResult.CreateOwned(output, before, after, changes.AsReadOnly(), reserialized);
     }
 
     private static OfficeProvenanceOptions CreateInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.Limits.MaxAssetBytes,
         MaxManifestBytes = source.Limits.MaxManifestBytes,
+        MaxCarriers = source.Limits.MaxCarriers,
+        MaxContainerEntries = source.Limits.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
+    };
+
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+        MaxAssetBytes = source.EffectiveMaxOutputBytes,
+        MaxManifestBytes = Math.Min(source.Limits.MaxManifestBytes, source.EffectiveMaxOutputBytes),
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,

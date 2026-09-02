@@ -51,10 +51,30 @@ internal static class OfficeProvenanceBinary {
     internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
         ValidateLimits(options.Limits);
+        if (options.MaxOutputBytes.HasValue &&
+            (options.MaxOutputBytes.Value <= 0 || options.MaxOutputBytes.Value > int.MaxValue)) {
+            throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes));
+        }
         if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
         if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
         }
+    }
+
+    internal static void EnsureOutputWithinLimit(long outputBytes, long maximumOutputBytes) {
+        if (maximumOutputBytes <= 0 || maximumOutputBytes > int.MaxValue) {
+            throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+        }
+        if (outputBytes < 0 || outputBytes > maximumOutputBytes) {
+            throw OfficeProvenanceLimitException.CreateOutput(
+                $"The rewritten asset exceeds the configured output limit of {maximumOutputBytes} bytes.");
+        }
+    }
+
+    internal static byte[] CloneForOutput(byte[] data, long maximumOutputBytes) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        EnsureOutputWithinLimit(data.LongLength, maximumOutputBytes);
+        return (byte[])data.Clone();
     }
 
     internal static bool HasPrefix(byte[] data, params byte[] prefix) {

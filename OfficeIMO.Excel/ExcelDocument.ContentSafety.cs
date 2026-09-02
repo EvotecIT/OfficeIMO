@@ -570,7 +570,7 @@ public partial class ExcelDocument {
             throw new InvalidOperationException("Content cleanup would invalidate existing Excel package signatures. Select RemoveInvalidatedSignatures or PreserveSignatureMarkup explicitly.");
         }
         return policy == OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
-            ? StripPackageSignatures(data, provenanceOptions.Limits).Data
+            ? StripPackageSignatures(data, provenanceOptions).Data
             : (byte[])data.Clone();
     }
 

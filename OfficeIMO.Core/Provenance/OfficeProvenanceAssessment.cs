@@ -120,14 +120,19 @@ public static class OfficeProvenanceAssessment {
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to assess was not found.", fullPath);
         options ??= new OfficeProvenanceAssessmentOptions();
 
-        OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(fullPath, options.Structural);
-        return AssessFile(fullPath, structural, options, verifier, signalDetectors);
+        using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(
+                   fullPath,
+                   options.Structural.MaxAssetBytes)) {
+            OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(snapshot.FilePath, options.Structural);
+            return AssessFile(snapshot.FilePath, structural, options, verifier, signalDetectors);
+        }
     }
 
     /// <summary>Combines an existing structural report with optional text, cryptographic, and provider evidence.</summary>
     /// <remarks>
     /// This overload lets workflow hosts preserve format-owner structural inspection while keeping evidence
-    /// composition and provider-result validation in the canonical provenance owner.
+    /// composition and provider-result validation in the canonical provenance owner. The caller must ensure
+    /// <paramref name="filePath"/> identifies the same immutable bytes used to create <paramref name="structural"/>.
     /// </remarks>
     public static OfficeProvenanceAssessmentReport AssessFile(
         string filePath,

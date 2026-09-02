@@ -175,8 +175,15 @@ public sealed class OfficeProvenanceRemovalOptions {
     public bool ProcessEmbeddedAssets { get; set; } = true;
     /// <summary>Maximum embedded assets processed by one document operation. Defaults to 4096.</summary>
     public int MaxEmbeddedAssets { get; set; } = 4096;
+    /// <summary>
+    /// Maximum encoded bytes that the rewritten asset may contain. A null value preserves the
+    /// historical behavior by using <see cref="OfficeProvenanceOptions.MaxAssetBytes"/>.
+    /// </summary>
+    public long? MaxOutputBytes { get; set; }
     /// <summary>Inspection and removal resource limits.</summary>
     public OfficeProvenanceOptions Limits { get; } = new OfficeProvenanceOptions();
+
+    internal long EffectiveMaxOutputBytes => MaxOutputBytes ?? Limits.MaxAssetBytes;
 }
 
 /// <summary>One format-native provenance mutation.</summary>

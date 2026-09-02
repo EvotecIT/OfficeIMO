@@ -26,13 +26,17 @@ internal static class OfficeProvenanceZipWriter {
     private const ushort UnicodeCommentExtraFieldId = 0x6375;
     private static readonly uint[] CrcTable = CreateCrcTable();
 
-    internal static byte[] Write(IReadOnlyList<OfficeProvenanceZipWriteEntry> entries, long maximumExpandedBytes, byte[]? archiveComment = null) {
+    internal static byte[] Write(
+        IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
+        long maximumExpandedBytes,
+        byte[]? archiveComment = null,
+        long maximumOutputBytes = int.MaxValue) {
         if (entries == null) throw new ArgumentNullException(nameof(entries));
         if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
         archiveComment ??= Array.Empty<byte>();
         if (archiveComment.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(archiveComment));
         var records = new List<OfficeProvenanceZipRecord>(entries.Count);
-        using var output = new MemoryStream();
+        using var output = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes);
         using var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true);
         long expandedBytes = 0;
         byte[] buffer = new byte[81920];

@@ -79,8 +79,9 @@ public partial class VisioDocument {
         return false;
     }
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
-        using var stream = new MemoryStream(data.Length);
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceOptions limits = options.Limits;
+        using var stream = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
         bool hadSignatures = false;

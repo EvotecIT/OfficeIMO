@@ -36,7 +36,7 @@ internal static class OfficeProvenancePackageMutation {
         string inputPath,
         string outputPath,
         OfficeProvenanceRemovalOptions? options,
-        Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
+        Func<byte[], OfficeProvenanceRemovalOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
         Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
         bool removeOpcManifestReferences = true,
@@ -68,7 +68,7 @@ internal static class OfficeProvenancePackageMutation {
         byte[] data,
         string fileName,
         OfficeProvenanceRemovalOptions? options,
-        Func<byte[], OfficeProvenanceOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
+        Func<byte[], OfficeProvenanceRemovalOptions, OfficeProvenanceSignatureStripResult> stripSignatures,
         Func<byte[], OfficeProvenanceRemovalOptions, bool>? hasSignatures = null,
         Action<byte[], OfficeProvenanceOptions>? validatePackage = null,
         bool removeOpcManifestReferences = true,
@@ -115,7 +115,7 @@ internal static class OfficeProvenancePackageMutation {
 
         byte[] previewData = preview.ToArray();
         ValidateAggregateRewriteBudget(data, previewData, options.Limits);
-        OfficeProvenanceSignatureStripResult stripped = stripSignatures(previewData, options.Limits);
+        OfficeProvenanceSignatureStripResult stripped = stripSignatures(previewData, options);
         if (!stripped.HadSignatures) {
             throw new InvalidOperationException("The package contains signature evidence that its owning adapter could not remove safely.");
         }
@@ -125,6 +125,7 @@ internal static class OfficeProvenancePackageMutation {
         if (hasSignatures?.Invoke(stripped.Data, options) ?? OfficeProvenanceZip.HasPackageSignature(stripped.Data, options)) {
             throw new InvalidOperationException("The owning package adapter left signature evidence in the rewritten document.");
         }
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(stripped.Data.LongLength, options.EffectiveMaxOutputBytes);
         return new OfficeProvenanceRemovalResult(
             stripped.Data,
             preview.Before,
@@ -170,7 +171,8 @@ internal static class OfficeProvenancePackageMutation {
             RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
             SignatureMutationPolicy = signaturePolicy,
             ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
-            MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
+            MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets),
+            MaxOutputBytes = source.MaxOutputBytes
         };
         clone.Limits.MaxAssetBytes = source.Limits.MaxAssetBytes;
         clone.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
