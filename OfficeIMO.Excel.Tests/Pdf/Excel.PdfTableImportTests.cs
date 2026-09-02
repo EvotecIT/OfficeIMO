@@ -723,7 +723,57 @@ public partial class Excel {
     }
 
     [Fact]
-    public void PdfTables_BandGroupingKeepsEmphasizedSummaryRows() {
+    public void PdfTables_BandGroupingStopsAtASplitlessInterveningHeader() {
+        static PdfCore.TextLayoutEngine.TextLine WideRow(double y, bool emphasized, string left, string right) {
+            string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60, baseFont: baseFont),
+                new(right, "F1", 10, 400, y, 40, baseFont: baseFont)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 440, left + " " + right, spans);
+        }
+
+        static PdfCore.TextLayoutEngine.TextLine NarrowRow(double y, string left, string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60),
+                new(right, "F1", 10, 180, y, 40)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
+
+        static PdfCore.TextLayoutEngine.TextLine SplitlessHeader(double y) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new("Name", "F1", 10, 20, y, 145, baseFont: "Helvetica-Bold"),
+                new("Total", "F1", 10, 180, y, 100, baseFont: "Helvetica-Bold")
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 280, "Name Total", spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { WideRow(700, true, "Code", "Qty") },
+            new() { WideRow(680, false, "A-100", "12") },
+            new() { WideRow(660, false, "B-200", "14") },
+            new() { SplitlessHeader(640) },
+            new() { NarrowRow(620, "Alpha", "22") },
+            new() { NarrowRow(600, "Beta", "24") }
+        };
+
+        PdfCore.StructuredTable[] grouped = PdfCore.TableDetector.DetectTablesFromBands(bands)
+            .Where(static table => table.Kind == "band-group")
+            .ToArray();
+
+        Assert.Equal(2, grouped.Length);
+        Assert.Equal(new[] { "Code", "Qty" }, grouped[0].Rows[0]);
+        Assert.Equal(new[] { "Name", "Total" }, grouped[1].Rows[0]);
+    }
+
+    [Theory]
+    [InlineData("Total")]
+    [InlineData("Grand Total")]
+    [InlineData("Sub Total")]
+    [InlineData("Net Subtotal")]
+    [InlineData("Overall Totals")]
+    public void PdfTables_BandGroupingKeepsEmphasizedSummaryRows(string summaryLabel) {
         static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
             string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
             var spans = new List<PdfCore.PdfTextSpan> {
@@ -737,7 +787,7 @@ public partial class Excel {
             new() { Row(700, true, "Code", "Qty") },
             new() { Row(680, false, "A-100", "12") },
             new() { Row(660, false, "B-200", "14") },
-            new() { Row(640, true, "Total", "26") }
+            new() { Row(640, true, summaryLabel, "26") }
         };
 
         PdfCore.StructuredTable table = Assert.Single(
@@ -745,7 +795,7 @@ public partial class Excel {
             static candidate => candidate.Kind == "band-group");
 
         Assert.Equal(4, table.Rows.Count);
-        Assert.Equal(new[] { "Total", "26" }, table.Rows[3]);
+        Assert.Equal(new[] { summaryLabel, "26" }, table.Rows[3]);
     }
 
     [Fact]
@@ -779,6 +829,57 @@ public partial class Excel {
         Assert.Equal(3, table.Rows.Count);
         Assert.Equal(new[] { "Account Name", "Annual Total" }, table.Rows[0]);
         Assert.Equal(new[] { "South", "980" }, table.Rows[2]);
+    }
+
+    [Fact]
+    public void PdfTables_BandGroupingAllowsStrongTwoRowTablesAcrossLargeGaps() {
+        var headerSpans = new List<PdfCore.PdfTextSpan> {
+            new("Account", "F1", 10, 20, 700, 145, baseFont: "Helvetica-Bold"),
+            new("Total", "F1", 10, 180, 700, 70, baseFont: "Helvetica-Bold")
+        };
+        var bodySpans = new List<PdfCore.PdfTextSpan> {
+            new("North", "F1", 10, 20, 600, 60),
+            new("1250", "F1", 10, 180, 600, 40)
+        };
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 250, "Account Total", headerSpans) },
+            new() { new PdfCore.TextLayoutEngine.TextLine(600, 20, 220, "North 1250", bodySpans) }
+        };
+
+        PdfCore.StructuredTable table = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static candidate => candidate.Kind == "band-group");
+
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(new[] { "Account", "Total" }, table.Rows[0]);
+        Assert.Equal(new[] { "North", "1250" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void PdfTables_AlignedSplitAccumulatorRejectsAnInvalidLaterBoundary() {
+        static PdfCore.TextLayoutEngine.TextLine Row(double y, params PdfCore.PdfTextSpan[] spans) =>
+            new(y, spans.Min(static span => span.X), spans.Max(static span => span.X + span.Advance), string.Join(" ", spans.Select(static span => span.Text)), spans.ToList());
+
+        PdfCore.TextLayoutEngine.TextLine first = Row(
+            700,
+            new PdfCore.PdfTextSpan("Region", "F1", 10, 20, 700, 115),
+            new PdfCore.PdfTextSpan("Total", "F1", 10, 160, 700, 85));
+        PdfCore.TextLayoutEngine.TextLine second = Row(
+            680,
+            new PdfCore.PdfTextSpan("North", "F1", 10, 35, 680, 120),
+            new PdfCore.PdfTextSpan("1250", "F1", 10, 180, 680, 65));
+        PdfCore.TextLayoutEngine.TextLine invalid = Row(
+            660,
+            new PdfCore.PdfTextSpan("West", "F1", 10, 50, 660, 105),
+            new PdfCore.PdfTextSpan("region", "F1", 10, 160, 660, 20),
+            new PdfCore.PdfTextSpan("1430", "F1", 10, 205, 660, 40));
+
+        var accumulator = new PdfCore.TableDetector.AlignedSplitAccumulator(2, new[] { first });
+
+        Assert.True(accumulator.TryAppend(new[] { second }, requireValidSplits: true));
+        double splitBeforeInvalidRow = Assert.Single(accumulator.GetSplits()!);
+        Assert.False(accumulator.TryAppend(new[] { invalid }, requireValidSplits: true));
+        Assert.Equal(splitBeforeInvalidRow, Assert.Single(accumulator.GetSplits()!));
     }
 
     [Fact]

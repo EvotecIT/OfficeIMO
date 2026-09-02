@@ -12,7 +12,7 @@ namespace OfficeIMO.Pdf;
 /// - Splits when gap exceeds max(2*em, 18pt)
 /// - Emits a row when at least two cells are produced and one cell is numeric-ish
 /// </summary>
-internal static class TableDetector {
+internal static partial class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
@@ -445,19 +445,17 @@ internal static class TableDetector {
             int end = k;
             var includedBridgeBandIndexes = new HashSet<int>();
             bool requiresAlignedCellSplits = false;
-            var groupedSplitLines = new List<TextLayoutEngine.TextLine>(bandSplits[start].lines);
+            var alignedSplitAccumulator = new AlignedSplitAccumulator(
+                baseSplits.Count + 1,
+                bandSplits[start].lines);
             // Extend while splits remain similar. An intervening band without
             // detectable splits is either retained as a strongly evidenced
             // spanning row or skipped when it belongs to an adjacent region.
             while (end + 1 < bandSplits.Count) {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
-                string[] nextCells = SplitBySplits(next.lines[0], baseSplits);
                 bool startsNewEmphasizedHeader = end > start &&
-                                                  next.lines.Count == 1 &&
-                                                  HasEmphasizedText(next.lines[0]) &&
-                                                  LooksLikeHeaderRow(nextCells) &&
-                                                  !LooksLikeSummaryRow(nextCells);
+                                                  LooksLikeEmphasizedHeaderBand(next.lines, next.splits);
                 if (startsNewEmphasizedHeader) {
                     break;
                 }
@@ -480,16 +478,18 @@ internal static class TableDetector {
                 if (bridgeDecision == InterveningBandDecision.Reject) {
                     break;
                 }
-                int priorSplitLineCount = groupedSplitLines.Count;
-                groupedSplitLines.AddRange(next.lines);
-                if ((hasNonLeftAlignedCells || hasContinuousAlignedCells) &&
-                    InferAlignedCellSplits(groupedSplitLines, baseSplits.Count + 1) is null) {
-                    groupedSplitLines.RemoveRange(
-                        priorSplitLineCount,
-                        groupedSplitLines.Count - priorSplitLineCount);
+                if (bridgeDecision == InterveningBandDecision.Include &&
+                    LooksLikeEmphasizedHeaderBand(bands[current.idx + 1], next.splits)) {
                     break;
                 }
-                requiresAlignedCellSplits |= hasNonLeftAlignedCells || hasContinuousAlignedCells;
+
+                bool nextRequiresAlignedCellSplits = hasNonLeftAlignedCells || hasContinuousAlignedCells;
+                if (!alignedSplitAccumulator.TryAppend(
+                    next.lines,
+                    requiresAlignedCellSplits || nextRequiresAlignedCellSplits)) {
+                    break;
+                }
+                requiresAlignedCellSplits |= nextRequiresAlignedCellSplits;
 
                 if (bridgeDecision == InterveningBandDecision.Include) {
                     includedBridgeBandIndexes.Add(current.idx + 1);
@@ -518,9 +518,15 @@ internal static class TableDetector {
                     groupLines.AddRange(bands[bandIndex]);
                 }
             }
-            List<double> effectiveSplits = requiresAlignedCellSplits
-                ? InferAlignedCellSplits(groupedSplitLines, baseSplits.Count + 1) ?? baseSplits
-                : baseSplits;
+            List<double> effectiveSplits = baseSplits;
+            if (requiresAlignedCellSplits) {
+                List<double>? alignedSplits = alignedSplitAccumulator.GetSplits();
+                if (alignedSplits is null) {
+                    k = end + 1;
+                    continue;
+                }
+                effectiveSplits = alignedSplits;
+            }
             var table = BuildTableFromLinesAndSplits(groupLines, effectiveSplits, "band-group");
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
@@ -683,32 +689,6 @@ internal static class TableDetector {
         return hasNonLeftAlignment;
     }
 
-    private static List<double>? InferAlignedCellSplits(
-        List<TextLayoutEngine.TextLine> lines,
-        int expectedColumnCount) {
-        var rows = new List<PositionedRow>();
-        for (int index = 0; index < lines.Count; index++) {
-            PositionedRow? row = TryCreatePositionedRow(lines[index]);
-            if (row != null && row.Cells.Count == expectedColumnCount) rows.Add(row);
-        }
-        if (rows.Count < 2) return null;
-
-        var splits = new List<double>(expectedColumnCount - 1);
-        for (int columnIndex = 0; columnIndex < expectedColumnCount - 1; columnIndex++) {
-            double leftEdge = rows.Max(row => row.Cells[columnIndex].To);
-            double rightEdge = rows.Min(row => row.Cells[columnIndex + 1].From);
-            if (rightEdge <= leftEdge + 1D) {
-                // Text ink may overlap the next column even though every span start remains
-                // separable. SplitBySplits assigns spans by their start coordinate, so this
-                // narrower boundary is still safe and retains prose-heavy table cells.
-                leftEdge = rows.Max(row => row.Cells[columnIndex].LastSpanStart);
-                if (rightEdge <= leftEdge + 1D) return null;
-            }
-            splits.Add(leftEdge + (rightEdge - leftEdge) / 2D);
-        }
-        return splits;
-    }
-
     private static bool HasCompatibleRowRhythm(
         List<TextLayoutEngine.TextLine> previousBand,
         TextLayoutEngine.TextLine intervening,
@@ -758,8 +738,7 @@ internal static class TableDetector {
         List<TextLayoutEngine.TextLine>? followingBodyBand = bodyBandIndex + 1 < bands.Count
             ? bands[bodyBandIndex + 1]
             : null;
-        if (!BandsHaveCompatibleVerticalGap(headerBand, bands[bodyBandIndex], followingBodyBand) ||
-            !IsCompactNonNarrativeRow(headerBand[0].Text.Trim()) ||
+        if (!IsCompactNonNarrativeRow(headerBand[0].Text.Trim()) ||
             (!BandsHaveAlignedCells(headerBand, bands[bodyBandIndex]) &&
              !HasEmphasizedText(headerBand[0]))) {
             return null;
@@ -768,6 +747,19 @@ internal static class TableDetector {
         string[] headerCells = SplitBySplits(headerBand[0], bodySplits);
         if (!LooksLikeHeaderRow(headerCells)) {
             return null;
+        }
+
+        if (!BandsHaveCompatibleVerticalGap(headerBand, bands[bodyBandIndex], followingBodyBand)) {
+            var twoRowLines = new List<TextLayoutEngine.TextLine>(headerBand.Count + bands[bodyBandIndex].Count);
+            twoRowLines.AddRange(headerBand);
+            twoRowLines.AddRange(bands[bodyBandIndex]);
+            StructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
+                twoRowLines,
+                bodySplits,
+                "band-group");
+            if (twoRowTable is null || !HasStrongTwoRowEvidence(twoRowTable, twoRowLines)) {
+                return null;
+            }
         }
 
         return headerBand;
@@ -792,9 +784,29 @@ internal static class TableDetector {
     private static bool LooksLikeSummaryRow(string[] cells) {
         if (cells.Length < 2) return false;
         string label = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
-        if (!HasSpanningRowQualifier(label)) return false;
+        if (!LooksLikeSummaryLabel(label)) return false;
         return cells.Skip(1).Any(static cell => IsTabularValue(
             ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+    }
+
+    private static bool LooksLikeSummaryLabel(string label) {
+        string value = label.Trim().TrimEnd(':').Trim();
+        return value.Equals("total", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("totals", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("subtotal", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("sub total", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" total", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" totals", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" subtotal", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" sub total", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeEmphasizedHeaderBand(
+        List<TextLayoutEngine.TextLine> band,
+        List<double> splits) {
+        if (band.Count != 1 || splits.Count == 0 || !HasEmphasizedText(band[0])) return false;
+        string[] cells = SplitBySplits(band[0], splits);
+        return LooksLikeHeaderRow(cells) && !LooksLikeSummaryRow(cells);
     }
 
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {
