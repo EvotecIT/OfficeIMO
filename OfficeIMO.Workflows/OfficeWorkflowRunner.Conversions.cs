@@ -28,7 +28,8 @@ public sealed partial class OfficeWorkflowRunner {
         byte[] input,
         List<OfficeWorkflowDiagnostic> diagnostics,
         CancellationToken cancellationToken,
-        bool emitHtmlTaggedStructure = true) {
+        bool emitHtmlTaggedStructure = true,
+        IReadOnlyDictionary<string, byte[]>? htmlResourceSnapshots = null) {
         ArgumentNullException.ThrowIfNull(input);
         OfficeWorkflowRoute route = request.Route!;
         cancellationToken.ThrowIfCancellationRequested();
@@ -73,7 +74,8 @@ public sealed partial class OfficeWorkflowRunner {
                 long remainingInputBytes = Math.Max(0L, request.Limits.MaximumInputBytes - input.LongLength);
                 HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(
                     request.InputPath,
-                    remainingInputBytes);
+                    remainingInputBytes,
+                    htmlResourceSnapshots);
                 if (!emitHtmlTaggedStructure) {
                     options.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
                 }

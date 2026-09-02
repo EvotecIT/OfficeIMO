@@ -266,18 +266,56 @@ public sealed partial class OfficeWorkflowRunner {
                              .ThenBy(static path => path, StringComparer.Ordinal)) {
                     if (IsAssemblyOutputCandidate(file, request.OutputPath, request.ConflictPolicy)) continue;
                     if (dependencyDiscovery.Paths.Contains(Path.GetFullPath(file))) continue;
-                    AddDiscoveredSource(file, input, discovered: true, physicalRoot);
+                    AddDiscoveredSource(file, input, discovered: true, physicalRoot, dependencyDiscovery.Snapshots);
                 }
             } else {
-                string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(Path.GetDirectoryName(input)!);
-                AddDiscoveredSource(input, input, discovered: false, physicalRoot);
+                string sourceDirectory = Path.GetDirectoryName(input)!;
+                string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(sourceDirectory);
+                IReadOnlyDictionary<string, byte[]>? dependencySnapshots = null;
+                string extension = Path.GetExtension(input);
+                if (string.Equals(extension, ".html", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase)) {
+                    StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(sourceDirectory);
+                    string fullInputPath = Path.GetFullPath(input);
+                    var dependencyCandidates = new List<string> { fullInputPath };
+                    try {
+                        foreach (string file in Directory.EnumerateFiles(sourceDirectory, "*", new EnumerationOptions {
+                                     RecurseSubdirectories = true,
+                                     IgnoreInaccessible = false,
+                                     AttributesToSkip = FileAttributes.ReparsePoint,
+                                     ReturnSpecialDirectories = false
+                                 })) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            string fullPath = Path.GetFullPath(file);
+                            if (pathComparer.Equals(fullPath, fullInputPath)) continue;
+                            CountDiscoveredEntry();
+                            if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath)) dependencyCandidates.Add(fullPath);
+                        }
+                    } catch (UnauthorizedAccessException ex) {
+                        throw new IOException("An HTML source folder could not be enumerated safely: " + sourceDirectory, ex);
+                    }
+                    HtmlDependencyDiscovery dependencyDiscovery = FindReferencedHtmlDependencies(
+                        dependencyCandidates,
+                        physicalRoot,
+                        request.Limits.MaximumInputBytes,
+                        pathComparer,
+                        cancellationToken);
+                    AddInputBytes(dependencyDiscovery.TotalBytes);
+                    dependencySnapshots = dependencyDiscovery.Snapshots;
+                }
+                AddDiscoveredSource(input, input, discovered: false, physicalRoot, dependencySnapshots);
             }
         }
         if (sources.Count == 0) throw new InvalidOperationException("No supported documents were found in the requested sources.");
         inputBytes = expandedInputBytes;
         return sources;
 
-        void AddDiscoveredSource(string path, string origin, bool discovered, string physicalRoot) {
+        void AddDiscoveredSource(
+            string path,
+            string origin,
+            bool discovered,
+            string physicalRoot,
+            IReadOnlyDictionary<string, byte[]>? dependencySnapshots = null) {
             cancellationToken.ThrowIfCancellationRequested();
             string extension = Path.GetExtension(path);
             if (string.Equals(extension, ".zip", StringComparison.OrdinalIgnoreCase)) {
@@ -289,7 +327,7 @@ public sealed partial class OfficeWorkflowRunner {
                 if (discovered && request.Options.IgnoreDiscoveredUnsupportedFiles) return;
                 throw new NotSupportedException("No PDF assembly intake route is available for '" + path + "'.");
             }
-            Add(CaptureSource(path, origin, Path.GetFileName(path), kind, route, physicalRoot));
+            Add(CaptureSource(path, origin, Path.GetFileName(path), kind, route, physicalRoot, dependencySnapshots));
         }
 
         void ExpandArchive(string archivePath, string origin, int index, string physicalRoot) {
@@ -404,7 +442,11 @@ public sealed partial class OfficeWorkflowRunner {
                 }
             }
             foreach (AssemblySource source in archiveSources) {
-                if (!dependencyDiscovery.Paths.Contains(Path.GetFullPath(source.Path))) Add(source);
+                if (!dependencyDiscovery.Paths.Contains(Path.GetFullPath(source.Path))) {
+                    Add(string.Equals(source.Route?.Id, "html-pdf", StringComparison.Ordinal)
+                        ? source with { HtmlDependencySnapshots = dependencyDiscovery.Snapshots }
+                        : source);
+                }
             }
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "ArchiveExpanded",
@@ -439,7 +481,8 @@ public sealed partial class OfficeWorkflowRunner {
             string displayName,
             AssemblySourceKind kind,
             OfficeWorkflowRoute? route,
-            string physicalRoot) {
+            string physicalRoot,
+            IReadOnlyDictionary<string, byte[]>? dependencySnapshots = null) {
             using FileStream stream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
                 path,
                 physicalRoot,
@@ -448,7 +491,9 @@ public sealed partial class OfficeWorkflowRunner {
             EnforceInputLimit(path, size, request.Limits);
             string identity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
             string contentSha256 = ComputeAssemblySourceSha256(stream, cancellationToken);
-            return new AssemblySource(path, origin, displayName, kind, route, size, physicalRoot, identity, contentSha256);
+            IReadOnlyDictionary<string, byte[]>? htmlDependencySnapshots =
+                string.Equals(route?.Id, "html-pdf", StringComparison.Ordinal) ? dependencySnapshots : null;
+            return new AssemblySource(path, origin, displayName, kind, route, size, physicalRoot, identity, contentSha256, htmlDependencySnapshots);
         }
 
         void CountDiscoveredEntry() {
@@ -483,6 +528,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         var referenced = new HashSet<string>(pathComparer);
+        var snapshots = new Dictionary<string, byte[]>(pathComparer);
         long referencedBytes = 0L;
         var pendingStylesheets = new Queue<string>();
         var processedStylesheets = new HashSet<string>(pathComparer);
@@ -497,7 +543,7 @@ public sealed partial class OfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             string stylesheetPath = pendingStylesheets.Dequeue();
             if (!processedStylesheets.Add(stylesheetPath)) continue;
-            byte[] cssBytes = ReadDependencyBytes(stylesheetPath);
+            byte[] cssBytes = snapshots[stylesheetPath];
             using var source = new MemoryStream(cssBytes, writable: false);
             using var reader = new StreamReader(source, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
@@ -506,7 +552,7 @@ public sealed partial class OfficeWorkflowRunner {
                 new HtmlResourcePipelineOptions { ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy() });
             AddManifestReferences(manifest, pendingStylesheets);
         }
-        return new HtmlDependencyDiscovery(referenced, referencedBytes);
+        return new HtmlDependencyDiscovery(referenced, snapshots, referencedBytes);
 
         byte[] ReadDependencyBytes(string path) {
             using FileStream stream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
@@ -531,19 +577,13 @@ public sealed partial class OfficeWorkflowRunner {
                 string fullPath = Path.GetFullPath(uri.LocalPath);
                 if (!candidates.TryGetValue(fullPath, out string? candidate)) continue;
                 if (referenced.Add(candidate)) {
-                    using FileStream dependencyStream = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
-                        candidate,
-                        physicalRoot,
-                        AssemblyInputBufferSize);
-                    if (dependencyStream.Length > maximumInputBytes) {
-                        throw new InvalidOperationException(
-                            $"Input '{Path.GetFileName(candidate)}' is {dependencyStream.Length:N0} bytes, above the configured {maximumInputBytes:N0}-byte limit.");
-                    }
-                    referencedBytes = checked(referencedBytes + dependencyStream.Length);
+                    byte[] snapshot = ReadDependencyBytes(candidate);
+                    referencedBytes = checked(referencedBytes + snapshot.LongLength);
                     if (referencedBytes > maximumInputBytes) {
                         throw new InvalidOperationException(
                             $"Referenced HTML dependencies total {referencedBytes:N0} bytes, above the configured {maximumInputBytes:N0}-byte limit.");
                     }
+                    snapshots[candidate] = snapshot;
                 }
                 if (resource.Kind == HtmlResourceKind.Stylesheet &&
                     string.Equals(Path.GetExtension(candidate), ".css", StringComparison.OrdinalIgnoreCase)) {
@@ -556,7 +596,10 @@ public sealed partial class OfficeWorkflowRunner {
             kind is HtmlResourceKind.Image or HtmlResourceKind.Stylesheet or HtmlResourceKind.Font;
     }
 
-    private sealed record HtmlDependencyDiscovery(HashSet<string> Paths, long TotalBytes);
+    private sealed record HtmlDependencyDiscovery(
+        HashSet<string> Paths,
+        IReadOnlyDictionary<string, byte[]> Snapshots,
+        long TotalBytes);
 
     private static bool IsAssemblyOutputCandidate(
         string path,
@@ -644,7 +687,8 @@ public sealed partial class OfficeWorkflowRunner {
                     input,
                     diagnostics,
                     cancellationToken,
-                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf");
+                    emitHtmlTaggedStructure: source.Route?.Id != "html-pdf",
+                    htmlResourceSnapshots: source.HtmlDependencySnapshots);
                 if (artifact.Bytes == null) throw new InvalidOperationException("An Office input did not produce PDF bytes.");
                 AddAssemblySourceDiagnostic(source, "Office document normalized to PDF", diagnostics);
                 return PdfDocument.Load(artifact.Bytes, conversionRequest.OutputPdfLoadOptions);
@@ -745,7 +789,8 @@ public sealed partial class OfficeWorkflowRunner {
         long SizeBytes,
         string PhysicalRoot,
         string PhysicalIdentityKey,
-        string ContentSha256);
+        string ContentSha256,
+        IReadOnlyDictionary<string, byte[]>? HtmlDependencySnapshots);
 
     private sealed record ValidatedAssemblyRequest(
         string Id,

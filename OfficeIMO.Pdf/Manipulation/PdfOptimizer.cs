@@ -399,7 +399,7 @@ internal static partial class PdfOptimizer {
 
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, string trailerIdEntry, PdfOptimizationOptions options) {
         if (options.Linearize) {
-            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf, trailerIdEntry);
+            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf, trailerIdEntry, options);
         }
 
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();

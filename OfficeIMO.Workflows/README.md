@@ -4,10 +4,12 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
-## Install
+## Reference from source
 
-```shell
-dotnet add package OfficeIMO.Workflows --version 3.3.0
+`OfficeIMO.Workflows` is new in this development line and does not yet have a published NuGet version. Until its first package release is available, reference the project from an OfficeIMO source checkout:
+
+```xml
+<ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
 ```
 
 ## Convert a document

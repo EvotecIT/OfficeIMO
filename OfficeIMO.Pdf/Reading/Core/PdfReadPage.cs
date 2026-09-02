@@ -81,14 +81,16 @@ public sealed partial class PdfReadPage {
 
     internal (double Width, double Height) GetVisualPageSize() {
         PdfPageBox pageBox = GetPageBoundaryBox();
-        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees());
+        return PdfVisualCoordinateMapper.GetVisualSize(pageBox, GetRotationDegrees(), GetEffectiveUserUnit());
     }
 
     internal Matrix2D GetVisualPageTransform() =>
-        PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees());
+        PdfVisualCoordinateMapper.CreateTransform(GetPageBoundaryBox(), GetRotationDegrees(), GetEffectiveUserUnit());
 
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
-        PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top);
+        PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top, GetEffectiveUserUnit());
+
+    private double GetEffectiveUserUnit() => TryReadDirectPositiveNumber("UserUnit") ?? 1D;
 
     internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();
 

@@ -92,6 +92,31 @@ public class PdfPageInteractionMapTests {
     }
 
     [Fact]
+    public void InteractionMap_ScalesImageGeometryByUserUnit() {
+        const string content = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /UserUnit 2 /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.Equal(400D, map.Width, 3);
+        Assert.Equal(400D, map.Height, 3);
+        Assert.Equal(0D, image.Quad.Left, 3);
+        Assert.Equal(200D, image.Quad.Right, 3);
+        Assert.Equal(200D, image.Quad.Top, 3);
+        Assert.Equal(400D, image.Quad.Bottom, 3);
+        Assert.Contains(image, map.HitTest(100D, 300D));
+    }
+
+    [Fact]
     public void InteractionMap_ProjectsImageThroughCropAndPageRotation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Rotated image interaction"))

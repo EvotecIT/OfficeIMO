@@ -13,7 +13,10 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     internal static bool IsSupportedDependency(string path) =>
         SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
-    internal static HtmlPdfSaveOptions CreateOptions(string inputPath, long maximumResourceBytes) {
+    internal static HtmlPdfSaveOptions CreateOptions(
+        string inputPath,
+        long maximumResourceBytes,
+        IReadOnlyDictionary<string, byte[]>? resourceSnapshots = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) {
             throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         }
@@ -34,7 +37,7 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         };
         options.ResourcePolicy.AllowLocalFileAccess = true;
         options.ResourceResolver = (request, cancellationToken) =>
-            ResolveAsync(request, physicalRoot, maximumResourceBytes, cancellationToken);
+            ResolveAsync(request, physicalRoot, maximumResourceBytes, resourceSnapshots, cancellationToken);
         return options;
     }
 
@@ -56,6 +59,7 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         HtmlRenderResourceRequest request,
         string physicalRoot,
         long maximumResourceBytes,
+        IReadOnlyDictionary<string, byte[]>? resourceSnapshots,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (!request.Uri.IsFile || request.Kind == HtmlResourceKind.Hyperlink || request.Kind == HtmlResourceKind.Script) {
@@ -63,6 +67,16 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         }
         if (maximumResourceBytes <= 0L) {
             return Task.FromResult<HtmlResolvedResource?>(null);
+        }
+
+        if (resourceSnapshots is not null) {
+            string fullPath = Path.GetFullPath(request.Uri.LocalPath);
+            if (!resourceSnapshots.TryGetValue(fullPath, out byte[]? snapshot) ||
+                snapshot.Length == 0 ||
+                snapshot.LongLength > maximumResourceBytes) {
+                return Task.FromResult<HtmlResolvedResource?>(null);
+            }
+            return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(snapshot, GetContentType(request)));
         }
 
         try {
