@@ -77,17 +77,19 @@ public sealed class PdfRedactionPlan {
                 .Where(area => area.PageNumber == pageNumber)
                 .ToArray();
             var identity = new System.Text.StringBuilder();
+            IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects = page.GetIdentityGraphicsEffectTransitions();
             identity.Append(string.Join("|", new[] {
                 page.GetRotationDegrees().ToString(System.Globalization.CultureInfo.InvariantCulture),
                 FormatPageBoxIdentity(geometry.MediaBox),
                 FormatPageBoxIdentity(geometry.CropBox),
                 geometry.UserUnit?.ToString("R", System.Globalization.CultureInfo.InvariantCulture) ?? "null"
             }));
-            AppendUnredactedTextIdentity(identity, page, pageAreas);
-            AppendUnredactedPathIdentity(identity, page, pageAreas);
-            AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas);
+            AppendUnredactedTextIdentity(identity, document, page, pageAreas, drawingEffects);
+            AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
+            AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
             AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
+            AppendPageRenderingResourceIdentity(identity, document, page);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
@@ -96,8 +98,10 @@ public sealed class PdfRedactionPlan {
 
     private static void AppendUnredactedTextIdentity(
         System.Text.StringBuilder identity,
+        PdfReadDocument document,
         PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfRedactionArea> pageAreas,
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpans();
         var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
         for (int i = 0; i < spans.Count; i++) {
@@ -122,16 +126,54 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(span.RotationDegrees))
                 .Append(',').Append(span.IsVisible ? '1' : '0')
                 .Append(',').Append(span.TextRenderingMode);
+            if (span.TextToPageTransform.HasValue) {
+                Matrix2D transform = span.TextToPageTransform.Value;
+                identity.Append(":tm:").Append(FormatIdentityNumber(transform.A))
+                    .Append(',').Append(FormatIdentityNumber(transform.B))
+                    .Append(',').Append(FormatIdentityNumber(transform.C))
+                    .Append(',').Append(FormatIdentityNumber(transform.D))
+                    .Append(',').Append(FormatIdentityNumber(transform.E))
+                    .Append(',').Append(FormatIdentityNumber(transform.F));
+            }
             AppendIdentityString(identity, span.BaseFont ?? span.DrawingFontFamily ?? span.FontResource);
             AppendIdentityColor(identity, span.Color);
+            AppendIdentityString(identity, span.VisualPaintIdentity);
             PdfRedactionImageIdentity.AppendClip(identity, span.ClipPath);
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, span.PaintOrder, contentOrderKey: span.ContentOrderKey));
+        }
+    }
+
+    private static void AppendPageRenderingResourceIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadDocument document,
+        PdfReadPage page) {
+        PdfDictionary? current = page.PageDictionary;
+        var visited = new HashSet<int>();
+        while (current != null) {
+            if (current.Items.TryGetValue("Resources", out PdfObject? resourcesObject) &&
+                PdfObjectLookup.TryResolveReferenceChain(document.Objects, resourcesObject, out PdfObject? resolvedResources) &&
+                resolvedResources is PdfDictionary resources) {
+                identity.Append("|R:Font:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects);
+                identity.Append("|R:ExtGState:");
+                PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
+                break;
+            }
+            if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
+                parentObject is not PdfReference parent ||
+                !visited.Add(parent.ObjectNumber) ||
+                !PdfObjectLookup.TryGet(document.Objects, parent, out PdfIndirectObject? parentIndirect) ||
+                parentIndirect.Value is not PdfDictionary parentDictionary) return;
+            current = parentDictionary;
         }
     }
 
     private static void AppendUnredactedPathIdentity(
         System.Text.StringBuilder identity,
+        PdfReadDocument document,
         PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfRedactionArea> pageAreas,
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfPageVisualPrimitive> primitives = page.GetIdentityVisualPrimitives();
         PdfVisualBounds[] visualAreas = pageAreas
             .Select(area => page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top))
@@ -156,6 +198,8 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(primitive.Y2))
                 .Append(':').Append(FormatIdentityNumber(primitive.StrokeWidth))
                 .Append(':').Append((int)primitive.StrokeDashStyle)
+                .Append(':').Append(primitive.StrokeLineCap.HasValue ? ((int)primitive.StrokeLineCap.Value).ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")
+                .Append(':').Append(primitive.StrokeLineJoin.HasValue ? ((int)primitive.StrokeLineJoin.Value).ToString(System.Globalization.CultureInfo.InvariantCulture) : "null")
                 .Append(':').Append((int)primitive.FillRule)
                 .Append(':').Append(primitive.FillOpacity.HasValue ? FormatIdentityNumber(primitive.FillOpacity.Value) : "null")
                 .Append(':').Append(primitive.StrokeOpacity.HasValue ? FormatIdentityNumber(primitive.StrokeOpacity.Value) : "null");
@@ -179,7 +223,46 @@ public sealed class PdfRedactionPlan {
                     .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.X))
                     .Append(',').Append(FormatIdentityNumber(command.ControlPoint2.Y));
             }
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, primitive.PaintOrder, contentOrderKey: primitive.ContentOrderKey));
         }
+    }
+
+    private static void AppendDrawingEffectIdentity(
+        System.Text.StringBuilder identity,
+        PdfReadDocument document,
+        PdfPageDrawingEffect effect) {
+        identity.Append(":effect:")
+            .Append((int)effect.BlendMode)
+            .Append(',').Append(effect.HasBlendMode ? '1' : '0')
+            .Append(',').Append(effect.HasSoftMask ? '1' : '0')
+            .Append(',').Append((int)effect.RenderingIntent)
+            .Append(',').Append(effect.HasRenderingIntent ? '1' : '0');
+        if (effect.SoftMask == null) {
+            identity.Append(":smask:null");
+            return;
+        }
+        PdfPageSoftMaskResource softMask = effect.SoftMask;
+        identity.Append(":smask:")
+            .Append((int)softMask.Mode)
+            .Append(',').Append(softMask.HasByteExactBackdrop ? '1' : '0')
+            .Append(',').Append(softMask.IsIsolated ? '1' : '0')
+            .Append(',').Append(softMask.HasExplicitGroupColorSpace ? '1' : '0');
+        AppendIdentityColor(identity, softMask.BackdropColor);
+        if (effect.SoftMaskTransform.HasValue) {
+            Matrix2D transform = effect.SoftMaskTransform.Value;
+            identity.Append(":matrix:").Append(FormatIdentityNumber(transform.A))
+                .Append(',').Append(FormatIdentityNumber(transform.B))
+                .Append(',').Append(FormatIdentityNumber(transform.C))
+                .Append(',').Append(FormatIdentityNumber(transform.D))
+                .Append(',').Append(FormatIdentityNumber(transform.E))
+                .Append(',').Append(FormatIdentityNumber(transform.F));
+        } else {
+            identity.Append(":matrix:null");
+        }
+        identity.Append(":group:");
+        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.Group, document.Objects);
+        identity.Append(":resources:");
+        PdfRedactionImageIdentity.AppendObjectGraph(identity, softMask.ParentResources, document.Objects);
     }
 
     private static void AppendIdentityTilingPattern(
@@ -288,7 +371,8 @@ public sealed class PdfRedactionPlan {
         PdfReadDocument document,
         PdfReadPage page,
         int pageNumber,
-        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfRedactionArea> pageAreas,
+        IReadOnlyList<PdfPageDrawingEffectTransition> drawingEffects) {
         IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
         for (int i = 0; i < placements.Count; i++) {
             PdfImagePlacement placement = placements[i];
@@ -311,6 +395,7 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(placement.E))
                 .Append(',').Append(FormatIdentityNumber(placement.F));
             PdfRedactionImageIdentity.Append(identity, placement, imageStream, document.Objects);
+            AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, placement.PaintOrder, contentOrderKey: placement.ContentOrderKey));
         }
     }
 
@@ -336,6 +421,7 @@ public sealed class PdfRedactionPlan {
             AppendIdentityString(identity, annotation.ActionType);
             identity.Append(':').Append(annotation.Flags?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
                 .Append(':').Append(annotation.HasNormalAppearance ? '1' : '0');
+            AppendIdentityString(identity, annotation.AppearanceState);
             AppendIdentityString(identity, annotation.DefaultAppearance);
             AppendIdentityString(identity, annotation.DefaultStyle);
             AppendIdentityString(identity, annotation.RichContents);

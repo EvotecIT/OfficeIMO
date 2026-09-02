@@ -999,7 +999,14 @@ internal static class TextContentParser {
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
                     GetActiveMcid(),
                     currentContentStreamObjectNumber,
-                    currentTextObjectOrderKey));
+                    currentTextObjectOrderKey,
+                    Matrix2D.Multiply(ctm, textMatrix),
+                    string.Join(",", new[] {
+                        fillColor.R.ToString(CultureInfo.InvariantCulture), fillColor.G.ToString(CultureInfo.InvariantCulture), fillColor.B.ToString(CultureInfo.InvariantCulture), fillColor.A.ToString(CultureInfo.InvariantCulture),
+                        strokeColor.R.ToString(CultureInfo.InvariantCulture), strokeColor.G.ToString(CultureInfo.InvariantCulture), strokeColor.B.ToString(CultureInfo.InvariantCulture), strokeColor.A.ToString(CultureInfo.InvariantCulture),
+                        fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
+                        ((int)blendMode).ToString(CultureInfo.InvariantCulture), hasSoftMask ? "1" : "0", hasUnsupportedEffect ? "1" : "0"
+                    })));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

@@ -779,6 +779,11 @@ public sealed partial class PdfReadPage {
         return transitions.Count == 0 ? Array.Empty<PdfPageDrawingEffectTransition>() : transitions.AsReadOnly();
     }
 
+    internal IReadOnlyList<PdfPageDrawingEffectTransition> GetIdentityGraphicsEffectTransitions() {
+        (double _, double pageHeight) = GetVisualPageSize();
+        return GetGraphicsEffectTransitions(GetVisualPageTransform(), pageHeight);
+    }
+
     private void CollectGraphicsEffectTransitions(
         string content,
         PdfDictionary? resources,
@@ -919,7 +924,7 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private static PdfPageDrawingEffect ResolveDrawingEffect(
+    internal static PdfPageDrawingEffect ResolveDrawingEffect(
         IReadOnlyList<PdfPageDrawingEffectTransition> transitions,
         double paintOrder,
         PdfPageDrawingEffect? initial = null,

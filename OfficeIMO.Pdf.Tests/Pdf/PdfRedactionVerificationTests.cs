@@ -121,6 +121,34 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedTextStrokePaint() {
+        AssertPlanIdentityChanged(
+            BuildTextVisualIdentityPdf("1 0 0 RG 2 Tr", "1 0 0 1 20 100"),
+            BuildTextVisualIdentityPdf("0 0 1 RG 2 Tr", "1 0 0 1 20 100"));
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedTextStrokeOpacity() {
+        AssertPlanIdentityChanged(
+            BuildTextOpacityIdentityPdf("GS1"),
+            BuildTextOpacityIdentityPdf("GS2"));
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedTextTransform() {
+        AssertPlanIdentityChanged(
+            BuildTextVisualIdentityPdf("0 g", "1 0 0 1 20 100"),
+            BuildTextVisualIdentityPdf("0 g", "1 0.15 0.2 1 20 100"));
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedFontProgramGraph() {
+        AssertPlanIdentityChanged(
+            BuildEmbeddedFontIdentityPdf("source-font-program"),
+            BuildEmbeddedFontIdentityPdf("changed-font-program"));
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsChangedUnredactedVectorClip() {
         byte[] source = BuildVectorClipIdentityPdf("10 10 100 100 re W n");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
@@ -135,6 +163,28 @@ public class PdfRedactionVerificationTests {
 
         Assert.False(report.IsVerified);
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Theory]
+    [InlineData("0 J 0 j", "2 J 0 j")]
+    [InlineData("0 J 0 j", "0 J 2 j")]
+    public void AppliedPlanVerificationRejectsChangedUnredactedVectorLineStyle(
+        string sourceStyle,
+        string rewrittenStyle) {
+        AssertPlanIdentityChanged(
+            BuildVectorStyleIdentityPdf(sourceStyle),
+            BuildVectorStyleIdentityPdf(rewrittenStyle));
+    }
+
+    [Theory]
+    [InlineData("GS1", "GS2")]
+    [InlineData("GS3", "GS4")]
+    public void AppliedPlanVerificationRejectsChangedUnredactedGraphicsEffectSelection(
+        string sourceState,
+        string rewrittenState) {
+        AssertPlanIdentityChanged(
+            BuildVectorEffectIdentityPdf(sourceState),
+            BuildVectorEffectIdentityPdf(rewrittenState));
     }
 
     [Theory]
@@ -194,6 +244,13 @@ public class PdfRedactionVerificationTests {
 
         Assert.False(report.IsVerified);
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedAnnotationAppearanceState() {
+        AssertPlanIdentityChanged(
+            BuildAnnotationAppearanceIdentityPdf("1 0 0 rg", "/AS /On"),
+            BuildAnnotationAppearanceIdentityPdf("1 0 0 rg", "/AS /Off"));
     }
 
     [Fact]
@@ -974,6 +1031,47 @@ public class PdfRedactionVerificationTests {
         }));
     }
 
+    private static byte[] BuildTextVisualIdentityPdf(string paintOperators, string textMatrix) {
+        string content = $"BT /F1 12 Tf {paintOperators} {textMatrix} Tm (Visible text) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildEmbeddedFontIdentityPdf(string fontProgram) {
+        const string content = "BT /F1 12 Tf 20 100 Td (Visible text) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FontDescriptor 6 0 R >>", "endobj",
+            "6 0 obj", "<< /Type /FontDescriptor /FontName /Helvetica /Flags 32 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile 7 0 R >>", "endobj",
+            "7 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(fontProgram).ToString(CultureInfo.InvariantCulture)} >>", "stream", fontProgram, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildTextOpacityIdentityPdf(string selectedState) {
+        string content = $"/{selectedState} gs BT /F1 12 Tf 2 Tr 20 100 Td (Visible text) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GS1 << /CA 0.25 >> /GS2 << /CA 0.75 >> >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
     private static byte[] BuildRotatedTextIdentityPdf() {
         const string content = "BT /F1 12 Tf 0 1 -1 0 100 40 Tm (VERTICAL) Tj ET";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
@@ -996,6 +1094,34 @@ public class PdfRedactionVerificationTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
             "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildVectorStyleIdentityPdf(string styleOperators) {
+        string content = $"q {styleOperators} 1 0 0 RG 4 w 20 20 80 60 re S Q";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildVectorEffectIdentityPdf(string selectedState) {
+        string content = $"q /{selectedState} gs 1 0 0 rg 20 20 80 60 re f Q";
+        const string maskOne = "0 g 0 0 20 20 re f";
+        const string maskTwo = "1 g 0 0 20 20 re f";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /ExtGState << /GS1 << /BM /Multiply >> /GS2 << /BM /Screen >> /GS3 << /SMask << /S /Alpha /G 5 0 R >> >> /GS4 << /SMask << /S /Alpha /G 6 0 R >> >> >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Length {Encoding.ASCII.GetByteCount(maskOne).ToString(CultureInfo.InvariantCulture)} >>", "stream", maskOne, "endstream", "endobj",
+            "6 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Group << /S /Transparency >> /Length {Encoding.ASCII.GetByteCount(maskTwo).ToString(CultureInfo.InvariantCulture)} >>", "stream", maskTwo, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));
     }
 
@@ -1079,6 +1205,20 @@ public class PdfRedactionVerificationTests {
             "%%EOF"
         }) + "\n";
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static void AssertPlanIdentityChanged(byte[] source, byte[] rewritten) {
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 20D, 10D, 10D, "reviewed blank area")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
     private static byte[] BuildRepeatedSimpleFlateImageRedactionSource() {

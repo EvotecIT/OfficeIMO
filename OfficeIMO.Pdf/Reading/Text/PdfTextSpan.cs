@@ -46,24 +46,26 @@ public sealed class PdfTextSpan {
     internal bool CanScaleAggregateAdvance { get; }
     internal double RestampFontSize { get; }
     internal string RestampText { get; }
+    internal Matrix2D? TextToPageTransform { get; }
+    internal string? VisualPaintIdentity { get; }
     /// <summary>Creates a new text span.</summary>
     public PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance = 0, OfficeColor? color = null, bool isVisible = true, double rotationDegrees = 0D, string? baseFont = null)
         : this(text, fontResource, fontSize, x, y, advance, color, isVisible, rotationDegrees, baseFont, null) {
     }
 
-    internal PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance, OfficeColor? color, bool isVisible, double rotationDegrees, string? baseFont, PdfPageClipPath? clipPath, double paintOrder = 0D, string? drawingFontFamily = null, int logicalLineBreaksBefore = 0, bool logicalLeadingSpace = false, bool logicalTrailingSpace = false, PdfContentOrderKey? contentOrderKey = null, IReadOnlyList<double>? characterAdvances = null, int textRenderingMode = 0, bool canRestamp = true, double? restampFontSize = null, string? restampText = null, bool canScaleAggregateAdvance = true, int? markedContentId = null, int? contentStreamObjectNumber = null, PdfContentOrderKey? textObjectOrderKey = null) {
-        Text = text; FontResource = fontResource; BaseFont = baseFont; FontSize = fontSize; X = x; Y = y; Advance = advance; Color = color; IsVisible = isVisible; RotationDegrees = rotationDegrees; MarkedContentId = markedContentId; ContentStreamObjectNumber = contentStreamObjectNumber; ClipPath = clipPath; PaintOrder = paintOrder; DrawingFontFamily = drawingFontFamily; LogicalLineBreaksBefore = logicalLineBreaksBefore; LogicalLeadingSpace = logicalLeadingSpace; LogicalTrailingSpace = logicalTrailingSpace; ContentOrderKey = contentOrderKey; TextObjectOrderKey = textObjectOrderKey; CharacterAdvances = characterAdvances?.ToArray(); TextRenderingMode = textRenderingMode; CanRestamp = canRestamp; CanScaleAggregateAdvance = canScaleAggregateAdvance; RestampFontSize = restampFontSize ?? fontSize; RestampText = restampText ?? text;
+    internal PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance, OfficeColor? color, bool isVisible, double rotationDegrees, string? baseFont, PdfPageClipPath? clipPath, double paintOrder = 0D, string? drawingFontFamily = null, int logicalLineBreaksBefore = 0, bool logicalLeadingSpace = false, bool logicalTrailingSpace = false, PdfContentOrderKey? contentOrderKey = null, IReadOnlyList<double>? characterAdvances = null, int textRenderingMode = 0, bool canRestamp = true, double? restampFontSize = null, string? restampText = null, bool canScaleAggregateAdvance = true, int? markedContentId = null, int? contentStreamObjectNumber = null, PdfContentOrderKey? textObjectOrderKey = null, Matrix2D? textToPageTransform = null, string? visualPaintIdentity = null) {
+        Text = text; FontResource = fontResource; BaseFont = baseFont; FontSize = fontSize; X = x; Y = y; Advance = advance; Color = color; IsVisible = isVisible; RotationDegrees = rotationDegrees; MarkedContentId = markedContentId; ContentStreamObjectNumber = contentStreamObjectNumber; ClipPath = clipPath; PaintOrder = paintOrder; DrawingFontFamily = drawingFontFamily; LogicalLineBreaksBefore = logicalLineBreaksBefore; LogicalLeadingSpace = logicalLeadingSpace; LogicalTrailingSpace = logicalTrailingSpace; ContentOrderKey = contentOrderKey; TextObjectOrderKey = textObjectOrderKey; CharacterAdvances = characterAdvances?.ToArray(); TextRenderingMode = textRenderingMode; CanRestamp = canRestamp; CanScaleAggregateAdvance = canScaleAggregateAdvance; RestampFontSize = restampFontSize ?? fontSize; RestampText = restampText ?? text; TextToPageTransform = textToPageTransform; VisualPaintIdentity = visualPaintIdentity;
     }
 
     internal PdfTextSpan WithCanRestamp(bool canRestamp) => new PdfTextSpan(
         Text, FontResource, FontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey);
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, canRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity);
 
     internal PdfTextSpan WithOffset(double deltaX, double deltaY) => new PdfTextSpan(
         Text, FontResource, FontSize, X + deltaX, Y + deltaY, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
-        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey);
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity);
 
     internal bool CanProjectCompleteText(double? pageHeight) {
         if (!IsVisible || string.IsNullOrEmpty(Text)) return false;
