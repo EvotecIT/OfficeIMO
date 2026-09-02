@@ -20,20 +20,30 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     public const int MaximumBatchRequestCount = 250;
 
     /// <summary>Runs one workflow request.</summary>
-    public async Task<OfficeWorkflowResult> RunAsync(
+    public Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        return RunPreparedAsync(PrepareRequest(request), progress, cancellationToken);
+    }
+
+    private async Task<OfficeWorkflowResult> RunPreparedAsync(
+        PreparedRequest prepared,
+        IProgress<OfficeWorkflowProgress>? progress,
+        CancellationToken cancellationToken) {
         var stopwatch = Stopwatch.StartNew();
         var diagnostics = new List<OfficeWorkflowDiagnostic>();
         long inputBytes = 0;
         string? stagingPath = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
-        ValidatedRequest? validated = null;
+        ValidatedRequest? validated = prepared.Validated;
 
         try {
-            validated = ValidateRequest(request);
+            if (prepared.ValidationException != null) throw prepared.ValidationException;
+            if (validated == null) {
+                throw new InvalidOperationException("The prepared workflow request is missing validated data.");
+            }
             failureStage = WorkflowFailureStage.Input;
             Report(progress, validated.Id, "validate", "Validating input and workflow limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
@@ -124,8 +134,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new OfficeWorkflowResult(
-                validated?.Id ?? request.Id,
-                validated?.Operation ?? request.Operation,
+                validated?.Id ?? prepared.Id,
+                validated?.Operation ?? prepared.Operation,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
                 outputPath: null,
@@ -144,8 +154,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     ["exceptionType"] = ex.GetType().Name
                 }));
             return new OfficeWorkflowResult(
-                validated?.Id ?? request.Id,
-                validated?.Operation ?? request.Operation,
+                validated?.Id ?? prepared.Id,
+                validated?.Operation ?? prepared.Operation,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(ex, failureStage),
                 outputPath: null,
@@ -166,7 +176,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requests);
         if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
-        var batch = new List<OfficeWorkflowRequest>();
+        var batch = new List<PreparedRequest>();
         using (IEnumerator<OfficeWorkflowRequest> enumerator = requests.GetEnumerator()) {
             while (true) {
                 if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
@@ -176,14 +186,16 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     throw new InvalidOperationException(
                         $"A workflow batch cannot contain more than {MaximumBatchRequestCount:N0} requests.");
                 }
-                batch.Add(enumerator.Current ?? throw new ArgumentException("Batch requests cannot contain null entries.", nameof(requests)));
+                OfficeWorkflowRequest request = enumerator.Current
+                    ?? throw new ArgumentException("Batch requests cannot contain null entries.", nameof(requests));
+                batch.Add(PrepareRequest(request));
             }
         }
 
         var results = new List<OfficeWorkflowResult>(batch.Count);
         for (int i = 0; i < batch.Count; i++) {
             if (cancellationToken.IsCancellationRequested) break;
-            OfficeWorkflowRequest request = batch[i];
+            PreparedRequest request = batch[i];
             int batchIndex = i;
             var batchProgress = progress is null
                 ? null
@@ -193,7 +205,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     $"{batchIndex + 1} of {batch.Count} · {item.Message}",
                     item.Fraction,
                     (batchIndex + item.Fraction) / Math.Max(1, batch.Count))));
-            results.Add(await RunAsync(request, batchProgress, cancellationToken).ConfigureAwait(false));
+            results.Add(await RunPreparedAsync(request, batchProgress, cancellationToken).ConfigureAwait(false));
         }
         return results;
     }
@@ -505,6 +517,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             repairs?.RepairCount ?? 0,
             repairs?.DetectionOnlyCount ?? 0,
             diagnostics);
+    }
+
+    private static PreparedRequest PrepareRequest(OfficeWorkflowRequest request) {
+        string id = request.Id;
+        OfficeWorkflowOperation operation = request.Operation;
+        try {
+            ValidatedRequest validated = ValidateRequest(request);
+            return new PreparedRequest(validated.Id, validated.Operation, validated, null);
+        } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
+            return new PreparedRequest(id, operation, null, exception);
+        }
     }
 
     private static ValidatedRequest ValidateRequest(OfficeWorkflowRequest request) {
@@ -824,6 +847,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
     }
 
     private sealed record OperationArtifact(byte[]? Bytes, string Summary, PdfHealthReport? HealthReport);
+
+    private sealed record PreparedRequest(
+        string Id,
+        OfficeWorkflowOperation Operation,
+        ValidatedRequest? Validated,
+        Exception? ValidationException);
 
     private sealed class InlineProgress<T>(Action<T> report) : IProgress<T> {
         public void Report(T value) => report(value);

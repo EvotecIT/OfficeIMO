@@ -412,6 +412,40 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task BatchSnapshotsEveryRequestBeforeExecutingTheFirstItem() {
+        using var scope = new TestDirectory();
+        string first = CreatePdf(scope.Path, "first.pdf");
+        string second = CreatePdf(scope.Path, "second.pdf");
+        var laterRequest = new OfficeWorkflowRequest {
+            Id = "second",
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = second,
+            Limits = new OfficeWorkflowLimits()
+        };
+        bool mutated = false;
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (mutated || update.RequestId != "first" || update.Stage != "execute") return;
+            mutated = true;
+            laterRequest.Id = "mutated";
+            laterRequest.Operation = OfficeWorkflowOperation.Convert;
+            laterRequest.InputPath = Path.Combine(scope.Path, "missing.pdf");
+            laterRequest.ConversionRouteId = "missing-route";
+            laterRequest.Limits.MaximumInputBytes = 1L;
+        });
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync([
+            new OfficeWorkflowRequest { Id = "first", Operation = OfficeWorkflowOperation.Inspect, InputPath = first },
+            laterRequest
+        ], progress);
+
+        Assert.True(mutated);
+        Assert.Equal(2, results.Count);
+        Assert.Equal("second", results[1].RequestId);
+        Assert.Equal(OfficeWorkflowOperation.Inspect, results[1].Operation);
+        Assert.Equal(OfficeWorkflowStatus.Completed, results[1].Status);
+    }
+
+    [Fact]
     public async Task PreCancelledBatchDoesNotEnumerateItsSource() {
         bool enumerated = false;
         using var cancellation = new CancellationTokenSource();

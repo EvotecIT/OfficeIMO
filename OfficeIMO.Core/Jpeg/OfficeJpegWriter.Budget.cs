@@ -89,40 +89,46 @@ internal static partial class OfficeJpegWriter {
     }
 
     private static long GetMemoryStreamBackingBytes(Stream stream) {
-        if (!(stream is MemoryStream memoryStream)) return 0L;
-        if (memoryStream.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null) {
+        if (!OfficeRasterOutput.TryGetMemoryStream(stream, out MemoryStream? memoryStream)) return 0L;
+        MemoryStream resolved = memoryStream!;
+        if (resolved.TryGetBuffer(out ArraySegment<byte> segment) && segment.Array != null) {
             return segment.Array.LongLength;
         }
-        if (memoryStream.Capacity == 0) return 0L;
+        if (resolved.Capacity == 0) return 0L;
         throw new ArgumentException(
             "JPEG output MemoryStream must expose its retained buffer for bounded encoding.", nameof(stream));
     }
 
     private sealed class JpegBudgetedMemoryStream : Stream {
-        private readonly MemoryStream _inner;
+        private readonly Stream _destination;
+        private readonly MemoryStream _memoryStream;
         private readonly long _fixedManagedBytes;
 
-        internal JpegBudgetedMemoryStream(MemoryStream inner, long fixedManagedBytes) {
-            _inner = inner;
+        internal JpegBudgetedMemoryStream(
+            Stream destination,
+            MemoryStream memoryStream,
+            long fixedManagedBytes) {
+            _destination = destination;
+            _memoryStream = memoryStream;
             _fixedManagedBytes = fixedManagedBytes;
         }
 
         public override bool CanRead => false;
-        public override bool CanSeek => _inner.CanSeek;
-        public override bool CanWrite => _inner.CanWrite;
-        public override long Length => _inner.Length;
+        public override bool CanSeek => _destination.CanSeek;
+        public override bool CanWrite => _destination.CanWrite;
+        public override long Length => _memoryStream.Length;
         public override long Position {
-            get => _inner.Position;
-            set => _inner.Position = value;
+            get => _memoryStream.Position;
+            set => _destination.Position = value;
         }
 
-        public override void Flush() => _inner.Flush();
+        public override void Flush() => _destination.Flush();
         public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override long Seek(long offset, SeekOrigin origin) => _destination.Seek(offset, origin);
 
         public override void SetLength(long value) {
             EnsureCapacityFor(value);
-            _inner.SetLength(value);
+            _destination.SetLength(value);
         }
 
         public override void Write(byte[] buffer, int offset, int count) {
@@ -130,23 +136,23 @@ internal static partial class OfficeJpegWriter {
             if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
-            EnsureCapacityFor(checked(_inner.Position + count));
-            _inner.Write(buffer, offset, count);
+            EnsureCapacityFor(checked(_memoryStream.Position + count));
+            _destination.Write(buffer, offset, count);
         }
 
         public override void WriteByte(byte value) {
-            EnsureCapacityFor(checked(_inner.Position + 1L));
-            _inner.WriteByte(value);
+            EnsureCapacityFor(checked(_memoryStream.Position + 1L));
+            _destination.WriteByte(value);
         }
 
         private void EnsureCapacityFor(long requiredPosition) {
-            long requiredLength = Math.Max(requiredPosition, _inner.Length);
+            long requiredLength = Math.Max(requiredPosition, _memoryStream.Length);
             if (requiredLength > OfficeRasterGuards.MaximumEncodedBytes) {
                 throw new ArgumentException(JpegOutputLimitMessage);
             }
-            long currentBackingBytes = GetMemoryStreamBackingBytes(_inner);
-            if (requiredLength > _inner.Capacity) {
-                long doubled = Math.Max(256L, checked((long)_inner.Capacity * 2L));
+            long currentBackingBytes = GetMemoryStreamBackingBytes(_memoryStream);
+            if (requiredLength > _memoryStream.Capacity) {
+                long doubled = Math.Max(256L, checked((long)_memoryStream.Capacity * 2L));
                 long projectedBackingBytes = Math.Max(requiredLength, doubled);
                 if (!IsEncodingGrowthWorkingSetWithinLimit(
                         _fixedManagedBytes, currentBackingBytes, projectedBackingBytes)) {

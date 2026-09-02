@@ -115,6 +115,24 @@ public sealed class DrawingRasterStreamingEncodingTests {
     }
 
     [Fact]
+    public void BudgetGuardPreservesMemoryBackedDestinationClassification() {
+        using var memory = new MemoryStream();
+        using var guardedMemory = new OfficeImageExportEncodingStream(
+            memory,
+            new OfficeImageExportEncodingBudget(1024L),
+            CancellationToken.None);
+        using var forwardOnly = new ForwardOnlyWriteStream();
+        using var guardedForwardOnly = new OfficeImageExportEncodingStream(
+            forwardOnly,
+            new OfficeImageExportEncodingBudget(1024L),
+            CancellationToken.None);
+
+        Assert.True(OfficeRasterOutput.TryGetMemoryStream(guardedMemory, out MemoryStream? resolved));
+        Assert.Same(memory, resolved);
+        Assert.False(OfficeRasterOutput.TryGetMemoryStream(guardedForwardOnly, out _));
+    }
+
+    [Fact]
     public void SharedEncoderRejectsReadOnlyDestination() {
         OfficeRasterImage image = CreateSampleImage();
         using var destination = new MemoryStream(new byte[1], writable: false);
@@ -144,6 +162,29 @@ public sealed class DrawingRasterStreamingEncodingTests {
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         Assert.True(exception.Actual > exception.Maximum);
+        Assert.Equal(8L, exception.Maximum);
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Png)]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void SharedStreamEncoderPreservesTheByteGuardForMemoryDestinations(
+        OfficeImageExportFormat format) {
+        using var destination = new MemoryStream();
+
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeRasterImageEncoder.EncodeTo(
+                    CreateSampleImage(),
+                    format,
+                    destination,
+                    CreateOptions(),
+                    maximumEncodedBytes: 8L,
+                    cancellationToken: CancellationToken.None));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
         Assert.Equal(8L, exception.Maximum);
     }
 

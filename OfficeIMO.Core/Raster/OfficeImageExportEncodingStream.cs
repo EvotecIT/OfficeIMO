@@ -20,6 +20,8 @@ internal sealed class OfficeImageExportEncodingStream : Stream {
         OfficeRasterOutput.EnsureWritable(destination);
     }
 
+    internal Stream WrappedDestination => _destination;
+
     public override bool CanRead => false;
 
     public override bool CanSeek => false;

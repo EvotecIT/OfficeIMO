@@ -88,7 +88,7 @@ public static partial class OfficeWebpCodec {
             throw new ArgumentException("WebP output exceeds encoded-size limits.", nameof(image));
         }
         try {
-            long retainedOutputCopies = destination is MemoryStream ? 2L : 0L;
+            long retainedOutputCopies = OfficeRasterOutput.TryGetMemoryStream(destination, out _) ? 2L : 0L;
             long peakBytes = checked(
                 pixels.LongLength + 24L +
                 retainedOutputCopies * (fileLength + 24L) +

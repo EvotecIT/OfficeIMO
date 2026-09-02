@@ -55,7 +55,7 @@ public static partial class OfficeTiffCodec {
         long retainedStripBytes = effective.Compression is OfficeTiffCompression.Lzw or OfficeTiffCompression.Deflate
             ? stripLength
             : 0L;
-        long retainedOutputBytes = destination is MemoryStream
+        long retainedOutputBytes = OfficeRasterOutput.TryGetMemoryStream(destination, out _)
             ? checked(2L * (header.LongLength + stripLength))
             : header.LongLength;
         if (!IsMultiPageTiffWorkingSetWithinLimit(pixels.LongLength, retainedStripBytes, retainedOutputBytes)) {

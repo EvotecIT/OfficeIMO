@@ -181,8 +181,8 @@ internal static partial class OfficeJpegWriter {
             checkpointObserver);
 
         var tables = BuildHuffmanTables(coeffs, components, options.OptimizeHuffman, cancellationToken);
-        Stream output = stream is MemoryStream memoryStream
-            ? new JpegBudgetedMemoryStream(memoryStream, fixedManagedBytes)
+        Stream output = OfficeRasterOutput.TryGetMemoryStream(stream, out MemoryStream? memoryStream)
+            ? new JpegBudgetedMemoryStream(stream, memoryStream!, fixedManagedBytes)
             : stream;
 
         WriteMarker(output, 0xFFD8);

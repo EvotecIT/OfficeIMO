@@ -10,4 +10,13 @@ internal static class OfficeRasterOutput {
             throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         }
     }
+
+    internal static bool TryGetMemoryStream(Stream destination, out MemoryStream? memoryStream) {
+        EnsureWritable(destination);
+        while (destination is OfficeImageExportEncodingStream guarded) {
+            destination = guarded.WrappedDestination;
+        }
+        memoryStream = destination as MemoryStream;
+        return memoryStream != null;
+    }
 }
