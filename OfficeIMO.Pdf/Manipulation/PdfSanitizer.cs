@@ -33,13 +33,16 @@ internal static partial class PdfSanitizer {
         }
         System.Threading.CancellationToken cancellationToken = policy.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
-        PdfMutationPlan plan = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.Sanitize, readOptions);
+        var (plan, sourceDocument) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.Sanitize,
+            readOptions,
+            cancellationToken: cancellationToken);
         IReadOnlyList<PdfSanitizationFinding> before = Analyze(pdf, policy, readOptions);
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<PdfExtractedAttachment> quarantined;
         if (policy.EmbeddedFiles == PdfEmbeddedFileSanitizationMode.Quarantine) {
-            PdfReadDocument quarantineDocument = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-            quarantined = quarantineDocument.ExtractAttachments(cancellationToken);
+            quarantined = sourceDocument.ExtractAttachments(cancellationToken);
         } else {
             quarantined = Array.Empty<PdfExtractedAttachment>();
         }
@@ -61,7 +64,8 @@ internal static partial class PdfSanitizer {
                         ? security.InfoObjectNumber
                         : null;
                 },
-                maximumOutputBytes: policy.MaximumOutputBytes);
+                maximumOutputBytes: policy.MaximumOutputBytes,
+                cancellationToken: cancellationToken);
         } catch (InvalidDataException exception) when (PdfDocumentObjectGraphRewriter.IsOutputLimitExceeded(exception)) {
             throw new InvalidOperationException(
                 $"The sanitized PDF exceeded the configured {policy.MaximumOutputBytes:N0}-byte output limit while it was being serialized.",
@@ -89,12 +93,12 @@ internal static partial class PdfSanitizer {
             PreserveFormWidgetActions = true,
             FilterActionsByPreservedTypes = true,
             PreserveRevisionStructure = false,
-            PreserveSecurityState = !PdfSyntax.ReadDocumentSecurityInfo(pdf, readOptions).HasEncryption
+            PreserveSecurityState = !sourceDocument.Security.HasEncryption
         };
         if (policy.RemoveRichMedia) {
             foreach (string subtype in RichAnnotationSubtypes) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);
         }
-        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, readOptions);
+        PdfDocumentInfo originalInfo = PdfInspector.Inspect(pdf, sourceDocument, cancellationToken);
         for (int i = 0; i < originalInfo.LinkAnnotations.Count; i++) {
             string? uri = originalInfo.LinkAnnotations[i].Uri;
             if (uri is not null && !policy.IsUriAllowed(uri)) preservationOptions.ExcludedLinkAnnotationUris.Add(uri);
@@ -105,7 +109,11 @@ internal static partial class PdfSanitizer {
                 preservationOptions.ExcludedActionUris.Add(before[i].Detail);
             }
         }
-        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(pdf, sanitized, preservationOptions);
+        PdfRewritePreservationReport preservation = PdfRewritePreservation.AssertPreserved(
+            pdf,
+            sanitized,
+            preservationOptions,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         return new PdfSanitizationResult(sanitized, plan, preservation, before, remaining, quarantined, rewrittenReadOptions);

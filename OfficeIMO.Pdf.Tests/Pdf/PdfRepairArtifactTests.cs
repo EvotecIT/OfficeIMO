@@ -6,6 +6,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRepairArtifactTests {
     [Fact]
+    public void ObjectGraphRewriteStopsWhenMutationCancelsBeforeSerialization() {
+        byte[] source = BuildStreamPdf("/Length 999");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() => PdfDocumentObjectGraphRewriter.Rewrite(
+            source,
+            new PdfLoadOptions { ParsingMode = PdfParsingMode.Lenient },
+            outputEncryption: null,
+            mutateObjectGraph: (_, _) => {
+                cancellation.Cancel();
+                return null;
+            },
+            cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void Create_PersistsRecoveredStructureAndProvesStrictReadback() {
         byte[] source = BuildStreamPdf("/Length 999");
 

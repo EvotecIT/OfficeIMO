@@ -6,6 +6,21 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfRewritePreservationTests {
     [Fact]
+    public void Assess_InternalVerificationOverloadHonorsCancellationBeforeParsing() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfRewritePreservation.Assess(
+            source,
+            source,
+            options: null,
+            originalReadOptions: null,
+            rewrittenReadOptions: null,
+            cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
     public void AssertPreserved_AllowsDeclaredMetadataUpdateAndPreservesDocumentSignals() {
         byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
         byte[] updated = PdfMetadataEditor.UpdateMetadata(source, title: "Updated preservation title");

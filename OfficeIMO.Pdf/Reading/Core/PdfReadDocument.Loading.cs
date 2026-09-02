@@ -48,11 +48,15 @@ public sealed partial class PdfReadDocument {
         PdfDocumentSource.FromStream(stream, options).Read();
 
     /// <summary>Extracts full‑document plain text (pages separated by blank lines).</summary>
-    public string ExtractText() {
+    public string ExtractText() => ExtractText(CancellationToken.None);
+
+    internal string ExtractText(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var sb = new System.Text.StringBuilder();
         for (int i = 0; i < Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (i > 0) sb.AppendLine();
-            sb.Append(Pages[i].ExtractText());
+            sb.Append(Pages[i].ExtractText(cancellationToken));
         }
         return sb.ToString();
     }

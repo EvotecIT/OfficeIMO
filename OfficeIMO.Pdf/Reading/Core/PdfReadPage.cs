@@ -63,10 +63,18 @@ public sealed partial class PdfReadPage {
     public int ObjectNumber { get; }
 
     /// <summary>Extracts plain text from this page without column reordering.</summary>
-    public string ExtractText() {
-        var spans = GetTextSpans();
+    public string ExtractText() => ExtractText(System.Threading.CancellationToken.None);
+
+    internal string ExtractText(System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var spans = GetTextSpans(cancellationToken);
         var opts = new TextLayoutEngine.Options { ForceSingleColumn = true };
-        var lines = TextLayoutEngine.BuildLines(spans, opts);
+        var lines = TextLayoutEngine.BuildLines(
+            spans,
+            opts,
+            consumeWork: null,
+            cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
+        cancellationToken.ThrowIfCancellationRequested();
         return TextLayoutEngine.EmitText(lines, TextLayoutEngine.DetectColumns(lines, GetPageSize().Width, opts), null);
     }
 

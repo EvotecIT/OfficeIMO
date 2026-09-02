@@ -31,7 +31,7 @@ internal static partial class PdfOptimizer {
             throw new NotSupportedException("OfficeIMO.Pdf linearization currently requires classic cross-reference tables without object streams.");
         }
 
-        PdfDocumentProbe probe = PdfInspector.Probe(pdf, readOptions);
+        PdfDocumentProbe probe = PdfInspector.Probe(pdf, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (probe.Security.HasEncryption) {
             throw new NotSupportedException("Encrypted PDF files are not supported for lossless optimization by OfficeIMO.Pdf yet.");
@@ -90,7 +90,11 @@ internal static partial class PdfOptimizer {
                     ? long.MaxValue
                     : effectiveOptions.MaximumOutputBytes.Value + 1L;
                 PdfRewritePreservationOptions originalPreservationOptions = CreatePreservationOptions(readOptions, effectiveOptions);
-                PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, originalPreservationOptions);
+                PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(
+                    pdf,
+                    pdf,
+                    originalPreservationOptions,
+                    cancellationToken);
                 cancellationToken.ThrowIfCancellationRequested();
                 return new PdfOptimizationActionResult(
                     (byte[])pdf.Clone(),
@@ -118,10 +122,18 @@ internal static partial class PdfOptimizer {
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfRewritePreservationOptions preservationOptions = CreatePreservationOptions(readOptions, effectiveOptions, candidateReadOptions);
-        PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(pdf, candidate, preservationOptions);
+        PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(
+            pdf,
+            candidate,
+            preservationOptions,
+            cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!effectiveOptions.Linearize && effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
-            PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, preservationOptions);
+            PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(
+                pdf,
+                pdf,
+                preservationOptions,
+                cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
             return new PdfOptimizationActionResult(
                 (byte[])pdf.Clone(),

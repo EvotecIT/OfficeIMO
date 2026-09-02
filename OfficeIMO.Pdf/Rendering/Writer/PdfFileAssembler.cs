@@ -49,10 +49,11 @@ internal static class PdfFileAssembler {
         PdfFileVersion fileVersion,
         PdfStandardEncryptionOptions? encryption,
         byte[] permanentFileId,
-        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
+        CancellationToken cancellationToken = default) {
         using var stream = new MemoryStream();
         AssemblePreservingPermanentId(
-            stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes);
+            stream, objects, catalogId, infoId, fileVersion, encryption, permanentFileId, objectMemoryLimitBytes, cancellationToken);
         return stream.ToArray();
     }
 
@@ -64,7 +65,8 @@ internal static class PdfFileAssembler {
         PdfFileVersion fileVersion,
         PdfStandardEncryptionOptions? encryption,
         byte[] permanentFileId,
-        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(permanentFileId, nameof(permanentFileId));
         return AssembleWithEvidenceCore(
             destination,
@@ -76,7 +78,7 @@ internal static class PdfFileAssembler {
             objectMemoryLimitBytes,
             trailerIdEntry: null,
             permanentFileId,
-            CancellationToken.None,
+            cancellationToken,
             out _);
     }
 

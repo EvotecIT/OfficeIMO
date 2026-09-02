@@ -67,7 +67,7 @@ public static class PdfRepairArtifact {
         if (effective.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum repair-artifact bytes must be positive.");
 
         PdfLoadOptions lenientOptions = CreateReadOptions(readOptions, PdfParsingMode.Lenient);
-        PdfReadDocument source = PdfReadDocument.Open(pdf, lenientOptions);
+        PdfReadDocument source = PdfReadDocument.Open(pdf, lenientOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfRepairReport sourceRepairs = source.RepairReport;
         if (effective.RequireRecoveredDefects && sourceRepairs.RepairCount == 0) {
@@ -79,7 +79,12 @@ public static class PdfRepairArtifact {
 
         // Optimize is the existing full-rewrite authorization for normalized object graphs. The
         // repair artifact does not apply optimizer transforms; it only serializes the recovered graph.
-        _ = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.Optimize, lenientOptions);
+        _ = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.Optimize,
+            source,
+            lenientOptions,
+            cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (source.Security.HasEncryption) throw new NotSupportedException("Repair artifacts do not silently remove or replace source encryption.");
         if (source.Security.HasSignatures || source.Security.HasDocMDPPermissions || source.Security.HasUsageRights) {
@@ -91,12 +96,13 @@ public static class PdfRepairArtifact {
             lenientOptions,
             outputEncryption: null,
             mutateObjectGraph: null,
-            maximumOutputBytes: effective.MaximumOutputBytes);
+            maximumOutputBytes: effective.MaximumOutputBytes,
+            cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions strictOptions = CreateReadOptions(
             PdfLoadOptions.ForGeneratedOutput(readOptions, pdf, output),
             PdfParsingMode.Strict);
-        PdfReadDocument strictOutput = PdfReadDocument.Open(output, strictOptions);
+        PdfReadDocument strictOutput = PdfReadDocument.Open(output, strictOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (strictOutput.RepairReport.HasRepairs) throw new InvalidOperationException("The repaired artifact still requires parser recovery.");
 
@@ -105,7 +111,8 @@ public static class PdfRepairArtifact {
             output,
             options: null,
             originalReadOptions: lenientOptions,
-            rewrittenReadOptions: strictOptions);
+            rewrittenReadOptions: strictOptions,
+            cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         preservation.ThrowIfFailed();
         return new PdfRepairArtifactResult(
