@@ -52,7 +52,8 @@ public sealed partial class PdfReadDocument {
         PdfDocumentSecurityInfo security,
         PdfRepairReport repairReport,
         PdfLoadOptions? options,
-        long decodedStreamBytes) {
+        long decodedStreamBytes,
+        System.Threading.CancellationToken cancellationToken) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfLoadOptions();
         _decodedStreamBudget = new PdfDecodedStreamBudget(_options.Limits, decodedStreamBytes);
         _outputIntentMetadataRetentionBudget = new PdfIccProfileRetentionBudget(_options.Limits.MaxDecodedStreamBytes);
@@ -68,7 +69,7 @@ public sealed partial class PdfReadDocument {
         _pageLabels = ExtractPageLabels();
         _namedDestinations = ExtractNamedDestinations();
         _catalogActions = ExtractCatalogActions(out _javaScripts);
-        _attachments = ExtractAttachmentInfos();
+        _attachments = ExtractAttachmentInfos(cancellationToken);
         _outputIntents = ExtractOutputIntents(out bool outputIntentsAreComplete);
         _outputIntentsAreComplete = outputIntentsAreComplete;
         _xmpMetadata = ExtractXmpMetadata();

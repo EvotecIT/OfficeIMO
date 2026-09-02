@@ -36,7 +36,7 @@ public sealed partial class PdfReadDocument {
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
-        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes);
+        return new PdfReadDocument(map, trailer, security, repairReport, effectiveOptions, decodedStreamBytes, cancellationToken);
     }
 
     /// <summary>Opens a PDF from a bounded file snapshot.</summary>
@@ -64,13 +64,18 @@ public sealed partial class PdfReadDocument {
     }
 
     /// <summary>Extracts embedded file attachments from the document catalog.</summary>
-    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() {
+    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() =>
+        ExtractAttachments(CancellationToken.None);
+
+    internal IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         DemandContentExtraction("attachment");
         return PdfAttachmentExtractor.ExtractAttachments(
             this,
             static _ => true,
             _options.Limits.MaxTotalAttachmentBytes,
-            _options.Limits.MaxDecodedStreamBytes);
+            _options.Limits.MaxDecodedStreamBytes,
+            cancellationToken: cancellationToken);
     }
 
     internal void DemandTextExtraction() => PdfPermissionAuthorization.DemandTextExtraction(Security, _options.PermissionPolicy);

@@ -976,6 +976,9 @@ public sealed class OfficeOutputWorkflowTests {
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
         Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.Equal(
+            "validate",
+            Assert.Single(result.Diagnostics, static item => item.Code == "PageImageExportFailed").Stage);
     }
 
     [Fact]

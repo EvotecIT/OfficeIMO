@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class LzwDecoder {
@@ -15,7 +17,13 @@ internal static class LzwDecoder {
         return output;
     }
 
-    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] outputBytes, int earlyChange = 1) {
+    public static bool TryDecode(
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] outputBytes,
+        int earlyChange = 1,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data == null || data.Length == 0) {
             outputBytes = Array.Empty<byte>();
             return true;
@@ -28,8 +36,10 @@ internal static class LzwDecoder {
         int nextCode = FirstAvailableCode;
         int codeSize = 9;
         byte[]? previous = null;
+        int workUnits = 0;
 
         while (true) {
+            if ((workUnits++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             int code = reader.ReadBits(codeSize);
             if (code < 0) {
                 break;

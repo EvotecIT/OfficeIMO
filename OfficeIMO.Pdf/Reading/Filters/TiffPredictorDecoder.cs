@@ -1,7 +1,16 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class TiffPredictorDecoder {
-    public static byte[] Decode(byte[] data, int columns, int colors, int bitsPerComponent, int maxOutputBytes) {
+    public static byte[] Decode(
+        byte[] data,
+        int columns,
+        int colors,
+        int bitsPerComponent,
+        int maxOutputBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maxOutputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), maxOutputBytes, "Maximum decoded stream bytes must be positive.");
         }
@@ -46,16 +55,18 @@ internal static class TiffPredictorDecoder {
         int sampleCount = checked((int)samplesPerRow);
         int sampleMask = bitsPerComponent == 16 ? ushort.MaxValue : (1 << bitsPerComponent) - 1;
         for (int rowOffset = 0; rowOffset < data.Length; rowOffset += rowLength) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (bitsPerComponent == 8) {
-                DecodeEightBitRow(data, output, rowOffset, rowLength, colors);
+                DecodeEightBitRow(data, output, rowOffset, rowLength, colors, cancellationToken);
                 continue;
             }
             if (bitsPerComponent == 16) {
-                DecodeSixteenBitRow(data, output, rowOffset, sampleCount, colors);
+                DecodeSixteenBitRow(data, output, rowOffset, sampleCount, colors, cancellationToken);
                 continue;
             }
 
             for (int sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+                if ((sampleIndex & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 int encoded = ReadSample(data, rowOffset, sampleIndex, bitsPerComponent);
                 int left = sampleIndex >= colors
                     ? ReadSample(output, rowOffset, sampleIndex - colors, bitsPerComponent)
@@ -67,15 +78,29 @@ internal static class TiffPredictorDecoder {
         return output;
     }
 
-    private static void DecodeEightBitRow(byte[] input, byte[] output, int rowOffset, int rowLength, int colors) {
+    private static void DecodeEightBitRow(
+        byte[] input,
+        byte[] output,
+        int rowOffset,
+        int rowLength,
+        int colors,
+        CancellationToken cancellationToken) {
         for (int index = 0; index < rowLength; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             int left = index >= colors ? output[rowOffset + index - colors] : 0;
             output[rowOffset + index] = unchecked((byte)(input[rowOffset + index] + left));
         }
     }
 
-    private static void DecodeSixteenBitRow(byte[] input, byte[] output, int rowOffset, int sampleCount, int colors) {
+    private static void DecodeSixteenBitRow(
+        byte[] input,
+        byte[] output,
+        int rowOffset,
+        int sampleCount,
+        int colors,
+        CancellationToken cancellationToken) {
         for (int sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++) {
+            if ((sampleIndex & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             int byteOffset = rowOffset + (sampleIndex * 2);
             int encoded = (input[byteOffset] << 8) | input[byteOffset + 1];
             int left = 0;

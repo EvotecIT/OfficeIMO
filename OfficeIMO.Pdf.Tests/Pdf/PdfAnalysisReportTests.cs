@@ -62,4 +62,21 @@ public class PdfAnalysisReportTests {
         Assert.Equal(bytes.LongLength, proof.ArtifactSizeBytes);
         Assert.False(string.IsNullOrWhiteSpace(proof.ArtifactSha256));
     }
+
+    [Fact]
+    public void AnalyzeDoesNotDecodeAttachmentPayloadsForProfilesThatOnlyNeedMetadata() {
+        byte[] bytes = PdfDocument.Create()
+            .AttachFile("large.bin", new byte[4096])
+            .Paragraph(paragraph => paragraph.Text("Attachment metadata only"))
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 1 }
+        });
+
+        PdfAnalysisReport report = document.Analyze(PdfComplianceProfile.PdfA2B);
+
+        Assert.NotNull(report.Compliance);
+        Assert.Equal(PdfComplianceProfile.PdfA2B, report.Compliance!.Profile);
+        Assert.Single(report.Info.Attachments);
+    }
 }

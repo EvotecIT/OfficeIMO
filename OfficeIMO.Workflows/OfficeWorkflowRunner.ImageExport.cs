@@ -144,7 +144,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 "PageImageExportFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
-                "execute",
+                GetDiagnosticStage(failureStage),
                 details));
             return new PdfPageImageExportResult(
                 validated?.Id ?? request.Id,

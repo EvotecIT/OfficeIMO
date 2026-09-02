@@ -14,20 +14,23 @@ internal static partial class PdfComplianceAnalyzer {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentProbe probe = PdfInspector.Probe(pdf);
+        PdfDocumentProbe probe = PdfInspector.Probe(pdf, options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfReadDocument document = PdfReadDocument.Open(pdf, options);
+        PdfReadDocument document = PdfReadDocument.Open(pdf, options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe);
+        PdfDocumentInfo info = PdfInspector.FromReadDocument(document, probe, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<PdfExtractedAttachment> attachments = document.ExtractAttachments();
+        IReadOnlyList<PdfExtractedAttachment>? attachments = IsElectronicInvoice(profile)
+            ? document.ExtractAttachments(cancellationToken)
+            : null;
         cancellationToken.ThrowIfCancellationRequested();
         return AssessReadback(
             profile,
             info,
             attachments,
             IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document, cancellationToken) : null,
-            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null);
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null,
+            cancellationToken);
     }
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
@@ -50,7 +53,13 @@ internal static partial class PdfComplianceAnalyzer {
 
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, PdfDocumentInfo info) {
-        return AssessReadback(profile, info, extractedAttachments: null, printColorEvidence: null, printStructureEvidence: null);
+        return AssessReadback(
+            profile,
+            info,
+            extractedAttachments: null,
+            printColorEvidence: null,
+            printStructureEvidence: null,
+            System.Threading.CancellationToken.None);
     }
 
     internal static PdfComplianceReadinessReport AssessReadback(
@@ -64,16 +73,20 @@ internal static partial class PdfComplianceAnalyzer {
         PdfReadDocument document,
         PdfDocumentInfo info,
         System.Threading.CancellationToken cancellationToken) {
+        Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        IReadOnlyList<PdfExtractedAttachment> attachments = document.ExtractAttachments();
+        IReadOnlyList<PdfExtractedAttachment>? attachments = IsElectronicInvoice(profile)
+            ? document.ExtractAttachments(cancellationToken)
+            : null;
         cancellationToken.ThrowIfCancellationRequested();
         return AssessReadback(
             profile,
             info,
             attachments,
             IsPdfX(profile) ? PdfPrintProductionColorInspector.Inspect(document, cancellationToken) : null,
-            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null);
+            IsPdfX(profile) ? PdfPrintProductionStructureInspector.Inspect(document, cancellationToken) : null,
+            cancellationToken);
     }
 
     private static PdfComplianceReadinessReport AssessReadback(
@@ -81,9 +94,11 @@ internal static partial class PdfComplianceAnalyzer {
         PdfDocumentInfo info,
         IReadOnlyList<PdfExtractedAttachment>? extractedAttachments,
         PdfPrintProductionColorEvidence? printColorEvidence,
-        PdfPrintProductionStructureEvidence? printStructureEvidence) {
+        PdfPrintProductionStructureEvidence? printStructureEvidence,
+        System.Threading.CancellationToken cancellationToken) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(info, nameof(info));
+        cancellationToken.ThrowIfCancellationRequested();
 
         var requirements = new List<PdfComplianceRequirement>();
         if (profile == PdfComplianceProfile.None) {
@@ -125,7 +140,7 @@ internal static partial class PdfComplianceAnalyzer {
         }
 
         if (IsElectronicInvoice(profile)) {
-            AddElectronicInvoiceReadbackRequirements(requirements, info, extractedAttachments);
+            AddElectronicInvoiceReadbackRequirements(requirements, info, extractedAttachments, cancellationToken);
         }
 
         if (IsPdfX(profile)) {
@@ -486,14 +501,19 @@ internal static partial class PdfComplianceAnalyzer {
             "The saved PDF must expose a marked catalog, structure root, parent tree, document element, structure elements, and marked-content references before external PDF/UA validation.");
     }
 
-    private static void AddElectronicInvoiceReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {
+    private static void AddElectronicInvoiceReadbackRequirements(
+        List<PdfComplianceRequirement> requirements,
+        PdfDocumentInfo info,
+        IReadOnlyList<PdfExtractedAttachment>? extractedAttachments,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfXmpMetadataInfo? xmp = info.XmpMetadata;
         Add(requirements, "readback-einvoice-xmp", "Readback e-invoice XMP metadata",
             xmp?.HasElectronicInvoiceMetadata == true,
             "The saved PDF contains Factur-X/ZUGFeRD XMP extension metadata.",
             "The saved PDF XMP metadata must contain Factur-X/ZUGFeRD extension properties.");
 
-        requirements.Add(BuildReadbackInvoiceAttachmentRequirement(extractedAttachments));
+        requirements.Add(BuildReadbackInvoiceAttachmentRequirement(extractedAttachments, cancellationToken));
 
         requirements.Add(new PdfComplianceRequirement(
             "mustang-validation",
@@ -502,7 +522,10 @@ internal static partial class PdfComplianceAnalyzer {
             "Run Mustang against the saved PDF before claiming Factur-X or ZUGFeRD conformance."));
     }
 
-    private static PdfComplianceRequirement BuildReadbackInvoiceAttachmentRequirement(IReadOnlyList<PdfExtractedAttachment>? attachments) {
+    private static PdfComplianceRequirement BuildReadbackInvoiceAttachmentRequirement(
+        IReadOnlyList<PdfExtractedAttachment>? attachments,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (attachments == null) {
             return new PdfComplianceRequirement(
                 "readback-associated-invoice-file",
@@ -513,12 +536,13 @@ internal static partial class PdfComplianceAnalyzer {
 
         var diagnostics = new List<string>();
         for (int i = 0; i < attachments.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfExtractedAttachment attachment = attachments[i];
-            if (!TryCreateReadbackEmbeddedFile(attachment, diagnostics, out PdfEmbeddedFile? embeddedFile)) {
+            if (!TryCreateReadbackEmbeddedFile(attachment, diagnostics, cancellationToken, out PdfEmbeddedFile? embeddedFile)) {
                 continue;
             }
 
-            if (IsFacturXCiiAttachment(embeddedFile!, diagnostics)) {
+            if (IsFacturXCiiAttachment(embeddedFile!, diagnostics, cancellationToken)) {
                 return new PdfComplianceRequirement(
                     "readback-associated-invoice-file",
                     "Readback associated invoice file",
@@ -537,9 +561,15 @@ internal static partial class PdfComplianceAnalyzer {
             diagnostic);
     }
 
-    private static bool TryCreateReadbackEmbeddedFile(PdfExtractedAttachment attachment, List<string> diagnostics, out PdfEmbeddedFile? embeddedFile) {
+    private static bool TryCreateReadbackEmbeddedFile(
+        PdfExtractedAttachment attachment,
+        List<string> diagnostics,
+        System.Threading.CancellationToken cancellationToken,
+        out PdfEmbeddedFile? embeddedFile) {
         embeddedFile = null;
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = attachment.Bytes;
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length == 0) {
             diagnostics.Add("Attach non-empty UN/CEFACT CrossIndustryInvoice XML in factur-x.xml.");
             return false;
@@ -552,6 +582,7 @@ internal static partial class PdfComplianceAnalyzer {
                 attachment.MimeType,
                 attachment.Relationship,
                 attachment.Description);
+            cancellationToken.ThrowIfCancellationRequested();
             return true;
         } catch (ArgumentException ex) {
             diagnostics.Add(ex.Message);
