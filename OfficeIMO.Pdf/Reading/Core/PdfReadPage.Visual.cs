@@ -138,7 +138,7 @@ public sealed partial class PdfReadPage {
         }
 
         cancellationToken.ThrowIfCancellationRequested();
-        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+        AddAnnotationAppearances(drawing, size.Height, pageTransform, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
 
         return drawing;
@@ -2155,7 +2155,9 @@ public sealed partial class PdfReadPage {
         PageContentBudget pageContentBudget,
         Type3GlyphBudget type3GlyphBudget,
         PdfTextClippingBudget invocationTextClippingBudget,
-        PdfTextClippingBudget patternTextClippingBudget) {
+        PdfTextClippingBudget patternTextClippingBudget,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!_pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject)) {
             return;
         }
@@ -2172,6 +2174,7 @@ public sealed partial class PdfReadPage {
         Dictionary<string, PdfFontResource> pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
         for (int i = 0; i < annotations.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? annotation = ResolveDictionary(annotations.Items[i]);
             if (annotation == null ||
                 !TryReadRectangle(annotation.Items.TryGetValue("Rect", out PdfObject? rectangleObject) ? rectangleObject : null, out (double X1, double Y1, double X2, double Y2) rectangle) ||
@@ -2181,6 +2184,7 @@ public sealed partial class PdfReadPage {
             }
 
             PdfDictionary? appearanceResources = ResolveDictionary(appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? pageResources;
+            cancellationToken.ThrowIfCancellationRequested();
             string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(appearanceStream)), appearanceStream.Dictionary);
             if (appearanceContent.Length == 0) {
                 continue;
@@ -2204,12 +2208,15 @@ public sealed partial class PdfReadPage {
                 type3ImageVisitor: (placement, image, effect) => elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count).WithEffect(effect)),
                 type3PrimitiveVisitor: (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
                 type3GroupVisitor: (group, transform, paintOrder, key, effect) => elements.Add(PdfPageDrawingElement.FromGroup(group, transform, paintOrder, key, elements.Count).WithEffect(effect)),
+                tilingPatternResourceCache: new TilingPatternResourceCache(cancellationToken),
                 textOutputBudget: textOutputBudget,
                 invocationTextClippingBudget: invocationTextClippingBudget,
                 patternTextClippingBudget: patternTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root);
+            cancellationToken.ThrowIfCancellationRequested();
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
 
@@ -2235,8 +2242,10 @@ public sealed partial class PdfReadPage {
                 textClippingBudget: invocationTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
-                contentOrderOffset: -transformedAppearanceContentOffset);
+                contentOrderOffset: -transformedAppearanceContentOffset,
+                cancellationCheck: cancellationToken.ThrowIfCancellationRequested);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (renderedType3PaintOrders.Contains(textSpans[textIndex].PaintOrder, textSpans[textIndex].ContentOrderKey)) continue;
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }
@@ -2253,6 +2262,7 @@ public sealed partial class PdfReadPage {
                 textClippingBudget: invocationTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root);
+            cancellationToken.ThrowIfCancellationRequested();
             if (imagePlacements.Count > 0) {
                 IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(
                     appearanceResources,
@@ -2261,6 +2271,7 @@ public sealed partial class PdfReadPage {
                     colorizeImageMasks: true,
                     pageContentBudget);
                 for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PdfImagePlacement placement = imagePlacements[imageIndex];
                     PdfExtractedImage? image = FindImage(images, placement);
                     if (image != null) {
@@ -2280,6 +2291,7 @@ public sealed partial class PdfReadPage {
                 textClippingBudget: invocationTextClippingBudget,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root);
+            cancellationToken.ThrowIfCancellationRequested();
             SortGraphicsEffectTransitions(appearanceEffects);
             OverlayDrawingEffects(elements, appearanceEffects);
 
@@ -2287,7 +2299,8 @@ public sealed partial class PdfReadPage {
             var appearanceSoftMasks = new Dictionary<(PdfStream Group, PdfDictionary? ParentResources, OfficeSoftMaskMode Mode, OfficeColor Backdrop, Matrix2D Transform, double Width, double Height, OfficeIccRenderingIntent Intent), OfficeDrawingSoftMask>();
             var activeAppearanceSoftMasks = new HashSet<PdfStream>();
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget);
+                cancellationToken.ThrowIfCancellationRequested();
+                AddDrawingElement(drawing, pageHeight, appearanceTransform, elements[elementIndex], appearanceSoftMasks, activeAppearanceSoftMasks, textOutputBudget, pageContentBudget, type3GlyphBudget, invocationTextClippingBudget, patternTextClippingBudget, cancellationToken);
             }
         }
     }

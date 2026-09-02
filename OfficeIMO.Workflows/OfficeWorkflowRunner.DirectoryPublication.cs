@@ -81,10 +81,19 @@ public sealed partial class OfficeWorkflowRunner {
             throw;
         }
 
+        Exception? publicationStateFailure = TryMarkDirectoryPublicationPublished(requestedDirectory, transactionId);
         string retiredDirectory = requestedDirectory + ".officeimo-retired-" + transactionId;
         try {
             Directory.Move(recoveryDirectory, retiredDirectory);
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            if (publicationStateFailure is not null) {
+                Exception? cleanupFailure = TryDeleteDirectory(recoveryDirectory);
+                if (cleanupFailure is null) {
+                    TryDeleteFile(ownershipMarker);
+                    return requestedDirectory;
+                }
+                exception = new AggregateException(exception, publicationStateFailure, cleanupFailure);
+            }
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "PreviousOutputRetained",
                 "The new output was published, but the previous output could not be retired automatically.",
@@ -136,7 +145,20 @@ public sealed partial class OfficeWorkflowRunner {
             .ToArray();
         if (recoveryDirectories.Length == 0) return;
 
-        if (!Directory.Exists(requestedDirectory) && !File.Exists(requestedDirectory) && recoveryDirectories.Length == 1) {
+        bool destinationExists = Directory.Exists(requestedDirectory) || File.Exists(requestedDirectory);
+        if (destinationExists) {
+            foreach (string recoveryDirectory in recoveryDirectories.Where(path =>
+                         TryGetDirectoryPublicationState(requestedDirectory, path, pathComparison, out DirectoryPublicationState state) &&
+                         state == DirectoryPublicationState.Published)) {
+                RetryPublishedRecoveryRetirement(requestedDirectory, recoveryDirectory, diagnostics);
+            }
+            recoveryDirectories = recoveryDirectories
+                .Where(Directory.Exists)
+                .ToArray();
+            if (recoveryDirectories.Length == 0) return;
+        }
+
+        if (!destinationExists && recoveryDirectories.Length == 1) {
             string ownershipMarker = GetDirectoryPublicationOwnershipMarker(
                 requestedDirectory,
                 GetPublicationTransactionId(recoveryDirectories[0]));
@@ -160,13 +182,8 @@ public sealed partial class OfficeWorkflowRunner {
         if (!name.StartsWith(prefix, comparison)) return false;
         string suffix = name[prefix.Length..];
         if (suffix.Length != 32 || !Guid.TryParseExact(suffix, "N", out _)) return false;
-        string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, suffix);
         try {
-            if (!File.Exists(markerPath) || new FileInfo(markerPath).Length > 4096L) return false;
-            return string.Equals(
-                File.ReadAllText(markerPath, Encoding.UTF8),
-                GetDirectoryPublicationOwnershipContents(requestedDirectory, suffix),
-                comparison);
+            return TryGetDirectoryPublicationState(requestedDirectory, path, comparison, out _);
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             return false;
         }
@@ -179,15 +196,99 @@ public sealed partial class OfficeWorkflowRunner {
         string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
         using var stream = new FileStream(markerPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         using var writer = new StreamWriter(stream, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-        writer.Write(GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId));
+        writer.Write(GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId, DirectoryPublicationState.Prepared));
         return markerPath;
+    }
+
+    internal static void MarkDirectoryPublicationPublished(string requestedDirectory, string transactionId) {
+        Exception? failure = TryMarkDirectoryPublicationPublished(requestedDirectory, transactionId);
+        if (failure is not null) throw failure;
+    }
+
+    private static Exception? TryMarkDirectoryPublicationPublished(string requestedDirectory, string transactionId) {
+        string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
+        string nextMarkerPath = markerPath + ".next";
+        try {
+            File.WriteAllText(
+                nextMarkerPath,
+                GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId, DirectoryPublicationState.Published),
+                new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            File.Move(nextMarkerPath, markerPath, overwrite: true);
+            return null;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            return exception;
+        } finally {
+            TryDeleteFile(nextMarkerPath);
+        }
     }
 
     private static string GetDirectoryPublicationOwnershipMarker(string requestedDirectory, string transactionId) =>
         requestedDirectory + ".officeimo-publication-" + transactionId + ".owner";
 
-    private static string GetDirectoryPublicationOwnershipContents(string requestedDirectory, string transactionId) =>
-        "OfficeIMO.Workflows.DirectoryPublication.v1\n" + Path.GetFullPath(requestedDirectory) + "\n" + transactionId;
+    private static string GetDirectoryPublicationOwnershipContents(
+        string requestedDirectory,
+        string transactionId,
+        DirectoryPublicationState state) =>
+        "OfficeIMO.Workflows.DirectoryPublication.v2\n" +
+        Path.GetFullPath(requestedDirectory) + "\n" +
+        transactionId + "\n" +
+        (state == DirectoryPublicationState.Published ? "published" : "prepared");
+
+    private static bool TryGetDirectoryPublicationState(
+        string requestedDirectory,
+        string publicationDirectory,
+        StringComparison comparison,
+        out DirectoryPublicationState state) {
+        state = DirectoryPublicationState.Prepared;
+        string transactionId = GetPublicationTransactionId(publicationDirectory);
+        string markerPath = GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId);
+        if (!File.Exists(markerPath) || new FileInfo(markerPath).Length > 4096L) return false;
+        string contents = File.ReadAllText(markerPath, Encoding.UTF8);
+        if (string.Equals(
+                contents,
+                GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId, DirectoryPublicationState.Published),
+                comparison)) {
+            state = DirectoryPublicationState.Published;
+            return true;
+        }
+        if (string.Equals(
+                contents,
+                GetDirectoryPublicationOwnershipContents(requestedDirectory, transactionId, DirectoryPublicationState.Prepared),
+                comparison)) {
+            return true;
+        }
+        string legacyContents = "OfficeIMO.Workflows.DirectoryPublication.v1\n" + Path.GetFullPath(requestedDirectory) + "\n" + transactionId;
+        return string.Equals(contents, legacyContents, comparison);
+    }
+
+    private static void RetryPublishedRecoveryRetirement(
+        string requestedDirectory,
+        string recoveryDirectory,
+        ICollection<OfficeWorkflowDiagnostic> diagnostics) {
+        string transactionId = GetPublicationTransactionId(recoveryDirectory);
+        string retiredDirectory = requestedDirectory + ".officeimo-retired-" + transactionId;
+        try {
+            Directory.Move(recoveryDirectory, retiredDirectory);
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            Exception? cleanupFailure = TryDeleteDirectory(recoveryDirectory);
+            if (cleanupFailure is not null) {
+                diagnostics.Add(CreateRetainedOutputDiagnostic(
+                    requestedDirectory,
+                    recoveryDirectory,
+                    new AggregateException(exception, cleanupFailure)));
+            } else {
+                TryDeleteFile(GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId));
+            }
+            return;
+        }
+
+        Exception? retiredCleanupFailure = TryDeleteDirectory(retiredDirectory);
+        if (retiredCleanupFailure is not null) {
+            diagnostics.Add(CreateRetainedOutputDiagnostic(requestedDirectory, retiredDirectory, retiredCleanupFailure));
+        } else {
+            TryDeleteFile(GetDirectoryPublicationOwnershipMarker(requestedDirectory, transactionId));
+        }
+    }
 
     private static string GetPublicationTransactionId(string publicationDirectory) =>
         Path.GetFileName(publicationDirectory)[^32..];
@@ -260,6 +361,11 @@ public sealed partial class OfficeWorkflowRunner {
         } catch (UnauthorizedAccessException exception) {
             return exception;
         }
+    }
+
+    private enum DirectoryPublicationState {
+        Prepared,
+        Published
     }
 
     private sealed class DirectoryPublicationRecoveryException : IOException {

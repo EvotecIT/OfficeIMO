@@ -34,6 +34,15 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void ObjectStreamCompressionHonorsItsCancellationToken() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOptimizationFileAssembler.CompressFlate(new byte[128 * 1024], cancellation.Token));
+    }
+
+    [Fact]
     public void Optimize_CompressesUnfilteredStreamsAndPreservesText() {
         byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
 

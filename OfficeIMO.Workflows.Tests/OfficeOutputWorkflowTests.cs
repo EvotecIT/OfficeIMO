@@ -115,6 +115,34 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportRetriesRetirementAfterPublishedRecoveryWasRetained() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
+        string output = Path.Combine(scope.Path, "pages");
+        string transactionId = new string('6', 32);
+        string recovery = output + ".officeimo-recovery-" + transactionId;
+        Directory.CreateDirectory(output);
+        Directory.CreateDirectory(recovery);
+        OfficeWorkflowRunner.CreateDirectoryPublicationOwnershipMarker(output, transactionId);
+        OfficeWorkflowRunner.MarkDirectoryPublicationPublished(output, transactionId);
+        await File.WriteAllTextAsync(Path.Combine(output, "current.txt"), "current output");
+        await File.WriteAllTextAsync(Path.Combine(recovery, "previous.txt"), "previous output");
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest {
+                InputPath = input,
+                OutputDirectory = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.False(Directory.Exists(recovery));
+        Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-recovery-*"));
+        Assert.Empty(Directory.GetDirectories(scope.Path, "pages.officeimo-retired-*"));
+        Assert.Empty(Directory.GetFiles(scope.Path, "pages.officeimo-publication-*.owner"));
+    }
+
+    [Fact]
     public async Task PageImageExportPreservesSimilarlyNamedUserDirectoriesDuringRecovery() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");
