@@ -461,9 +461,14 @@ internal static partial class TableDetector {
                 }
 
                 bool hasNonLeftAlignedCells = BandsHaveNonLeftAlignedCells(current.lines, next.lines);
+                List<TextLayoutEngine.TextLine>? previous = end > start
+                    ? bandSplits[end - 1].lines
+                    : null;
                 bool hasContinuousAlignedCells = HasEmphasizedText(bandSplits[start].lines[0]) &&
                                                  BandsHaveAlignedCells(current.lines, next.lines) &&
-                                                 BandsHaveCompatibleVerticalGap(current.lines, next.lines);
+                                                 (BandsHaveCompatibleVerticalGap(current.lines, next.lines) ||
+                                                  (previous is not null &&
+                                                   BandsHaveCompatibleVerticalRhythm(previous, current.lines, next.lines)));
                 if (next.idx > current.idx + 2 ||
                     (!AreSplitsSimilar(baseSplits, next.splits) &&
                      !hasNonLeftAlignedCells &&
@@ -479,7 +484,9 @@ internal static partial class TableDetector {
                     break;
                 }
                 if (bridgeDecision == InterveningBandDecision.Include &&
-                    LooksLikeEmphasizedHeaderBand(bands[current.idx + 1], next.splits)) {
+                    LooksLikeEmphasizedHeaderBand(bands[current.idx + 1], next.splits) &&
+                    !LooksLikeNaturalSpanningPhrase(bands[current.idx + 1][0]) &&
+                    BandsAlignUsingSplits(bands[current.idx + 1], next.lines, next.splits)) {
                     break;
                 }
 
@@ -527,7 +534,20 @@ internal static partial class TableDetector {
                 }
                 effectiveSplits = alignedSplits;
             }
-            var table = BuildTableFromLinesAndSplits(groupLines, effectiveSplits, "band-group");
+            Dictionary<TextLayoutEngine.TextLine, List<double>>? bridgeSplits = null;
+            if (includedBridgeBandIndexes.Count > 0) {
+                bridgeSplits = new Dictionary<TextLayoutEngine.TextLine, List<double>>();
+                foreach (int bridgeBandIndex in includedBridgeBandIndexes) {
+                    foreach (TextLayoutEngine.TextLine bridgeLine in bands[bridgeBandIndex]) {
+                        bridgeSplits[bridgeLine] = baseSplits;
+                    }
+                }
+            }
+            var table = BuildTableFromLinesAndSplits(
+                groupLines,
+                effectiveSplits,
+                "band-group",
+                bridgeSplits);
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
                 HasValidatedRows(table, groupLines)) {
@@ -785,9 +805,16 @@ internal static partial class TableDetector {
         if (cells.Length < 2) return false;
         string label = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
         if (!LooksLikeSummaryLabel(label)) return false;
-        return cells.Skip(1).Any(static cell => IsTabularValue(
+        return cells.Skip(1).Any(static cell => LooksLikeSummaryValue(
             ContentStructureExtractor.NormalizeShattered(cell).Trim()));
     }
+
+    private static bool LooksLikeSummaryValue(string value) =>
+        value.Any(char.IsDigit) ||
+        string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     private static bool LooksLikeSummaryLabel(string label) {
         string value = label.Trim().TrimEnd(':').Trim();
@@ -816,7 +843,11 @@ internal static partial class TableDetector {
         return true;
     }
 
-    private static StructuredTable? BuildTableFromLinesAndSplits(List<TextLayoutEngine.TextLine> lines, List<double> splits, string kind) {
+    private static StructuredTable? BuildTableFromLinesAndSplits(
+        List<TextLayoutEngine.TextLine> lines,
+        List<double> splits,
+        string kind,
+        Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides = null) {
         if (splits.Count == 0) return null;
         double minX = double.MaxValue, maxX = double.MinValue;
         foreach (var ln in lines) { minX = Math.Min(minX, ln.XStart); maxX = Math.Max(maxX, ln.XEnd); }
@@ -833,7 +864,11 @@ internal static partial class TableDetector {
         }
         int cols = table.Columns.Count;
         foreach (var ln in lines) {
-            var cells = SplitBySplits(ln, splits);
+            List<double> lineSplits = lineSplitOverrides is not null &&
+                                      lineSplitOverrides.TryGetValue(ln, out List<double>? splitOverride)
+                ? splitOverride
+                : splits;
+            var cells = SplitBySplits(ln, lineSplits);
             if (cells.Length != cols) continue;
             bool anyContent = false; for (int i = 0; i < cells.Length; i++) if (!string.IsNullOrWhiteSpace(cells[i])) { anyContent = true; break; }
             if (!anyContent) continue;
