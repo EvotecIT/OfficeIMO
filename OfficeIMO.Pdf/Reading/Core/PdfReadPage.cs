@@ -336,7 +336,7 @@ public sealed partial class PdfReadPage {
                 out IReadOnlyList<IReadOnlyList<double>> inkList);
             PdfAnnotationReviewInfo? review = ReadAnnotationReviewInfo(annotation);
             string? appearanceState = annotation.Get<PdfName>("AS")?.Name;
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState));
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList, review, normalAppearanceObject, appearanceState, annotation));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();

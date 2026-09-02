@@ -68,6 +68,7 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfRedactionArea> reviewedAreas) {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(reviewedAreas, nameof(reviewedAreas));
+        IReadOnlyDictionary<int, string> stablePageReferences = CreateStablePageReferenceLabels(document);
         var identities = new string[document.Pages.Count];
         for (int i = 0; i < document.Pages.Count; i++) {
             PdfReadPage page = document.Pages[i];
@@ -87,13 +88,22 @@ public sealed class PdfRedactionPlan {
             AppendUnredactedTextIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedPathIdentity(identity, document, page, pageAreas, drawingEffects);
             AppendUnredactedImageIdentity(identity, document, page, pageNumber, pageAreas, drawingEffects);
-            AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas);
+            AppendUnredactedAnnotationIdentity(identity, document, page, pageAreas, stablePageReferences);
             AppendUnredactedLinkIdentity(identity, page, pageAreas);
             AppendPageRenderingResourceIdentity(identity, document, page);
             identities[i] = ComputeIdentityHash(identity.ToString());
         }
 
         return identities;
+    }
+
+    private static Dictionary<int, string> CreateStablePageReferenceLabels(PdfReadDocument document) {
+        var labels = new Dictionary<int, string>();
+        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+            int pageNumber = pageIndex + 1;
+            labels[document.Pages[pageIndex].ObjectNumber] = "page:" + pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+        return labels;
     }
 
     private static void AppendUnredactedTextIdentity(
@@ -403,7 +413,8 @@ public sealed class PdfRedactionPlan {
         System.Text.StringBuilder identity,
         PdfReadDocument document,
         PdfReadPage page,
-        IReadOnlyList<PdfRedactionArea> pageAreas) {
+        IReadOnlyList<PdfRedactionArea> pageAreas,
+        IReadOnlyDictionary<int, string> stablePageReferences) {
         IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
         for (int i = 0; i < annotations.Count; i++) {
             PdfAnnotation annotation = annotations[i];
@@ -469,6 +480,13 @@ public sealed class PdfRedactionPlan {
                 AppendIdentityString(identity, annotation.Review.StateModel);
                 AppendIdentityString(identity, annotation.Review.Subject);
                 AppendIdentityString(identity, annotation.Review.Intent);
+            }
+            if (annotation.SourceDictionary != null) {
+                identity.Append(":dictionary:")
+                    .Append(PdfRedactionAnnotationIdentity.Compute(
+                        annotation.SourceDictionary,
+                        document.Objects,
+                        stablePageReferences));
             }
         }
     }

@@ -11,6 +11,7 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private readonly IncrementalHash _hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
     private readonly Dictionary<(int ObjectNumber, int Generation), int> _references = new();
+    private readonly IReadOnlyDictionary<int, string>? _stableReferenceLabels;
     private readonly int _maximumDepth;
     private readonly int _maximumNodes;
     private readonly CancellationToken _cancellationToken;
@@ -22,11 +23,20 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
         Dictionary<int, PdfIndirectObject> objects,
         int maximumDepth,
         int maximumNodes,
+        CancellationToken cancellationToken = default)
+        : this(objects, maximumDepth, maximumNodes, stableReferenceLabels: null, cancellationToken) { }
+
+    internal PdfObjectGraphFingerprint(
+        Dictionary<int, PdfIndirectObject> objects,
+        int maximumDepth,
+        int maximumNodes,
+        IReadOnlyDictionary<int, string>? stableReferenceLabels,
         CancellationToken cancellationToken = default) {
         _objects = objects;
         _maximumDepth = maximumDepth;
         _maximumNodes = maximumNodes;
         _cancellationToken = cancellationToken;
+        _stableReferenceLabels = stableReferenceLabels;
     }
 
     internal void AppendRoot(PdfObject value) {
@@ -86,6 +96,13 @@ internal sealed class PdfObjectGraphFingerprint : IDisposable {
     }
 
     private void AppendReference(PdfReference reference, int depth) {
+        if (_stableReferenceLabels != null &&
+            _stableReferenceLabels.TryGetValue(reference.ObjectNumber, out string? stableLabel)) {
+            AppendByte(18);
+            AppendString(stableLabel);
+            return;
+        }
+
         var key = (reference.ObjectNumber, reference.Generation);
         if (_references.TryGetValue(key, out int existingId)) {
             AppendByte(12);
