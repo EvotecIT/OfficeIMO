@@ -447,11 +447,16 @@ internal static class TableDetector {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
                 bool hasNonLeftAlignedCells = BandsHaveNonLeftAlignedCells(current.lines, next.lines);
+                bool hasContinuousAlignedCells = HasEmphasizedText(bandSplits[start].lines[0]) &&
+                                                 BandsHaveAlignedCells(current.lines, next.lines) &&
+                                                 BandsHaveCompactVerticalGap(current.lines, next.lines);
                 if (next.idx > current.idx + 2 ||
-                    (!AreSplitsSimilar(baseSplits, next.splits) && !hasNonLeftAlignedCells)) {
+                    (!AreSplitsSimilar(baseSplits, next.splits) &&
+                     !hasNonLeftAlignedCells &&
+                     !hasContinuousAlignedCells)) {
                     break;
                 }
-                requiresAlignedCellSplits |= hasNonLeftAlignedCells;
+                requiresAlignedCellSplits |= hasNonLeftAlignedCells || hasContinuousAlignedCells;
 
                 InterveningBandDecision bridgeDecision = ClassifyInterveningBand(
                     bands,
@@ -594,6 +599,14 @@ internal static class TableDetector {
         return first != null && second != null && PositionedRowsAlign(first, second);
     }
 
+    private static bool BandsHaveCompactVerticalGap(
+        List<TextLayoutEngine.TextLine> firstBand,
+        List<TextLayoutEngine.TextLine> secondBand) {
+        if (firstBand.Count != 1 || secondBand.Count != 1) return false;
+        double gap = firstBand[0].Y - secondBand[0].Y;
+        return gap > 0D && gap <= 36D;
+    }
+
     private static bool BandsHaveNonLeftAlignedCells(
         List<TextLayoutEngine.TextLine> firstBand,
         List<TextLayoutEngine.TextLine> secondBand) {
@@ -683,7 +696,8 @@ internal static class TableDetector {
             return null;
         }
 
-        if (!IsCompactNonNarrativeRow(headerBand[0].Text.Trim()) ||
+        if (!BandsHaveCompactVerticalGap(headerBand, bands[bodyBandIndex]) ||
+            !IsCompactNonNarrativeRow(headerBand[0].Text.Trim()) ||
             (!BandsHaveAlignedCells(headerBand, bands[bodyBandIndex]) &&
              !HasEmphasizedText(headerBand[0]))) {
             return null;

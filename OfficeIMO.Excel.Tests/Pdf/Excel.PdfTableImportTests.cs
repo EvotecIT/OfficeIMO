@@ -10,6 +10,40 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     [Fact]
+    public void PdfTables_SaveTablesAsExcel_PreservesHeaderWhenNarrativePrecedesAutoSizedTable() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .H1("Quarterly results")
+            .Paragraph(paragraph => paragraph.Text("Revenue improved in the current quarter."))
+            .Table(new[] {
+                new[] { "Region", "Revenue", "Active" },
+                new[] { "North", "1250", "True" },
+                new[] { "South", "980", "False" },
+                new[] { "West", "1430", "True" }
+            })
+            .ToBytes();
+
+        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
+        PdfCore.PdfLogicalTable table = Assert.Single(logical.Pages.SelectMany(static page => page.Tables));
+        Assert.Equal(4, table.Rows.Count);
+
+        using var workbook = new MemoryStream();
+        PdfExcelTableImportEntry result = Assert.Single(logical.SaveTablesAsExcel(
+            workbook,
+            new PdfExcelTableImportOptions {
+                AutoFitColumns = false
+            }).Entries);
+
+        Assert.Equal(3, result.RowCount);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        ExcelTableInfo excelTable = Assert.Single(reader.GetTables());
+        Assert.Equal(new[] { "Region", "Revenue", "Active" }, excelTable.Columns.Select(static column => column.Name).ToArray());
+        object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);
+        Assert.Equal("North", values[1, 0]);
+        Assert.Equal(1250d, Convert.ToDouble(values[1, 1], CultureInfo.InvariantCulture));
+        Assert.Equal("West", values[3, 0]);
+    }
+
+    [Fact]
     public void PdfTables_SaveTablesAsExcel_ImportsDetectedTablesAsWorkbookTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,
