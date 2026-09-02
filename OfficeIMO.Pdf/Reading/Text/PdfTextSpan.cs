@@ -67,6 +67,11 @@ public sealed class PdfTextSpan {
         PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
         ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity);
 
+    internal PdfTextSpan WithVisualFontSize(double fontSize) => new PdfTextSpan(
+        Text, FontResource, fontSize, X, Y, Advance, Color, IsVisible, RotationDegrees, BaseFont, ClipPath,
+        PaintOrder, DrawingFontFamily, LogicalLineBreaksBefore, LogicalLeadingSpace, LogicalTrailingSpace,
+        ContentOrderKey, CharacterAdvances, TextRenderingMode, CanRestamp, RestampFontSize, RestampText, CanScaleAggregateAdvance, MarkedContentId, ContentStreamObjectNumber, TextObjectOrderKey, TextToPageTransform, VisualPaintIdentity);
+
     internal bool CanProjectCompleteText(double? pageHeight) {
         if (!IsVisible || string.IsNullOrEmpty(Text)) return false;
         if (!ClipPath.HasValue) return true;

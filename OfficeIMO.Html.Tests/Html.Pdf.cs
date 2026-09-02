@@ -99,6 +99,22 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_AllowsOutputExactlyAtThePostNormalizationLimit() {
+        PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
+        PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        unbounded.NewLine = "\n";
+        string expected = document.ToHtmlResult(unbounded).Value;
+        PdfHtmlSaveOptions bounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        bounded.NewLine = "\n";
+        bounded.MaximumOutputCharacters = expected.Length;
+
+        string actual = document.ToHtmlResult(bounded).Value;
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(expected.Length, actual.Length);
+    }
+
+    [Fact]
     public void PdfToHtml_ResultAndBodyClassAreImmutableComposedContracts() {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
         options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";

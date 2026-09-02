@@ -280,29 +280,13 @@ public sealed partial class OfficeWorkflowRunner {
                     string.Equals(extension, ".htm", StringComparison.OrdinalIgnoreCase)) {
                     StringComparer pathComparer = OfficeWorkflowPathIdentity.GetComparer(sourceDirectory);
                     string fullInputPath = Path.GetFullPath(input);
-                    var dependencyCandidates = new List<string> { fullInputPath };
-                    try {
-                        foreach (string file in Directory.EnumerateFiles(sourceDirectory, "*", new EnumerationOptions {
-                                     RecurseSubdirectories = true,
-                                     IgnoreInaccessible = false,
-                                     AttributesToSkip = FileAttributes.ReparsePoint,
-                                     ReturnSpecialDirectories = false
-                                 })) {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            string fullPath = Path.GetFullPath(file);
-                            if (pathComparer.Equals(fullPath, fullInputPath)) continue;
-                            CountDiscoveredEntry();
-                            if (OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath)) dependencyCandidates.Add(fullPath);
-                        }
-                    } catch (UnauthorizedAccessException ex) {
-                        throw new IOException("An HTML source folder could not be enumerated safely: " + sourceDirectory, ex);
-                    }
                     HtmlDependencyDiscovery dependencyDiscovery = FindReferencedHtmlDependencies(
-                        dependencyCandidates,
+                        [fullInputPath],
                         physicalRoot,
                         request.Limits.MaximumInputBytes,
                         pathComparer,
-                        cancellationToken);
+                        cancellationToken,
+                        discoverReferencedFiles: true);
                     AddInputBytes(dependencyDiscovery.TotalBytes);
                     dependencySnapshots = dependencyDiscovery.Snapshots;
                 }
@@ -514,7 +498,8 @@ public sealed partial class OfficeWorkflowRunner {
         string physicalRoot,
         long maximumInputBytes,
         StringComparer pathComparer,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        bool discoverReferencedFiles = false) {
         var candidates = new Dictionary<string, string>(pathComparer);
         var htmlFiles = new List<string>();
         foreach (string file in files) {
@@ -533,7 +518,7 @@ public sealed partial class OfficeWorkflowRunner {
         var referenced = new HashSet<string>(pathComparer);
         var snapshots = new Dictionary<string, byte[]>(pathComparer);
         long referencedBytes = 0L;
-        var pendingStylesheets = new Queue<string>();
+        var pendingStylesheets = new Queue<(string Path, int Depth)>();
         var processedStylesheets = new HashSet<string>(pathComparer);
         foreach (string htmlPath in htmlFiles) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -546,7 +531,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
         while (pendingStylesheets.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            string stylesheetPath = pendingStylesheets.Dequeue();
+            (string stylesheetPath, int depth) = pendingStylesheets.Dequeue();
             if (!processedStylesheets.Add(stylesheetPath)) continue;
             byte[] cssBytes = snapshots[stylesheetPath];
             if (!HtmlResourcePipeline.TryDecodeStylesheet(cssBytes, contentType: null, out string css)) continue;
@@ -554,7 +539,7 @@ public sealed partial class OfficeWorkflowRunner {
                 css,
                 new Uri(stylesheetPath),
                 OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions());
-            AddManifestReferences(manifest, pendingStylesheets);
+            AddManifestReferences(manifest, pendingStylesheets, depth + 1);
         }
         return new HtmlDependencyDiscovery(referenced, snapshots, referencedBytes);
 
@@ -570,7 +555,10 @@ public sealed partial class OfficeWorkflowRunner {
                 cancellationToken);
         }
 
-        void AddManifestReferences(HtmlResourceManifest manifest, Queue<string> stylesheets) {
+        void AddManifestReferences(
+            HtmlResourceManifest manifest,
+            Queue<(string Path, int Depth)> stylesheets,
+            int stylesheetDepth = 0) {
             foreach (HtmlResourceReference resource in manifest.Resources) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!resource.IsAllowed || !IsLoadableHtmlDependency(resource.Kind) ||
@@ -579,8 +567,12 @@ public sealed partial class OfficeWorkflowRunner {
                     continue;
                 }
                 string fullPath = Path.GetFullPath(uri.LocalPath);
-                if (!candidates.TryGetValue(fullPath, out string? candidate)) continue;
+                if (!TryGetCandidate(fullPath, out string? candidate)) continue;
                 if (referenced.Add(candidate)) {
+                    if (referenced.Count > OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount) {
+                        throw new InvalidOperationException(
+                            $"Referenced HTML resource count exceeds the configured {OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount:N0}-item limit.");
+                    }
                     byte[] snapshot = ReadDependencyBytes(candidate);
                     referencedBytes = checked(referencedBytes + snapshot.LongLength);
                     if (referencedBytes > maximumInputBytes) {
@@ -591,9 +583,34 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 if (resource.Kind == HtmlResourceKind.Stylesheet &&
                     string.Equals(Path.GetExtension(candidate), ".css", StringComparison.OrdinalIgnoreCase)) {
-                    stylesheets.Enqueue(candidate);
+                    if (stylesheetDepth > OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth) {
+                        throw new InvalidOperationException(
+                            $"Referenced HTML stylesheet import depth exceeds the configured {OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth:N0}-level limit.");
+                    }
+                    stylesheets.Enqueue((candidate, stylesheetDepth));
                 }
             }
+        }
+
+        bool TryGetCandidate(string fullPath, out string candidate) {
+            if (candidates.TryGetValue(fullPath, out string? knownCandidate)) {
+                candidate = knownCandidate;
+                return true;
+            }
+            candidate = string.Empty;
+            if (!discoverReferencedFiles ||
+                !OfficeWorkflowHtmlResourceResolver.IsSupportedDependency(fullPath) ||
+                !File.Exists(fullPath)) {
+                return false;
+            }
+            try {
+                if (!OfficeWorkflowPathIdentity.IsSameOrDescendant(fullPath, physicalRoot)) return false;
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                return false;
+            }
+            candidate = fullPath;
+            candidates[fullPath] = fullPath;
+            return true;
         }
 
         static bool IsLoadableHtmlDependency(HtmlResourceKind kind) =>

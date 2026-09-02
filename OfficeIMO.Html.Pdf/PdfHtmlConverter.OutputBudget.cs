@@ -12,17 +12,51 @@ public static partial class PdfHtmlConverterExtensions {
         }
 
         int maximum = options.MaximumOutputCharacters.Value;
-        return new StringBuilder(Math.Min(256, maximum), maximum);
+        // The rendered buffer can temporarily be larger than the requested output when CRLF
+        // sequences are normalized to a one-character line ending and when the final line ending
+        // is removed. Keep that representation bounded without rejecting a valid final result.
+        long rawMaximum = Math.Min(int.MaxValue, checked((long)maximum * 2L + 2L));
+        return new StringBuilder(Math.Min(256, maximum), checked((int)rawMaximum));
     }
 
-    private static string NormalizeOutputNewLinesWithinBudget(string value, PdfHtmlSaveOptions options) {
-        string normalized = NormalizeOutputNewLines(value, options.NewLine);
+    private static string NormalizeOutputNewLinesWithinBudget(StringBuilder value, PdfHtmlSaveOptions options) {
+        string newLine = options.NewLine;
+        int sourceLength = value.Length;
+        while (sourceLength > 0 && value[sourceLength - 1] is '\r' or '\n') sourceLength--;
+        long normalizedLength = 0L;
+        bool changed = sourceLength != value.Length;
+        for (int index = 0; index < sourceLength; index++) {
+            char current = value[index];
+            if (current is not ('\r' or '\n')) {
+                normalizedLength++;
+                continue;
+            }
+
+            int sourceNewLineLength = current == '\r' && index + 1 < sourceLength && value[index + 1] == '\n' ? 2 : 1;
+            changed |= !MatchesNewLine(value, index, sourceNewLineLength, newLine);
+            normalizedLength = checked(normalizedLength + newLine.Length);
+            index += sourceNewLineLength - 1;
+        }
         if (options.MaximumOutputCharacters.HasValue &&
-            normalized.Length > options.MaximumOutputCharacters.Value) {
+            normalizedLength > options.MaximumOutputCharacters.Value) {
             throw new InvalidOperationException(
                 $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while requested newlines were being rendered.");
         }
-        return normalized;
+        if (sourceLength != value.Length) value.Length = sourceLength;
+        if (changed) {
+            value.Replace("\r\n", "\n");
+            value.Replace("\r", "\n");
+            if (!string.Equals(newLine, "\n", StringComparison.Ordinal)) value.Replace("\n", newLine);
+        }
+        return value.ToString();
+
+        static bool MatchesNewLine(StringBuilder source, int index, int length, string expected) {
+            if (length != expected.Length) return false;
+            for (int offset = 0; offset < length; offset++) {
+                if (source[index + offset] != expected[offset]) return false;
+            }
+            return true;
+        }
     }
 
     private static void AddHtmlItem(

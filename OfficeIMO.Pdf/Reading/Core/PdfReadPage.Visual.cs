@@ -2476,6 +2476,14 @@ public sealed partial class PdfReadPage {
                 contentOrderOffset: -transformedContentOffset);
         }
 
+        for (int index = 0; index < spans.Count; index++) {
+            PdfTextSpan span = spans[index];
+            double visualFontSize = span.RestampFontSize;
+            if (visualFontSize > 0D && !double.IsNaN(visualFontSize) && !double.IsInfinity(visualFontSize) &&
+                Math.Abs(visualFontSize - span.FontSize) > 0.000001D) {
+                spans[index] = span.WithVisualFontSize(visualFontSize);
+            }
+        }
         return spans.Count == 0 ? Array.Empty<PdfTextSpan>() : spans.AsReadOnly();
     }
 

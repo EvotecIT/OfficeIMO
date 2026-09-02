@@ -117,6 +117,26 @@ public class PdfPageInteractionMapTests {
     }
 
     [Fact]
+    public void InteractionMap_ScalesTextHeightByUserUnit() {
+        const string content = "BT /F1 10 Tf 20 50 Td (A) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /UserUnit 2 /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion text = Assert.Single(map.TextRegions);
+
+        Assert.Equal(24D, text.Quad.Height, 3);
+        Assert.Contains(text, map.HitTest((text.Quad.Left + text.Quad.Right) / 2D, text.Quad.Top + 5D));
+    }
+
+    [Fact]
     public void InteractionMap_ProjectsImageThroughCropAndPageRotation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Rotated image interaction"))

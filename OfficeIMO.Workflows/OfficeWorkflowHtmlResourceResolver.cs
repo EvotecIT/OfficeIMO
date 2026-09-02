@@ -5,6 +5,8 @@ namespace OfficeIMO.Workflows;
 
 internal static class OfficeWorkflowHtmlResourceResolver {
     private const int BufferSize = 81920;
+    internal const int MaximumReferencedResourceCount = 256;
+    internal const int MaximumStylesheetImportDepth = 16;
     private static readonly HashSet<string> SupportedDependencyExtensions = new(StringComparer.OrdinalIgnoreCase) {
         ".css", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".bmp", ".tif", ".tiff",
         ".woff", ".woff2", ".ttf", ".otf"
@@ -33,7 +35,10 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         var options = new HtmlPdfSaveOptions {
             ResourceUrlPolicy = resourcePolicy,
             MaxResourceBytes = rendererResourceBudget,
-            MaxTotalResourceBytes = rendererResourceBudget
+            MaxTotalResourceBytes = rendererResourceBudget,
+            MaxResourceCount = MaximumReferencedResourceCount,
+            MaxResourceRequests = MaximumReferencedResourceCount * 2,
+            MaxStylesheetImportDepth = MaximumStylesheetImportDepth
         };
         options.ResourcePolicy.AllowLocalFileAccess = true;
         options.ResourceResolver = (request, cancellationToken) =>

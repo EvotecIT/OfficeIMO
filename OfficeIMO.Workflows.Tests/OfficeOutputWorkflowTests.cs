@@ -648,7 +648,8 @@ public sealed class OfficeOutputWorkflowTests {
             new PdfAssemblyRequest {
                 Sources = [htmlPath],
                 OutputPath = output,
-                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+                Options = new PdfAssemblyOptions { MaximumDiscoveredEntries = 1 }
             },
             new InlineProgress<OfficeWorkflowProgress>(update => {
                 if (removed || update.Stage != "normalize") return;
@@ -660,6 +661,87 @@ public sealed class OfficeOutputWorkflowTests {
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(output));
         Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
+    public async Task DirectHtmlAssemblyDoesNotApplyFolderDiscoveryLimitToUnreferencedSiblings() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        string htmlPath = Path.Combine(folder, "source.html");
+        await File.WriteAllTextAsync(htmlPath, "<!doctype html><html><body>Direct input</body></html>");
+        string unrelated = Path.Combine(folder, "node_modules", "package");
+        Directory.CreateDirectory(unrelated);
+        for (int index = 0; index < 4; index++) {
+            await File.WriteAllTextAsync(Path.Combine(unrelated, $"unused-{index}.css"), "body { color: red; }");
+        }
+
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [htmlPath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Options = new PdfAssemblyOptions { MaximumDiscoveredEntries = 1 }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(1, result.SourceCount);
+        Assert.Equal("Direct input", PdfReadDocument.Open(File.ReadAllBytes(output)).Pages.Single().ExtractText().Trim());
+    }
+
+    [Fact]
+    public async Task DirectHtmlAssemblyBoundsTheReferencedResourceGraph() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        string htmlPath = Path.Combine(folder, "source.html");
+        var html = new StringBuilder("<!doctype html><html><body>");
+        for (int index = 0; index <= OfficeWorkflowHtmlResourceResolver.MaximumReferencedResourceCount; index++) {
+            string fileName = $"image-{index}.png";
+            html.Append("<img src='").Append(fileName).Append("'>");
+            await File.WriteAllBytesAsync(Path.Combine(folder, fileName), [0]);
+        }
+        html.Append("</body></html>");
+        await File.WriteAllTextAsync(htmlPath, html.ToString());
+
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [htmlPath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("Referenced HTML resource count", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task DirectHtmlAssemblyBoundsStylesheetImportDepth() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        string htmlPath = Path.Combine(folder, "source.html");
+        await File.WriteAllTextAsync(htmlPath, "<!doctype html><html><head><link rel='stylesheet' href='style-0.css'></head><body>Depth</body></html>");
+        for (int index = 0; index <= OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth; index++) {
+            await File.WriteAllTextAsync(
+                Path.Combine(folder, $"style-{index}.css"),
+                $"@import url('style-{index + 1}.css'); body {{ color: black; }}");
+        }
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, $"style-{OfficeWorkflowHtmlResourceResolver.MaximumStylesheetImportDepth + 1}.css"),
+            "body { color: black; }");
+
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest {
+            Sources = [htmlPath],
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("stylesheet import depth", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]
