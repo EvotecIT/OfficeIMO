@@ -250,6 +250,51 @@ public sealed class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task BatchRejectsRemovalOutputThatOverlapsAnotherInputBeforeExecution() {
+        using var scope = new TempScope();
+        string first = scope.Write("first.html", HtmlWithExternalManifest("first"));
+        string second = scope.Write("second.html", HtmlWithExternalManifest("second"));
+        string originalSecond = File.ReadAllText(second);
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            new OfficeWorkflowRunner().RunProvenanceBatchAsync([
+                new OfficeProvenanceWorkflowRequest {
+                    Id = "first",
+                    Operation = OfficeProvenanceWorkflowOperation.Remove,
+                    InputPath = first,
+                    OutputPath = second,
+                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                },
+                new OfficeProvenanceWorkflowRequest {
+                    Id = "second",
+                    Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                    InputPath = second
+                }
+            ]));
+
+        Assert.Contains("overlaps another batch request's input", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(originalSecond, File.ReadAllText(second));
+    }
+
+    [Fact]
+    public async Task RemovalPreflightUsesRemovalLimitsInsteadOfInspectionLimits() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        string output = Path.Combine(scope.Path, "cleaned.html");
+        var request = new OfficeProvenanceWorkflowRequest {
+            Operation = OfficeProvenanceWorkflowOperation.Remove,
+            InputPath = input,
+            OutputPath = output
+        };
+        request.Inspection.MaxAssetBytes = 1;
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(File.Exists(output));
+    }
+
+    [Fact]
     public async Task PreCancelledBatchReturnsOneExplicitCancelledResult() {
         using var scope = new TempScope();
         string first = scope.Write("first.html", "<html><body>first</body></html>");
