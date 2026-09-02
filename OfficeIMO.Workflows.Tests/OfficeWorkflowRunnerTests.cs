@@ -180,6 +180,28 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task OptimizationStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", new string('x', 4096));
+        string output = Path.Combine(scope.Path, "bounded-optimized.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains("while it was being serialized", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
     public async Task PdfToHtmlStopsWhileRenderingAtTheConfiguredOutputLimit() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", new string('x', 512));

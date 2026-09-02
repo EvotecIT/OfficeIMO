@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Html;
 using OfficeIMO.Pdf;
@@ -446,7 +447,8 @@ public sealed partial class OfficeWorkflowRunner {
             long size = stream.Length;
             EnforceInputLimit(path, size, request.Limits);
             string identity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
-            return new AssemblySource(path, origin, displayName, kind, route, size, physicalRoot, identity);
+            string contentSha256 = ComputeAssemblySourceSha256(stream, cancellationToken);
+            return new AssemblySource(path, origin, displayName, kind, route, size, physicalRoot, identity, contentSha256);
         }
 
         void CountDiscoveredEntry() {
@@ -604,6 +606,10 @@ public sealed partial class OfficeWorkflowRunner {
             source.DisplayName,
             request.Limits.MaximumInputBytes,
             cancellationToken);
+        string observedContentSha256 = System.Convert.ToHexString(SHA256.HashData(input));
+        if (!string.Equals(observedContentSha256, source.ContentSha256, StringComparison.Ordinal)) {
+            throw new InvalidDataException("An assembly source changed after discovery: " + source.DisplayName);
+        }
         switch (source.Kind) {
             case AssemblySourceKind.Pdf:
                 PdfDocument opened = PdfDocument.Load(input, request.PdfLoadOptions);
@@ -716,6 +722,20 @@ public sealed partial class OfficeWorkflowRunner {
         Office
     }
 
+    private static string ComputeAssemblySourceSha256(FileStream stream, CancellationToken cancellationToken) {
+        stream.Position = 0L;
+        using IncrementalHash hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[AssemblyInputBufferSize];
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(buffer, 0, buffer.Length);
+            if (read == 0) break;
+            hash.AppendData(buffer, 0, read);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return System.Convert.ToHexString(hash.GetHashAndReset());
+    }
+
     private sealed record AssemblySource(
         string Path,
         string Origin,
@@ -724,7 +744,8 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowRoute? Route,
         long SizeBytes,
         string PhysicalRoot,
-        string PhysicalIdentityKey);
+        string PhysicalIdentityKey,
+        string ContentSha256);
 
     private sealed record ValidatedAssemblyRequest(
         string Id,

@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
@@ -639,6 +640,37 @@ public sealed class OfficeOutputWorkflowTests {
                 if (replaced || update.Stage != "normalize") return;
                 File.Move(discovered, retired);
                 File.Copy(replacement, discovered);
+                replaced = true;
+            }));
+
+        Assert.True(replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("changed after discovery", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task FolderAssemblyRejectsSameLengthContentChangedInPlaceAfterDiscovery() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "folder");
+        Directory.CreateDirectory(folder);
+        string discovered = CreatePdf(folder, "source.pdf", "Reviewed input");
+        string output = Path.Combine(scope.Path, "must-not-exist.pdf");
+        bool replaced = false;
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(
+            new PdfAssemblyRequest {
+                Sources = [folder],
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            },
+            new InlineProgress<OfficeWorkflowProgress>(update => {
+                if (replaced || update.Stage != "normalize") return;
+                byte[] bytes = File.ReadAllBytes(discovered);
+                string text = Encoding.ASCII.GetString(bytes).Replace("Reviewed", "Replaced", StringComparison.Ordinal);
+                byte[] replacement = Encoding.ASCII.GetBytes(text);
+                Assert.Equal(bytes.Length, replacement.Length);
+                File.WriteAllBytes(discovered, replacement);
                 replaced = true;
             }));
 

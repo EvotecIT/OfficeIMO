@@ -24,6 +24,7 @@ internal static partial class PdfOptimizer {
         }
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum decoded image bytes must be positive.");
         if (effectiveOptions.MaximumTotalDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum total decoded image bytes must be positive.");
+        if (effectiveOptions.MaximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(options), "Maximum output bytes must be positive.");
         if (effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable && effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.XrefStream) throw new ArgumentOutOfRangeException(nameof(options), "Unsupported optimization xref format.");
         if (effectiveOptions.UseObjectStreams) effectiveOptions.XrefFormat = PdfOptimizationXrefFormat.XrefStream;
         if (effectiveOptions.Linearize && (effectiveOptions.UseObjectStreams || effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable)) {
@@ -67,13 +68,18 @@ internal static partial class PdfOptimizer {
         }
         cancellationToken.ThrowIfCancellationRequested();
 
-        byte[] candidate = RewriteAllObjects(
-            optimizedObjects,
-            catalogObjectNumber,
-            metadata,
-            pdf,
-            BuildSafeTrailerIdEntry(pdf),
-            effectiveOptions);
+        byte[] candidate;
+        try {
+            candidate = RewriteAllObjects(
+                optimizedObjects,
+                catalogObjectNumber,
+                metadata,
+                pdf,
+                BuildSafeTrailerIdEntry(pdf),
+                effectiveOptions);
+        } catch (InvalidDataException exception) when (PdfOutputLimitErrors.IsOutputLimitExceeded(exception)) {
+            throw new InvalidOperationException(exception.Message, exception);
+        }
         if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
@@ -90,6 +96,7 @@ internal static partial class PdfOptimizer {
         cancellationToken.ThrowIfCancellationRequested();
         if (!effectiveOptions.Linearize && effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, preservationOptions);
+            cancellationToken.ThrowIfCancellationRequested();
             return new PdfOptimizationActionResult(
                 (byte[])pdf.Clone(),
                 pdf.LongLength,
@@ -404,18 +411,31 @@ internal static partial class PdfOptimizer {
         var context = new PdfPageExtractor.SerializationContext(numberMap, pagesObjectId: 0, new Dictionary<int, Dictionary<string, PdfObject>>(), objects);
         var bodies = new List<byte[]>(sourceIds.Length + 1);
         var objectStreamEligibility = new List<bool>(sourceIds.Length + 1);
+        long serializedBodyBytes = 0L;
         foreach (int sourceId in sourceIds) {
             options.CancellationToken.ThrowIfCancellationRequested();
-            bodies.Add(PdfPageExtractor.SerializeObject(objects[sourceId].Value, context));
+            byte[] body = PdfPageExtractor.SerializeObject(objects[sourceId].Value, context);
+            serializedBodyBytes = AddWithinOptimizationOutputLimit(serializedBodyBytes, body.LongLength, options.MaximumOutputBytes);
+            bodies.Add(body);
             objectStreamEligibility.Add(sourceId != catalogObjectNumber && objects[sourceId].Value is not PdfStream);
         }
 
         int infoId = bodies.Count + 1;
-        bodies.Add(PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata)));
+        byte[] infoBody = PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata));
+        _ = AddWithinOptimizationOutputLimit(serializedBodyBytes, infoBody.LongLength, options.MaximumOutputBytes);
+        bodies.Add(infoBody);
         objectStreamEligibility.Add(false);
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
         return PdfOptimizationFileAssembler.Assemble(bodies, objectStreamEligibility, numberMap[catalogObjectNumber], infoId, fileVersion, options, trailerIdEntry);
+    }
+
+    private static long AddWithinOptimizationOutputLimit(long current, long added, long? maximumOutputBytes) {
+        long total = checked(current + added);
+        if (maximumOutputBytes.HasValue && total > maximumOutputBytes.Value) {
+            throw PdfOutputLimitErrors.Create("The optimized PDF exceeded the configured output limit while it was being serialized.");
+        }
+        return total;
     }
 
     private static void RemoveUnreferencedObjects(

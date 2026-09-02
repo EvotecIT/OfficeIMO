@@ -253,6 +253,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfOptimizationOptions options = PdfOptimizationOptions.Create(ToOptimizationProfile(request.OutputProfile));
         options.CancellationToken = cancellationToken;
+        options.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
         PdfOptimizationActionResult optimization = PdfDocument.Load(input, request.PdfLoadOptions)
             .Optimization.Apply(options);
         cancellationToken.ThrowIfCancellationRequested();

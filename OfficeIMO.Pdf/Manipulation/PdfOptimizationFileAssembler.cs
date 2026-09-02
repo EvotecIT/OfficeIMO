@@ -9,17 +9,29 @@ internal static class PdfOptimizationFileAssembler {
 
     internal static byte[] Assemble(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> objectStreamEligibility, int catalogId, int infoId, PdfFileVersion fileVersion, PdfOptimizationOptions options, string trailerIdEntry) {
         if (bodies.Count != objectStreamEligibility.Count) throw new ArgumentException("Object body and eligibility counts must match.", nameof(objectStreamEligibility));
-        if (!options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable) {
-            var objects = new List<byte[]>(bodies.Count);
-            for (int i = 0; i < bodies.Count; i++) objects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, bodies[i]));
-            return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, trailerIdEntry: trailerIdEntry);
+        using var output = new MemoryStream();
+        using (var boundedOutput = new PdfBoundedWriteStream(
+            output,
+            options.MaximumOutputBytes,
+            "The optimized PDF exceeded the configured output limit while it was being serialized.")) {
+            if (!options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable) {
+                var objects = new List<byte[]>(bodies.Count);
+                for (int i = 0; i < bodies.Count; i++) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
+                    objects.Add(PdfObjectBytes.WrapIndirectObject(i + 1, bodies[i]));
+                }
+                PdfFileAssembler.Assemble(boundedOutput, objects, catalogId, infoId, fileVersion, trailerIdEntry: trailerIdEntry);
+            } else {
+                AssembleXrefStream(boundedOutput, bodies, objectStreamEligibility, catalogId, infoId, fileVersion, options, trailerIdEntry);
+            }
         }
-        return AssembleXrefStream(bodies, objectStreamEligibility, catalogId, infoId, fileVersion, options.UseObjectStreams, trailerIdEntry);
+        options.CancellationToken.ThrowIfCancellationRequested();
+        return output.ToArray();
     }
 
-    private static byte[] AssembleXrefStream(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> eligibility, int catalogId, int infoId, PdfFileVersion fileVersion, bool useObjectStreams, string trailerIdEntry) {
+    private static void AssembleXrefStream(Stream output, IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> eligibility, int catalogId, int infoId, PdfFileVersion fileVersion, PdfOptimizationOptions options, string trailerIdEntry) {
         fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf15);
-        var packs = BuildObjectStreamPacks(bodies, eligibility, useObjectStreams);
+        var packs = BuildObjectStreamPacks(bodies, eligibility, options.UseObjectStreams);
         int baseCount = bodies.Count;
         for (int i = 0; i < packs.Count; i++) packs[i].ObjectNumber = baseCount + i + 1;
         int xrefObjectNumber = baseCount + packs.Count + 1;
@@ -28,14 +40,15 @@ internal static class PdfOptimizationFileAssembler {
         field3[0] = 65535;
         foreach (ObjectStreamPack pack in packs) for (int i = 0; i < pack.ObjectIds.Count; i++) { int id = pack.ObjectIds[i]; types[id] = 2; field2[id] = pack.ObjectNumber; field3[id] = i; }
 
-        using var output = new MemoryStream();
         byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + PdfFileAssembler.GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n"); output.Write(header, 0, header.Length);
         for (int id = 1; id <= baseCount; id++) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (types[id] == 2) continue;
             types[id] = 1; field2[id] = output.Position;
             Write(output, PdfObjectBytes.WrapIndirectObject(id, bodies[id - 1]));
         }
         foreach (ObjectStreamPack pack in packs) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             types[pack.ObjectNumber] = 1; field2[pack.ObjectNumber] = output.Position;
             byte[] content = BuildObjectStreamContent(pack, bodies, out int first); byte[] compressed = CompressFlate(content);
             string dictionary = "<< /Type /ObjStm /N " + pack.ObjectIds.Count.ToString(CultureInfo.InvariantCulture) + " /First " + first.ToString(CultureInfo.InvariantCulture) + " /Filter /FlateDecode /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + " >>";
@@ -46,7 +59,6 @@ internal static class PdfOptimizationFileAssembler {
         string xrefDictionary = "<< /Type /XRef /Size " + size.ToString(CultureInfo.InvariantCulture) + " /W [1 8 4] /Root " + PdfSyntaxEscaper.IndirectReference(catalogId) + (infoId > 0 ? " /Info " + PdfSyntaxEscaper.IndirectReference(infoId) : string.Empty) + trailerIdEntry + " /Length " + xrefData.Length.ToString(CultureInfo.InvariantCulture) + " >>";
         Write(output, PdfObjectBytes.WrapStreamObject(xrefObjectNumber, xrefDictionary, xrefData));
         Write(output, PdfEncoding.Latin1GetBytes("startxref\n" + xrefOffset.ToString(CultureInfo.InvariantCulture) + "\n%%EOF\n"));
-        return output.ToArray();
     }
 
     private static List<ObjectStreamPack> BuildObjectStreamPacks(IReadOnlyList<byte[]> bodies, IReadOnlyList<bool> eligibility, bool enabled) {

@@ -72,6 +72,20 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void Optimize_StopsSerializationAtTheConfiguredOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream(
+            "BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                KeepOriginalWhenNotSmaller = false,
+                MaximumOutputBytes = 128L
+            }));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_RemovesUnreferencedObjects() {
         byte[] source = BuildPdfWithUnreferencedStream();
 
