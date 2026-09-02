@@ -43,6 +43,33 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void ObjectStreamAssemblyStopsAtTheConfiguredBufferLimit() {
+        var incompressibleBody = new byte[128 * 1024];
+        new Random(42).NextBytes(incompressibleBody);
+        var options = new PdfOptimizationOptions {
+            UseObjectStreams = true,
+            XrefFormat = PdfOptimizationXrefFormat.XrefStream,
+            MaximumOutputBytes = 1024L
+        };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            PdfOptimizationFileAssembler.Assemble(
+                new[] {
+                    Encoding.ASCII.GetBytes("<< /Type /Catalog >>"),
+                    incompressibleBody,
+                    Encoding.ASCII.GetBytes("<< >>")
+                },
+                new[] { false, true, false },
+                catalogId: 1,
+                infoId: 3,
+                PdfFileVersion.Pdf15,
+                options,
+                trailerIdEntry: string.Empty));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_CompressesUnfilteredStreamsAndPreservesText() {
         byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
 
