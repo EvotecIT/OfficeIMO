@@ -452,10 +452,12 @@ internal static class TableDetector {
             while (end + 1 < bandSplits.Count) {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
+                string[] nextCells = SplitBySplits(next.lines[0], baseSplits);
                 bool startsNewEmphasizedHeader = end > start &&
                                                   next.lines.Count == 1 &&
                                                   HasEmphasizedText(next.lines[0]) &&
-                                                  LooksLikeHeaderRow(SplitBySplits(next.lines[0], baseSplits));
+                                                  LooksLikeHeaderRow(nextCells) &&
+                                                  !LooksLikeSummaryRow(nextCells);
                 if (startsNewEmphasizedHeader) {
                     break;
                 }
@@ -785,6 +787,14 @@ internal static class TableDetector {
         }
 
         return true;
+    }
+
+    private static bool LooksLikeSummaryRow(string[] cells) {
+        if (cells.Length < 2) return false;
+        string label = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
+        if (!HasSpanningRowQualifier(label)) return false;
+        return cells.Skip(1).Any(static cell => IsTabularValue(
+            ContentStructureExtractor.NormalizeShattered(cell).Trim()));
     }
 
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {
