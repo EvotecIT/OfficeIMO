@@ -30,7 +30,7 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
                 _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
             };
-        } catch (ArgumentOutOfRangeException exception) when (
+        } catch (Exception exception) when (
             options.MaximumOutputCharacters.HasValue &&
             IsOutputBuilderCapacityException(exception)) {
             throw new InvalidOperationException(
@@ -40,11 +40,13 @@ public static partial class PdfHtmlConverterExtensions {
         return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
     }
 
-    private static bool IsOutputBuilderCapacityException(ArgumentOutOfRangeException exception) =>
-        (string.Equals(exception.ParamName, "valueCount", StringComparison.Ordinal) ||
-         string.Equals(exception.ParamName, "requiredLength", StringComparison.Ordinal) ||
-         string.Equals(exception.ParamName, "repeatCount", StringComparison.Ordinal)) &&
-        exception.StackTrace?.IndexOf("System.Text.StringBuilder", StringComparison.Ordinal) >= 0;
+    private static bool IsOutputBuilderCapacityException(Exception exception) =>
+        exception is PdfHtmlOutputCapacityException ||
+        exception is ArgumentOutOfRangeException argumentException &&
+        (string.Equals(argumentException.ParamName, "valueCount", StringComparison.Ordinal) ||
+         string.Equals(argumentException.ParamName, "requiredLength", StringComparison.Ordinal) ||
+         string.Equals(argumentException.ParamName, "repeatCount", StringComparison.Ordinal)) &&
+        argumentException.StackTrace?.IndexOf("System.Text.StringBuilder", StringComparison.Ordinal) >= 0;
 
     private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {
         int textBlockCount = 0;

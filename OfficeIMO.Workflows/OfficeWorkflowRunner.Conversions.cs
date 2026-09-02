@@ -176,20 +176,15 @@ public sealed partial class OfficeWorkflowRunner {
 
     private static string DecodeHtmlInput(byte[] input) {
         using var source = new MemoryStream(input, writable: false);
-        using var reader = new StreamReader(
-            source,
-            Encoding.UTF8,
-            detectEncodingFromByteOrderMarks: true,
-            bufferSize: 1024,
-            leaveOpen: false);
-        return reader.ReadToEnd();
+        return HtmlConversionDocument.Load(source).SourceHtml;
     }
 
     internal static HtmlConversionDocument ParseHtmlInput(byte[] input, string inputPath) {
         ArgumentNullException.ThrowIfNull(input);
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
-        return HtmlConversionDocument.Parse(
-            DecodeHtmlInput(input),
+        using var source = new MemoryStream(input, writable: false);
+        return HtmlConversionDocument.Load(
+            source,
             new HtmlConversionDocumentOptions {
                 BaseUri = new Uri(Path.GetFullPath(inputPath)),
                 ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy()

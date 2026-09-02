@@ -50,6 +50,25 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_BoundsEncodedSemanticItemsDuringRendering() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                DefaultFontSize = 10
+            })
+            .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
+            .ToBytes();
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.MaximumOutputCharacters = 250_000;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options));
+
+        Assert.Contains("character output limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("being rendered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtmlResult_DoesNotTranslateInvalidProfileAsAnOutputLimitFailure() {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
         options.Profile = (PdfHtmlProfile)int.MaxValue;

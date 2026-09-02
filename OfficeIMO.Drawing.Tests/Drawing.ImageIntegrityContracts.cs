@@ -13,6 +13,19 @@ namespace OfficeIMO.Tests;
 
 public partial class DrawingTests {
     [Fact]
+    public void CompleteContentValidationObservesCallerCancellation() {
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(8, 8, OfficeColor.SteelBlue));
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeImageReader.TryValidateContent(png, "cancelled.png", cancellation.Token, out _));
+        using var stream = new MemoryStream(png, writable: false);
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficeImageReader.TryValidateContent(stream, "cancelled.png", cancellation.Token, out _));
+    }
+
+    [Fact]
     public void PngReaderAndExportResultRejectInvalidChunkCrc() {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
         png[29] ^= 0x01;

@@ -197,7 +197,10 @@ public interface IOfficeWorkflowRunner {
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Runs a bounded batch sequentially.</summary>
+    /// <summary>
+    /// Snapshots and runs a bounded batch sequentially. Implementations reject more than
+    /// <see cref="OfficeWorkflowRunner.MaximumBatchRequestCount"/> requests.
+    /// </summary>
     Task<IReadOnlyList<OfficeWorkflowResult>> RunBatchAsync(
         IEnumerable<OfficeWorkflowRequest> requests,
         IProgress<OfficeWorkflowProgress>? progress = null,

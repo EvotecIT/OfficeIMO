@@ -16,6 +16,9 @@ namespace OfficeIMO.Workflows;
 /// Runs bounded local conversion and PDF health workflows and publishes validated artifacts atomically.
 /// </summary>
 public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
+    /// <summary>Maximum number of requests accepted by one sequential batch.</summary>
+    public const int MaximumBatchRequestCount = 250;
+
     /// <summary>Runs one workflow request.</summary>
     public async Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,
@@ -162,9 +165,23 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requests);
-        OfficeWorkflowRequest[] batch = requests.ToArray();
-        var results = new List<OfficeWorkflowResult>(batch.Length);
-        for (int i = 0; i < batch.Length; i++) {
+        if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
+        var batch = new List<OfficeWorkflowRequest>();
+        using (IEnumerator<OfficeWorkflowRequest> enumerator = requests.GetEnumerator()) {
+            while (true) {
+                if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
+                if (!enumerator.MoveNext()) break;
+                if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeWorkflowResult>();
+                if (batch.Count >= MaximumBatchRequestCount) {
+                    throw new InvalidOperationException(
+                        $"A workflow batch cannot contain more than {MaximumBatchRequestCount:N0} requests.");
+                }
+                batch.Add(enumerator.Current ?? throw new ArgumentException("Batch requests cannot contain null entries.", nameof(requests)));
+            }
+        }
+
+        var results = new List<OfficeWorkflowResult>(batch.Count);
+        for (int i = 0; i < batch.Count; i++) {
             if (cancellationToken.IsCancellationRequested) break;
             OfficeWorkflowRequest request = batch[i];
             int batchIndex = i;
@@ -173,9 +190,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 : new InlineProgress<OfficeWorkflowProgress>(item => progress.Report(new OfficeWorkflowProgress(
                     item.RequestId,
                     item.Stage,
-                    $"{batchIndex + 1} of {batch.Length} · {item.Message}",
+                    $"{batchIndex + 1} of {batch.Count} · {item.Message}",
                     item.Fraction,
-                    (batchIndex + item.Fraction) / Math.Max(1, batch.Length))));
+                    (batchIndex + item.Fraction) / Math.Max(1, batch.Count))));
             results.Add(await RunAsync(request, batchProgress, cancellationToken).ConfigureAwait(false));
         }
         return results;

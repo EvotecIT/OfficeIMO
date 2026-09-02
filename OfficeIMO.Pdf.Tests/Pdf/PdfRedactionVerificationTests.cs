@@ -30,6 +30,23 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationUsesOrientedBoundsForRotatedText() {
+        byte[] source = BuildRotatedTextIdentityPdf();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 88D, 55D, 20D, 28D, "vertical text")
+        ]);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
+        Assert.DoesNotContain("VERTICAL", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item
@@ -907,6 +924,19 @@ public class PdfRedactionVerificationTests {
 
     private static byte[] BuildTextPaintIdentityPdf(string colorOperator) {
         string content = $"BT /F1 12 Tf {colorOperator} 20 100 Td (Visible text) Tj ET";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {content.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildRotatedTextIdentityPdf() {
+        const string content = "BT /F1 12 Tf 0 1 -1 0 100 40 Tm (VERTICAL) Tj ET";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",

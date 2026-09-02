@@ -124,6 +124,26 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task PageImageExportCancellationFromOutputValidationPublishesNothing() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Cancelled validation");
+        string output = Path.Combine(scope.Path, "pages");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "validate-output") cancellation.Cancel();
+        });
+
+        PdfPageImageExportResult result = await new OfficeWorkflowRunner().ExportPdfPagesAsync(
+            new PdfPageImageExportRequest { InputPath = input, OutputDirectory = output },
+            progress,
+            cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.False(Directory.Exists(output));
+        Assert.Empty(Directory.GetDirectories(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
     public async Task PageImageExportRestoresAndReplacesOneInterruptedRecoveryDirectory() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf", "Replacement");

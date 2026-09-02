@@ -331,6 +331,19 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public void HtmlInputUsesItsDeclaredSourceEncoding() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        byte[] prefix = Encoding.ASCII.GetBytes("<!doctype html><meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        byte[] html = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+
+        HtmlConversionDocument document = OfficeWorkflowRunner.ParseHtmlInput(html, input);
+
+        Assert.Contains("café", document.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task CancellationDuringActiveHtmlConversionStopsBeforePublication() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.html");
@@ -383,6 +396,58 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.All(updates.Where(update => update.RequestId == "second"), update => Assert.StartsWith("2 of 2", update.Message, StringComparison.Ordinal));
         Assert.Equal(1D, updates[^1].OverallFraction);
         Assert.True(updates.Select(update => update.OverallFraction).SequenceEqual(updates.Select(update => update.OverallFraction).OrderBy(value => value)));
+    }
+
+    [Fact]
+    public async Task PreCancelledBatchDoesNotEnumerateItsSource() {
+        bool enumerated = false;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync(
+            EnumerateRequests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Empty(results);
+        Assert.False(enumerated);
+
+        IEnumerable<OfficeWorkflowRequest> EnumerateRequests() {
+            enumerated = true;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+        }
+    }
+
+    [Fact]
+    public async Task BatchEnumerationStopsOnCancellationBeforeExecutingPartialInput() {
+        using var cancellation = new CancellationTokenSource();
+        int enumerated = 0;
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync(
+            EnumerateRequests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Empty(results);
+        Assert.Equal(2, enumerated);
+
+        IEnumerable<OfficeWorkflowRequest> EnumerateRequests() {
+            enumerated++;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+            cancellation.Cancel();
+            enumerated++;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+        }
+    }
+
+    [Fact]
+    public async Task BatchRejectsMoreThanTheBoundedRequestCountBeforeExecution() {
+        OfficeWorkflowRequest[] requests = Enumerable.Range(0, OfficeWorkflowRunner.MaximumBatchRequestCount + 1)
+            .Select(static _ => new OfficeWorkflowRequest { InputPath = "unused.pdf" })
+            .ToArray();
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new OfficeWorkflowRunner().RunBatchAsync(requests));
+
+        Assert.Contains(OfficeWorkflowRunner.MaximumBatchRequestCount.ToString(), exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

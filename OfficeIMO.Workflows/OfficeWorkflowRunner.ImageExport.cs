@@ -63,11 +63,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 .ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             long outputBytes = 0L;
+            Report(progress, validated.Id, "validate-output", "Validating page image output", 0.74D);
             for (int index = 0; index < saved.Files.Count; index++) {
                 OfficeImageExportSavedFile file = saved.Files[index];
                 outputBytes = checked(outputBytes + file.EncodedLength);
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, cancellationToken).ConfigureAwait(false);
-                if (!OfficeImageReader.TryValidateContent(bytes, file.Path, out OfficeImageInfo imageInfo) ||
+                if (!OfficeImageReader.TryValidateContent(bytes, file.Path, cancellationToken, out OfficeImageInfo imageInfo) ||
                     imageInfo.Width != file.Width || imageInfo.Height != file.Height) {
                     throw new InvalidOperationException("A staged page image failed content and dimension validation.");
                 }

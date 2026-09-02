@@ -41,7 +41,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append(";width:");
             builder.Append(Points(Math.Max(1D, block.XEnd - block.XStart)));
             builder.Append(";\">");
-            builder.Append(HtmlText(block.Text));
+            AppendHtmlText(builder, block.Text);
             builder.AppendLine("</div>");
         }
 
@@ -124,7 +124,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append("\"");
         AppendLinkTargetAttributes(builder, link);
         builder.Append('>');
-        builder.Append(HtmlText(label));
+        AppendHtmlText(builder, label);
         builder.AppendLine("</a>");
     }
 
@@ -157,7 +157,7 @@ public static partial class PdfHtmlConverterExtensions {
             PdfCore.PdfConversionWarningSeverity.Warning);
         builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
         for (int i = 0; i < unplaced.Count; i++) {
-            builder.Append(RenderImageFigure(unplaced[i], options));
+            builder.Append(RenderImageFigure(unplaced[i], options, builder.Length));
         }
 
         builder.AppendLine("</div>");
@@ -183,7 +183,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
-        if (TryBuildEmbeddedImageDataUri(image, options, out string? source)) {
+        if (TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
             builder.Append("<img src=\"");
             builder.Append(HtmlAttribute(source!));
             builder.Append("\" alt=\"");
@@ -191,14 +191,14 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;\">");
         } else {
             builder.Append("<figcaption>Image: ");
-            builder.Append(HtmlText(image.ResourceName));
+            AppendHtmlText(builder, image.ResourceName);
             builder.Append(" (");
             builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
             builder.Append('x');
             builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
             if (!string.IsNullOrWhiteSpace(image.MimeType)) {
                 builder.Append(", ");
-                builder.Append(HtmlText(image.MimeType!));
+                AppendHtmlText(builder, image.MimeType!);
             }
 
             builder.Append(")</figcaption>");
@@ -220,10 +220,10 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append(";\">");
-        builder.Append(HtmlText(name));
+        AppendHtmlText(builder, name);
         if (!string.IsNullOrEmpty(widget.Value)) {
             builder.Append(": ");
-            builder.Append(HtmlText(widget.Value!));
+            AppendHtmlText(builder, widget.Value!);
         }
 
         builder.AppendLine("</div>");

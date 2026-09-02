@@ -102,14 +102,16 @@ public sealed class PdfRedactionPlan {
         var reviewedTextObjects = new HashSet<PdfContentOrderKey>();
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
-            if (span.TextObjectOrderKey != null && IntersectsReviewedArea(pageAreas, GetTextSpanX(span), GetTextSpanY(span), GetTextSpanWidth(span), GetTextSpanHeight(span))) {
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
+            if (span.TextObjectOrderKey != null && IntersectsReviewedArea(pageAreas, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
                 reviewedTextObjects.Add(span.TextObjectOrderKey);
             }
         }
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
+            PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
             if (span.TextObjectOrderKey != null && reviewedTextObjects.Contains(span.TextObjectOrderKey) ||
-                span.TextObjectOrderKey == null && IntersectsReviewedArea(pageAreas, GetTextSpanX(span), GetTextSpanY(span), GetTextSpanWidth(span), GetTextSpanHeight(span))) continue;
+                span.TextObjectOrderKey == null && IntersectsReviewedArea(pageAreas, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) continue;
             identity.Append("|T:")
                 .Append(span.Text.Length.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Append(':').Append(span.Text)
@@ -125,14 +127,6 @@ public sealed class PdfRedactionPlan {
             PdfRedactionImageIdentity.AppendClip(identity, span.ClipPath);
         }
     }
-
-    private static double GetTextSpanX(PdfTextSpan span) => Math.Min(span.X, span.X + span.Advance);
-
-    private static double GetTextSpanWidth(PdfTextSpan span) => Math.Max(1D, Math.Abs(span.Advance));
-
-    private static double GetTextSpanHeight(PdfTextSpan span) => Math.Max(1D, span.FontSize);
-
-    private static double GetTextSpanY(PdfTextSpan span) => span.Y - GetTextSpanHeight(span);
 
     private static void AppendUnredactedPathIdentity(
         System.Text.StringBuilder identity,
