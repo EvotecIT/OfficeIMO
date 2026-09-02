@@ -22,7 +22,8 @@ public static partial class OfficeTiffCodec {
         OfficeRasterImage image,
         Stream destination,
         OfficeTiffEncodeOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
@@ -33,16 +34,16 @@ public static partial class OfficeTiffCodec {
         EnsureSinglePageCompressionWorkingSet(pixels.LongLength, effective);
         byte[]? compressed = effective.Compression switch {
             OfficeTiffCompression.Deflate => OfficeZlibCodec.Compress(
-                PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective, cancellationToken),
+                PrepareTiffCompressionInput(pixels, image.Width, image.Height, effective, cancellationToken, checkpointObserver),
                 cancellationToken),
-            OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective, cancellationToken),
+            OfficeTiffCompression.Lzw => EncodeTiffLzw(pixels, image.Width, image.Height, effective, cancellationToken, checkpointObserver),
             _ => null
         };
         int stripLength = effective.Compression switch {
             OfficeTiffCompression.None => pixels.Length,
             OfficeTiffCompression.Lzw => compressed!.Length,
             OfficeTiffCompression.PackBits =>
-                EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0, cancellationToken),
+                EncodePackBitsRows(pixels, image.Width * 4, image.Height, output: null, outputOffset: 0, cancellationToken, checkpointObserver),
             OfficeTiffCompression.Deflate => compressed!.Length,
             _ => throw new ArgumentOutOfRangeException(nameof(options))
         };

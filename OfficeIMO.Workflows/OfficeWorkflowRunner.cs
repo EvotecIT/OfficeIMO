@@ -79,7 +79,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
 
             Report(progress, validated.Id, "validate-output", "Reopening the staged artifact", 0.72D);
-            ValidateStagedArtifact(stagingPath, validated.OutputPath!, validated.OutputPdfLoadOptions);
+            await ValidateStagedArtifactAsync(
+                stagingPath,
+                validated.OutputPath!,
+                validated.OutputPdfLoadOptions,
+                cancellationToken).ConfigureAwait(false);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "OutputReopened",
                 "The staged file was reopened successfully through its first-party OfficeIMO document API.",
@@ -566,34 +570,57 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         };
     }
 
-    private static void ValidateStagedArtifact(string stagingPath, string outputPath, PdfLoadOptions loadOptions) {
+    private static async Task ValidateStagedArtifactAsync(
+        string stagingPath,
+        string outputPath,
+        PdfLoadOptions loadOptions,
+        CancellationToken cancellationToken) {
         string extension = Path.GetExtension(outputPath).ToLowerInvariant();
         switch (extension) {
-            case ".pdf":
-                PdfDocumentInfo info = PdfDocument.Load(stagingPath, loadOptions).Inspect();
+            case ".pdf": {
+                PdfDocument document = await PdfDocument
+                    .LoadAsync(stagingPath, loadOptions, cancellationToken)
+                    .ConfigureAwait(false);
+                PdfDocumentInfo info = document.Inspect(loadOptions, cancellationToken);
                 if (info.PageCount == 0) throw new InvalidOperationException("Generated PDF has no pages.");
                 break;
+            }
             case ".docx":
-                using (FileStream stream = File.OpenRead(stagingPath))
-                using (WordDocument document = WordDocument.Load(stream)) { }
+                await using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (WordDocument document = await WordDocument.LoadAsync(
+                    stream,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".xlsx":
-                using (FileStream stream = File.OpenRead(stagingPath))
-                using (ExcelDocument document = ExcelDocument.Load(stream)) { }
+                await using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (ExcelDocument document = await ExcelDocument.LoadAsync(
+                    stream,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".pptx":
-                using (FileStream stream = File.OpenRead(stagingPath))
-                using (PowerPointPresentation document = PowerPointPresentation.Load(stream)) { }
+                await using (FileStream stream = OpenStagedArtifact(stagingPath))
+                using (PowerPointPresentation document = await PowerPointPresentation.LoadAsync(
+                    stream,
+                    cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
-            case ".html": {
-                string html = File.ReadAllText(stagingPath, Encoding.UTF8);
-                _ = HtmlConversionDocument.Parse(html);
+            case ".html":
+                _ = await HtmlConversionDocument.LoadAsync(
+                    stagingPath,
+                    encoding: Encoding.UTF8,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
                 break;
-            }
             default:
                 throw new NotSupportedException("No output validator is registered for '" + extension + "'.");
         }
     }
+
+    private static FileStream OpenStagedArtifact(string path) => new(
+        path,
+        FileMode.Open,
+        FileAccess.Read,
+        FileShare.Read,
+        bufferSize: 81920,
+        FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     private static string Publish(
         string stagingPath,

@@ -182,10 +182,9 @@ public sealed class DrawingRasterStreamingEncodingTests {
 
     [Fact]
     public void JpegCancellationCanStopCoefficientWorkBeforeTheFirstWrite() {
-        OfficeRasterImage image = new OfficeRasterImage(2800, 2800, OfficeColor.CornflowerBlue);
+        OfficeRasterImage image = new OfficeRasterImage(64, 64, OfficeColor.CornflowerBlue);
         using var cancellation = new CancellationTokenSource();
         using var destination = new CountingWriteStream();
-        cancellation.CancelAfter(1);
 
         Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(
@@ -194,7 +193,10 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 destination,
                 CreateOptions(),
                 maximumEncodedBytes: long.MaxValue,
-                cancellationToken: cancellation.Token));
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint == OfficeRasterEncodingCheckpoint.JpegCoefficientRow) cancellation.Cancel();
+                }));
 
         Assert.Equal(0, destination.WriteCount);
     }
@@ -210,7 +212,6 @@ public sealed class DrawingRasterStreamingEncodingTests {
         using var destination = new CountingWriteStream();
         OfficeRasterEncodingOptions options = CreateOptions();
         options.Tiff.Compression = compression;
-        cancellation.CancelAfter(1);
 
         Assert.Throws<OperationCanceledException>(() =>
             OfficeRasterImageEncoder.EncodeTo(
@@ -219,7 +220,10 @@ public sealed class DrawingRasterStreamingEncodingTests {
                 destination,
                 options,
                 maximumEncodedBytes: long.MaxValue,
-                cancellationToken: cancellation.Token));
+                cancellationToken: cancellation.Token,
+                checkpointObserver: checkpoint => {
+                    if (checkpoint == OfficeRasterEncodingCheckpoint.TiffCompressionRow) cancellation.Cancel();
+                }));
 
         Assert.Equal(0, destination.WriteCount);
     }

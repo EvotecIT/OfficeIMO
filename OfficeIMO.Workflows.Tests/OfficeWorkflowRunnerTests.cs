@@ -406,6 +406,27 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task CancellationFromOutputValidationProgressPublishesNothingAndRemovesTheStagingFile() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "cancelled.pdf");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "validate-output") cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output
+        }, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
     public async Task CancellationFromPublishProgressPreservesTheExistingArtifact() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf");

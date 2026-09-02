@@ -21,7 +21,8 @@ public static partial class OfficeJpegCodec {
         OfficeRasterImage image,
         Stream destination,
         OfficeJpegEncodeOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
@@ -39,7 +40,8 @@ public static partial class OfficeJpegCodec {
             rgba,
             checked(image.Width * 4),
             effectiveOptions,
-            cancellationToken);
+            cancellationToken,
+            checkpointObserver);
     }
 
 #if NET8_0_OR_GREATER

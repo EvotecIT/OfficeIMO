@@ -7,6 +7,11 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
+internal enum OfficeRasterEncodingCheckpoint {
+    JpegCoefficientRow,
+    TiffCompressionRow
+}
+
 public static partial class OfficeRasterImageEncoder {
     /// <summary>Encodes an RGBA image directly to a caller-owned writable stream.</summary>
     /// <remarks>The destination remains open after encoding.</remarks>
@@ -43,7 +48,22 @@ public static partial class OfficeRasterImageEncoder {
         CancellationToken cancellationToken) {
         if (budget == null) throw new ArgumentNullException(nameof(budget));
         using var guarded = new OfficeImageExportEncodingStream(destination, budget, cancellationToken);
-        EncodeToCore(image, format, guarded, options, cancellationToken);
+        EncodeToCore(image, format, guarded, options, cancellationToken, checkpointObserver: null);
+        cancellationToken.ThrowIfCancellationRequested();
+    }
+
+    internal static void EncodeTo(
+        OfficeRasterImage image,
+        OfficeImageExportFormat format,
+        Stream destination,
+        OfficeRasterEncodingOptions? options,
+        long maximumEncodedBytes,
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint> checkpointObserver) {
+        if (checkpointObserver == null) throw new ArgumentNullException(nameof(checkpointObserver));
+        var budget = new OfficeImageExportEncodingBudget(maximumEncodedBytes);
+        using var guarded = new OfficeImageExportEncodingStream(destination, budget, cancellationToken);
+        EncodeToCore(image, format, guarded, options, cancellationToken, checkpointObserver);
         cancellationToken.ThrowIfCancellationRequested();
     }
 
@@ -52,7 +72,8 @@ public static partial class OfficeRasterImageEncoder {
         OfficeImageExportFormat format,
         Stream destination,
         OfficeRasterEncodingOptions? options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (image == null) throw new ArgumentNullException(nameof(image));
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
@@ -72,14 +93,16 @@ public static partial class OfficeRasterImageEncoder {
                     image,
                     destination,
                     effective.Jpeg ?? throw new InvalidOperationException("JPEG encoding options cannot be null."),
-                    cancellationToken);
+                    cancellationToken,
+                    checkpointObserver);
                 break;
             case OfficeImageExportFormat.Tiff:
                 OfficeTiffCodec.EncodeTo(
                     image,
                     destination,
                     effective.Tiff ?? throw new InvalidOperationException("TIFF encoding options cannot be null."),
-                    cancellationToken);
+                    cancellationToken,
+                    checkpointObserver);
                 break;
             case OfficeImageExportFormat.Webp:
                 OfficeWebpCodec.EncodeTo(

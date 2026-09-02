@@ -439,11 +439,12 @@ public static partial class OfficeTiffCodec {
         int width,
         int height,
         OfficeTiffEncodeOptions options,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (!UsesHorizontalPredictor(options)) return pixels;
         cancellationToken.ThrowIfCancellationRequested();
         byte[] predicted = (byte[])pixels.Clone();
-        ApplyHorizontalPredictor(predicted, width, height, cancellationToken);
+        ApplyHorizontalPredictor(predicted, width, height, cancellationToken, checkpointObserver);
         return predicted;
     }
 
@@ -452,7 +453,8 @@ public static partial class OfficeTiffCodec {
         int width,
         int height,
         OfficeTiffEncodeOptions options,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (!UsesHorizontalPredictor(options)) return EncodeLzw(pixels, pixels.Length, cancellationToken);
 #if NET8_0_OR_GREATER
         byte[] scratch = ArrayPool<byte>.Shared.Rent(pixels.Length);
@@ -462,7 +464,7 @@ public static partial class OfficeTiffCodec {
         try {
             cancellationToken.ThrowIfCancellationRequested();
             Buffer.BlockCopy(pixels, 0, scratch, 0, pixels.Length);
-            ApplyHorizontalPredictor(scratch, width, height, cancellationToken);
+            ApplyHorizontalPredictor(scratch, width, height, cancellationToken, checkpointObserver);
             return EncodeLzw(scratch, pixels.Length, cancellationToken);
         } finally {
 #if NET8_0_OR_GREATER
@@ -475,10 +477,12 @@ public static partial class OfficeTiffCodec {
         byte[] pixels,
         int width,
         int height,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         const int samples = 4;
         int rowBytes = checked(width * samples);
         for (int y = 0; y < height; y++) {
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.TiffCompressionRow);
             cancellationToken.ThrowIfCancellationRequested();
             int row = y * rowBytes;
             for (int offset = row + rowBytes - 1; offset >= row + samples; offset--) {
@@ -502,12 +506,14 @@ public static partial class OfficeTiffCodec {
         int rowCount,
         byte[]? output,
         int outputOffset,
-        CancellationToken cancellationToken = default) {
+        CancellationToken cancellationToken = default,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         if (rowBytes <= 0 || rowCount <= 0 || (long)rowBytes * rowCount != input.Length) {
             throw new ArgumentException("TIFF PackBits row dimensions do not match the input buffer.");
         }
         int target = outputOffset;
         for (int row = 0; row < rowCount; row++) {
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.TiffCompressionRow);
             cancellationToken.ThrowIfCancellationRequested();
             target += EncodePackBits(input, row * rowBytes, rowBytes, output, target, cancellationToken);
         }

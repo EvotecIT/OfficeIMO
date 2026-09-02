@@ -126,15 +126,16 @@ internal static partial class OfficeJpegWriter {
         byte[] rgba,
         int stride,
         OfficeJpegEncodeOptions options,
-        CancellationToken cancellationToken) {
-        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, options, nameof(rgba), "RGBA buffer too small.", cancellationToken);
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
+        WriteRgbaCore(stream, width, height, rgba, stride, rowOffset: 0, rowStride: stride, options, nameof(rgba), "RGBA buffer too small.", cancellationToken, checkpointObserver);
     }
 
     public static void WriteRgbaScanlines(Stream stream, int width, int height, byte[] scanlines, int stride, OfficeJpegEncodeOptions options) {
         WriteRgbaCore(stream, width, height, scanlines, stride, rowOffset: 1, rowStride: stride + 1, options, nameof(scanlines), "Scanline buffer too small.", CancellationToken.None);
     }
 
-    private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage, CancellationToken cancellationToken) {
+    private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage, CancellationToken cancellationToken, Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
         cancellationToken.ThrowIfCancellationRequested();
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
@@ -176,7 +177,8 @@ internal static partial class OfficeJpegWriter {
             maxV,
             qY,
             qC,
-            cancellationToken);
+            cancellationToken,
+            checkpointObserver);
 
         var tables = BuildHuffmanTables(coeffs, components, options.OptimizeHuffman, cancellationToken);
         Stream output = stream is MemoryStream memoryStream
@@ -338,7 +340,8 @@ internal static partial class OfficeJpegWriter {
         int maxV,
         int[] qY,
         int[] qC,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<OfficeRasterEncodingCheckpoint>? checkpointObserver) {
         var mcuWidth = maxH * 8;
         var mcuHeight = maxV * 8;
         var mcuCols = (width + mcuWidth - 1) / mcuWidth;
@@ -371,6 +374,7 @@ internal static partial class OfficeJpegWriter {
         var hasChroma = cbCoeffs.HasValue && crCoeffs.HasValue;
 
         for (var my = 0; my < mcuRows; my++) {
+            checkpointObserver?.Invoke(OfficeRasterEncodingCheckpoint.JpegCoefficientRow);
             cancellationToken.ThrowIfCancellationRequested();
             for (var mx = 0; mx < mcuCols; mx++) {
                 if (yCoeffs.HasValue) {
