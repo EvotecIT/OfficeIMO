@@ -138,7 +138,7 @@ internal static partial class PdfAnnotationEditor {
     }
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
     private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfLoadOptions? readOptions) {
-        PdfDocumentInfo info = PdfInspector.Inspect(output, readOptions);
+        PdfDocumentInfo info = ReadAnnotationMetadata(output, readOptions);
         PdfAnnotation? found = info.Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found == null || found.Subtype != options.Subtype || found.PageNumber != options.PageNumber) throw new InvalidOperationException("PDF annotation creation readback failed; the artifact was not returned.");
         if (options.GenerateAppearance && IsAppearanceSubtype(options.Subtype) && !found.HasNormalAppearance) throw new InvalidOperationException("PDF annotation appearance readback failed; the artifact was not returned.");
@@ -149,7 +149,7 @@ internal static partial class PdfAnnotationEditor {
 
     private static void ValidateUpdatedAnnotation(byte[] output, int expectedObjectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         if (!options.ReviewState.HasValue) return;
-        PdfAnnotation? found = PdfInspector.Inspect(output, readOptions).Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
+        PdfAnnotation? found = ReadAnnotationMetadata(output, readOptions).Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found?.Review?.StandardState != options.ReviewState) throw new InvalidOperationException("PDF annotation review state readback failed; the artifact was not returned.");
     }
 }

@@ -66,6 +66,47 @@ public class PdfAnnotationCreationTests {
         Assert.True(result.HasNormalAppearance);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void TransformAnnotation_UsesAnnotationPermissionWithoutCopyPermission(bool resize) {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = PdfStandardPermissions.ModifyAnnotations
+        };
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .TextAnnotation("restricted note")
+            .Paragraph(paragraph => paragraph.Text("Restricted annotation source"))
+            .ToBytes();
+        var ownerReadOptions = new PdfLoadOptions { Password = "owner" };
+        var userReadOptions = new PdfLoadOptions { Password = "open" };
+        PdfAnnotation annotation = Assert.Single(
+            PdfInspector.Inspect(source, ownerReadOptions).GetAnnotationsBySubtype("Text"));
+        PdfDocumentPreflight userPreflight = PdfInspector.Preflight(source, userReadOptions);
+
+        Assert.Null(userPreflight.DocumentInfo);
+        Assert.True(userPreflight.Probe.Security.AllowsAnnotationChanges);
+        Assert.False(userPreflight.Probe.Security.AllowsCopying);
+
+        PdfAnnotationEditResult edited = resize
+            ? PdfDocument.Load(source, userReadOptions).Annotations.Resize(
+                annotation.ObjectNumber!.Value,
+                new PdfPageRectangle(20D, 30D, 80D, 100D))
+            : PdfDocument.Load(source, userReadOptions).Annotations.Move(
+                annotation.ObjectNumber!.Value,
+                10D,
+                15D);
+        PdfAnnotation result = Assert.Single(
+            PdfInspector.Inspect(edited.Bytes, ownerReadOptions).GetAnnotationsBySubtype("Text"));
+
+        Assert.Equal(PdfMutationExecutionMode.AppendOnly, edited.MutationPlan.ExecutionMode);
+        Assert.True(PdfInspector.Probe(edited.Bytes, ownerReadOptions).HasEncryption);
+        Assert.Equal(resize ? 20D : annotation.X1 + 10D, result.X1, 3);
+        Assert.Equal(resize ? 30D : annotation.Y1 + 15D, result.Y1, 3);
+        Assert.Equal(resize ? 80D : annotation.X2 + 10D, result.X2, 3);
+        Assert.Equal(resize ? 100D : annotation.Y2 + 15D, result.Y2, 3);
+    }
+
     [Fact]
     public void ResizeAnnotation_ScalesFreeTextRectangleDifferences() {
         byte[] source = BuildFreeTextRectangleDifferencePdf();

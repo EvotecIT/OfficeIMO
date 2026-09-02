@@ -131,7 +131,15 @@ internal static partial class PdfAnnotationEditor {
     public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options) => UpdateAnnotation(pdf, objectNumber, options, readOptions: null);
 
     /// <summary>Updates one indirect annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult UpdateAnnotation(byte[] pdf, int objectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) =>
+        UpdateAnnotation(pdf, objectNumber, options, mutationPlan: null, readOptions);
+
+    private static PdfAnnotationEditResult UpdateAnnotation(
+        byte[] pdf,
+        int objectNumber,
+        PdfAnnotationUpdateOptions options,
+        PdfMutationPlan? mutationPlan,
+        PdfLoadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(options, nameof(options));
         if (objectNumber <= 0) {
@@ -139,7 +147,7 @@ internal static partial class PdfAnnotationEditor {
         }
 
         ValidateUpdateOptions(options);
-        PdfMutationPlan mutationPlan = PdfMutationPlanner.Require(
+        mutationPlan ??= PdfMutationPlanner.Require(
             pdf,
             PdfMutationOperation.ModifyAnnotations,
             readOptions,
@@ -176,6 +184,24 @@ internal static partial class PdfAnnotationEditor {
         ValidateUpdatedAnnotation(rewritten, numberMap[objectNumber], options, rewrittenReadOptions);
         return CreateFullRewriteResult(pdf, rewritten, 1, mutationPlan, annotationsChanged: false, readOptions: readOptions, rewrittenReadOptions: rewrittenReadOptions);
     }
+
+    private static PdfMutationPlan RequireAnnotationMutation(
+        byte[] pdf,
+        PdfLoadOptions? readOptions,
+        PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) =>
+        PdfMutationPlanner.Require(
+            pdf,
+            PdfMutationOperation.ModifyAnnotations,
+            readOptions,
+            executionPreference: executionPreference);
+
+    private static PdfDocumentInfo GetAnnotationMutationDocumentInfo(PdfMutationPlan mutationPlan) =>
+        mutationPlan.Preflight.UncheckedDocumentInfo
+        ?? throw new InvalidOperationException("PDF annotation metadata could not be read for the authorized mutation.");
+
+    private static PdfDocumentInfo ReadAnnotationMetadata(byte[] pdf, PdfLoadOptions? readOptions) =>
+        PdfInspector.Preflight(pdf, readOptions).UncheckedDocumentInfo
+        ?? throw new InvalidOperationException("PDF annotation metadata could not be read.");
 
     /// <summary>Removes annotations from a PDF file and writes the result to another file.</summary>
     public static PdfAnnotationEditResult RemoveAnnotations(string inputPath, string outputPath, PdfAnnotationRemovalOptions? options = null) => RemoveAnnotations(inputPath, outputPath, options, readOptions: null);

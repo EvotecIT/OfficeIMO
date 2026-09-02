@@ -108,6 +108,31 @@ public class PdfOptimizerTests {
     }
 
     [Fact]
+    public void Optimize_ReturnsWithinLimitOriginalWhenCandidateExceedsOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Tiny) Tj\nET\n");
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+            MaximumOutputBytes = source.LongLength
+        });
+
+        Assert.True(result.ReturnedOriginal);
+        Assert.Equal(source, result.Bytes);
+        Assert.True(result.CandidateLengthBytes > source.LongLength);
+        Assert.Same(result.ReportBefore, result.ReportAfter);
+        Assert.Contains(result.SkippedActions, action => action.Reason == "CandidateOutputLimit");
+    }
+
+    [Fact]
+    public void Optimize_DoesNotUseOriginalFallbackWhenOriginalExceedsOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Tiny) Tj\nET\n");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                MaximumOutputBytes = source.LongLength - 1L
+            }));
+    }
+
+    [Fact]
     public void Optimize_StopsSerializationAtTheConfiguredOutputLimit() {
         byte[] source = BuildPdfWithUncompressedTextStream(
             "BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");

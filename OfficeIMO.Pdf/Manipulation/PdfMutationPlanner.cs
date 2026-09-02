@@ -249,6 +249,7 @@ internal static class PdfMutationPlanner {
                 (!security.BlocksOfficeIMOFullRewriteMutation || unsignedSignatureFieldRewrite || normalizedObjectGraphRewrite || authorizedEncryptedRewrite || CanExtractPagesViaNormalization(preflight, operation))));
         bool appendOnlyAvailable = appendOnlyImplemented &&
             CanAppend(appendOnly, operation, finalizationReservationValidated) &&
+            PdfPermissionAuthorization.CanMutate(security, preflight.PermissionPolicy, operation) &&
             metadataPreservationValidated &&
             !BlocksActiveContentPreservingMutation(preflight, operation);
 

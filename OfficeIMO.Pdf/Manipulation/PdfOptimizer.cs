@@ -78,6 +78,37 @@ internal static partial class PdfOptimizer {
                 BuildSafeTrailerIdEntry(pdf),
                 effectiveOptions);
         } catch (InvalidDataException exception) when (PdfOutputLimitErrors.IsOutputLimitExceeded(exception)) {
+            if (CanReturnOriginalAfterCandidateOutputLimit(pdf, effectiveOptions)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                skippedActions.Add(new PdfOptimizationSkippedAction(
+                    "KeepOriginal",
+                    0,
+                    pdf.LongLength,
+                    "CandidateOutputLimit",
+                    "The optimized candidate exceeded the configured output limit, so the original within-limit PDF was retained."));
+                long candidateLengthLowerBound = effectiveOptions.MaximumOutputBytes!.Value == long.MaxValue
+                    ? long.MaxValue
+                    : effectiveOptions.MaximumOutputBytes.Value + 1L;
+                PdfRewritePreservationOptions originalPreservationOptions = CreatePreservationOptions(readOptions, effectiveOptions);
+                PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, originalPreservationOptions);
+                cancellationToken.ThrowIfCancellationRequested();
+                return new PdfOptimizationActionResult(
+                    (byte[])pdf.Clone(),
+                    pdf.LongLength,
+                    pdf.LongLength,
+                    candidateLengthLowerBound,
+                    reportBefore,
+                    reportBefore,
+                    actions.AsReadOnly(),
+                    skippedActions.AsReadOnly(),
+                    originalPreservation,
+                    effectiveOptions.Profile,
+                    effectiveOptions.XrefFormat,
+                    effectiveOptions.UseObjectStreams,
+                    effectiveOptions.Linearize,
+                    returnedOriginal: true,
+                    readOptions: readOptions);
+            }
             throw new InvalidOperationException(exception.Message, exception);
         }
         if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
@@ -86,12 +117,7 @@ internal static partial class PdfOptimizer {
         PdfLoadOptions candidateReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, candidate.LongLength);
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate, candidateReadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        var preservationOptions = new PdfRewritePreservationOptions {
-            OriginalReadOptions = readOptions,
-            RewrittenReadOptions = candidateReadOptions,
-            PreserveRevisionStructure = false,
-            PreserveDocumentVersionState = !effectiveOptions.UseObjectStreams && effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.ClassicTable
-        };
+        PdfRewritePreservationOptions preservationOptions = CreatePreservationOptions(readOptions, effectiveOptions, candidateReadOptions);
         PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(pdf, candidate, preservationOptions);
         cancellationToken.ThrowIfCancellationRequested();
         if (!effectiveOptions.Linearize && effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
@@ -132,6 +158,25 @@ internal static partial class PdfOptimizer {
             returnedOriginal: false,
             readOptions: readOptions);
     }
+
+    private static bool CanReturnOriginalAfterCandidateOutputLimit(
+        byte[] pdf,
+        PdfOptimizationOptions options) =>
+        !options.Linearize &&
+        options.KeepOriginalWhenNotSmaller &&
+        options.MaximumOutputBytes.HasValue &&
+        pdf.LongLength <= options.MaximumOutputBytes.Value;
+
+    private static PdfRewritePreservationOptions CreatePreservationOptions(
+        PdfLoadOptions? readOptions,
+        PdfOptimizationOptions options,
+        PdfLoadOptions? rewrittenReadOptions = null) =>
+        new() {
+            OriginalReadOptions = readOptions,
+            RewrittenReadOptions = rewrittenReadOptions ?? readOptions,
+            PreserveRevisionStructure = false,
+            PreserveDocumentVersionState = !options.UseObjectStreams && options.XrefFormat == PdfOptimizationXrefFormat.ClassicTable
+        };
 
     /// <summary>Optimizes a PDF byte array with a named deterministic profile.</summary>
     public static PdfOptimizationActionResult Optimize(byte[] pdf, PdfOptimizationProfile profile) => Optimize(pdf, PdfOptimizationOptions.Create(profile));

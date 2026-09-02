@@ -9,13 +9,14 @@ internal static partial class PdfAnnotationEditor {
         PdfLoadOptions? readOptions) {
         ValidateTransformFinite(deltaX, nameof(deltaX));
         ValidateTransformFinite(deltaY, nameof(deltaY));
-        PdfAnnotation annotation = GetTransformTarget(pdf, objectNumber, readOptions);
+        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions);
+        PdfAnnotation annotation = GetTransformTarget(mutationPlan, objectNumber);
         var rectangle = new PdfPageRectangle(
             annotation.X1 + deltaX,
             annotation.Y1 + deltaY,
             annotation.X2 + deltaX,
             annotation.Y2 + deltaY);
-        return TransformAnnotation(pdf, annotation, rectangle, readOptions);
+        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions);
     }
 
     internal static PdfAnnotationEditResult ResizeAnnotation(
@@ -24,14 +25,16 @@ internal static partial class PdfAnnotationEditor {
         PdfPageRectangle rectangle,
         PdfLoadOptions? readOptions) {
         Guard.NotNull(rectangle, nameof(rectangle));
-        PdfAnnotation annotation = GetTransformTarget(pdf, objectNumber, readOptions);
-        return TransformAnnotation(pdf, annotation, rectangle, readOptions);
+        PdfMutationPlan mutationPlan = RequireAnnotationMutation(pdf, readOptions);
+        PdfAnnotation annotation = GetTransformTarget(mutationPlan, objectNumber);
+        return TransformAnnotation(pdf, annotation, rectangle, mutationPlan, readOptions);
     }
 
     private static PdfAnnotationEditResult TransformAnnotation(
         byte[] pdf,
         PdfAnnotation annotation,
         PdfPageRectangle target,
+        PdfMutationPlan mutationPlan,
         PdfLoadOptions? readOptions) {
         if (annotation.ObjectNumber is not int objectNumber) {
             throw new NotSupportedException("Direct annotation dictionaries cannot be transformed safely.");
@@ -81,9 +84,10 @@ internal static partial class PdfAnnotationEditor {
                 ? null
                 : annotation.InkList.Select(path => (IReadOnlyList<double>)TransformPairs(path, annotation, target, scaleX, scaleY)!).ToArray(),
             RegenerateAppearance = canGenerateMissingAppearance,
-            PreserveAppearance = preserveAuthoredAppearance || !canGenerateMissingAppearance
+            PreserveAppearance = preserveAuthoredAppearance || !canGenerateMissingAppearance,
+            AllowResidualDataInAppendOnly = true
         };
-        return UpdateAnnotation(pdf, objectNumber, options, readOptions);
+        return UpdateAnnotation(pdf, objectNumber, options, mutationPlan, readOptions);
     }
 
     private static double[]? TransformRectangleDifferences(
@@ -211,10 +215,9 @@ internal static partial class PdfAnnotationEditor {
         double? LeaderExtension,
         double[]? CaptionOffset);
 
-    private static PdfAnnotation GetTransformTarget(byte[] pdf, int objectNumber, PdfLoadOptions? readOptions) {
-        Guard.NotNull(pdf, nameof(pdf));
+    private static PdfAnnotation GetTransformTarget(PdfMutationPlan mutationPlan, int objectNumber) {
         if (objectNumber <= 0) throw new ArgumentOutOfRangeException(nameof(objectNumber), "Annotation object number must be positive.");
-        return PdfInspector.Inspect(pdf, readOptions).Annotations.SingleOrDefault(annotation => annotation.ObjectNumber == objectNumber)
+        return GetAnnotationMutationDocumentInfo(mutationPlan).Annotations.SingleOrDefault(annotation => annotation.ObjectNumber == objectNumber)
             ?? throw new ArgumentException("PDF annotation object was not found: " + objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".", nameof(objectNumber));
     }
 
