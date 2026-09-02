@@ -16,8 +16,8 @@ internal static partial class PdfRedactionPlanner {
         var areas = new List<PdfRedactionArea>(); var keys = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfLogicalTextBlock block in logical.TextBlocks) {
             string? criterion = MatchText(block, search, expressions, comparison); if (criterion is null) continue;
-            double fontSize = GetEffectiveFontSize(block); double x = Math.Min(block.XStart, block.XEnd); double width = Math.Max(1D, Math.Abs(block.XEnd - block.XStart));
-            AddArea(areas, keys, new PdfRedactionArea(block.PageNumber, x, block.BaselineY - fontSize, width, fontSize * 1.5D, criterion));
+            PdfTextSpanBounds bounds = GetTextBlockBounds(block, logical.Pages[block.PageNumber - 1]);
+            AddArea(areas, keys, new PdfRedactionArea(block.PageNumber, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height, criterion));
         }
         var requestedFields = new HashSet<string>(search.FormFieldNames, StringComparer.Ordinal);
         foreach (PdfLogicalFormWidget widget in logical.FormWidgets) if (widget.FieldName is not null && requestedFields.Contains(widget.FieldName)) AddArea(areas, keys, new PdfRedactionArea(widget.PageNumber, widget.X1, widget.Y1, widget.Width, widget.Height, "field:" + widget.FieldName));

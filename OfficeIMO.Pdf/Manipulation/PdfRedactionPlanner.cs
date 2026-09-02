@@ -37,7 +37,7 @@ internal static partial class PdfRedactionPlanner {
         var matches = new List<PdfRedactionMatch>();
 
         foreach (PdfRedactionArea area in areaArray) {
-            AddTextMatches(area, logical.TextBlocks, matches);
+            AddTextMatches(area, logical, matches);
             AddImageMatches(area, logical.Images, matches, findings);
             AddAnnotationMatches(area, info.Pages, matches);
         }
@@ -75,18 +75,14 @@ internal static partial class PdfRedactionPlanner {
         return Plan(buffer.ToArray(), areas, layoutOptions, options);
     }
 
-    private static void AddTextMatches(PdfRedactionArea area, IReadOnlyList<PdfLogicalTextBlock> textBlocks, List<PdfRedactionMatch> matches) {
-        foreach (PdfLogicalTextBlock block in textBlocks) {
+    private static void AddTextMatches(PdfRedactionArea area, PdfDocumentReadResult document, List<PdfRedactionMatch> matches) {
+        foreach (PdfLogicalTextBlock block in document.TextBlocks) {
             if (block.PageNumber != area.PageNumber) {
                 continue;
             }
 
-            double x = Math.Min(block.XStart, block.XEnd);
-            double width = Math.Abs(block.XEnd - block.XStart);
-            double fontSize = GetEffectiveFontSize(block);
-            double height = fontSize * 1.5D;
-            double y = block.BaselineY - fontSize;
-            if (!Intersects(area.X, area.Y, area.Width, area.Height, x, y, width, height)) {
+            PdfTextSpanBounds bounds = GetTextBlockBounds(block, document.Pages[block.PageNumber - 1]);
+            if (!Intersects(area.X, area.Y, area.Width, area.Height, bounds.Left, bounds.Bottom, bounds.Width, bounds.Height)) {
                 continue;
             }
 
@@ -94,10 +90,10 @@ internal static partial class PdfRedactionPlanner {
                 PdfRedactionMatchKind.TextBlock,
                 area,
                 block.PageNumber,
-                x,
-                y,
-                width,
-                height,
+                bounds.Left,
+                bounds.Bottom,
+                bounds.Width,
+                bounds.Height,
                 block.Text,
                 null,
                 null));
@@ -108,6 +104,38 @@ internal static partial class PdfRedactionPlanner {
         return block.FontSize > 0D && !double.IsNaN(block.FontSize) && !double.IsInfinity(block.FontSize)
             ? block.FontSize
             : DefaultTextHeight;
+    }
+
+    private static PdfTextSpanBounds GetTextBlockBounds(PdfLogicalTextBlock block, PdfLogicalPage page) {
+        if (block.Spans.Count > 0) {
+            double left = double.MaxValue;
+            double bottom = double.MaxValue;
+            double right = double.MinValue;
+            double top = double.MinValue;
+            for (int index = 0; index < block.Spans.Count; index++) {
+                PdfTextSpanBounds spanBounds = PdfTextSpanGeometry.GetAxisAlignedBounds(block.Spans[index]);
+                left = Math.Min(left, spanBounds.Left);
+                bottom = Math.Min(bottom, spanBounds.Bottom);
+                right = Math.Max(right, spanBounds.Right);
+                top = Math.Max(top, spanBounds.Top);
+            }
+
+            return new PdfTextSpanBounds(left, bottom, right, top);
+        }
+
+        if (block.VisualBounds is PdfLogicalVisualBounds visualBounds) {
+            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(
+                visualBounds.Left,
+                visualBounds.Top,
+                visualBounds.Right,
+                visualBounds.Bottom);
+            return new PdfTextSpanBounds(userBounds.Left, userBounds.Top, userBounds.Right, userBounds.Bottom);
+        }
+
+        double fontSize = GetEffectiveFontSize(block);
+        double x = Math.Min(block.XStart, block.XEnd);
+        double width = Math.Max(1D, Math.Abs(block.XEnd - block.XStart));
+        return new PdfTextSpanBounds(x, block.BaselineY - fontSize, x + width, block.BaselineY + fontSize * 0.5D);
     }
 
     private static void AddAnnotationMatches(PdfRedactionArea area, IReadOnlyList<PdfPageInfo> pages, List<PdfRedactionMatch> matches) {

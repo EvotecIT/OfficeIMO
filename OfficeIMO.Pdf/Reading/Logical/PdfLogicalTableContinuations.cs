@@ -201,7 +201,7 @@ public static class PdfLogicalTableContinuations {
         if (previous.Data.Columns.Count < 2 || previous.Data.Columns.Count != current.Data.Columns.Count) return false;
         if (!string.Equals(previous.DetectionKind, current.DetectionKind, StringComparison.Ordinal)) return false;
         if (!IsAtBottomEdge(previous.Table, previousPage) || !IsAtTopEdge(current.Table, currentPage)) return false;
-        if (!HasCompatibleColumns(previous.Table, current.Table, tolerance, cancellationToken)) return false;
+        if (!HasCompatibleColumns(previous.Table, previousPage, current.Table, currentPage, tolerance, cancellationToken)) return false;
 
         bool previousHasHeader = previous.Data.Structure.HasHeaderRow;
         bool currentHasHeader = current.Data.Structure.HasHeaderRow;
@@ -216,7 +216,7 @@ public static class PdfLogicalTableContinuations {
             PdfLogicalTableContinuationEvidence.CompatibleGeometry |
             PdfLogicalTableContinuationEvidence.CompatibleHeaders;
         double confidence = 0.75D;
-        if (HasCompatibleColumns(previous.Table, current.Table, tolerance * 0.5D, cancellationToken)) confidence += 0.1D;
+        if (HasCompatibleColumns(previous.Table, previousPage, current.Table, currentPage, tolerance * 0.5D, cancellationToken)) confidence += 0.1D;
         if (currentHasHeader) {
             evidence |= PdfLogicalTableContinuationEvidence.RepeatedHeaders;
             confidence += 0.1D;
@@ -252,17 +252,21 @@ public static class PdfLogicalTableContinuations {
 
     internal static bool HasCompatibleColumns(
         PdfLogicalTable previousTable,
+        PdfLogicalPage previousPage,
         PdfLogicalTable currentTable,
+        PdfLogicalPage currentPage,
         double tolerance) =>
-        HasCompatibleColumns(previousTable, currentTable, tolerance, CancellationToken.None);
+        HasCompatibleColumns(previousTable, previousPage, currentTable, currentPage, tolerance, CancellationToken.None);
 
     private static bool HasCompatibleColumns(
         PdfLogicalTable previousTable,
+        PdfLogicalPage previousPage,
         PdfLogicalTable currentTable,
+        PdfLogicalPage currentPage,
         double tolerance,
         CancellationToken cancellationToken) {
-        IReadOnlyList<PdfLogicalTableColumn> previous = previousTable.Columns;
-        IReadOnlyList<PdfLogicalTableColumn> current = currentTable.Columns;
+        IReadOnlyList<VisualColumn> previous = GetVisualColumns(previousTable, previousPage, cancellationToken);
+        IReadOnlyList<VisualColumn> current = GetVisualColumns(currentTable, currentPage, cancellationToken);
         if (previous.Count == 0 || previous.Count != current.Count) return false;
         bool positionedRecovery = string.Equals(previousTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal) &&
             string.Equals(currentTable.DetectionKind, "positioned-cells-bounded", StringComparison.Ordinal);
@@ -276,6 +280,40 @@ public static class PdfLogicalTableContinuations {
         }
 
         return true;
+    }
+
+    private static VisualColumn[] GetVisualColumns(
+        PdfLogicalTable table,
+        PdfLogicalPage page,
+        CancellationToken cancellationToken) {
+        if (table.SourceKind == PdfLogicalContentSourceKind.Ocr) {
+            var visualColumns = new VisualColumn[table.Columns.Count];
+            for (int index = 0; index < table.Columns.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PdfLogicalTableColumn column = table.Columns[index];
+                visualColumns[index] = new VisualColumn(column.From, column.To);
+            }
+            return visualColumns.OrderBy(static column => column.From).ToArray();
+        }
+
+        bool horizontalAxis = page.RotationDegrees is 0 or 180;
+        double bottom = Math.Min(table.YBottom, table.YTop);
+        double top = Math.Max(table.YBottom, table.YTop);
+        var columns = new List<VisualColumn>(table.Columns.Count);
+        for (int index = 0; index < table.Columns.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfLogicalTableColumn column = table.Columns[index];
+            PdfVisualBounds bounds = page.TransformBoundsToVisual(
+                Math.Min(column.From, column.To),
+                bottom,
+                Math.Max(column.From, column.To),
+                top);
+            columns.Add(horizontalAxis
+                ? new VisualColumn(bounds.Left, bounds.Right)
+                : new VisualColumn(bounds.Top, bounds.Bottom));
+        }
+
+        return columns.OrderBy(static column => column.From).ToArray();
     }
 
     internal static bool HeadersEqual(IReadOnlyList<string> previous, IReadOnlyList<string> current) =>
@@ -394,6 +432,16 @@ public static class PdfLogicalTableContinuations {
 
         internal double Confidence { get; }
         internal PdfLogicalTableContinuationEvidence Evidence { get; }
+    }
+
+    private readonly struct VisualColumn {
+        internal VisualColumn(double from, double to) {
+            From = Math.Min(from, to);
+            To = Math.Max(from, to);
+        }
+
+        internal double From { get; }
+        internal double To { get; }
     }
 
     private static int DetectRepeatedBodyHeaderRows(

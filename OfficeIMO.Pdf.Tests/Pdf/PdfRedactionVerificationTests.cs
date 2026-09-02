@@ -47,6 +47,35 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsUnchangedRotatedTextInsideReviewedArea() {
+        byte[] source = BuildRotatedTextIdentityPdf();
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 88D, 55D, 20D, 28D, "vertical text")
+        ]);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            source,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanResidual");
+    }
+
+    [Fact]
+    public void SearchRedactionsUsesOrientedBoundsForRotatedText() {
+        byte[] source = BuildRotatedTextIdentityPdf();
+
+        PdfRedactionPlan plan = PdfRedactionPlanner.Search(
+            source,
+            new PdfRedactionSearchOptions().AddLiteral("VERTICAL"));
+
+        PdfRedactionArea area = Assert.Single(plan.Areas);
+        Assert.True(area.Height > area.Width);
+        Assert.Contains(plan.Matches, static match => match.Kind == PdfRedactionMatchKind.TextBlock);
+    }
+
+    [Fact]
     public void AppliedPlanUsesThePlannerAscentAndDescentBoundsForTextScrubbing() {
         byte[] source = BuildTextPaintIdentityPdf("0 g");
         PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
