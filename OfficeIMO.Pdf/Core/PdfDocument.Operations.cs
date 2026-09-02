@@ -125,11 +125,24 @@ public sealed partial class PdfDocument {
         IEnumerable<string>? fieldNames = null,
         PdfLoadOptions? options = null,
         PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic) {
-        var snapshot = GetReadSnapshot(options);
+        return PlanMutation(operation, fieldNames, options, executionPreference, CancellationToken.None);
+    }
+
+    /// <summary>Chooses a mutation path while observing cancellation during parsing and preflight.</summary>
+    public PdfMutationPlan PlanMutation(
+        PdfMutationOperation operation,
+        IEnumerable<string>? fieldNames,
+        PdfLoadOptions? options,
+        PdfMutationExecutionPreference executionPreference,
+        CancellationToken cancellationToken) {
+        var snapshot = GetReadSnapshot(options, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentPreflight preflight = PdfInspector.Preflight(
             snapshot.Bytes,
             snapshot.Options,
-            () => snapshot.Document);
+            () => snapshot.Document,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         return PdfMutationPlanner.Plan(preflight, snapshot.Bytes, operation, fieldNames, executionPreference, snapshot.Options);
     }
 
@@ -348,8 +361,21 @@ public sealed partial class PdfDocument {
 
     /// <summary>Creates one PDF by merging all supplied documents in order through a single merge pass.</summary>
     public static PdfDocument Merge(IEnumerable<PdfDocument> documents) {
+        return Merge(documents, CancellationToken.None);
+    }
+
+    /// <summary>Creates one PDF by merging all supplied documents in order through a cancellable single merge pass.</summary>
+    public static PdfDocument Merge(
+        IEnumerable<PdfDocument> documents,
+        CancellationToken cancellationToken) {
         Guard.NotNull(documents, nameof(documents));
-        PdfDocument[] sources = documents.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sourceList = new List<PdfDocument>();
+        foreach (PdfDocument document in documents) {
+            cancellationToken.ThrowIfCancellationRequested();
+            sourceList.Add(document);
+        }
+        PdfDocument[] sources = sourceList.ToArray();
         if (sources.Length == 0) {
             throw new ArgumentException("At least one PDF document must be supplied.", nameof(documents));
         }
@@ -358,12 +384,17 @@ public sealed partial class PdfDocument {
             throw new ArgumentException("PDF documents cannot contain null entries.", nameof(documents));
         }
 
-        byte[][] bytes = sources.Select(static document => document.GetBytesForOperation()).ToArray();
-        PdfLoadOptions[] readOptions = sources.Select(static document => document.ReadOptions).ToArray();
-        Func<PdfReadDocument>?[] readDocumentFactories = sources
-            .Select(static document => document.GetOpenedReadDocumentFactory())
-            .ToArray();
-        PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories);
+        var bytes = new byte[sources.Length][];
+        var readOptions = new PdfLoadOptions[sources.Length];
+        var readDocumentFactories = new Func<PdfReadDocument>?[sources.Length];
+        for (int index = 0; index < sources.Length; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfDocument source = sources[index];
+            bytes[index] = source.GetBytesForOperation(cancellationToken);
+            readOptions[index] = source.ReadOptions;
+            readDocumentFactories[index] = source.GetOpenedReadDocumentFactory(cancellationToken);
+        }
+        PdfMergeResult mergeResult = PdfMerger.MergeOwned(bytes, readOptions, readDocumentFactories, cancellationToken);
         return LoadOwned(mergeResult.OwnedBytes, mergeResult.ReadOptions, mergeResult.ReadDocument);
     }
 

@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -113,6 +114,20 @@ public sealed class PdfImageDocumentTests {
             ]));
 
         Assert.Contains("image", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void CreateFromImagesHonorsCancellationWhileEnumeratingSources() {
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.CreateFromImages(EnumerateSources(cancellation), options: null, cancellation.Token));
+
+        static IEnumerable<PdfImageDocumentSource> EnumerateSources(CancellationTokenSource cancellation) {
+            yield return new PdfImageDocumentSource(PdfPngTestImages.CreateRgbPng(10, 20, 30), "first.png");
+            cancellation.Cancel();
+            yield return new PdfImageDocumentSource(PdfPngTestImages.CreateRgbPng(40, 50, 60), "second.png");
+        }
     }
 
     private static byte[] CreateExifOrientation(ushort orientation) => [

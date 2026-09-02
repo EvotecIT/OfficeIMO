@@ -9,8 +9,7 @@ internal static class PdfPermissionAuthorization {
         IsAllowed(security, policy, PdfStandardPermissions.CopyContents);
 
     internal static bool CanPrint(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy) =>
-        IsAllowed(security, policy, PdfStandardPermissions.Print) ||
-        IsAllowed(security, policy, PdfStandardPermissions.HighQualityPrint);
+        IsAllowed(security, policy, PdfStandardPermissions.Print);
 
     internal static bool CanMutate(PdfDocumentSecurityInfo security, PdfPermissionPolicy policy, PdfMutationOperation operation) {
         if (!security.HasEncryption || security.HasOwnerAuthorization) {

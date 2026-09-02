@@ -57,6 +57,29 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void HighQualityPrintBitDoesNotGrantPrintingWithoutBasePrintPermission() {
+        byte[] pdf = CreateEncryptedPdf(
+            "quality-open",
+            "quality-owner",
+            PdfStandardPermissions.HighQualityPrint,
+            "Print permission contract");
+        var enforced = new PdfLoadOptions { Password = "quality-open" };
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, enforced);
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Load(pdf, enforced).GetPrintablePageLayouts());
+
+        Assert.False(preflight.CanPrint);
+        Assert.Equal(PdfStandardPermissions.Print, exception.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "quality-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        Assert.NotEmpty(PdfDocument.Load(pdf, ignored).GetPrintablePageLayouts());
+    }
+
+    [Fact]
     public void RestrictedPageLevelVisualExtractionRequiresCopyPermission() {
         var encryption = new PdfStandardEncryptionOptions("visual-open") {
             OwnerPassword = "visual-owner",

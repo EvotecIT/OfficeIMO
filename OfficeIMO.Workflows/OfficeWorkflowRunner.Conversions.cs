@@ -39,7 +39,9 @@ public sealed partial class OfficeWorkflowRunner {
         switch (route.Id) {
             case "docx-pdf":
                 using (var source = new MemoryStream(input, writable: false))
-                using (WordDocument document = WordDocument.Load(source)) {
+                using (WordDocument document = WordDocument.LoadAsync(
+                    source,
+                    cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new WordPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -50,7 +52,9 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             case "xlsx-pdf":
                 using (var source = new MemoryStream(input, writable: false))
-                using (ExcelDocument document = ExcelDocument.Load(source)) {
+                using (ExcelDocument document = ExcelDocument.LoadAsync(
+                    source,
+                    cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new ExcelPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -61,7 +65,9 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             case "pptx-pdf":
                 using (var source = new MemoryStream(input, writable: false))
-                using (PowerPointPresentation document = PowerPointPresentation.Load(source)) {
+                using (PowerPointPresentation document = PowerPointPresentation.LoadAsync(
+                    source,
+                    cancellationToken: cancellationToken).GetAwaiter().GetResult()) {
                     var options = new PowerPointPdfSaveOptions { CancellationToken = cancellationToken };
                     options.UseProfile(ToPdfExportProfile(request.OutputProfile));
                     PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
@@ -79,7 +85,7 @@ public sealed partial class OfficeWorkflowRunner {
                 if (!emitHtmlTaggedStructure) {
                     options.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
                 }
-                PdfDocumentConversionResult conversion = ParseHtmlInput(input, request.InputPath)
+                PdfDocumentConversionResult conversion = ParseHtmlInput(input, request.InputPath, cancellationToken)
                     .ToPdfDocumentResultAsync(options, cancellationToken)
                     .GetAwaiter()
                     .GetResult();
@@ -174,20 +180,26 @@ public sealed partial class OfficeWorkflowRunner {
         return new OperationArtifact(bytes, summary, null);
     }
 
-    private static string DecodeHtmlInput(byte[] input) {
+    private static string DecodeHtmlInput(byte[] input, CancellationToken cancellationToken) {
         using var source = new MemoryStream(input, writable: false);
-        return HtmlConversionDocument.Load(source).SourceHtml;
+        return HtmlConversionDocument.LoadAsync(
+            source,
+            cancellationToken: cancellationToken).GetAwaiter().GetResult().SourceHtml;
     }
 
-    internal static HtmlConversionDocument ParseHtmlInput(byte[] input, string inputPath) {
+    internal static HtmlConversionDocument ParseHtmlInput(
+        byte[] input,
+        string inputPath,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(input);
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
         using var source = new MemoryStream(input, writable: false);
-        return HtmlConversionDocument.Load(
+        return HtmlConversionDocument.LoadAsync(
             source,
             new HtmlConversionDocumentOptions {
                 BaseUri = new Uri(Path.GetFullPath(inputPath)),
                 ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy()
-            });
+            },
+            cancellationToken: cancellationToken).GetAwaiter().GetResult();
     }
 }

@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -11,9 +12,10 @@ internal static class PdfFileAssembler {
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         PdfStandardEncryptionOptions? encryption = null,
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
-        string? trailerIdEntry = null) {
+        string? trailerIdEntry = null,
+        CancellationToken cancellationToken = default) {
         using var stream = new MemoryStream();
-        Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes, trailerIdEntry);
+        Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes, trailerIdEntry, cancellationToken);
         return stream.ToArray();
     }
 
@@ -25,7 +27,8 @@ internal static class PdfFileAssembler {
         PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
         PdfStandardEncryptionOptions? encryption = null,
         long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
-        string? trailerIdEntry = null) =>
+        string? trailerIdEntry = null,
+        CancellationToken cancellationToken = default) =>
         AssembleWithEvidenceCore(
             destination,
             objects,
@@ -36,6 +39,7 @@ internal static class PdfFileAssembler {
             objectMemoryLimitBytes,
             trailerIdEntry,
             permanentFileId: null,
+            cancellationToken,
             out _);
 
     internal static byte[] AssemblePreservingPermanentId(
@@ -72,6 +76,7 @@ internal static class PdfFileAssembler {
             objectMemoryLimitBytes,
             trailerIdEntry: null,
             permanentFileId,
+            CancellationToken.None,
             out _);
     }
 
@@ -94,6 +99,7 @@ internal static class PdfFileAssembler {
             objectMemoryLimitBytes,
             trailerIdEntry: null,
             permanentFileId: null,
+            CancellationToken.None,
             out bufferEvidence);
         return stream.ToArray();
     }
@@ -118,6 +124,7 @@ internal static class PdfFileAssembler {
             objectMemoryLimitBytes,
             trailerIdEntry,
             permanentFileId: null,
+            CancellationToken.None,
             out bufferEvidence);
 
     private static long AssembleWithEvidenceCore(
@@ -130,7 +137,9 @@ internal static class PdfFileAssembler {
         long objectMemoryLimitBytes,
         string? trailerIdEntry,
         byte[]? permanentFileId,
+        CancellationToken cancellationToken,
         out PdfFileAssemblyBufferEvidence bufferEvidence) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.FileVersion(fileVersion, nameof(fileVersion));
         Guard.NotNull(destination, nameof(destination));
         Guard.NotNull(objects, nameof(objects));
@@ -166,6 +175,7 @@ internal static class PdfFileAssembler {
 
         var offsets = new List<long> { 0L };
         for (int i = 0; i < objects.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             offsets.Add(written);
             if (objects is PdfObjectStore objectStore) {
                 objectStore.CopyTo(i, destination, fileIdHash);

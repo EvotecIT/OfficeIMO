@@ -32,4 +32,16 @@ public partial class Html {
                 Limits = new HtmlConversionLimits { MaxCssBytes = 4 }
             }));
     }
+
+    [Fact]
+    public void StylesheetDecoderHonorsDeclaredLegacyCharset() {
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes(
+            "@charset \"windows-1252\"; body { background-image: url('caf?.png'); }");
+        bytes[Array.IndexOf(bytes, (byte)'?')] = 0xE9;
+
+        bool decoded = HtmlResourcePipeline.TryDecodeStylesheet(bytes, contentType: null, out string css);
+
+        Assert.True(decoded);
+        Assert.Contains("café.png", css, StringComparison.Ordinal);
+    }
 }

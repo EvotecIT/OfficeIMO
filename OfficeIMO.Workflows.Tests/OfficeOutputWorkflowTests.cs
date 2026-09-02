@@ -555,6 +555,44 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task FolderAssemblyDecodesDeclaredStylesheetCharsetDuringDependencyDiscovery() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        string imagePath = Path.Combine(folder, "café.png");
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "source.html"),
+            "<!doctype html><html><head><link rel='stylesheet' href='style.css'></head><body>Legacy CSS</body></html>");
+        byte[] stylesheet = Encoding.ASCII.GetBytes(
+            "@charset \"windows-1252\"; body { background-image: url('caf?.png'); }");
+        stylesheet[Array.IndexOf(stylesheet, (byte)'?')] = 0xE9;
+        await File.WriteAllBytesAsync(Path.Combine(folder, "style.css"), stylesheet);
+        await File.WriteAllBytesAsync(
+            imagePath,
+            Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        bool removed = false;
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(
+            new PdfAssemblyRequest {
+                Sources = [folder],
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            },
+            new InlineProgress<OfficeWorkflowProgress>(update => {
+                if (removed || update.Stage != "normalize") return;
+                File.Delete(imagePath);
+                removed = true;
+            }));
+
+        Assert.True(removed);
+        Assert.True(result.Succeeded, result.Summary + " | " +
+            string.Join("; ", result.Diagnostics.Select(static item => item.Code + ":" + item.Message)));
+        Assert.True(File.Exists(output));
+        Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
     public async Task FolderAssemblyUsesDiscoveredHtmlDependencySnapshotsDuringNormalization() {
         using var scope = new TestDirectory();
         string folder = Path.Combine(scope.Path, "html");

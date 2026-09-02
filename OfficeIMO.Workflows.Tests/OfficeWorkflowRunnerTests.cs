@@ -344,6 +344,19 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public void HtmlInputParsingHonorsCancellation() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => OfficeWorkflowRunner.ParseHtmlInput(
+            Encoding.UTF8.GetBytes("<!doctype html><p>cancelled</p>"),
+            input,
+            cancellation.Token));
+    }
+
+    [Fact]
     public async Task CancellationDuringActiveHtmlConversionStopsBeforePublication() {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.html");

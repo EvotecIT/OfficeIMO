@@ -1,5 +1,7 @@
 using System.Globalization;
 
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPageExtractor {
@@ -353,8 +355,13 @@ internal static partial class PdfPageExtractor {
         return PdfObjectBytes.WrapIndirectObject(objectNumber, body);
     }
     
-    internal static byte[] Assemble(List<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
-        return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion);
+    internal static byte[] Assemble(
+        List<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        CancellationToken cancellationToken = default) {
+        return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion, cancellationToken: cancellationToken);
     }
 
     internal static PdfFileVersion GetSourceFileVersion(byte[] pdf) {

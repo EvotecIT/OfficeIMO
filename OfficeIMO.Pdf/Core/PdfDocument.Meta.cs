@@ -291,9 +291,12 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>Returns a lazy canonical-parse factory only when this instance owns opened bytes.</summary>
-    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory() {
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory() =>
+        GetOpenedReadDocumentFactory(CancellationToken.None);
+
+    internal Func<PdfReadDocument>? GetOpenedReadDocumentFactory(CancellationToken cancellationToken) {
         PdfDocumentSource? source = _source;
-        return source is null ? null : () => source.Read();
+        return source is null ? null : () => source.Read(cancellationToken: cancellationToken);
     }
 
     /// <summary>

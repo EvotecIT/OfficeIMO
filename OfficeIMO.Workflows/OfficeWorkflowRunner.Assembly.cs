@@ -86,7 +86,7 @@ public sealed partial class OfficeWorkflowRunner {
             Report(progress, validated.Id, "merge", "Combining normalized PDF pages", 0.7D);
             failureStage = WorkflowFailureStage.Operation;
             cancellationToken.ThrowIfCancellationRequested();
-            PdfDocument merged = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents);
+            PdfDocument merged = documents.Count == 1 ? documents[0] : PdfDocument.Merge(documents, cancellationToken);
 
             string outputDirectory = Path.GetDirectoryName(validated.OutputPath)!;
             failureStage = WorkflowFailureStage.Output;
@@ -540,7 +540,7 @@ public sealed partial class OfficeWorkflowRunner {
             byte[] htmlBytes = ReadDependencyBytes(htmlPath);
             AddManifestReferences(
                 HtmlResourcePipeline.BuildManifest(
-                    DecodeHtmlInput(htmlBytes),
+                    DecodeHtmlInput(htmlBytes, cancellationToken),
                     OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions(new Uri(htmlPath))),
                 pendingStylesheets);
         }
@@ -549,10 +549,9 @@ public sealed partial class OfficeWorkflowRunner {
             string stylesheetPath = pendingStylesheets.Dequeue();
             if (!processedStylesheets.Add(stylesheetPath)) continue;
             byte[] cssBytes = snapshots[stylesheetPath];
-            using var source = new MemoryStream(cssBytes, writable: false);
-            using var reader = new StreamReader(source, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            if (!HtmlResourcePipeline.TryDecodeStylesheet(cssBytes, contentType: null, out string css)) continue;
             HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
-                reader.ReadToEnd(),
+                css,
                 new Uri(stylesheetPath),
                 OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions());
             AddManifestReferences(manifest, pendingStylesheets);
@@ -667,7 +666,8 @@ public sealed partial class OfficeWorkflowRunner {
             case AssemblySourceKind.Image:
                 PdfDocument imageDocument = PdfDocument.CreateFromImages(
                     [new PdfImageDocumentSource(input, source.DisplayName)],
-                    request.Options.ImageOptions);
+                    request.Options.ImageOptions,
+                    cancellationToken);
                 AddAssemblySourceDiagnostic(source, "Image composed as one PDF page", diagnostics);
                 return imageDocument;
             case AssemblySourceKind.Office:

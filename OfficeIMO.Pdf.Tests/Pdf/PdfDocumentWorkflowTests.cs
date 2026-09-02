@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -1791,6 +1792,20 @@ public class PdfDocumentWorkflowTests {
         return "<< /Length " + bytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>\nstream\n" +
             content +
             "\nendstream";
+    }
+
+    [Fact]
+    public void BulkMergeHonorsCancellationWhileEnumeratingDocuments() {
+        using var cancellation = new CancellationTokenSource();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfDocument.Merge(EnumerateDocuments(cancellation), cancellation.Token));
+
+        static IEnumerable<PdfDocument> EnumerateDocuments(CancellationTokenSource cancellation) {
+            yield return PdfDocument.Create().Paragraph(p => p.Text("First"));
+            cancellation.Cancel();
+            yield return PdfDocument.Create().Paragraph(p => p.Text("Second"));
+        }
     }
 
     private static byte[] BuildPdf(string title, string text) {

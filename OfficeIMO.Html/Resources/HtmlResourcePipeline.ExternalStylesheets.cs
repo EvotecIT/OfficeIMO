@@ -34,6 +34,17 @@ internal sealed class HtmlExternalStylesheetImport {
 
 public static partial class HtmlResourcePipeline {
     /// <summary>
+    /// Attempts to decode stylesheet bytes using CSS encoding precedence: byte-order mark,
+    /// transport content-type charset, <c>@charset</c>, then strict UTF-8.
+    /// </summary>
+    /// <param name="bytes">Encoded stylesheet bytes.</param>
+    /// <param name="contentType">Optional transport content type containing a charset.</param>
+    /// <param name="css">Decoded stylesheet text when successful.</param>
+    /// <returns><see langword="true"/> when the stylesheet encoding is supported and valid.</returns>
+    public static bool TryDecodeStylesheet(byte[] bytes, string? contentType, out string css) =>
+        HtmlTextEncodingResolver.TryDecodeCss(bytes, contentType, out css);
+
+    /// <summary>
     /// Parses an external stylesheet and builds the same policy-aware resource manifest used by
     /// the HTML renderer for imports, fonts, and images.
     /// </summary>

@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -96,8 +97,22 @@ public sealed partial class PdfDocument {
     public static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
         PdfImageDocumentOptions? options = null) {
+        return CreateFromImages(images, options, CancellationToken.None);
+    }
+
+    /// <summary>Creates one PDF page per encoded image source in caller order with cooperative cancellation.</summary>
+    public static PdfDocument CreateFromImages(
+        IEnumerable<PdfImageDocumentSource> images,
+        PdfImageDocumentOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(images, nameof(images));
-        PdfImageDocumentSource[] sources = images.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sourceList = new List<PdfImageDocumentSource>();
+        foreach (PdfImageDocumentSource source in images) {
+            cancellationToken.ThrowIfCancellationRequested();
+            sourceList.Add(source);
+        }
+        PdfImageDocumentSource[] sources = sourceList.ToArray();
         if (sources.Length == 0) throw new ArgumentException("At least one image is required.", nameof(images));
         if (sources.Any(static source => source is null)) {
             throw new ArgumentException("Image sources cannot contain null entries.", nameof(images));
@@ -106,8 +121,10 @@ public sealed partial class PdfDocument {
         PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
         var document = new PdfDocument();
         foreach (PdfImageDocumentSource source in sources) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] sourceBytes = source.GetBytes();
             PreparedImage prepared = PrepareImageDocumentSource(sourceBytes);
+            cancellationToken.ThrowIfCancellationRequested();
             PageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
             double frameWidth = pageSize.Width - effective.Margin * 2D;
             double frameHeight = pageSize.Height - effective.Margin * 2D;
@@ -128,6 +145,7 @@ public sealed partial class PdfDocument {
                     new PdfImageStyle { Fit = placementFit },
                     alternativeText: alternativeText)));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return document;
     }
 

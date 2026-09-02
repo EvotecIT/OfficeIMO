@@ -47,6 +47,24 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanUsesThePlannerAscentAndDescentBoundsForTextScrubbing() {
+        byte[] source = BuildTextPaintIdentityPdf("0 g");
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 20D, 102D, 70D, 4D, "glyph ascent")
+        ]);
+
+        Assert.True(plan.HasMatches);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
+        Assert.DoesNotContain("Visible text", PdfReadDocument.Open(redacted).Pages[0].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsReorderedPagesThatDifferOnlyByVectorPaths() {
         byte[] source = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Item(item => item
@@ -147,6 +165,27 @@ public class PdfRedactionVerificationTests {
             new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
         ]);
         byte[] rewritten = BuildAnnotationAppearanceIdentityPdf("0 0 1 rg");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Theory]
+    [InlineData("/CA 0.4", "/CA 0.8")]
+    [InlineData("/BS << /W 1 /S /S >>", "/BS << /W 2 /S /D /D [3 2] >>")]
+    public void AppliedPlanVerificationRejectsChangedUnredactedAnnotationStyle(
+        string sourceStyle,
+        string rewrittenStyle) {
+        byte[] source = BuildAnnotationAppearanceIdentityPdf("1 0 0 rg", sourceStyle);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildAnnotationAppearanceIdentityPdf("1 0 0 rg", rewrittenStyle);
 
         PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
             rewritten,
@@ -973,7 +1012,7 @@ public class PdfRedactionVerificationTests {
         }));
     }
 
-    private static byte[] BuildAnnotationAppearanceIdentityPdf(string colorOperator) {
+    private static byte[] BuildAnnotationAppearanceIdentityPdf(string colorOperator, string annotationStyle = "") {
         string appearance = $"q {colorOperator} 0 0 40 40 re f Q";
         return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -981,7 +1020,7 @@ public class PdfRedactionVerificationTests {
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots [5 0 R] /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length 0 >>", "stream", "", "endstream", "endobj",
-            "5 0 obj", "<< /Type /Annot /Subtype /Stamp /Rect [100 100 140 140] /NM (appearance-proof) /AP << /N 6 0 R >> >>", "endobj",
+            "5 0 obj", $"<< /Type /Annot /Subtype /Stamp /Rect [100 100 140 140] /NM (appearance-proof) {annotationStyle} /AP << /N 6 0 R >> >>", "endobj",
             "6 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Length {appearance.Length.ToString(CultureInfo.InvariantCulture)} >>", "stream", appearance, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF"
         }));

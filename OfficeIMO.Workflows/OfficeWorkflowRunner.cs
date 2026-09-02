@@ -371,7 +371,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument document = PdfDocument.Load(input, request.PdfLoadOptions);
         PdfAnalysisReport analysis = document.Analyze(PdfComplianceProfile.None, cancellationToken);
-        PdfMutationPlan mutationPlan = document.PlanMutation(PdfMutationOperation.Optimize);
+        PdfMutationPlan mutationPlan = document.PlanMutation(
+            PdfMutationOperation.Optimize,
+            fieldNames: null,
+            options: null,
+            executionPreference: PdfMutationExecutionPreference.Automatic,
+            cancellationToken: cancellationToken);
         PdfDocumentSecurityInfo security = analysis.Info.Security;
         bool hasProtectedSecurity = security.HasEncryption || security.HasSignatures ||
                                     security.HasDocMDPPermissions || security.HasUsageRights;

@@ -242,6 +242,17 @@ public sealed class PdfRedactionPlan {
         identity.Append(':').Append(value.R).Append(',').Append(value.G).Append(',').Append(value.B).Append(',').Append(value.A);
     }
 
+    private static void AppendIdentityPdfColor(System.Text.StringBuilder identity, PdfColor? color) {
+        if (!color.HasValue) {
+            identity.Append(":null");
+            return;
+        }
+        PdfColor value = color.Value;
+        identity.Append(':').Append(FormatIdentityNumber(value.R))
+            .Append(',').Append(FormatIdentityNumber(value.G))
+            .Append(',').Append(FormatIdentityNumber(value.B));
+    }
+
     private static void AppendIdentityGradient(System.Text.StringBuilder identity, OfficeIMO.Drawing.OfficeLinearGradient? gradient) {
         if (gradient == null) {
             identity.Append(":null");
@@ -325,6 +336,26 @@ public sealed class PdfRedactionPlan {
             AppendIdentityString(identity, annotation.ActionType);
             identity.Append(':').Append(annotation.Flags?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "null")
                 .Append(':').Append(annotation.HasNormalAppearance ? '1' : '0');
+            AppendIdentityString(identity, annotation.DefaultAppearance);
+            AppendIdentityString(identity, annotation.DefaultStyle);
+            AppendIdentityString(identity, annotation.RichContents);
+            AppendIdentityString(identity, annotation.RichContentsPlainText);
+            AppendIdentityNullableNumber(identity, annotation.EffectiveFontSize);
+            AppendIdentityPdfColor(identity, annotation.EffectiveTextColor);
+            identity.Append(':').Append(annotation.EffectiveTextAlign.HasValue
+                ? ((int)annotation.EffectiveTextAlign.Value).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                : "null");
+            AppendIdentityNullableNumber(identity, annotation.Opacity);
+            AppendIdentityNullableNumber(identity, annotation.BorderWidth);
+            AppendIdentityString(identity, annotation.BorderStyle);
+            AppendIdentityNumbers(identity, annotation.BorderDashPattern);
+            AppendIdentityString(identity, annotation.BorderEffectStyle);
+            AppendIdentityNullableNumber(identity, annotation.BorderEffectIntensity);
+            AppendIdentityNumbers(identity, annotation.RectangleDifferences);
+            AppendIdentityNumbers(identity, annotation.CalloutLine);
+            AppendIdentityString(identity, annotation.CalloutLineEnding);
+            AppendIdentityString(identity, annotation.LineStartEnding);
+            AppendIdentityString(identity, annotation.LineEndEnding);
             identity.Append(":appearance:");
             PdfRedactionImageIdentity.AppendObjectGraph(identity, annotation.NormalAppearanceObject, document.Objects);
             AppendIdentityNumbers(identity, annotation.Color);
