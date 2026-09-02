@@ -664,12 +664,13 @@ internal static partial class TableDetector {
         List<TextLayoutEngine.TextLine> firstBand,
         List<TextLayoutEngine.TextLine> secondBand,
         List<TextLayoutEngine.TextLine>? followingBand = null) {
-        if (firstBand.Count != 1 || secondBand.Count != 1) return false;
-        double gap = firstBand[0].Y - secondBand[0].Y;
+        if (firstBand.Count != 1 || secondBand.Count == 0) return false;
+        double secondBandTop = secondBand.Max(static line => line.Y);
+        double gap = firstBand[0].Y - secondBandTop;
         if (gap <= 0D) return false;
 
         double largestFontSize = firstBand[0].Spans
-            .Concat(secondBand[0].Spans)
+            .Concat(secondBand.SelectMany(static line => line.Spans))
             .Select(static span => span.FontSize)
             .DefaultIfEmpty(0D)
             .Max();
@@ -813,6 +814,25 @@ internal static partial class TableDetector {
 
     private static bool LooksLikeSummaryValue(string value) =>
         value.Any(char.IsDigit) ||
+        string.Equals(value, "n/a", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "n.a.", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "na", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "#n/a", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "null", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "tbd", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "tbc", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "pending", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "unknown", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "unavailable", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "missing", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "no data", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not reported", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not provided", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "redacted", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not applicable", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not available", StringComparison.OrdinalIgnoreCase) ||
+        value is "-" or "–" or "—" ||
         string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||

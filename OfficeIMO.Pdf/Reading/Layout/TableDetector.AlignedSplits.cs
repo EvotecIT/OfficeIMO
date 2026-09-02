@@ -5,7 +5,7 @@ using System.Linq;
 namespace OfficeIMO.Pdf;
 
 internal static partial class TableDetector {
-    internal sealed class AlignedSplitAccumulator {
+    private sealed class AlignedSplitAccumulator {
         private readonly int _expectedColumnCount;
         private double[] _maximumInkEnds;
         private double[] _maximumLastSpanStarts;

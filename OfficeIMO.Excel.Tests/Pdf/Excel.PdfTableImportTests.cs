@@ -770,6 +770,9 @@ public partial class Excel {
     [Theory]
     [InlineData("Total", "0")]
     [InlineData("Total", "7")]
+    [InlineData("Total", "N/A")]
+    [InlineData("Total", "—")]
+    [InlineData("Grand Total", "TBD")]
     [InlineData("Total", "26")]
     [InlineData("Grand Total", "26")]
     [InlineData("Sub Total", "26")]
@@ -931,30 +934,34 @@ public partial class Excel {
     }
 
     [Fact]
-    public void PdfTables_AlignedSplitAccumulatorRejectsAnInvalidLaterBoundary() {
-        static PdfCore.TextLayoutEngine.TextLine Row(double y, params PdfCore.PdfTextSpan[] spans) =>
-            new(y, spans.Min(static span => span.X), spans.Max(static span => span.X + span.Advance), string.Join(" ", spans.Select(static span => span.Text)), spans.ToList());
+    public void PdfTables_BandGroupingKeepsSplitlessHeaderAboveMultiLineBodyBand() {
+        var headerSpans = new List<PdfCore.PdfTextSpan> {
+            new("Account", "F1", 10, 20, 700, 145, baseFont: "Helvetica-Bold"),
+            new("Total", "F1", 10, 180, 700, 70, baseFont: "Helvetica-Bold")
+        };
 
-        PdfCore.TextLayoutEngine.TextLine first = Row(
-            700,
-            new PdfCore.PdfTextSpan("Region", "F1", 10, 20, 700, 115),
-            new PdfCore.PdfTextSpan("Total", "F1", 10, 160, 700, 85));
-        PdfCore.TextLayoutEngine.TextLine second = Row(
-            680,
-            new PdfCore.PdfTextSpan("North", "F1", 10, 35, 680, 120),
-            new PdfCore.PdfTextSpan("1250", "F1", 10, 180, 680, 65));
-        PdfCore.TextLayoutEngine.TextLine invalid = Row(
-            660,
-            new PdfCore.PdfTextSpan("West", "F1", 10, 50, 660, 105),
-            new PdfCore.PdfTextSpan("region", "F1", 10, 160, 660, 20),
-            new PdfCore.PdfTextSpan("1430", "F1", 10, 205, 660, 40));
+        static PdfCore.TextLayoutEngine.TextLine BodyLine(double y, string left, string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, 60),
+                new(right, "F1", 10, 180, y, 40)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, 220, left + " " + right, spans);
+        }
 
-        var accumulator = new PdfCore.TableDetector.AlignedSplitAccumulator(2, new[] { first });
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 250, "Account Total", headerSpans) },
+            new() { BodyLine(680, "North", "1250"), BodyLine(668, "Region", "100") },
+            new() { BodyLine(640, "South", "980") }
+        };
 
-        Assert.True(accumulator.TryAppend(new[] { second }, requireValidSplits: true));
-        double splitBeforeInvalidRow = Assert.Single(accumulator.GetSplits()!);
-        Assert.False(accumulator.TryAppend(new[] { invalid }, requireValidSplits: true));
-        Assert.Equal(splitBeforeInvalidRow, Assert.Single(accumulator.GetSplits()!));
+        PdfCore.StructuredTable table = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static candidate => candidate.Kind == "band-group");
+
+        Assert.Equal(4, table.Rows.Count);
+        Assert.Equal(new[] { "Account", "Total" }, table.Rows[0]);
+        Assert.Equal(new[] { "North", "1250" }, table.Rows[1]);
+        Assert.Equal(new[] { "South", "980" }, table.Rows[3]);
     }
 
     [Fact]
