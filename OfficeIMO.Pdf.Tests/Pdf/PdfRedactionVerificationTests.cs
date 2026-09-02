@@ -52,6 +52,39 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsChangedUnredactedImageDecodeSemantics() {
+        byte[] source = BuildImageIdentitySource(includeInvertedDecode: false);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
+        ]);
+        byte[] rewritten = BuildImageIdentitySource(includeInvertedDecode: true);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            rewritten,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationAcceptsPreservedUnredactedImageRenderingSemantics() {
+        byte[] source = BuildImageIdentitySource(includeInvertedDecode: false);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [
+            new PdfRedactionArea(1, 150D, 80D, 20D, 20D, "reviewed blank area")
+        ]);
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
+    }
+
+    [Fact]
     public void AppliedPlanVerificationReportsResidualContentInsideReviewedArea() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Still present")).ToBytes();
         var area = new PdfRedactionArea(1, 0D, 0D, 600D, 800D, "whole page");
@@ -656,6 +689,22 @@ public class PdfRedactionVerificationTests {
             .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Sensitive chart pixels")
             .Paragraph(paragraph => paragraph.Text("Retained text after image"))
             .ToBytes();
+    }
+
+    private static byte[] BuildImageIdentitySource(bool includeInvertedDecode) {
+        const string pageContent = "q\n20 0 0 20 20 30 cm\n/Im1 Do\nQ\n";
+        const string imageBytes = "abc";
+        string decode = includeInvertedDecode ? " /Decode [1 0 1 0 1 0]" : string.Empty;
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture) + " >>", "stream", pageContent, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8" + decode + " /Length 3 >>", "stream", imageBytes, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }) + "\n";
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildNestedFormImageRedactionSource() {

@@ -248,13 +248,13 @@ public sealed class PdfRedactionPlan {
         for (int i = 0; i < placements.Count; i++) {
             PdfImagePlacement placement = placements[i];
             if (IntersectsReviewedArea(pageAreas, placement.X, placement.Y, placement.Width, placement.Height)) continue;
-            byte[]? imageBytes = null;
+            PdfStream? imageStream = null;
             if (placement.ObjectNumber > 0 &&
                 document.Objects.TryGetValue(placement.ObjectNumber, out PdfIndirectObject? indirect) &&
                 indirect.Value is PdfStream stream) {
-                imageBytes = stream.Data;
+                imageStream = stream;
             } else if (placement.InlineImageStream is PdfStream inlineStream) {
-                imageBytes = inlineStream.Data;
+                imageStream = inlineStream;
             }
 
             identity.Append("|I:")
@@ -264,8 +264,8 @@ public sealed class PdfRedactionPlan {
                 .Append(',').Append(FormatIdentityNumber(placement.C))
                 .Append(',').Append(FormatIdentityNumber(placement.D))
                 .Append(',').Append(FormatIdentityNumber(placement.E))
-                .Append(',').Append(FormatIdentityNumber(placement.F))
-                .Append(':').Append(imageBytes is null ? "none" : ComputeIdentityHash(imageBytes));
+                .Append(',').Append(FormatIdentityNumber(placement.F));
+            PdfRedactionImageIdentity.Append(identity, placement, imageStream, document.Objects);
         }
     }
 

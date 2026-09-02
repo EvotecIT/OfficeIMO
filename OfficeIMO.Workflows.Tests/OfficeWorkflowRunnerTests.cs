@@ -127,6 +127,34 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task HtmlToPdfAppliesTheWorkflowInputBudgetToRelativeResources() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        string image = Path.Combine(scope.Path, "pixel.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        byte[] imageBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        byte[] htmlBytes = Encoding.UTF8.GetBytes("<!doctype html><html><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+        File.WriteAllBytes(image, imageBytes);
+        File.WriteAllBytes(input, htmlBytes);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = htmlBytes.LongLength + imageBytes.LongLength - 1L
+            }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Empty(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code is "HtmlRenderResourceUnavailable" or "HtmlRenderResourceByteLimitExceeded" or "HtmlRenderResourceLoadFailed");
+    }
+
+    [Fact]
     public async Task ConversionStopsWhileSerializingAtTheConfiguredOutputLimit() {
         using var scope = new TestDirectory();
         string input = CreateInput(scope.Path, "docx-pdf");

@@ -305,6 +305,20 @@ public class PdfPageInteractionMapTests {
         Assert.DoesNotContain(map.HitTest(40D, 145D), static region => region.Kind == PdfInteractionKind.Text);
     }
 
+    [Fact]
+    public void InteractionMap_ProjectsMirroredCharacterAdvancesAlongTheResolvedTextDirection() {
+        byte[] source = BuildSinglePagePdf("BT /F1 12 Tf 100 50 Td -100 Tz (AB) Tj ET");
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Equal(2, map.TextRegions.Count);
+        Assert.All(map.TextRegions, region => Assert.True(region.Quad.Right <= 100.001D, $"Unexpected mirrored text quad {region.Quad.Left:R}..{region.Quad.Right:R}."));
+        PdfSelectionQuad first = map.TextRegions[0].Quad;
+        double centerY = (first.Top + first.Bottom) / 2D;
+        Assert.Contains(map.TextRegions[0], map.HitTest((first.Left + first.Right) / 2D, centerY));
+        Assert.DoesNotContain(map.HitTest(104D, centerY), static region => region.Kind == PdfInteractionKind.Text);
+    }
+
     private static byte[] BuildSinglePagePdf(string content) => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
         "%PDF-1.7",
         "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",

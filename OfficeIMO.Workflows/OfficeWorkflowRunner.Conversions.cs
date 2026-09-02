@@ -70,7 +70,10 @@ public sealed partial class OfficeWorkflowRunner {
                 }
                 break;
             case "html-pdf": {
-                HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(request.InputPath);
+                long remainingInputBytes = Math.Max(0L, request.Limits.MaximumInputBytes - input.LongLength);
+                HtmlPdfSaveOptions options = OfficeWorkflowHtmlResourceResolver.CreateOptions(
+                    request.InputPath,
+                    remainingInputBytes);
                 if (!emitHtmlTaggedStructure) {
                     options.PdfOptions.SetTaggedStructureMode(PdfTaggedStructureMode.None);
                 }

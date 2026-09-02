@@ -13,9 +13,12 @@ internal static class OfficeWorkflowHtmlResourceResolver {
     internal static bool IsSupportedDependency(string path) =>
         SupportedDependencyExtensions.Contains(Path.GetExtension(path));
 
-    internal static HtmlPdfSaveOptions CreateOptions(string inputPath) {
+    internal static HtmlPdfSaveOptions CreateOptions(string inputPath, long maximumResourceBytes) {
         if (string.IsNullOrWhiteSpace(inputPath)) {
             throw new ArgumentException("Input path cannot be empty.", nameof(inputPath));
+        }
+        if (maximumResourceBytes < 0L) {
+            throw new ArgumentOutOfRangeException(nameof(maximumResourceBytes));
         }
 
         string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(inputPath))
@@ -23,12 +26,15 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         string physicalRoot = OfficeWorkflowPathIdentity.ResolvePhysicalPath(sourceDirectory);
         HtmlUrlPolicy resourcePolicy = CreateResourcePolicy();
 
+        long rendererResourceBudget = Math.Max(1L, maximumResourceBytes);
         var options = new HtmlPdfSaveOptions {
-            ResourceUrlPolicy = resourcePolicy
+            ResourceUrlPolicy = resourcePolicy,
+            MaxResourceBytes = rendererResourceBudget,
+            MaxTotalResourceBytes = rendererResourceBudget
         };
         options.ResourcePolicy.AllowLocalFileAccess = true;
         options.ResourceResolver = (request, cancellationToken) =>
-            ResolveAsync(request, physicalRoot, options.MaxResourceBytes, cancellationToken);
+            ResolveAsync(request, physicalRoot, maximumResourceBytes, cancellationToken);
         return options;
     }
 
@@ -55,12 +61,18 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         if (!request.Uri.IsFile || request.Kind == HtmlResourceKind.Hyperlink || request.Kind == HtmlResourceKind.Script) {
             return Task.FromResult<HtmlResolvedResource?>(null);
         }
+        if (maximumResourceBytes <= 0L) {
+            return Task.FromResult<HtmlResolvedResource?>(null);
+        }
 
         try {
             using FileStream source = OfficeWorkflowPathIdentity.OpenRegularFileForRead(
                 request.Uri.LocalPath,
                 physicalRoot,
                 BufferSize);
+            if (source.Length - source.Position > maximumResourceBytes) {
+                return Task.FromResult<HtmlResolvedResource?>(null);
+            }
             byte[] bytes = OfficeWorkflowInputReader.ReadAllBytes(
                 source,
                 Path.GetFileName(request.Uri.LocalPath),
