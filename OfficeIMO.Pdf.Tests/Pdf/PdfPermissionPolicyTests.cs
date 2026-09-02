@@ -122,6 +122,31 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void AccessibilityPermissionDoesNotExposeInteractionImagePlacements() {
+        var encryption = new PdfStandardEncryptionOptions("accessible-image-open") {
+            OwnerPassword = "accessible-image-owner",
+            AllowedPermissions = PdfStandardPermissions.Accessibility
+        };
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Accessible text"))
+            .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 40D, 40D)
+            .ToBytes();
+        var enforced = new PdfLoadOptions { Password = "accessible-image-open" };
+
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfPageInteractionMap.Create(pdf, 1, readOptions: enforced));
+
+        Assert.Equal(PdfStandardPermissions.CopyContents, exception.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "accessible-image-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfPageInteractionMap authorized = PdfPageInteractionMap.Create(pdf, 1, readOptions: ignored);
+        Assert.Contains(authorized.Regions, static region => region.Kind == PdfInteractionKind.Image);
+    }
+
+    [Fact]
     public void RestrictedDirectReadModelRequiresCopyPermissionForLogicalContent() {
         var encryption = new PdfStandardEncryptionOptions("direct-open") {
             OwnerPassword = "direct-owner",

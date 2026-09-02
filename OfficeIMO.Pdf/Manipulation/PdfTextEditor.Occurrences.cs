@@ -122,8 +122,8 @@ internal static partial class PdfTextEditor {
 
     private static double GetCharacterBoundaryAdvance(PdfTextSpan span, int characterIndex) {
         if (characterIndex <= 0) return 0D;
-        if (span.CharacterAdvances != null && span.CharacterAdvances.Count == span.Text.Length) {
-            return span.CharacterAdvances.Take(Math.Min(characterIndex, span.CharacterAdvances.Count)).Sum();
+        if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
+            return boundaries[Math.Min(characterIndex, boundaries.Length - 1)];
         }
         return Math.Abs(span.Advance) * characterIndex / Math.Max(1, span.Text.Length);
     }

@@ -319,6 +319,19 @@ public class PdfPageInteractionMapTests {
         Assert.DoesNotContain(map.HitTest(104D, centerY), static region => region.Kind == PdfInteractionKind.Text);
     }
 
+    [Fact]
+    public void ResolvedCharacterAdvanceBoundariesNormalizeMirroredTextSpaceAdvances() {
+        var span = new PdfTextSpan(
+            "AB", "F1", 12D, 100D, 50D, 10D, color: null, isVisible: true,
+            rotationDegrees: 180D, baseFont: "Helvetica", clipPath: null,
+            characterAdvances: new[] { -4D, -6D });
+
+        bool projected = PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
+
+        Assert.True(projected);
+        Assert.Equal(new[] { 0D, 4D, 10D }, boundaries);
+    }
+
     private static byte[] BuildSinglePagePdf(string content) => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
         "%PDF-1.7",
         "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",

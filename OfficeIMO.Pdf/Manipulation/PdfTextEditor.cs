@@ -579,9 +579,11 @@ internal static partial class PdfTextEditor {
         double advance = Math.Max(Math.Abs(span.Advance), EffectiveFontSize(span) * Math.Max(1, span.Text.Length) * 0.45D);
         double offset;
         double sliceAdvance;
-        if (span.CharacterAdvances != null && span.CharacterAdvances.Count == span.Text.Length) {
-            offset = span.CharacterAdvances.Take(Math.Min(start, span.CharacterAdvances.Count)).Sum();
-            sliceAdvance = span.CharacterAdvances.Skip(Math.Min(start, span.CharacterAdvances.Count)).Take(length).Sum();
+        if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries)) {
+            int startIndex = Math.Min(start, boundaries.Length - 1);
+            int endIndex = Math.Min(start + length, boundaries.Length - 1);
+            offset = boundaries[startIndex];
+            sliceAdvance = boundaries[endIndex] - offset;
         } else {
             double textLength = Math.Max(1, span.Text.Length);
             offset = advance * start / textLength;

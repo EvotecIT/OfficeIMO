@@ -255,42 +255,13 @@ public sealed class PdfPageInteractionMap {
     }
 
     private static double[] GetTextElementAdvanceBoundaries(PdfTextSpan span, int[] elementStarts) {
-        IReadOnlyList<double>? characterAdvances = span.CharacterAdvances;
-        if (characterAdvances is not null && characterAdvances.Count == span.Text.Length) {
-            var characterBoundaries = new double[span.Text.Length + 1];
-            bool usable = true;
-            double signedTotalAdvance = 0D;
-            for (int characterIndex = 0; characterIndex < characterAdvances.Count; characterIndex++) {
-                double advance = characterAdvances[characterIndex];
-                if (!IsFinite(advance)) {
-                    usable = false;
-                    break;
-                }
-                signedTotalAdvance += advance;
-                if (!IsFinite(signedTotalAdvance)) {
-                    usable = false;
-                    break;
-                }
+        if (PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] characterBoundaries)) {
+            var elementBoundaries = new double[elementStarts.Length + 1];
+            for (int elementIndex = 0; elementIndex < elementStarts.Length; elementIndex++) {
+                elementBoundaries[elementIndex] = characterBoundaries[elementStarts[elementIndex]];
             }
-
-            // RotationDegrees already follows the resolved origin-to-end direction. Character
-            // advances retain their text-space sign, so mirrored text must be projected onto that
-            // direction once rather than reversing the run for a second time.
-            double directionSign = signedTotalAdvance < 0D ? -1D : 1D;
-            for (int characterIndex = 0; usable && characterIndex < characterAdvances.Count; characterIndex++) {
-                double advance = characterAdvances[characterIndex];
-                characterBoundaries[characterIndex + 1] = characterBoundaries[characterIndex] + advance * directionSign;
-                if (!IsFinite(characterBoundaries[characterIndex + 1])) usable = false;
-            }
-
-            if (usable && Math.Abs(characterBoundaries[characterBoundaries.Length - 1]) > double.Epsilon) {
-                var elementBoundaries = new double[elementStarts.Length + 1];
-                for (int elementIndex = 0; elementIndex < elementStarts.Length; elementIndex++) {
-                    elementBoundaries[elementIndex] = characterBoundaries[elementStarts[elementIndex]];
-                }
-                elementBoundaries[elementBoundaries.Length - 1] = characterBoundaries[characterBoundaries.Length - 1];
-                return elementBoundaries;
-            }
+            elementBoundaries[elementBoundaries.Length - 1] = characterBoundaries[characterBoundaries.Length - 1];
+            return elementBoundaries;
         }
 
         double totalAdvance = Math.Abs(span.Advance);
