@@ -124,6 +124,7 @@ namespace OfficeIMO.Excel {
                     OfficeSvgSizeUnit.Pixel,
                     imageCodec: null,
                     resourceIdPrefix: null,
+                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
                     cancellationToken);
                 if (!OfficeImageReader.TryIdentifyByContent(svgBytes, ".svg", out OfficeImageInfo svgInfo)) {
                     throw new InvalidDataException("The rendered chart SVG dimensions could not be identified.");

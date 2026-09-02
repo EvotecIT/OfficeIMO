@@ -89,8 +89,11 @@ public sealed class OfficeOutputWorkflowTests {
             });
 
         Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
-        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
         Assert.Contains(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), result.Summary, StringComparison.Ordinal);
+        Assert.Equal(
+            "execute",
+            Assert.Single(result.Diagnostics, static item => item.Code == "PageImageExportFailed").Stage);
         Assert.False(Directory.Exists(output));
         Assert.Empty(Directory.GetDirectories(scope.Path, ".*.tmp"));
     }

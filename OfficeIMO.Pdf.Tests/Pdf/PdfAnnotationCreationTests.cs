@@ -169,6 +169,36 @@ public class PdfAnnotationCreationTests {
         Assert.Equal(80D, link.Y2);
     }
 
+    [Fact]
+    public void AddLinkAnnotation_RejectsRelativeUriWithoutCatalogBase() {
+        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Existing page")).ToBytes();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+                Subtype = "Link",
+                Rectangle = new[] { 40D, 50D, 180D, 80D },
+                LinkUri = "guides/start.html"
+            }));
+
+        Assert.Contains("catalog URI base", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddLinkAnnotation_AllowsRelativeUriWithCatalogBase() {
+        byte[] source = PdfDocument
+            .Create(new PdfOptions().SetCatalogUriBase("https://officeimo.com/docs/"))
+            .Paragraph(p => p.Text("Existing page"))
+            .ToBytes();
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.Add(new PdfAnnotationCreateOptions {
+            Subtype = "Link",
+            Rectangle = new[] { 40D, 50D, 180D, 80D },
+            LinkUri = "guides/start.html"
+        });
+
+        Assert.Single(PdfInspector.Inspect(result.Bytes).GetLinkAnnotationsByUri("guides/start.html"));
+    }
+
     [Theory]
     [InlineData("Title")]
     [InlineData("IconName")]

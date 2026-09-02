@@ -11,6 +11,7 @@ internal static partial class PdfAnnotationEditor {
         PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
+        ValidateLinkUriAgainstCatalog(options, objects, catalog);
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
         int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
@@ -101,6 +102,28 @@ internal static partial class PdfAnnotationEditor {
 
     private static bool IsAppearanceSubtype(string subtype) => subtype == "Text" || subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
     private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || subtype == "Link" || IsAppearanceSubtype(subtype);
+
+    private static void ValidateLinkUriAgainstCatalog(
+        PdfAnnotationCreateOptions options,
+        Dictionary<int, PdfIndirectObject> objects,
+        int catalogObjectNumber) {
+        if (options.LinkUri == null ||
+            Uri.TryCreate(options.LinkUri, UriKind.Absolute, out _)) return;
+
+        if (objects.TryGetValue(catalogObjectNumber, out PdfIndirectObject? catalogObject) &&
+            catalogObject.Value is PdfDictionary catalog &&
+            catalog.Items.TryGetValue("URI", out PdfObject? uriObject) &&
+            PdfObjectLookup.TryResolveReferenceChain(objects, uriObject, out PdfObject? resolvedUri) &&
+            resolvedUri is PdfDictionary uriDictionary &&
+            uriDictionary.Items.TryGetValue("Base", out PdfObject? baseObject) &&
+            PdfObjectLookup.TryResolveReferenceChain(objects, baseObject, out PdfObject? resolvedBase) &&
+            resolvedBase is PdfStringObj baseString &&
+            Uri.TryCreate(baseString.Value, UriKind.Absolute, out _)) return;
+
+        throw new ArgumentException(
+            "Relative PDF URI link targets require an existing catalog URI base.",
+            nameof(options));
+    }
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
         Dictionary<int, PdfIndirectObject> objects,

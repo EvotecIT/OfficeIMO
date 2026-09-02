@@ -48,6 +48,7 @@ namespace OfficeIMO.PowerPoint {
                     OfficeSvgSizeUnit.Pixel,
                     fallbackCodec,
                     resourceIdPrefix: null,
+                    maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
                     cancellationToken);
                 return options.EnsureAccepted(new OfficeImageExportResult(format, ScaledWidth(drawing, scale), ScaledHeight(drawing, scale), svg, "Slide", "PowerPoint slide", diagnostics));
             }

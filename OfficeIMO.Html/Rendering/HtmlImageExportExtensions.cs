@@ -94,6 +94,7 @@ public static partial class HtmlImageExportExtensions {
                 OfficeSvgSizeUnit.Pixel,
                 fallbackCodec,
                 resourceIdPrefix: null,
+                maximumUtf8Bytes: options.MaximumTotalEncodedBytes,
                 cancellationToken: cancellationToken);
             width = Math.Max(1, (int)Math.Ceiling(page.Width * scale));
             height = Math.Max(1, (int)Math.Ceiling(page.Height * scale));

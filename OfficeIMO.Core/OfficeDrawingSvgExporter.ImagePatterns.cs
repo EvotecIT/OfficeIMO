@@ -4,8 +4,21 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendImagePattern(StringBuilder sb, OfficeDrawingImagePattern imagePattern, IOfficeRasterImageCodec? imageCodec, string idPrefix, ref int elementId) {
-        if (!OfficeSvgImageRenderer.TryCreateDataUri(imagePattern.ContentType, imagePattern.EncodedBytes, null, imageCodec, out string dataUri)) {
+    private static void AppendImagePattern(
+        StringBuilder sb,
+        OfficeDrawingImagePattern imagePattern,
+        IOfficeRasterImageCodec? imageCodec,
+        string idPrefix,
+        ref int elementId,
+        System.Threading.CancellationToken cancellationToken) {
+        if (!OfficeSvgImageRenderer.TryCreateDataUri(
+                imagePattern.ContentType,
+                imagePattern.EncodedBytes,
+                null,
+                imageCodec,
+                sb.MaxCapacity - sb.Length,
+                cancellationToken,
+                out string dataUri)) {
             return;
         }
 

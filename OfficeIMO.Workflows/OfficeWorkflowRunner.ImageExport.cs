@@ -40,6 +40,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
             failureStage = WorkflowFailureStage.Output;
             Directory.CreateDirectory(parent);
             stagingDirectory = Path.Combine(parent, "." + Path.GetFileName(validated.OutputDirectory) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            failureStage = WorkflowFailureStage.Operation;
 
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
@@ -58,9 +59,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 .Pages(PdfPageSelection.From(pageNumbers))
                 .As(validated.Format);
             Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D);
-            OfficeImageExportBatchSaveResult saved = await builder
-                .SaveFilesAsync(stagingDirectory, cancellationToken)
-                .ConfigureAwait(false);
+            OfficeImageExportBatchSaveResult saved;
+            try {
+                saved = await builder
+                    .SaveFilesAsync(stagingDirectory, cancellationToken)
+                    .ConfigureAwait(false);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                failureStage = WorkflowFailureStage.Output;
+                throw;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             long outputBytes = 0L;
             Report(progress, validated.Id, "validate-output", "Validating page image output", 0.74D);
@@ -88,6 +95,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                     ["format"] = validated.Format.ToString(),
                     ["outputBytes"] = outputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
+            failureStage = WorkflowFailureStage.Output;
             Report(progress, validated.Id, "publish", "Publishing the validated image folder", 0.9D);
             cancellationToken.ThrowIfCancellationRequested();
             string publishedDirectory = await PublishDirectoryAsync(

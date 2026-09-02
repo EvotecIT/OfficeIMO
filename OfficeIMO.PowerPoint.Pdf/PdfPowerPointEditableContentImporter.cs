@@ -47,7 +47,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
-            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
+            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows, cancellationToken)
                 .GroupBy(static extraction => extraction.PageIndex)
                 .ToDictionary(
                     static group => group.Key,

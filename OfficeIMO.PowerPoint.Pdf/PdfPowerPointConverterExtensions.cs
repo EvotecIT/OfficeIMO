@@ -61,7 +61,8 @@ public static partial class PowerPointPdfConverterExtensions {
             throw new ArgumentOutOfRangeException(nameof(options.MaxPages), "The page limit must be positive.");
         }
 
-        int selectedPageCount = options.ReadOptions?.PageSelection?.PageCount ?? document.Inspect().PageCount;
+        int selectedPageCount = options.ReadOptions?.PageSelection?.PageCount ??
+            document.Inspect(options: null, cancellationToken).PageCount;
         cancellationToken.ThrowIfCancellationRequested();
         if (selectedPageCount > options.MaxPages) {
             throw new InvalidOperationException(
@@ -401,7 +402,7 @@ public static partial class PowerPointPdfConverterExtensions {
         var tableEntries = new List<PdfPowerPointTableImportEntry>();
         long embeddedVisualBytes = 0;
         Dictionary<int, IReadOnlyList<PdfCore.PdfLogicalTableExtraction>> tablesByPage =
-            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows)
+            PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical, options.MaxRows, cancellationToken)
                 .GroupBy(static extraction => extraction.PageIndex)
                 .ToDictionary(
                     static group => group.Key,

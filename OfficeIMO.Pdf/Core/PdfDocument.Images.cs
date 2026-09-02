@@ -167,13 +167,14 @@ public sealed partial class PdfDocument {
     }
 
     private static PageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageDocumentOptions options) {
-        bool isLandscape = info.Width > info.Height && info.Height > 0;
+        double dpiX = ResolveImageDpi(info.DpiX);
+        double dpiY = ResolveImageDpi(info.DpiY);
+        bool isLandscape = info.Width > 0 && info.Height > 0 &&
+            info.Width / dpiX > info.Height / dpiY;
         PageSize pageSize;
         if (options.FixedPageSize.HasValue) {
             pageSize = options.FixedPageSize.Value;
         } else if (info.Width > 0 && info.Height > 0) {
-            double dpiX = ResolveImageDpi(info.DpiX);
-            double dpiY = ResolveImageDpi(info.DpiY);
             double width = info.Width * 72D / dpiX;
             double height = info.Height * 72D / dpiY;
             double maximumContentDimension = options.MaximumPageDimension - options.Margin * 2D;

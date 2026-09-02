@@ -124,14 +124,16 @@ internal static class PdfImageExportEngine {
         if (format == OfficeImageExportFormat.Svg) {
             effective.Scale = effective.GetEffectiveScale(drawing.Width, drawing.Height);
             drawing = AddBackground(drawing, effective.BackgroundColor);
-            byte[] svg = OfficeDrawingSvgExporter.ToSvgBytes(
-                drawing,
-                effective.Scale,
-                OfficeSvgSizeUnit.Pixel,
-                fallbackCodec,
-                resourceIdPrefix: null,
-                cancellationToken: cancellationToken);
-            encodingBudget.Reserve(svg.Length);
+            byte[] svg = encodingBudget.EncodeWithinRemainingBudget(
+                maximumBytes => OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    effective.Scale,
+                    OfficeSvgSizeUnit.Pixel,
+                    fallbackCodec,
+                    resourceIdPrefix: null,
+                    maximumUtf8Bytes: maximumBytes,
+                    cancellationToken: cancellationToken),
+                cancellationToken);
             return options.EnsureAccepted(new OfficeImageExportResult(
                 format,
                 Scaled(drawing.Width, effective.Scale),

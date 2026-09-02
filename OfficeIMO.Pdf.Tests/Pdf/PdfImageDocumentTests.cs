@@ -65,6 +65,27 @@ public sealed class PdfImageDocumentTests {
     }
 
     [Fact]
+    public void CreateFromImagesUsesPhysicalDimensionsWhenAutoOrientingFixedPaper() {
+        var raster = new OfficeRasterImage(72, 72);
+        byte[] image = OfficePngWriter.Encode(raster, new OfficePngEncodeOptions {
+            DpiX = 72D,
+            DpiY = 144D
+        });
+
+        PdfDocument document = PdfDocument.CreateFromImages(
+            [new PdfImageDocumentSource(image, "non-square-dpi.png")],
+            new PdfImageDocumentOptions {
+                FixedPageSize = PageSizes.A4,
+                AutoOrientPage = true,
+                Fit = OfficeImageFit.Contain
+            });
+
+        PdfPageInfo page = Assert.Single(document.Inspect().Pages);
+        Assert.Equal(PageSizes.A4.Height, page.Width, 2);
+        Assert.Equal(PageSizes.A4.Width, page.Height, 2);
+    }
+
+    [Fact]
     public void CreateFromImagesAllowsDynamicPageMarginsLargerThanUnusedFallbackPaper() {
         byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
 

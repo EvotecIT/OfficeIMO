@@ -107,6 +107,29 @@ public partial class DrawingTests {
             cancellationToken: cancellation.Token));
     }
 
+    [Fact]
+    public void OfficeDrawingSvgExporter_BoundsEmbeddedImageDataDuringSerialization() {
+        var drawing = new OfficeDrawing(20D, 16D);
+        drawing.AddImage(
+            new byte[4096],
+            "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(4D, 3D, 8D, 6D)));
+
+        OfficeImageExportBatchLimitException exception =
+            Assert.Throws<OfficeImageExportBatchLimitException>(() =>
+                OfficeDrawingSvgExporter.ToSvgBytes(
+                    drawing,
+                    1D,
+                    OfficeSvgSizeUnit.Pixel,
+                    imageCodec: null,
+                    resourceIdPrefix: null,
+                    maximumUtf8Bytes: 1024L,
+                    cancellationToken: CancellationToken.None));
+
+        Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), exception.LimitName);
+        Assert.Equal(1024L, exception.Maximum);
+    }
+
     private sealed class CancelingImageCodec : IOfficeRasterImageCodec {
         private readonly CancellationTokenSource _cancellation;
 

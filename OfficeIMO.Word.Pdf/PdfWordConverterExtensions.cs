@@ -53,7 +53,7 @@ namespace OfficeIMO.Word.Pdf {
             using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForWord(document, operation, effectiveCancellationToken)
-                .SaveAsWordAsync(path, operation)
+                .SaveAsWordAsync(path, operation, effectiveCancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Word.Pdf {
             using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForWord(document, operation, effectiveCancellationToken)
-                .SaveAsWordAsync(stream, operation)
+                .SaveAsWordAsync(stream, operation, effectiveCancellationToken)
                 .ConfigureAwait(false);
         }
 

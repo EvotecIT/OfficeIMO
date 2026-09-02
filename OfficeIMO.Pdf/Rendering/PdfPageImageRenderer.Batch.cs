@@ -145,8 +145,9 @@ internal static partial class PdfPageImageRenderer {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] bytes = options.Format == PdfPageRenderFormat.Png
-                ? RenderDrawingAsPng(
+            byte[] bytes;
+            if (options.Format == PdfPageRenderFormat.Png) {
+                bytes = RenderDrawingAsPng(
                     drawing,
                     scale,
                     options.Background,
@@ -154,14 +155,24 @@ internal static partial class PdfPageImageRenderer {
                     options.MaxPixelsPerPage,
                     options.TextShapingProvider,
                     options.TextShapingLanguage,
-                    cancellationToken)
-                : OfficeDrawingSvgExporter.ToSvgBytes(
-                    drawing,
-                    scale,
-                    OfficeSvgSizeUnit.Point,
-                    imageCodec: null,
-                    resourceIdPrefix: null,
-                    cancellationToken: cancellationToken);
+                    cancellationToken);
+            } else {
+                try {
+                    bytes = OfficeDrawingSvgExporter.ToSvgBytes(
+                        drawing,
+                        scale,
+                        OfficeSvgSizeUnit.Point,
+                        imageCodec: null,
+                        resourceIdPrefix: null,
+                        maximumUtf8Bytes: options.MaxOutputBytesPerPage,
+                        cancellationToken: cancellationToken);
+                } catch (OfficeImageExportBatchLimitException exception) {
+                    throw PdfReadLimitException.Create(
+                        PdfReadLimitKind.RenderBytes,
+                        options.MaxOutputBytesPerPage,
+                        exception.Actual);
+                }
+            }
             if (bytes.LongLength > options.MaxOutputBytesPerPage) {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
             }

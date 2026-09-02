@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel.Pdf {
             using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForExcel(document, operation, effectiveCancellationToken)
-                .SaveTablesAsExcelAsync(workbookPath, operation)
+                .SaveTablesAsExcelAsync(workbookPath, operation, effectiveCancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel.Pdf {
             using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
             operation.CancellationToken = effectiveCancellationToken;
             return await ReadForExcel(document, operation, effectiveCancellationToken)
-                .SaveTablesAsExcelAsync(workbookStream, operation)
+                .SaveTablesAsExcelAsync(workbookStream, operation, effectiveCancellationToken)
                 .ConfigureAwait(false);
         }
 

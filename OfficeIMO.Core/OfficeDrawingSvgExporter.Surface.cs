@@ -61,6 +61,26 @@ public static partial class OfficeDrawingSvgExporter {
         string? resourceIdPrefix,
         CancellationToken cancellationToken,
         SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget) {
+        return ToSvgCore(
+            drawing,
+            scale,
+            sizeUnit,
+            imageCodec,
+            resourceIdPrefix,
+            cancellationToken,
+            nearestNeighborRectangleBudget,
+            maximumCharacters: null);
+    }
+
+    private static string ToSvgCore(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix,
+        CancellationToken cancellationToken,
+        SvgNearestNeighborRectangleBudget nearestNeighborRectangleBudget,
+        int? maximumCharacters) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (nearestNeighborRectangleBudget == null) throw new ArgumentNullException(nameof(nearestNeighborRectangleBudget));
         cancellationToken.ThrowIfCancellationRequested();
@@ -79,7 +99,9 @@ public static partial class OfficeDrawingSvgExporter {
             height = Math.Ceiling(height);
         }
         string unit = sizeUnit == OfficeSvgSizeUnit.Pixel ? "px" : "pt";
-        var builder = new StringBuilder();
+        var builder = maximumCharacters.HasValue
+            ? new StringBuilder(Math.Min(256, maximumCharacters.Value), maximumCharacters.Value)
+            : new StringBuilder();
         builder.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
             .Append(Format(width))
             .Append(unit)
@@ -138,6 +160,101 @@ public static partial class OfficeDrawingSvgExporter {
         byte[] bytes = Encoding.UTF8.GetBytes(svg);
         cancellationToken.ThrowIfCancellationRequested();
         return bytes;
+    }
+
+    internal static byte[] ToSvgBytes(
+        OfficeDrawing drawing,
+        double scale,
+        OfficeSvgSizeUnit sizeUnit,
+        IOfficeRasterImageCodec? imageCodec,
+        string? resourceIdPrefix,
+        long maximumUtf8Bytes,
+        CancellationToken cancellationToken) {
+        if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
+        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
+            throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
+        }
+        if (!Enum.IsDefined(typeof(OfficeSvgSizeUnit), sizeUnit)) {
+            throw new ArgumentOutOfRangeException(nameof(sizeUnit));
+        }
+        int maximumCharacters = maximumUtf8Bytes > int.MaxValue
+            ? int.MaxValue
+            : (int)maximumUtf8Bytes;
+        string svg;
+        try {
+            svg = ToSvgCore(
+                drawing,
+                scale,
+                sizeUnit,
+                imageCodec,
+                resourceIdPrefix,
+                cancellationToken,
+                new SvgNearestNeighborRectangleBudget(),
+                maximumCharacters);
+        } catch (ArgumentOutOfRangeException) {
+            throw new OfficeImageExportBatchLimitException(
+                nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                maximumUtf8Bytes == long.MaxValue ? long.MaxValue : maximumUtf8Bytes + 1L,
+                maximumUtf8Bytes);
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        long byteCount = GetUtf8ByteCount(svg, maximumUtf8Bytes, cancellationToken);
+        if (byteCount > maximumUtf8Bytes) {
+            throw new OfficeImageExportBatchLimitException(
+                nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes),
+                byteCount,
+                maximumUtf8Bytes);
+        }
+        byte[] bytes = EncodeUtf8(svg, checked((int)byteCount), cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return bytes;
+    }
+
+    private static long GetUtf8ByteCount(
+        string value,
+        long maximumUtf8Bytes,
+        CancellationToken cancellationToken) {
+        long total = 0L;
+        var characters = new char[16 * 1024];
+        for (int offset = 0; offset < value.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = GetUtf8ChunkLength(value, offset);
+            value.CopyTo(offset, characters, 0, count);
+            total = checked(total + Encoding.UTF8.GetByteCount(characters, 0, count));
+            if (total > maximumUtf8Bytes) return total;
+            offset += count;
+        }
+        return total;
+    }
+
+    private static byte[] EncodeUtf8(
+        string value,
+        int byteCount,
+        CancellationToken cancellationToken) {
+        var bytes = new byte[byteCount];
+        var characters = new char[16 * 1024];
+        int byteOffset = 0;
+        for (int offset = 0; offset < value.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = GetUtf8ChunkLength(value, offset);
+            value.CopyTo(offset, characters, 0, count);
+            byteOffset += Encoding.UTF8.GetBytes(characters, 0, count, bytes, byteOffset);
+            offset += count;
+        }
+        return bytes;
+    }
+
+    private static int GetUtf8ChunkLength(string value, int offset) {
+        const int ChunkCharacters = 16 * 1024;
+        int count = Math.Min(ChunkCharacters, value.Length - offset);
+        int end = offset + count;
+        if (end < value.Length &&
+            char.IsHighSurrogate(value[end - 1]) &&
+            char.IsLowSurrogate(value[end])) {
+            count--;
+        }
+        return count;
     }
 
     private static string ValidateResourceIdPrefix(string? value) {
