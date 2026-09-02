@@ -55,6 +55,17 @@ internal static class OfficeWorkflowHtmlResourceResolver {
         return resourcePolicy;
     }
 
+    internal static HtmlResourcePipelineOptions CreatePdfResourcePipelineOptions(Uri? baseUri = null) {
+        var renderOptions = new HtmlPdfSaveOptions();
+        return new HtmlResourcePipelineOptions {
+            BaseUri = baseUri,
+            ResourceUrlPolicy = CreateResourcePolicy(),
+            MediaContext = renderOptions.MediaContext,
+            MediaWidth = renderOptions.PageWidth,
+            MediaHeight = renderOptions.PageHeight
+        };
+    }
+
     private static Task<HtmlResolvedResource?> ResolveAsync(
         HtmlRenderResourceRequest request,
         string physicalRoot,

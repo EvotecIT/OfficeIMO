@@ -6,7 +6,7 @@ The package does not add a second document or PDF engine. Desktop applications, 
 
 ## Reference from source
 
-`OfficeIMO.Workflows` is new in this development line and does not yet have a published NuGet version. Until its first package release is available, reference the project from an OfficeIMO source checkout:
+When working from an OfficeIMO source checkout, reference the workflow project directly:
 
 ```xml
 <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />

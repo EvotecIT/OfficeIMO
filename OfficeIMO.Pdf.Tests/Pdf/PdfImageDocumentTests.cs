@@ -24,6 +24,27 @@ public sealed class PdfImageDocumentTests {
     }
 
     [Fact]
+    public void CreateFromImagesUsesPerAxisDpiForNaturalPageAndPlacement() {
+        var raster = new OfficeRasterImage(72, 72);
+        byte[] image = OfficePngWriter.Encode(raster, new OfficePngEncodeOptions {
+            DpiX = 72D,
+            DpiY = 144D
+        });
+
+        PdfDocument document = PdfDocument.CreateFromImages([
+            new PdfImageDocumentSource(image, "non-square-dpi.png")
+        ]);
+
+        PdfPageInfo page = Assert.Single(document.Inspect().Pages);
+        PdfImagePlacement placement = Assert.Single(document.Images.Placements());
+        Assert.InRange(page.Width, 71.99D, 72.01D);
+        Assert.InRange(page.Height, 35.99D, 36.01D);
+        Assert.InRange(placement.Width, 71.99D, 72.01D);
+        Assert.InRange(placement.Height, 35.99D, 36.01D);
+        Assert.InRange(placement.X, -0.01D, 0.01D);
+    }
+
+    [Fact]
     public void CreateFromImagesCanFitToAutoOrientedFixedPaper() {
         byte[] image = PdfPngTestImages.CreateRgbPng(96, 48);
 

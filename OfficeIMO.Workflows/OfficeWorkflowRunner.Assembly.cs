@@ -536,7 +536,9 @@ public sealed partial class OfficeWorkflowRunner {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] htmlBytes = ReadDependencyBytes(htmlPath);
             AddManifestReferences(
-                ParseHtmlInput(htmlBytes, htmlPath).ResourceManifest,
+                HtmlResourcePipeline.BuildManifest(
+                    DecodeHtmlInput(htmlBytes),
+                    OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions(new Uri(htmlPath))),
                 pendingStylesheets);
         }
         while (pendingStylesheets.Count > 0) {
@@ -549,7 +551,7 @@ public sealed partial class OfficeWorkflowRunner {
             HtmlResourceManifest manifest = HtmlResourcePipeline.BuildStylesheetManifest(
                 reader.ReadToEnd(),
                 new Uri(stylesheetPath),
-                new HtmlResourcePipelineOptions { ResourceUrlPolicy = OfficeWorkflowHtmlResourceResolver.CreateResourcePolicy() });
+                OfficeWorkflowHtmlResourceResolver.CreatePdfResourcePipelineOptions());
             AddManifestReferences(manifest, pendingStylesheets);
         }
         return new HtmlDependencyDiscovery(referenced, snapshots, referencedBytes);

@@ -112,6 +112,9 @@ public sealed partial class PdfDocument {
             double frameWidth = pageSize.Width - effective.Margin * 2D;
             double frameHeight = pageSize.Height - effective.Margin * 2D;
             string? alternativeText = string.IsNullOrWhiteSpace(source.Name) ? null : source.Name;
+            OfficeImageFit placementFit = effective.FixedPageSize.HasValue
+                ? effective.Fit
+                : OfficeImageFit.Stretch;
 
             document.AddComposedPage(page => page
                 .Size(pageSize)
@@ -122,7 +125,7 @@ public sealed partial class PdfDocument {
                     effective.Margin,
                     frameWidth,
                     frameHeight,
-                    new PdfImageStyle { Fit = effective.Fit },
+                    new PdfImageStyle { Fit = placementFit },
                     alternativeText: alternativeText)));
         }
         return document;

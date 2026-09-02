@@ -514,6 +514,43 @@ public sealed class OfficeOutputWorkflowTests {
     }
 
     [Fact]
+    public async Task FolderAssemblyDiscoversPrintOnlyHtmlDependencies() {
+        using var scope = new TestDirectory();
+        string folder = Path.Combine(scope.Path, "html");
+        Directory.CreateDirectory(folder);
+        string printImagePath = Path.Combine(folder, "print.png");
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "source.html"),
+            "<!doctype html><html><head><link rel='stylesheet' href='style.css'></head><body>Print</body></html>");
+        await File.WriteAllTextAsync(
+            Path.Combine(folder, "style.css"),
+            "@media print { body { background-image: url('print.png'); } }");
+        await File.WriteAllBytesAsync(
+            printImagePath,
+            Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        bool removed = false;
+        string output = Path.Combine(scope.Path, "assembled.pdf");
+
+        PdfAssemblyResult result = await new OfficeWorkflowRunner().AssemblePdfAsync(
+            new PdfAssemblyRequest {
+                Sources = [folder],
+                OutputPath = output,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+            },
+            new InlineProgress<OfficeWorkflowProgress>(update => {
+                if (removed || update.Stage != "normalize") return;
+                File.Delete(printImagePath);
+                removed = true;
+            }));
+
+        Assert.True(removed);
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(1, result.SourceCount);
+        Assert.True(File.Exists(output));
+        Assert.DoesNotContain(result.Diagnostics, static item => item.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
     public async Task FolderAssemblyAppliesOneInputBudgetAcrossHtmlAndReferencedDependencies() {
         using var scope = new TestDirectory();
         string folder = Path.Combine(scope.Path, "html");
