@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -93,6 +94,26 @@ public class PdfAttachmentExtractorTests {
         Assert.Equal("FlateDecode", attachment.Filter);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
         Assert.Equal(payload, attachment.Bytes);
+    }
+
+    [Fact]
+    public void ExtractAttachments_PropagatesCancellationBeforeAttachmentPayloadDecoding() {
+        byte[] pdf = BuildFlateEmbeddedFilePdf(Encoding.UTF8.GetBytes(new string('A', 4096)));
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        using var cancellation = new CancellationTokenSource();
+        bool descriptorVisited = false;
+
+        Assert.Throws<OperationCanceledException>(() => PdfAttachmentExtractor.ExtractAttachments(
+            document,
+            _ => {
+                descriptorVisited = true;
+                cancellation.Cancel();
+                return true;
+            },
+            maxDecodedBytes: 1L * 1024L * 1024L,
+            cancellationToken: cancellation.Token));
+
+        Assert.True(descriptorVisited);
     }
 
     [Fact]

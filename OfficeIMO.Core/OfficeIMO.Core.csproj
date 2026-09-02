@@ -35,13 +35,11 @@
     <InternalsVisibleTo Include="OfficeIMO.CSV" />
     <InternalsVisibleTo Include="OfficeIMO.Data.Arrow" />
     <InternalsVisibleTo Include="OfficeIMO.Excel" />
-    <InternalsVisibleTo Include="OfficeIMO.Excel.Legacy" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint" />
     <InternalsVisibleTo Include="OfficeIMO.Pdf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.OpenDocument" />
     <InternalsVisibleTo Include="OfficeIMO.Word" />
-    <InternalsVisibleTo Include="OfficeIMO.Word.Legacy" />
     <InternalsVisibleTo Include="OfficeIMO.Visio" />
     <InternalsVisibleTo Include="OfficeIMO.Security" />
     <InternalsVisibleTo Include="OfficeIMO.Security.Tests" />
@@ -51,6 +49,8 @@
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.RealWorldCorpus.Tool" />
     <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Drive" />
+    <InternalsVisibleTo Include="OfficeIMO.IWork" />
+    <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.DocBook" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />

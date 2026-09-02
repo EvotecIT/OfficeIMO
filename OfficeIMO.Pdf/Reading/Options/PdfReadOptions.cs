@@ -34,6 +34,20 @@ public sealed class PdfReadOptions {
     /// </summary>
     public PdfUnderstandingPipelineOptions? Pipeline { get; init; }
 
+    /// <summary>
+    /// Creates an independent copy of these semantic read settings.
+    /// Custom stage instances are reused, while mutable layout and pipeline option containers are copied.
+    /// </summary>
+    public PdfReadOptions Clone() {
+        PdfReadOptions effective = Resolve(this);
+        return new PdfReadOptions {
+            Profile = effective.Profile,
+            PageSelection = effective.PageSelection,
+            LayoutOptions = CloneLayoutOptions(effective.LayoutOptions),
+            Pipeline = ClonePipelineOptions(effective.Pipeline)
+        };
+    }
+
     internal static PdfReadOptions Resolve(PdfReadOptions? options) {
         PdfReadOptions effective = options ?? Default;
         if (effective.Profile < PdfReadProfile.Fast || effective.Profile > PdfReadProfile.Structured) {
@@ -41,5 +55,41 @@ public sealed class PdfReadOptions {
         }
         Guard.NotNull(effective.LayoutOptions, nameof(LayoutOptions));
         return effective;
+    }
+
+    private static PdfTextLayoutOptions CloneLayoutOptions(PdfTextLayoutOptions options) => new PdfTextLayoutOptions {
+        MarginLeft = options.MarginLeft,
+        MarginRight = options.MarginRight,
+        BinWidth = options.BinWidth,
+        MinGutterWidth = options.MinGutterWidth,
+        LineMergeToleranceEm = options.LineMergeToleranceEm,
+        LineMergeMaxPoints = options.LineMergeMaxPoints,
+        ForceSingleColumn = options.ForceSingleColumn,
+        JoinHyphenationAcrossLines = options.JoinHyphenationAcrossLines,
+        IgnoreHeaderHeight = options.IgnoreHeaderHeight,
+        IgnoreFooterHeight = options.IgnoreFooterHeight,
+        GapSpaceThresholdEm = options.GapSpaceThresholdEm,
+        GapGlyphFactor = options.GapGlyphFactor
+    };
+
+    private static PdfUnderstandingPipelineOptions? ClonePipelineOptions(PdfUnderstandingPipelineOptions? options) {
+        if (options is null) return null;
+
+        return new PdfUnderstandingPipelineOptions {
+            GlyphDecoding = options.GlyphDecoding,
+            WordGrouping = options.WordGrouping,
+            LineGrouping = options.LineGrouping,
+            PageSegmentation = options.PageSegmentation,
+            ReadingOrder = options.ReadingOrder,
+            SemanticClassification = options.SemanticClassification,
+            MaxPages = options.MaxPages,
+            MaxRunsPerPage = options.MaxRunsPerPage,
+            MaxTextCharactersPerPage = options.MaxTextCharactersPerPage,
+            MaxWordsPerPage = options.MaxWordsPerPage,
+            MaxLinesPerPage = options.MaxLinesPerPage,
+            MaxRegionsPerPage = options.MaxRegionsPerPage,
+            MaxWorkUnitsPerPage = options.MaxWorkUnitsPerPage,
+            MaxDocumentWorkUnits = options.MaxDocumentWorkUnits
+        };
     }
 }

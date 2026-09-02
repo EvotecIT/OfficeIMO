@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Drawing;
@@ -400,28 +401,95 @@ public static partial class OfficeSvgImageRenderer {
         byte[]? bytes,
         string? fileName,
         IOfficeRasterImageCodec? imageCodec,
+        out string dataUri) =>
+        TryCreateDataUri(
+            declaredContentType,
+            bytes,
+            fileName,
+            imageCodec,
+            int.MaxValue,
+            CancellationToken.None,
+            out dataUri);
+
+    internal static bool TryCreateDataUri(
+        string? declaredContentType,
+        byte[]? bytes,
+        string? fileName,
+        IOfficeRasterImageCodec? imageCodec,
+        int maximumCharacters,
+        CancellationToken cancellationToken,
         out string dataUri) {
+        if (maximumCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maximumCharacters));
+        cancellationToken.ThrowIfCancellationRequested();
         dataUri = string.Empty;
         if (bytes == null || bytes.Length == 0) {
             return false;
         }
 
         if (TryResolveEmbeddableContentType(declaredContentType, bytes, fileName, out string contentType)) {
-            dataUri = CreateDataUri(contentType, bytes);
+            dataUri = CreateBoundedDataUri(contentType, bytes, maximumCharacters, cancellationToken);
             return true;
         }
 
-        if (OfficeRasterImageDecoder.TryDecode(bytes, out OfficeRasterImage? raster) && raster != null) {
-            dataUri = CreateDataUri("image/png", OfficePngWriter.Encode(raster));
+        if (OfficeRasterImageDecoder.TryDecode(
+                bytes,
+                new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
+                out OfficeRasterImage? raster,
+                out _) && raster != null) {
+            cancellationToken.ThrowIfCancellationRequested();
+            dataUri = CreateBoundedDataUri(
+                "image/png",
+                OfficePngWriter.Encode(raster, cancellationToken),
+                maximumCharacters,
+                cancellationToken);
             return true;
         }
 
         if (imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), declaredContentType, out raster) && raster != null) {
-            dataUri = CreateDataUri("image/png", OfficePngWriter.Encode(raster));
+            cancellationToken.ThrowIfCancellationRequested();
+            dataUri = CreateBoundedDataUri(
+                "image/png",
+                OfficePngWriter.Encode(raster, cancellationToken),
+                maximumCharacters,
+                cancellationToken);
             return true;
         }
 
         return false;
+    }
+
+    private static string CreateBoundedDataUri(
+        string contentType,
+        byte[] bytes,
+        int maximumCharacters,
+        CancellationToken cancellationToken) {
+        long prefixCharacters = "data:".Length + contentType.Length + ";base64,".Length;
+        long base64Characters = checked(((bytes.LongLength + 2L) / 3L) * 4L);
+        if (prefixCharacters + base64Characters > maximumCharacters) {
+            throw new ArgumentOutOfRangeException(nameof(maximumCharacters), "The encoded data URI exceeds its configured character ceiling.");
+        }
+        var builder = new StringBuilder(
+            checked((int)(prefixCharacters + base64Characters)),
+            maximumCharacters);
+        builder.Append("data:").Append(contentType).Append(";base64,");
+        AppendBase64(builder, bytes, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return builder.ToString();
+    }
+
+    internal static void AppendBase64(
+        StringBuilder builder,
+        byte[] bytes,
+        CancellationToken cancellationToken) {
+        const int InputChunkBytes = 3 * 1024;
+        var encoded = new char[(InputChunkBytes / 3) * 4];
+        for (int offset = 0; offset < bytes.Length;) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(InputChunkBytes, bytes.Length - offset);
+            int characters = Convert.ToBase64CharArray(bytes, offset, count, encoded, 0);
+            builder.Append(encoded, 0, characters);
+            offset += count;
+        }
     }
 
     /// <summary>

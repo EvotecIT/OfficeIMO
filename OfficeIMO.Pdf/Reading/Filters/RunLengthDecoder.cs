@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class RunLengthDecoder {
@@ -9,7 +11,12 @@ internal static class RunLengthDecoder {
         return output;
     }
 
-    public static bool TryDecode(byte[] data, int maxOutputBytes, out byte[] outputBytes) {
+    public static bool TryDecode(
+        byte[] data,
+        int maxOutputBytes,
+        out byte[] outputBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data == null || data.Length == 0) {
             outputBytes = Array.Empty<byte>();
             return true;
@@ -17,7 +24,9 @@ internal static class RunLengthDecoder {
 
         using var output = new MemoryStream();
         int i = 0;
+        int processedRuns = 0;
         while (i < data.Length) {
+            if ((processedRuns++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte length = data[i++];
             if (length == 128) {
                 break;

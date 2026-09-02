@@ -170,7 +170,9 @@ public class PowerPointPdfTableImportTests {
         var options = new PdfPowerPointImportOptions {
             Mode = mode,
             MaxPages = 1,
-            PageSelection = PdfCore.PdfPageSelection.From(2, 2)
+            ReadOptions = new PdfCore.PdfReadOptions {
+                PageSelection = PdfCore.PdfPageSelection.From(2, 2)
+            }
         };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
@@ -181,7 +183,7 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
-    public void PdfDocument_ToPowerPointPresentation_PropagatesRaisedPageLimitIntoSemanticReading() {
+    public void PdfDocument_ToPowerPointPresentation_AllowsRaisedDestinationAndSemanticPageLimits() {
         const int selectedPageCount = 1_001;
         byte[] pdf = PdfCore.PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Repeated source page"))
@@ -189,7 +191,10 @@ public class PowerPointPdfTableImportTests {
         var options = new PdfPowerPointImportOptions {
             Mode = PdfPowerPointImportMode.EditableTables,
             MaxPages = selectedPageCount,
-            PageSelection = PdfCore.PdfPageSelection.From(Enumerable.Repeat(1, selectedPageCount).ToArray())
+            ReadOptions = new PdfCore.PdfReadOptions {
+                PageSelection = PdfCore.PdfPageSelection.From(Enumerable.Repeat(1, selectedPageCount).ToArray()),
+                Pipeline = new PdfCore.PdfUnderstandingPipelineOptions { MaxPages = selectedPageCount }
+            }
         };
 
         PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
@@ -197,6 +202,49 @@ public class PowerPointPdfTableImportTests {
 
         using (result.Value) {
             Assert.Single(result.Value.Slides);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentReadResult_ToPowerPointPresentation_AppliesSelectionBeforeDestinationLimit() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
+        var options = PdfPowerPointImportOptions.CreateEditableContent();
+        options.MaxPages = 1;
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(2)
+        };
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            PdfPowerPointEditablePageEntry page = Assert.Single(result.Report.EditablePages);
+            Assert.Equal(2, page.PageNumber);
+        }
+    }
+
+    [Fact]
+    public void PdfDocumentReadResult_ToPowerPointPresentation_PreservesSelectedOrderAndDuplicates() {
+        byte[] pdf = PdfCore.PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Page one"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .ToBytes();
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
+        var options = PdfPowerPointImportOptions.CreateEditableContent();
+        options.MaxPages = 3;
+        options.ReadOptions = new PdfCore.PdfReadOptions {
+            PageSelection = PdfCore.PdfPageSelection.From(2, 1, 2)
+        };
+
+        PdfPowerPointConversionResult result = logical.ToPowerPointPresentationResult(options);
+
+        using (result.Value) {
+            Assert.Equal(new[] { 2, 1, 2 }, result.Report.EditablePages.Select(page => page.PageNumber).ToArray());
         }
     }
 

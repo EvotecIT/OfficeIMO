@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Linq;
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf.Filters;
 
@@ -22,8 +23,17 @@ internal static partial class PdfWriter {
     }
 
     internal static bool TryGetPngImageData(byte[] data, out PdfImageStream image, out string? unsupportedReason) {
+        return TryGetPngImageData(data, CancellationToken.None, out image, out unsupportedReason);
+    }
+
+    internal static bool TryGetPngImageData(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out PdfImageStream image,
+        out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
+        cancellationToken.ThrowIfCancellationRequested();
 
         if (data.Length < 33 || !IsPng(data)) {
             unsupportedReason = "Bytes are not a PNG image.";
@@ -43,6 +53,7 @@ internal static partial class PdfWriter {
         var idat = new MemoryStream();
 
         while (offset + 12 <= data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int length = ReadInt32BigEndian(data, offset);
             long chunkEnd = (long)offset + 12L + length;
             if (length < 0 || chunkEnd > data.Length) {
@@ -79,10 +90,10 @@ internal static partial class PdfWriter {
                 }
 
                 palette = new byte[length];
-                Buffer.BlockCopy(data, chunkData, palette, 0, length);
+                CopyBytesWithCancellation(data, chunkData, palette, 0, length, cancellationToken);
             } else if (type == "tRNS") {
                 transparency = new byte[length];
-                Buffer.BlockCopy(data, chunkData, transparency, 0, length);
+                CopyBytesWithCancellation(data, chunkData, transparency, 0, length, cancellationToken);
             } else if (type == "IEND") {
                 break;
             }
@@ -134,52 +145,54 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        byte[] streamData = idat.ToArray();
+        byte[] streamData = ToArrayWithCancellation(idat, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         if (interlace == 1 &&
-            !TryNormalizeAdam7PngData(streamData, width, height, bitDepth, colorType, out streamData, out unsupportedReason)) {
+            !TryNormalizeAdam7PngData(streamData, width, height, bitDepth, colorType, cancellationToken, out streamData, out unsupportedReason)) {
             return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         int colors;
         string colorSpace;
         if (colorType == 0) {
             if (bitDepth == 16) {
-                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
             if (bitDepth != 8) {
-                return TryExpandPackedGrayscalePng(streamData, width, height, bitDepth, transparency, out image, out unsupportedReason);
+                return TryExpandPackedGrayscalePng(streamData, width, height, bitDepth, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
             if (transparency != null) {
-                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
             colors = 1;
             colorSpace = "/DeviceGray";
         } else if (colorType == 2) {
             if (bitDepth == 16) {
-                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
             if (transparency != null) {
-                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
             colors = 3;
             colorSpace = "/DeviceRGB";
         } else if (colorType == 3) {
-            if (!TryExpandIndexedPng(streamData, width, height, bitDepth, palette, transparency, out image, out unsupportedReason)) {
+            if (!TryExpandIndexedPng(streamData, width, height, bitDepth, palette, transparency, cancellationToken, out image, out unsupportedReason)) {
                 return false;
             }
 
             return true;
         } else if (colorType == 4 || colorType == 6) {
             if (bitDepth == 16) {
-                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, cancellationToken, out image, out unsupportedReason);
             }
 
-            if (!TrySplitPngAlpha(streamData, width, height, colorType, out image, out unsupportedReason)) {
+            if (!TrySplitPngAlpha(streamData, width, height, colorType, cancellationToken, out image, out unsupportedReason)) {
                 return false;
             }
 
@@ -189,9 +202,10 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryValidatePngPassThroughData(streamData, width, height, colors, out unsupportedReason)) {
+        if (!TryValidatePngPassThroughData(streamData, width, height, colors, cancellationToken, out unsupportedReason)) {
             return false;
         }
+        cancellationToken.ThrowIfCancellationRequested();
 
         image = new PdfImageStream {
             Data = streamData,
@@ -208,15 +222,32 @@ internal static partial class PdfWriter {
     }
 
     internal static bool TryGetJpegComponentCount(byte[] data, out int componentCount) {
-        return TryGetJpegFrameMetadata(data, out componentCount, out _);
+        return TryGetJpegComponentCount(data, CancellationToken.None, out componentCount);
+    }
+
+    internal static bool TryGetJpegComponentCount(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out int componentCount) {
+        return TryGetJpegFrameMetadata(data, cancellationToken, out componentCount, out _);
     }
 
     internal static bool TryGetJpegFrameMetadata(byte[] data, out int componentCount, out int samplePrecision) {
+        return TryGetJpegFrameMetadata(data, CancellationToken.None, out componentCount, out samplePrecision);
+    }
+
+    private static bool TryGetJpegFrameMetadata(
+        byte[] data,
+        CancellationToken cancellationToken,
+        out int componentCount,
+        out int samplePrecision) {
         componentCount = 0;
         samplePrecision = 0;
+        cancellationToken.ThrowIfCancellationRequested();
         if (data == null || data.Length < 4 || data[0] != 0xFF || data[1] != 0xD8) return false;
         int offset = 2;
         while (offset < data.Length) {
+            if ((offset & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (data[offset] != 0xFF) return false;
             while (offset < data.Length && data[offset] == 0xFF) offset++;
             if (offset >= data.Length) return false;
@@ -237,8 +268,8 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static bool TryValidatePngPassThroughData(byte[] compressedData, int width, int height, int colors, out string? unsupportedReason) {
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+    private static bool TryValidatePngPassThroughData(byte[] compressedData, int width, int height, int colors, CancellationToken cancellationToken, out string? unsupportedReason) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -255,7 +286,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool TrySplitPngTransparency(byte[] compressedData, int width, int height, int colorType, byte[] transparency, out PdfImageStream image, out string? unsupportedReason) {
+    private static bool TrySplitPngTransparency(byte[] compressedData, int width, int height, int colorType, byte[] transparency, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
 
@@ -268,7 +299,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -282,7 +313,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryUnfilterPngRows(decoded, width, height, sourceChannels, out var rawPixels, out unsupportedReason)) {
+        if (!TryUnfilterPngRows(decoded, width, height, sourceChannels, cancellationToken, out var rawPixels, out unsupportedReason)) {
             return false;
         }
 
@@ -300,6 +331,7 @@ internal static partial class PdfWriter {
         int transparentBlue = colorType == 2 ? ReadUInt16BigEndian(transparency, 4) : -1;
 
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int baseRowStart = row * (1 + width * sourceChannels);
             int alphaRowStart = row * (1 + width);
             baseRows[baseRowStart] = 0;
@@ -309,7 +341,7 @@ internal static partial class PdfWriter {
             for (int pixel = 0; pixel < width; pixel++) {
                 int sourcePixel = sourceRowStart + pixel * sourceChannels;
                 int basePixel = baseRowStart + 1 + pixel * sourceChannels;
-                Buffer.BlockCopy(rawPixels, sourcePixel, baseRows, basePixel, sourceChannels);
+                CopyBytesWithCancellation(rawPixels, sourcePixel, baseRows, basePixel, sourceChannels, cancellationToken);
 
                 bool isTransparent = colorType == 0
                     ? rawPixels[sourcePixel] == transparentGray
@@ -322,12 +354,12 @@ internal static partial class PdfWriter {
 
         string colorSpace = colorType == 0 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows),
+            Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, sourceChannels, width),
             SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -336,7 +368,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool TryExpandPackedGrayscalePng(byte[] compressedData, int width, int height, int bitDepth, byte[]? transparency, out PdfImageStream image, out string? unsupportedReason) {
+    private static bool TryExpandPackedGrayscalePng(byte[] compressedData, int width, int height, int bitDepth, byte[]? transparency, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
 
@@ -355,7 +387,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -370,7 +402,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, out var packedRows, out unsupportedReason)) {
+        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, cancellationToken, out var packedRows, out unsupportedReason)) {
             return false;
         }
 
@@ -382,6 +414,7 @@ internal static partial class PdfWriter {
         byte[] baseRows = new byte[grayscaleRowsLength];
         byte[]? alphaRows = transparency != null ? new byte[grayscaleRowsLength] : null;
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int baseRowStart = row * (1 + width);
             int alphaRowStart = row * (1 + width);
             baseRows[baseRowStart] = 0;
@@ -401,14 +434,14 @@ internal static partial class PdfWriter {
         }
 
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows),
+            Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
         };
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -418,7 +451,7 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool TryExpandIndexedPng(byte[] compressedData, int width, int height, int bitDepth, byte[]? palette, byte[]? paletteAlpha, out PdfImageStream image, out string? unsupportedReason) {
+    private static bool TryExpandIndexedPng(byte[] compressedData, int width, int height, int bitDepth, byte[]? palette, byte[]? paletteAlpha, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
 
@@ -433,7 +466,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -448,7 +481,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, out var packedRows, out unsupportedReason)) {
+        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, cancellationToken, out var packedRows, out unsupportedReason)) {
             return false;
         }
 
@@ -461,6 +494,7 @@ internal static partial class PdfWriter {
         byte[] baseRows = new byte[rgbRowsLength];
         byte[]? alphaRows = HasPaletteTransparency(paletteAlpha) ? new byte[indexedAlphaRowsLength] : null;
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int baseRowStart = row * (1 + width * 3);
             int alphaRowStart = row * (1 + width);
             baseRows[baseRowStart] = 0;
@@ -490,14 +524,14 @@ internal static partial class PdfWriter {
         }
 
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows),
+            Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceRGB", 3, width)
         };
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -530,13 +564,13 @@ internal static partial class PdfWriter {
             ? (data[offset] << 8) | data[offset + 1]
             : 0;
 
-    private static bool TrySplitPngAlpha(byte[] compressedData, int width, int height, int colorType, out PdfImageStream image, out string? unsupportedReason) {
+    private static bool TrySplitPngAlpha(byte[] compressedData, int width, int height, int colorType, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
 
         int sourceChannels = colorType == 4 ? 2 : 4;
         int baseChannels = colorType == 4 ? 1 : 3;
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -550,7 +584,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryUnfilterPngRows(decoded, width, height, sourceChannels, out var rawPixels, out unsupportedReason)) {
+        if (!TryUnfilterPngRows(decoded, width, height, sourceChannels, cancellationToken, out var rawPixels, out unsupportedReason)) {
             return false;
         }
 
@@ -563,6 +597,7 @@ internal static partial class PdfWriter {
         byte[] baseRows = new byte[alphaBaseRowsLength];
         byte[] alphaRows = new byte[splitAlphaRowsLength];
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int baseRowStart = row * (1 + width * baseChannels);
             int alphaRowStart = row * (1 + width);
             baseRows[baseRowStart] = 0;
@@ -584,12 +619,12 @@ internal static partial class PdfWriter {
 
         string colorSpace = colorType == 4 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows),
+            Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width),
             SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -606,7 +641,7 @@ internal static partial class PdfWriter {
         width.ToString(CultureInfo.InvariantCulture) +
         " >>";
 
-    private static bool TryUnfilterPngRows(byte[] decoded, int width, int height, int bytesPerPixel, out byte[] rawPixels, out string? unsupportedReason) {
+    private static bool TryUnfilterPngRows(byte[] decoded, int width, int height, int bytesPerPixel, CancellationToken cancellationToken, out byte[] rawPixels, out string? unsupportedReason) {
         rawPixels = Array.Empty<byte>();
         unsupportedReason = null;
 
@@ -628,9 +663,10 @@ internal static partial class PdfWriter {
         byte[] current = new byte[stride];
 
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int sourceRow = row * sourceRowLength;
             int filterType = decoded[sourceRow];
-            Buffer.BlockCopy(decoded, sourceRow + 1, current, 0, stride);
+            CopyBytesWithCancellation(decoded, sourceRow + 1, current, 0, stride, cancellationToken);
 
             for (int i = 0; i < stride; i++) {
                 int left = i >= bytesPerPixel ? current[i - bytesPerPixel] : 0;
@@ -658,15 +694,15 @@ internal static partial class PdfWriter {
                 }
             }
 
-            Buffer.BlockCopy(current, 0, rawPixels, row * stride, stride);
-            Buffer.BlockCopy(current, 0, previous, 0, stride);
+            CopyBytesWithCancellation(current, 0, rawPixels, row * stride, stride, cancellationToken);
+            CopyBytesWithCancellation(current, 0, previous, 0, stride, cancellationToken);
         }
 
         return true;
     }
 
-    private static bool TryDecodePngData(byte[] compressedData, out byte[] decoded, out string? unsupportedReason) {
-        if (!FlateDecoder.TryDecode(compressedData, MaxPngDecodedBytes, out decoded)) {
+    private static bool TryDecodePngData(byte[] compressedData, CancellationToken cancellationToken, out byte[] decoded, out string? unsupportedReason) {
+        if (!FlateDecoder.TryDecode(compressedData, MaxPngDecodedBytes, out decoded, out _, cancellationToken)) {
             unsupportedReason = "PNG image data exceeds the supported decompressed size limit.";
             return false;
         }
@@ -735,11 +771,14 @@ internal static partial class PdfWriter {
         return pb <= pc ? up : upLeft;
     }
 
-    private static uint Adler32(byte[] data) {
+    private static uint Adler32(byte[] data) => Adler32(data, CancellationToken.None);
+
+    private static uint Adler32(byte[] data, CancellationToken cancellationToken) {
         const uint mod = 65521;
         uint a = 1;
         uint b = 0;
         for (int i = 0; i < data.Length; i++) {
+            if ((i & 0xFFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             a = (a + data[i]) % mod;
             b = (b + a) % mod;
         }

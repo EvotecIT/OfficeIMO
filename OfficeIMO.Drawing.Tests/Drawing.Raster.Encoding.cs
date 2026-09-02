@@ -440,6 +440,16 @@ public sealed class DrawingRasterEncodingTests {
     }
 
     [Fact]
+    public void PngEncodingObservesCancellationBeforeScanlineWork() {
+        var image = new OfficeRasterImage(32, 32, OfficeColor.White);
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            OfficePngWriter.Encode(image, cancellation.Token));
+    }
+
+    [Fact]
     public void Vp8lMetaGroupScanObservesCancellation() {
         var prefixImage = new uint[8192];
         using var cancellation = new System.Threading.CancellationTokenSource();

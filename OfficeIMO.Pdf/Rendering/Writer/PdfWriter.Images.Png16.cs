@@ -1,11 +1,12 @@
 using System;
 using System.IO;
+using System.Threading;
 using OfficeIMO.Pdf.Filters;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static bool TryExpand16BitPng(byte[] compressedData, int width, int height, int colorType, byte[]? transparency, out PdfImageStream image, out string? unsupportedReason) {
+    private static bool TryExpand16BitPng(byte[] compressedData, int width, int height, int colorType, byte[]? transparency, CancellationToken cancellationToken, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
         unsupportedReason = null;
 
@@ -53,7 +54,7 @@ internal static partial class PdfWriter {
             transparentBlue = colorType == 2 ? ReadUInt16BigEndian(transparency, 4) : -1;
         }
 
-        if (!TryDecodePngData(compressedData, out byte[] decoded, out unsupportedReason)) {
+        if (!TryDecodePngData(compressedData, cancellationToken, out byte[] decoded, out unsupportedReason)) {
             return false;
         }
 
@@ -68,7 +69,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (!TryUnfilterPngRows(decoded, width, height, sourceBytesPerPixel, out var rawPixels, out unsupportedReason)) {
+        if (!TryUnfilterPngRows(decoded, width, height, sourceBytesPerPixel, cancellationToken, out var rawPixels, out unsupportedReason)) {
             return false;
         }
 
@@ -82,6 +83,7 @@ internal static partial class PdfWriter {
         byte[]? alphaRows = hasIntrinsicAlpha || transparency != null ? new byte[alphaRowsLength] : null;
 
         for (int row = 0; row < height; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int baseRowStart = row * (1 + width * baseChannels);
             int alphaRowStart = row * (1 + width);
             baseRows[baseRowStart] = 0;
@@ -122,7 +124,7 @@ internal static partial class PdfWriter {
 
         string colorSpace = baseChannels == 1 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlib(baseRows),
+            Data = DeflateZlib(baseRows, cancellationToken),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width)
@@ -130,7 +132,7 @@ internal static partial class PdfWriter {
 
         if (alphaRows != null) {
             image.SoftMask = new PdfImageStream {
-                Data = DeflateZlib(alphaRows),
+                Data = DeflateZlib(alphaRows, cancellationToken),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)

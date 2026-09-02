@@ -7,6 +7,15 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfPageInteractionMapTests {
     [Fact]
+    public void InteractionKind_PreservesPublishedNumericValues() {
+        Assert.Equal(0, (int) PdfInteractionKind.Text);
+        Assert.Equal(1, (int) PdfInteractionKind.Link);
+        Assert.Equal(2, (int) PdfInteractionKind.Annotation);
+        Assert.Equal(3, (int) PdfInteractionKind.FormWidget);
+        Assert.Equal(4, (int) PdfInteractionKind.Image);
+    }
+
+    [Fact]
     public void InteractionMap_ProjectsTextLinksAnnotationsAndWidgets() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Selectable text ").Link("project", "https://officeimo.net/"))
@@ -22,7 +31,7 @@ public class PdfPageInteractionMapTests {
                 Contents = "Review stamp"
             }).Bytes;
 
-        PdfPageInteractionMap map = PdfDocument.Load(source).Reader.Interactions(1);
+        PdfPageInteractionMap map = PdfDocument.Load(source).Render.Interactions(1);
 
         Assert.Contains(map.Regions, region => region.Kind == PdfInteractionKind.Text && region.Text == "S");
         PdfPageInteractionRegion link = Assert.Single(map.Regions, region => region.Kind == PdfInteractionKind.Link);
@@ -83,6 +92,51 @@ public class PdfPageInteractionMapTests {
     }
 
     [Fact]
+    public void InteractionMap_ScalesImageGeometryByUserUnit() {
+        const string content = "q 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /UserUnit 2 /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.Equal(400D, map.Width, 3);
+        Assert.Equal(400D, map.Height, 3);
+        Assert.Equal(0D, image.Quad.Left, 3);
+        Assert.Equal(200D, image.Quad.Right, 3);
+        Assert.Equal(200D, image.Quad.Top, 3);
+        Assert.Equal(400D, image.Quad.Bottom, 3);
+        Assert.Contains(image, map.HitTest(100D, 300D));
+    }
+
+    [Fact]
+    public void InteractionMap_ScalesTextHeightByUserUnit() {
+        const string content = "BT /F1 10 Tf 20 50 Td (A) Tj ET";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /UserUnit 2 /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion text = Assert.Single(map.TextRegions);
+
+        Assert.Equal(24D, text.Quad.Height, 3);
+        Assert.Contains(text, map.HitTest((text.Quad.Left + text.Quad.Right) / 2D, text.Quad.Top + 5D));
+    }
+
+    [Fact]
     public void InteractionMap_ProjectsImageThroughCropAndPageRotation() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Rotated image interaction"))
@@ -103,6 +157,97 @@ public class PdfPageInteractionMapTests {
         Assert.Contains(image, map.HitTest(
             (image.Quad.Left + image.Quad.Right) / 2D,
             (image.Quad.Top + image.Quad.Bottom) / 2D));
+    }
+
+    [Fact]
+    public void InteractionMap_ClipsImageHitRegionToExactVisibleRectangle() {
+        const string content = "q 50 50 50 50 re W n 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfImagePlacement placement = Assert.Single(PdfDocument.Load(source).Images.Placements());
+        Assert.NotNull(placement.Clip);
+        Assert.True(placement.Clip!.IsRectangle);
+        Assert.True(placement.Clip.IsExact);
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.Equal(50D, image.Quad.Left, 3);
+        Assert.Equal(100D, image.Quad.Right, 3);
+        Assert.Equal(100D, image.Quad.Top, 3);
+        Assert.Equal(150D, image.Quad.Bottom, 3);
+        Assert.DoesNotContain(image, map.HitTest(25D, 125D));
+        Assert.Contains(image, map.HitTest(75D, 125D));
+    }
+
+    [Fact]
+    public void InteractionMap_RetainsImageIdentityUnderNonrectangularClipping() {
+        const string content = "q 20 20 m 80 20 l 50 80 l h W n 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfImagePlacement placement = Assert.Single(PdfDocument.Load(source).Images.Placements());
+        Assert.NotNull(placement.Clip);
+        Assert.False(placement.Clip!.IsRectangle);
+        Assert.True(placement.Clip.IsExact);
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.NotNull(image.ImagePlacement);
+        Assert.NotNull(image.ImagePlacement!.Clip);
+        Assert.False(image.ImagePlacement.Clip!.IsRectangle);
+        Assert.Equal(20D, image.Quad.Left, 3);
+        Assert.Equal(80D, image.Quad.Right, 3);
+        Assert.Equal(120D, image.Quad.Top, 3);
+        Assert.Equal(180D, image.Quad.Bottom, 3);
+        Assert.Contains(image, map.HitTest(50D, 150D));
+    }
+
+    [Theory]
+    [InlineData(0, 30D, 60D, 80D, 110D)]
+    [InlineData(90, 60D, 80D, 110D, 130D)]
+    [InlineData(270, 10D, 30D, 60D, 80D)]
+    public void InteractionMap_ClipsImageUsingSourceCoordinatesOnOffsetRotatedCrop(
+        int rotation,
+        double expectedLeft,
+        double expectedTop,
+        double expectedRight,
+        double expectedBottom) {
+        const string content = "q 50 50 50 50 re W n 100 0 0 100 0 0 cm /Im1 Do Q";
+        byte[] source = Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /CropBox [20 40 180 160] /Rotate " + rotation.ToString(CultureInfo.InvariantCulture) + " /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>", "stream", "RGB", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+        }));
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+        PdfPageInteractionRegion image = Assert.Single(map.Regions, static region => region.Kind == PdfInteractionKind.Image);
+
+        Assert.Equal(expectedLeft, image.Quad.Left, 3);
+        Assert.Equal(expectedTop, image.Quad.Top, 3);
+        Assert.Equal(expectedRight, image.Quad.Right, 3);
+        Assert.Equal(expectedBottom, image.Quad.Bottom, 3);
+        Assert.DoesNotContain(image, map.HitTest(Math.Max(0D, expectedLeft - 10D), (expectedTop + expectedBottom) / 2D));
+        Assert.Contains(image, map.HitTest((expectedLeft + expectedRight) / 2D, (expectedTop + expectedBottom) / 2D));
     }
 
     [Fact]
@@ -177,4 +322,68 @@ public class PdfPageInteractionMapTests {
         Assert.Equal(20D, image.ImagePlacement!.X, 3);
         Assert.Equal(20D, image.ImagePlacement.Y, 3);
     }
+
+    [Fact]
+    public void InteractionMap_IncludesVisibleArtifactTextAndUsesItsActualTextReplacement() {
+        const string content =
+            "/Artifact BMC\n" +
+            "/Span << /ActualText (Logical footer) >> BDC\n" +
+            "BT /F1 12 Tf 20 50 Td (painted) Tj ET\n" +
+            "EMC\n" +
+            "EMC";
+        byte[] source = BuildSinglePagePdf(content);
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Contains("Logical footer", string.Concat(map.TextRegions.Select(static region => region.Text)), StringComparison.Ordinal);
+        Assert.DoesNotContain("painted", string.Concat(map.TextRegions.Select(static region => region.Text)), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InteractionMap_UsesExtractedAdvanceForNarrowGlyphHitRegions() {
+        byte[] source = BuildSinglePagePdf("BT /F1 12 Tf 20 50 Td (iiii) Tj ET");
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Equal(4, map.TextRegions.Count);
+        Assert.Contains(map.TextRegions[0], map.HitTest(21D, 145D));
+        Assert.DoesNotContain(map.HitTest(40D, 145D), static region => region.Kind == PdfInteractionKind.Text);
+    }
+
+    [Fact]
+    public void InteractionMap_ProjectsMirroredCharacterAdvancesAlongTheResolvedTextDirection() {
+        byte[] source = BuildSinglePagePdf("BT /F1 12 Tf 100 50 Td -100 Tz (AB) Tj ET");
+
+        PdfPageInteractionMap map = PdfPageInteractionMap.Create(source, 1);
+
+        Assert.Equal(2, map.TextRegions.Count);
+        Assert.All(map.TextRegions, region => Assert.True(region.Quad.Right <= 100.001D, $"Unexpected mirrored text quad {region.Quad.Left:R}..{region.Quad.Right:R}."));
+        PdfSelectionQuad first = map.TextRegions[0].Quad;
+        double centerY = (first.Top + first.Bottom) / 2D;
+        Assert.Contains(map.TextRegions[0], map.HitTest((first.Left + first.Right) / 2D, centerY));
+        Assert.DoesNotContain(map.HitTest(104D, centerY), static region => region.Kind == PdfInteractionKind.Text);
+    }
+
+    [Fact]
+    public void ResolvedCharacterAdvanceBoundariesNormalizeMirroredTextSpaceAdvances() {
+        var span = new PdfTextSpan(
+            "AB", "F1", 12D, 100D, 50D, 10D, color: null, isVisible: true,
+            rotationDegrees: 180D, baseFont: "Helvetica", clipPath: null,
+            characterAdvances: new[] { -4D, -6D });
+
+        bool projected = PdfTextAdvanceProjection.TryGetResolvedBoundaries(span, out double[] boundaries);
+
+        Assert.True(projected);
+        Assert.Equal(new[] { 0D, 4D, 10D }, boundaries);
+    }
+
+    private static byte[] BuildSinglePagePdf(string content) => Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.7",
+        "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + content.Length.ToString(CultureInfo.InvariantCulture) + " >>", "stream", content, "endstream", "endobj",
+        "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
+    }));
 }

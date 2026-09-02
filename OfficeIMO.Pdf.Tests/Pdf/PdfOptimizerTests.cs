@@ -7,6 +7,69 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOptimizerTests {
     [Fact]
+    public void Optimize_HonorsCancellationBeforeDiagnosticsAndParsing() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Cancelled) Tj\nET\n");
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => {
+            _ = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                CancellationToken = cancellation.Token
+            });
+        });
+    }
+
+    [Fact]
+    public void StreamCompressionHonorsItsCancellationToken() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        MethodInfo method = typeof(PdfOptimizer).GetMethod(
+            "CompressFlate",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
+            method.Invoke(null, new object[] { new byte[128 * 1024], cancellation.Token }));
+
+        Assert.IsType<OperationCanceledException>(exception.InnerException);
+    }
+
+    [Fact]
+    public void ObjectStreamCompressionHonorsItsCancellationToken() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfOptimizationFileAssembler.CompressFlate(new byte[128 * 1024], cancellation.Token));
+    }
+
+    [Fact]
+    public void ObjectStreamAssemblyStopsAtTheConfiguredBufferLimit() {
+        var incompressibleBody = new byte[128 * 1024];
+        new Random(42).NextBytes(incompressibleBody);
+        var options = new PdfOptimizationOptions {
+            UseObjectStreams = true,
+            XrefFormat = PdfOptimizationXrefFormat.XrefStream,
+            MaximumOutputBytes = 1024L
+        };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            PdfOptimizationFileAssembler.Assemble(
+                new[] {
+                    Encoding.ASCII.GetBytes("<< /Type /Catalog >>"),
+                    incompressibleBody,
+                    Encoding.ASCII.GetBytes("<< >>")
+                },
+                new[] { false, true, false },
+                catalogId: 1,
+                infoId: 3,
+                PdfFileVersion.Pdf15,
+                options,
+                trailerIdEntry: string.Empty));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Optimize_CompressesUnfilteredStreamsAndPreservesText() {
         byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
 
@@ -42,6 +105,45 @@ public class PdfOptimizerTests {
         Assert.Contains(result.SkippedActions, action => action.Reason == "BelowMinimumSize" || action.Reason == "NotSmaller");
         Assert.Equal(source.Length, result.Bytes.Length);
         Assert.Equal(source, result.Bytes);
+    }
+
+    [Fact]
+    public void Optimize_ReturnsWithinLimitOriginalWhenCandidateExceedsOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Tiny) Tj\nET\n");
+
+        PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+            MaximumOutputBytes = source.LongLength
+        });
+
+        Assert.True(result.ReturnedOriginal);
+        Assert.Equal(source, result.Bytes);
+        Assert.True(result.CandidateLengthBytes > source.LongLength);
+        Assert.Same(result.ReportBefore, result.ReportAfter);
+        Assert.Contains(result.SkippedActions, action => action.Reason == "CandidateOutputLimit");
+    }
+
+    [Fact]
+    public void Optimize_DoesNotUseOriginalFallbackWhenOriginalExceedsOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream("BT\n/F1 12 Tf\n72 720 Td\n(Tiny) Tj\nET\n");
+
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                MaximumOutputBytes = source.LongLength - 1L
+            }));
+    }
+
+    [Fact]
+    public void Optimize_StopsSerializationAtTheConfiguredOutputLimit() {
+        byte[] source = BuildPdfWithUncompressedTextStream(
+            "BT\n/F1 12 Tf\n72 720 Td\n(" + new string('A', 4096) + ") Tj\nET\n");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
+                KeepOriginalWhenNotSmaller = false,
+                MaximumOutputBytes = 128L
+            }));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

@@ -169,32 +169,39 @@ internal static class OfficeArchiveSafety {
             uint centralDirectorySize32 = ReadZipUInt32(tail, endOfCentralDirectory + 12);
             uint centralDirectoryOffset32 = ReadZipUInt32(tail, endOfCentralDirectory + 16);
 
-            ulong declaredEntries;
-            ulong centralDirectorySize;
-            ulong centralDirectoryOffset;
-            bool zip64 = entriesOnDisk16 == ushort.MaxValue
-                || totalEntries16 == ushort.MaxValue
-                || centralDirectorySize32 == uint.MaxValue
+            ulong declaredEntries = 0;
+            ulong centralDirectorySize = 0;
+            ulong centralDirectoryOffset = 0;
+            bool zip64Required = centralDirectorySize32 == uint.MaxValue
                 || centralDirectoryOffset32 == uint.MaxValue;
-            if (zip64) {
-                if (!TryReadZip64Directory(source, originalPosition, archiveLength,
-                        endOfCentralDirectoryOffset,
-                        out uint zip64DiskNumber,
-                        out uint zip64CentralDirectoryDisk,
-                        out ulong zip64EntriesOnDisk,
-                        out declaredEntries,
-                        out centralDirectorySize,
-                        out centralDirectoryOffset,
-                        out string? zip64Error)) {
+            bool zip64 = false;
+            bool hasZip64Locator = HasZip64Locator(source,
+                originalPosition, endOfCentralDirectoryOffset);
+            if (zip64Required || hasZip64Locator) {
+                bool parsedZip64 = TryReadZip64Directory(source, originalPosition, archiveLength,
+                    endOfCentralDirectoryOffset,
+                    out uint zip64DiskNumber,
+                    out uint zip64CentralDirectoryDisk,
+                    out ulong zip64EntriesOnDisk,
+                    out ulong zip64TotalEntries,
+                    out ulong zip64CentralDirectorySize,
+                    out ulong zip64CentralDirectoryOffset,
+                    out string? zip64Error);
+                bool supportedZip64 = parsedZip64
+                    && zip64DiskNumber == 0 && zip64CentralDirectoryDisk == 0
+                    && zip64EntriesOnDisk == zip64TotalEntries;
+                if (!supportedZip64 && zip64Required) {
                     return ZipCentralDirectoryScanResult.Invalid(zip64Error
                         ?? "The ZIP64 central directory is malformed.");
                 }
-                if (zip64DiskNumber != 0 || zip64CentralDirectoryDisk != 0
-                    || zip64EntriesOnDisk != declaredEntries) {
-                    return ZipCentralDirectoryScanResult.Invalid(
-                        "Multi-disk ZIP packages are not supported.");
+                if (supportedZip64) {
+                    zip64 = true;
+                    declaredEntries = zip64TotalEntries;
+                    centralDirectorySize = zip64CentralDirectorySize;
+                    centralDirectoryOffset = zip64CentralDirectoryOffset;
                 }
-            } else {
+            }
+            if (!zip64) {
                 if (diskNumber != 0 || centralDirectoryDisk != 0
                     || entriesOnDisk16 != totalEntries16) {
                     return ZipCentralDirectoryScanResult.Invalid(
@@ -314,32 +321,39 @@ internal static class OfficeArchiveSafety {
         uint centralDirectoryOffset32 = ReadZipUInt32(bytes,
             endOfCentralDirectory + 16);
 
-        ulong declaredEntries;
-        ulong centralDirectorySize;
-        ulong centralDirectoryOffset;
-        bool zip64 = entriesOnDisk16 == ushort.MaxValue
-            || totalEntries16 == ushort.MaxValue
-            || centralDirectorySize32 == uint.MaxValue
+        ulong declaredEntries = 0;
+        ulong centralDirectorySize = 0;
+        ulong centralDirectoryOffset = 0;
+        bool zip64Required = centralDirectorySize32 == uint.MaxValue
             || centralDirectoryOffset32 == uint.MaxValue;
-        if (zip64) {
-            if (!TryReadZip64Directory(bytes, archiveOffset,
-                    archiveLength, endOfCentralDirectory,
-                    out uint zip64DiskNumber,
-                    out uint zip64CentralDirectoryDisk,
-                    out ulong zip64EntriesOnDisk,
-                    out declaredEntries,
-                    out centralDirectorySize,
-                    out centralDirectoryOffset,
-                    out string? zip64Error)) {
+        bool zip64 = false;
+        bool hasZip64Locator = HasZip64Locator(bytes,
+            archiveOffset, endOfCentralDirectory);
+        if (zip64Required || hasZip64Locator) {
+            bool parsedZip64 = TryReadZip64Directory(bytes, archiveOffset,
+                archiveLength, endOfCentralDirectory,
+                out uint zip64DiskNumber,
+                out uint zip64CentralDirectoryDisk,
+                out ulong zip64EntriesOnDisk,
+                out ulong zip64TotalEntries,
+                out ulong zip64CentralDirectorySize,
+                out ulong zip64CentralDirectoryOffset,
+                out string? zip64Error);
+            bool supportedZip64 = parsedZip64
+                && zip64DiskNumber == 0 && zip64CentralDirectoryDisk == 0
+                && zip64EntriesOnDisk == zip64TotalEntries;
+            if (!supportedZip64 && zip64Required) {
                 return ZipCentralDirectoryScanResult.Invalid(zip64Error
                     ?? "The ZIP64 central directory is malformed.");
             }
-            if (zip64DiskNumber != 0 || zip64CentralDirectoryDisk != 0
-                || zip64EntriesOnDisk != declaredEntries) {
-                return ZipCentralDirectoryScanResult.Invalid(
-                    "Multi-disk ZIP packages are not supported.");
+            if (supportedZip64) {
+                zip64 = true;
+                declaredEntries = zip64TotalEntries;
+                centralDirectorySize = zip64CentralDirectorySize;
+                centralDirectoryOffset = zip64CentralDirectoryOffset;
             }
-        } else {
+        }
+        if (!zip64) {
             if (diskNumber != 0 || centralDirectoryDisk != 0
                 || entriesOnDisk16 != totalEntries16) {
                 return ZipCentralDirectoryScanResult.Invalid(
@@ -493,7 +507,34 @@ internal static class OfficeArchiveSafety {
         totalEntries = ReadZipUInt64(bytes, recordOffset + 32);
         centralDirectorySize = ReadZipUInt64(bytes, recordOffset + 40);
         centralDirectoryOffset = ReadZipUInt64(bytes, recordOffset + 48);
+        ulong locatorOffsetRelative = checked((ulong)(endOfCentralDirectory - archiveOffset - 20));
+        ulong recordEnd = zip64Offset + 12UL + recordSize;
+        if (recordEnd != locatorOffsetRelative
+            || centralDirectoryOffset > zip64Offset
+            || centralDirectorySize > zip64Offset - centralDirectoryOffset) {
+            error = "The ZIP64 central-directory structure is inconsistent.";
+            return false;
+        }
         return true;
+    }
+
+    private static bool HasZip64Locator(byte[] bytes, int archiveOffset,
+        int endOfCentralDirectory) {
+        int locatorOffset = endOfCentralDirectory - 20;
+        return locatorOffset >= archiveOffset
+            && ReadZipUInt32(bytes, locatorOffset)
+                == Zip64EndOfCentralDirectoryLocatorSignature;
+    }
+
+    private static bool HasZip64Locator(Stream source, long archiveOffset,
+        long endOfCentralDirectory) {
+        long locatorOffset = endOfCentralDirectory - 20;
+        if (locatorOffset < 0) return false;
+        var signature = new byte[4];
+        ReadExactlyAt(source, archiveOffset + locatorOffset,
+            signature, signature.Length);
+        return ReadZipUInt32(signature, 0)
+            == Zip64EndOfCentralDirectoryLocatorSignature;
     }
 
     private static bool TryReadZip64Directory(Stream source,
@@ -544,6 +585,14 @@ internal static class OfficeArchiveSafety {
         totalEntries = ReadZipUInt64(record, 32);
         centralDirectorySize = ReadZipUInt64(record, 40);
         centralDirectoryOffset = ReadZipUInt64(record, 48);
+        ulong locatorOffsetRelative = checked((ulong)(endOfCentralDirectory - 20));
+        ulong recordEnd = zip64Offset + 12UL + recordSize;
+        if (recordEnd != locatorOffsetRelative
+            || centralDirectoryOffset > zip64Offset
+            || centralDirectorySize > zip64Offset - centralDirectoryOffset) {
+            error = "The ZIP64 central-directory structure is inconsistent.";
+            return false;
+        }
         return true;
     }
 

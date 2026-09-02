@@ -1,0 +1,26 @@
+[
+  {
+    "name": "clean-english",
+    "language": "eng",
+    "image": "clean-english.png",
+    "expected": "OFFICEIMO OCR VALIDATION\nInvoice 1042\nTotal due: 1,234.56 USD\nSearchable documents should preserve exact words.",
+    "sha256": "a00185fd3e1aea19fc039fbc19507da07a990293e9637eeacdafad3f9066811a",
+    "byteCount": 45733
+  },
+  {
+    "name": "dense-table",
+    "language": "eng",
+    "image": "dense-table.png",
+    "expected": "PRODUCT             QTY      PRICE      TOTAL\nWidget Alpha         12       9.99     119.88\nWidget Beta           7      24.50     171.50\nService Plan          1      89.00      89.00\nGRAND TOTAL                            380.38",
+    "sha256": "868b4c5475bfae0535e847bc65ae7e3f88fb74f6dba901d5b5d4b527f0e6c158",
+    "byteCount": 55947
+  },
+  {
+    "name": "low-contrast-skew",
+    "language": "eng",
+    "image": "low-contrast-skew.png",
+    "expected": "ARCHIVE COPY 2026-09-01\nReference: OCR-7391-A\nLow contrast scans still need searchable text.",
+    "sha256": "2fa19fa5faeb7e9592175d574fa0f56a9af954383effd58a98c6b564e88e282c",
+    "byteCount": 107716
+  }
+]

@@ -33,10 +33,12 @@ public sealed class PdfDocumentRedactions {
     public PdfRedactionVerificationReport AssertVerified(PdfRedactionVerificationOptions options) => _document.AssertRedactionsVerified(options);
 
     /// <summary>Verifies configured markers and reports any content still intersecting the reviewed plan areas.</summary>
+    /// <remarks>The plan is source-bound when applied; this residual check does not independently prove rewrite lineage.</remarks>
     public PdfRedactionVerificationReport VerifyAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
         PdfRedactionVerification.VerifyAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
 
     /// <summary>Verifies a reviewed plan and throws when planned content remains in its areas.</summary>
+    /// <remarks>The plan is source-bound when applied; this residual check does not independently prove rewrite lineage.</remarks>
     public PdfRedactionVerificationReport AssertAppliedPlan(PdfRedactionPlan reviewedPlan, PdfRedactionVerificationOptions options) =>
         PdfRedactionVerification.AssertAppliedPlan(_document.ToBytes(), reviewedPlan, options, _document.ReadOptions);
 }

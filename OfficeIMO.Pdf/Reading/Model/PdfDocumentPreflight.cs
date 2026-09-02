@@ -45,6 +45,9 @@ public sealed partial class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt text and structured text readback operations for this PDF.</summary>
     public bool CanExtractText => CanRead && PdfPermissionAuthorization.CanExtractText(Probe.Security, PermissionPolicy);
 
+    /// <summary>True when the authenticated document permissions allow printing.</summary>
+    public bool CanPrint => CanRead && PdfPermissionAuthorization.CanPrint(Probe.Security, PermissionPolicy);
+
     /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
     public bool CanExtractImages => _documentInfo is not null && !HasImageExtractionBlocker() && PdfPermissionAuthorization.CanExtractContent(Probe.Security, PermissionPolicy);
 

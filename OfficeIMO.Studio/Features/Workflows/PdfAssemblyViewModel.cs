@@ -153,7 +153,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
         var existing = Sources.Select(static source => source.Path).ToList();
         foreach (string path in paths.Where(static path => !string.IsNullOrWhiteSpace(path))) {
             string fullPath = System.IO.Path.GetFullPath(path);
-            if (existing.Any(candidate => OfficeWorkflowPathIdentity.AreEquivalent(candidate, fullPath))) continue;
+            if (existing.Any(candidate => AreEquivalentPaths(candidate, fullPath))) continue;
             existing.Add(fullPath);
             Sources.Add(new PdfAssemblySourceViewModel(fullPath));
         }
@@ -166,6 +166,15 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
             OutputPath = System.IO.Path.Combine(directory, "assembled.pdf");
         }
         NotifySourcesChanged();
+    }
+
+    private static bool AreEquivalentPaths(string left, string right) {
+        string normalizedLeft = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(left));
+        string normalizedRight = System.IO.Path.TrimEndingDirectorySeparator(System.IO.Path.GetFullPath(right));
+        StringComparison comparison = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+        return string.Equals(normalizedLeft, normalizedRight, comparison);
     }
 
     private void MoveSelected(int offset) {

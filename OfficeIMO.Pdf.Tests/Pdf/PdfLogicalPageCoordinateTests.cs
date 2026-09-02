@@ -18,6 +18,20 @@ public sealed class PdfLogicalPageCoordinateTests {
     }
 
     [Fact]
+    public void MapVisualRectangleToUserSpace_AccountsForCropBoxOrigin() {
+        byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
+        byte[] cropped = PdfDocument.Load(source).Pages.SetCropBox(100D, 100D, 500D, 700D, 1).ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(cropped).Read().Pages);
+
+        PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(40D, 50D, 180D, 100D);
+
+        Assert.Equal(140D, rectangle.Left);
+        Assert.Equal(600D, rectangle.Bottom);
+        Assert.Equal(280D, rectangle.Right);
+        Assert.Equal(650D, rectangle.Top);
+    }
+
+    [Fact]
     public void MapVisualRectangleToUserSpace_AccountsForInheritedPageRotation() {
         byte[] source = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D))).ToBytes();
         byte[] rotated = PdfDocument.Load(source).Pages.Rotate(90, 1).ToBytes();
@@ -41,5 +55,20 @@ public sealed class PdfLogicalPageCoordinateTests {
 
         Assert.Equal(550D, point.X);
         Assert.Equal(760D, point.Y);
+    }
+
+    [Fact]
+    public void VisualCoordinateMappingAccountsForPageUserUnitScale() {
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(PdfPageGeometrySupport.BuildPageGeometryPdf()).Read().Pages);
+
+        PdfPagePoint point = page.MapVisualPointToUserSpace(200D, 100D);
+        PdfPageRectangle rectangle = page.MapVisualRectangleToUserSpace(200D, 100D, 400D, 200D);
+
+        Assert.Equal(110D, point.X);
+        Assert.Equal(230D, point.Y);
+        Assert.Equal(110D, rectangle.Left);
+        Assert.Equal(180D, rectangle.Bottom);
+        Assert.Equal(210D, rectangle.Right);
+        Assert.Equal(230D, rectangle.Top);
     }
 }

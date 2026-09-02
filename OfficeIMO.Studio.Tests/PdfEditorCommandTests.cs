@@ -127,9 +127,13 @@ public sealed class PdfEditorCommandTests {
         byte[] withImage = PdfEditorCommandExecutor.Apply(
             blank,
             PdfEditorCommandFactory.Create(blank, PdfEditorTool.AddImage, gesture, CreateProperties() with { ImageBytes = TinyPng }));
+        PdfPageInteractionRegion imageRegion = Assert.Single(
+            PdfDocument.Load(withImage).Render.Interactions(1).Regions,
+            static region => region.Kind == PdfInteractionKind.Image);
+        PdfEditorGesture imageGesture = Gesture(imageRegion);
         PdfVerifiedRedactionResult imageResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
             withImage,
-            PdfEditorCommandFactory.Create(withImage, PdfEditorTool.Redact, gesture, CreateProperties()));
+            PdfEditorCommandFactory.Create(withImage, PdfEditorTool.Redact, imageGesture, CreateProperties()));
 
         Assert.Contains(imageResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.ImagePlacement);
         Assert.True(imageResult.Verification.IsVerified, imageResult.Verification.Summary);
@@ -137,10 +141,14 @@ public sealed class PdfEditorCommandTests {
 
         byte[] withAnnotation = PdfEditorCommandExecutor.Apply(
             blank,
-            PdfEditorCommandFactory.Create(blank, PdfEditorTool.Note, gesture, CreateProperties()));
+            PdfEditorCommandFactory.Create(blank, PdfEditorTool.Rectangle, gesture, CreateProperties()));
+        PdfPageInteractionRegion annotationRegion = Assert.Single(
+            PdfDocument.Load(withAnnotation).Render.Interactions(1).Regions,
+            static region => region.Kind == PdfInteractionKind.Annotation);
+        PdfEditorGesture annotationGesture = Gesture(annotationRegion);
         PdfVerifiedRedactionResult annotationResult = PdfEditorCommandExecutor.ApplyVerifiedRedaction(
             withAnnotation,
-            PdfEditorCommandFactory.Create(withAnnotation, PdfEditorTool.Redact, gesture, CreateProperties()));
+            PdfEditorCommandFactory.Create(withAnnotation, PdfEditorTool.Redact, annotationGesture, CreateProperties()));
 
         Assert.Contains(annotationResult.Plan.Matches, match => match.Kind == PdfRedactionMatchKind.Annotation);
         Assert.True(annotationResult.Verification.IsVerified, annotationResult.Verification.Summary);
@@ -159,6 +167,14 @@ public sealed class PdfEditorCommandTests {
         180D,
         100D,
         new[] { new PdfEditorVisualPoint(40D, 50D), new PdfEditorVisualPoint(180D, 100D) });
+
+    private static PdfEditorGesture Gesture(PdfPageInteractionRegion region) => new(
+        1,
+        region.Quad.Left,
+        region.Quad.Top,
+        region.Quad.Right,
+        region.Quad.Bottom,
+        Array.Empty<PdfEditorVisualPoint>());
 
     private static PdfEditorProperties CreateProperties() => new(
         "Review annotation",

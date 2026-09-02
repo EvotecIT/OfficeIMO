@@ -7,7 +7,23 @@ This guide contains version-to-version changes that require application code, pa
 - Use support matrices for current coverage and limits.
 - Use this guide when an upgrade no longer compiles or changes an existing workflow.
 
-OfficeIMO 3.3 contains an intentional PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+OfficeIMO 3.3 contains intentional PDF API cleanup and moves Apple iWork destination projections into opt-in adapter packages. Upgrade every OfficeIMO package in an application to the same `3.3.x` version and perform a clean restore after changing versions.
+
+Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `OfficeIMO.Word.Legacy` or `OfficeIMO.Excel.Legacy`. Their public namespaces and types now ship from `OfficeIMO.Word` and `OfficeIMO.Excel`; there are no separate 3.3 legacy packages. Do not retain an earlier preview package alongside the 3.3 main package because the duplicate fully qualified types can cause `CS0433` compile errors.
+
+## OfficeIMO 3.3: opt-in Apple iWork adapters
+
+`OfficeIMO.Word`, `OfficeIMO.Excel`, and `OfficeIMO.PowerPoint` no longer depend on `OfficeIMO.IWork`. Applications that import Apple Pages, Numbers, or Keynote files must reference the matching adapter package explicitly:
+
+| Source | Add package | Replace with source-first conversion |
+| --- | --- | --- |
+| Pages | `OfficeIMO.Word.IWork` | `IWorkSourceDocument.Open(...).ToWordDocument[Result](...)` |
+| Numbers | `OfficeIMO.Excel.IWork` | `IWorkSourceDocument.Open(...).ToExcelDocument[Result](...)` |
+| Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Open(...).ToPowerPointPresentation[Result](...)` |
+
+Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
+
+Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 
 ## OfficeIMO 3.3: one PDF load and semantic read contract
 
@@ -37,18 +53,30 @@ foreach (PdfLogicalPage page in result.Pages) {
 }
 ```
 
-`PdfReadOptions` now controls semantic reconstruction. Parser limits,
-credentials, artifact-text inclusion, and source buffering moved to
-`PdfLoadOptions`, which is supplied to `Load(...)`. The default semantic profile
+`PdfReadOptions` now controls semantic reconstruction. All parser, security,
+credential, artifact-text, source-buffering, and low-level operation options that
+used the old `PdfReadOptions` type moved to `PdfLoadOptions`. Supply those options
+to `Load(...)`, or omit an operation-level options argument to reuse the loaded
+document's settings. The default semantic profile
 is `PdfReadProfile.Structured`. `PdfReadProfile.Fast` omits optional
 document-wide enrichment but returns the same `PdfDocumentReadResult`; it is not
 a second logical model.
+
+Semantic reads are bounded by default. `PdfUnderstandingPipelineOptions` allows
+up to 1,000 selected pages, 10,000,000 page work units, and 10,000,000
+document-wide work units, with additional per-page run, character, word, line,
+and region ceilings. A document that previously completed through
+`pdf.Read.Logical()` can now throw `PdfReadLimitException` when one of these
+ceilings is exceeded. Increase only the required pipeline limit for trusted,
+intentionally larger inputs.
 
 | OfficeIMO 3.2 | OfficeIMO 3.3 |
 | --- | --- |
 | `PdfDocument.Open(...)` | `PdfDocument.Load(...)` |
 | `PdfDocument.OpenAsync(pathOrStream, ..., cancellationToken)` | `PdfDocument.LoadAsync(pathOrStream, loadOptions, cancellationToken)`; parser, limit, credential, and buffering settings belong in `PdfLoadOptions` |
 | parser/security `PdfReadOptions` | `PdfLoadOptions` passed to `Load(...)` |
+| `PdfUnderstandingPipelineOptions.Advanced(layout)` | `PdfUnderstandingPipelineOptions.Structured()` for stages, with `layout` assigned to `PdfReadOptions.LayoutOptions` |
+| `PdfUnderstandingPipelineOptions.Layout` | `PdfReadOptions.LayoutOptions` |
 | `pdf.Read.Logical()` or `PdfLogicalDocument.Load(...)` | `pdf.Read(...)` |
 | selected `pdf.Read.Logical(selection, ...)` | `pdf.Read(new PdfReadOptions { PageSelection = selection, LayoutOptions = layoutOptions ?? new PdfTextLayoutOptions() })` |
 | `pdf.Read.TryLogical(...)` | Check `pdf.Preflight().Can(PdfPreflightCapability.ReadLogicalObjects)`, then call `pdf.Read(readOptions)` inside the application's exception or result boundary |
@@ -100,6 +128,14 @@ a second logical model.
 | `pdf.Read.Understand(options, selection, readOptions)` | `pdf.Read(new PdfReadOptions { Pipeline = options, PageSelection = selection })`; move the former parser, limit, credential, and buffering settings to `PdfLoadOptions` when calling `PdfDocument.Load(...)` |
 | `new PdfUnderstandingPipeline(...).Run(...)` | `pdf.Read(new PdfReadOptions { Pipeline = ... })`; use `result.Pages[*].Analysis` for page analysis |
 | `PdfUnderstandingResult` | `PdfDocumentReadResult`; page-level understanding artifacts are available from `result.Pages[*].Analysis` |
+| `ReaderPdfOptions.LayoutOptions`, `PageRanges` | `ReaderPdfOptions.ReadOptions`; use `PdfReadOptions.LayoutOptions` and `PageSelection`, and configure semantic ceilings through `PdfReadOptions.Pipeline` |
+| `PdfPowerPointImportOptions.PageSelection` | `PdfPowerPointImportOptions.ReadOptions.PageSelection`; `PdfPowerPointImportOptions.MaxPages` remains the destination import/rendering limit |
+
+In 3.2, omitted stages on a manually assembled understanding pipeline fell back
+to the lightweight stage set. In 3.3, omitted custom stages resolve to the
+canonical structured page stages. `PdfReadProfile.Fast` uses that same page
+pipeline and only skips optional document-wide enrichment; it is not a
+compatibility switch for the old lightweight fallback.
 
 `ExportStructured(PdfStructuredExportFormat.PageXml)` remains page scoped. For
 a multi-page read result, call `result.ToPageXmlDocuments()` to produce one

@@ -4,6 +4,36 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfMutationPlannerTests {
+    [Theory]
+    [InlineData(PdfStandardPermissions.None, false)]
+    [InlineData(PdfStandardPermissions.ModifyAnnotations, true)]
+    public void EncryptedAnnotationAppendRequiresAnnotationPermission(
+        PdfStandardPermissions allowedPermissions,
+        bool expectedCanExecute) {
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            AllowedPermissions = allowedPermissions
+        };
+        byte[] source = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .TextAnnotation("Restricted annotation")
+            .ToBytes();
+        var readOptions = new PdfLoadOptions { Password = "open" };
+
+        PdfMutationPlan plan = PdfMutationPlanner.Plan(
+            source,
+            PdfMutationOperation.ModifyAnnotations,
+            readOptions);
+
+        Assert.Equal(expectedCanExecute, plan.CanExecute);
+        if (expectedCanExecute) {
+            Assert.Equal(PdfMutationExecutionMode.AppendOnly, plan.ExecutionMode);
+            Assert.Contains(PdfMutationPermissionCheck.ModifyAnnotations, plan.PermissionChecks);
+        } else {
+            Assert.Equal(PdfMutationExecutionMode.Blocked, plan.ExecutionMode);
+            Assert.Contains("AppendOnly.ActionBlocked.Annotations", plan.BlockerCodes);
+        }
+    }
+
     [Fact]
     public void PermissionCheckEnumPreservesPublishedNumericValues() {
         Assert.Equal(0, (int)PdfMutationPermissionCheck.ReadDocument);

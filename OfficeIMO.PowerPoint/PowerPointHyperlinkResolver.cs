@@ -74,6 +74,38 @@ namespace OfficeIMO.PowerPoint {
             return sourceDirectory.MakeRelativeUri(targetUri);
         }
 
+        internal static bool TryResolveSlideFragment(SlidePart sourceSlidePart,
+            Uri uri, out SlidePart? targetSlidePart) {
+            targetSlidePart = null;
+            if (!TryParseSlideFragment(uri, out int slideNumber)) return false;
+
+            PresentationPart? presentationPart = sourceSlidePart.GetParentParts()
+                .OfType<PresentationPart>().FirstOrDefault();
+            P.SlideIdList? slideIds = presentationPart?.Presentation?.SlideIdList;
+            P.SlideId? slideId = slideIds?.Elements<P.SlideId>()
+                .Skip(slideNumber - 1).FirstOrDefault();
+            string? relationshipId = slideId?.RelationshipId?.Value;
+            if (presentationPart == null || string.IsNullOrWhiteSpace(relationshipId)
+                || !presentationPart.TryGetPartById(relationshipId!, out OpenXmlPart? targetPart)
+                || targetPart is not SlidePart slidePart) {
+                return false;
+            }
+
+            targetSlidePart = slidePart;
+            return true;
+        }
+
+        internal static bool TryParseSlideFragment(Uri? uri, out int slideNumber) {
+            slideNumber = 0;
+            if (uri == null || uri.IsAbsoluteUri) return false;
+            const string prefix = "#slide-";
+            string fragment = uri.OriginalString;
+            return fragment.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(fragment.Substring(prefix.Length), NumberStyles.None,
+                    CultureInfo.InvariantCulture, out slideNumber)
+                && slideNumber >= 1;
+        }
+
         private static Uri ResolvePartUri(Uri sourcePartUri,
             Uri relationshipUri) {
             Uri packageRoot = new Uri("http://officeimo.invalid/", UriKind.Absolute);

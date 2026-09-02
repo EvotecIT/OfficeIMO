@@ -34,10 +34,10 @@
     <ProjectReference Include="..\OfficeIMO.Epub\OfficeIMO.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Epub.Image\OfficeIMO.Epub.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Csv\OfficeIMO.Excel.Csv.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.GoogleSheets\OfficeIMO.Excel.GoogleSheets.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Excel.Legacy\OfficeIMO.Excel.Legacy.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
@@ -47,6 +47,7 @@
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Rtf\OfficeIMO.Html.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex\OfficeIMO.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Markdown\OfficeIMO.Latex.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Latex.Pdf\OfficeIMO.Latex.Pdf.csproj" />
@@ -72,6 +73,7 @@
     <ProjectReference Include="..\OfficeIMO.OpenDocument.Odt.Pdf\OfficeIMO.OpenDocument.Odt.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.GoogleSlides\OfficeIMO.PowerPoint.GoogleSlides.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.Html\OfficeIMO.PowerPoint.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
@@ -90,6 +92,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Ocr\OfficeIMO.Reader.Ocr.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Process\OfficeIMO.Reader.Ocr.Process.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Ocr.Tesseract\OfficeIMO.Reader.Ocr.Tesseract.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OneNote\OfficeIMO.Reader.OneNote.csproj" />
@@ -111,13 +114,14 @@
     <ProjectReference Include="..\OfficeIMO.Visio\OfficeIMO.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Visio.Pdf\OfficeIMO.Visio.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Word.Legacy\OfficeIMO.Word.Legacy.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Markdown\OfficeIMO.Word.Markdown.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Workflows\OfficeIMO.Workflows.csproj" />
     <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
   </ItemGroup>
 
@@ -141,10 +145,10 @@
     <TrimmerRootAssembly Include="OfficeIMO.Epub" />
     <TrimmerRootAssembly Include="OfficeIMO.Epub.Image" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel" />
+    <TrimmerRootAssembly Include="OfficeIMO.Excel.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Csv" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.GoogleSheets" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Html" />
-    <TrimmerRootAssembly Include="OfficeIMO.Excel.Legacy" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.OpenDocument" />
     <TrimmerRootAssembly Include="OfficeIMO.Excel.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.GoogleWorkspace" />
@@ -153,6 +157,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Html.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Latex.Pdf" />
@@ -178,6 +183,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.OpenDocument.Odt.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint" />
+    <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.GoogleSlides" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.Html" />
     <TrimmerRootAssembly Include="OfficeIMO.PowerPoint.OpenDocument" />
@@ -196,6 +202,7 @@
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Latex" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Notebook" />
+    <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Process" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.Ocr.Tesseract" />
     <TrimmerRootAssembly Include="OfficeIMO.Reader.OneNote" />
@@ -217,13 +224,14 @@
     <TrimmerRootAssembly Include="OfficeIMO.Visio" />
     <TrimmerRootAssembly Include="OfficeIMO.Visio.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Word" />
+    <TrimmerRootAssembly Include="OfficeIMO.Word.IWork" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.GoogleDocs" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Html" />
-    <TrimmerRootAssembly Include="OfficeIMO.Word.Legacy" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Markdown" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.OpenDocument" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Pdf" />
     <TrimmerRootAssembly Include="OfficeIMO.Word.Rtf" />
+    <TrimmerRootAssembly Include="OfficeIMO.Workflows" />
     <TrimmerRootAssembly Include="OfficeIMO.Zip" />
   </ItemGroup>
 </Project>

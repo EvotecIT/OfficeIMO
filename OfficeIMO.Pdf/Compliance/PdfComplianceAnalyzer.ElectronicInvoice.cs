@@ -116,7 +116,11 @@ internal static partial class PdfComplianceAnalyzer {
             normalized.StartsWith("URN:CEN.EU:EN16931:2017#COMPLIANT#URN:XEINKAUF.DE:KOSIT:XRECHNUNG", StringComparison.Ordinal);
     }
 
-    private static bool IsFacturXCiiAttachment(PdfEmbeddedFile file, List<string> diagnostics) {
+    private static bool IsFacturXCiiAttachment(
+        PdfEmbeddedFile file,
+        List<string> diagnostics,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!string.Equals(file.FileName, "factur-x.xml", StringComparison.Ordinal)) {
             if (file.FileName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
                 diagnostics.Add("Use the canonical factur-x.xml attachment filename for Factur-X/ZUGFeRD 2.x readiness.");
@@ -140,7 +144,7 @@ internal static partial class PdfComplianceAnalyzer {
             return false;
         }
 
-        if (!TryReadCiiXmlRoot(file, out string? rootDiagnostic)) {
+        if (!TryReadCiiXmlRoot(file, cancellationToken, out string? rootDiagnostic)) {
             diagnostics.Add(rootDiagnostic!);
             return false;
         }
@@ -159,14 +163,21 @@ internal static partial class PdfComplianceAnalyzer {
             relationship == PdfAssociatedFileRelationship.Source;
     }
 
-    private static bool TryReadCiiXmlRoot(PdfEmbeddedFile file, out string? diagnostic) {
+    private static bool TryReadCiiXmlRoot(
+        PdfEmbeddedFile file,
+        System.Threading.CancellationToken cancellationToken,
+        out string? diagnostic) {
         try {
-            using (var stream = new MemoryStream(file.DataSnapshot))
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] data = file.DataSnapshot;
+            cancellationToken.ThrowIfCancellationRequested();
+            using (var stream = new MemoryStream(data))
             using (var reader = System.Xml.XmlReader.Create(stream, new System.Xml.XmlReaderSettings {
                 DtdProcessing = System.Xml.DtdProcessing.Prohibit,
                 XmlResolver = null
             })) {
                 while (reader.Read()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
                         continue;
                     }

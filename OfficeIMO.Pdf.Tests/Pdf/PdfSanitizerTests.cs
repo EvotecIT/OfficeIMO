@@ -6,6 +6,27 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfSanitizerTests {
     [Fact]
+    public void Analyze_HonorsPolicyCancellation() {
+        byte[] source = BuildActiveContentPdf();
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfSanitizer.Analyze(
+            source,
+            new PdfSanitizationOptions { CancellationToken = cancellation.Token }));
+    }
+
+    [Fact]
+    public void Sanitize_StopsWhileSerializingAtTheConfiguredOutputLimit() {
+        byte[] source = BuildActiveContentPdf();
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfSanitizer.Sanitize(source, new PdfSanitizationOptions { MaximumOutputBytes = 128L }));
+
+        Assert.Contains("while it was being serialized", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Sanitize_RemovesActiveContentUnsafeUrisAndRichMediaButPreservesSafeLinks() {
         byte[] source = BuildActiveContentPdf();
 

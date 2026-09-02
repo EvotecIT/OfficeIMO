@@ -13,7 +13,10 @@ public static partial class OfficeTiffCodec {
     private const int LzwFirstCode = 258;
     private const int LzwMaximumCode = 4095;
 
-    private static byte[] EncodeLzw(byte[] input, int inputCount) {
+    private static byte[] EncodeLzw(
+        byte[] input,
+        int inputCount,
+        CancellationToken cancellationToken = default) {
         if (input == null) throw new ArgumentNullException(nameof(input));
         if (inputCount < 0 || inputCount > input.Length) throw new ArgumentOutOfRangeException(nameof(inputCount));
         using var writer = new TiffLzwBitWriter(Math.Max(32, inputCount));
@@ -28,6 +31,7 @@ public static partial class OfficeTiffCodec {
         int nextCode = LzwFirstCode;
         int prefix = input[0];
         for (int index = 1; index < inputCount; index++) {
+            if ((index & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte suffix = input[index];
             int key = (prefix << 8) | suffix;
             if (dictionary.TryGetValue(key, out int combined)) {

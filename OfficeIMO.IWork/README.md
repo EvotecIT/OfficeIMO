@@ -1,0 +1,90 @@
+# OfficeIMO.IWork - bounded Apple iWork readers for .NET
+
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and unsupported-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+
+## Reference from a source checkout
+
+For source-based development, reference the bounded reader and the opt-in adapter you need:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../OfficeIMO.IWork/OfficeIMO.IWork.csproj" />
+  <ProjectReference Include="../OfficeIMO.Excel.IWork/OfficeIMO.Excel.IWork.csproj" />
+</ItemGroup>
+```
+
+Use `OfficeIMO.Word.IWork` for Pages or `OfficeIMO.PowerPoint.IWork` for Keynote in place of the Excel adapter. Keep all project references on the same checkout so their coordinated API and package contracts stay aligned.
+
+## Read and inspect a source
+
+```csharp
+using OfficeIMO.IWork;
+
+IWorkSourceDocument source = IWorkSourceDocument.Open("report.pages");
+IWorkPagesProjection pages = source.ReadPages();
+
+Console.WriteLine(source.Kind);                 // Pages
+Console.WriteLine(source.ContainerKind);        // ZipPackage, DirectoryBundle, or nested Index.zip
+Console.WriteLine(string.Join(", ", source.BuildVersions));
+Console.WriteLine(pages.Paragraphs.Count);
+
+IWorkConversionReport report = pages.CreateConversionReport(
+    IWorkProjectionKind.EditableReconstruction);
+foreach (IWorkArchiveRecord record in report.UnsupportedRecords) {
+    Console.WriteLine($"{record.EntryPath}: {record.MessageType}");
+}
+```
+
+Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:
+
+```csharp
+using FileStream stream = File.OpenRead("budget.numbers");
+IWorkSourceDocument source = IWorkSourceDocument.Open(
+    stream,
+    new IWorkReadOptions {
+        MaximumPackageBytes = 64 * 1024 * 1024,
+        MaximumArchiveReferenceCount = 1_000_000,
+        MaximumMaterializedCells = 1_000_000,
+        MaximumTableCatalogEntries = 100_000,
+        MaximumImageMetadataEntries = 16_384,
+        MaximumFormulaRenderingOperations = 64L * 1024 * 1024
+    });
+
+IWorkNumbersProjection workbook = source.ReadNumbers();
+```
+
+The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
+
+## Opt in to an Office destination adapter
+
+Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.
+
+- [Pages to Word](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.IWork/README.md)
+- [Numbers to Excel](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.IWork/README.md)
+- [Keynote to PowerPoint](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.PowerPoint.IWork/README.md)
+
+Each adapter README owns its conversion API and example. The source reader remains useful on its own for inspection, extraction, and application-owned projection workflows.
+
+This is extended semantic reconstruction rather than plain-text extraction:
+
+- Pages recovers rich paragraphs, source-proven list levels mapped to native Word numbering, page layout, section-specific headers/footers, positioned and sized accessible rich-text boxes, images, tables, and merges for editable Word projection.
+- Numbers recovers sparse typed cells, supported formulas with cached values, merges, table metadata, and default sizing for editable Excel projection. Each source table receives its own worksheet so table-local formulas and column sizing remain stable; sheet-level text receives a separate worksheet when present.
+- Keynote recovers slide size, order and names, positioned rich text with explicit inline breaks and source-proven list labels and levels, shape/run and presenter-note hyperlinks, notes, images, positioned and rotated tables, and merges for editable PowerPoint projection.
+
+Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
+
+`IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
+
+All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
+
+## Preservation and authoring boundary
+
+Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports conservatively retain every payload that is not losslessly represented, including records whose supported text or values were only partially consumed. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
+
+There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
+
+See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for the version corpus, limits, semantic coverage, and known boundaries.
+
+## Target frameworks and dependencies
+
+`OfficeIMO.IWork` targets .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows. The source reader depends only on `OfficeIMO.Core`; its IWA, Snappy, protobuf-envelope, and package readers are first-party implementations. Destination projection is opt-in through `OfficeIMO.Word.IWork`, `OfficeIMO.Excel.IWork`, or `OfficeIMO.PowerPoint.IWork`.

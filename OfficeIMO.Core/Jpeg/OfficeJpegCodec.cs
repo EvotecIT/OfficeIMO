@@ -92,15 +92,20 @@ public static partial class OfficeJpegCodec {
         return OfficeJpegWriter.WriteRgba(image.Width, image.Height, rgba, checked(image.Width * 4), effectiveOptions);
     }
 
-    private static bool HasTransparency(byte[] rgba) {
+    private static bool HasTransparency(byte[] rgba, CancellationToken cancellationToken = default) {
         for (int index = 3; index < rgba.Length; index += 4) {
+            if ((index & 0x3FFF) == 3) cancellationToken.ThrowIfCancellationRequested();
             if (rgba[index] != byte.MaxValue) return true;
         }
         return false;
     }
 
-    private static void FlattenAlpha(byte[] rgba, OfficeColor background) {
+    private static void FlattenAlpha(
+        byte[] rgba,
+        OfficeColor background,
+        CancellationToken cancellationToken = default) {
         for (int i = 0; i < rgba.Length; i += 4) {
+            if ((i & 0x3FFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int alpha = rgba[i + 3];
             if (alpha == 255) continue;
             int inverse = 255 - alpha;

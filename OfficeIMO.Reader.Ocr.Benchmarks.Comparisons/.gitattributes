@@ -1,0 +1,2 @@
+fixtures/cases.json text eol=lf
+fixtures/*.png binary

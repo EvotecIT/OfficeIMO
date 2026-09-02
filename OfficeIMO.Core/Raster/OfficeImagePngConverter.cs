@@ -12,6 +12,8 @@ public static class OfficeImagePngConverter {
         pngBytes = System.Array.Empty<byte>();
         var effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
+        System.Threading.CancellationToken cancellationToken = effective.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         if (!OfficeRasterImageDecoder.TryDecode(imageBytes, effective, out OfficeRasterImage? image, out decodeInfo)) {
             if (effective.FrameIndex != 0) return false;
             if (!OfficeDibReader.TryDecode(imageBytes, effective, out image)) return false;
@@ -21,7 +23,7 @@ public static class OfficeImagePngConverter {
         if (image == null) return false;
 
         OfficeImageInfo? sourceInfo = null;
-        if (imageBytes != null && OfficeImageReader.TryIdentify(imageBytes, null, out OfficeImageInfo identified)) {
+        if (imageBytes != null && OfficeImageReader.TryIdentify(imageBytes, null, cancellationToken, out OfficeImageInfo identified)) {
             sourceInfo = identified;
         }
 
@@ -31,22 +33,48 @@ public static class OfficeImagePngConverter {
         double? selectedDpiY = decodeInfo.Format == OfficeImageFormat.Tiff
             ? decodeInfo.SelectedFrame?.DpiY
             : null;
-        if (decodeInfo.Format == OfficeImageFormat.Tiff) {
-            pngBytes = selectedDpiX.HasValue && selectedDpiY.HasValue
-                ? OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
-                    DpiX = selectedDpiX.Value,
-                    DpiY = selectedDpiY.Value
-                })
-                : OfficePngWriter.Encode(image);
+        var encodeOptions = new OfficePngEncodeOptions();
+        if (decodeInfo.Format == OfficeImageFormat.Tiff && selectedDpiX.HasValue && selectedDpiY.HasValue) {
+            encodeOptions.DpiX = selectedDpiX.Value;
+            encodeOptions.DpiY = selectedDpiY.Value;
+        } else if (decodeInfo.Format == OfficeImageFormat.Tiff) {
+            encodeOptions.WritePhysicalResolution = false;
+        } else if (sourceInfo != null) {
+            encodeOptions.DpiX = sourceInfo.DpiX;
+            encodeOptions.DpiY = sourceInfo.DpiY;
         } else {
-            pngBytes = sourceInfo == null
-                ? OfficePngWriter.Encode(image)
-                : OfficePngWriter.Encode(image, new OfficePngEncodeOptions {
-                    DpiX = sourceInfo.DpiX,
-                    DpiY = sourceInfo.DpiY
-                });
+            encodeOptions.WritePhysicalResolution = false;
         }
+        using var output = new System.IO.MemoryStream();
+        OfficePngWriter.EncodeTo(image, output, encodeOptions, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        pngBytes = CopyOutput(output, cancellationToken);
         return true;
+    }
+
+    internal static bool TryConvertToPng(
+        byte[]? imageBytes,
+        System.Threading.CancellationToken cancellationToken,
+        out byte[] pngBytes) {
+        return TryConvertToPng(
+            imageBytes,
+            new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
+            out pngBytes,
+            out _);
+    }
+
+    private static byte[] CopyOutput(
+        System.IO.MemoryStream output,
+        System.Threading.CancellationToken cancellationToken) {
+        if (!output.TryGetBuffer(out System.ArraySegment<byte> segment)) return output.ToArray();
+        var bytes = new byte[output.Length];
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < bytes.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = System.Math.Min(chunkSize, bytes.Length - offset);
+            System.Buffer.BlockCopy(segment.Array!, segment.Offset + offset, bytes, offset, count);
+        }
+        return bytes;
     }
 
     /// <summary>Attempts to convert an RTF-style raw DIB payload to PNG bytes.</summary>

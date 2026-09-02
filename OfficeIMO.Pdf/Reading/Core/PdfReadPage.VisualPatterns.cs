@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -381,7 +382,20 @@ public sealed partial class PdfReadPage {
             matrix = Matrix2D.Identity;
         }
         if (!IsUsableTilingPatternMatrix(matrix)) return false;
-        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation);
+        PdfDictionary resolvedResources = resources!;
+        var sourceIdentityKey = (Stream: stream, Resources: resolvedResources);
+        if (!resourceCache.SourceIdentities.TryGetValue(sourceIdentityKey, out string? sourceIdentity)) {
+            using var fingerprint = new PdfObjectGraphFingerprint(
+                _objects,
+                _limits.MaxObjectNestingDepth,
+                Math.Min(1_000_000, Math.Max(16_384, _limits.MaxIndirectObjects)),
+                cancellationToken: resourceCache.CancellationToken);
+            fingerprint.AppendRoot(stream);
+            fingerprint.AppendRoot(resolvedResources);
+            sourceIdentity = Convert.ToBase64String(fingerprint.Complete());
+            resourceCache.SourceIdentities[sourceIdentityKey] = sourceIdentity;
+        }
+        pattern = new PdfPageTilingPatternResource(tile, Math.Abs(xStep.Value), Math.Abs(yStep.Value), matrix, box.X1, box.Y2, uncolored, consumesInheritedLineState, hasMalformedStrictInvocation, sourceIdentity);
         return true;
     }
 
@@ -788,10 +802,19 @@ public sealed partial class PdfReadPage {
     }
 
     private sealed class TilingPatternResourceCache {
+        internal TilingPatternResourceCache(CancellationToken cancellationToken = default) {
+            CancellationToken = cancellationToken;
+        }
+
+        internal CancellationToken CancellationToken { get; }
+
         internal Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent, bool RequireSupportedType3Content, bool AllowNestedPatternContent, int ContentNestingDepth), PdfPageTilingPatternResource?> Resources { get; } =
             new Dictionary<(PdfStream Stream, PdfDictionary Resources, OfficeIccRenderingIntent RenderingIntent, bool RequireSupportedType3Content, bool AllowNestedPatternContent, int ContentNestingDepth), PdfPageTilingPatternResource?>();
 
         internal HashSet<(PdfStream Stream, PdfDictionary Resources)> Active { get; } =
             new HashSet<(PdfStream Stream, PdfDictionary Resources)>();
+
+        internal Dictionary<(PdfStream Stream, PdfDictionary Resources), string> SourceIdentities { get; } =
+            new Dictionary<(PdfStream Stream, PdfDictionary Resources), string>();
     }
 }

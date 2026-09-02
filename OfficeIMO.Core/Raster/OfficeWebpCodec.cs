@@ -434,8 +434,9 @@ public static partial class OfficeWebpCodec {
         return ((reversed & 0x0FU) << 4) | ((reversed >> 4) & 0x0FU);
     }
 
-    private static bool HasTransparency(byte[] pixels) {
+    private static bool HasTransparency(byte[] pixels, CancellationToken cancellationToken = default) {
         for (int i = 3; i < pixels.Length; i += 4) {
+            if ((i & 0x3FFF) == 3) cancellationToken.ThrowIfCancellationRequested();
             if (pixels[i] != 255) return true;
         }
 

@@ -1,17 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeImageReader {
     private static readonly byte[] IconPngSignature = { 137, 80, 78, 71, 13, 10, 26, 10 };
 
-    private static bool HasCompleteIconPayload(byte[] data) {
-        if (!TryReadIcon(data, out _)) return false;
+    private static bool HasCompleteIconPayload(byte[] data, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!TryReadIcon(data, cancellationToken, out _)) return false;
         int count = ReadUInt16LittleEndian(data, 4);
         var validatedPayloads = new Dictionary<(int Offset, int Length), IconPayloadValidation>();
         long aggregateValidationBytes = 0;
         for (int index = 0; index < count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int entryOffset = 6 + index * 16;
             int declaredWidth = data[entryOffset] == 0 ? 256 : data[entryOffset];
             int declaredHeight = data[entryOffset + 1] == 0 ? 256 : data[entryOffset + 1];
@@ -24,11 +27,11 @@ public static partial class OfficeImageReader {
                 var payload = new byte[imageLength];
                 Buffer.BlockCopy(data, imageOffset, payload, 0, imageLength);
                 if (HasIconPngSignature(payload)) {
-                    bool valid = TryReadPng(payload, out OfficeImageInfo pngInfo) &&
-                                 OfficePngReader.TryValidateDecodedPayload(payload);
+                    bool valid = TryReadPng(payload, cancellationToken, out OfficeImageInfo pngInfo) &&
+                                 OfficePngReader.TryValidateDecodedPayload(payload, cancellationToken);
                     validation = new IconPayloadValidation(valid, pngInfo.Width, pngInfo.Height);
                 } else {
-                    bool valid = TryReadCompleteIconDibPayload(payload, out int width, out int height);
+                    bool valid = TryReadCompleteIconDibPayload(payload, cancellationToken, out int width, out int height);
                     validation = new IconPayloadValidation(valid, width, height);
                 }
                 validatedPayloads.Add(key, validation);
@@ -48,7 +51,12 @@ public static partial class OfficeImageReader {
         return true;
     }
 
-    private static bool TryReadCompleteIconDibPayload(byte[] payload, out int width, out int height) {
+    private static bool TryReadCompleteIconDibPayload(
+        byte[] payload,
+        CancellationToken cancellationToken,
+        out int width,
+        out int height) {
+        cancellationToken.ThrowIfCancellationRequested();
         width = 0;
         height = 0;
         if (payload.Length < 12) return false;
@@ -123,7 +131,8 @@ public static partial class OfficeImageReader {
                    height,
                    bitsPerPixel,
                    (int)xorStride,
-                   (int)paletteEntries);
+                   (int)paletteEntries,
+                   cancellationToken);
     }
 
     private static bool HasExactIconDibLayout(
@@ -190,8 +199,10 @@ public static partial class OfficeImageReader {
         int height,
         int bitsPerPixel,
         int rowStride,
-        int paletteEntries) {
+        int paletteEntries,
+        CancellationToken cancellationToken) {
         for (int y = 0; y < height; y++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int rowOffset = pixelOffset + y * rowStride;
             for (int x = 0; x < width; x++) {
                 int paletteIndex;

@@ -24,6 +24,7 @@ internal static partial class PdfImageEditor {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(pdf, nameof(pdf));
         ValidatePage(pageNumber, document.Pages.Count, nameof(pageNumber));
+        document.DemandContentExtraction("image placement");
         PdfReadPage page = document.Pages[pageNumber - 1];
         (double originX, double originY) = page.GetPageBoundaryOrigin();
         return BindSourceIdentity(

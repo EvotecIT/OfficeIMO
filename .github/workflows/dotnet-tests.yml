@@ -681,6 +681,35 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
+          function Invoke-VerifiedDownload {
+            param(
+              [Parameter(Mandatory)] [string] $Uri,
+              [Parameter(Mandatory)] [string] $DestinationPath,
+              [Parameter(Mandatory)] [string] $ExpectedSha256,
+              [int] $MaximumAttempts = 3
+            )
+
+            for ($attempt = 1; $attempt -le $MaximumAttempts; $attempt++) {
+              try {
+                Remove-Item -LiteralPath $DestinationPath -Force -ErrorAction SilentlyContinue
+                Invoke-WebRequest -Uri $Uri -OutFile $DestinationPath
+                $actualSha256 = (Get-FileHash -LiteralPath $DestinationPath -Algorithm SHA256).Hash
+                if ($actualSha256 -ne $ExpectedSha256) {
+                  throw "Download checksum mismatch for $Uri`: $actualSha256"
+                }
+                return
+              } catch {
+                Remove-Item -LiteralPath $DestinationPath -Force -ErrorAction SilentlyContinue
+                if ($attempt -eq $MaximumAttempts) {
+                  throw
+                }
+                $delaySeconds = [Math]::Pow(2, $attempt)
+                Write-Warning "Download attempt $attempt of $MaximumAttempts failed for $Uri. Retrying in $delaySeconds seconds. $($_.Exception.Message)"
+                Start-Sleep -Seconds $delaySeconds
+              }
+            }
+          }
+
           $downloadUrl = 'https://download.microsoft.com/download/c53e473c-3060-4ee9-ac5c-0ddbbeced4e5/OfficeSips_x64_16-0-19416-43425.exe'
           $expectedSha256 = '96335D8AFBED13919E6BD31CF38974FB4EE2A534734A5E5736E1A40D032D2456'
           $downloadPath = Join-Path $env:RUNNER_TEMP 'OfficeSips_x64.exe'
@@ -698,18 +727,10 @@ jobs:
           $outerDirectory = Join-Path $extractRoot 'outer'
           $toolsDirectory = Join-Path $extractRoot 'tools'
           New-Item -ItemType Directory -Force -Path $outerDirectory, $toolsDirectory, $corpusRoot | Out-Null
-          Invoke-WebRequest -Uri $downloadUrl -OutFile $downloadPath
-          $actualSha256 = (Get-FileHash -LiteralPath $downloadPath -Algorithm SHA256).Hash
-          if ($actualSha256 -ne $expectedSha256) {
-            throw "OfficeSips download checksum mismatch: $actualSha256"
-          }
+          Invoke-VerifiedDownload -Uri $downloadUrl -DestinationPath $downloadPath -ExpectedSha256 $expectedSha256
           $runtimeDll = Join-Path $env:WINDIR 'System32\msvcr100.dll'
           if (-not (Test-Path -LiteralPath $runtimeDll)) {
-            Invoke-WebRequest -Uri $runtimeUrl -OutFile $runtimePath
-            $actualRuntimeSha256 = (Get-FileHash -LiteralPath $runtimePath -Algorithm SHA256).Hash
-            if ($actualRuntimeSha256 -ne $runtimeSha256) {
-              throw "Visual C++ 2010 SP1 runtime checksum mismatch: $actualRuntimeSha256"
-            }
+            Invoke-VerifiedDownload -Uri $runtimeUrl -DestinationPath $runtimePath -ExpectedSha256 $runtimeSha256
             $runtimeInstall = Start-Process -FilePath $runtimePath -ArgumentList '/q', '/norestart' -Wait -PassThru
             if ($runtimeInstall.ExitCode -notin 0, 1638, 3010) {
               throw "Visual C++ 2010 SP1 runtime installation failed with exit code $($runtimeInstall.ExitCode)."
@@ -721,11 +742,7 @@ jobs:
           foreach ($item in $corpus) {
             $corpusPath = Join-Path $corpusRoot $item.Name
             $corpusUrl = 'https://raw.githubusercontent.com/apache/poi/f613a72d8c591751caca83b45637a1b653cea833/test-data/' + $item.Path
-            Invoke-WebRequest -Uri $corpusUrl -OutFile $corpusPath
-            $actualCorpusSha256 = (Get-FileHash -LiteralPath $corpusPath -Algorithm SHA256).Hash
-            if ($actualCorpusSha256 -ne $item.Sha256) {
-              throw "VBA interoperability corpus checksum mismatch for $($item.Name): $actualCorpusSha256"
-            }
+            Invoke-VerifiedDownload -Uri $corpusUrl -DestinationPath $corpusPath -ExpectedSha256 $item.Sha256
           }
           & 7z.exe x $downloadPath "-o$outerDirectory" -y | Out-Null
           $sipPath = Get-ChildItem -LiteralPath $outerDirectory -Filter msosipx.dll -Recurse |
@@ -972,6 +989,7 @@ jobs:
             dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
             dotnet restore OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj
             dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
+            dotnet restore OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj
             dotnet restore OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
@@ -1024,6 +1042,7 @@ jobs:
             dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+            dotnet build OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -1268,6 +1287,7 @@ jobs:
               run_drawing_tests
               dotnet test OfficeIMO.Drawing.CodeGlyphX.Tests/OfficeIMO.Drawing.CodeGlyphX.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_googleworkspace_tests
+              dotnet test OfficeIMO.IWork.Tests/OfficeIMO.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               run_markup_tests
               run_opendocument_tests
               dotnet test OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx

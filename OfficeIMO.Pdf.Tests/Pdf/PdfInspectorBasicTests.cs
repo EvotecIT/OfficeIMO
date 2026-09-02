@@ -388,6 +388,15 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void RawProbeNameScanningHonorsCancellation() {
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfSyntax.ContainsAnyPdfName(new string('x', 16_384), cancellation.Token, "Missing"));
+    }
+
+    [Fact]
     public void Preflight_AllowsGeneratedPdfForReadAndRewrite() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildTwoPagePdf());
 

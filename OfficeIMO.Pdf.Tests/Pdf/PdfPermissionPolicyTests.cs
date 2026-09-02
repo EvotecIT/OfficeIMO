@@ -57,6 +57,29 @@ public class PdfPermissionPolicyTests {
     }
 
     [Fact]
+    public void HighQualityPrintBitDoesNotGrantPrintingWithoutBasePrintPermission() {
+        byte[] pdf = CreateEncryptedPdf(
+            "quality-open",
+            "quality-owner",
+            PdfStandardPermissions.HighQualityPrint,
+            "Print permission contract");
+        var enforced = new PdfLoadOptions { Password = "quality-open" };
+
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, enforced);
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfDocument.Load(pdf, enforced).GetPrintablePageLayouts());
+
+        Assert.False(preflight.CanPrint);
+        Assert.Equal(PdfStandardPermissions.Print, exception.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "quality-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        Assert.NotEmpty(PdfDocument.Load(pdf, ignored).GetPrintablePageLayouts());
+    }
+
+    [Fact]
     public void RestrictedPageLevelVisualExtractionRequiresCopyPermission() {
         var encryption = new PdfStandardEncryptionOptions("visual-open") {
             OwnerPassword = "visual-owner",
@@ -119,6 +142,31 @@ public class PdfPermissionPolicyTests {
         Assert.False(preflight.CanReadLogicalObjects);
         Assert.Contains("Accessible text", text, StringComparison.Ordinal);
         Assert.Equal(PdfStandardPermissions.CopyContents, exception.Permission);
+    }
+
+    [Fact]
+    public void AccessibilityPermissionDoesNotExposeInteractionImagePlacements() {
+        var encryption = new PdfStandardEncryptionOptions("accessible-image-open") {
+            OwnerPassword = "accessible-image-owner",
+            AllowedPermissions = PdfStandardPermissions.Accessibility
+        };
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetEncryption(encryption))
+            .Paragraph(paragraph => paragraph.Text("Accessible text"))
+            .Image(PdfPngTestImages.CreateRgbPng(30, 90, 180), 40D, 40D)
+            .ToBytes();
+        var enforced = new PdfLoadOptions { Password = "accessible-image-open" };
+
+        PdfPermissionDeniedException exception = Assert.Throws<PdfPermissionDeniedException>(() =>
+            PdfPageInteractionMap.Create(pdf, 1, readOptions: enforced));
+
+        Assert.Equal(PdfStandardPermissions.CopyContents, exception.Permission);
+
+        var ignored = new PdfLoadOptions {
+            Password = "accessible-image-open",
+            PermissionPolicy = PdfPermissionPolicy.IgnoreRestrictions
+        };
+        PdfPageInteractionMap authorized = PdfPageInteractionMap.Create(pdf, 1, readOptions: ignored);
+        Assert.Contains(authorized.Regions, static region => region.Kind == PdfInteractionKind.Image);
     }
 
     [Fact]

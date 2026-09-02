@@ -96,5 +96,8 @@ public sealed class PdfExcelTableImportOptions {
         /// Worksheet name used when no tables are detected, keeping the produced workbook valid.
         /// </summary>
         public string EmptyWorkbookSheetName { get; set; } = "PDF Tables";
+
+        internal PdfExcelTableImportOptions CloneForConversion() =>
+            (PdfExcelTableImportOptions)MemberwiseClone();
     }
 }

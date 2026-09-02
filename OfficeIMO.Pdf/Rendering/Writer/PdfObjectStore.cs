@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -108,15 +109,19 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         return _entries[index].Length;
     }
 
-    internal void CopyTo(int index, Stream destination, HashAlgorithm? hash = null) {
+    internal void CopyTo(
+        int index,
+        Stream destination,
+        HashAlgorithm? hash = null,
+        CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(destination, nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
         Entry entry = _entries[index];
         if (entry.Bytes != null) {
-            hash?.TransformBlock(entry.Bytes, 0, entry.Bytes.Length, entry.Bytes, 0);
-            destination.Write(entry.Bytes, 0, entry.Bytes.Length);
+            CopyBytes(entry.Bytes, destination, hash, cancellationToken);
             return;
         }
 
@@ -125,11 +130,34 @@ internal sealed class PdfObjectStore : IPdfObjectStore {
         byte[] buffer = _copyBuffer ??= new byte[81920];
         int remaining = entry.Length;
         while (remaining > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = source.Read(buffer, 0, Math.Min(buffer.Length, remaining));
             if (read == 0) throw new EndOfStreamException("PDF object spill storage ended unexpectedly.");
             hash?.TransformBlock(buffer, 0, read, buffer, 0);
             destination.Write(buffer, 0, read);
+            cancellationToken.ThrowIfCancellationRequested();
             remaining -= read;
+        }
+    }
+
+    private static void CopyBytes(
+        byte[] bytes,
+        Stream destination,
+        HashAlgorithm? hash,
+        CancellationToken cancellationToken) {
+        if (!cancellationToken.CanBeCanceled) {
+            hash?.TransformBlock(bytes, 0, bytes.Length, bytes, 0);
+            destination.Write(bytes, 0, bytes.Length);
+            return;
+        }
+
+        const int ChunkSize = 81920;
+        for (int offset = 0; offset < bytes.Length; offset += ChunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(ChunkSize, bytes.Length - offset);
+            hash?.TransformBlock(bytes, offset, count, bytes, offset);
+            destination.Write(bytes, offset, count);
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 

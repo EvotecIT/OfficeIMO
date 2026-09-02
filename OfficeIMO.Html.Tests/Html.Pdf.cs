@@ -18,6 +18,103 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPdfTests {
     [Fact]
+    public void Pdf_SaveAsHtmlAsync_LinksTheMethodTokenIntoRenderOptions() {
+        using var optionsCancellation = new System.Threading.CancellationTokenSource();
+        using var methodCancellation = new System.Threading.CancellationTokenSource();
+        var options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.CancellationToken = optionsCancellation.Token;
+
+        PdfHtmlSaveOptions renderOptions = PdfHtmlConverterExtensions.CreateAsyncRenderOptions(
+            options,
+            methodCancellation.Token,
+            out System.Threading.CancellationTokenSource? linkedCancellation);
+
+        using (linkedCancellation) {
+            Assert.NotSame(options, renderOptions);
+            Assert.False(renderOptions.CancellationToken.IsCancellationRequested);
+            methodCancellation.Cancel();
+            Assert.Throws<OperationCanceledException>(() => renderOptions.CancellationToken.ThrowIfCancellationRequested());
+        }
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_StopsAtTheConfiguredOutputCharacterLimit() {
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreatePositionedReviewProfile();
+        options.MaximumOutputCharacters = 128;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options));
+
+        Assert.Contains("128-character output limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("being rendered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_BoundsEncodedSemanticItemsDuringRendering() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                DefaultFontSize = 10
+            })
+            .Paragraph(paragraph => paragraph.Text(new string('&', 100_000)))
+            .ToBytes();
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.MaximumOutputCharacters = 250_000;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(pdf).ToHtmlResult(options));
+
+        Assert.Contains("character output limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("being rendered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_DoesNotTranslateInvalidProfileAsAnOutputLimitFailure() {
+        PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
+        options.Profile = (PdfHtmlProfile)int.MaxValue;
+        options.MaximumOutputCharacters = 128;
+
+        ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf()).ToHtmlResult(options));
+
+        Assert.Equal(nameof(PdfHtmlSaveOptions.Profile), exception.ParamName);
+        Assert.DoesNotContain("output limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_EnforcesTheLimitAfterRequestedNewlineNormalization() {
+        PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
+        PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        unbounded.NewLine = "\r\n";
+        string expected = document.ToHtmlResult(unbounded).Value;
+        PdfHtmlSaveOptions bounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        bounded.NewLine = "\r\n";
+        bounded.MaximumOutputCharacters = expected.Length - 1;
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            document.ToHtmlResult(bounded));
+
+        Assert.Contains("output limit", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("being rendered", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_AllowsOutputExactlyAtThePostNormalizationLimit() {
+        PdfCore.PdfDocumentReadResult document = PdfCore.PdfDocumentReadResult.Load(CreateLogicalSamplePdf());
+        PdfHtmlSaveOptions unbounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        unbounded.NewLine = "\n";
+        string expected = document.ToHtmlResult(unbounded).Value;
+        PdfHtmlSaveOptions bounded = PdfHtmlSaveOptions.CreateSemanticProfile();
+        bounded.NewLine = "\n";
+        bounded.MaximumOutputCharacters = expected.Length;
+
+        string actual = document.ToHtmlResult(bounded).Value;
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(expected.Length, actual.Length);
+    }
+
+    [Fact]
     public void PdfToHtml_ResultAndBodyClassAreImmutableComposedContracts() {
         PdfHtmlSaveOptions options = PdfHtmlSaveOptions.CreateSemanticProfile();
         options.DocumentOutput.BodyClass = "customer-shell officeimo-html customer-shell";

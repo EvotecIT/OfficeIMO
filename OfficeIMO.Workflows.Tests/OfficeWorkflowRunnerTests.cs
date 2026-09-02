@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
+using OfficeIMO.Html;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -10,12 +11,37 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed class OfficeWorkflowRunnerTests {
     [Fact]
+    public void PdfLoadOptionsUseTheValidatedWorkflowByteBudget() {
+        const long budget = 768L * 1024L * 1024L;
+
+        PdfLoadOptions options = OfficeWorkflowRunner.CreatePdfLoadOptions("open", budget);
+
+        Assert.Equal("open", options.Password);
+        Assert.Equal(budget, options.Limits.MaxInputBytes);
+    }
+
+    [Fact]
     public void CatalogProjectsExactlyTheEightOfficePdfRoutes() {
         Assert.Equal(8, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
             ["docx-pdf", "html-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "xlsx-pdf"],
             OfficeWorkflowCatalog.Routes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void CatalogAndRouteExtensionsCannotBeMutatedThroughRuntimeCollectionTypes() {
+        Assert.IsNotType<OfficeWorkflowRoute[]>(OfficeWorkflowCatalog.Routes);
+        IList<OfficeWorkflowRoute> routes = Assert.IsAssignableFrom<IList<OfficeWorkflowRoute>>(OfficeWorkflowCatalog.Routes);
+        Assert.True(routes.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => routes[0] = routes[1]);
+
+        OfficeWorkflowRoute route = routes[0];
+        Assert.IsNotType<string[]>(route.SourceExtensions);
+        IList<string> extensions = Assert.IsAssignableFrom<IList<string>>(route.SourceExtensions);
+        Assert.True(extensions.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => extensions[0] = ".mutated");
+        Assert.DoesNotContain(".mutated", OfficeWorkflowCatalog.Routes.SelectMany(static item => item.SourceExtensions));
     }
 
     [Theory]
@@ -43,6 +69,7 @@ public sealed class OfficeWorkflowRunnerTests {
         });
 
         Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(OfficeWorkflowFailureKind.None, result.FailureKind);
         Assert.Equal(output, result.OutputPath);
         Assert.True(File.Exists(output));
         Assert.True(result.OutputBytes > 0);
@@ -50,6 +77,283 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
+    }
+
+    [Fact]
+    public async Task HtmlToPdfLoadsRelativeImagesFromTheHtmlDirectory() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        string image = Path.Combine(scope.Path, "pixel.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        File.WriteAllBytes(image, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        File.WriteAllText(input, "<!doctype html><html><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>", Encoding.UTF8);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        IReadOnlyList<PdfExtractedImage> images = PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract();
+        Assert.True(images.Count > 0, string.Join(Environment.NewLine, result.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
+    }
+
+    [Fact]
+    public async Task HtmlToPdfDoesNotLoadRelativeImagesOutsideTheHtmlDirectory() {
+        using var scope = new TestDirectory();
+        string sourceDirectory = Path.Combine(scope.Path, "source");
+        Directory.CreateDirectory(sourceDirectory);
+        string input = Path.Combine(sourceDirectory, "source.html");
+        string image = Path.Combine(scope.Path, "outside.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        File.WriteAllBytes(image, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="));
+        File.WriteAllText(input, "<!doctype html><html><body><img src=\"../outside.png\" alt=\"outside\"></body></html>", Encoding.UTF8);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Empty(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "HtmlRenderResourceUnavailable");
+    }
+
+    [Fact]
+    public async Task HtmlToPdfAppliesTheWorkflowInputBudgetToRelativeResources() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        string image = Path.Combine(scope.Path, "pixel.png");
+        string output = Path.Combine(scope.Path, "result.pdf");
+        byte[] imageBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        byte[] htmlBytes = Encoding.UTF8.GetBytes("<!doctype html><html><body><img src=\"pixel.png\" alt=\"pixel\"></body></html>");
+        File.WriteAllBytes(image, imageBytes);
+        File.WriteAllBytes(input, htmlBytes);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = htmlBytes.LongLength + imageBytes.LongLength - 1L
+            }
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Empty(PdfDocument.Load(File.ReadAllBytes(output)).Images.Extract());
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code is "HtmlRenderResourceUnavailable" or "HtmlRenderResourceByteLimitExceeded" or "HtmlRenderResourceLoadFailed");
+    }
+
+    [Fact]
+    public async Task ConversionStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "docx-pdf");
+        string output = System.IO.Path.Combine(scope.Path, "bounded.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "docx-pdf",
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("while it was being serialized", StringComparison.Ordinal));
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task OptimizationStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", new string('x', 4096));
+        string output = Path.Combine(scope.Path, "bounded-optimized.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains("while it was being serialized", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task PdfToHtmlStopsWhileRenderingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", new string('x', 512));
+        string output = Path.Combine(scope.Path, "bounded.html");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "pdf-html",
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 256L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains("being rendered", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task ComparisonAppliesConfiguredOutputLimitWhileRetainingRenderArtifacts() {
+        using var scope = new TestDirectory();
+        string left = CreatePdf(scope.Path, "left.pdf", "Expected");
+        string right = CreatePdf(scope.Path, "right.pdf", "Actual");
+        string output = Path.Combine(scope.Path, "bounded-comparison.html");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = left,
+            ComparisonPath = right,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 256L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OperationFailed, result.FailureKind);
+        Assert.Contains("RenderBytes", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task HtmlToPdfRejectsOutputProfilesItCannotHonor() {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, "html-pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = "html-pdf",
+            InputPath = input,
+            OutputPath = System.IO.Path.Combine(scope.Path, "lightweight.pdf"),
+            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("supports only the Faithful output profile", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("pdf-docx")]
+    [InlineData("pdf-xlsx")]
+    [InlineData("pdf-pptx")]
+    [InlineData("pdf-html")]
+    public async Task PdfImportRoutesRejectOutputProfilesTheyCannotHonor(string routeId) {
+        using var scope = new TestDirectory();
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.Id == routeId);
+        string input = CreateInput(scope.Path, routeId);
+        string output = System.IO.Path.Combine(scope.Path, "unsupported" + NormalizeExtension(route.TargetExtension));
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            ConversionRouteId = routeId,
+            InputPath = input,
+            OutputPath = output,
+            OutputProfile = OfficeWorkflowOutputProfile.Lightweight
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("supports only the Faithful output profile", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public async Task OptimizeRejectsTextOnlyProfileInsteadOfSubstitutingLosslessWebProfile() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "text-only.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            OutputProfile = OfficeWorkflowOutputProfile.TextOnly
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Contains("does not support the TextOnly output profile", result.Summary, StringComparison.Ordinal);
+        Assert.False(File.Exists(output));
+    }
+
+    [Fact]
+    public void InputReaderEnforcesTheLimitAgainstBytesReadFromTheOpenedHandle() {
+        using var source = new UnderreportedLengthStream(new byte[17], reportedLength: 16);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OfficeWorkflowInputReader.ReadAllBytes(source, "growing.pdf", 16, CancellationToken.None));
+
+        Assert.Contains("above the configured 16-byte limit", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlInputPreservesTheSourceFileAsItsBaseUri() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        byte[] html = Encoding.UTF8.GetBytes("<!doctype html><html><body><img src='assets/chart.png'></body></html>");
+
+        HtmlConversionDocument document = OfficeWorkflowRunner.ParseHtmlInput(html, input);
+
+        Assert.Equal(new Uri(Path.GetFullPath(input)), document.BaseUri);
+    }
+
+    [Fact]
+    public void HtmlInputUsesItsDeclaredSourceEncoding() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        byte[] prefix = Encoding.ASCII.GetBytes("<!doctype html><meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        byte[] html = prefix.Concat(new byte[] { 0xE9 }).Concat(suffix).ToArray();
+
+        HtmlConversionDocument document = OfficeWorkflowRunner.ParseHtmlInput(html, input);
+
+        Assert.Contains("café", document.SourceHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlInputParsingHonorsCancellation() {
+        using var scope = new TestDirectory();
+        string input = Path.Combine(scope.Path, "source.html");
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.ThrowsAny<OperationCanceledException>(() => OfficeWorkflowRunner.ParseHtmlInput(
+            Encoding.UTF8.GetBytes("<!doctype html><p>cancelled</p>"),
+            input,
+            cancellation.Token));
     }
 
     [Fact]
@@ -108,6 +412,92 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task BatchSnapshotsEveryRequestBeforeExecutingTheFirstItem() {
+        using var scope = new TestDirectory();
+        string first = CreatePdf(scope.Path, "first.pdf");
+        string second = CreatePdf(scope.Path, "second.pdf");
+        var laterRequest = new OfficeWorkflowRequest {
+            Id = "second",
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = second,
+            Limits = new OfficeWorkflowLimits()
+        };
+        bool mutated = false;
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (mutated || update.RequestId != "first" || update.Stage != "execute") return;
+            mutated = true;
+            laterRequest.Id = "mutated";
+            laterRequest.Operation = OfficeWorkflowOperation.Convert;
+            laterRequest.InputPath = Path.Combine(scope.Path, "missing.pdf");
+            laterRequest.ConversionRouteId = "missing-route";
+            laterRequest.Limits.MaximumInputBytes = 1L;
+        });
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync([
+            new OfficeWorkflowRequest { Id = "first", Operation = OfficeWorkflowOperation.Inspect, InputPath = first },
+            laterRequest
+        ], progress);
+
+        Assert.True(mutated);
+        Assert.Equal(2, results.Count);
+        Assert.Equal("second", results[1].RequestId);
+        Assert.Equal(OfficeWorkflowOperation.Inspect, results[1].Operation);
+        Assert.Equal(OfficeWorkflowStatus.Completed, results[1].Status);
+    }
+
+    [Fact]
+    public async Task PreCancelledBatchDoesNotEnumerateItsSource() {
+        bool enumerated = false;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync(
+            EnumerateRequests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Empty(results);
+        Assert.False(enumerated);
+
+        IEnumerable<OfficeWorkflowRequest> EnumerateRequests() {
+            enumerated = true;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+        }
+    }
+
+    [Fact]
+    public async Task BatchEnumerationStopsOnCancellationBeforeExecutingPartialInput() {
+        using var cancellation = new CancellationTokenSource();
+        int enumerated = 0;
+
+        IReadOnlyList<OfficeWorkflowResult> results = await new OfficeWorkflowRunner().RunBatchAsync(
+            EnumerateRequests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Empty(results);
+        Assert.Equal(2, enumerated);
+
+        IEnumerable<OfficeWorkflowRequest> EnumerateRequests() {
+            enumerated++;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+            cancellation.Cancel();
+            enumerated++;
+            yield return new OfficeWorkflowRequest { InputPath = "unused.pdf" };
+        }
+    }
+
+    [Fact]
+    public async Task BatchRejectsMoreThanTheBoundedRequestCountBeforeExecution() {
+        OfficeWorkflowRequest[] requests = Enumerable.Range(0, OfficeWorkflowRunner.MaximumBatchRequestCount + 1)
+            .Select(static _ => new OfficeWorkflowRequest { InputPath = "unused.pdf" })
+            .ToArray();
+
+        InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            new OfficeWorkflowRunner().RunBatchAsync(requests));
+
+        Assert.Contains(OfficeWorkflowRunner.MaximumBatchRequestCount.ToString(), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PreCancelledRequestPublishesNothingAndLeavesNoStagingFile() {
         using var scope = new TestDirectory();
         string input = CreatePdf(scope.Path, "source.pdf");
@@ -122,8 +512,100 @@ public sealed class OfficeWorkflowRunnerTests {
         }, cancellationToken: cancellation.Token);
 
         Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.None, result.FailureKind);
         Assert.False(File.Exists(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task CancellationFromOutputValidationProgressPublishesNothingAndRemovesTheStagingFile() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "cancelled.pdf");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "validate-output") cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output
+        }, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.False(File.Exists(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task CancellationFromPublishProgressPreservesTheExistingArtifact() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "existing.pdf");
+        await File.WriteAllTextAsync(output, "existing artifact");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "publish") cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+        }, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal("existing artifact", await File.ReadAllTextAsync(output));
+        Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task CancellationReturnsTheValidatedIdentityWhenTheMutableRequestChanges() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        using var cancellation = new CancellationTokenSource();
+        var request = new OfficeWorkflowRequest {
+            Id = "original-request",
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = input
+        };
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage != "validate") return;
+            request.Id = "mutated-request";
+            request.Operation = OfficeWorkflowOperation.Repair;
+            cancellation.Cancel();
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request, progress, cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Equal("original-request", result.RequestId);
+        Assert.Equal(OfficeWorkflowOperation.Inspect, result.Operation);
+    }
+
+    [Fact]
+    public async Task ThrowingFinalProgressObserverDoesNotTurnPublishedSuccessIntoFailure() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "optimized.pdf");
+        var progress = new InlineProgress<OfficeWorkflowProgress>(update => {
+            if (update.Stage == "complete") throw new InvalidOperationException("Observer failed after publication.");
+        });
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Id = "published-request",
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        }, progress);
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("published-request", result.RequestId);
+        Assert.Equal(output, result.OutputPath);
+        Assert.True(File.Exists(output));
     }
 
     [Fact]
@@ -136,6 +618,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
         OfficeWorkflowResult failed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Fail));
         Assert.Equal(OfficeWorkflowStatus.Failed, failed.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, failed.FailureKind);
         Assert.Equal("existing", await File.ReadAllTextAsync(output));
 
         OfficeWorkflowResult renamed = await runner.RunAsync(Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
@@ -147,6 +630,84 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(replaced.Succeeded, replaced.Summary);
         Assert.NotEqual("existing", await File.ReadAllTextAsync(output));
         Assert.Empty(Directory.GetFiles(scope.Path, ".*.tmp"));
+    }
+
+    [Fact]
+    public async Task GeneralWorkflowResultClassifiesMissingInput() {
+        using var scope = new TestDirectory();
+        string missing = Path.Combine(scope.Path, "missing.pdf");
+        OfficeWorkflowResult missingResult = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Inspect,
+            InputPath = missing
+        });
+
+        Assert.Equal(OfficeWorkflowFailureKind.InputNotFound, missingResult.FailureKind);
+    }
+
+    [Fact]
+    public async Task GeneralWorkflowValidationRejectsUndefinedEnumValues() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        OfficeWorkflowRequest[] requests = [
+            new OfficeWorkflowRequest {
+                Operation = (OfficeWorkflowOperation)999,
+                InputPath = input
+            },
+            new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Inspect,
+                InputPath = input,
+                ConflictPolicy = (OfficeWorkflowConflictPolicy)999
+            },
+            new OfficeWorkflowRequest {
+                Operation = OfficeWorkflowOperation.Inspect,
+                InputPath = input,
+                OutputProfile = (OfficeWorkflowOutputProfile)999
+            }
+        ];
+
+        foreach (OfficeWorkflowRequest request in requests) {
+            OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(request);
+            OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "WorkflowFailed");
+
+            Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+            Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+            Assert.Equal("validate", failure.Stage);
+        }
+    }
+
+    [Fact]
+    public async Task GeneralWorkflowFailureDiagnosticReportsTheActiveOutputStage() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = Path.Combine(scope.Path, "occupied.pdf");
+        await File.WriteAllTextAsync(output, "existing");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Optimize,
+            InputPath = input,
+            OutputPath = output,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail
+        });
+        OfficeWorkflowDiagnostic failure = Assert.Single(result.Diagnostics, diagnostic => diagnostic.Code == "WorkflowFailed");
+
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Equal("output", failure.Stage);
+    }
+
+    [Fact]
+    public async Task RenamePolicySkipsARequestedPathOccupiedByADirectory() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf");
+        string output = System.IO.Path.Combine(scope.Path, "optimized.pdf");
+        Directory.CreateDirectory(output);
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(
+            Optimize(input, output, OfficeWorkflowConflictPolicy.Rename));
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal(System.IO.Path.Combine(scope.Path, "optimized (1).pdf"), result.OutputPath);
+        Assert.True(Directory.Exists(output));
+        Assert.True(File.Exists(result.OutputPath));
     }
 
     [Fact]
@@ -198,6 +759,53 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(repair.Succeeded, repair.Summary);
         Assert.True(repair.HealthReport!.Verified);
         Assert.True(File.Exists(repairedPath));
+    }
+
+    [Fact]
+    public async Task RepairPlanIncludesTheConfiguredOutputBudgetInExecutionFeasibility() {
+        using var scope = new TestDirectory();
+        string validPath = CreatePdf(scope.Path, "valid.pdf");
+        string malformedPath = Path.Combine(scope.Path, "malformed.pdf");
+        string raw = Encoding.Latin1.GetString(await File.ReadAllBytesAsync(validPath));
+        string malformed = Regex.Replace(raw, "startxref\\r?\\n\\d+", "startxref\n0", RegexOptions.CultureInvariant);
+        await File.WriteAllBytesAsync(malformedPath, Encoding.Latin1.GetBytes(malformed));
+
+        OfficeWorkflowResult plan = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.RepairPlan,
+            InputPath = malformedPath,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.True(plan.Succeeded, plan.Summary);
+        Assert.False(plan.HealthReport!.Verified);
+        Assert.Equal("False", plan.HealthReport.Metrics["canCreateRepairArtifact"]);
+        Assert.NotEmpty(plan.HealthReport.Metrics["repairArtifactFeasibilityBlocker"]);
+    }
+
+    [Fact]
+    public async Task SanitizeStopsWhileSerializingAtTheConfiguredOutputLimit() {
+        using var scope = new TestDirectory();
+        string input = CreatePdf(scope.Path, "source.pdf", "Sanitized content");
+        string output = Path.Combine(scope.Path, "bounded-sanitized.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Sanitize,
+            InputPath = input,
+            OutputPath = output,
+            Limits = new OfficeWorkflowLimits {
+                MaximumInputBytes = 16L * 1024L * 1024L,
+                MaximumOutputBytes = 128L
+            }
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.True(
+            result.FailureKind == OfficeWorkflowFailureKind.OperationFailed,
+            result.Summary + " " + string.Join(" ", result.Diagnostics.Select(static diagnostic => diagnostic.Message)));
+        Assert.False(File.Exists(output));
     }
 
     [Fact]
@@ -300,12 +908,74 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.True(sanitization.HealthReport.Verified);
     }
 
+    [Fact]
+    public async Task ComparisonAcceptsIndependentPasswordsForEncryptedInputs() {
+        using var scope = new TestDirectory();
+        string left = System.IO.Path.Combine(scope.Path, "left-encrypted.pdf");
+        string right = System.IO.Path.Combine(scope.Path, "right-encrypted.pdf");
+        await File.WriteAllBytesAsync(
+            left,
+            PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                new PdfOptions().SetEncryption("left-open", "left-owner"))
+                .ToBytes());
+        await File.WriteAllBytesAsync(
+            right,
+            PdfDocument.Create(
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                new PdfOptions().SetEncryption("right-open", "right-owner"))
+                .ToBytes());
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Compare,
+            InputPath = left,
+            ComparisonPath = right,
+            OutputPath = System.IO.Path.Combine(scope.Path, "encrypted-comparison.html"),
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            PdfPassword = "left-open",
+            ComparisonPdfPassword = "right-open"
+        });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(result.HealthReport!.Before.CanRead);
+        Assert.True(result.HealthReport.After!.CanRead);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            diagnostic.Message.Contains("left-open", StringComparison.Ordinal) ||
+            diagnostic.Message.Contains("right-open", StringComparison.Ordinal));
+    }
+
     private static OfficeWorkflowRequest Optimize(string input, string output, OfficeWorkflowConflictPolicy policy) => new() {
         Operation = OfficeWorkflowOperation.Optimize,
         InputPath = input,
         OutputPath = output,
         ConflictPolicy = policy
     };
+
+    private sealed class UnderreportedLengthStream : Stream {
+        private readonly MemoryStream _inner;
+        private readonly long _reportedLength;
+
+        internal UnderreportedLengthStream(byte[] bytes, long reportedLength) {
+            _inner = new MemoryStream(bytes, writable: false);
+            _reportedLength = reportedLength;
+        }
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => _reportedLength;
+        public override long Position { get => _inner.Position; set => _inner.Position = value; }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+        public override long Seek(long offset, SeekOrigin origin) => _inner.Seek(offset, origin);
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
 
     private static string CreateInput(string root, string routeId) {
         if (routeId.StartsWith("pdf-", StringComparison.Ordinal)) return CreatePdf(root, "source.pdf");

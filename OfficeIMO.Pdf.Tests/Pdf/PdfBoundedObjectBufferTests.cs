@@ -1,4 +1,7 @@
 using OfficeIMO.Pdf;
+using System.Collections;
+using System.Text;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -62,6 +65,42 @@ public class PdfBoundedObjectBufferTests {
         Assert.Equal(0, store.RetainedMemoryBytes);
         Assert.Equal(5, store.GetLength(0));
         Assert.Equal(new byte[] { 1, 2, 3, 4, 5 }, destination.ToArray());
+    }
+
+    [Fact]
+    public void ObjectStore_CopyStopsBetweenInMemoryChunksWhenCancelled() {
+        using var cancellation = new CancellationTokenSource();
+        using var store = new PdfObjectStore(memoryLimitBytes: 256 * 1024);
+        store.Add(new byte[160 * 1024]);
+        using var destination = new CancellingWriteStream(cancellation);
+
+        Assert.ThrowsAny<OperationCanceledException>(() =>
+            store.CopyTo(0, destination, cancellationToken: cancellation.Token));
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.True(destination.Length < store.GetLength(0));
+    }
+
+    [Fact]
+    public void BufferedAssembly_ForwardsCancellationIntoEncryption() {
+        using var cancellation = new CancellationTokenSource();
+        var objects = new CancelOnReadObjectList(cancellation, cancelOnRead: 5,
+            Encoding.ASCII.GetBytes("1 0 obj\n<< /Type /Catalog >>\nendobj\n"),
+            Encoding.ASCII.GetBytes("2 0 obj\n<< >>\nendobj\n"));
+        var encryption = new PdfStandardEncryptionOptions("open") {
+            OwnerPassword = "owner",
+            Algorithm = PdfStandardEncryptionAlgorithm.Aes128
+        };
+
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfFileAssembler.AssembleWithEvidence(
+            objects,
+            catalogId: 1,
+            infoId: 0,
+            PdfFileVersion.Pdf14,
+            encryption,
+            PdfObjectStore.DefaultMemoryLimitBytes,
+            cancellation.Token,
+            out _));
+        Assert.True(cancellation.IsCancellationRequested);
     }
 
     [Fact]
@@ -138,5 +177,44 @@ public class PdfBoundedObjectBufferTests {
         Assert.Equal(5678, options.Clone().PageContentMemoryLimitBytes);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.ObjectBufferMemoryLimitBytes = -1);
         Assert.Throws<ArgumentOutOfRangeException>(() => options.PageContentMemoryLimitBytes = -1);
+    }
+
+    private sealed class CancellingWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancellingWriteStream(CancellationTokenSource cancellation) => _cancellation = cancellation;
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            base.Write(buffer, offset, count);
+            _cancellation.Cancel();
+        }
+    }
+
+    private sealed class CancelOnReadObjectList : IReadOnlyList<byte[]> {
+        private readonly CancellationTokenSource _cancellation;
+        private readonly int _cancelOnRead;
+        private readonly byte[][] _objects;
+        private int _readCount;
+
+        internal CancelOnReadObjectList(
+            CancellationTokenSource cancellation,
+            int cancelOnRead,
+            params byte[][] objects) {
+            _cancellation = cancellation;
+            _cancelOnRead = cancelOnRead;
+            _objects = objects;
+        }
+
+        public int Count => _objects.Length;
+
+        public byte[] this[int index] {
+            get {
+                if (++_readCount == _cancelOnRead) _cancellation.Cancel();
+                return _objects[index];
+            }
+        }
+
+        public IEnumerator<byte[]> GetEnumerator() => ((IEnumerable<byte[]>)_objects).GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

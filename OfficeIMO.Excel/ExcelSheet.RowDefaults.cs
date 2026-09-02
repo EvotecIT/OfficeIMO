@@ -36,14 +36,21 @@ namespace OfficeIMO.Excel {
         /// <param name="height">Default row height in points. Excel supports values up to 409 points.</param>
         /// <param name="hidden">Whether empty rows should be hidden by default.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultRowHeight(double height, bool hidden = false, bool save = true) {
+        public void SetDefaultRowHeight(double height, bool hidden = false, bool save = true) =>
+            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: true);
+
+        internal void SetDefaultRowHeightExact(double height, bool hidden = false, bool save = true) =>
+            SetDefaultRowHeightCore(height, hidden, save, roundToHundredths: false);
+
+        private void SetDefaultRowHeightCore(double height, bool hidden, bool save,
+            bool roundToHundredths) {
             if (double.IsNaN(height) || double.IsInfinity(height) || height <= 0D || height > 409D) {
                 throw new ArgumentOutOfRangeException(nameof(height), "Default row height must be greater than 0 and less than or equal to 409 points.");
             }
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultRowHeight = Math.Round(height, 2);
+                sheetFormat.DefaultRowHeight = roundToHundredths ? Math.Round(height, 2) : height;
                 sheetFormat.CustomHeight = true;
                 sheetFormat.ZeroHeight = hidden;
                 if (save) {
@@ -57,14 +64,21 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="width">Default column width in character units. Excel supports values up to 255.</param>
         /// <param name="save">Whether to save the worksheet XML immediately.</param>
-        public void SetDefaultColumnWidth(double width, bool save = true) {
+        public void SetDefaultColumnWidth(double width, bool save = true) =>
+            SetDefaultColumnWidthCore(width, save, roundToHundredths: true);
+
+        internal void SetDefaultColumnWidthExact(double width, bool save = true) =>
+            SetDefaultColumnWidthCore(width, save, roundToHundredths: false);
+
+        private void SetDefaultColumnWidthCore(double width, bool save,
+            bool roundToHundredths) {
             if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D || width > 255D) {
                 throw new ArgumentOutOfRangeException(nameof(width), "Default column width must be greater than 0 and less than or equal to 255 character units.");
             }
 
             WriteLock(() => {
                 SheetFormatProperties sheetFormat = GetOrCreateSheetFormatProperties();
-                sheetFormat.DefaultColumnWidth = Math.Round(width, 2);
+                sheetFormat.DefaultColumnWidth = roundToHundredths ? Math.Round(width, 2) : width;
                 if (save) {
                     WorksheetRoot.Save();
                 }

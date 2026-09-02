@@ -13,7 +13,9 @@ using OfficeIMO.DocBook;
 using OfficeIMO.Excel;
 using OfficeIMO.GoogleWorkspace.Auth.GoogleApis;
 using OfficeIMO.Opml;
+using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
+using OfficeIMO.Workflows;
 
 var adfAttributes = new ReadOnlyObjectDictionary(new Dictionary<string, object?> {
     ["html"] = "<strong>Ready</strong>",
@@ -162,7 +164,50 @@ if (excelRows.Length != 2
     throw new InvalidOperationException("The IDataReader XLSX write fallback and ordered-parallel Excel mapping did not survive NativeAOT.");
 }
 
-Console.WriteLine("PASS | production libraries fully rooted; Google APIs token-store plus CSV, generated mapping, Arrow, and Excel contracts passed from NativeAOT.");
+string workflowRoot = System.IO.Path.Combine(
+    System.IO.Path.GetTempPath(),
+    "OfficeIMO-AotWorkflow-" + Guid.NewGuid().ToString("N"));
+System.IO.Directory.CreateDirectory(workflowRoot);
+try {
+    string sourcePdf = System.IO.Path.Combine(workflowRoot, "source.pdf");
+    PdfDocument.Create(compose => compose.Page(page => page.Content(content => content
+        .Item(item => item.Paragraph(paragraph => paragraph.Text("Native workflow source"))))))
+        .Save(sourcePdf);
+
+    PdfPrintPlan printPlan = PdfPrintPlanner.Create(new PdfPrintPlanRequest {
+        InputPath = sourcePdf,
+        PagesPerSheet = 1
+    });
+    if (printPlan.SourcePageCount != 1 || printPlan.Sheets.Count != 1) {
+        throw new InvalidOperationException("The PDF print workflow did not produce one NativeAOT sheet.");
+    }
+
+    var workflowRunner = new OfficeWorkflowRunner();
+    string imageDirectory = System.IO.Path.Combine(workflowRoot, "pages");
+    PdfPageImageExportResult export = await workflowRunner.ExportPdfPagesAsync(new PdfPageImageExportRequest {
+        InputPath = sourcePdf,
+        OutputDirectory = imageDirectory,
+        Format = OfficeIMO.Drawing.OfficeImageExportFormat.Png
+    });
+    if (!export.Succeeded || export.Files.Count != 1) {
+        throw new InvalidOperationException("The PDF page export workflow did not survive NativeAOT: " + export.Summary);
+    }
+
+    string assembledPdf = System.IO.Path.Combine(workflowRoot, "assembled.pdf");
+    PdfAssemblyResult assembly = await workflowRunner.AssemblePdfAsync(new PdfAssemblyRequest {
+        Sources = new[] { sourcePdf, export.Files[0].Path },
+        OutputPath = assembledPdf
+    });
+    if (!assembly.Succeeded || assembly.PageCount != 2) {
+        throw new InvalidOperationException("The heterogeneous PDF assembly workflow did not survive NativeAOT: " + assembly.Summary);
+    }
+} finally {
+    if (System.IO.Directory.Exists(workflowRoot)) {
+        System.IO.Directory.Delete(workflowRoot, recursive: true);
+    }
+}
+
+Console.WriteLine("PASS | production libraries fully rooted; Google APIs, tabular, and PDF workflow contracts passed from NativeAOT.");
 
 file sealed class AotCsvRow {
     public int Id { get; set; }

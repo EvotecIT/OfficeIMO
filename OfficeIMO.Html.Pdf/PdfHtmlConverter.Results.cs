@@ -7,7 +7,8 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML and returns a machine-readable export summary.</summary>
     public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).ToHtmlResult(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .ToHtmlResult(CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>
@@ -22,13 +23,30 @@ public static partial class PdfHtmlConverterExtensions {
         options.CancellationToken.ThrowIfCancellationRequested();
         options.Validate();
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
-        string html = options.Profile switch {
-            PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
-            PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
-        };
+        string html;
+        try {
+            html = options.Profile switch {
+                PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
+                PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
+                _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
+            };
+        } catch (Exception exception) when (
+            options.MaximumOutputCharacters.HasValue &&
+            IsOutputBuilderCapacityException(exception)) {
+            throw new InvalidOperationException(
+                $"Generated HTML exceeded the configured {options.MaximumOutputCharacters.Value:N0}-character output limit while it was being rendered.",
+                exception);
+        }
         return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.SourcePageCount), options.Report);
     }
+
+    private static bool IsOutputBuilderCapacityException(Exception exception) =>
+        exception is PdfHtmlOutputCapacityException ||
+        exception is ArgumentOutOfRangeException argumentException &&
+        (string.Equals(argumentException.ParamName, "valueCount", StringComparison.Ordinal) ||
+         string.Equals(argumentException.ParamName, "requiredLength", StringComparison.Ordinal) ||
+         string.Equals(argumentException.ParamName, "repeatCount", StringComparison.Ordinal)) &&
+        argumentException.StackTrace?.IndexOf("System.Text.StringBuilder", StringComparison.Ordinal) >= 0;
 
     private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {
         int textBlockCount = 0;

@@ -47,6 +47,9 @@ public sealed class PdfPrintPlanRequest {
 
     /// <summary>Optional source password.</summary>
     public string? PdfPassword { get; set; }
+
+    /// <summary>Controls enforcement of authenticated user-password printing restrictions.</summary>
+    public PdfPermissionPolicy PermissionPolicy { get; set; } = PdfPermissionPolicy.Enforce;
 }
 
 /// <summary>One source-page placement on a print-preview sheet.</summary>
@@ -135,8 +138,28 @@ public sealed class PdfPrintPlan {
 /// <summary>Creates print-preview sheet geometry without depending on a platform print driver.</summary>
 public static class PdfPrintPlanner {
     /// <summary>Creates a validated print-preview plan.</summary>
-    public static PdfPrintPlan Create(PdfPrintPlanRequest request) {
+    public static PdfPrintPlan Create(
+        PdfPrintPlanRequest request,
+        CancellationToken cancellationToken = default) =>
+        CreateAsync(request, cancellationToken).GetAwaiter().GetResult();
+
+    /// <summary>Asynchronously creates a validated print-preview plan.</summary>
+    public static async Task<PdfPrintPlan> CreateAsync(
+        PdfPrintPlanRequest request,
+        CancellationToken cancellationToken = default) {
+        return await CreateAsync(
+            request,
+            static (path, options, token) => PdfDocument.LoadAsync(path, options, token),
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    internal static async Task<PdfPrintPlan> CreateAsync(
+        PdfPrintPlanRequest request,
+        Func<string, PdfLoadOptions, CancellationToken, Task<PdfDocument>> loadDocument,
+        CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(loadDocument);
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         if (request.PagesPerSheet is not 1 and not 2 and not 4) throw new ArgumentOutOfRangeException(nameof(request.PagesPerSheet));
         if (request.Margin < 0D || double.IsNaN(request.Margin) || double.IsInfinity(request.Margin)) {
@@ -144,47 +167,76 @@ public static class PdfPrintPlanner {
         }
         if (!Enum.IsDefined(request.Orientation)) throw new ArgumentOutOfRangeException(nameof(request.Orientation));
         if (!Enum.IsDefined(request.ScaleMode)) throw new ArgumentOutOfRangeException(nameof(request.ScaleMode));
+        if (!Enum.IsDefined(request.PermissionPolicy)) throw new ArgumentOutOfRangeException(nameof(request.PermissionPolicy));
 
-        PdfDocument document = PdfDocument.Load(
+        var validated = new ValidatedPrintPlanRequest(
             Path.GetFullPath(request.InputPath),
-            new PdfLoadOptions { Password = request.PdfPassword });
-        PdfDocumentInfo info = document.Inspect();
-        int[] pages = string.IsNullOrWhiteSpace(request.Pages)
-            ? Enumerable.Range(1, info.PageCount).ToArray()
-            : PdfPageSelector.Parse(request.Pages)
-                .ResolveSelection(info.PageCount)
+            request.Pages,
+            request.PaperSize,
+            request.Orientation,
+            request.PagesPerSheet,
+            request.Margin,
+            request.ScaleMode,
+            request.PdfPassword,
+            request.PermissionPolicy);
+
+        PdfDocument document = await loadDocument(
+            validated.InputPath,
+            new PdfLoadOptions {
+                Password = validated.PdfPassword,
+                PermissionPolicy = validated.PermissionPolicy
+            },
+            cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<PdfPageLayoutInfo> pageLayouts = document.GetPrintablePageLayouts(options: null, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        int[] pages = string.IsNullOrWhiteSpace(validated.Pages)
+            ? Enumerable.Range(1, pageLayouts.Count).ToArray()
+            : PdfPageSelector.Parse(validated.Pages)
+                .ResolveSelection(pageLayouts.Count)
                 .Ranges
                 .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))
                 .ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
         if (pages.Length == 0) throw new ArgumentException("The page selection is empty.", nameof(request));
 
-        var sheets = new List<PdfPrintSheet>((pages.Length + request.PagesPerSheet - 1) / request.PagesPerSheet);
-        for (int offset = 0; offset < pages.Length; offset += request.PagesPerSheet) {
-            int count = Math.Min(request.PagesPerSheet, pages.Length - offset);
-            PdfPageInfo firstPage = info.Pages[pages[offset] - 1];
-            PageSize paper = ResolvePaper(request, firstPage.Width > firstPage.Height);
-            if (paper.Width <= request.Margin * 2D || paper.Height <= request.Margin * 2D) {
+        var sheets = new List<PdfPrintSheet>((pages.Length + validated.PagesPerSheet - 1) / validated.PagesPerSheet);
+        for (int offset = 0; offset < pages.Length; offset += validated.PagesPerSheet) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(validated.PagesPerSheet, pages.Length - offset);
+            PdfPageLayoutInfo firstPage = pageLayouts[pages[offset] - 1];
+            (double firstPageWidth, double firstPageHeight) = GetVisualPageSize(firstPage);
+            PageSize paper = ResolvePaper(validated, firstPageWidth > firstPageHeight);
+            if (paper.Width <= validated.Margin * 2D || paper.Height <= validated.Margin * 2D) {
                 throw new ArgumentException("Print margins leave no printable paper area.", nameof(request));
             }
-            IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(request, info, pages, offset, count, paper);
+            IReadOnlyList<PdfPrintPlacement> placements = CreatePlacements(
+                validated,
+                pageLayouts,
+                pages,
+                offset,
+                count,
+                paper,
+                cancellationToken);
             sheets.Add(new PdfPrintSheet(sheets.Count + 1, paper, placements));
         }
-        return new PdfPrintPlan(info.PageCount, pages, sheets);
+        return new PdfPrintPlan(pageLayouts.Count, pages, sheets);
     }
 
-    private static PageSize ResolvePaper(PdfPrintPlanRequest request, bool sourceLandscape) => request.Orientation switch {
+    private static PageSize ResolvePaper(ValidatedPrintPlanRequest request, bool sourceLandscape) => request.Orientation switch {
         PdfPrintOrientation.Portrait => request.PaperSize.Portrait(),
         PdfPrintOrientation.Landscape => request.PaperSize.Landscape(),
         _ => sourceLandscape ? request.PaperSize.Landscape() : request.PaperSize.Portrait()
     };
 
     private static IReadOnlyList<PdfPrintPlacement> CreatePlacements(
-        PdfPrintPlanRequest request,
-        PdfDocumentInfo info,
+        ValidatedPrintPlanRequest request,
+        IReadOnlyList<PdfPageLayoutInfo> pageLayouts,
         IReadOnlyList<int> pages,
         int offset,
         int count,
-        PageSize paper) {
+        PageSize paper,
+        CancellationToken cancellationToken) {
         int columns = request.PagesPerSheet == 1 ? 1 : 2;
         int rows = request.PagesPerSheet == 4 ? 2 : 1;
         double printableWidth = paper.Width - request.Margin * 2D;
@@ -194,19 +246,21 @@ public static class PdfPrintPlanner {
         var placements = new List<PdfPrintPlacement>(count);
 
         for (int index = 0; index < count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             int pageNumber = pages[offset + index];
-            PdfPageInfo source = info.Pages[pageNumber - 1];
+            PdfPageLayoutInfo source = pageLayouts[pageNumber - 1];
+            (double sourceWidth, double sourceHeight) = GetVisualPageSize(source);
             int column = index % columns;
             int row = index / columns;
-            double fitScale = Math.Min(slotWidth / source.Width, slotHeight / source.Height);
-            double fillScale = Math.Max(slotWidth / source.Width, slotHeight / source.Height);
+            double fitScale = Math.Min(slotWidth / sourceWidth, slotHeight / sourceHeight);
+            double fillScale = Math.Max(slotWidth / sourceWidth, slotHeight / sourceHeight);
             double scale = request.ScaleMode switch {
                 PdfPrintScaleMode.ActualSize => Math.Min(1D, fitScale),
                 PdfPrintScaleMode.Fill => fillScale,
                 _ => fitScale
             };
-            double width = source.Width * scale;
-            double height = source.Height * scale;
+            double width = sourceWidth * scale;
+            double height = sourceHeight * scale;
             double slotX = request.Margin + column * slotWidth;
             double slotY = request.Margin + row * slotHeight;
             placements.Add(new PdfPrintPlacement(
@@ -224,4 +278,18 @@ public static class PdfPrintPlanner {
         }
         return placements;
     }
+
+    private static (double Width, double Height) GetVisualPageSize(PdfPageLayoutInfo page) =>
+        (page.VisualWidth, page.VisualHeight);
+
+    private sealed record ValidatedPrintPlanRequest(
+        string InputPath,
+        string? Pages,
+        PageSize PaperSize,
+        PdfPrintOrientation Orientation,
+        int PagesPerSheet,
+        double Margin,
+        PdfPrintScaleMode ScaleMode,
+        string? PdfPassword,
+        PdfPermissionPolicy PermissionPolicy);
 }

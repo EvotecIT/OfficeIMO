@@ -96,6 +96,7 @@ public sealed class OfficeWorkflowResult {
         string requestId,
         OfficeWorkflowOperation operation,
         OfficeWorkflowStatus status,
+        OfficeWorkflowFailureKind failureKind,
         string? outputPath,
         long inputBytes,
         long outputBytes,
@@ -106,6 +107,7 @@ public sealed class OfficeWorkflowResult {
         RequestId = requestId;
         Operation = operation;
         Status = status;
+        FailureKind = failureKind;
         OutputPath = outputPath;
         InputBytes = inputBytes;
         OutputBytes = outputBytes;
@@ -121,6 +123,8 @@ public sealed class OfficeWorkflowResult {
     public OfficeWorkflowOperation Operation { get; }
     /// <summary>Terminal state.</summary>
     public OfficeWorkflowStatus Status { get; }
+    /// <summary>Stable failure category, or <see cref="OfficeWorkflowFailureKind.None"/> when no failure occurred.</summary>
+    public OfficeWorkflowFailureKind FailureKind { get; }
     /// <summary>Final published output path, including a renamed destination when applicable.</summary>
     public string? OutputPath { get; }
     /// <summary>Primary input size.</summary>

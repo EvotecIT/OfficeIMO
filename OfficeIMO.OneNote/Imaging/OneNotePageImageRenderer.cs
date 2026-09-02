@@ -41,6 +41,7 @@ internal static class OneNotePageImageRenderer {
                 OfficeSvgSizeUnit.Pixel,
                 fallbackCodec,
                 resourceIdPrefix: null,
+                maximumUtf8Bytes: effective.MaximumTotalEncodedBytes,
                 cancellationToken);
             return effective.EnsureAccepted(new OfficeImageExportResult(
                 format,

@@ -14,41 +14,58 @@ public static partial class PdfHtmlConverterExtensions {
     /// <summary>Renders an opened PDF as HTML.</summary>
     public static string ToHtml(this PdfCore.PdfDocument document, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).ToHtml(CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .ToHtml(CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, saves the HTML as UTF-8 without a byte-order mark, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, string path, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .SaveAsHtml(path, CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
     public static PdfCore.PdfConversionReport SaveAsHtml(this PdfCore.PdfDocument document, Stream stream, PdfHtmlSaveOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options).SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options));
+        return ReadForHtml(document, options, options?.CancellationToken ?? default)
+            .SaveAsHtml(stream, CreateRenderOptionsAfterPreselection(options));
     }
 
     /// <summary>Renders an opened PDF, asynchronously saves the HTML, and returns conversion diagnostics.</summary>
-    public static Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         string path,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtmlAsync(path, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
+            return await logical.SaveAsHtmlAsync(
+                path,
+                CreateRenderOptionsAfterPreselection(renderOptions),
+                renderOptions.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Renders an opened PDF, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
-    public static Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
+    public static async Task<PdfCore.PdfConversionReport> SaveAsHtmlAsync(
         this PdfCore.PdfDocument document,
         Stream stream,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ReadForHtml(document, options, cancellationToken)
-            .SaveAsHtmlAsync(stream, CreateRenderOptionsAfterPreselection(options), cancellationToken);
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfCore.PdfDocumentReadResult logical = ReadForHtml(document, renderOptions, renderOptions.CancellationToken);
+            return await logical.SaveAsHtmlAsync(
+                stream,
+                CreateRenderOptionsAfterPreselection(renderOptions),
+                renderOptions.CancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -78,10 +95,13 @@ public static partial class PdfHtmlConverterExtensions {
         string path,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
-        await HtmlTextIO.WriteAsync(path, result.Value, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
+            await HtmlTextIO.WriteAsync(path, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
+            return result.Report;
+        }
     }
 
     /// <summary>Renders a logical PDF document, asynchronously writes HTML to a caller-owned stream, and returns conversion diagnostics.</summary>
@@ -90,10 +110,31 @@ public static partial class PdfHtmlConverterExtensions {
         Stream stream,
         PdfHtmlSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
-        cancellationToken.ThrowIfCancellationRequested();
-        PdfHtmlConversionResult result = document.ToHtmlResult(options);
-        await HtmlTextIO.WriteAsync(stream, result.Value, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        PdfHtmlSaveOptions renderOptions = CreateAsyncRenderOptions(options, cancellationToken, out CancellationTokenSource? linkedCancellation);
+        using (linkedCancellation) {
+            renderOptions.CancellationToken.ThrowIfCancellationRequested();
+            PdfHtmlConversionResult result = document.ToHtmlResult(renderOptions);
+            await HtmlTextIO.WriteAsync(stream, result.Value, renderOptions.CancellationToken).ConfigureAwait(false);
+            return result.Report;
+        }
+    }
+
+    internal static PdfHtmlSaveOptions CreateAsyncRenderOptions(
+        PdfHtmlSaveOptions? options,
+        CancellationToken cancellationToken,
+        out CancellationTokenSource? linkedCancellation) {
+        PdfHtmlSaveOptions renderOptions = options?.CloneForConversion() ?? new PdfHtmlSaveOptions();
+        CancellationToken optionsCancellation = renderOptions.CancellationToken;
+        linkedCancellation = null;
+
+        if (optionsCancellation.CanBeCanceled && cancellationToken.CanBeCanceled && optionsCancellation != cancellationToken) {
+            linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(optionsCancellation, cancellationToken);
+            renderOptions.CancellationToken = linkedCancellation.Token;
+        } else if (cancellationToken.CanBeCanceled) {
+            renderOptions.CancellationToken = cancellationToken;
+        }
+
+        return renderOptions;
     }
 
     private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlSaveOptions options) {
@@ -136,7 +177,7 @@ public static partial class PdfHtmlConverterExtensions {
     }
 
     private static string RenderSemanticDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
-        var builder = new StringBuilder();
+        StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: false);
         if (options.EmitDocumentShell) {
             AppendBodyStart(builder, options, positioned: false);
@@ -172,11 +213,11 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
+        return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
     private static string RenderPositionedReviewDocument(PdfCore.PdfDocumentReadResult document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
-        var builder = new StringBuilder();
+        StringBuilder builder = CreateOutputBuilder(options);
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
             AppendBodyStart(builder, options, positioned: true);
@@ -197,7 +238,7 @@ public static partial class PdfHtmlConverterExtensions {
             builder.AppendLine("</html>");
         }
 
-        return NormalizeOutputNewLines(builder.ToString().TrimEnd('\r', '\n'), options.NewLine);
+        return NormalizeOutputNewLinesWithinBudget(builder, options);
     }
 
     private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfDocumentReadResult document, PdfHtmlSaveOptions options) {
@@ -273,7 +314,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("<meta charset=\"utf-8\">");
         builder.AppendLine("<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">");
         builder.Append("<title>");
-        builder.Append(HtmlText(title));
+        AppendHtmlText(builder, title);
         builder.AppendLine("</title>");
         if (options.IncludeMetadata) {
             AppendMeta(builder, "author", document.Metadata.Author);
@@ -378,11 +419,11 @@ public static partial class PdfHtmlConverterExtensions {
             builder.Append("<a href=\"#");
             builder.Append(HtmlAttribute(GetFirstPageAnchorId(outline.PageNumber.Value, pages)));
             builder.Append("\">");
-            builder.Append(HtmlText(outline.Title));
+            AppendHtmlText(builder, outline.Title);
             builder.Append("</a>");
         } else {
             builder.Append("<span>");
-            builder.Append(HtmlText(outline.Title));
+            AppendHtmlText(builder, outline.Title);
             builder.Append("</span>");
         }
 
@@ -518,7 +559,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append("\" data-xfa-payload-byte-count=\"");
         builder.Append(xfa.TotalPayloadBytes.ToString(CultureInfo.InvariantCulture));
         builder.Append('"');
-        string? packetNames = FormatStringList(xfa.PacketNames);
+        string? packetNames = FormatStringList(xfa.PacketNames, options);
         if (!string.IsNullOrWhiteSpace(packetNames)) {
             builder.Append(" data-xfa-packet-names=\"");
             builder.Append(HtmlAttribute(packetNames!));
@@ -552,7 +593,7 @@ public static partial class PdfHtmlConverterExtensions {
         builder.AppendLine("<section class=\"pdf-metadata\">");
         if (!string.IsNullOrWhiteSpace(document.Metadata.Title)) {
             builder.Append("<h1>");
-            builder.Append(HtmlText(document.Metadata.Title!));
+            AppendHtmlText(builder, document.Metadata.Title!);
             builder.AppendLine("</h1>");
         }
 
@@ -570,18 +611,18 @@ public static partial class PdfHtmlConverterExtensions {
         builder.Append("<p data-pdf-metadata=\"");
         builder.Append(HtmlAttribute(label));
         builder.Append("\"><strong>");
-        builder.Append(HtmlText(label));
+        AppendHtmlText(builder, label);
         builder.Append(":</strong> ");
-        builder.Append(HtmlText(value!));
+        AppendHtmlText(builder, value!);
         builder.AppendLine("</p>");
     }
 
-    private static string? FormatStringList(IReadOnlyList<string> values) {
+    private static string? FormatStringList(IReadOnlyList<string> values, PdfHtmlSaveOptions options) {
         if (values.Count == 0) {
             return null;
         }
 
-        var builder = new StringBuilder();
+        StringBuilder builder = CreateOutputBuilder(options);
         for (int i = 0; i < values.Count; i++) {
             if (string.IsNullOrWhiteSpace(values[i])) {
                 continue;
@@ -610,11 +651,17 @@ public static partial class PdfHtmlConverterExtensions {
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder =
             BuildReadingOrder(page, options.UseSharedPageReadingOrder);
         int sequence = 0;
+        long retainedHtmlCharacters = 0L;
 
         for (int i = 0; i < page.Headings.Count; i++) {
             PdfCore.PdfLogicalHeading heading = page.Headings[i];
             int level = Math.Min(Math.Max(heading.Level, 1), 6);
-            items.Add(new HtmlItem(heading.Line.BaselineY, heading.Line.XStart, sequence++, "<h" + level + ">" + HtmlText(heading.Text) + "</h" + level + ">", GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i)));
+            string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                builder.Append("<h").Append(level).Append('>');
+                AppendHtmlText(builder, heading.Text);
+                builder.Append("</h").Append(level).Append('>');
+            });
+            AddHtmlItem(items, new HtmlItem(heading.Line.BaselineY, heading.Line.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Heading, i)), options, ref retainedHtmlCharacters);
         }
 
         for (int i = 0; i < page.Paragraphs.Count; i++) {
@@ -623,37 +670,56 @@ public static partial class PdfHtmlConverterExtensions {
                 continue;
             }
 
-            items.Add(new HtmlItem(paragraph.YTop, paragraph.XStart, sequence++, "<p>" + HtmlText(paragraph.Text) + "</p>", GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i)));
+            string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                builder.Append("<p>");
+                AppendHtmlText(builder, paragraph.Text);
+                builder.Append("</p>");
+            });
+            AddHtmlItem(items, new HtmlItem(paragraph.YTop, paragraph.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Paragraph, i)), options, ref retainedHtmlCharacters);
         }
 
         for (int i = 0; i < page.ListItems.Count; i++) {
             PdfCore.PdfLogicalListItem listItem = page.ListItems[i];
-            items.Add(new HtmlItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, "<ul data-pdf-list-level=\"" + Math.Max(1, listItem.Level).ToString(CultureInfo.InvariantCulture) + "\"><li>" + HtmlText(listItem.Text) + "</li></ul>", GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)));
+            string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                builder.Append("<ul data-pdf-list-level=\"");
+                builder.Append(Math.Max(1, listItem.Level).ToString(CultureInfo.InvariantCulture));
+                builder.Append("\"><li>");
+                AppendHtmlText(builder, listItem.Text);
+                builder.Append("</li></ul>");
+            });
+            AddHtmlItem(items, new HtmlItem(listItem.Line.BaselineY, listItem.Line.XStart, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.ListItem, i)), options, ref retainedHtmlCharacters);
         }
 
         for (int i = 0; i < page.Tables.Count; i++) {
             PdfCore.PdfLogicalTable table = page.Tables[i];
-            string tableHtml = RenderSemanticTable(table);
+            string tableHtml = RenderSemanticTable(table, options, retainedHtmlCharacters);
             if (tableHtml.Length > 0) {
                 double x = table.Columns.Count > 0 ? table.Columns[0].From : 0D;
-                items.Add(new HtmlItem(table.YTop, x, sequence++, tableHtml, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Table, i)));
+                AddHtmlItem(items, new HtmlItem(table.YTop, x, sequence++, tableHtml, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Table, i)), options, ref retainedHtmlCharacters);
             }
         }
 
         IReadOnlyList<PdfCore.IPdfLogicalElement> leaderRows = page.GetElements(PdfCore.PdfLogicalElementKind.LeaderRow);
         for (int i = 0; i < leaderRows.Count; i++) {
             if (leaderRows[i] is PdfCore.PdfLogicalLeaderRow leaderRow && !IsLeaderRowRepresentedByTable(leaderRow, page.Tables)) {
-                items.Add(new HtmlItem(null, 0D, sequence++, "<dl class=\"pdf-leader-row\"><dt>" + HtmlText(leaderRow.Label) + "</dt><dd>" + HtmlText(leaderRow.Value) + "</dd></dl>"));
+                string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                    builder.Append("<dl class=\"pdf-leader-row\"><dt>");
+                    AppendHtmlText(builder, leaderRow.Label);
+                    builder.Append("</dt><dd>");
+                    AppendHtmlText(builder, leaderRow.Value);
+                    builder.Append("</dd></dl>");
+                });
+                AddHtmlItem(items, new HtmlItem(null, 0D, sequence++, html), options, ref retainedHtmlCharacters);
             }
         }
 
-        AppendUnmatchedTextBlocks(page, items, readingOrder, ref sequence);
+        AppendUnmatchedTextBlocks(page, items, readingOrder, options, ref sequence, ref retainedHtmlCharacters);
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
                 PdfCore.PdfLogicalImage image = page.Images[i];
                 int placementIndex = image.Placements.Count == 0 ? -1 : 0;
-                items.Add(new HtmlItem(null, 0D, sequence++, RenderImageFigure(image, options), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)));
+                AddHtmlItem(items, new HtmlItem(null, 0D, sequence++, RenderImageFigure(image, options, retainedHtmlCharacters), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Image, i, placementIndex)), options, ref retainedHtmlCharacters);
             }
         }
 
@@ -665,26 +731,23 @@ public static partial class PdfHtmlConverterExtensions {
                 }
 
                 string label = GetLinkLabel(link);
-                string html;
-                if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
-                    var linkBuilder = new StringBuilder();
-                    linkBuilder.Append("<p class=\"pdf-link\"><a");
-                    AppendLinkTargetAttributes(linkBuilder, link);
-                    linkBuilder.Append('>');
-                    linkBuilder.Append(HtmlText(label));
-                    linkBuilder.Append("</a></p>");
-                    html = linkBuilder.ToString();
-                } else {
-                    var linkBuilder = new StringBuilder();
-                    linkBuilder.Append("<p class=\"pdf-link\"");
-                    AppendLinkTargetAttributes(linkBuilder, link);
-                    linkBuilder.Append('>');
-                    linkBuilder.Append(HtmlText(label));
-                    linkBuilder.Append("</p>");
-                    html = linkBuilder.ToString();
-                }
+                string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, linkBuilder => {
+                    if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
+                        linkBuilder.Append("<p class=\"pdf-link\"><a");
+                        AppendLinkTargetAttributes(linkBuilder, link);
+                        linkBuilder.Append('>');
+                        AppendHtmlText(linkBuilder, label);
+                        linkBuilder.Append("</a></p>");
+                    } else {
+                        linkBuilder.Append("<p class=\"pdf-link\"");
+                        AppendLinkTargetAttributes(linkBuilder, link);
+                        linkBuilder.Append('>');
+                        AppendHtmlText(linkBuilder, label);
+                        linkBuilder.Append("</p>");
+                    }
+                });
 
-                items.Add(new HtmlItem(link.Y2, link.X1, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Link, i)));
+                AddHtmlItem(items, new HtmlItem(link.Y2, link.X1, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.Link, i)), options, ref retainedHtmlCharacters);
             }
         }
 
@@ -693,23 +756,36 @@ public static partial class PdfHtmlConverterExtensions {
                 PdfCore.PdfLogicalFormWidget widget = page.FormWidgets[i];
                 string name = widget.FieldName ?? widget.FieldType ?? "Field";
                 string value = widget.Value ?? string.Empty;
-                items.Add(new HtmlItem(widget.Y2, widget.X1, sequence++, "<p class=\"pdf-form-widget\"><strong>" + HtmlText(name) + "</strong>" + (value.Length > 0 ? ": " + HtmlText(value) : string.Empty) + "</p>", GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.FormWidget, i)));
+                string html = RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+                    builder.Append("<p class=\"pdf-form-widget\"><strong>");
+                    AppendHtmlText(builder, name);
+                    builder.Append("</strong>");
+                    if (value.Length > 0) {
+                        builder.Append(": ");
+                        AppendHtmlText(builder, value);
+                    }
+                    builder.Append("</p>");
+                });
+                AddHtmlItem(items, new HtmlItem(widget.Y2, widget.X1, sequence++, html, GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.FormWidget, i)), options, ref retainedHtmlCharacters);
             }
         }
 
         return items;
     }
 
-    private static string RenderSemanticTable(PdfCore.PdfLogicalTable table) {
+    private static string RenderSemanticTable(
+        PdfCore.PdfLogicalTable table,
+        PdfHtmlSaveOptions options,
+        long retainedHtmlCharacters) {
         if (table.Rows.Count == 0) {
             return string.Empty;
         }
 
-        var builder = new StringBuilder();
-        builder.AppendLine("<table>");
-        AppendTableRows(builder, table);
-        builder.Append("</table>");
-        return builder.ToString();
+        return RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+            builder.AppendLine("<table>");
+            AppendTableRows(builder, table);
+            builder.Append("</table>");
+        });
     }
 
     private static void AppendTableRows(StringBuilder builder, PdfCore.PdfLogicalTable table) {
@@ -723,7 +799,7 @@ public static partial class PdfHtmlConverterExtensions {
             }
 
             builder.Append('>');
-            builder.Append(HtmlText(columnIndex < data.Columns.Count ? data.Columns[columnIndex] : string.Empty));
+            AppendHtmlText(builder, columnIndex < data.Columns.Count ? data.Columns[columnIndex] : string.Empty);
             builder.Append("</th>");
         }
 
@@ -739,7 +815,7 @@ public static partial class PdfHtmlConverterExtensions {
                 }
 
                 builder.Append('>');
-                builder.Append(HtmlText(columnIndex < row.Count ? row[columnIndex] : string.Empty));
+                AppendHtmlText(builder, columnIndex < row.Count ? row[columnIndex] : string.Empty);
                 builder.Append("</td>");
             }
 
@@ -747,41 +823,46 @@ public static partial class PdfHtmlConverterExtensions {
         }
     }
 
-    private static string RenderImageFigure(PdfCore.PdfLogicalImage image, PdfHtmlSaveOptions options) {
-        var builder = new StringBuilder();
-        builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
-        builder.Append(HtmlAttribute(image.ResourceName));
-        builder.Append("\" data-page-number=\"");
-        builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
-        builder.Append("\">");
-        if (TryBuildEmbeddedImageDataUri(image, options, out string? source)) {
-            builder.Append("<img src=\"");
-            builder.Append(HtmlAttribute(source!));
-            builder.Append("\" alt=\"");
-            builder.Append(HtmlAttribute("Image: " + image.ResourceName));
-            builder.Append("\" width=\"");
-            builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
-            builder.Append("\" height=\"");
-            builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+    private static string RenderImageFigure(
+        PdfCore.PdfLogicalImage image,
+        PdfHtmlSaveOptions options,
+        long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+            builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
+            builder.Append(HtmlAttribute(image.ResourceName));
+            builder.Append("\" data-page-number=\"");
+            builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
             builder.Append("\">");
-        }
+            if (TryBuildEmbeddedImageDataUri(image, options, builder.MaxCapacity - builder.Length, out string? source)) {
+                builder.Append("<img src=\"");
+                builder.Append(HtmlAttribute(source!));
+                builder.Append("\" alt=\"");
+                builder.Append(HtmlAttribute("Image: " + image.ResourceName));
+                builder.Append("\" width=\"");
+                builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+                builder.Append("\" height=\"");
+                builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+                builder.Append("\">");
+            }
 
-        builder.Append("<figcaption>Image: ");
-        builder.Append(HtmlText(image.ResourceName));
-        builder.Append(" (");
-        builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
-        builder.Append('x');
-        builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
-        if (!string.IsNullOrWhiteSpace(image.MimeType)) {
-            builder.Append(", ");
-            builder.Append(HtmlText(image.MimeType!));
-        }
+            builder.Append("<figcaption>Image: ");
+            AppendHtmlText(builder, image.ResourceName);
+            builder.Append(" (");
+            builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+            builder.Append('x');
+            builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(image.MimeType)) {
+                builder.Append(", ");
+                AppendHtmlText(builder, image.MimeType!);
+            }
 
-        builder.Append(")</figcaption></figure>");
-        return builder.ToString();
-    }
+            builder.Append(")</figcaption></figure>");
+        });
 
-    private static bool TryBuildEmbeddedImageDataUri(PdfCore.PdfLogicalImage image, PdfHtmlSaveOptions options, out string? source) {
+    private static bool TryBuildEmbeddedImageDataUri(
+        PdfCore.PdfLogicalImage image,
+        PdfHtmlSaveOptions options,
+        int remainingItemCharacters,
+        out string? source) {
         source = null;
         if (options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri) {
             return false;
@@ -806,6 +887,19 @@ public static partial class PdfHtmlConverterExtensions {
             return false;
         }
 
+        if (options.MaximumOutputCharacters.HasValue) {
+            long base64Characters = ((sourceImage.Bytes.LongLength + 2L) / 3L) * 4L;
+            long dataUriCharacters = "data:;base64,".Length + sourceImage.MimeType!.Length + base64Characters;
+            if (dataUriCharacters > Math.Min(options.MaximumOutputCharacters.Value, remainingItemCharacters)) {
+                AddWarning(
+                    options,
+                    "ImageDataTooLarge",
+                    "An extracted PDF image was represented as a placeholder because its data URI exceeds MaximumOutputCharacters.",
+                    PdfCore.PdfConversionWarningSeverity.Warning);
+                return false;
+            }
+        }
+
         source = "data:" + sourceImage.MimeType + ";base64," + Convert.ToBase64String(sourceImage.Bytes);
         return true;
     }
@@ -814,27 +908,34 @@ public static partial class PdfHtmlConverterExtensions {
         PdfCore.PdfLogicalPage page,
         List<HtmlItem> items,
         IReadOnlyDictionary<(PdfCore.PdfLogicalReadingOrderKind Kind, int SourceIndex, int PlacementIndex), int> readingOrder,
-        ref int sequence) {
+        PdfHtmlSaveOptions options,
+        ref int sequence,
+        ref long retainedHtmlCharacters) {
         for (int i = 0; i < page.TextBlocks.Count; i++) {
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[i];
             if (IsTextBlockRepresented(block, page)) {
                 continue;
             }
 
-            items.Add(new HtmlItem(block.BaselineY, block.XStart, sequence++, RenderSemanticTextBlock(block), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i)));
+            AddHtmlItem(items, new HtmlItem(block.BaselineY, block.XStart, sequence++, RenderSemanticTextBlock(block, options, retainedHtmlCharacters), GetReadingOrder(readingOrder, PdfCore.PdfLogicalReadingOrderKind.TextBlock, i)), options, ref retainedHtmlCharacters);
         }
     }
 
-    private static string RenderSemanticTextBlock(PdfCore.PdfLogicalTextBlock block) {
-        string text = HtmlText(block.Text);
-        return block.Kind switch {
-            PdfCore.PdfLogicalElementKind.Header => "<header class=\"pdf-header\">" + text + "</header>",
-            PdfCore.PdfLogicalElementKind.Footer => "<footer class=\"pdf-footer\">" + text + "</footer>",
-            PdfCore.PdfLogicalElementKind.Caption => "<figure class=\"pdf-caption\"><figcaption>" + text + "</figcaption></figure>",
-            PdfCore.PdfLogicalElementKind.Footnote => "<aside class=\"pdf-footnote\" role=\"doc-footnote\">" + text + "</aside>",
-            _ => "<p>" + text + "</p>"
-        };
-    }
+    private static string RenderSemanticTextBlock(
+        PdfCore.PdfLogicalTextBlock block,
+        PdfHtmlSaveOptions options,
+        long retainedHtmlCharacters) => RenderPageItemWithinBudget(options, retainedHtmlCharacters, builder => {
+            (string Prefix, string Suffix) = block.Kind switch {
+                PdfCore.PdfLogicalElementKind.Header => ("<header class=\"pdf-header\">", "</header>"),
+                PdfCore.PdfLogicalElementKind.Footer => ("<footer class=\"pdf-footer\">", "</footer>"),
+                PdfCore.PdfLogicalElementKind.Caption => ("<figure class=\"pdf-caption\"><figcaption>", "</figcaption></figure>"),
+                PdfCore.PdfLogicalElementKind.Footnote => ("<aside class=\"pdf-footnote\" role=\"doc-footnote\">", "</aside>"),
+                _ => ("<p>", "</p>")
+            };
+            builder.Append(Prefix);
+            AppendHtmlText(builder, block.Text);
+            builder.Append(Suffix);
+        });
 
     private static bool IsTextBlockRepresented(PdfCore.PdfLogicalTextBlock block, PdfCore.PdfLogicalPage page) {
         if (block.Kind == PdfCore.PdfLogicalElementKind.Heading || block.Kind == PdfCore.PdfLogicalElementKind.ListItem) {
@@ -1086,13 +1187,6 @@ public static partial class PdfHtmlConverterExtensions {
             placement.E.ToString("0.###", CultureInfo.InvariantCulture),
             placement.F.ToString("0.###", CultureInfo.InvariantCulture));
     }
-
-    private static string HtmlText(string value) {
-        return System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
-    }
-
-    private static string NormalizeOutputNewLines(string value, string newLine) =>
-        value.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", newLine);
 
     private static string HtmlAttribute(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty).Replace("\"", "&quot;");

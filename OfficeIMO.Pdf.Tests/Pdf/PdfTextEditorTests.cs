@@ -179,6 +179,7 @@ public class PdfTextEditorTests {
         PdfTextMatch targetBefore = Assert.Single(moveSource.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch omegaBefore = Assert.Single(moveSource.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextEditResult moved = moveSource.Text.Move(targetBefore, 12D, -4D);
+        string movedText = moved.Document.Reader.Text();
         PdfTextMatch alphaAfter = Assert.Single(moved.Document.Text.Find("Alpha", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch targetAfter = Assert.Single(moved.Document.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
         PdfTextMatch omegaAfter = Assert.Single(moved.Document.Text.Find("Omega", new PdfTextSearchOptions { MatchCase = true }));
@@ -189,6 +190,31 @@ public class PdfTextEditorTests {
         Assert.Equal(targetBefore.Y - 4D, targetAfter.Y, 2);
         Assert.Equal(omegaBefore.X, omegaAfter.X, 2);
         Assert.Equal(omegaBefore.Y, omegaAfter.Y, 2);
+        Assert.Contains("Alpha Omega", movedText, StringComparison.Ordinal);
+        string movedRaw = PdfEncoding.Latin1GetString(moved.Document.ToBytes());
+        Assert.Contains("<416C70686120> Tj", movedRaw, StringComparison.Ordinal);
+        Assert.Contains("<20> Tj", movedRaw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LocatedOccurrenceMoveLeavesIndependentSameBaselineSpanUntouched() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (target) Tj ET\n" +
+            "BT /F2 20 Tf 350 700 Td (neighbor) Tj ET\n");
+        PdfDocument original = PdfDocument.Load(source);
+        PdfTextMatch target = Assert.Single(original.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch neighborBefore = Assert.Single(original.Text.Find("neighbor", new PdfTextSearchOptions { MatchCase = true }));
+
+        PdfTextEditResult moved = original.Text.Move(target, 12D, -4D);
+        PdfTextMatch targetAfter = Assert.Single(moved.Document.Text.Find("target", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch neighborAfter = Assert.Single(moved.Document.Text.Find("neighbor", new PdfTextSearchOptions { MatchCase = true }));
+
+        Assert.Equal(target.X + 12D, targetAfter.X, 2);
+        Assert.Equal(target.Y - 4D, targetAfter.Y, 2);
+        Assert.Equal(neighborBefore.X, neighborAfter.X, 2);
+        Assert.Equal(neighborBefore.Y, neighborAfter.Y, 2);
+        Assert.Equal(PdfStandardFont.Courier, neighborAfter.SuggestedFont);
+        Assert.Equal(20D, neighborAfter.FontSize, 2);
     }
 
     [Fact]

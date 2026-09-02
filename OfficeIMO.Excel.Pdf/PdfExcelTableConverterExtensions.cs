@@ -43,30 +43,44 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>Imports logical PDF tables from an opened PDF and asynchronously saves a new Excel workbook.</summary>
-        public static Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
+        public static async Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
             this PdfCore.PdfDocument document,
             string workbookPath,
             PdfExcelTableImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForExcel(document, options, cancellationToken).SaveTablesAsExcelAsync(workbookPath, options, cancellationToken);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            return await ReadForExcel(document, operation, effectiveCancellationToken)
+                .SaveTablesAsExcelAsync(workbookPath, operation, effectiveCancellationToken)
+                .ConfigureAwait(false);
         }
 
         /// <summary>Imports logical PDF tables from an opened PDF and asynchronously saves to a caller-owned workbook stream.</summary>
-        public static Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
+        public static async Task<PdfExcelTableImportReport> SaveTablesAsExcelAsync(
             this PdfCore.PdfDocument document,
             Stream workbookStream,
             PdfExcelTableImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return ReadForExcel(document, options, cancellationToken).SaveTablesAsExcelAsync(workbookStream, options, cancellationToken);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            return await ReadForExcel(document, operation, effectiveCancellationToken)
+                .SaveTablesAsExcelAsync(workbookStream, operation, effectiveCancellationToken)
+                .ConfigureAwait(false);
         }
 
         private static PdfCore.PdfDocumentReadResult ReadForExcel(
             PdfCore.PdfDocument document,
             PdfExcelTableImportOptions? options,
-            CancellationToken cancellationToken = default) =>
-            document.Read(options?.ReadOptions, cancellationToken);
+            CancellationToken cancellationToken = default) {
+            CancellationToken effectiveCancellationToken = cancellationToken.CanBeCanceled
+                ? cancellationToken
+                : options?.CancellationToken ?? default;
+            return document.Read(options?.ReadOptions, effectiveCancellationToken);
+        }
 
         /// <summary>Imports logical PDF tables into a new Excel workbook at <paramref name="workbookPath"/>.</summary>
         public static PdfExcelTableImportReport SaveTablesAsExcel(
@@ -123,10 +137,13 @@ namespace OfficeIMO.Excel.Pdf {
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (string.IsNullOrWhiteSpace(workbookPath)) throw new ArgumentException("Workbook path cannot be empty.", nameof(workbookPath));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(workbookPath, cancellationToken: cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(workbookPath, cancellationToken: operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
         }
@@ -140,12 +157,28 @@ namespace OfficeIMO.Excel.Pdf {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
             if (!workbookStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(workbookStream));
-            cancellationToken.ThrowIfCancellationRequested();
-            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(options);
+            PdfExcelTableImportOptions operation = (options ?? new PdfExcelTableImportOptions()).CloneForConversion();
+            using CancellationTokenSource? linked = LinkCancellationTokens(operation.CancellationToken, cancellationToken, out CancellationToken effectiveCancellationToken);
+            operation.CancellationToken = effectiveCancellationToken;
+            operation.CancellationToken.ThrowIfCancellationRequested();
+            PdfExcelTableImportResult result = document.ImportTablesToExcelDocumentResult(operation);
             using (result.Value) {
-                await result.Value.SaveAsync(workbookStream, cancellationToken).ConfigureAwait(false);
+                await result.Value.SaveAsync(workbookStream, operation.CancellationToken).ConfigureAwait(false);
             }
             return result.Report;
+        }
+
+        private static CancellationTokenSource? LinkCancellationTokens(
+            CancellationToken optionsToken,
+            CancellationToken methodToken,
+            out CancellationToken effectiveToken) {
+            if (optionsToken.CanBeCanceled && methodToken.CanBeCanceled && optionsToken != methodToken) {
+                CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(optionsToken, methodToken);
+                effectiveToken = linked.Token;
+                return linked;
+            }
+            effectiveToken = methodToken.CanBeCanceled ? methodToken : optionsToken;
+            return null;
         }
 
         private static IReadOnlyList<PdfExcelTableImportEntry> ImportTables(
@@ -159,7 +192,8 @@ namespace OfficeIMO.Excel.Pdf {
                 options.MergePageContinuations,
                 options.SuppressRepeatedBodyHeaderRows,
                 options.MaximumContinuationSegments,
-                options.ContinuationGeometryTolerancePoints);
+                options.ContinuationGeometryTolerancePoints,
+                options.CancellationToken);
             if (tables.Count == 0) {
                 AddEmptyWorkbookSheet(workbook, options);
                 return Array.Empty<PdfExcelTableImportEntry>();

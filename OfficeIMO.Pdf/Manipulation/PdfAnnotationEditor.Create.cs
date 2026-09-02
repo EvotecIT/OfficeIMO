@@ -11,6 +11,7 @@ internal static partial class PdfAnnotationEditor {
         PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference);
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions); int catalog = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalog == 0) throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
+        ValidateLinkUriAgainstCatalog(options, objects, catalog);
         List<int> pages = GetPageObjectNumbersInDocumentOrder(objects);
         if (options.PageNumber > pages.Count) throw new ArgumentOutOfRangeException(nameof(options), "Annotation page number exceeds the PDF page count.");
         int pageObjectNumber = pages[options.PageNumber - 1]; PdfIndirectObject pageIndirect = objects[pageObjectNumber]; PdfDictionary page = (PdfDictionary)pageIndirect.Value;
@@ -80,13 +81,49 @@ internal static partial class PdfAnnotationEditor {
         if (options.Subtype == "Link") {
             Guard.NotNullOrWhiteSpace(options.LinkUri, nameof(options.LinkUri));
             Guard.UriAction(options.LinkUri!, nameof(options.LinkUri));
+            if (options.Title != null ||
+                options.IconName != null ||
+                options.InReplyToObjectNumber.HasValue ||
+                options.ReplyType != null ||
+                options.ReviewState.HasValue ||
+                options.Subject != null ||
+                options.Intent != null ||
+                options.CreatePopup ||
+                options.PopupRectangle != null ||
+                options.PopupOpen) {
+                throw new ArgumentException(
+                    "Link annotations do not support markup-only author, popup, reply, review, subject, intent, or icon options.",
+                    nameof(options));
+            }
         } else if (options.LinkUri != null) {
             throw new ArgumentException("LinkUri can be used only with Link annotations.", nameof(options));
         }
     }
 
-    private static bool IsAppearanceSubtype(string subtype) => subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
+    private static bool IsAppearanceSubtype(string subtype) => subtype == "Text" || subtype == "FreeText" || subtype == "Highlight" || subtype == "Underline" || subtype == "Squiggly" || subtype == "StrikeOut" || subtype == "Square" || subtype == "Circle" || subtype == "Line" || subtype == "Ink" || subtype == "Polygon" || subtype == "PolyLine" || subtype == "Stamp" || subtype == "Caret";
     private static bool IsCreatableSubtype(string subtype) => subtype == "Text" || subtype == "Link" || IsAppearanceSubtype(subtype);
+
+    private static void ValidateLinkUriAgainstCatalog(
+        PdfAnnotationCreateOptions options,
+        Dictionary<int, PdfIndirectObject> objects,
+        int catalogObjectNumber) {
+        if (options.LinkUri == null ||
+            Uri.TryCreate(options.LinkUri, UriKind.Absolute, out _)) return;
+
+        if (objects.TryGetValue(catalogObjectNumber, out PdfIndirectObject? catalogObject) &&
+            catalogObject.Value is PdfDictionary catalog &&
+            catalog.Items.TryGetValue("URI", out PdfObject? uriObject) &&
+            PdfObjectLookup.TryResolveReferenceChain(objects, uriObject, out PdfObject? resolvedUri) &&
+            resolvedUri is PdfDictionary uriDictionary &&
+            uriDictionary.Items.TryGetValue("Base", out PdfObject? baseObject) &&
+            PdfObjectLookup.TryResolveReferenceChain(objects, baseObject, out PdfObject? resolvedBase) &&
+            resolvedBase is PdfStringObj baseString &&
+            Uri.TryCreate(baseString.Value, UriKind.Absolute, out _)) return;
+
+        throw new ArgumentException(
+            "Relative PDF URI link targets require an existing catalog URI base.",
+            nameof(options));
+    }
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
         Dictionary<int, PdfIndirectObject> objects,
@@ -101,7 +138,7 @@ internal static partial class PdfAnnotationEditor {
     }
     private static double[] DefaultPopupRectangle(IReadOnlyList<double> parent) => new[] { parent[2] + 8D, parent[1], parent[2] + 208D, parent[1] + 120D };
     private static void ValidateCreatedAnnotation(byte[] output, PdfAnnotationCreateOptions options, int expectedObjectNumber, int? expectedParentObjectNumber, PdfLoadOptions? readOptions) {
-        PdfDocumentInfo info = PdfInspector.Inspect(output, readOptions);
+        PdfDocumentInfo info = ReadAnnotationMetadata(output, readOptions);
         PdfAnnotation? found = info.Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found == null || found.Subtype != options.Subtype || found.PageNumber != options.PageNumber) throw new InvalidOperationException("PDF annotation creation readback failed; the artifact was not returned.");
         if (options.GenerateAppearance && IsAppearanceSubtype(options.Subtype) && !found.HasNormalAppearance) throw new InvalidOperationException("PDF annotation appearance readback failed; the artifact was not returned.");
@@ -112,7 +149,7 @@ internal static partial class PdfAnnotationEditor {
 
     private static void ValidateUpdatedAnnotation(byte[] output, int expectedObjectNumber, PdfAnnotationUpdateOptions options, PdfLoadOptions? readOptions) {
         if (!options.ReviewState.HasValue) return;
-        PdfAnnotation? found = PdfInspector.Inspect(output, readOptions).Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
+        PdfAnnotation? found = ReadAnnotationMetadata(output, readOptions).Annotations.FirstOrDefault(annotation => annotation.ObjectNumber == expectedObjectNumber);
         if (found?.Review?.StandardState != options.ReviewState) throw new InvalidOperationException("PDF annotation review state readback failed; the artifact was not returned.");
     }
 }

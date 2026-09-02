@@ -16,26 +16,31 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string? stagingDirectory = null;
         long inputBytes = 0L;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
+        ValidatedImageExportRequest? validated = null;
 
         try {
-            ValidatedImageExportRequest validated = ValidateImageExportRequest(request);
+            validated = ValidateImageExportRequest(request);
             failureStage = WorkflowFailureStage.Input;
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
             Report(progress, validated.Id, "validate", "Validating PDF and page selection", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
 
-            PdfDocument document = PdfDocument.Load(validated.InputPath, validated.LoadOptions);
-            PdfDocumentInfo info = document.Inspect();
-            int[] pageNumbers = ResolvePageNumbers(validated.Pages, info.PageCount);
+            PdfDocument document = await PdfDocument
+                .LoadAsync(validated.InputPath, validated.LoadOptions, cancellationToken)
+                .ConfigureAwait(false);
+            PdfDocumentInfo info = document.Inspect(validated.LoadOptions, cancellationToken);
+            int[] pageNumbers = ResolvePageNumbers(validated.PageSelector, info.PageCount);
             if (pageNumbers.Length > validated.MaximumPages) {
                 throw new InvalidOperationException(
                     $"The selection contains {pageNumbers.Length:N0} pages, above the configured {validated.MaximumPages:N0}-page limit.");
             }
 
             string parent = Path.GetDirectoryName(validated.OutputDirectory)!;
+            failureStage = WorkflowFailureStage.Output;
             Directory.CreateDirectory(parent);
             stagingDirectory = Path.Combine(parent, "." + Path.GetFileName(validated.OutputDirectory) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            failureStage = WorkflowFailureStage.Operation;
 
             var options = new PdfImageExportOptions {
                 TargetDpi = validated.TargetDpi,
@@ -43,7 +48,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 MaximumOutputCount = validated.MaximumPages,
                 MaximumTotalEncodedBytes = validated.Limits.MaximumOutputBytes
             };
-            var exportProgress = new Progress<OfficeImageExportProgress>(item => {
+            var exportProgress = new InlineProgress<OfficeImageExportProgress>(item => {
                 double fraction = pageNumbers.Length == 0 ? 0D : (double)item.CompletedCount / pageNumbers.Length;
                 Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D + fraction * 0.58D);
             });
@@ -54,18 +59,23 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 .Pages(PdfPageSelection.From(pageNumbers))
                 .As(validated.Format);
             Report(progress, validated.Id, "render", "Rendering selected PDF pages", 0.12D);
-            OfficeImageExportBatchSaveResult saved = await builder
-                .SaveFilesAsync(stagingDirectory, cancellationToken)
-                .ConfigureAwait(false);
+            OfficeImageExportBatchSaveResult saved;
+            try {
+                saved = await builder
+                    .SaveFilesAsync(stagingDirectory, cancellationToken)
+                    .ConfigureAwait(false);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                failureStage = WorkflowFailureStage.Output;
+                throw;
+            }
             cancellationToken.ThrowIfCancellationRequested();
-            failureStage = WorkflowFailureStage.Output;
-
             long outputBytes = 0L;
+            Report(progress, validated.Id, "validate-output", "Validating page image output", 0.74D);
             for (int index = 0; index < saved.Files.Count; index++) {
                 OfficeImageExportSavedFile file = saved.Files[index];
                 outputBytes = checked(outputBytes + file.EncodedLength);
                 byte[] bytes = await File.ReadAllBytesAsync(file.Path, cancellationToken).ConfigureAwait(false);
-                if (!OfficeImageReader.TryValidateContent(bytes, file.Path, out OfficeImageInfo imageInfo) ||
+                if (!OfficeImageReader.TryValidateContent(bytes, file.Path, cancellationToken, out OfficeImageInfo imageInfo) ||
                     imageInfo.Width != file.Width || imageInfo.Height != file.Height) {
                     throw new InvalidOperationException("A staged page image failed content and dimension validation.");
                 }
@@ -85,7 +95,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                     ["format"] = validated.Format.ToString(),
                     ["outputBytes"] = outputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture)
                 }));
+            failureStage = WorkflowFailureStage.Output;
             Report(progress, validated.Id, "publish", "Publishing the validated image folder", 0.9D);
+            cancellationToken.ThrowIfCancellationRequested();
             string publishedDirectory = await PublishDirectoryAsync(
                     stagingDirectory,
                     validated.OutputDirectory,
@@ -125,7 +137,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new PdfPageImageExportResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Cancelled,
                 OfficeWorkflowFailureKind.None,
                 null,
@@ -141,10 +153,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
                 "PageImageExportFailed",
                 ex.Message,
                 OfficeWorkflowDiagnosticSeverity.Error,
-                "execute",
+                GetDiagnosticStage(failureStage),
                 details));
             return new PdfPageImageExportResult(
-                request.Id,
+                validated?.Id ?? request.Id,
                 OfficeWorkflowStatus.Failed,
                 ClassifyFailure(ex, failureStage),
                 null,
@@ -166,9 +178,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string inputPath = Path.GetFullPath(request.InputPath);
         if (!File.Exists(inputPath)) throw new FileNotFoundException("The source PDF does not exist.", inputPath);
         EnsurePdfExtension(inputPath);
-        string outputDirectory = Path.GetFullPath(request.OutputDirectory);
-        if (OfficeWorkflowPathIdentity.AreEquivalent(inputPath, outputDirectory)) {
-            throw new ArgumentException("Output directory cannot be the source PDF path.", nameof(request));
+        string outputDirectory = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.OutputDirectory));
+        if (string.IsNullOrEmpty(Path.GetDirectoryName(outputDirectory))) {
+            throw new ArgumentException("Output directory cannot be a filesystem root.", nameof(request));
+        }
+        if (OfficeWorkflowPathIdentity.IsSameOrDescendant(inputPath, outputDirectory)) {
+            throw new ArgumentException("Output directory cannot be the source PDF path or one of its physical ancestors.", nameof(request));
         }
         if (!Enum.IsDefined(request.Format)) throw new ArgumentOutOfRangeException(nameof(request.Format));
         if (request.TargetDpi <= 0D || double.IsNaN(request.TargetDpi) || double.IsInfinity(request.TargetDpi)) {
@@ -177,26 +192,28 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         if (request.MaximumDimension is < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumDimension));
         if (request.MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(request.MaximumPages));
         if (!Enum.IsDefined(request.ConflictPolicy)) throw new ArgumentOutOfRangeException(nameof(request.ConflictPolicy));
+        PdfPageSelector? pageSelector = string.IsNullOrWhiteSpace(request.Pages)
+            ? null
+            : PdfPageSelector.Parse(request.Pages);
         OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         return new ValidatedImageExportRequest(
             request.Id,
             inputPath,
             outputDirectory,
-            request.Pages,
+            pageSelector,
             request.Format,
             request.TargetDpi,
             request.MaximumDimension,
             request.MaximumPages,
             request.ConflictPolicy,
             limits,
-            new PdfLoadOptions { Password = request.PdfPassword });
+            CreatePdfLoadOptions(request.PdfPassword, limits.MaximumInputBytes));
     }
 
-    private static int[] ResolvePageNumbers(string? selector, int pageCount) {
+    private static int[] ResolvePageNumbers(PdfPageSelector? selector, int pageCount) {
         if (pageCount < 1) throw new InvalidOperationException("The source PDF has no pages.");
-        if (string.IsNullOrWhiteSpace(selector)) return Enumerable.Range(1, pageCount).ToArray();
-        return PdfPageSelector.Parse(selector)
-            .ResolveSelection(pageCount)
+        if (selector == null) return Enumerable.Range(1, pageCount).ToArray();
+        return selector.ResolveSelection(pageCount)
             .Ranges
             .SelectMany(static range => Enumerable.Range(range.FirstPage, range.PageCount))
             .ToArray();
@@ -227,7 +244,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeOutputWorkflowRunner {
         string Id,
         string InputPath,
         string OutputDirectory,
-        string? Pages,
+        PdfPageSelector? PageSelector,
         OfficeImageExportFormat Format,
         double TargetDpi,
         int? MaximumDimension,

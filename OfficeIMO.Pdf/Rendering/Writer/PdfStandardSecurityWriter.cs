@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -33,25 +34,31 @@ internal static partial class PdfStandardSecurityWriter {
     internal static PdfEncryptionAssembly Encrypt(
         IReadOnlyList<byte[]> sourceObjects,
         PdfStandardEncryptionOptions options,
-        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(sourceObjects, nameof(sourceObjects));
         Guard.NotNull(options, nameof(options));
         if (objectMemoryLimitBytes < 0L) throw new ArgumentOutOfRangeException(nameof(objectMemoryLimitBytes), objectMemoryLimitBytes, "PDF object-buffer memory limit cannot be negative.");
 
         switch (options.Algorithm) {
             case PdfStandardEncryptionAlgorithm.Aes256:
-                return EncryptAes256(sourceObjects, options, objectMemoryLimitBytes);
+                return EncryptAes256(sourceObjects, options, objectMemoryLimitBytes, cancellationToken);
             case PdfStandardEncryptionAlgorithm.Aes128:
-                return EncryptAes128(sourceObjects, options, objectMemoryLimitBytes);
+                return EncryptAes128(sourceObjects, options, objectMemoryLimitBytes, cancellationToken);
             case PdfStandardEncryptionAlgorithm.LegacyRc4:
-                return EncryptLegacyRc4(sourceObjects, options, objectMemoryLimitBytes);
+                return EncryptLegacyRc4(sourceObjects, options, objectMemoryLimitBytes, cancellationToken);
             default:
                 throw new ArgumentOutOfRangeException(nameof(options), options.Algorithm, "Unsupported PDF Standard encryption algorithm.");
         }
     }
 
-    private static PdfEncryptionAssembly EncryptLegacyRc4(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options, long objectMemoryLimitBytes) {
-
+    private static PdfEncryptionAssembly EncryptLegacyRc4(
+        IReadOnlyList<byte[]> sourceObjects,
+        PdfStandardEncryptionOptions options,
+        long objectMemoryLimitBytes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;
         byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword);
@@ -62,9 +69,11 @@ internal static partial class PdfStandardSecurityWriter {
         var objects = new PdfObjectStore(objectMemoryLimitBytes);
         try {
             for (int i = 0; i < sourceObjects.Count; i++) {
-                objects.Add(EncryptIndirectObject(sourceObjects[i], i + 1, fileKey));
+                cancellationToken.ThrowIfCancellationRequested();
+                objects.Add(EncryptIndirectObject(sourceObjects[i], i + 1, fileKey, cancellationToken));
             }
 
+            cancellationToken.ThrowIfCancellationRequested();
             objects.Add(PdfObjectBytes.WrapIndirectObject(encryptionObjectNumber, BuildEncryptionDictionary(ownerEntry, userEntry, options.Permissions)));
             return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId, objects);
         } catch {
@@ -73,9 +82,14 @@ internal static partial class PdfStandardSecurityWriter {
         }
     }
 
-    private static byte[] EncryptIndirectObject(byte[] objectBytes, int objectNumber, byte[] fileKey) {
-        int bodyStart = IndexOf(objectBytes, PdfEncoding.Latin1GetBytes("obj\n"), 0);
-        int bodyEnd = LastIndexOf(objectBytes, PdfEncoding.Latin1GetBytes("endobj\n"));
+    private static byte[] EncryptIndirectObject(
+        byte[] objectBytes,
+        int objectNumber,
+        byte[] fileKey,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        int bodyStart = IndexOf(objectBytes, PdfEncoding.Latin1GetBytes("obj\n"), 0, cancellationToken);
+        int bodyEnd = LastIndexOf(objectBytes, PdfEncoding.Latin1GetBytes("endobj\n"), cancellationToken);
         if (bodyStart < 0 || bodyEnd <= bodyStart) {
             return objectBytes;
         }
@@ -83,44 +97,50 @@ internal static partial class PdfStandardSecurityWriter {
         bodyStart += 4;
         var body = new byte[bodyEnd - bodyStart];
         Buffer.BlockCopy(objectBytes, bodyStart, body, 0, body.Length);
-        return PdfObjectBytes.WrapIndirectObject(objectNumber, EncryptObjectBody(body, objectNumber, fileKey));
+        cancellationToken.ThrowIfCancellationRequested();
+        return PdfObjectBytes.WrapIndirectObject(objectNumber, EncryptObjectBody(body, objectNumber, fileKey, cancellationToken));
     }
 
-    private static byte[] EncryptObjectBody(byte[] body, int objectNumber, byte[] fileKey) {
+    private static byte[] EncryptObjectBody(byte[] body, int objectNumber, byte[] fileKey, CancellationToken cancellationToken) {
         byte[] streamMarker = PdfEncoding.Latin1GetBytes("\nstream\n");
         byte[] endStreamMarker = PdfEncoding.Latin1GetBytes("\nendstream");
-        int streamMarkerIndex = IndexOf(body, streamMarker, 0);
+        int streamMarkerIndex = IndexOf(body, streamMarker, 0, cancellationToken);
         if (streamMarkerIndex < 0) {
-            return EncryptPdfStrings(body, objectNumber, fileKey);
+            return EncryptPdfStrings(body, objectNumber, fileKey, cancellationToken);
         }
 
         int streamDataStart = streamMarkerIndex + streamMarker.Length;
-        int streamDataEnd = LastIndexOf(body, endStreamMarker);
+        int streamDataEnd = LastIndexOf(body, endStreamMarker, cancellationToken);
         if (streamDataEnd < streamDataStart) {
-            return EncryptPdfStrings(body, objectNumber, fileKey);
+            return EncryptPdfStrings(body, objectNumber, fileKey, cancellationToken);
         }
 
         byte[] prefix = Slice(body, 0, streamDataStart);
         byte[] streamData = Slice(body, streamDataStart, streamDataEnd);
         byte[] suffix = Slice(body, streamDataEnd, body.Length);
-        byte[] encryptedPrefix = EncryptPdfStrings(prefix, objectNumber, fileKey);
-        byte[] encryptedStream = Rc4.Transform(ComputeObjectKey(fileKey, objectNumber, 0), streamData);
+        byte[] encryptedPrefix = EncryptPdfStrings(prefix, objectNumber, fileKey, cancellationToken);
+        byte[] encryptedStream = Rc4.Transform(ComputeObjectKey(fileKey, objectNumber, 0), streamData, cancellationToken);
         return PdfObjectBytes.Concat(encryptedPrefix, encryptedStream, suffix);
     }
 
-    private static byte[] EncryptPdfStrings(byte[] input, int objectNumber, byte[] fileKey) {
+    private static byte[] EncryptPdfStrings(
+        byte[] input,
+        int objectNumber,
+        byte[] fileKey,
+        CancellationToken cancellationToken) {
         using var output = new MemoryStream(input.Length);
         int index = 0;
         while (index < input.Length) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[index];
-            if (current == (byte)'(' && TryReadLiteralString(input, index, out int literalEnd, out byte[] literalBytes)) {
+            if (current == (byte)'(' && TryReadLiteralString(input, index, out int literalEnd, out byte[] literalBytes, cancellationToken)) {
                 WriteEncryptedHexString(output, literalBytes, objectNumber, fileKey);
                 index = literalEnd + 1;
                 continue;
             }
 
             if (current == (byte)'<' && index + 1 < input.Length && input[index + 1] != (byte)'<' &&
-                TryReadHexString(input, index, out int hexEnd, out byte[] hexBytes)) {
+                TryReadHexString(input, index, out int hexEnd, out byte[] hexBytes, cancellationToken)) {
                 WriteEncryptedHexString(output, hexBytes, objectNumber, fileKey);
                 index = hexEnd + 1;
                 continue;
@@ -133,10 +153,16 @@ internal static partial class PdfStandardSecurityWriter {
         return output.ToArray();
     }
 
-    private static bool TryReadLiteralString(byte[] input, int start, out int end, out byte[] value) {
+    private static bool TryReadLiteralString(
+        byte[] input,
+        int start,
+        out int end,
+        out byte[] value,
+        CancellationToken cancellationToken = default) {
         int depth = 0;
         bool escaped = false;
         for (int i = start; i < input.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[i];
             if (escaped) {
                 escaped = false;
@@ -169,10 +195,16 @@ internal static partial class PdfStandardSecurityWriter {
         return false;
     }
 
-    private static bool TryReadHexString(byte[] input, int start, out int end, out byte[] value) {
+    private static bool TryReadHexString(
+        byte[] input,
+        int start,
+        out int end,
+        out byte[] value,
+        CancellationToken cancellationToken = default) {
         for (int i = start + 1; i < input.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (input[i] == (byte)'>') {
-                if (TryParseHexBytes(input, start + 1, i, out value)) {
+                if (TryParseHexBytes(input, start + 1, i, out value, cancellationToken)) {
                     end = i;
                     return true;
                 }
@@ -186,9 +218,15 @@ internal static partial class PdfStandardSecurityWriter {
         return false;
     }
 
-    private static bool TryParseHexBytes(byte[] input, int start, int end, out byte[] bytes) {
+    private static bool TryParseHexBytes(
+        byte[] input,
+        int start,
+        int end,
+        out byte[] bytes,
+        CancellationToken cancellationToken = default) {
         var nibbles = new List<int>();
         for (int i = start; i < end; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = input[i];
             if (IsWhiteSpace(current)) {
                 continue;
@@ -363,12 +401,17 @@ internal static partial class PdfStandardSecurityWriter {
         return result;
     }
 
-    private static int IndexOf(byte[] source, byte[] pattern, int start) {
+    private static int IndexOf(
+        byte[] source,
+        byte[] pattern,
+        int start,
+        CancellationToken cancellationToken = default) {
         if (pattern.Length == 0) {
             return start;
         }
 
         for (int i = start; i <= source.Length - pattern.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             bool match = true;
             for (int j = 0; j < pattern.Length; j++) {
                 if (source[i + j] != pattern[j]) {
@@ -385,12 +428,16 @@ internal static partial class PdfStandardSecurityWriter {
         return -1;
     }
 
-    private static int LastIndexOf(byte[] source, byte[] pattern) {
+    private static int LastIndexOf(
+        byte[] source,
+        byte[] pattern,
+        CancellationToken cancellationToken = default) {
         if (pattern.Length == 0) {
             return source.Length;
         }
 
         for (int i = source.Length - pattern.Length; i >= 0; i--) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             bool match = true;
             for (int j = 0; j < pattern.Length; j++) {
                 if (source[i + j] != pattern[j]) {
@@ -432,7 +479,8 @@ internal static partial class PdfStandardSecurityWriter {
     }
 
     private static class Rc4 {
-        public static byte[] Transform(byte[] key, byte[] data) {
+        public static byte[] Transform(byte[] key, byte[] data, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var state = new byte[256];
             for (int i = 0; i < state.Length; i++) {
                 state[i] = (byte)i;
@@ -448,6 +496,7 @@ internal static partial class PdfStandardSecurityWriter {
             int x = 0;
             int y = 0;
             for (int i = 0; i < data.Length; i++) {
+                if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                 x = (x + 1) & 0xFF;
                 y = (y + state[x]) & 0xFF;
                 Swap(state, x, y);

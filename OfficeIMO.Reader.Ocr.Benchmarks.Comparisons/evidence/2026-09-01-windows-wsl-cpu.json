@@ -1,0 +1,33 @@
+{
+  "runId": "20260901-112934-4d2c5802",
+  "date": "2026-09-01",
+  "host": {
+    "windows": "10.0.26200",
+    "wsl": "Ubuntu 24.04.3 LTS",
+    "cpu": "AMD Ryzen 9 9950X3D2 16-Core Processor",
+    "logicalProcessors": 32,
+    "powershell": "7.6.4"
+  },
+  "contract": "Equivalent single-language one-shot local CPU OCR through WSL process boundaries; zero warmups; three measured iterations; validated non-empty text and positive geometry. Mixed-language lanes are excluded because the pinned RapidOCR setup selects one recognition model.",
+  "engines": {
+    "Tesseract": {
+      "version": "5.3.4",
+      "installedMiB": 25.32,
+      "geometry": "word"
+    },
+    "RapidOCR": {
+      "version": "3.9.2",
+      "onnxRuntimeVersion": "1.29.0",
+      "installedMiB": 425.02,
+      "geometry": "line"
+    }
+  },
+  "results": [
+    { "case": "clean-english", "engine": "Tesseract", "medianMs": 571.3, "characterErrorRate": 0.0 },
+    { "case": "clean-english", "engine": "RapidOCR", "medianMs": 6466.7, "characterErrorRate": 0.0 },
+    { "case": "dense-table", "engine": "Tesseract", "medianMs": 570.7, "characterErrorRate": 0.0 },
+    { "case": "dense-table", "engine": "RapidOCR", "medianMs": 6164.4, "characterErrorRate": 0.0104 },
+    { "case": "low-contrast-skew", "engine": "Tesseract", "medianMs": 488.0, "characterErrorRate": 0.0 },
+    { "case": "low-contrast-skew", "engine": "RapidOCR", "medianMs": 6025.5, "characterErrorRate": 0.0 }
+  ]
+}

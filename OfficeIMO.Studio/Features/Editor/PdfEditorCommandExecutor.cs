@@ -178,7 +178,6 @@ internal static class PdfEditorCommandExecutor {
             Subtype = "Link",
             Rectangle = Rectangle(command.Bounds),
             Contents = command.Properties.Text,
-            Title = command.Properties.Author,
             LinkUri = command.Properties.LinkUri,
             GenerateAppearance = false
         });

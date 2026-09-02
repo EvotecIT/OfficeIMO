@@ -1,7 +1,16 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf.Filters;
 
 internal static class PngPredictorDecoder {
-    public static byte[] Decode(byte[] data, int columns, int colors, int bitsPerComponent, int maxOutputBytes) {
+    public static byte[] Decode(
+        byte[] data,
+        int columns,
+        int colors,
+        int bitsPerComponent,
+        int maxOutputBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (maxOutputBytes <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxOutputBytes), maxOutputBytes, "Maximum decoded stream bytes must be positive.");
         }
@@ -46,6 +55,7 @@ internal static class PngPredictorDecoder {
         var currentRow = new byte[rowLength];
 
         while (inputOffset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             int filterType = data[inputOffset++];
             if (inputOffset + rowLength > data.Length) {
                 throw new FormatException("PNG predictor row exceeds decoded stream length.");
@@ -59,17 +69,20 @@ internal static class PngPredictorDecoder {
                     break;
                 case 1:
                     for (int i = 0; i < rowLength; i++) {
+                        if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                         int left = i >= bytesPerPixel ? currentRow[i - bytesPerPixel] : 0;
                         currentRow[i] = unchecked((byte)(currentRow[i] + left));
                     }
                     break;
                 case 2:
                     for (int i = 0; i < rowLength; i++) {
+                        if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                         currentRow[i] = unchecked((byte)(currentRow[i] + previousRow[i]));
                     }
                     break;
                 case 3:
                     for (int i = 0; i < rowLength; i++) {
+                        if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                         int left = i >= bytesPerPixel ? currentRow[i - bytesPerPixel] : 0;
                         int up = previousRow[i];
                         currentRow[i] = unchecked((byte)(currentRow[i] + ((left + up) / 2)));
@@ -77,6 +90,7 @@ internal static class PngPredictorDecoder {
                     break;
                 case 4:
                     for (int i = 0; i < rowLength; i++) {
+                        if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
                         int left = i >= bytesPerPixel ? currentRow[i - bytesPerPixel] : 0;
                         int up = previousRow[i];
                         int upLeft = i >= bytesPerPixel ? previousRow[i - bytesPerPixel] : 0;

@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -14,17 +15,50 @@ public sealed class PdfImageDocumentSource {
         Name = string.IsNullOrWhiteSpace(name) ? null : name!.Trim();
     }
 
+    private PdfImageDocumentSource(byte[] bytes, string? name, bool takeOwnership) {
+        _bytes = takeOwnership ? bytes : (byte[])bytes.Clone();
+        Name = string.IsNullOrWhiteSpace(name) ? null : name!.Trim();
+    }
+
     /// <summary>Optional source name used as PDF alternate text.</summary>
     public string? Name { get; }
 
     /// <summary>Returns a caller-owned copy of the encoded image payload.</summary>
     public byte[] GetBytes() => (byte[])_bytes.Clone();
 
+    internal byte[] GetBytes(CancellationToken cancellationToken) {
+        var copy = new byte[_bytes.Length];
+        const int chunkSize = 64 * 1024;
+        for (int offset = 0; offset < _bytes.Length; offset += chunkSize) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = Math.Min(chunkSize, _bytes.Length - offset);
+            Buffer.BlockCopy(_bytes, offset, copy, offset, count);
+        }
+        return copy;
+    }
+
     /// <summary>Creates an image source from a file snapshot.</summary>
     public static PdfImageDocumentSource FromFile(string path) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path cannot be empty.", nameof(path));
         string fullPath = Path.GetFullPath(path);
         return new PdfImageDocumentSource(File.ReadAllBytes(fullPath), Path.GetFileName(fullPath));
+    }
+
+    internal static PdfImageDocumentSource FromFile(string path, CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Image path cannot be empty.", nameof(path));
+        string fullPath = Path.GetFullPath(path);
+        using var stream = File.OpenRead(fullPath);
+        if (stream.Length > int.MaxValue) throw new IOException("Image source is too large to read into memory.");
+        var bytes = new byte[(int)stream.Length];
+        int offset = 0;
+        while (offset < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            int read = stream.Read(bytes, offset, Math.Min(64 * 1024, bytes.Length - offset));
+            if (read == 0) throw new EndOfStreamException("Image source ended before its declared length.");
+            offset += read;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return new PdfImageDocumentSource(bytes, Path.GetFileName(fullPath), takeOwnership: true);
     }
 }
 
@@ -61,8 +95,8 @@ public sealed class PdfImageDocumentOptions {
         if (MaximumPageDimension <= 0D || double.IsNaN(MaximumPageDimension) || double.IsInfinity(MaximumPageDimension)) {
             throw new ArgumentOutOfRangeException(nameof(MaximumPageDimension));
         }
-        ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize));
-        if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize));
+        ValidatePageSize(FallbackPageSize, nameof(FallbackPageSize), validatePrintableArea: false);
+        if (FixedPageSize.HasValue) ValidatePageSize(FixedPageSize.Value, nameof(FixedPageSize), validatePrintableArea: true);
         return new PdfImageDocumentOptions {
             FixedPageSize = FixedPageSize,
             FallbackPageSize = FallbackPageSize,
@@ -73,11 +107,11 @@ public sealed class PdfImageDocumentOptions {
         };
     }
 
-    private void ValidatePageSize(PageSize size, string name) {
+    private void ValidatePageSize(PageSize size, string name, bool validatePrintableArea) {
         if (size.Width > MaximumPageDimension || size.Height > MaximumPageDimension) {
             throw new ArgumentOutOfRangeException(name, $"Page dimensions cannot exceed {MaximumPageDimension:N0} points.");
         }
-        if (size.Width <= Margin * 2D || size.Height <= Margin * 2D) {
+        if (validatePrintableArea && (size.Width <= Margin * 2D || size.Height <= Margin * 2D)) {
             throw new ArgumentException("Page margins leave no printable image area.", name);
         }
     }
@@ -92,12 +126,39 @@ public sealed partial class PdfDocument {
         return CreateFromImages(imagePaths.Select(PdfImageDocumentSource.FromFile), options);
     }
 
+    /// <summary>Creates one PDF page per image file in caller order with cooperative cancellation.</summary>
+    public static PdfDocument CreateFromImages(
+        IEnumerable<string> imagePaths,
+        PdfImageDocumentOptions? options,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(imagePaths, nameof(imagePaths));
+        cancellationToken.ThrowIfCancellationRequested();
+        return CreateFromImages(
+            imagePaths.Select(path => PdfImageDocumentSource.FromFile(path, cancellationToken)),
+            options,
+            cancellationToken);
+    }
+
     /// <summary>Creates one PDF page per encoded image source in caller order.</summary>
     public static PdfDocument CreateFromImages(
         IEnumerable<PdfImageDocumentSource> images,
         PdfImageDocumentOptions? options = null) {
+        return CreateFromImages(images, options, CancellationToken.None);
+    }
+
+    /// <summary>Creates one PDF page per encoded image source in caller order with cooperative cancellation.</summary>
+    public static PdfDocument CreateFromImages(
+        IEnumerable<PdfImageDocumentSource> images,
+        PdfImageDocumentOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(images, nameof(images));
-        PdfImageDocumentSource[] sources = images.ToArray();
+        cancellationToken.ThrowIfCancellationRequested();
+        var sourceList = new List<PdfImageDocumentSource>();
+        foreach (PdfImageDocumentSource source in images) {
+            cancellationToken.ThrowIfCancellationRequested();
+            sourceList.Add(source);
+        }
+        PdfImageDocumentSource[] sources = sourceList.ToArray();
         if (sources.Length == 0) throw new ArgumentException("At least one image is required.", nameof(images));
         if (sources.Any(static source => source is null)) {
             throw new ArgumentException("Image sources cannot contain null entries.", nameof(images));
@@ -106,12 +167,17 @@ public sealed partial class PdfDocument {
         PdfImageDocumentOptions effective = (options ?? new PdfImageDocumentOptions()).CloneAndValidate();
         var document = new PdfDocument();
         foreach (PdfImageDocumentSource source in sources) {
-            byte[] sourceBytes = source.GetBytes();
-            PreparedImage prepared = PrepareImageBytes(sourceBytes);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] sourceBytes = source.GetBytes(cancellationToken);
+            PreparedImage prepared = PrepareImageDocumentSource(sourceBytes, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             PageSize pageSize = ResolveImagePageSize(prepared.Info, effective);
             double frameWidth = pageSize.Width - effective.Margin * 2D;
             double frameHeight = pageSize.Height - effective.Margin * 2D;
             string? alternativeText = string.IsNullOrWhiteSpace(source.Name) ? null : source.Name;
+            OfficeImageFit placementFit = effective.FixedPageSize.HasValue
+                ? effective.Fit
+                : OfficeImageFit.Stretch;
 
             document.AddComposedPage(page => page
                 .Size(pageSize)
@@ -122,23 +188,48 @@ public sealed partial class PdfDocument {
                     effective.Margin,
                     frameWidth,
                     frameHeight,
-                    new PdfImageStyle { Fit = effective.Fit },
+                    new PdfImageStyle { Fit = placementFit },
                     alternativeText: alternativeText)));
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return document;
     }
 
+    private static PreparedImage PrepareImageDocumentSource(
+        byte[] sourceBytes,
+        CancellationToken cancellationToken) {
+        if (!OfficeImageOrientationNormalizer.TryRead(sourceBytes, cancellationToken, out OfficeImageOrientation orientation) ||
+            orientation == OfficeImageOrientation.Normal) {
+            return PrepareImageBytes(sourceBytes, cancellationToken);
+        }
+        if (!OfficeImageOrientationNormalizer.TryNormalizeToPng(
+                sourceBytes,
+                applyEmbeddedOrientation: true,
+                cancellationToken: cancellationToken,
+                out byte[] normalizedPng,
+                out OfficeImageInfo? normalizedInfo) ||
+            normalizedInfo == null) {
+            throw new NotSupportedException(
+                "The image has embedded orientation metadata that could not be normalized safely for PDF composition.");
+        }
+        return PrepareImageBytes(normalizedPng, cancellationToken);
+    }
+
     private static PageSize ResolveImagePageSize(OfficeImageInfo info, PdfImageDocumentOptions options) {
-        bool isLandscape = info.Width > info.Height && info.Height > 0;
+        double dpiX = ResolveImageDpi(info.DpiX);
+        double dpiY = ResolveImageDpi(info.DpiY);
+        bool isLandscape = info.Width > 0 && info.Height > 0 &&
+            info.Width / dpiX > info.Height / dpiY;
         PageSize pageSize;
         if (options.FixedPageSize.HasValue) {
             pageSize = options.FixedPageSize.Value;
         } else if (info.Width > 0 && info.Height > 0) {
-            double dpiX = ResolveImageDpi(info.DpiX);
-            double dpiY = ResolveImageDpi(info.DpiY);
             double width = info.Width * 72D / dpiX;
             double height = info.Height * 72D / dpiY;
             double maximumContentDimension = options.MaximumPageDimension - options.Margin * 2D;
+            if (maximumContentDimension <= 0D) {
+                throw new ArgumentException("Page margins leave no printable image area.", nameof(options));
+            }
             double scale = Math.Min(1D, maximumContentDimension / Math.Max(width, height));
             pageSize = new PageSize(width * scale + options.Margin * 2D, height * scale + options.Margin * 2D);
             return pageSize;

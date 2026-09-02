@@ -19,7 +19,7 @@ internal static class LegacyWordReaderAdapter {
         LegacyWordImportOptions? importOptions, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using LegacyWordImportResult imported = LegacyWordImporter.Import(path, Prepare(importOptions, path, readerOptions), cancellationToken);
-        return WordReaderAdapter.Project(imported.Document, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+        return WordReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
@@ -27,7 +27,7 @@ internal static class LegacyWordReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "legacy-document" : sourceName!;
         using LegacyWordImportResult imported = LegacyWordImporter.Import(stream, Prepare(importOptions, sourceName, readerOptions), cancellationToken);
-        return WordReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+        return WordReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
     internal static bool Probe(Stream stream, string? sourceName, ReaderOptions readerOptions,
@@ -98,7 +98,7 @@ internal static class LegacyWordReaderAdapter {
         LegacyWordImportOptions configured = Prepare(importOptions, path, readerOptions);
         configured.FormatHint = LegacyWordFormat.WordForDos;
         using LegacyWordImportResult imported = LegacyWordImporter.Import(path, configured, cancellationToken);
-        return WordReaderAdapter.Project(imported.Document, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+        return WordReaderAdapter.Project(imported.Value, path, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
     internal static OfficeDocumentReadResult ReadWordForDosDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderWordOptions options,
@@ -107,7 +107,7 @@ internal static class LegacyWordReaderAdapter {
         LegacyWordImportOptions configured = Prepare(importOptions, sourceName, readerOptions);
         configured.FormatHint = LegacyWordFormat.WordForDos;
         using LegacyWordImportResult imported = LegacyWordImporter.Import(stream, configured, cancellationToken);
-        return WordReaderAdapter.Project(imported.Document, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
+        return WordReaderAdapter.Project(imported.Value, logicalName, readerOptions, options, cancellationToken, BuildWarnings(imported), OfficeDocumentReaderBuilderWordExtensions.LegacyHandlerId);
     }
 
     private static LegacyWordImportOptions Prepare(LegacyWordImportOptions? source, string? sourceName, ReaderOptions readerOptions) {
