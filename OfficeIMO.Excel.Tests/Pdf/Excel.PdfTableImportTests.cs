@@ -22,7 +22,7 @@ public partial class Excel {
             })
             .ToBytes();
 
-        PdfCore.PdfDocumentReadResult logical = LoadTables(pdf);
+        PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocument.Load(pdf).Read();
         PdfCore.PdfLogicalTable table = Assert.Single(logical.Pages.SelectMany(static page => page.Tables));
         Assert.Equal(4, table.Rows.Count);
 
