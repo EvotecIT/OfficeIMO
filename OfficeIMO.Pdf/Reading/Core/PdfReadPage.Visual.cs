@@ -650,7 +650,8 @@ public sealed partial class PdfReadPage {
         PdfContentOrderKey? contentOrderPrefix = null,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? initialFillColorSelection = null,
-        PdfPaintColorSelection? initialStrokeColorSelection = null) {
+        PdfPaintColorSelection? initialStrokeColorSelection = null,
+        PdfStrokeDashPattern? initialStrokeDashPattern = null) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
@@ -814,7 +815,8 @@ public sealed partial class PdfReadPage {
             initialFillColorSelection: initialFillColorSelection,
             initialStrokeColorSelection: initialStrokeColorSelection,
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+            inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+            initialStrokeDashPattern: initialStrokeDashPattern);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -957,7 +959,8 @@ public sealed partial class PdfReadPage {
                           : null,
                       pageWidth: pageWidth,
                       contentOrderPrefix: contentOrderPrefix,
-                      textClippingBudget: invocationTextClippingBudget)) {
+                      textClippingBudget: invocationTextClippingBudget,
+                      initialStrokeDashPattern: initialStrokeDashPattern)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -1117,6 +1120,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeOpacity: invocation.StrokeOpacity,
                     initialStrokeWidth: invocation.StrokeWidth,
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
+                    initialStrokeDashPattern: invocation.StrokeDashPattern,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     contentNestingDepth: contentNestingDepth + 1,
@@ -1744,6 +1748,7 @@ public sealed partial class PdfReadPage {
             double? strokeOpacity = ReadOpacity(state, "CA");
             double? strokeWidth = ReadStrokeWidth(state);
             OfficeStrokeDashStyle? strokeDashStyle = ReadStrokeDashStyle(state);
+            PdfStrokeDashPattern? strokeDashPattern = ReadStrokeDashPattern(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
             OfficeBlendMode? blendMode = ReadBlendMode(state);
@@ -1781,7 +1786,8 @@ public sealed partial class PdfReadPage {
                 hasUnsupportedSoftMask: unsupportedSoftMask,
                 hasUnsupportedBlendMode: hasUnsupportedBlendMode,
                 hasUnsupportedEntries: hasUnsupportedEntries,
-                hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect);
+                hasUnsupportedTextRestampEffect: unsupportedTextRestampEffect,
+                strokeDashPattern: strokeDashPattern);
         }
 
         return result;
@@ -2117,6 +2123,19 @@ public sealed partial class PdfReadPage {
         }
 
         return OfficeStrokeDashStyle.Solid;
+    }
+
+    private PdfStrokeDashPattern? ReadStrokeDashPattern(PdfDictionary dictionary) {
+        if (!dictionary.Items.TryGetValue("D", out PdfObject? value) ||
+            ResolveObject(value) is not PdfArray dash ||
+            dash.Items.Count != 2 ||
+            ResolveObject(dash.Items[0]) is not PdfArray dashArray ||
+            ResolveObject(dash.Items[1]) is not PdfNumber phase ||
+            !IsFinite(phase.Value)) return null;
+
+        IReadOnlyList<double> values = ReadNumberArray(dashArray);
+        if (values.Count != dashArray.Items.Count || values.Any(static item => !IsFinite(item) || item < 0D)) return null;
+        return new PdfStrokeDashPattern(values, phase.Value);
     }
 
     private OfficeStrokeLineCap? ReadStrokeLineCap(PdfDictionary dictionary) {

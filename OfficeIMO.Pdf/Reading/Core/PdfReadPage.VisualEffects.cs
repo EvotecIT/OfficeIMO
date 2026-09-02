@@ -325,6 +325,7 @@ public sealed partial class PdfReadPage {
             initialStrokeOpacity: initialState?.StrokeOpacity,
             initialStrokeWidth: initialState?.StrokeWidth,
             initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeDashPattern: initialState?.StrokeDashPattern,
             initialStrokeLineCap: initialState?.StrokeLineCap,
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
@@ -387,6 +388,7 @@ public sealed partial class PdfReadPage {
             initialStrokeOpacity: initialState?.StrokeOpacity,
             initialStrokeWidth: initialState?.StrokeWidth,
             initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeDashPattern: initialState?.StrokeDashPattern,
             initialStrokeLineCap: initialState?.StrokeLineCap,
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
@@ -426,6 +428,7 @@ public sealed partial class PdfReadPage {
             initialStrokeOpacity: initialState?.StrokeOpacity,
             initialStrokeWidth: initialState?.StrokeWidth,
             initialStrokeDashStyle: initialState?.StrokeDashStyle,
+            initialStrokeDashPattern: initialState?.StrokeDashPattern,
             initialStrokeLineCap: initialState?.StrokeLineCap,
             initialStrokeLineJoin: initialState?.StrokeLineJoin,
             maxOperations: _limits.MaxContentOperations,
@@ -449,7 +452,8 @@ public sealed partial class PdfReadPage {
                                 glyph.StrokeWidth,
                                 glyph.StrokeDashStyle,
                                 glyph.StrokeLineCap,
-                                glyph.StrokeLineJoin),
+                                glyph.StrokeLineJoin,
+                                glyph.StrokeDashPattern),
                             type3.IsUncolored,
                             glyph.FillPattern,
                             glyph.FillPatternBaseColorSpace,
@@ -804,6 +808,7 @@ public sealed partial class PdfReadPage {
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
+        PdfStrokeDashPattern? initialStrokeDashPattern = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         OfficeIccRenderingIntent initialRenderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
@@ -873,7 +878,8 @@ public sealed partial class PdfReadPage {
                      _limits.MaxContentOperands,
                      initialRenderingIntent: initialRenderingIntent,
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
-                     textClippingBudget: textClippingBudget)) {
+                     textClippingBudget: textClippingBudget,
+                     initialStrokeDashPattern: initialStrokeDashPattern)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream) || !activeForms.Add(formStream)) continue;
             PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             PdfPageDrawingEffect inherited = ResolveDrawingEffect(local, invocation.PaintOrder, initialEffect, formOrderPrefix);
@@ -905,6 +911,7 @@ public sealed partial class PdfReadPage {
                     initialStrokeOpacity: invocation.StrokeOpacity,
                     initialStrokeWidth: invocation.StrokeWidth,
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
+                    initialStrokeDashPattern: invocation.StrokeDashPattern,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
                     initialRenderingIntent: invocation.RenderingIntent,

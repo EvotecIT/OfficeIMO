@@ -167,6 +167,7 @@ public sealed class PdfRedactionPlan {
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, document.Objects);
                 identity.Append("|R:ExtGState:");
                 PdfRedactionImageIdentity.AppendObjectGraph(identity, resources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, document.Objects);
+                AppendFormRenderingResourceIdentity(identity, document.Objects, resources);
                 break;
             }
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject) ||
@@ -176,6 +177,55 @@ public sealed class PdfRedactionPlan {
                 parentIndirect.Value is not PdfDictionary parentDictionary) return;
             current = parentDictionary;
         }
+    }
+
+    private static void AppendFormRenderingResourceIdentity(
+        System.Text.StringBuilder identity,
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary pageResources) {
+        const int maximumDepth = 64;
+        const int maximumContexts = 16384;
+        var visited = new HashSet<(PdfStream Form, PdfDictionary Resources)>();
+        int contextCount = 0;
+
+        void AppendForms(PdfDictionary resources, int depth) {
+            if (depth > maximumDepth) {
+                identity.Append("|R:Form:depth-limit");
+                return;
+            }
+            if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
+                PdfObjectLookup.ResolveChain(objects, xObjectValue) is not PdfDictionary xObjects) return;
+
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
+                if (PdfObjectLookup.ResolveChain(objects, entry.Value) is not PdfStream form ||
+                    PdfObjectLookup.ResolveChain(objects, form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Form" }) continue;
+
+                PdfDictionary? declaredResources = form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue)
+                    ? PdfObjectLookup.ResolveChain(objects, formResourceValue) as PdfDictionary
+                    : null;
+                PdfDictionary effectiveResources = declaredResources ?? resources;
+
+                identity.Append("|R:Form:");
+                AppendIdentityString(identity, entry.Key);
+                if (declaredResources != null) {
+                    identity.Append(":Font:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
+                    identity.Append(":ExtGState:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
+                } else {
+                    identity.Append(":inherited");
+                }
+
+                if (!visited.Add((form, effectiveResources))) continue;
+                if (++contextCount > maximumContexts) {
+                    identity.Append("|R:Form:context-limit");
+                    return;
+                }
+                AppendForms(effectiveResources, depth + 1);
+            }
+        }
+
+        AppendForms(pageResources, 0);
     }
 
     private static void AppendUnredactedPathIdentity(
@@ -213,6 +263,7 @@ public sealed class PdfRedactionPlan {
                 .Append(':').Append((int)primitive.FillRule)
                 .Append(':').Append(primitive.FillOpacity.HasValue ? FormatIdentityNumber(primitive.FillOpacity.Value) : "null")
                 .Append(':').Append(primitive.StrokeOpacity.HasValue ? FormatIdentityNumber(primitive.StrokeOpacity.Value) : "null");
+            AppendStrokeDashIdentity(identity, primitive.StrokeDashPattern);
             AppendIdentityColor(identity, primitive.FillColor);
             AppendIdentityColor(identity, primitive.StrokeColor);
             AppendIdentityGradient(identity, primitive.FillGradient);
@@ -235,6 +286,19 @@ public sealed class PdfRedactionPlan {
             }
             AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, primitive.PaintOrder, contentOrderKey: primitive.ContentOrderKey));
         }
+    }
+
+    private static void AppendStrokeDashIdentity(
+        System.Text.StringBuilder identity,
+        PdfStrokeDashPattern? pattern) {
+        if (!pattern.HasValue) {
+            identity.Append(":dash:null");
+            return;
+        }
+
+        PdfStrokeDashPattern value = pattern.Value;
+        identity.Append(":dash:").Append(FormatIdentityNumber(value.Phase));
+        AppendIdentityNumbers(identity, value.Array);
     }
 
     private static void AppendDrawingEffectIdentity(

@@ -66,12 +66,13 @@ internal static class PdfPageContentVisualParser {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
-        Func<PdfArray, int>? inlineImageArrayComponentCount = null) {
+        Func<PdfArray, int>? inlineImageArrayComponentCount = null,
+        PdfStrokeDashPattern? initialStrokeDashPattern = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, tilingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, patternBaseColorSpaces, maxNestingDepth, maxOperands, primitiveVisitor, retainPrimitiveData, scaleStrokeWidthWithTransform, unsupportedShadingTransformVisitor, requireExactType3ShadingProjection, authoredShadingInvocationVisitor, unrenderedShadingVisitor, unsupportedOperatorVisitor, initialFillPattern, initialStrokePattern, textClippingBudget, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, initialStrokeDashPattern);
         return parser.Parse();
     }
 
@@ -327,7 +328,8 @@ internal static class PdfPageContentVisualParser {
             PdfPaintColorSelection? initialFillColorSelection,
             PdfPaintColorSelection? initialStrokeColorSelection,
             PdfOutputIntentColorTransform? outputIntentColorTransform,
-            Func<PdfArray, int>? inlineImageArrayComponentCount) {
+            Func<PdfArray, int>? inlineImageArrayComponentCount,
+            PdfStrokeDashPattern? initialStrokeDashPattern) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -397,6 +399,9 @@ internal static class PdfPageContentVisualParser {
 
             if (initialStrokeDashStyle.HasValue) {
                 initialState = initialState.WithStrokeDashStyle(initialStrokeDashStyle.Value);
+            }
+            if (initialStrokeDashPattern.HasValue) {
+                initialState = initialState.WithStrokeDashPattern(initialStrokeDashPattern.Value);
             }
 
             if (initialStrokeLineCap.HasValue) {
@@ -568,11 +573,12 @@ internal static class PdfPageContentVisualParser {
                     break;
                 case "d":
                     if (_args.Count == 2 && _args[0] is double[] dashArray && _args[1] is double dashPhase) {
+                        var dashPattern = new PdfStrokeDashPattern(dashArray, dashPhase);
                         if (TryReadExactDashStyle(dashArray, dashPhase, out OfficeStrokeDashStyle exactStyle)) {
-                            _state = _state.WithStrokeDashStyle(exactStyle);
+                            _state = _state.WithStrokeDash(exactStyle, dashPattern);
                             _hasInexactDash = false;
                         } else {
-                            _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
+                            _state = _state.WithStrokeDash(ReadDashStyle(dashArray), dashPattern);
                             _hasInexactDash = true;
                         }
                     } else {
@@ -1020,7 +1026,8 @@ internal static class PdfPageContentVisualParser {
                     _state.ClipPath,
                     paintOrder,
                     fillTilingPaint,
-                    strokeTilingPaint));
+                    strokeTilingPaint,
+                    _state.StrokeDashPattern));
             } else if (stroke && isSingleLine) {
                 AddLine(_path[0], _path[1], paintOrder);
             } else {
@@ -1064,6 +1071,7 @@ internal static class PdfPageContentVisualParser {
                     fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _fillPatternPaintTransform, _state.FillOpacity) : null,
                     stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
                     _retainPrimitiveData,
+                    _state.StrokeDashPattern,
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     AddPrimitive(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {
@@ -1695,7 +1703,8 @@ internal static class PdfPageContentVisualParser {
                 _state.StrokeOpacity,
                 _state.ClipPath,
                 paintOrder,
-                _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null));
+                _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _strokePatternPaintTransform, _state.StrokeOpacity) : null,
+                _state.StrokeDashPattern));
         }
 
         private void RejectUnsupportedShadingStroke(
@@ -2148,7 +2157,7 @@ internal static class PdfPageContentVisualParser {
     }
 
     private readonly struct GraphicsState {
-        private GraphicsState(Matrix2D transform, OfficeColor fillColor, PdfPageShadingPatternResource? fillPattern, OfficeColor strokeColor, PdfPageShadingPatternResource? strokePattern, PdfPageColorSpace fillColorSpace, PdfPageColorSpace strokeColorSpace, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath) {
+        private GraphicsState(Matrix2D transform, OfficeColor fillColor, PdfPageShadingPatternResource? fillPattern, OfficeColor strokeColor, PdfPageShadingPatternResource? strokePattern, PdfPageColorSpace fillColorSpace, PdfPageColorSpace strokeColorSpace, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, PdfStrokeDashPattern? strokeDashPattern, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath) {
             Transform = transform;
             FillColor = fillColor;
             FillPattern = fillPattern;
@@ -2158,6 +2167,7 @@ internal static class PdfPageContentVisualParser {
             StrokeColorSpace = strokeColorSpace;
             StrokeWidth = strokeWidth;
             StrokeDashStyle = strokeDashStyle;
+            StrokeDashPattern = strokeDashPattern;
             StrokeLineCap = strokeLineCap;
             StrokeLineJoin = strokeLineJoin;
             FillOpacity = fillOpacity;
@@ -2183,6 +2193,8 @@ internal static class PdfPageContentVisualParser {
 
         public OfficeStrokeDashStyle StrokeDashStyle { get; }
 
+        public PdfStrokeDashPattern? StrokeDashPattern { get; }
+
         public OfficeStrokeLineCap? StrokeLineCap { get; }
 
         public OfficeStrokeLineJoin? StrokeLineJoin { get; }
@@ -2193,40 +2205,44 @@ internal static class PdfPageContentVisualParser {
 
         public PdfPageClipPath? ClipPath { get; }
 
-        public static GraphicsState Default => new GraphicsState(Matrix2D.Identity, OfficeColor.Black, null, OfficeColor.Black, null, PdfPageColorSpaceKind.DeviceGray, PdfPageColorSpaceKind.DeviceGray, 1D, OfficeStrokeDashStyle.Solid, null, null, null, null, null);
+        public static GraphicsState Default => new GraphicsState(Matrix2D.Identity, OfficeColor.Black, null, OfficeColor.Black, null, PdfPageColorSpaceKind.DeviceGray, PdfPageColorSpaceKind.DeviceGray, 1D, OfficeStrokeDashStyle.Solid, PdfStrokeDashPattern.Solid, null, null, null, null, null);
 
-        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillPattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, pattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillPattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, pattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithoutFillPattern() => new GraphicsState(Transform, FillColor, null, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithoutFillPattern() => new GraphicsState(Transform, FillColor, null, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokePattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, pattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokePattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, pattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithoutStrokePattern() => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithoutStrokePattern() => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, strokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, strokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle strokeDashStyle) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, strokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeDashStyle(OfficeStrokeDashStyle strokeDashStyle) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, strokeDashStyle, null, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, strokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeDash(OfficeStrokeDashStyle strokeDashStyle, PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, strokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, strokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeDashPattern(PdfStrokeDashPattern strokeDashPattern) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, strokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+
+        public GraphicsState WithStrokeLineCap(OfficeStrokeLineCap? strokeLineCap) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, strokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+
+        public GraphicsState WithStrokeLineJoin(OfficeStrokeLineJoin? strokeLineJoin) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, strokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
         public GraphicsState WithOpacity(double? fillOpacity, double? strokeOpacity) =>
-            new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, fillOpacity ?? FillOpacity, strokeOpacity ?? StrokeOpacity, ClipPath);
+            new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, fillOpacity ?? FillOpacity, strokeOpacity ?? StrokeOpacity, ClipPath);
 
         public GraphicsState WithGraphicsStateResource(PdfPageGraphicsStateResource resource) =>
             new GraphicsState(
@@ -2239,6 +2255,7 @@ internal static class PdfPageContentVisualParser {
                 StrokeColorSpace,
                 resource.StrokeWidth.HasValue ? ResolveStrokeWidth(resource.StrokeWidth.Value) : StrokeWidth,
                 resource.StrokeDashStyle ?? StrokeDashStyle,
+                resource.StrokeDashPattern ?? StrokeDashPattern,
                 resource.StrokeLineCap ?? StrokeLineCap,
                 resource.StrokeLineJoin ?? StrokeLineJoin,
                 resource.FillOpacity ?? FillOpacity,
@@ -2246,6 +2263,6 @@ internal static class PdfPageContentVisualParser {
                 ClipPath);
 
         public GraphicsState WithClipPath(PdfPageClipPath clipPath) =>
-            new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, clipPath);
+            new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeDashPattern, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, clipPath);
     }
 }
