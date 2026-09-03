@@ -12,6 +12,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
         IReadOnlyList<Matrix2D> parentTransforms,
+        PdfTextStateSnapshot initialTextState,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         PdfReadLimits limits,
@@ -19,7 +20,7 @@ internal static partial class PdfRedactionApplier {
         ref int nextObjectNumber) {
         bool changed = false;
         string rewrittenContent = content;
-        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content);
+        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content, initialTextState);
         for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
             ImageResourceInvocation invocation = invocations[invocationIndex];
             if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
@@ -50,6 +51,7 @@ internal static partial class PdfRedactionApplier {
                     parentFontDecoders,
                     parentFontWidthProviders,
                     parentTransforms,
+                    invocation.TextState,
                     referenceCounts,
                     activeForms,
                     limits,
@@ -91,6 +93,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
         IReadOnlyList<Matrix2D> parentTransforms,
+        PdfTextStateSnapshot inheritedTextState,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         PdfReadLimits limits,
@@ -108,7 +111,8 @@ internal static partial class PdfRedactionApplier {
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
-        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits);
+        var formGraphicsState = new TextScrubGraphicsState { TextState = inheritedTextState };
+        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits, formGraphicsState);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
             objects,
@@ -119,6 +123,7 @@ internal static partial class PdfRedactionApplier {
             formDecoders,
             formWidthProviders,
             effectiveTransforms,
+            inheritedTextState,
             referenceCounts,
             activeForms,
             limits,

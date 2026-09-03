@@ -239,11 +239,24 @@ internal static partial class PdfRedactionApplier {
     }
 
     private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content) =>
-        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity));
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), PdfTextStateSnapshot.Default);
 
-    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) {
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        PdfTextStateSnapshot initialTextState) =>
+        ExtractImageResourceInvocations(content, new ImageContentGraphicsState(Matrix2D.Identity), initialTextState);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(string content, ImageContentGraphicsState graphicsState) =>
+        ExtractImageResourceInvocations(content, graphicsState, PdfTextStateSnapshot.Default);
+
+    private static ImageResourceInvocation[] ExtractImageResourceInvocations(
+        string content,
+        ImageContentGraphicsState graphicsState,
+        PdfTextStateSnapshot initialTextState) {
         var invocations = new List<ImageResourceInvocation>();
         var args = new List<ImageContentOperand>(8);
+        var textStateStack = new Stack<PdfTextStateSnapshot>();
+        PdfTextStateSnapshot textState = initialTextState;
         int index = 0;
         int length = content.Length;
 
@@ -303,10 +316,12 @@ internal static partial class PdfRedactionApplier {
             switch (op) {
                 case "q":
                     graphicsState.Stack.Push(graphicsState.Transform);
+                    textStateStack.Push(textState);
                     args.Clear();
                     break;
                 case "Q":
                     graphicsState.Transform = graphicsState.Stack.Count > 0 ? graphicsState.Stack.Pop() : graphicsState.BaseTransform;
+                    textState = textStateStack.Count > 0 ? textStateStack.Pop() : initialTextState;
                     args.Clear();
                     break;
                 case "cm":
@@ -322,10 +337,55 @@ internal static partial class PdfRedactionApplier {
 
                     args.Clear();
                     break;
+                case "Tf" when args.Count >= 2:
+                    textState = textState.WithFont(
+                        args[args.Count - 2].Name ?? textState.FontResource,
+                        args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tc" when args.Count >= 1:
+                    textState = textState.WithCharacterSpacing(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tw" when args.Count >= 1:
+                    textState = textState.WithWordSpacing(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tz" when args.Count >= 1:
+                    textState = textState.WithHorizontalScaling(args[args.Count - 1].Number / 100D);
+                    args.Clear();
+                    break;
+                case "TL" when args.Count >= 1:
+                    textState = textState.WithLeading(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "TD" when args.Count >= 2:
+                    textState = textState.WithLeading(-args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Ts" when args.Count >= 1:
+                    textState = textState.WithTextRise(args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "Tr" when args.Count >= 1:
+                    textState = textState.WithTextRenderingMode((int)args[args.Count - 1].Number);
+                    args.Clear();
+                    break;
+                case "\"" when args.Count >= 3:
+                    textState = textState
+                        .WithWordSpacing(args[args.Count - 3].Number)
+                        .WithCharacterSpacing(args[args.Count - 2].Number);
+                    args.Clear();
+                    break;
                 case "Do":
                     if (args.Count >= 1 && !string.IsNullOrEmpty(args[args.Count - 1].Name)) {
                         ImageContentOperand operand = args[args.Count - 1];
-                        invocations.Add(new ImageResourceInvocation(operand.Name!, graphicsState.Transform, operand.Start, operand.End));
+                        invocations.Add(new ImageResourceInvocation(
+                            operand.Name!,
+                            graphicsState.Transform,
+                            operand.Start,
+                            operand.End,
+                            textState));
                     }
 
                     args.Clear();
@@ -932,11 +992,17 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct ImageResourceInvocation {
-        public ImageResourceInvocation(string name, Matrix2D transform, int nameStart, int nameEnd) {
+        public ImageResourceInvocation(
+            string name,
+            Matrix2D transform,
+            int nameStart,
+            int nameEnd,
+            PdfTextStateSnapshot textState) {
             Name = name;
             Transform = transform;
             NameStart = nameStart;
             NameEnd = nameEnd;
+            TextState = textState;
         }
 
         public string Name { get; }
@@ -946,6 +1012,8 @@ internal static partial class PdfRedactionApplier {
         public int NameStart { get; }
 
         public int NameEnd { get; }
+
+        public PdfTextStateSnapshot TextState { get; }
     }
 
     private readonly struct ImageSampleRewriteEncoder {

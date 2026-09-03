@@ -156,6 +156,14 @@ public sealed class PdfRedactionPlan {
             PdfRedactionTextObjectScope current = currentTextObjectScopes[currentIndex];
             if (reviewedTextObjectScopes.Any(reviewed => reviewed.Matches(current))) ignoredTextObjectKeys.Add(current.Key);
         }
+        for (int reviewedIndex = 0; reviewedIndex < reviewedTextObjectScopes.Count; reviewedIndex++) {
+            PdfRedactionTextObjectScope reviewed = reviewedTextObjectScopes[reviewedIndex];
+            if (reviewed.RequiresExpectedSurvivors &&
+                !currentTextObjectScopes.Any(reviewed.Matches)) {
+                identity.Append("|MissingReviewedTextSurvivors:")
+                    .Append(reviewedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            }
+        }
         for (int i = 0; i < spans.Count; i++) {
             PdfTextSpan span = spans[i];
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);

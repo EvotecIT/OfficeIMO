@@ -175,7 +175,7 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         if (allStreamsDecoded && contentSegments.Length > 0) {
             string combinedContent = string.Concat(contentSegments);
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, PdfTextStateSnapshot.Default, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             if (!string.Equals(result.Content, combinedContent, StringComparison.Ordinal)) {
                 PdfObject currentContentsObject = contentsObject;
                 for (int index = 0; index < contentReferences.Length; index++) {
@@ -203,7 +203,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, PdfTextStateSnapshot.Default, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             changed = result.HasChanges || changed;
             changed = ReplacePageContentStreamIfChanged(
                 objects,

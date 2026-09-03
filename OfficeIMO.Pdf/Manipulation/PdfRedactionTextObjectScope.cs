@@ -53,6 +53,7 @@ internal sealed class PdfRedactionTextObjectScope {
     internal PdfRedactionTextGlyphIdentity[] SourceGlyphs { get; }
     internal PdfRedactionTextGlyphIdentity[] ExpectedSurvivors { get; }
     internal bool HasReviewedIntersection { get; }
+    internal bool RequiresExpectedSurvivors => ExpectedSurvivors.Length > 0;
 
     internal bool Matches(PdfRedactionTextObjectScope candidate) {
         bool sameTextObjectOwner = Key.Equals(candidate.Key) ||
@@ -70,15 +71,30 @@ internal sealed class PdfRedactionTextObjectScope {
             return false;
         }
 
-        glyphs = new PdfRedactionTextGlyphIdentity[text.Length];
-        for (int index = 0; index < text.Length; index++) {
-            double start = boundaries[index];
-            double end = boundaries[index + 1];
+        IReadOnlyList<int> glyphCharacterLengths = span.GlyphCharacterLengths ??
+            Enumerable.Repeat(1, text.Length).ToArray();
+        if (glyphCharacterLengths.Count == 0 ||
+            glyphCharacterLengths.Any(static length => length <= 0) ||
+            glyphCharacterLengths.Sum() != text.Length) {
+            glyphs = Array.Empty<PdfRedactionTextGlyphIdentity>();
+            return false;
+        }
+
+        glyphs = new PdfRedactionTextGlyphIdentity[glyphCharacterLengths.Count];
+        int characterOffset = 0;
+        for (int index = 0; index < glyphCharacterLengths.Count; index++) {
+            int characterLength = glyphCharacterLengths[index];
+            double start = boundaries[characterOffset];
+            double end = boundaries[characterOffset + characterLength];
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(
                 span,
                 Math.Min(start, end),
                 Math.Abs(end - start));
-            glyphs[index] = PdfRedactionTextGlyphIdentity.FromGlyph(span, text[index].ToString(), bounds);
+            glyphs[index] = PdfRedactionTextGlyphIdentity.FromGlyph(
+                span,
+                text.Substring(characterOffset, characterLength),
+                bounds);
+            characterOffset += characterLength;
         }
         return true;
     }

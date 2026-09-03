@@ -709,7 +709,8 @@ public sealed partial class PdfReadPage {
         int? contentStreamObjectNumber = null,
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
         Action? cancellationCheck = null,
-        bool includeHiddenOptionalContent = false) {
+        bool includeHiddenOptionalContent = false,
+        PdfTextStateSnapshot? initialTextState = null) {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -780,7 +781,8 @@ public sealed partial class PdfReadPage {
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             contentStreamObjectNumber: contentStreamObjectNumber,
             contentStreamObjectNumberAtOffset: contentStreamObjectNumberAtOffset,
-            cancellationCheck: cancellationCheck));
+            cancellationCheck: cancellationCheck,
+            initialTextState: initialTextState));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -811,7 +813,8 @@ public sealed partial class PdfReadPage {
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                     cancellationCheck: cancellationCheck)) {
+                     cancellationCheck: cancellationCheck,
+                     initialTextState: initialTextState)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -872,7 +875,8 @@ public sealed partial class PdfReadPage {
                     formObjectNumber,
                     contentStreamObjectNumberAtOffset: null,
                     cancellationCheck: cancellationCheck,
-                    includeHiddenOptionalContent: includeHiddenOptionalContent);
+                    includeHiddenOptionalContent: includeHiddenOptionalContent,
+                    initialTextState: invocation.TextState);
             } finally {
                 activeForms.Remove(formStream);
             }
