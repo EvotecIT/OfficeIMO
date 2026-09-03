@@ -282,7 +282,8 @@ namespace OfficeIMO.Core.Internal {
                 destinationMatchesExpected,
                 installedFileMatchesExpected,
                 beforeCommitFinalized: null,
-                afterFirstRollbackReplacement: null);
+                afterFirstRollbackReplacement: null,
+                backupCleanupFailed: null);
 
         /// <summary>
         /// Atomically installs a staging file and invokes a final validation callback while the
@@ -293,14 +294,16 @@ namespace OfficeIMO.Core.Internal {
             string targetPath,
             Func<string, bool> destinationMatchesExpected,
             Func<string, bool>? installedFileMatchesExpected,
-            Action<string> beforeCommitFinalized) =>
+            Action<string> beforeCommitFinalized,
+            Action<string, Exception>? backupCleanupFailed = null) =>
             TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
                 temporaryPath,
                 targetPath,
                 destinationMatchesExpected,
                 installedFileMatchesExpected,
                 beforeCommitFinalized,
-                afterFirstRollbackReplacement: null);
+                afterFirstRollbackReplacement: null,
+                backupCleanupFailed);
 
         internal static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedForTesting(
             string temporaryPath,
@@ -314,7 +317,8 @@ namespace OfficeIMO.Core.Internal {
                 destinationMatchesExpected,
                 installedFileMatchesExpected,
                 beforeCommitFinalized: null,
-                afterFirstRollbackReplacement);
+                afterFirstRollbackReplacement,
+                backupCleanupFailed: null);
 
         private static bool TryCommitTemporaryFileAtomicallyIfDestinationUnchangedCore(
             string temporaryPath,
@@ -322,7 +326,8 @@ namespace OfficeIMO.Core.Internal {
             Func<string, bool> destinationMatchesExpected,
             Func<string, bool>? installedFileMatchesExpected,
             Action<string>? beforeCommitFinalized,
-            Action<string>? afterFirstRollbackReplacement) {
+            Action<string>? afterFirstRollbackReplacement,
+            Action<string, Exception>? backupCleanupFailed) {
             if (string.IsNullOrWhiteSpace(temporaryPath)) {
                 throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
             }
@@ -351,7 +356,12 @@ namespace OfficeIMO.Core.Internal {
                 if (destinationMatchesExpected(backupPath) &&
                     (installedFileMatchesExpected == null || installedFileMatchesExpected(fullTargetPath))) {
                     beforeCommitFinalized?.Invoke(fullTargetPath);
-                    DeleteIfExists(backupPath);
+                    try {
+                        if (File.Exists(backupPath)) File.Delete(backupPath);
+                    } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                        preserveBackupPath = true;
+                        backupCleanupFailed?.Invoke(backupPath, exception);
+                    }
                     targetContainsTemporary = false;
                     return true;
                 }

@@ -266,6 +266,17 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 beforeCommitFinalized: path => {
                     Report(progress, validated.Id, "finalize", "Finalizing the verified provenance artifact", 0.98D);
                     stagedFingerprint.VerifyPublishedPath(path, validated.Limits.MaximumOutputBytes, cancellationToken);
+                },
+                backupCleanupFailed: (path, exception) => {
+                    diagnostics.Add(new OfficeWorkflowDiagnostic(
+                        "ProvenanceBackupCleanupFailed",
+                        "The cleaned artifact was published, but the displaced original could not be deleted and remains available for operator cleanup.",
+                        OfficeWorkflowDiagnosticSeverity.Warning,
+                        "cleanup",
+                        new Dictionary<string, string>(StringComparer.Ordinal) {
+                            ["retainedPath"] = path,
+                            ["exceptionType"] = exception.GetType().Name
+                        }));
                 });
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             long outputBytes = stagedFingerprint.Length;
@@ -621,7 +632,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         long maximumBytes,
         CancellationToken cancellationToken,
         Action beforePublish,
-        Action<string> beforeCommitFinalized) {
+        Action<string> beforeCommitFinalized,
+        Action<string, Exception> backupCleanupFailed) {
         bool published = false;
         try {
             beforePublish();
@@ -742,7 +754,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     requestedPath,
                     backupPath => expectedDisplacedInput.MatchesCapturedSource(backupPath, cancellationToken),
                     installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
-                    beforeCommitFinalized);
+                    beforeCommitFinalized,
+                    backupCleanupFailed);
                 if (!inputCommitted) {
                     staged.ReleasePublishedLease();
                     throw new IOException(
@@ -762,7 +775,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 requestedPath,
                 backupPath => destination.MatchesPath(backupPath, maximumBytes, cancellationToken),
                 installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
-                beforeCommitFinalized);
+                beforeCommitFinalized,
+                backupCleanupFailed);
             if (!committed) {
                 staged.ReleasePublishedLease();
                 throw new IOException("The provenance destination changed while the verified artifact was being published.");

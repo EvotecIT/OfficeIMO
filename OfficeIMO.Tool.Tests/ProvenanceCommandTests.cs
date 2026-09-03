@@ -74,6 +74,41 @@ public sealed class ProvenanceCommandTests {
     }
 
     [Fact]
+    public async Task TextOutputIncludesRetainedCleanupPathsFromWorkflowDiagnostics() {
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+                System.Runtime.InteropServices.OSPlatform.Windows)) return;
+        using var scope = new TestDirectory();
+        string input = scope.Write("page.html", HtmlWithManifest("body"));
+        string outputPath = Path.Combine(scope.Path, "cleaned.html");
+        using var cancellation = new CancellationTokenSource();
+        using var progress = new RetainingStagingProgress(scope.Path, outputPath, cancellation);
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = outputPath
+            },
+            progress,
+            cancellation.Token);
+        using var output = new StringWriter();
+        try {
+            await ProvenanceOutput.WriteResultAsync(output, result, ProvenanceOutputFormat.Text);
+
+            string text = output.ToString();
+            Assert.Contains(
+                "Diagnostic: Error | ProvenanceStagingCleanupFailed | stage=cleanup",
+                text,
+                StringComparison.Ordinal);
+            Assert.Contains("retainedPath: " + progress.RetainedPath, text, StringComparison.Ordinal);
+        } finally {
+            progress.Dispose();
+            if (progress.RetainedPath is not null && File.Exists(progress.RetainedPath)) {
+                File.Delete(progress.RetainedPath);
+            }
+        }
+    }
+
+    [Fact]
     public async Task RemovePublishesVerifiedArtifactAndRefusesReplacementByDefault() {
         using var scope = new TestDirectory();
         string input = scope.Write("page.html", HtmlWithManifest("keep"));
@@ -342,6 +377,39 @@ public sealed class ProvenanceCommandTests {
                 },
                 cancellationToken: cancelled.Token);
             return [failure, cancellation];
+        }
+    }
+
+    private sealed class RetainingStagingProgress : IProgress<OfficeWorkflowProgress>, IDisposable {
+        private readonly string _directory;
+        private readonly string _outputPath;
+        private readonly CancellationTokenSource _cancellation;
+        private FileStream? _lease;
+
+        internal RetainingStagingProgress(
+            string directory,
+            string outputPath,
+            CancellationTokenSource cancellation) {
+            _directory = directory;
+            _outputPath = outputPath;
+            _cancellation = cancellation;
+        }
+
+        internal string? RetainedPath { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (_lease != null || !string.Equals(value.Stage, "validate-output", StringComparison.Ordinal)) return;
+            RetainedPath = Directory.GetFiles(
+                    _directory,
+                    "." + Path.GetFileNameWithoutExtension(_outputPath) + ".*" + Path.GetExtension(_outputPath))
+                .Single();
+            _lease = new FileStream(RetainedPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            _cancellation.Cancel();
+        }
+
+        public void Dispose() {
+            _lease?.Dispose();
+            _lease = null;
         }
     }
 

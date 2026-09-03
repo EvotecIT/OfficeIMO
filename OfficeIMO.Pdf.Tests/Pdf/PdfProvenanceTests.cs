@@ -23,14 +23,16 @@ public sealed partial class PdfProvenanceTests {
     public void ProvenanceGraphEditorForwardsCancellationIntoTheFullRewrite() {
         byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
         using var cancellation = new CancellationTokenSource();
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => PdfProvenanceGraphEditor.RemoveFileSpecifications(
             pdf,
             new HashSet<int> { int.MaxValue },
+            document,
             readOptions: null,
             maximumOutputBytes: pdf.LongLength * 2L,
-            cancellation.Token));
+            cancellationToken: cancellation.Token));
     }
 
     [Fact]

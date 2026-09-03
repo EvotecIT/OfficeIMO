@@ -83,6 +83,16 @@ internal static class ProvenanceOutput {
                 }
             }
         }
+        foreach (ProvenanceDiagnosticDto diagnostic in result.Diagnostics) {
+            string stage = diagnostic.Stage is null ? string.Empty : " | stage=" + diagnostic.Stage;
+            await writer.WriteLineAsync(
+                "Diagnostic: " + diagnostic.Severity + " | " + diagnostic.Code + stage + " | " + diagnostic.Message).ConfigureAwait(false);
+            foreach (KeyValuePair<string, string> detail in diagnostic.Details.OrderBy(
+                         static pair => pair.Key,
+                         StringComparer.Ordinal)) {
+                await writer.WriteLineAsync("  " + detail.Key + ": " + detail.Value).ConfigureAwait(false);
+            }
+        }
     }
 
     private static ProvenanceCapabilityDto ToDto(OfficeProvenanceWorkflowCapability capability) => new(

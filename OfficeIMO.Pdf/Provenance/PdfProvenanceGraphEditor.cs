@@ -6,16 +6,23 @@ internal static class PdfProvenanceGraphEditor {
     internal static byte[] RemoveFileSpecifications(
         byte[] pdf,
         HashSet<int> fileSpecificationObjectNumbers,
+        PdfReadDocument document,
         PdfLoadOptions? readOptions,
         long maximumOutputBytes,
         CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));
+        Guard.NotNull(document, nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         if (fileSpecificationObjectNumbers.Count == 0) return (byte[])pdf.Clone();
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
+        _ = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf,
+            PdfMutationOperation.ModifyAttachments,
+            document,
+            readOptions,
+            cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
+        return PdfDocumentObjectGraphRewriter.Rewrite(pdf, document, readOptions, null, (objects, security) => {
             cancellationToken.ThrowIfCancellationRequested();
             RemoveFromEmbeddedFilesNameTree(objects, security, fileSpecificationObjectNumbers, cancellationToken);
             HashSet<PdfDictionary> removedDirectAnnotations = CollectFileAttachmentAnnotations(

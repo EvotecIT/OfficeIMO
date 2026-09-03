@@ -793,6 +793,35 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task SuccessfulReplacementReportsAnOriginalBackupRetainedByAWindowsLease() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("original content"));
+        using var progress = new RetainingReplacementBackupProgress(scope.Path, input);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = input,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            progress);
+
+        Assert.True(result.Succeeded, result.Summary);
+        OfficeWorkflowDiagnostic cleanup = Assert.Single(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == "ProvenanceBackupCleanupFailed");
+        string retainedPath = cleanup.Details["retainedPath"];
+        Assert.Equal(progress.RetainedPath, retainedPath);
+        Assert.True(File.Exists(retainedPath));
+        Assert.DoesNotContain("c2pa-manifest", File.ReadAllText(input), StringComparison.OrdinalIgnoreCase);
+
+        progress.Dispose();
+        File.Delete(retainedPath);
+    }
+
+    [Fact]
     public async Task PublicationRejectsAStagedArtifactChangedAfterValidation() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("original"));
@@ -1244,6 +1273,41 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 .Single();
             _lease = new FileStream(StagingPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             _cancellation.Cancel();
+        }
+
+        public void Dispose() {
+            _lease?.Dispose();
+            _lease = null;
+        }
+    }
+
+    private sealed class RetainingReplacementBackupProgress : IProgress<OfficeWorkflowProgress>, IDisposable {
+        private readonly string _directory;
+        private readonly string _outputPath;
+        private FileStream? _lease;
+
+        internal RetainingReplacementBackupProgress(string directory, string outputPath) {
+            _directory = directory;
+            _outputPath = outputPath;
+        }
+
+        internal string? RetainedPath { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (_lease != null || !string.Equals(value.Stage, "finalize", StringComparison.Ordinal)) return;
+            foreach (string candidate in Directory.EnumerateFiles(_directory, ".officeimo-*.tmp")) {
+                if (string.Equals(candidate, _outputPath, StringComparison.OrdinalIgnoreCase)) continue;
+                string contents;
+                try {
+                    contents = File.ReadAllText(candidate);
+                } catch (IOException) {
+                    continue;
+                }
+                if (!contents.Contains("c2pa-manifest", StringComparison.OrdinalIgnoreCase)) continue;
+                _lease = new FileStream(candidate, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                RetainedPath = candidate;
+                return;
+            }
         }
 
         public void Dispose() {

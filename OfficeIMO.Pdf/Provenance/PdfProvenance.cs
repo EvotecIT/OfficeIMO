@@ -13,6 +13,14 @@ public static partial class PdfProvenance {
         byte[] pdf,
         OfficeProvenanceOptions? options = null,
         PdfLoadOptions? readOptions = null) {
+        return InspectCore(pdf, options, readOptions, out _);
+    }
+
+    private static OfficeProvenanceReport InspectCore(
+        byte[] pdf,
+        OfficeProvenanceOptions? options,
+        PdfLoadOptions? readOptions,
+        out PdfReadDocument document) {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
@@ -21,7 +29,7 @@ public static partial class PdfProvenance {
 
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfLoadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
-        PdfReadDocument document = OpenReadDocument(pdf, effectiveReadOptions, options.CancellationToken);
+        document = OpenReadDocument(pdf, effectiveReadOptions, options.CancellationToken);
         options.CancellationToken.ThrowIfCancellationRequested();
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
             options.CancellationToken.ThrowIfCancellationRequested();
@@ -66,7 +74,11 @@ public static partial class PdfProvenance {
                 valid,
                 manifest.LongLength));
         }
-        return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Pdf, evidence.AsReadOnly());
+        return new OfficeProvenanceReport(
+            OfficeProvenanceAssetFormat.Pdf,
+            evidence.AsReadOnly(),
+            diagnostics: null,
+            expandedInspectionBytes: document.DecodedStreamBudget.UsedBytes);
     }
 
     /// <summary>Inspects a bounded PDF file.</summary>
@@ -99,7 +111,7 @@ public static partial class PdfProvenance {
             options.Limits.MaxManifestBytes,
             maximumManifestBytes,
             readOptions);
-        OfficeProvenanceReport before = Inspect(pdf, options.Limits, effectiveReadOptions);
+        OfficeProvenanceReport before = InspectCore(pdf, options.Limits, effectiveReadOptions, out PdfReadDocument document);
         if (!options.RemoveC2paManifests || before.Evidence.Count == 0) {
             return new OfficeProvenanceRemovalResult(
                 OfficeProvenanceBinary.CloneForOutput(pdf, options.EffectiveMaxOutputBytes),
@@ -109,7 +121,6 @@ public static partial class PdfProvenance {
                 false);
         }
 
-        PdfReadDocument document = OpenReadDocument(pdf, effectiveReadOptions, options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.Limits.MaxContainerEntries);
         _ = CollectAssociationProfile(
@@ -154,7 +165,7 @@ public static partial class PdfProvenance {
                 false);
         }
 
-        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveReadOptions);
+        PdfDocumentSecurityInfo security = document.Security;
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         if (security.HasEncryption) {
             throw new InvalidOperationException("Provenance removal does not remove or replace PDF encryption. Decrypt the document through an explicit PDF security workflow first.");
@@ -169,12 +180,26 @@ public static partial class PdfProvenance {
         byte[] output = PdfProvenanceGraphEditor.RemoveFileSpecifications(
             pdf,
             removeFileSpecifications,
+            document,
             effectiveReadOptions,
             options.EffectiveMaxOutputBytes,
             options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
+        before = new OfficeProvenanceReport(
+            before.Format,
+            before.Evidence,
+            before.Diagnostics,
+            document.DecodedStreamBudget.UsedBytes);
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
-        OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(options.Limits, options.EffectiveMaxOutputBytes);
+        long remainingExpandedBytes = options.Limits.MaxExpandedContainerBytes - before.ExpandedInspectionBytes;
+        if (remainingExpandedBytes <= 0L) {
+            throw new InvalidDataException(
+                "The PDF provenance removal exhausted the expanded-data limit before output validation.");
+        }
+        OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(
+            options.Limits,
+            options.EffectiveMaxOutputBytes,
+            remainingExpandedBytes);
         OfficeProvenanceReport after = Inspect(output, outputLimits, outputReadOptions);
         return new OfficeProvenanceRemovalResult(output, before, after, changes.AsReadOnly(), true);
     }
@@ -296,12 +321,15 @@ public static partial class PdfProvenance {
         return result;
     }
 
-    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceOptions source, long maximumOutputBytes) => new() {
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(
+        OfficeProvenanceOptions source,
+        long maximumOutputBytes,
+        long maximumExpandedContainerBytes) => new() {
         MaxAssetBytes = maximumOutputBytes,
         MaxManifestBytes = Math.Min(source.MaxManifestBytes, maximumOutputBytes),
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
-        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        MaxExpandedContainerBytes = maximumExpandedContainerBytes,
         CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets

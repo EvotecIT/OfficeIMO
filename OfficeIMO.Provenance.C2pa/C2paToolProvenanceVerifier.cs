@@ -72,6 +72,7 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to verify was not found.", fullPath);
         options ??= new OfficeProvenanceVerificationOptions();
         Validate(options);
+        var executionBudget = new C2paToolExecutionBudget(options.Timeout, cancellationToken);
 
         string settingsPath = Path.Combine(Path.GetTempPath(), ".officeimo-c2pa-" + Guid.NewGuid().ToString("N") + ".json");
         try {
@@ -82,11 +83,13 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
                 ExecutablePath,
                 BuildArguments(fullPath, settingsPath, workingDirectory, options),
                 workingDirectory,
-                options.Timeout,
+                executionBudget.GetRemainingTimeout(),
                 options.MaxReportBytes);
             C2paToolProcessResult processResult;
             try {
                 processResult = _runner.Run(request, cancellationToken);
+                return executionBudget.RunInterpretation(
+                    interpretationToken => Interpret(processResult, options, interpretationToken));
             } catch (Win32Exception exception) {
                 return Result(OfficeProvenanceVerificationStatus.ProviderUnavailable, new[] { exception.Message }, null, options);
             } catch (TimeoutException exception) {
@@ -98,14 +101,17 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
             } catch (InvalidOperationException exception) {
                 return Result(OfficeProvenanceVerificationStatus.Error, new[] { exception.Message }, null, options);
             }
-            return Interpret(processResult, options);
         } finally {
             try { if (File.Exists(settingsPath)) File.Delete(settingsPath); } catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
     }
 
-    private static OfficeProvenanceVerificationResult Interpret(C2paToolProcessResult process, OfficeProvenanceVerificationOptions options) {
+    private static OfficeProvenanceVerificationResult Interpret(
+        C2paToolProcessResult process,
+        OfficeProvenanceVerificationOptions options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(process.StandardOutput)) {
             string message = string.IsNullOrWhiteSpace(process.StandardError)
                 ? $"c2patool exited with code {process.ExitCode} without a JSON report."
@@ -118,12 +124,13 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
                 CommentHandling = JsonCommentHandling.Disallow,
                 MaxDepth = 128
             });
+            cancellationToken.ThrowIfCancellationRequested();
             if (document.RootElement.ValueKind != JsonValueKind.Object) {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     NonObjectReportFinding, process.StandardOutput, options);
             }
-            if (!TryGetUniqueProperty(document.RootElement, "active_manifest", out JsonElement activeManifestElement, out bool hasActiveManifest) ||
-                !TryGetUniqueProperty(document.RootElement, "validation_status", out JsonElement validationStatus, out bool hasValidationStatus)) {
+            if (!TryGetUniqueProperty(document.RootElement, "active_manifest", cancellationToken, out JsonElement activeManifestElement, out bool hasActiveManifest) ||
+                !TryGetUniqueProperty(document.RootElement, "validation_status", cancellationToken, out JsonElement validationStatus, out bool hasValidationStatus)) {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     DuplicateCriticalReportFieldFinding, process.StandardOutput, options);
             }
@@ -148,7 +155,7 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
             if (hasValidationStatus &&
-                !TryCollectValidationFindings(validationStatus, findings, findingSet)) {
+                !TryCollectValidationFindings(validationStatus, findings, findingSet, cancellationToken)) {
                 findings.Add("c2patool returned malformed validation_status data.");
                 return Result(OfficeProvenanceVerificationStatus.Error, findings, process.StandardOutput, options);
             }
@@ -188,13 +195,18 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
         }
     }
 
-    private static bool TryCollectValidationFindings(JsonElement validationStatus, List<string> findings, HashSet<string> findingSet) {
+    private static bool TryCollectValidationFindings(
+        JsonElement validationStatus,
+        List<string> findings,
+        HashSet<string> findingSet,
+        CancellationToken cancellationToken) {
         if (validationStatus.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement status in validationStatus.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (status.ValueKind != JsonValueKind.Object) return false;
-            if (!TryGetUniqueProperty(status, "code", out JsonElement codeElement, out bool hasCode) ||
-                !TryGetUniqueProperty(status, "explanation", out JsonElement explanationElement, out bool hasExplanation) ||
-                !TryGetUniqueProperty(status, "success", out JsonElement successElement, out bool hasSuccess)) return false;
+            if (!TryGetUniqueProperty(status, "code", cancellationToken, out JsonElement codeElement, out bool hasCode) ||
+                !TryGetUniqueProperty(status, "explanation", cancellationToken, out JsonElement explanationElement, out bool hasExplanation) ||
+                !TryGetUniqueProperty(status, "success", cancellationToken, out JsonElement successElement, out bool hasSuccess)) return false;
             if (!hasCode || codeElement.ValueKind != JsonValueKind.String ||
                 hasExplanation && explanationElement.ValueKind != JsonValueKind.String ||
                 hasSuccess && successElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False) return false;
@@ -215,11 +227,13 @@ public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVer
     private static bool TryGetUniqueProperty(
         JsonElement element,
         string propertyName,
+        CancellationToken cancellationToken,
         out JsonElement value,
         out bool found) {
         value = default;
         found = false;
         foreach (JsonProperty property in element.EnumerateObject()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(property.Name, propertyName, StringComparison.Ordinal)) continue;
             if (found) return false;
             value = property.Value;
