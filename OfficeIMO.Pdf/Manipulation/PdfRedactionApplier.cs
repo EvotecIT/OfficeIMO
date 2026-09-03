@@ -22,7 +22,17 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions? applyOptions,
         PdfTextLayoutOptions? layoutOptions,
         PdfLoadOptions? readOptions,
-        out PdfGeneratedOutputGrowth generatedGrowth) {
+        out PdfGeneratedOutputGrowth generatedGrowth) =>
+        Apply(pdf, plan, applyOptions, layoutOptions, readOptions, out generatedGrowth, out _);
+
+    internal static byte[] Apply(
+        byte[] pdf,
+        PdfRedactionPlan plan,
+        PdfRedactionApplyOptions? applyOptions,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfLoadOptions? readOptions,
+        out PdfGeneratedOutputGrowth generatedGrowth,
+        out IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(plan, nameof(plan));
         if (!plan.IsReviewable) {
             throw new InvalidOperationException("The reviewed redaction plan is blocked and cannot be applied.");
@@ -32,6 +42,7 @@ internal static partial class PdfRedactionApplier {
         }
         if (plan.Areas.Count == 0) {
             generatedGrowth = default;
+            appliedImageMatches = Array.Empty<PdfRedactionMatch>();
             return (byte[])pdf.Clone();
         }
         string[] fieldNames = plan.Areas.Select(static area => area.Label).Where(static label => label?.StartsWith("field:", StringComparison.Ordinal) == true).Select(static label => label!.Substring("field:".Length)).Distinct(StringComparer.Ordinal).ToArray();
@@ -51,7 +62,8 @@ internal static partial class PdfRedactionApplier {
             paintMarks: true,
             PdfMutationOperation.Redact,
             imageTargets: null,
-            generatedGrowth: out generatedGrowth);
+            generatedGrowth: out generatedGrowth,
+            appliedImageMatches: out appliedImageMatches);
     }
 
     /// <summary>
@@ -166,7 +178,32 @@ internal static partial class PdfRedactionApplier {
         bool paintMarks,
         PdfMutationOperation mutationOperation,
         IReadOnlyList<PdfImagePlacement>? imageTargets,
-        out PdfGeneratedOutputGrowth generatedGrowth) {
+        out PdfGeneratedOutputGrowth generatedGrowth) =>
+        ApplyCore(
+            pdf,
+            areas,
+            applyOptions,
+            layoutOptions,
+            readOptions,
+            mutationScope,
+            paintMarks,
+            mutationOperation,
+            imageTargets,
+            out generatedGrowth,
+            out _);
+
+    private static byte[] ApplyCore(
+        byte[] pdf,
+        IEnumerable<PdfRedactionArea> areas,
+        PdfRedactionApplyOptions? applyOptions,
+        PdfTextLayoutOptions? layoutOptions,
+        PdfLoadOptions? readOptions,
+        RedactionMutationScope mutationScope,
+        bool paintMarks,
+        PdfMutationOperation mutationOperation,
+        IReadOnlyList<PdfImagePlacement>? imageTargets,
+        out PdfGeneratedOutputGrowth generatedGrowth,
+        out IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(areas, nameof(areas));
         if (mutationOperation == PdfMutationOperation.ModifyPageContent &&
@@ -202,11 +239,13 @@ internal static partial class PdfRedactionApplier {
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
+            appliedImageMatches = mutation.AppliedImageMatches;
             return pdf.ToArray();
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
         generatedGrowth = BuildGeneratedOutputGrowth(objects, mutation.GeneratedPageContentBytes);
+        appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
         return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf);
     }
@@ -283,6 +322,7 @@ internal static partial class PdfRedactionApplier {
             .ToDictionary(group => group.Key, group => group.ToArray());
         bool changed = false;
         int generatedPageContentBytes = 0;
+        var appliedImageMatches = new List<PdfRedactionMatch>();
         var removedImageObjectNumbers = new HashSet<int>();
         var formFieldObjectNumbers = new HashSet<int>(document.FormFields
             .Where(static field => field.ObjectNumber.HasValue)
@@ -318,6 +358,7 @@ internal static partial class PdfRedactionApplier {
                     ref nextObjectNumber)
                 : ImageRedactionMutation.None;
             foreach (PdfRedactionMatch removedImage in imageMutation.RemovedMatches) if (removedImage.ObjectNumber.HasValue) removedImageObjectNumbers.Add(removedImage.ObjectNumber.Value);
+            appliedImageMatches.AddRange(imageMutation.RemovedMatches);
             if ((mutationScope & RedactionMutationScope.Images) != 0) ValidateImagePlacementMatches(selectedImageMatches, imageMutation.RemovedMatches, options);
             bool pageChanged = imageMutation.HasChanges;
             if ((mutationScope & RedactionMutationScope.Text) != 0) {
@@ -352,7 +393,7 @@ internal static partial class PdfRedactionApplier {
 
         if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers, limits) || changed;
 
-        return new RedactionMutation(changed, generatedPageContentBytes);
+        return new RedactionMutation(changed, generatedPageContentBytes, appliedImageMatches.AsReadOnly());
     }
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
@@ -1081,13 +1122,15 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct RedactionMutation {
-        public RedactionMutation(bool hasChanges, int generatedPageContentBytes) {
+        public RedactionMutation(bool hasChanges, int generatedPageContentBytes, IReadOnlyList<PdfRedactionMatch> appliedImageMatches) {
             HasChanges = hasChanges;
             GeneratedPageContentBytes = generatedPageContentBytes;
+            AppliedImageMatches = appliedImageMatches;
         }
 
         public bool HasChanges { get; }
         public int GeneratedPageContentBytes { get; }
+        public IReadOnlyList<PdfRedactionMatch> AppliedImageMatches { get; }
     }
 
 }

@@ -75,6 +75,10 @@ internal static partial class PdfRedactionVerification {
                 continue;
             }
 
+            if (IsOpaqueImageCodecStream(stream, objects)) {
+                continue;
+            }
+
             string objectReference = indirect.ObjectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             if (stream.DecodingFailed) {
                 issues.Add(CreateUndecodableStreamIssue(objectReference, stream.DecodingError ?? "PDF parser reported a stream decoding failure."));
@@ -90,6 +94,23 @@ internal static partial class PdfRedactionVerification {
         }
 
         return issues;
+    }
+
+    private static bool IsOpaqueImageCodecStream(
+        PdfStream stream,
+        Dictionary<int, PdfIndirectObject> objects) {
+        if (PdfObjectLookup.ResolveChain(
+                objects,
+                stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Image" }) {
+            return false;
+        }
+
+        return StreamDecoder.TryGetDeclaredFilterNames(stream.Dictionary, objects, out IReadOnlyList<string> filters) &&
+            filters.Count == 1 &&
+            filters[0] is "DCTDecode" or "DCT" or
+                "JPXDecode" or
+                "CCITTFaxDecode" or "CCF" or
+                "JBIG2Decode";
     }
 
     private static PdfRedactionVerificationIssue CreateUndecodableStreamIssue(string objectReference, string reason) {

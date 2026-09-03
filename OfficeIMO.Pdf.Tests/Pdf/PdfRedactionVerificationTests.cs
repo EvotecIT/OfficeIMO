@@ -639,6 +639,63 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Verify_CompleteStreamInspectionAcceptsOpaqueImageCodecStreams() {
+        byte[] source = BuildJpegImageRedactionSource();
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.True(report.IsVerified, report.Summary);
+        Assert.DoesNotContain(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void Verify_CompleteStreamInspectionRejectsOpaqueImageCodecCombinedWithUnknownFilter() {
+        byte[] source = BuildJpegImageRedactionSource("[/DCTDecode /UnknownDecode]");
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Theory]
+    [InlineData("[/DCTDecode /JPXDecode]")]
+    [InlineData("[/DCTDecode /DCTDecode]")]
+    [InlineData("[/FlateDecode /DCTDecode]")]
+    public void Verify_CompleteStreamInspectionRejectsMultipleOpaqueImageFilters(string filters) {
+        byte[] source = BuildJpegImageRedactionSource(filters);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.Verify(
+            source,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue => issue.Feature == "UndecodablePdfStream");
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceVerifiesTextRedactionAlongsideUntouchedJpeg() {
+        byte[] source = BuildJpegImageRedactionSource();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("REMOVE-JPEG-DOC-TEXT"));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            }.RequireRemovedText("REMOVE-JPEG-DOC-TEXT"));
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Single(PdfImageExtractor.ExtractImages(result.Pdf));
+        Assert.Contains("/DCTDecode", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Plan_ReportsIntersectingImagePlacementsAsRedactionRisk() {
         byte[] source = BuildImageRedactionPlanningSource();
         PdfLogicalImage image = GetSingleImage(source);
@@ -770,6 +827,98 @@ public class PdfRedactionVerificationTests {
         byte[] pixels = DecodeSingleImagePixels(redacted);
         Assert.Equal(24, pixels.Length);
         AssertRedactedLeftHalf(pixels, width: 4, height: 2, components: 3);
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceVerifiesAppliedPartialImagePixelRewrite() {
+        byte[] source = BuildSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        PdfRedactionEvidenceItem item = Assert.Single(
+            result.Evidence.Items,
+            evidence => evidence.ReviewedMatch.Kind == PdfRedactionMatchKind.ImagePlacement);
+        Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status);
+        AssertRedactedLeftHalf(DecodeSingleImagePixels(result.Pdf), width: 4, height: 2, components: 3);
+    }
+
+    [Fact]
+    public void VerifyAppliedPlanWithoutMutationProofKeepsPartialImageResidualFailClosed() {
+        byte[] source = BuildSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, [area]);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker == "ImagePlacement@page:1");
+    }
+
+    [Fact]
+    public void ApplyWithEvidencePairsOneAppliedRewriteWithOneRepeatedImagePlacement() {
+        byte[] source = BuildRepeatedSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement firstPlacement = image.Placements.OrderBy(placement => placement.X).First();
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, firstPlacement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        PdfImagePlacement[] placements = PdfImageExtractor.ExtractImagePlacements(result.Pdf).ToArray();
+        Assert.Equal(2, placements.Length);
+        byte[][] images = DecodeImagePixelStreams(result.Pdf);
+        Assert.Contains(images, pixels => PixelRowsMatch(pixels, CreateSimpleFlateImagePixels()));
+        Assert.Contains(images, pixels => LeftHalfIsRedacted(pixels, width: 4, height: 2, components: 3));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceRecordsEachIdenticalImageInvocationMutation() {
+        byte[] source = BuildRepeatedIdenticalSimpleFlateImageRedactionSource();
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfImagePlacement placement = image.PrimaryPlacement!;
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, placement);
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+        Assert.Equal(2, plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.ImagePlacement));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Empty(result.Evidence.ResidualMatches);
+        Assert.Equal(2, PdfImageExtractor.ExtractImagePlacements(result.Pdf).Count);
+        byte[][] images = DecodeImagePixelStreams(result.Pdf);
+        Assert.Equal(2, images.Length);
+        Assert.All(images, pixels => Assert.True(LeftHalfIsRedacted(pixels, width: 4, height: 2, components: 3)));
     }
 
     [Fact]
@@ -1255,6 +1404,11 @@ public class PdfRedactionVerificationTests {
         return BuildSimpleFlateImagePdf(pageContent);
     }
 
+    private static byte[] BuildRepeatedIdenticalSimpleFlateImageRedactionSource() {
+        const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\nq\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n";
+        return BuildSimpleFlateImagePdf(pageContent);
+    }
+
     private static byte[] BuildSoftMaskedSimpleFlateImageRedactionSource() {
         const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSoft Do\nQ\n";
         byte[] pixels = CreateSimpleFlateImagePixels();
@@ -1376,8 +1530,8 @@ public class PdfRedactionVerificationTests {
         return output.ToArray();
     }
 
-    private static byte[] BuildJpegImageRedactionSource() {
-        const string pageContent = "q\n20 0 0 20 20 30 cm\n/ImJpeg Do\nQ\n";
+    private static byte[] BuildJpegImageRedactionSource(string imageFilter = "/DCTDecode") {
+        const string pageContent = "q\n20 0 0 20 20 30 cm\n/ImJpeg Do\nQ\nBT /F1 12 Tf 20 90 Td (REMOVE-JPEG-DOC-TEXT) Tj ET\n";
         byte[] jpegBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
         int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent.TrimEnd('\n'));
         using var output = new MemoryStream();
@@ -1392,7 +1546,7 @@ public class PdfRedactionVerificationTests {
             "<< /Type /Catalog /Pages 2 0 R >>",
             "endobj",
             "2 0 obj",
-            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImJpeg 5 0 R >> >> >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImJpeg 5 0 R >> /Font << /F1 6 0 R >> >> >>",
             "endobj",
             "3 0 obj",
             "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>",
@@ -1404,11 +1558,11 @@ public class PdfRedactionVerificationTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + jpegBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter " + imageFilter + " /Length " + jpegBytes.Length.ToString(CultureInfo.InvariantCulture) + " >>",
             "stream"
         }) + "\n");
         output.Write(jpegBytes, 0, jpegBytes.Length);
-        WriteAscii("\nendstream\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
         return output.ToArray();
     }
 

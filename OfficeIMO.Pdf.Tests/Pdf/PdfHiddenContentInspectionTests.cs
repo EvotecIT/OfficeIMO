@@ -6,6 +6,24 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfHiddenContentInspectionTests {
     [Fact]
+    public void ContentSafetySkipsHiddenLayerReparseWhenDocumentHasNoOptionalContent() {
+        byte[] pdf = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("VISIBLE-CONTENT"))
+            .ToBytes();
+        int hiddenInspectionCalls = 0;
+        PdfReadPage.HiddenOptionalContentInspectionObserverForTesting = () => hiddenInspectionCalls++;
+
+        try {
+            OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(pdf);
+
+            Assert.Equal(0, hiddenInspectionCalls);
+            Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Contains("Optional-content", StringComparison.Ordinal));
+        } finally {
+            PdfReadPage.HiddenOptionalContentInspectionObserverForTesting = null;
+        }
+    }
+
+    [Fact]
     public void ContentSafetySurfacesHiddenLayerTextIncludingHiddenFormContent() {
         byte[] pdf = BuildHiddenOptionalContentPdf();
 
@@ -142,6 +160,29 @@ public sealed class PdfHiddenContentInspectionTests {
 
         Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("WIDGETLESS-SECRET", StringComparison.Ordinal));
         Assert.Contains(report.Findings, finding => finding.TextPreview.Contains("WIDGETLESS-DEFAULT", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyTreatsWidgetMissingFromPageAnnotationsAsConcealed() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /FT /Tx /T (DetachedWidgetField) /V (DETACHED-WIDGET-SECRET) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 40] /P 3 0 R /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("DETACHED-WIDGET-SECRET", StringComparison.Ordinal));
     }
 
     [Fact]

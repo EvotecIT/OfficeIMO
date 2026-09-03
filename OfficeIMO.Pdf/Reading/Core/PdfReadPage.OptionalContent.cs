@@ -1,6 +1,14 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
+    private static readonly System.Threading.AsyncLocal<Action?> HiddenOptionalContentInspectionObserver =
+        new System.Threading.AsyncLocal<Action?>();
+
+    internal static Action? HiddenOptionalContentInspectionObserverForTesting {
+        get => HiddenOptionalContentInspectionObserver.Value;
+        set => HiddenOptionalContentInspectionObserver.Value = value;
+    }
+
     internal bool IsHiddenOptionalContent(PdfDictionary? sourceDictionary) {
         if (sourceDictionary is null ||
             !sourceDictionary.Items.TryGetValue("OC", out PdfObject? optionalContentObject)) {
@@ -19,6 +27,7 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfTextSpan> GetHiddenOptionalContentTextSpans(bool includeArtifactText) {
+        HiddenOptionalContentInspectionObserver.Value?.Invoke();
         if (HasUnsupportedOptionalContentViewUsageApplications()) {
             return Array.Empty<PdfTextSpan>();
         }

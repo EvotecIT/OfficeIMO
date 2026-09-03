@@ -299,13 +299,19 @@ public sealed partial class PdfDocument {
             applyOptions,
             layoutOptions,
             readOptions,
-            out PdfGeneratedOutputGrowth generatedGrowth);
+            out PdfGeneratedOutputGrowth generatedGrowth,
+            out IReadOnlyList<PdfRedactionMatch> appliedImageMatches);
         PdfRedactionVerificationOptions effectiveVerification = verificationOptions ?? new PdfRedactionVerificationOptions {
             RequireCompleteStreamInspection = true,
             CheckManagedRendering = true
         };
         PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
-        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(output, plan, effectiveVerification, outputReadOptions);
+        PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(
+            output,
+            plan,
+            effectiveVerification,
+            outputReadOptions,
+            appliedImageMatches);
         IReadOnlyList<PdfRedactionMatch> residualMatches = verification.Issues.Any(static issue =>
             issue.Feature == "ReviewedRedactionPlanBlocked" ||
             issue.Feature == "RedactionPlanPageCountChanged" ||
@@ -313,7 +319,9 @@ public sealed partial class PdfDocument {
             issue.Feature == "RedactionPlanPageMissing" ||
             issue.Feature == "RedactionPlanInspectionBlocked")
             ? Array.Empty<PdfRedactionMatch>()
-            : PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, outputReadOptions).Matches;
+            : PdfRedactionVerification.FilterAppliedImageResiduals(
+                PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, outputReadOptions).Matches,
+                appliedImageMatches);
         IReadOnlyList<PdfRedactionMatch> inconclusiveMatches = FindWidgetMatchesWithReachableFieldOwners(
             source,
             output,

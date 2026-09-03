@@ -156,9 +156,10 @@ public sealed partial class PdfDocument {
                 }
             }
 
-            bool unsupportedOptionalContentViewUsage = page.HasUnsupportedOptionalContentViewUsageApplications();
+            bool hasOptionalContent = document.OptionalContent != null;
+            bool unsupportedOptionalContentViewUsage = hasOptionalContent && page.HasUnsupportedOptionalContentViewUsageApplications();
             optionalContentInspectionInconclusive |= unsupportedOptionalContentViewUsage;
-            IReadOnlyList<PdfTextSpan> hiddenOptionalContent = unsupportedOptionalContentViewUsage
+            IReadOnlyList<PdfTextSpan> hiddenOptionalContent = !hasOptionalContent || unsupportedOptionalContentViewUsage
                 ? Array.Empty<PdfTextSpan>()
                 : page.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
             for (int hiddenIndex = 0; hiddenIndex < hiddenOptionalContent.Count; hiddenIndex++) {
@@ -289,7 +290,8 @@ public sealed partial class PdfDocument {
                     : candidateIndex != fieldIndex) continue;
             for (int widgetIndex = 0; widgetIndex < candidate.Widgets.Count; widgetIndex++) {
                 PdfFormWidget widget = candidate.Widgets[widgetIndex];
-                bool concealed = widget.IsHidden ||
+                bool concealed = !widget.PageNumber.HasValue ||
+                    widget.IsHidden ||
                     widget.IsInvisible ||
                     widget.IsNoView ||
                     widget.ObjectNumber.HasValue && concealedAnnotationObjectNumbers.Contains(widget.ObjectNumber.Value);
