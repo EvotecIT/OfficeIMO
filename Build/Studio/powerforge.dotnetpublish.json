@@ -9,7 +9,8 @@
     "NoRestoreInPublish": true,
     "NoBuildInPublish": true,
     "MsBuildProperties": {
-      "RestorePackagesWithLockFile": "false"
+      "RestoreLockedMode": "true",
+      "RuntimeIdentifiers": "win-x64;win-arm64;osx-x64;osx-arm64;linux-x64;linux-arm64"
     },
     "LockedOutputGuard": true
   },
