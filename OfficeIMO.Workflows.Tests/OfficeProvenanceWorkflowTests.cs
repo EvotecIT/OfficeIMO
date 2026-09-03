@@ -364,6 +364,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
 
         Assert.False(result.Succeeded);
+        Assert.Equal(OfficeWorkflowFailureKind.UnsupportedInput, result.FailureKind);
         Assert.Contains("above the configured", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("byte limit", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code.EndsWith("Snapshot", StringComparison.Ordinal));

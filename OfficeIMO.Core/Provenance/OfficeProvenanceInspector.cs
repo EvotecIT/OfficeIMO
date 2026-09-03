@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using OfficeIMO.Core.Internal;
 
@@ -107,7 +108,7 @@ public static class OfficeProvenanceInspector {
         if (OfficeProvenanceZip.HasSignature(data)) return OfficeProvenanceAssetFormat.ZipPackage;
         if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-")) return OfficeProvenanceAssetFormat.Pdf;
         if (LooksLikeSvg(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
-        if (LooksLikeHtml(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Html;
+        if (LooksLikeHtml(data, null, options.MaxContainerEntries, options.CancellationToken)) return OfficeProvenanceAssetFormat.Html;
         if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.UnstructuredText;
         if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
         string extension = Path.GetExtension(fileName ?? string.Empty);
@@ -119,10 +120,20 @@ public static class OfficeProvenanceInspector {
         return OfficeProvenanceAssetFormat.Unknown;
     }
 
-    private static bool LooksLikeHtml(byte[] data, string? fileName, int maximumContainerEntries) {
+    private static bool LooksLikeHtml(
+        byte[] data,
+        string? fileName,
+        int maximumContainerEntries,
+        CancellationToken cancellationToken) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return true;
+        if (HasUtf16OrUtf32Preamble(data)) {
+            return LooksLikeHtml(
+                OfficeProvenanceHtml.DecodeHtml(data, cancellationToken),
+                maximumContainerEntries,
+                cancellationToken);
+        }
         int offset = 0;
         if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) offset = 3;
         int commentCount = 0;
@@ -132,6 +143,7 @@ public static class OfficeProvenanceInspector {
             if (++commentCount > maximumContainerEntries) {
                 throw new InvalidDataException("HTML format detection exceeds the configured container-entry limit.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
             int commentEnd = FindAscii(data, offset + 4, "-->");
             if (commentEnd < 0) return false;
             offset = commentEnd + 3;
@@ -148,6 +160,47 @@ public static class OfficeProvenanceInspector {
         return value is 0x09 or 0x0A or 0x0C or 0x0D or 0x20 or (byte)'>' ||
             allowSelfClosing && value == (byte)'/';
     }
+
+    private static bool LooksLikeHtml(
+        string data,
+        int maximumContainerEntries,
+        CancellationToken cancellationToken) {
+        int offset = 0;
+        int commentCount = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (offset < data.Length && IsHtmlWhitespace(data[offset])) offset++;
+            if (!MatchesHtmlToken(data, offset, "<!--")) break;
+            if (++commentCount > maximumContainerEntries) {
+                throw new InvalidDataException("HTML format detection exceeds the configured container-entry limit.");
+            }
+            int commentEnd = data.IndexOf("-->", offset + 4, StringComparison.OrdinalIgnoreCase);
+            if (commentEnd < 0) return false;
+            offset = commentEnd + 3;
+        }
+        return MatchesHtmlTokenWithBoundary(data, offset, "<!doctype html", allowSelfClosing: false) ||
+            MatchesHtmlTokenWithBoundary(data, offset, "<html", allowSelfClosing: true);
+    }
+
+    private static bool MatchesHtmlTokenWithBoundary(string data, int offset, string token, bool allowSelfClosing) {
+        if (!MatchesHtmlToken(data, offset, token)) return false;
+        int boundary = offset + token.Length;
+        if (boundary >= data.Length) return false;
+        char value = data[boundary];
+        return IsHtmlWhitespace(value) || value == '>' || allowSelfClosing && value == '/';
+    }
+
+    private static bool MatchesHtmlToken(string data, int offset, string token) =>
+        offset >= 0 && token.Length <= data.Length - offset &&
+        string.Compare(data, offset, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0;
+
+    private static bool IsHtmlWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
+
+    private static bool HasUtf16OrUtf32Preamble(byte[] data) =>
+        data.Length >= 2 &&
+        ((data[0] == 0xFE && data[1] == 0xFF) ||
+         (data[0] == 0xFF && data[1] == 0xFE) ||
+         (data.Length >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF));
 
     private static int FindAscii(byte[] data, int offset, string expected) {
         for (int index = Math.Max(0, offset); index <= data.Length - expected.Length; index++) {

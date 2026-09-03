@@ -1,4 +1,5 @@
 using System.Text;
+using System.Threading;
 using OfficeIMO.Pdf;
 using OfficeIMO.Provenance;
 using Xunit;
@@ -6,6 +7,20 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfProvenanceTests {
+    [Fact]
+    public void ProvenanceGraphEditorForwardsCancellationIntoTheFullRewrite() {
+        byte[] pdf = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancellation")).ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => PdfProvenanceGraphEditor.RemoveFileSpecifications(
+            pdf,
+            new HashSet<int> { int.MaxValue },
+            readOptions: null,
+            maximumOutputBytes: pdf.LongLength * 2L,
+            cancellation.Token));
+    }
+
     [Fact]
     public void InspectAndRemoveUseTheExactC2paAssociatedFileProfile() {
         byte[] manifest = CreateManifestStore();

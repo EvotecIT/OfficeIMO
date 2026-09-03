@@ -66,7 +66,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
             : Path.GetFullPath(sourceDirectory);
         long capturedBytes = 0;
-        var capturedTargets = new HashSet<string>(OfficePathIdentity.GetComparer(_directoryPath));
+        var capturedTargets = new HashSet<string>(StringComparer.Ordinal);
         foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
                      item.IsStructurallyValid &&
                      item.Carrier == OfficeProvenanceCarrierKind.C2paExternalManifest &&
@@ -79,7 +79,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     report.GetExternalManifestReference(evidence)!,
                     out string sourceDependency,
                     out string targetDependency) ||
-                !capturedTargets.Add(targetDependency) ||
+                !capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||
                 !File.Exists(sourceDependency)) continue;
 
             string? targetDirectory = Path.GetDirectoryName(targetDependency);
@@ -111,6 +111,10 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             dependency.Verify(cancellationToken);
         }
     }
+
+    private string GetDependencyTargetIdentity(string targetPath) => _usesPhysicalIdentity
+        ? OfficePathIdentity.Normalize(targetPath)
+        : Path.GetFullPath(targetPath);
 
     /// <summary>Verifies that the primary snapshot stayed identical throughout owner and provider execution.</summary>
     internal void VerifyPrimaryFile(CancellationToken cancellationToken = default) {

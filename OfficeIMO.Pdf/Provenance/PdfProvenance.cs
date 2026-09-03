@@ -167,7 +167,8 @@ public static partial class PdfProvenance {
             pdf,
             removeFileSpecifications,
             effectiveReadOptions,
-            options.EffectiveMaxOutputBytes);
+            options.EffectiveMaxOutputBytes,
+            options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
         OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(options.Limits, options.EffectiveMaxOutputBytes);

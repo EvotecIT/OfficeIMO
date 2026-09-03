@@ -233,6 +233,29 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void CoreAssessmentDecodesHtmlManifestReferencesExactlyOnce() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claim&amp;amp;v.c2pa\"></head><body>body</body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, "claim&amp;v.c2pa"), "escaped claim", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(
+                path,
+                verifier: new RelativeSidecarVerifier("claim&amp;v.c2pa", "escaped claim"));
+
+            OfficeProvenanceEvidence evidence = Assert.Single(report.Structural.Evidence);
+            Assert.Equal("claim&amp;v.c2pa", evidence.Value);
+            Assert.Equal(OfficeProvenanceVerificationStatus.Valid, report.Verification!.Status);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void CoreHtmlInspectionResolvesRelativeBaseForManifestSnapshot() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(directory, "sub"));
@@ -333,6 +356,30 @@ public sealed class ProvenanceAssessmentContracts {
             Assert.Equal(
                 "immutable claim",
                 File.ReadAllText(Path.Combine(snapshotDirectory, "Claim.c2pa")));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SnapshotDeduplicatesUnicodeNormalizationAliasesOnMacOs() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) return;
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        const string composed = "caf\u00E9.c2pa";
+        const string decomposed = "cafe\u0301.c2pa";
+        File.WriteAllText(path, "<!doctype html><html><body>body</body></html>", new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(directory, composed), "normalized claim", new UTF8Encoding(false));
+        try {
+            OfficeProvenanceReport report = CreateExternalManifestReport(composed, decomposed);
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096);
+            string snapshotDirectory = Path.GetDirectoryName(snapshot.FilePath)!;
+
+            snapshot.CaptureExternalManifestDependencies(path, report, 4096, 4096);
+
+            Assert.Equal("normalized claim", File.ReadAllText(Path.Combine(snapshotDirectory, composed)));
+            snapshot.VerifyExternalManifestDependencies();
         } finally {
             Directory.Delete(directory, recursive: true);
         }

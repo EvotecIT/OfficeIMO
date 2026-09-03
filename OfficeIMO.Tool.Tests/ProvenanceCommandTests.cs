@@ -220,6 +220,20 @@ public sealed class ProvenanceCommandTests {
     }
 
     [Fact]
+    public async Task InputLimitUsesStableUnsupportedInputExitCode() {
+        using var scope = new TestDirectory();
+        string input = scope.Write("page.html", "<!doctype html><html><body>bounded input</body></html>");
+
+        ToolResult result = await RunAsync([
+            "provenance", "inspect", input, "--max-input-bytes", "16"
+        ]);
+
+        Assert.Equal((int)OfficeImoToolExitCode.UnsupportedInput, result.ExitCode);
+        using JsonDocument json = JsonDocument.Parse(result.Output);
+        Assert.Equal("UnsupportedInput", json.RootElement.GetProperty("failureKind").GetString());
+    }
+
+    [Fact]
     public void CliByteLimitsFlowIntoEveryOwningParserBoundary() {
         const long inputLimit = 768L * 1024L * 1024L;
         const long outputLimit = 1024L * 1024L * 1024L;

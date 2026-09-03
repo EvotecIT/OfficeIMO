@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.Pdf;
 
 internal static class PdfProvenanceGraphEditor {
@@ -5,43 +7,53 @@ internal static class PdfProvenanceGraphEditor {
         byte[] pdf,
         HashSet<int> fileSpecificationObjectNumbers,
         PdfLoadOptions? readOptions,
-        long maximumOutputBytes) {
+        long maximumOutputBytes,
+        CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(fileSpecificationObjectNumbers, nameof(fileSpecificationObjectNumbers));
+        cancellationToken.ThrowIfCancellationRequested();
         if (fileSpecificationObjectNumbers.Count == 0) return (byte[])pdf.Clone();
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyAttachments, readOptions);
+        cancellationToken.ThrowIfCancellationRequested();
         return PdfDocumentObjectGraphRewriter.Rewrite(pdf, readOptions, null, (objects, security) => {
-            RemoveFromEmbeddedFilesNameTree(objects, security, fileSpecificationObjectNumbers);
+            cancellationToken.ThrowIfCancellationRequested();
+            RemoveFromEmbeddedFilesNameTree(objects, security, fileSpecificationObjectNumbers, cancellationToken);
             HashSet<PdfDictionary> removedDirectAnnotations = CollectFileAttachmentAnnotations(
-                objects, security, fileSpecificationObjectNumbers, out HashSet<int> removedAnnotationObjectNumbers);
+                objects, security, fileSpecificationObjectNumbers, out HashSet<int> removedAnnotationObjectNumbers, cancellationToken);
             var removedObjectNumbers = new HashSet<int>(fileSpecificationObjectNumbers);
             removedObjectNumbers.UnionWith(removedAnnotationObjectNumbers);
             var visited = new HashSet<PdfObject>();
             foreach (PdfIndirectObject item in objects.Values.ToArray()) {
-                ScrubReferences(objects, item.Value, removedObjectNumbers, removedDirectAnnotations, visited);
+                cancellationToken.ThrowIfCancellationRequested();
+                ScrubReferences(objects, item.Value, removedObjectNumbers, removedDirectAnnotations, visited, cancellationToken);
             }
             visited.Clear();
             foreach (PdfIndirectObject item in objects.Values.ToArray()) {
-                RemoveEmptyAssociatedFileReferences(objects, item.Value, visited);
+                cancellationToken.ThrowIfCancellationRequested();
+                RemoveEmptyAssociatedFileReferences(objects, item.Value, visited, cancellationToken);
             }
-            foreach (int objectNumber in removedObjectNumbers) objects.Remove(objectNumber);
+            foreach (int objectNumber in removedObjectNumbers) {
+                cancellationToken.ThrowIfCancellationRequested();
+                objects.Remove(objectNumber);
+            }
             return security.InfoObjectNumber.HasValue && objects.ContainsKey(security.InfoObjectNumber.Value)
                 ? security.InfoObjectNumber
                 : null;
-        }, maximumOutputBytes);
+        }, maximumOutputBytes, cancellationToken);
     }
 
     private static void RemoveFromEmbeddedFilesNameTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
-        HashSet<int> targets) {
+        HashSet<int> targets,
+        CancellationToken cancellationToken) {
         if (!security.RootObjectNumber.HasValue ||
             !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? root) ||
             root.Value is not PdfDictionary catalog ||
             PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is not PdfDictionary names ||
             !names.Items.TryGetValue("EmbeddedFiles", out PdfObject? embeddedFiles)) return;
         if (PdfObjectLookup.Resolve(objects, embeddedFiles) is not PdfDictionary rootTree) return;
-        if (!PruneNameTree(objects, rootTree, targets)) {
+        if (!PruneNameTree(objects, rootTree, targets, cancellationToken)) {
             names.Items.Remove("EmbeddedFiles");
         }
     }
@@ -49,7 +61,8 @@ internal static class PdfProvenanceGraphEditor {
     private static bool PruneNameTree(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
-        HashSet<int> targets) {
+        HashSet<int> targets,
+        CancellationToken cancellationToken) {
         PdfObject? root = PdfObjectLookup.Resolve(objects, value);
         if (root is not PdfDictionary rootDictionary) return false;
         var visited = new HashSet<PdfObject>();
@@ -58,6 +71,7 @@ internal static class PdfProvenanceGraphEditor {
         visited.Add(rootDictionary);
         pending.Push((rootDictionary, false));
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             (PdfDictionary dictionary, bool expanded) = pending.Pop();
             if (!expanded) {
                 pending.Push((dictionary, true));
@@ -70,7 +84,7 @@ internal static class PdfProvenanceGraphEditor {
                 }
                 continue;
             }
-            results[dictionary] = PruneNameTreeDictionary(objects, dictionary, targets, results);
+            results[dictionary] = PruneNameTreeDictionary(objects, dictionary, targets, results, cancellationToken);
         }
         return results.TryGetValue(rootDictionary, out NameTreeResult result) && result.ShouldRetain;
     }
@@ -79,7 +93,8 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
         HashSet<int> targets,
-        Dictionary<PdfDictionary, NameTreeResult> results) {
+        Dictionary<PdfDictionary, NameTreeResult> results,
+        CancellationToken cancellationToken) {
         bool hadLimits = dictionary.Items.ContainsKey("Limits");
         bool changed = false;
         bool hasUnresolvedRetainedChild = false;
@@ -88,6 +103,7 @@ internal static class PdfProvenanceGraphEditor {
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Names", out PdfObject? namesValue) ? namesValue : null) is PdfArray names) {
             int completePairCount = names.Items.Count / 2;
             for (int pair = completePairCount - 1; pair >= 0; pair--) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int index = pair * 2;
                 if (!IsTargetReference(objects, names.Items[index], targets) &&
                     !IsTargetReference(objects, names.Items[index + 1], targets)) continue;
@@ -109,6 +125,7 @@ internal static class PdfProvenanceGraphEditor {
         }
         if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) is PdfArray kids) {
             for (int index = kids.Items.Count - 1; index >= 0; index--) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (PdfObjectLookup.Resolve(objects, kids.Items[index]) is PdfDictionary child &&
                     results.TryGetValue(child, out NameTreeResult childResult) &&
                     childResult.WasChanged) {
@@ -117,6 +134,7 @@ internal static class PdfProvenanceGraphEditor {
                 }
             }
             foreach (PdfObject childValue in kids.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (PdfObjectLookup.Resolve(objects, childValue) is not PdfDictionary child ||
                     !results.TryGetValue(child, out NameTreeResult childResult)) {
                     hasUnresolvedRetainedChild = true;
@@ -169,7 +187,8 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDocumentSecurityInfo security,
         HashSet<int> targets,
-        out HashSet<int> indirectObjectNumbers) {
+        out HashSet<int> indirectObjectNumbers,
+        CancellationToken cancellationToken) {
         var annotations = new HashSet<PdfDictionary>();
         var activeAnnotations = new List<(PdfObject Value, PdfDictionary Dictionary)>();
         indirectObjectNumbers = new HashSet<int>();
@@ -179,6 +198,7 @@ internal static class PdfProvenanceGraphEditor {
         var visited = new HashSet<PdfObject>();
         pending.Push(pages);
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject current = pending.Pop();
             PdfObject? resolved = PdfObjectLookup.Resolve(objects, current);
             if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
@@ -201,7 +221,7 @@ internal static class PdfProvenanceGraphEditor {
                 }
             }
         }
-        CollectDependentAnnotations(objects, activeAnnotations, annotations, indirectObjectNumbers);
+        CollectDependentAnnotations(objects, activeAnnotations, annotations, indirectObjectNumbers, cancellationToken);
         return annotations;
     }
 
@@ -209,9 +229,11 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         IReadOnlyList<(PdfObject Value, PdfDictionary Dictionary)> activeAnnotations,
         HashSet<PdfDictionary> annotations,
-        HashSet<int> indirectObjectNumbers) {
+        HashSet<int> indirectObjectNumbers,
+        CancellationToken cancellationToken) {
         var dependents = new Dictionary<PdfDictionary, List<(PdfDictionary Dictionary, int? ObjectNumber)>>();
         foreach ((PdfObject value, PdfDictionary dictionary) in activeAnnotations) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (dictionary.Items.TryGetValue("IRT", out PdfObject? replyTo) &&
                 PdfObjectLookup.Resolve(objects, replyTo) is PdfDictionary replyParent) {
                 AddDependent(dependents, replyParent, dictionary, value is PdfReference replyReference ? replyReference.ObjectNumber : (int?)null);
@@ -222,6 +244,7 @@ internal static class PdfProvenanceGraphEditor {
             AddDependent(dependents, dictionary, popupDictionary, popup is PdfReference popupReference ? popupReference.ObjectNumber : (int?)null);
         }
         foreach (PdfIndirectObject item in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item.Value is not PdfDictionary dictionary ||
                 !string.Equals(GetResolvedName(objects, dictionary, "Subtype"), "Popup", StringComparison.Ordinal) ||
                 !dictionary.Items.TryGetValue("Parent", out PdfObject? parent) ||
@@ -231,6 +254,7 @@ internal static class PdfProvenanceGraphEditor {
 
         var pending = new Queue<PdfDictionary>(annotations);
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary parent = pending.Dequeue();
             if (!dependents.TryGetValue(parent, out List<(PdfDictionary Dictionary, int? ObjectNumber)>? children)) continue;
             foreach ((PdfDictionary dictionary, int? objectNumber) in children) {
@@ -293,15 +317,17 @@ internal static class PdfProvenanceGraphEditor {
         PdfObject value,
         HashSet<int> removedObjectNumbers,
         HashSet<PdfDictionary> removedDirectAnnotations,
-        HashSet<PdfObject> visited) {
+        HashSet<PdfObject> visited,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!visited.Add(value)) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
         if (dictionary != null) {
             foreach (string key in dictionary.Items.Keys.ToArray()) {
                 PdfObject child = dictionary.Items[key];
                 if ((key == "Names" || key == "Nums") && PdfObjectLookup.Resolve(objects, child) is PdfArray treePairs) {
-                    RemoveTreePairs(objects, treePairs, removedObjectNumbers, removedDirectAnnotations);
-                    ScrubReferences(objects, treePairs, removedObjectNumbers, removedDirectAnnotations, visited);
+                    RemoveTreePairs(objects, treePairs, removedObjectNumbers, removedDirectAnnotations, cancellationToken);
+                    ScrubReferences(objects, treePairs, removedObjectNumbers, removedDirectAnnotations, visited, cancellationToken);
                     if (treePairs.Items.Count == 0) dictionary.Items.Remove(key);
                     continue;
                 }
@@ -309,7 +335,7 @@ internal static class PdfProvenanceGraphEditor {
                     dictionary.Items.Remove(key);
                     continue;
                 }
-                if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited);
+                if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited, cancellationToken);
                 if (key == "AF" && child is PdfArray array && array.Items.Count == 0) {
                     dictionary.Items.Remove(key);
                 }
@@ -318,9 +344,10 @@ internal static class PdfProvenanceGraphEditor {
         }
         if (value is not PdfArray values) return;
         for (int index = values.Items.Count - 1; index >= 0; index--) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject child = values.Items[index];
             if (IsRemoved(objects, child, removedObjectNumbers, removedDirectAnnotations)) values.Items.RemoveAt(index);
-            else if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited);
+            else if (child is not PdfReference) ScrubReferences(objects, child, removedObjectNumbers, removedDirectAnnotations, visited, cancellationToken);
         }
     }
 
@@ -328,9 +355,11 @@ internal static class PdfProvenanceGraphEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray names,
         HashSet<int> removedObjectNumbers,
-        HashSet<PdfDictionary> removedDirectAnnotations) {
+        HashSet<PdfDictionary> removedDirectAnnotations,
+        CancellationToken cancellationToken) {
         int completePairCount = names.Items.Count / 2;
         for (int pair = completePairCount - 1; pair >= 0; pair--) {
+            cancellationToken.ThrowIfCancellationRequested();
             int index = pair * 2;
             if (!IsRemoved(objects, names.Items[index], removedObjectNumbers, removedDirectAnnotations) &&
                 !IsRemoved(objects, names.Items[index + 1], removedObjectNumbers, removedDirectAnnotations)) continue;
@@ -356,7 +385,9 @@ internal static class PdfProvenanceGraphEditor {
     private static void RemoveEmptyAssociatedFileReferences(
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
-        HashSet<PdfObject> visited) {
+        HashSet<PdfObject> visited,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!visited.Add(value)) return;
         PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
         if (dictionary != null) {
@@ -366,13 +397,14 @@ internal static class PdfProvenanceGraphEditor {
                     dictionary.Items.Remove(key);
                     continue;
                 }
-                if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited);
+                if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited, cancellationToken);
             }
             return;
         }
         if (value is not PdfArray array) return;
         foreach (PdfObject child in array.Items) {
-            if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (child is not PdfReference) RemoveEmptyAssociatedFileReferences(objects, child, visited, cancellationToken);
         }
     }
 }

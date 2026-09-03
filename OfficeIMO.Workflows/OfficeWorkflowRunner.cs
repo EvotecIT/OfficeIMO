@@ -809,7 +809,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
 
     private static void EnforceInputLimit(string path, long size, long maximumBytes) {
         if (size > maximumBytes) {
-            throw new InvalidOperationException(
+            throw OfficeIMO.Provenance.OfficeProvenanceLimitException.Create(
                 $"Input '{Path.GetFileName(path)}' is {size:N0} bytes, above the configured {maximumBytes:N0}-byte limit.");
         }
     }

@@ -195,7 +195,7 @@ internal static class OfficeProvenanceHtml {
     }
 
     private static string NormalizeReference(string? value) =>
-        TrimAsciiWhitespace(WebUtility.HtmlDecode(value ?? string.Empty))
+        TrimAsciiWhitespace(value ?? string.Empty)
             .Replace("\t", string.Empty)
             .Replace("\n", string.Empty)
             .Replace("\r", string.Empty);
@@ -287,7 +287,7 @@ internal static class OfficeProvenanceHtml {
         return -1;
     }
 
-    private static string DecodeHtml(byte[] data, System.Threading.CancellationToken cancellationToken) {
+    internal static string DecodeHtml(byte[] data, System.Threading.CancellationToken cancellationToken) {
         Encoding encoding;
         int offset;
         if (data.Length >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF) {
