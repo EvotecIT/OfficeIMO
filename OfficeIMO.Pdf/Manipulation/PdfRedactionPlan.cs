@@ -152,14 +152,13 @@ public sealed class PdfRedactionPlan {
         IReadOnlyList<PdfTextSpan> spans = page.GetTextSpansIncludingHiddenOptionalContent();
         var ignoredTextObjectKeys = new HashSet<PdfContentOrderKey>();
         PdfRedactionTextObjectScope[] currentTextObjectScopes = CreateTextObjectScopes(spans);
-        for (int currentIndex = 0; currentIndex < currentTextObjectScopes.Length; currentIndex++) {
-            PdfRedactionTextObjectScope current = currentTextObjectScopes[currentIndex];
-            if (reviewedTextObjectScopes.Any(reviewed => reviewed.Matches(current))) ignoredTextObjectKeys.Add(current.Key);
-        }
+        int[] matchedScopeIndices = MatchReviewedTextObjectScopes(reviewedTextObjectScopes, currentTextObjectScopes);
         for (int reviewedIndex = 0; reviewedIndex < reviewedTextObjectScopes.Count; reviewedIndex++) {
             PdfRedactionTextObjectScope reviewed = reviewedTextObjectScopes[reviewedIndex];
-            if (reviewed.RequiresExpectedSurvivors &&
-                !currentTextObjectScopes.Any(reviewed.Matches)) {
+            int matchedIndex = matchedScopeIndices[reviewedIndex];
+            if (matchedIndex >= 0) {
+                ignoredTextObjectKeys.Add(currentTextObjectScopes[matchedIndex].Key);
+            } else if (reviewed.RequiresExpectedSurvivors) {
                 identity.Append("|MissingReviewedTextSurvivors:")
                     .Append(reviewedIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
             }
@@ -194,6 +193,37 @@ public sealed class PdfRedactionPlan {
             PdfRedactionImageIdentity.AppendClip(identity, span.ClipPath);
             AppendDrawingEffectIdentity(identity, document, PdfReadPage.ResolveDrawingEffect(drawingEffects, span.PaintOrder, contentOrderKey: span.ContentOrderKey));
         }
+    }
+
+    internal static int[] MatchReviewedTextObjectScopes(
+        IReadOnlyList<PdfRedactionTextObjectScope> reviewed,
+        PdfRedactionTextObjectScope[] current) {
+        var matchedCurrentScopes = new bool[current.Length];
+        var result = new int[reviewed.Count];
+        for (int index = 0; index < result.Length; index++) result[index] = -1;
+        for (int reviewedIndex = 0; reviewedIndex < reviewed.Count; reviewedIndex++) {
+            PdfRedactionTextObjectScope scope = reviewed[reviewedIndex];
+            int matchedIndex = FindUnmatchedTextObjectScope(scope, current, matchedCurrentScopes, requireSameOwner: true);
+            if (matchedIndex < 0) {
+                matchedIndex = FindUnmatchedTextObjectScope(scope, current, matchedCurrentScopes, requireSameOwner: false);
+            }
+            if (matchedIndex < 0) continue;
+            matchedCurrentScopes[matchedIndex] = true;
+            result[reviewedIndex] = matchedIndex;
+        }
+        return result;
+    }
+
+    private static int FindUnmatchedTextObjectScope(
+        PdfRedactionTextObjectScope reviewed,
+        PdfRedactionTextObjectScope[] current,
+        bool[] matched,
+        bool requireSameOwner) {
+        for (int index = 0; index < current.Length; index++) {
+            if (matched[index] || requireSameOwner != reviewed.HasSameOwner(current[index])) continue;
+            if (reviewed.Matches(current[index])) return index;
+        }
+        return -1;
     }
 
     private static PdfRedactionTextObjectScope[] CreateTextObjectScopes(

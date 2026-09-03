@@ -102,6 +102,7 @@ internal static class PdfContentStreamTextRewriter {
                         currentTextState.FontSize,
                         effectiveCharacterSpacing,
                         effectiveWordSpacing,
+                        currentTextState.HorizontalScaling,
                         fontDecoders,
                         fontWidthProviders,
                         spansByTransform,
@@ -166,6 +167,7 @@ internal static class PdfContentStreamTextRewriter {
         double fontSize,
         double characterSpacing,
         double wordSpacing,
+        double horizontalScaling,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         List<Dictionary<int, List<PdfTextSpan>>> spansByTransform,
@@ -213,6 +215,7 @@ internal static class PdfContentStreamTextRewriter {
                     fontSize,
                     characterSpacing,
                     wordSpacing,
+                    horizontalScaling,
                     fontDecoders,
                     fontWidthProviders,
                     transformSpans,
@@ -257,6 +260,7 @@ internal static class PdfContentStreamTextRewriter {
         double fontSize,
         double characterSpacing,
         double wordSpacing,
+        double horizontalScaling,
         IReadOnlyDictionary<string, Func<byte[], string>> fontDecoders,
         IReadOnlyDictionary<string, Func<byte[], double>> fontWidthProviders,
         PdfTextSpan[] spans,
@@ -299,7 +303,12 @@ internal static class PdfContentStreamTextRewriter {
                 double start = boundaries[characterOffset];
                 double end = boundaries[characterOffset + glyph.Text.Length];
                 double offset = Math.Min(start, end);
-                double advance = Math.Abs(end - start);
+                double baselineScale = span.TextToPageTransform.HasValue
+                    ? Math.Sqrt(
+                        span.TextToPageTransform.Value.A * span.TextToPageTransform.Value.A +
+                        span.TextToPageTransform.Value.B * span.TextToPageTransform.Value.B)
+                    : 1D;
+                double advance = Math.Abs(glyph.Width1000 / 1000D * fontSize * horizontalScaling * baselineScale);
                 PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span, offset, advance);
                 for (int targetIndex = 0; targetIndex < targets.Count; targetIndex++) {
                     if (targets[targetIndex].Intersects(bounds)) {
@@ -311,7 +320,7 @@ internal static class PdfContentStreamTextRewriter {
 
             if (remove) {
                 FlushKeptBytes(output, kept);
-                double spacing = characterSpacing + (glyph.Text.Length > 0 && glyph.Text[0] == ' ' ? wordSpacing : 0D);
+                double spacing = characterSpacing + (IsWordSpacingCode(glyph.Bytes) ? wordSpacing : 0D);
                 removedAdvance1000 += glyph.Width1000 + (spacing * 1000D / fontSize);
                 changed = true;
             } else {
@@ -368,7 +377,7 @@ internal static class PdfContentStreamTextRewriter {
         double unscaledTotal = 0D;
         for (int glyphIndex = 0; glyphIndex < glyphs.Count; glyphIndex++) {
             EncodedGlyph glyph = glyphs[glyphIndex];
-            double spacing = characterSpacing + (glyph.Text.Length > 0 && glyph.Text[0] == ' ' ? wordSpacing : 0D);
+            double spacing = characterSpacing + (IsWordSpacingCode(glyph.Bytes) ? wordSpacing : 0D);
             double glyphAdvance = glyph.Width1000 + (spacing * 1000D / fontSize);
             if (double.IsNaN(glyphAdvance) || double.IsInfinity(glyphAdvance)) {
                 characterAdvances = Array.Empty<double>();
@@ -418,6 +427,9 @@ internal static class PdfContentStreamTextRewriter {
         }
         return glyphs.Count > 0;
     }
+
+    private static bool IsWordSpacingCode(byte[] glyphBytes) =>
+        glyphBytes.Length == 1 && glyphBytes[0] == 0x20;
 
     private static bool TryGetTextItems(PdfContentOperation operation, out List<object> items, out int byteStringCount) {
         items = new List<object>();

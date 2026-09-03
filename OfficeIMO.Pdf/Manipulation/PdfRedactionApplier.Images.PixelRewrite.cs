@@ -278,22 +278,28 @@ internal static partial class PdfRedactionApplier {
             }
 
             if (current == '(') {
+                int operandStart = index;
                 SkipLiteralString(content, ref index);
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 
             if (current == '<') {
+                int operandStart = index;
                 if (index + 1 < length && content[index + 1] == '<') {
                     SkipDictionary(content, ref index);
                 } else {
                     SkipHexString(content, ref index);
                 }
 
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 
             if (current == '[') {
+                int operandStart = index;
                 SkipArray(content, ref index);
+                args.Add(ImageContentOperand.ForOther(operandStart, index));
                 continue;
             }
 

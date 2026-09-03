@@ -189,6 +189,36 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_DoesNotTreatCharacterSpacingAsPaintedGlyphArea() {
+        byte[] source = BuildTextContentRedactionSource("BT /F1 20 Tf 100 Tc 72 700 Td (AB) Tj ET");
+        var area = new PdfRedactionArea(1, 90D, 680D, 5D, 30D, "character-spacing gap");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.Contains("AB", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextExtractionUsesZeroDefaultLeading() {
+        byte[] source = BuildTextContentRedactionSource("BT /F1 12 Tf 50 100 Td (A) Tj T* (B) Tj ET");
+
+        PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
+
+        Assert.Equal(2, spans.Length);
+        Assert.Equal(spans[0].Y, spans[1].Y, precision: 6);
+    }
+
+    [Fact]
+    public void Type0UnicodeSpaceDoesNotReceiveWordSpacing() {
+        byte[] source = BuildType0UnicodeSpaceWordSpacingPdf();
+
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+
+        Assert.Equal(" ", span.Text);
+        Assert.Equal(12D, span.Advance, precision: 6);
+    }
+
+    [Fact]
     public void Apply_UsesTextStateInheritedAcrossTextObjects() {
         byte[] source = BuildTextContentRedactionSource(string.Join("\n", new[] {
             "/F1 20 Tf",
@@ -419,6 +449,39 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void Apply_UsesSpacingSetByDoubleQuoteBeforeFormInvocation() {
+        byte[] source = BuildQuotedTextStateFormRedactionSource();
+        PdfTextSpan span = Assert.Single(
+            PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            static value => value.Text.Contains("secret", StringComparison.Ordinal));
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Contains("Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Omega", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_PreservesInheritedFontWhenFormShadowsItsResourceName() {
+        byte[] source = BuildCollidingInheritedFontFormRedactionSource();
+        PdfTextSpan span = Assert.Single(
+            PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            static value => value.Text.Contains("secret", StringComparison.Ordinal));
+        Assert.Equal("Helvetica", span.BaseFont);
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Contains("Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Omega", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_UsesTextStateInheritedAcrossNestedFormInvocations() {
         byte[] source = BuildNestedInheritedTextStateFormRedactionSource();
         PdfTextSpan span = Assert.Single(
@@ -466,10 +529,16 @@ public class PdfRedactionApplierTests {
         PdfRedactionArea area = FindAreasForText(source, "Shared page secret").Single(redaction => redaction.PageNumber == 1);
         Assert.Equal(2, CountOccurrences(PdfTextExtractor.ExtractAllText(source), "Shared page secret"));
 
-        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, new[] { area });
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
         string text = PdfTextExtractor.ExtractAllText(redacted);
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
 
         Assert.Equal(1, CountOccurrences(text, "Shared page secret"));
+        Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
     }
 
     [Fact]
@@ -854,6 +923,21 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
+    private static byte[] BuildType0UnicodeSpaceWordSpacingPdf() {
+        const string content = "BT /F1 20 Tf 100 Tw 72 720 Td <0001> Tj ET";
+        const string cmap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n1 beginbfchar\n<0001> <0020>\nendbfchar\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /AAAAAA+Composite /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(content)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap)),
+            "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AAAAAA+Composite /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 600 /W [1 [600]] >>\nendobj"
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
     private static byte[] BuildFormXObjectRedactionSource() {
         string pageContent = "q\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
         string formContent = "BT\n/F1 12 Tf\n0 0 Td\n(Secret account 123-45) Tj\nET\n";
@@ -879,6 +963,35 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 320 60]")
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildQuotedTextStateFormRedactionSource() {
+        const string pageContent = "/F1 20 Tf\nBT 72 750 Td 30 12 (Prelude) \" ET\nq\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        const string formContent = "BT\n0 0 Td\n(Alpha secret Omega) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 420 60]")
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildCollidingInheritedFontFormRedactionSource() {
+        const string pageContent = "/F1 20 Tf\nq\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        const string formContent = "BT\n0 0 Td\n(Alpha secret Omega) Tj\nET\n";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 320 60] /Resources << /Font << /F1 7 0 R >> >>"),
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Symbol >>\nendobj"
         };
         return BuildPdf(objects, rootObjectNumber: 1);
     }

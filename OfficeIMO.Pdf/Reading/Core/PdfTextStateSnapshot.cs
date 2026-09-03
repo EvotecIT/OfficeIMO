@@ -23,7 +23,7 @@ internal readonly struct PdfTextStateSnapshot {
     internal static PdfTextStateSnapshot Default { get; } = new PdfTextStateSnapshot(
         "F1",
         12D,
-        14.4D,
+        0D,
         0D,
         0D,
         1D,

@@ -872,6 +872,7 @@ internal static class TextContentParser {
             var sbOut = new StringBuilder(textOutputBudget.GetDecodedTextBufferCapacity(bytes.Length));
             var decodedAdvances = new List<double>();
             var decodedGlyphCharacterLengths = new List<int>();
+            var decodedGlyphBytes = new List<byte[]>();
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
@@ -889,10 +890,11 @@ internal static class TextContentParser {
                 decodedGlyphCharacters += t.Length;
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
-                double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
+                double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (step == 1 && bytes[idx] == 0x20 ? wordSpacing : 0)) * hScale;
                 if (ch != '\0') {
                     sbOut.Append(t);
                     decodedGlyphCharacterLengths.Add(t.Length);
+                    decodedGlyphBytes.Add(g);
                     double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
                     for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
                 }
@@ -905,6 +907,7 @@ internal static class TextContentParser {
                 sbOut.Append(wholeDecoded);
                 decodedAdvances.Clear();
                 decodedGlyphCharacterLengths.Clear();
+                decodedGlyphBytes.Clear();
             }
             var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
             bool hasActiveArtifact = HasActiveArtifact();
@@ -1023,9 +1026,12 @@ internal static class TextContentParser {
                         fillOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null", strokeOpacity?.ToString("R", CultureInfo.InvariantCulture) ?? "null",
                         ((int)blendMode).ToString(CultureInfo.InvariantCulture), hasSoftMask ? "1" : "0", hasUnsupportedEffect ? "1" : "0"
                     }),
-                    string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) &&
-                        decodedGlyphCharacterLengths.Sum() == normalizedText.Length
+                    decodedGlyphCharacterLengths.Sum() == paintedText.Length
                         ? decodedGlyphCharacterLengths
+                        : null,
+                    decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
+                        decodedGlyphBytes.Count == decodedGlyphCharacterLengths.Count
+                        ? decodedGlyphBytes
                         : null));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;

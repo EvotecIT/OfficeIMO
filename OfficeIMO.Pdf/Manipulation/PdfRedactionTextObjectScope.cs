@@ -56,12 +56,13 @@ internal sealed class PdfRedactionTextObjectScope {
     internal bool RequiresExpectedSurvivors => ExpectedSurvivors.Length > 0;
 
     internal bool Matches(PdfRedactionTextObjectScope candidate) {
-        bool sameTextObjectOwner = Key.Equals(candidate.Key) ||
-            ContentStreamObjectNumber.HasValue && ContentStreamObjectNumber == candidate.ContentStreamObjectNumber;
-        return sameTextObjectOwner &&
-            (SequenceMatches(SourceGlyphs, candidate.SourceGlyphs) ||
-             SequenceMatches(ExpectedSurvivors, candidate.SourceGlyphs));
+        return (HasSameOwner(candidate) && SequenceMatches(SourceGlyphs, candidate.SourceGlyphs)) ||
+            SequenceMatches(ExpectedSurvivors, candidate.SourceGlyphs);
     }
+
+    internal bool HasSameOwner(PdfRedactionTextObjectScope candidate) =>
+        Key.Equals(candidate.Key) ||
+        ContentStreamObjectNumber.HasValue && ContentStreamObjectNumber == candidate.ContentStreamObjectNumber;
 
     private static bool TryCreateGlyphIdentities(PdfTextSpan span, out PdfRedactionTextGlyphIdentity[] glyphs) {
         string text = span.RestampText;
@@ -86,14 +87,19 @@ internal sealed class PdfRedactionTextObjectScope {
             int characterLength = glyphCharacterLengths[index];
             double start = boundaries[characterOffset];
             double end = boundaries[characterOffset + characterLength];
+            double glyphOffset = Math.Min(start, end);
             PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(
                 span,
-                Math.Min(start, end),
+                glyphOffset,
                 Math.Abs(end - start));
             glyphs[index] = PdfRedactionTextGlyphIdentity.FromGlyph(
                 span,
                 text.Substring(characterOffset, characterLength),
-                bounds);
+                bounds,
+                span.GlyphBytes != null && span.GlyphBytes.Count == glyphCharacterLengths.Count
+                    ? span.GlyphBytes[index]
+                    : null,
+                TranslateTextTransform(span, glyphOffset));
             characterOffset += characterLength;
         }
         return true;
@@ -137,6 +143,21 @@ internal sealed class PdfRedactionTextObjectScope {
         return false;
     }
 
+    private static Matrix2D? TranslateTextTransform(PdfTextSpan span, double advanceOffset) {
+        if (!span.TextToPageTransform.HasValue || Math.Abs(advanceOffset) <= double.Epsilon) {
+            return span.TextToPageTransform;
+        }
+        Matrix2D transform = span.TextToPageTransform.Value;
+        double radians = span.RotationDegrees * Math.PI / 180D;
+        return new Matrix2D(
+            transform.A,
+            transform.B,
+            transform.C,
+            transform.D,
+            transform.E + Math.Cos(radians) * advanceOffset,
+            transform.F + Math.Sin(radians) * advanceOffset);
+    }
+
     private static bool SequenceMatches(
         PdfRedactionTextGlyphIdentity[] expected,
         PdfRedactionTextGlyphIdentity[] actual) {
@@ -154,11 +175,13 @@ internal sealed class PdfRedactionTextObjectScope {
 
             string expectedText = string.Concat(expected.Skip(start).Take(expectedIndex - start).Select(static value => value.Text));
             if (!string.Equals(expectedText, candidate.Text, StringComparison.Ordinal)) return false;
+            if (!candidate.MatchesEncodedBytes(expected, start, expectedIndex)) return false;
             PdfTextSpanBounds expectedBounds = MergeBounds(expected, start, expectedIndex);
             if (!candidate.MatchesBounds(expectedBounds)) return false;
             for (int index = start; index < expectedIndex; index++) {
                 if (!candidate.MatchesState(expected[index])) return false;
             }
+            if (!candidate.MatchesTransform(expected[start])) return false;
         }
         return expectedIndex == expected.Length;
     }
@@ -181,7 +204,12 @@ internal sealed class PdfRedactionTextObjectScope {
 internal readonly struct PdfRedactionTextGlyphIdentity {
     private const double Tolerance = 0.01D;
 
-    private PdfRedactionTextGlyphIdentity(PdfTextSpan span, string text, PdfTextSpanBounds bounds) {
+    private PdfRedactionTextGlyphIdentity(
+        PdfTextSpan span,
+        string text,
+        PdfTextSpanBounds bounds,
+        byte[]? encodedBytes,
+        Matrix2D? textToPageTransform) {
         Text = text;
         Bounds = bounds;
         FontResource = span.FontResource;
@@ -193,6 +221,9 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         Color = span.Color;
         VisualPaintIdentity = span.VisualPaintIdentity;
         MarkedContentId = span.MarkedContentId;
+        ClipPath = span.ClipPath;
+        TextToPageTransform = textToPageTransform;
+        EncodedBytes = encodedBytes?.ToArray();
     }
 
     internal string Text { get; }
@@ -206,12 +237,25 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
     internal OfficeIMO.Drawing.OfficeColor? Color { get; }
     internal string? VisualPaintIdentity { get; }
     internal int? MarkedContentId { get; }
+    internal PdfPageClipPath? ClipPath { get; }
+    internal Matrix2D? TextToPageTransform { get; }
+    internal byte[]? EncodedBytes { get; }
 
-    internal static PdfRedactionTextGlyphIdentity FromGlyph(PdfTextSpan span, string text, PdfTextSpanBounds bounds) =>
-        new PdfRedactionTextGlyphIdentity(span, text, bounds);
+    internal static PdfRedactionTextGlyphIdentity FromGlyph(
+        PdfTextSpan span,
+        string text,
+        PdfTextSpanBounds bounds,
+        byte[]? encodedBytes,
+        Matrix2D? textToPageTransform) =>
+        new PdfRedactionTextGlyphIdentity(span, text, bounds, encodedBytes, textToPageTransform);
 
     internal static PdfRedactionTextGlyphIdentity FromSpan(PdfTextSpan span) =>
-        new PdfRedactionTextGlyphIdentity(span, span.RestampText, PdfTextSpanGeometry.GetAxisAlignedBounds(span));
+        new PdfRedactionTextGlyphIdentity(
+            span,
+            span.RestampText,
+            PdfTextSpanGeometry.GetAxisAlignedBounds(span),
+            span.GlyphBytes?.SelectMany(static bytes => bytes).ToArray(),
+            span.TextToPageTransform);
 
     internal bool MatchesBounds(PdfTextSpanBounds other) =>
         NearlyEqual(Bounds.Left, other.Left) &&
@@ -228,7 +272,53 @@ internal readonly struct PdfRedactionTextGlyphIdentity {
         TextRenderingMode == other.TextRenderingMode &&
         Nullable.Equals(Color, other.Color) &&
         string.Equals(VisualPaintIdentity, other.VisualPaintIdentity, StringComparison.Ordinal) &&
-        MarkedContentId == other.MarkedContentId;
+        MarkedContentId == other.MarkedContentId &&
+        ClipPathsEqual(ClipPath, other.ClipPath);
+
+    internal bool MatchesTransform(PdfRedactionTextGlyphIdentity other) =>
+        TransformsEqual(TextToPageTransform, other.TextToPageTransform);
+
+    internal bool MatchesEncodedBytes(PdfRedactionTextGlyphIdentity[] expected, int start, int end) {
+        bool hasExpectedBytes = true;
+        int byteCount = 0;
+        for (int index = start; index < end; index++) {
+            if (expected[index].EncodedBytes == null) {
+                hasExpectedBytes = false;
+                break;
+            }
+            byteCount += expected[index].EncodedBytes!.Length;
+        }
+        if (!hasExpectedBytes || EncodedBytes == null) return !hasExpectedBytes && EncodedBytes == null;
+        if (EncodedBytes.Length != byteCount) return false;
+        int offset = 0;
+        for (int index = start; index < end; index++) {
+            byte[] bytes = expected[index].EncodedBytes!;
+            for (int byteIndex = 0; byteIndex < bytes.Length; byteIndex++) {
+                if (EncodedBytes[offset++] != bytes[byteIndex]) return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool TransformsEqual(Matrix2D? left, Matrix2D? right) {
+        if (!left.HasValue || !right.HasValue) return left.HasValue == right.HasValue;
+        Matrix2D l = left.Value;
+        Matrix2D r = right.Value;
+        return NearlyEqual(l.A, r.A) && NearlyEqual(l.B, r.B) &&
+            NearlyEqual(l.C, r.C) && NearlyEqual(l.D, r.D) &&
+            NearlyEqual(l.E, r.E) && NearlyEqual(l.F, r.F);
+    }
+
+    private static bool ClipPathsEqual(PdfPageClipPath? left, PdfPageClipPath? right) {
+        if (!left.HasValue || !right.HasValue) return left.HasValue == right.HasValue;
+        PdfPageClipPath l = left.Value;
+        PdfPageClipPath r = right.Value;
+        return NearlyEqual(l.X, r.X) && NearlyEqual(l.Y, r.Y) &&
+            NearlyEqual(l.Width, r.Width) && NearlyEqual(l.Height, r.Height) &&
+            l.IsRectangle == r.IsRectangle && l.IsExact == r.IsExact &&
+            l.ContainsTextClipping == r.ContainsTextClipping && l.FillRule == r.FillRule &&
+            l.Commands.SequenceEqual(r.Commands);
+    }
 
     private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= Tolerance;
 }

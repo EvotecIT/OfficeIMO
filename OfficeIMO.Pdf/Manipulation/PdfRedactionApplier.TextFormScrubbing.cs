@@ -103,15 +103,25 @@ internal static partial class PdfRedactionApplier {
         PdfDictionary formXObjects = isolateResources
             ? EnsureResourceXObjects(objects, formResources)
             : ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
-        Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects));
+        Dictionary<string, Func<byte[], string>> localDecoders = ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects);
+        Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, localDecoders);
+        Dictionary<string, Func<byte[], double>> localWidthProviders = ResourceResolver.GetFontWidthProvidersForResources(formResources, objects);
         Dictionary<string, Func<byte[], double>> formWidthProviders = MergeWidthProviders(
             parentFontWidthProviders,
-            ResourceResolver.GetFontWidthProvidersForResources(formResources, objects));
+            localWidthProviders);
+        PdfTextStateSnapshot formInitialTextState = PreserveInheritedFormFontState(
+            inheritedTextState,
+            parentFontDecoders,
+            parentFontWidthProviders,
+            localDecoders,
+            localWidthProviders,
+            formDecoders,
+            formWidthProviders);
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
-        var formGraphicsState = new TextScrubGraphicsState { TextState = inheritedTextState };
+        var formGraphicsState = new TextScrubGraphicsState { TextState = formInitialTextState };
         string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits, formGraphicsState);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
@@ -123,7 +133,7 @@ internal static partial class PdfRedactionApplier {
             formDecoders,
             formWidthProviders,
             effectiveTransforms,
-            inheritedTextState,
+            formInitialTextState,
             referenceCounts,
             activeForms,
             limits,
@@ -138,6 +148,35 @@ internal static partial class PdfRedactionApplier {
         }
 
         return new TextFormScrubContentResult(changed || nestedResult.HasChanges, rewrittenContent);
+    }
+
+    private static PdfTextStateSnapshot PreserveInheritedFormFontState(
+        PdfTextStateSnapshot inheritedTextState,
+        IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
+        Dictionary<string, Func<byte[], string>> localDecoders,
+        Dictionary<string, Func<byte[], double>> localWidthProviders,
+        Dictionary<string, Func<byte[], string>> formDecoders,
+        Dictionary<string, Func<byte[], double>> formWidthProviders) {
+        string inheritedFont = inheritedTextState.FontResource;
+        if (!localDecoders.ContainsKey(inheritedFont) && !localWidthProviders.ContainsKey(inheritedFont)) {
+            return inheritedTextState;
+        }
+
+        const string AliasPrefix = "__OfficeIMOInheritedFont";
+        string alias = AliasPrefix;
+        int suffix = 1;
+        while (formDecoders.ContainsKey(alias) || formWidthProviders.ContainsKey(alias)) {
+            alias = AliasPrefix + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            suffix++;
+        }
+        if (parentFontDecoders.TryGetValue(inheritedFont, out Func<byte[], string>? decoder)) {
+            formDecoders[alias] = decoder;
+        }
+        if (parentFontWidthProviders.TryGetValue(inheritedFont, out Func<byte[], double>? widthProvider)) {
+            formWidthProviders[alias] = widthProvider;
+        }
+        return inheritedTextState.WithFont(alias, inheritedTextState.FontSize);
     }
 
     private static PdfDictionary ResolveTextFormResources(

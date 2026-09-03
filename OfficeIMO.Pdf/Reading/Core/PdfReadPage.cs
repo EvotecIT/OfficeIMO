@@ -836,6 +836,17 @@ public sealed partial class PdfReadPage {
                 var formDecoders = MergeDecoders(decoders, formFontResources.Decoders);
                 var formWidths = MergeWidthProviders(widthProviders, formFontResources.WidthProviders);
                 var formFonts = MergeFonts(fonts, formFontResources.Fonts);
+                PdfTextStateSnapshot formInitialTextState = PreserveInheritedFormFontState(
+                    invocation.TextState,
+                    decoders,
+                    widthProviders,
+                    fonts,
+                    formFontResources.Decoders,
+                    formFontResources.WidthProviders,
+                    formFontResources.Fonts,
+                    formDecoders,
+                    formWidths,
+                    formFonts);
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
@@ -876,7 +887,7 @@ public sealed partial class PdfReadPage {
                     contentStreamObjectNumberAtOffset: null,
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
-                    initialTextState: invocation.TextState);
+                    initialTextState: formInitialTextState);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1300,6 +1311,37 @@ public sealed partial class PdfReadPage {
         }
 
         return merged;
+    }
+
+    private static PdfTextStateSnapshot PreserveInheritedFormFontState(
+        PdfTextStateSnapshot inheritedTextState,
+        Dictionary<string, Func<byte[], int, string>> parentDecoders,
+        Dictionary<string, Func<byte[], double>> parentWidthProviders,
+        Dictionary<string, PdfFontResource> parentFonts,
+        Dictionary<string, Func<byte[], int, string>> localDecoders,
+        Dictionary<string, Func<byte[], double>> localWidthProviders,
+        Dictionary<string, PdfFontResource> localFonts,
+        Dictionary<string, Func<byte[], int, string>> formDecoders,
+        Dictionary<string, Func<byte[], double>> formWidthProviders,
+        Dictionary<string, PdfFontResource> formFonts) {
+        string inheritedFont = inheritedTextState.FontResource;
+        if (!localDecoders.ContainsKey(inheritedFont) &&
+            !localWidthProviders.ContainsKey(inheritedFont) &&
+            !localFonts.ContainsKey(inheritedFont)) {
+            return inheritedTextState;
+        }
+
+        const string AliasPrefix = "__OfficeIMOInheritedFont";
+        string alias = AliasPrefix;
+        int suffix = 1;
+        while (formDecoders.ContainsKey(alias) || formWidthProviders.ContainsKey(alias) || formFonts.ContainsKey(alias)) {
+            alias = AliasPrefix + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            suffix++;
+        }
+        if (parentDecoders.TryGetValue(inheritedFont, out Func<byte[], int, string>? decoder)) formDecoders[alias] = decoder;
+        if (parentWidthProviders.TryGetValue(inheritedFont, out Func<byte[], double>? widthProvider)) formWidthProviders[alias] = widthProvider;
+        if (parentFonts.TryGetValue(inheritedFont, out PdfFontResource? font)) formFonts[alias] = font;
+        return inheritedTextState.WithFont(alias, inheritedTextState.FontSize);
     }
 
     private static string WrapContentWithTransform(string content, Matrix2D transform) => WrapContentWithTransform(content, transform, out _);
