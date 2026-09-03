@@ -73,15 +73,20 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             long capturedBytes = 0;
             var capturedTargets = new HashSet<string>(StringComparer.Ordinal);
             foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
-                         item.IsStructurallyValid &&
                          item.Carrier == OfficeProvenanceCarrierKind.C2paExternalManifest &&
                          !string.IsNullOrWhiteSpace(item.Value))) {
                 cancellationToken.ThrowIfCancellationRequested();
+                string reference = report.GetExternalManifestReference(evidence)!;
+                if (Uri.TryCreate(reference, UriKind.Absolute, out Uri? absoluteReference) && absoluteReference.IsFile) {
+                    throw new InvalidDataException(
+                        "An absolute file-based external provenance manifest cannot be bound to the immutable snapshot.");
+                }
+                if (!evidence.IsStructurallyValid) continue;
                 if (!TryResolveRelativeDependency(
                         sourceDirectory,
                         _directoryPath,
                         FilePath,
-                        report.GetExternalManifestReference(evidence)!,
+                        reference,
                         out string sourceDependency,
                         out string targetDependency) ||
                     !capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||

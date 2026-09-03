@@ -3,6 +3,7 @@ using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Html;
 
@@ -13,12 +14,20 @@ internal static class HtmlDocumentParser {
     /// <summary>
     /// Parses an HTML fragment or document into an AngleSharp document.
     /// </summary>
-    public static IHtmlDocument ParseDocument(string html) {
+    public static IHtmlDocument ParseDocument(string html) => ParseDocument(html, CancellationToken.None);
+
+    /// <summary>
+    /// Parses an HTML fragment or document into an AngleSharp document with cooperative cancellation.
+    /// </summary>
+    public static IHtmlDocument ParseDocument(string html, CancellationToken cancellationToken) {
         if (html == null) throw new ArgumentNullException(nameof(html));
+        cancellationToken.ThrowIfCancellationRequested();
         var parser = new HtmlParser(new HtmlParserOptions {
             IsKeepingSourceReferences = true
         });
-        return parser.ParseDocument(NormalizeSvgHrefAttributeOrder(html));
+        string normalized = NormalizeSvgHrefAttributeOrder(html, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        return parser.ParseDocumentAsync(normalized, cancellationToken).GetAwaiter().GetResult();
     }
 
     internal static string? GetExactAttributeValue(IElement element, string name) =>
@@ -37,12 +46,14 @@ internal static class HtmlDocumentParser {
                   !string.Equals(attribute.NamespaceUri, xlinkNamespace, StringComparison.Ordinal)));
     }
 
-    private static string NormalizeSvgHrefAttributeOrder(string html) {
+    private static string NormalizeSvgHrefAttributeOrder(string html, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (html.IndexOf("xlink:href", StringComparison.OrdinalIgnoreCase) < 0) return html;
         var replacements = new List<(int Start, int Length, string Value)>();
         var openElements = new List<SourceElement>();
         int cursor = 0;
         while (cursor < html.Length - 1) {
+            cancellationToken.ThrowIfCancellationRequested();
             int markup = html.IndexOf('<', cursor);
             if (markup < 0 || markup == html.Length - 1) break;
             if (markup <= html.Length - 4 && string.CompareOrdinal(html, markup, "<!--", 0, 4) == 0) {
@@ -126,8 +137,10 @@ internal static class HtmlDocumentParser {
         if (replacements.Count == 0) return html;
         var output = new StringBuilder(html);
         foreach ((int start, int length, string value) in replacements.OrderByDescending(item => item.Start)) {
+            cancellationToken.ThrowIfCancellationRequested();
             output.Remove(start, length).Insert(start, value);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return output.ToString();
     }
 

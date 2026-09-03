@@ -629,7 +629,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task AssessmentResolvesAnAbsoluteFileBaseFromTheLogicalHtmlPath() {
+    public async Task AssessmentRejectsAnAbsoluteFileBaseBeforeCallingProviders() {
         using var scope = new TempScope();
         string assetsDirectory = Path.Combine(scope.Path, "assets");
         Directory.CreateDirectory(assetsDirectory);
@@ -649,9 +649,10 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 InputPath = input
             });
 
-        Assert.True(result.Succeeded, result.Summary);
-        Assert.True(verifier.SawRelativeManifest);
-        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+        Assert.False(result.Succeeded);
+        Assert.Contains("absolute file-based external provenance manifest", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(verifier.SawRelativeManifest);
+        Assert.Null(verifier.ObservedDirectory);
     }
 
     [Fact]

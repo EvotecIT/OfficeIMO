@@ -55,6 +55,7 @@ public sealed partial class OfficeWorkflowRunner {
             materialized.Add(enumerator.Current);
             if (cancellationToken.IsCancellationRequested) break;
         }
+        if (materialized.Count == 0) cancellationToken.ThrowIfCancellationRequested();
         return materialized.ToArray();
     }
 

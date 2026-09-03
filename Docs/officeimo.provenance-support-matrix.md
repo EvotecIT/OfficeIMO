@@ -77,6 +77,7 @@ Provider-backed verification and signal detection are dependency-injected workfl
 - OfficeIMO does not alter visible pixels, reconstruct images, suppress durable media watermarks, or rewrite generated text to defeat statistical watermarking.
 - OfficeIMO does not ship vendor detector credentials or private APIs. Applications can add authorized detectors through `IOfficeProvenanceSignalDetector`.
 - Strict removal preserves duplicate, competing, malformed, unsupported, signed, or structurally shared carriers when a targeted rewrite could discard unrelated data.
+- Provider-backed HTML assessment snapshots local relative external manifests. An absolute `file:` base is rejected before providers run because the unchanged snapshot would otherwise resolve that dependency back to mutable source storage.
 - Resource limits are configurable through `OfficeProvenanceOptions` and `OfficeProvenanceRemovalOptions`; inputs that exceed them are rejected instead of partially inspected.
 - Cryptographic signing and verification currently depend on the external `c2patool` adapter. Core inspection, assessment, lifecycle policy, text integrity, and removal remain dependency-free.
 - Unix process containment requires `setsid` from `util-linux`. The adapter recognizes standard Linux paths and Homebrew's macOS keg paths, and fails closed before launching `c2patool` when a session launcher is unavailable.

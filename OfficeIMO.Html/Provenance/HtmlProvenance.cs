@@ -41,6 +41,7 @@ public static partial class HtmlProvenance {
         var resolvedExternalManifestReferences = new Dictionary<OfficeProvenanceEvidence, string>();
         Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, documentUri);
         Uri? sourceDirectoryUri = documentUri is null ? null : new Uri(documentUri, ".");
+        bool usesAbsoluteFileBase = UsesAbsoluteFileBase(document, inherited: false);
         long expandedBytes = 0;
         InspectManifestCarriers(
             document,
@@ -50,12 +51,13 @@ public static partial class HtmlProvenance {
             resolvedExternalManifestReferences,
             effectiveBaseUri,
             sourceDirectoryUri,
+            usesAbsoluteFileBase,
             "HTML",
             ref expandedBytes);
         int embeddedAssetCount = 0;
         InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries,
             ref expandedBytes, resolvedExternalManifestReferences, effectiveBaseUri, sourceDirectoryUri,
-            "HTML", srcDocDepth: 0);
+            usesAbsoluteFileBase, "HTML", srcDocDepth: 0);
         return new OfficeProvenanceReport(
             OfficeProvenanceAssetFormat.Html,
             evidence.AsReadOnly(),
@@ -72,6 +74,7 @@ public static partial class HtmlProvenance {
         Dictionary<OfficeProvenanceEvidence, string> resolvedExternalManifestReferences,
         Uri? effectiveBaseUri,
         Uri? sourceDirectoryUri,
+        bool usesAbsoluteFileBase,
         string documentLocation,
         ref long expandedBytes) {
         IElement? head = document.Head;
@@ -113,8 +116,12 @@ public static partial class HtmlProvenance {
                 0,
                 valid && uri!.IsAbsoluteUri ? uri.AbsoluteUri : value);
             AddEvidence(evidence, options, item);
-            if (valid) {
-                string resolved = ResolveExternalManifestReference(value, effectiveBaseUri, sourceDirectoryUri);
+            if (safeReference) {
+                string resolved = ResolveExternalManifestReference(
+                    value,
+                    effectiveBaseUri,
+                    sourceDirectoryUri,
+                    usesAbsoluteFileBase);
                 if (!string.Equals(resolved, item.Value, StringComparison.Ordinal)) {
                     resolvedExternalManifestReferences.Add(item, resolved);
                 }
@@ -126,13 +133,26 @@ public static partial class HtmlProvenance {
     private static string ResolveExternalManifestReference(
         string reference,
         Uri? effectiveBaseUri,
-        Uri? sourceDirectoryUri) {
+        Uri? sourceDirectoryUri,
+        bool usesAbsoluteFileBase) {
         if (effectiveBaseUri is null ||
             !Uri.TryCreate(effectiveBaseUri, reference, out Uri? resolved)) return reference;
         if (resolved.IsFile && sourceDirectoryUri?.IsFile == true) {
-            return sourceDirectoryUri.MakeRelativeUri(resolved).ToString();
+            return usesAbsoluteFileBase
+                ? resolved.AbsoluteUri
+                : sourceDirectoryUri.MakeRelativeUri(resolved).ToString();
         }
         return resolved.IsAbsoluteUri ? resolved.AbsoluteUri : reference;
+    }
+
+    private static bool UsesAbsoluteFileBase(IHtmlDocument document, bool inherited) {
+        string? value = document.QuerySelector("base[href]")?.GetAttribute("href");
+        if (value == null) return inherited;
+        string preprocessed = PreprocessHtmlUrl(value);
+        if (preprocessed.Length == 0) return inherited;
+        if (Uri.TryCreate(preprocessed, UriKind.Absolute, out Uri? absolute)) return absolute.IsFile;
+        if (preprocessed[0] == '/' && !preprocessed.StartsWith("//", StringComparison.Ordinal)) return true;
+        return inherited;
     }
 
     /// <summary>Inspects a bounded HTML file without resolving external resources.</summary>
@@ -292,6 +312,7 @@ public static partial class HtmlProvenance {
         Dictionary<OfficeProvenanceEvidence, string> resolvedExternalManifestReferences,
         Uri? effectiveBaseUri,
         Uri? sourceDirectoryUri,
+        bool usesAbsoluteFileBase,
         string documentLocation,
         int srcDocDepth) {
         if (options.ProcessEmbeddedAssets) {
@@ -353,6 +374,7 @@ public static partial class HtmlProvenance {
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
             IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries, options.CancellationToken);
             Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, effectiveBaseUri);
+            bool nestedUsesAbsoluteFileBase = UsesAbsoluteFileBase(nested, usesAbsoluteFileBase);
             InspectManifestCarriers(
                 nested,
                 options,
@@ -361,11 +383,12 @@ public static partial class HtmlProvenance {
                 resolvedExternalManifestReferences,
                 nestedBaseUri,
                 sourceDirectoryUri,
+                nestedUsesAbsoluteFileBase,
                 location,
                 ref expandedBytes);
             InspectEmbeddedImages(nested, options, evidence, diagnostics, ref count, ref structuralEntries,
                 ref expandedBytes, resolvedExternalManifestReferences, nestedBaseUri, sourceDirectoryUri,
-                location, srcDocDepth + 1);
+                nestedUsesAbsoluteFileBase, location, srcDocDepth + 1);
         }
     }
 
@@ -973,7 +996,8 @@ public static partial class HtmlProvenance {
         if (remaining <= 0) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
         ValidatePotentialElementCountCore(html, remaining, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
+        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         int elementCount = document.All.Length;
         if (elementCount > remaining) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
         structuralEntries += elementCount;
