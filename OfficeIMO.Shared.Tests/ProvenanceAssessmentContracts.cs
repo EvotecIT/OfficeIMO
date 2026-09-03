@@ -328,6 +328,20 @@ public sealed class ProvenanceAssessmentContracts {
         Assert.Equal("claim.c2pa", Assert.Single(report.Evidence).Value);
     }
 
+    [Theory]
+    [InlineData("&#32;")]
+    [InlineData("&#x20;")]
+    [InlineData("&Tab;")]
+    [InlineData("&NewLine;")]
+    public void CoreHtmlInspectionKeepsManifestLinksAfterEncodedHeadWhitespace(string whitespace) {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<html><head>" + whitespace + "<link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></html>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(html, "page.html");
+
+        Assert.Equal("claim.c2pa", Assert.Single(report.Evidence).Value);
+    }
+
     [Fact]
     public void PortableSnapshotFallbackCapturesPrimaryAndRelativeDependencyFiles() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));

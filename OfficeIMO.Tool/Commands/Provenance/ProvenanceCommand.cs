@@ -45,6 +45,14 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
 
             IOfficeProvenanceWorkflowRunner activeRunner = runner ?? new OfficeWorkflowRunner();
             if (parsed.Command == ProvenanceCommandKind.Batch) {
+                if (cancellationToken.IsCancellationRequested) {
+                    OfficeProvenanceWorkflowResult cancelled = await activeRunner.RunProvenanceAsync(
+                        CreateBatchRequest(parsed, parsed.Inputs[0]),
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
+                    IReadOnlyList<OfficeProvenanceWorkflowResult> cancelledResults = new[] { cancelled };
+                    await ProvenanceOutput.WriteBatchAsync(standardOutput, cancelledResults, parsed.Format).ConfigureAwait(false);
+                    return MapBatch(cancelledResults);
+                }
                 IReadOnlyList<OfficeProvenanceWorkflowResult> results = await activeRunner.RunProvenanceBatchAsync(
                     CreateBatchRequests(parsed),
                     new OfficeProvenanceWorkflowBatchOptions { MaximumRequests = parsed.MaximumItems },
@@ -77,16 +85,20 @@ and blocks invalidating package signatures unless --remove-invalidated-signature
     }
 
     private static IEnumerable<OfficeProvenanceWorkflowRequest> CreateBatchRequests(ProvenanceArguments parsed) {
-        string? outputDirectory = parsed.OutputDirectory is null ? null : Path.GetFullPath(parsed.OutputDirectory);
         foreach (string input in parsed.Inputs) {
-            string fullInput = Path.GetFullPath(input);
-            string? output = outputDirectory is null
-                ? null
-                : Path.Combine(
-                    outputDirectory,
-                    Path.GetFileNameWithoutExtension(fullInput) + ".provenance-cleaned" + Path.GetExtension(fullInput));
-            yield return CreateRequest(parsed, fullInput, output, parsed.BatchOperation);
+            yield return CreateBatchRequest(parsed, input);
         }
+    }
+
+    private static OfficeProvenanceWorkflowRequest CreateBatchRequest(ProvenanceArguments parsed, string input) {
+        string fullInput = Path.GetFullPath(input);
+        string? outputDirectory = parsed.OutputDirectory is null ? null : Path.GetFullPath(parsed.OutputDirectory);
+        string? output = outputDirectory is null
+            ? null
+            : Path.Combine(
+                outputDirectory,
+                Path.GetFileNameWithoutExtension(fullInput) + ".provenance-cleaned" + Path.GetExtension(fullInput));
+        return CreateRequest(parsed, fullInput, output, parsed.BatchOperation);
     }
 
     internal static OfficeProvenanceWorkflowRequest CreateRequest(

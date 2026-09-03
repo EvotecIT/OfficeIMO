@@ -228,9 +228,59 @@ internal static class OfficeProvenanceHtml {
     private static bool ContainsBodyText(string html, int start, int end) {
         for (int index = start; index < end; index++) {
             char value = html[index];
-            if (value != '\t' && value != '\n' && value != '\f' && value != '\r' && value != ' ') return true;
+            if (IsAsciiWhitespace(value)) continue;
+            if (value == '&' && TryConsumeWhitespaceCharacterReference(html, end, ref index)) continue;
+            return true;
         }
         return false;
+    }
+
+    private static bool TryConsumeWhitespaceCharacterReference(string html, int end, ref int index) {
+        int valueStart = index + 1;
+        if (valueStart >= end) return false;
+        if (html[valueStart] != '#') {
+            if (MatchesCharacterReference(html, valueStart, end, "Tab;")) {
+                index = valueStart + 3;
+                return true;
+            }
+            if (MatchesCharacterReference(html, valueStart, end, "NewLine;")) {
+                index = valueStart + 7;
+                return true;
+            }
+            return false;
+        }
+
+        int cursor = valueStart + 1;
+        bool hexadecimal = cursor < end && (html[cursor] == 'x' || html[cursor] == 'X');
+        if (hexadecimal) cursor++;
+        int digitStart = cursor;
+        int scalar = 0;
+        while (cursor < end) {
+            int digit = hexadecimal ? HexDigit(html[cursor]) : DecimalDigit(html[cursor]);
+            if (digit < 0) break;
+            if (scalar > (0x10FFFF - digit) / (hexadecimal ? 16 : 10)) return false;
+            scalar = scalar * (hexadecimal ? 16 : 10) + digit;
+            cursor++;
+        }
+        if (cursor == digitStart || !IsHtmlWhitespaceScalar(scalar)) return false;
+        if (cursor < end && html[cursor] == ';') cursor++;
+        index = cursor - 1;
+        return true;
+    }
+
+    private static bool MatchesCharacterReference(string html, int start, int end, string value) =>
+        start + value.Length <= end &&
+        string.Compare(html, start, value, 0, value.Length, StringComparison.Ordinal) == 0;
+
+    private static int DecimalDigit(char value) => value is >= '0' and <= '9' ? value - '0' : -1;
+
+    private static bool IsHtmlWhitespaceScalar(int value) => value is 0x09 or 0x0A or 0x0C or 0x0D or 0x20;
+
+    private static int HexDigit(char value) {
+        if (value is >= '0' and <= '9') return value - '0';
+        if (value is >= 'a' and <= 'f') return value - 'a' + 10;
+        if (value is >= 'A' and <= 'F') return value - 'A' + 10;
+        return -1;
     }
 
     private static bool IsBodyContentElement(string name) =>

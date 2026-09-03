@@ -277,12 +277,12 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             yield return new OfficeProvenanceWorkflowRequest { InputPath = "unused" };
         }
 
-        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync(
-            Requests(),
-            cancellationToken: cancellation.Token);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new OfficeWorkflowRunner().RunProvenanceBatchAsync(
+                Requests(),
+                cancellationToken: cancellation.Token));
 
         Assert.Equal(0, moveNextCount);
-        Assert.Empty(results);
     }
 
     [Fact]
@@ -413,21 +413,20 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task PreCancelledBatchReturnsWithoutMaterializingRequests() {
+    public async Task PreCancelledBatchThrowsBeforeMaterializingRequests() {
         using var scope = new TempScope();
         string first = scope.Write("first.html", "<html><body>first</body></html>");
         string second = scope.Write("second.html", "<html><body>second</body></html>");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync(
-            [
-                new OfficeProvenanceWorkflowRequest { Id = "first", Operation = OfficeProvenanceWorkflowOperation.Inspect, InputPath = first },
-                new OfficeProvenanceWorkflowRequest { Id = "second", Operation = OfficeProvenanceWorkflowOperation.Inspect, InputPath = second }
-            ],
-            cancellationToken: cancellation.Token);
-
-        Assert.Empty(results);
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            new OfficeWorkflowRunner().RunProvenanceBatchAsync(
+                [
+                    new OfficeProvenanceWorkflowRequest { Id = "first", Operation = OfficeProvenanceWorkflowOperation.Inspect, InputPath = first },
+                    new OfficeProvenanceWorkflowRequest { Id = "second", Operation = OfficeProvenanceWorkflowOperation.Inspect, InputPath = second }
+                ],
+                cancellationToken: cancellation.Token));
     }
 
     [Fact]

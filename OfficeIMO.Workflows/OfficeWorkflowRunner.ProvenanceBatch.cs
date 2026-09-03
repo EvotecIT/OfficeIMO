@@ -46,7 +46,7 @@ public sealed partial class OfficeWorkflowRunner {
         IEnumerable<OfficeProvenanceWorkflowRequest> requests,
         int maximumRequests,
         CancellationToken cancellationToken) {
-        if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeProvenanceWorkflowRequest>();
+        cancellationToken.ThrowIfCancellationRequested();
         var materialized = new List<OfficeProvenanceWorkflowRequest>(maximumRequests + 1);
         using IEnumerator<OfficeProvenanceWorkflowRequest> enumerator = requests.GetEnumerator();
         while (materialized.Count <= maximumRequests) {
