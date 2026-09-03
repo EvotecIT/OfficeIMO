@@ -1,7 +1,9 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSanitizer {
-    private static readonly string[] UserMetadataKeys = { "Title", "Author", "Subject", "Keywords", "Creator" };
+    private static readonly HashSet<string> TechnicalInfoKeys = new HashSet<string>(StringComparer.Ordinal) {
+        "Producer", "CreationDate", "ModDate", "Trapped"
+    };
 
     private static PdfSanitizationReport BuildReport(
         byte[] pdf,
@@ -9,7 +11,6 @@ internal static partial class PdfSanitizer {
         PdfLoadOptions? readOptions,
         IReadOnlyList<PdfSanitizationFinding> findings) {
         policy.CancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentInfo info = PdfInspector.Inspect(pdf, readOptions);
         var parsed = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, policy.CancellationToken);
         PdfDocumentSecurityInfo baseline = PdfSyntax.ReadDocumentSecurityInfo(
             pdf,
@@ -24,15 +25,21 @@ internal static partial class PdfSanitizer {
             readOptions,
             policy.CancellationToken);
         int userMetadata = policy.ShouldRemoveUserMetadata ? CountUserMetadataEntries(parsed.Map, security) : 0;
-        int embeddedFiles = policy.ShouldRemoveEmbeddedFiles ? info.Attachments.Count : 0;
+        int embeddedFiles = policy.ShouldRemoveEmbeddedFiles
+            ? PdfAttachmentExtractor.InspectAttachments(
+                parsed.Map,
+                parsed.TrailerRaw,
+                readOptions?.Limits,
+                policy.CancellationToken).Count
+            : 0;
         int commentsAndMarkup = policy.ShouldRemoveCommentsAndMarkup
             ? CountSelectedCommentAnnotations(parsed.Map, policy)
             : 0;
         int bookmarks = policy.ShouldRemoveBookmarks
             ? CountOutlineItems(parsed.Map, security, policy.CancellationToken)
             : 0;
-        int optionalContent = policy.ShouldRemoveOptionalContent && info.HasOptionalContent
-            ? Math.Max(1, info.OptionalContentGroupCount)
+        int optionalContent = policy.ShouldRemoveOptionalContent
+            ? CountOptionalContentGroups(parsed.Map, security)
             : 0;
         return new PdfSanitizationReport(
             findings,
@@ -50,8 +57,8 @@ internal static partial class PdfSanitizer {
         if (security.InfoObjectNumber.HasValue &&
             objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
             infoObject.Value is PdfDictionary info) {
-            for (int i = 0; i < UserMetadataKeys.Length; i++) {
-                if (info.Items.ContainsKey(UserMetadataKeys[i])) count++;
+            foreach (string key in info.Items.Keys) {
+                if (!TechnicalInfoKeys.Contains(key)) count++;
             }
         }
         if (security.RootObjectNumber.HasValue &&
@@ -127,13 +134,16 @@ internal static partial class PdfSanitizer {
             Resolve(objects, outlinesObject) is not PdfDictionary outlines) {
             return 0;
         }
-        if (!outlines.Items.TryGetValue("First", out PdfObject? first)) return 1;
+        bool hasFirst = outlines.Items.TryGetValue("First", out PdfObject? first);
+        bool hasLast = outlines.Items.TryGetValue("Last", out PdfObject? last);
+        if (!hasFirst && !hasLast) return 1;
 
         int count = 0;
         var pending = new Stack<PdfObject>();
         var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
         var visitedDictionaries = new HashSet<PdfDictionary>();
-        pending.Push(first);
+        if (first is not null) pending.Push(first);
+        if (last is not null) pending.Push(last);
         while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfObject current = pending.Pop();
@@ -144,10 +154,32 @@ internal static partial class PdfSanitizer {
             }
             if (current is not PdfDictionary item || !visitedDictionaries.Add(item)) continue;
             count = checked(count + 1);
-            if (item.Items.TryGetValue("Next", out PdfObject? next)) pending.Push(next);
-            if (item.Items.TryGetValue("First", out PdfObject? child)) pending.Push(child);
+            PushOutlineLinks(item, pending);
         }
         return count == 0 ? 1 : count;
+    }
+
+    private static int CountOptionalContentGroups(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDocumentSecurityInfo security) {
+        if (!security.RootObjectNumber.HasValue ||
+            !objects.TryGetValue(security.RootObjectNumber.Value, out PdfIndirectObject? rootObject) ||
+            rootObject.Value is not PdfDictionary catalog ||
+            !catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContentObject) ||
+            Resolve(objects, optionalContentObject) is not PdfDictionary optionalContent) {
+            return 0;
+        }
+
+        if (!optionalContent.Items.TryGetValue("OCGs", out PdfObject? groupsObject) ||
+            Resolve(objects, groupsObject) is not PdfArray groups) {
+            return 1;
+        }
+
+        var counted = new HashSet<PdfDictionary>();
+        for (int index = 0; index < groups.Items.Count; index++) {
+            if (Resolve(objects, groups.Items[index]) is PdfDictionary group) counted.Add(group);
+        }
+        return Math.Max(1, counted.Count);
     }
 
     private static void SanitizeDocumentContainers(
@@ -157,7 +189,9 @@ internal static partial class PdfSanitizer {
         if (policy.ShouldRemoveUserMetadata && security.InfoObjectNumber.HasValue &&
             objects.TryGetValue(security.InfoObjectNumber.Value, out PdfIndirectObject? infoObject) &&
             infoObject.Value is PdfDictionary info) {
-            for (int i = 0; i < UserMetadataKeys.Length; i++) info.Items.Remove(UserMetadataKeys[i]);
+            foreach (string key in info.Items.Keys.Where(static key => !TechnicalInfoKeys.Contains(key)).ToArray()) {
+                info.Items.Remove(key);
+            }
         }
 
         if (!security.RootObjectNumber.HasValue ||
@@ -167,23 +201,42 @@ internal static partial class PdfSanitizer {
         }
 
         if (policy.ShouldRemoveUserMetadata && catalog.Items.TryGetValue("Metadata", out PdfObject? metadata)) {
+            RemoveSelectedMetadataAliases(objects, metadata);
             NeutralizeReferencedStream(objects, metadata);
             catalog.Items.Remove("Metadata");
         }
         if (policy.ShouldRemoveBookmarks) {
             if (catalog.Items.TryGetValue("Outlines", out PdfObject? outlines)) ClearOutlineTree(objects, outlines, policy.CancellationToken);
             catalog.Items.Remove("Outlines");
-            if (catalog.Get<PdfName>("PageMode")?.Name == "UseOutlines") catalog.Items.Remove("PageMode");
+            if (HasCatalogPageMode(objects, catalog, "UseOutlines")) catalog.Items.Remove("PageMode");
         }
-        if (policy.ShouldRemoveOptionalContent) catalog.Items.Remove("OCProperties");
+        if (policy.ShouldRemoveEmbeddedFiles && HasCatalogPageMode(objects, catalog, "UseAttachments")) {
+            catalog.Items.Remove("PageMode");
+        }
+        if (policy.ShouldRemoveOptionalContent) {
+            if (catalog.Items.TryGetValue("OCProperties", out PdfObject? optionalContent)) {
+                NeutralizeObjectGraph(objects, optionalContent, policy.CancellationToken);
+            }
+            catalog.Items.Remove("OCProperties");
+            if (HasCatalogPageMode(objects, catalog, "UseOC")) catalog.Items.Remove("PageMode");
+        }
     }
+
+    private static bool HasCatalogPageMode(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
+        string expected) =>
+        Resolve(objects, catalog.Get<PdfObject>("PageMode")) is PdfName pageMode &&
+        string.Equals(pageMode.Name, expected, StringComparison.Ordinal);
 
     private static bool ShouldRemoveAnnotation(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary annotation,
         PdfSanitizationOptions policy) {
         if (Resolve(objects, annotation.Get<PdfObject>("Subtype")) is not PdfName subtype) return false;
-        if (string.Equals(subtype.Name, "FileAttachment", StringComparison.Ordinal) && policy.ShouldRemoveEmbeddedFiles) return true;
+        if (string.Equals(subtype.Name, "FileAttachment", StringComparison.Ordinal) && policy.ShouldRemoveEmbeddedFiles) {
+            return policy.ContentKindsToRemove.HasValue || policy.RemoveRichMedia;
+        }
         return policy.ShouldRemoveCommentAnnotation(subtype.Name) || policy.ShouldRemoveLegacyRichAnnotation(subtype.Name);
     }
 
@@ -239,9 +292,71 @@ internal static partial class PdfSanitizer {
                 current = indirect.Value;
             }
             if (current is not PdfDictionary dictionary || !visitedDictionaries.Add(dictionary)) continue;
-            if (dictionary.Items.TryGetValue("First", out PdfObject? first)) pending.Push(first);
-            if (dictionary.Items.TryGetValue("Next", out PdfObject? next)) pending.Push(next);
+            PushOutlineLinks(dictionary, pending);
             dictionary.Items.Clear();
+        }
+    }
+
+    private static void RemoveSelectedMetadataAliases(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject selectedMetadata) {
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            PdfDictionary? dictionary = indirect.Value is PdfStream stream
+                ? stream.Dictionary
+                : indirect.Value as PdfDictionary;
+            if (dictionary is null ||
+                !dictionary.Items.TryGetValue("Metadata", out PdfObject? candidate)) continue;
+            if (ReferencesSameObject(objects, candidate, selectedMetadata)) dictionary.Items.Remove("Metadata");
+        }
+    }
+
+    private static bool ReferencesSameObject(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject left,
+        PdfObject right) {
+        if (left is PdfReference leftReference && right is PdfReference rightReference) {
+            return leftReference.ObjectNumber == rightReference.ObjectNumber &&
+                leftReference.Generation == rightReference.Generation;
+        }
+        return ReferenceEquals(Resolve(objects, left), Resolve(objects, right));
+    }
+
+    private static void NeutralizeObjectGraph(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject root,
+        System.Threading.CancellationToken cancellationToken) {
+        var pending = new Stack<PdfObject>();
+        var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
+        var visitedObjects = new HashSet<PdfObject>();
+        pending.Push(root);
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject current = pending.Pop();
+            if (current is PdfReference reference) {
+                if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
+                    !PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) continue;
+                current = indirect.Value;
+            }
+            if (!visitedObjects.Add(current)) continue;
+            if (current is PdfStream stream) {
+                foreach (PdfObject child in stream.Dictionary.Items.Values) pending.Push(child);
+                stream.Dictionary.Items.Clear();
+                continue;
+            }
+            if (current is PdfArray array) {
+                for (int index = 0; index < array.Items.Count; index++) pending.Push(array.Items[index]);
+                array.Items.Clear();
+                continue;
+            }
+            if (current is not PdfDictionary dictionary) continue;
+            foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+            dictionary.Items.Clear();
+        }
+    }
+
+    private static void PushOutlineLinks(PdfDictionary dictionary, Stack<PdfObject> pending) {
+        foreach (string key in new[] { "First", "Last", "Next", "Prev" }) {
+            if (dictionary.Items.TryGetValue(key, out PdfObject? linked)) pending.Push(linked);
         }
     }
 }

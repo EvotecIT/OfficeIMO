@@ -87,9 +87,10 @@ internal static partial class PdfSanitizer {
             rewrittenReadOptions,
             Analyze(sanitized, policy, rewrittenReadOptions));
         cancellationToken.ThrowIfCancellationRequested();
-        if (remaining.CategoryCounts.Total > 0) {
+        int remainingCount = Math.Max(remaining.TotalCount, remaining.CategoryCounts.Total);
+        if (remainingCount > 0) {
             throw new InvalidOperationException(
-                "PDF sanitization post-save validation found " + remaining.CategoryCounts.Total.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+                "PDF sanitization post-save validation found " + remainingCount.ToString(System.Globalization.CultureInfo.InvariantCulture) +
                 " forbidden item(s); the artifact was not returned.");
         }
 
@@ -104,7 +105,9 @@ internal static partial class PdfSanitizer {
             PreserveEmbeddedFiles = !policy.ShouldRemoveEmbeddedFiles,
             PreserveXmpMetadata = !policy.ShouldRemoveUserMetadata,
             PreserveOptionalContent = !policy.ShouldRemoveOptionalContent,
-            PreserveCatalogViewSettings = !policy.ShouldRemoveBookmarks,
+            PreserveCatalogViewSettings = !policy.ShouldRemoveBookmarks &&
+                !policy.ShouldRemoveEmbeddedFiles &&
+                !policy.ShouldRemoveOptionalContent,
             PreserveCatalogActions = true,
             PreservePageActions = true,
             PreserveOpenAction = true,
@@ -113,7 +116,9 @@ internal static partial class PdfSanitizer {
             PreserveRevisionStructure = false,
             PreserveSecurityState = !sourceDocument.Security.HasEncryption
         };
-        if (policy.ShouldRemoveEmbeddedFiles) preservationOptions.ExcludedAnnotationSubtypes.Add("FileAttachment");
+        if (policy.ShouldRemoveEmbeddedFiles && (policy.ContentKindsToRemove.HasValue || policy.RemoveRichMedia)) {
+            preservationOptions.ExcludedAnnotationSubtypes.Add("FileAttachment");
+        }
         if (policy.ShouldRemoveCommentsAndMarkup) {
             foreach (string subtype in originalInfo.AnnotationSubtypeCounts.Keys) {
                 if (policy.ShouldRemoveCommentAnnotation(subtype)) preservationOptions.ExcludedAnnotationSubtypes.Add(subtype);

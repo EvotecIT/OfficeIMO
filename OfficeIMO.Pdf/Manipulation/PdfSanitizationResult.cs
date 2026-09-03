@@ -60,7 +60,7 @@ public sealed class PdfSanitizationResult {
     public IReadOnlyList<PdfExtractedAttachment> QuarantinedAttachments { get; }
 
     /// <summary>True when post-save inventory proves that no forbidden item remains.</summary>
-    public bool IsSanitized => RemainingReport.CategoryCounts.Total == 0;
+    public bool IsSanitized => RemainingFindings.Count == 0 && RemainingReport.CategoryCounts.Total == 0;
 
     /// <summary>Returns a defensive copy of the sanitized PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdfBytes.Clone();

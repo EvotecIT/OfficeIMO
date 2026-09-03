@@ -113,9 +113,11 @@ internal static partial class PdfSanitizer {
         int maximumActionDepth,
         int maximumActionNodes) {
         policy.CancellationToken.ThrowIfCancellationRequested();
-        SanitizeDocumentContainers(objects, security, policy);
         HashSet<PdfDictionary> selectedAnnotations = CollectSelectedAnnotations(objects, policy);
+        HashSet<PdfDictionary> selectedFileSpecifications = CollectSelectedFileSpecifications(objects, policy);
+        SanitizeDocumentContainers(objects, security, policy);
         NeutralizeSelectedPayloadObjects(objects, policy);
+        foreach (PdfDictionary fileSpecification in selectedFileSpecifications) fileSpecification.Items.Clear();
         var actionBudget = new PdfSanitizerActionBudget(maximumActionNodes);
         foreach (PdfIndirectObject item in objects.Values.OrderBy(static item => item.ObjectNumber)) {
             policy.CancellationToken.ThrowIfCancellationRequested();
@@ -166,9 +168,6 @@ internal static partial class PdfSanitizer {
             dictionary.Items.Remove("EmbeddedFiles");
             dictionary.Items.Remove("AF");
             dictionary.Items.Remove("EF");
-        }
-        if (policy.ShouldRemoveUserMetadata) {
-            dictionary.Items.Remove("Metadata");
         }
         if (policy.ShouldRemoveOptionalContent) {
             RemoveOptionalContentAssociation(objects, dictionary);
@@ -420,9 +419,10 @@ internal static partial class PdfSanitizer {
             return;
         }
         if (value is not PdfDictionary dictionary) return;
-        if (Resolve(objects, dictionary.Get<PdfObject>("Type")) is PdfName type &&
-            string.Equals(type.Name, "Annot", StringComparison.Ordinal) &&
-            ShouldRemoveAnnotation(objects, dictionary, policy)) {
+        bool isTypedAnnotation = Resolve(objects, dictionary.Get<PdfObject>("Type")) is PdfName type &&
+            string.Equals(type.Name, "Annot", StringComparison.Ordinal);
+        if ((isTypedAnnotation && ShouldRemoveAnnotation(objects, dictionary, policy)) ||
+            (!isTypedAnnotation && IsRichAnnotation(objects, dictionary, policy, out _))) {
             selected.Add(dictionary);
         }
         if (dictionary.Items.TryGetValue("Annots", out PdfObject? annotationsObject) &&
@@ -436,6 +436,44 @@ internal static partial class PdfSanitizer {
         }
         foreach (PdfObject child in dictionary.Items.Values) {
             if (child is not PdfReference) CollectSelectedAnnotations(objects, child, policy, selected, visited);
+        }
+    }
+
+    private static HashSet<PdfDictionary> CollectSelectedFileSpecifications(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfSanitizationOptions policy) {
+        var selected = new HashSet<PdfDictionary>();
+        if (!policy.ShouldRemoveEmbeddedFiles) return selected;
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            CollectSelectedFileSpecifications(objects, indirect.Value, policy, selected, visited);
+        }
+        return selected;
+    }
+
+    private static void CollectSelectedFileSpecifications(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfObject value,
+        PdfSanitizationOptions policy,
+        HashSet<PdfDictionary> selected,
+        HashSet<PdfObject> visited) {
+        policy.CancellationToken.ThrowIfCancellationRequested();
+        if (!visited.Add(value)) return;
+        if (value is PdfStream stream) value = stream.Dictionary;
+        if (value is PdfArray array) {
+            for (int index = 0; index < array.Items.Count; index++) {
+                if (array.Items[index] is not PdfReference) {
+                    CollectSelectedFileSpecifications(objects, array.Items[index], policy, selected, visited);
+                }
+            }
+            return;
+        }
+        if (value is not PdfDictionary dictionary) return;
+        if (dictionary.Items.ContainsKey("EF")) selected.Add(dictionary);
+        foreach (PdfObject child in dictionary.Items.Values) {
+            if (child is not PdfReference) {
+                CollectSelectedFileSpecifications(objects, child, policy, selected, visited);
+            }
         }
     }
 
