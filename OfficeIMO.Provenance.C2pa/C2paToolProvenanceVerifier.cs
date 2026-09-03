@@ -5,6 +5,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Provenance;
 
@@ -14,7 +15,7 @@ namespace OfficeIMO.Provenance.C2pa;
 /// Provides optional C2PA content-binding, signature, and trust verification through the official
 /// <c>c2patool</c> command-line application. The executable is supplied by the host and is not bundled.
 /// </summary>
-public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
+public sealed class C2paToolProvenanceVerifier : ICancellableOfficeProvenanceVerifier {
     private static readonly string[] NonObjectReportFinding = { "c2patool returned a non-object JSON report." };
     private static readonly string[] MalformedActiveManifestFinding = { "c2patool returned malformed active_manifest data." };
     private static readonly string[] DuplicateCriticalReportFieldFinding = { "c2patool returned duplicate security-critical report fields." };
@@ -53,26 +54,42 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     public string Name => "c2patool";
 
     /// <inheritdoc />
-    public OfficeProvenanceVerificationResult Verify(string filePath, OfficeProvenanceVerificationOptions? options = null) {
+    public OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options = null) => Verify(
+            filePath,
+            options,
+            CancellationToken.None);
+
+    /// <inheritdoc />
+    public OfficeProvenanceVerificationResult Verify(
+        string filePath,
+        OfficeProvenanceVerificationOptions? options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("An asset path is required.", nameof(filePath));
         string fullPath = Path.GetFullPath(filePath);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("The asset to verify was not found.", fullPath);
         options ??= new OfficeProvenanceVerificationOptions();
         Validate(options);
+        var executionBudget = new C2paToolExecutionBudget(options.Timeout, cancellationToken);
 
         string settingsPath = Path.Combine(Path.GetTempPath(), ".officeimo-c2pa-" + Guid.NewGuid().ToString("N") + ".json");
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             File.WriteAllText(settingsPath, CreateSettings(options.AllowNetworkAccess), new UTF8Encoding(false));
             string workingDirectory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
             var request = new C2paToolProcessRequest(
                 ExecutablePath,
                 BuildArguments(fullPath, settingsPath, workingDirectory, options),
                 workingDirectory,
-                options.Timeout,
+                executionBudget.GetRemainingTimeout(),
                 options.MaxReportBytes);
             C2paToolProcessResult processResult;
             try {
-                processResult = _runner.Run(request);
+                processResult = _runner.Run(request, cancellationToken);
+                return executionBudget.RunInterpretation(
+                    interpretationToken => Interpret(processResult, options, interpretationToken));
             } catch (Win32Exception exception) {
                 return Result(OfficeProvenanceVerificationStatus.ProviderUnavailable, new[] { exception.Message }, null, options);
             } catch (TimeoutException exception) {
@@ -84,14 +101,17 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             } catch (InvalidOperationException exception) {
                 return Result(OfficeProvenanceVerificationStatus.Error, new[] { exception.Message }, null, options);
             }
-            return Interpret(processResult, options);
         } finally {
             try { if (File.Exists(settingsPath)) File.Delete(settingsPath); } catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
     }
 
-    private static OfficeProvenanceVerificationResult Interpret(C2paToolProcessResult process, OfficeProvenanceVerificationOptions options) {
+    private static OfficeProvenanceVerificationResult Interpret(
+        C2paToolProcessResult process,
+        OfficeProvenanceVerificationOptions options,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(process.StandardOutput)) {
             string message = string.IsNullOrWhiteSpace(process.StandardError)
                 ? $"c2patool exited with code {process.ExitCode} without a JSON report."
@@ -104,12 +124,13 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
                 CommentHandling = JsonCommentHandling.Disallow,
                 MaxDepth = 128
             });
+            cancellationToken.ThrowIfCancellationRequested();
             if (document.RootElement.ValueKind != JsonValueKind.Object) {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     NonObjectReportFinding, process.StandardOutput, options);
             }
-            if (!TryGetUniqueProperty(document.RootElement, "active_manifest", out JsonElement activeManifestElement, out bool hasActiveManifest) ||
-                !TryGetUniqueProperty(document.RootElement, "validation_status", out JsonElement validationStatus, out bool hasValidationStatus)) {
+            if (!TryGetUniqueProperty(document.RootElement, "active_manifest", cancellationToken, out JsonElement activeManifestElement, out bool hasActiveManifest) ||
+                !TryGetUniqueProperty(document.RootElement, "validation_status", cancellationToken, out JsonElement validationStatus, out bool hasValidationStatus)) {
                 return Result(OfficeProvenanceVerificationStatus.Error,
                     DuplicateCriticalReportFieldFinding, process.StandardOutput, options);
             }
@@ -134,7 +155,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
             var findings = new List<string>();
             var findingSet = new HashSet<string>(StringComparer.Ordinal);
             if (hasValidationStatus &&
-                !TryCollectValidationFindings(validationStatus, findings, findingSet)) {
+                !TryCollectValidationFindings(validationStatus, findings, findingSet, cancellationToken)) {
                 findings.Add("c2patool returned malformed validation_status data.");
                 return Result(OfficeProvenanceVerificationStatus.Error, findings, process.StandardOutput, options);
             }
@@ -174,13 +195,18 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
         }
     }
 
-    private static bool TryCollectValidationFindings(JsonElement validationStatus, List<string> findings, HashSet<string> findingSet) {
+    private static bool TryCollectValidationFindings(
+        JsonElement validationStatus,
+        List<string> findings,
+        HashSet<string> findingSet,
+        CancellationToken cancellationToken) {
         if (validationStatus.ValueKind != JsonValueKind.Array) return false;
         foreach (JsonElement status in validationStatus.EnumerateArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (status.ValueKind != JsonValueKind.Object) return false;
-            if (!TryGetUniqueProperty(status, "code", out JsonElement codeElement, out bool hasCode) ||
-                !TryGetUniqueProperty(status, "explanation", out JsonElement explanationElement, out bool hasExplanation) ||
-                !TryGetUniqueProperty(status, "success", out JsonElement successElement, out bool hasSuccess)) return false;
+            if (!TryGetUniqueProperty(status, "code", cancellationToken, out JsonElement codeElement, out bool hasCode) ||
+                !TryGetUniqueProperty(status, "explanation", cancellationToken, out JsonElement explanationElement, out bool hasExplanation) ||
+                !TryGetUniqueProperty(status, "success", cancellationToken, out JsonElement successElement, out bool hasSuccess)) return false;
             if (!hasCode || codeElement.ValueKind != JsonValueKind.String ||
                 hasExplanation && explanationElement.ValueKind != JsonValueKind.String ||
                 hasSuccess && successElement.ValueKind is not JsonValueKind.True and not JsonValueKind.False) return false;
@@ -201,11 +227,13 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
     private static bool TryGetUniqueProperty(
         JsonElement element,
         string propertyName,
+        CancellationToken cancellationToken,
         out JsonElement value,
         out bool found) {
         value = default;
         found = false;
         foreach (JsonProperty property in element.EnumerateObject()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(property.Name, propertyName, StringComparison.Ordinal)) continue;
             if (found) return false;
             value = property.Value;
@@ -284,7 +312,7 @@ public sealed class C2paToolProvenanceVerifier : IOfficeProvenanceVerifier {
 }
 
 internal interface IC2paToolProcessRunner {
-    C2paToolProcessResult Run(C2paToolProcessRequest request);
+    C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default);
 }
 
 internal sealed class C2paToolProcessRequest {
@@ -321,7 +349,10 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         _useExternalUnixSessionLauncher = useExternalUnixSessionLauncher;
     }
 
-    public C2paToolProcessResult Run(C2paToolProcessRequest request) {
+    public C2paToolProcessResult Run(
+        C2paToolProcessRequest request,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         string targetExecutable = ResolveUnixExecutable(request.ExecutablePath, request.WorkingDirectory);
         string executable = targetExecutable;
         string arguments = string.Join(" ", request.Arguments.Select(QuoteArgument));
@@ -352,6 +383,7 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
         Stopwatch timer = Stopwatch.StartNew();
         while (true) {
             if (process.WaitForExit(50)) break;
+            ThrowIfCancellationRequested(process, containment, cancellationToken);
             if (stdout.IsFaulted || stderr.IsFaulted) {
                 Terminate(process, containment);
                 throw stdout.Exception?.GetBaseException() ?? stderr.Exception?.GetBaseException() ?? new InvalidDataException("c2patool output failed.");
@@ -362,15 +394,31 @@ internal sealed class C2paToolProcessRunner : IC2paToolProcessRunner {
             }
         }
         try {
-            TimeSpan remaining = request.Timeout - timer.Elapsed;
-            if (remaining <= TimeSpan.Zero || !Task.WaitAll(new Task[] { stdout, stderr }, remaining)) {
-                Terminate(process, containment);
-                throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
+            var outputTasks = new Task[] { stdout, stderr };
+            while (true) {
+                TimeSpan remaining = request.Timeout - timer.Elapsed;
+                if (remaining <= TimeSpan.Zero) {
+                    Terminate(process, containment);
+                    throw new TimeoutException($"c2patool exceeded the configured timeout of {request.Timeout}.");
+                }
+                int waitMilliseconds = (int)Math.Min(50D, Math.Ceiling(remaining.TotalMilliseconds));
+                if (Task.WaitAll(outputTasks, waitMilliseconds, CancellationToken.None)) break;
+                ThrowIfCancellationRequested(process, containment, cancellationToken);
             }
         } catch (AggregateException exception) {
             throw exception.GetBaseException();
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return new C2paToolProcessResult(process.ExitCode, stdout.Result, stderr.Result);
+    }
+
+    private static void ThrowIfCancellationRequested(
+        Process process,
+        C2paToolProcessContainment containment,
+        CancellationToken cancellationToken) {
+        if (!cancellationToken.IsCancellationRequested) return;
+        Terminate(process, containment);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     internal static Task<string> ReadBoundedAsync(Stream stream, long maximumBytes, string streamName) => Task.Run(() => {

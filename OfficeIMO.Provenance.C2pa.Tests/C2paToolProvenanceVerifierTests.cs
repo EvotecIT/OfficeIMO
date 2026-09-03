@@ -241,6 +241,32 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     [Fact]
+    public void ProcessRunnerCancelsAndTerminatesTheContainedProcess() {
+        string executable;
+        IReadOnlyList<string> arguments;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            executable = Environment.GetEnvironmentVariable("ComSpec") ?? "cmd.exe";
+            arguments = new[] { "/d", "/c", "ping 127.0.0.1 -n 6" };
+        } else {
+            executable = "/bin/sh";
+            arguments = new[] { "-c", "sleep 5" };
+        }
+        var request = new C2paToolProcessRequest(
+            executable,
+            arguments,
+            Path.GetTempPath(),
+            TimeSpan.FromSeconds(10),
+            1024 * 1024);
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        var timer = Stopwatch.StartNew();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            new C2paToolProcessRunner().Run(request, cancellation.Token));
+
+        Assert.True(timer.Elapsed < TimeSpan.FromSeconds(3), $"Runner blocked for {timer.Elapsed}.");
+    }
+
+    [Fact]
     public void UnixRunnerFailsClosedWithoutSetsid() {
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
         string marker = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".orphan");
@@ -274,7 +300,7 @@ public sealed class C2paToolProvenanceVerifierTests {
         internal StubRunner(C2paToolProcessResult result) => _result = result;
         internal C2paToolProcessRequest? Request { get; private set; }
         internal string SettingsJson { get; private set; } = string.Empty;
-        public C2paToolProcessResult Run(C2paToolProcessRequest request) {
+        public C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default) {
             Request = request;
             SettingsJson = File.ReadAllText(request.Arguments[2]);
             return _result;
@@ -282,7 +308,7 @@ public sealed class C2paToolProvenanceVerifierTests {
     }
 
     private sealed class ThrowingRunner : IC2paToolProcessRunner {
-        public C2paToolProcessResult Run(C2paToolProcessRequest request) =>
+        public C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default) =>
             throw new Win32Exception("Executable not found.");
     }
 }

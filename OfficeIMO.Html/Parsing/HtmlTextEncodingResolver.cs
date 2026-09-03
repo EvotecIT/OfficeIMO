@@ -306,6 +306,12 @@ internal static class HtmlTextEncodingResolver {
     private static Encoding? ResolveBomEncoding(byte[] bytes, int? count = null) {
         int length = count ?? bytes.Length;
         if (length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) return new UTF8Encoding(true, true);
+        if (length >= 4 && bytes[0] == 0xFF && bytes[1] == 0xFE && bytes[2] == 0x00 && bytes[3] == 0x00) {
+            return new UTF32Encoding(false, true, true);
+        }
+        if (length >= 4 && bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0xFE && bytes[3] == 0xFF) {
+            return new UTF32Encoding(true, true, true);
+        }
         if (length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) return new UnicodeEncoding(false, true, true);
         if (length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) return new UnicodeEncoding(true, true, true);
         return null;

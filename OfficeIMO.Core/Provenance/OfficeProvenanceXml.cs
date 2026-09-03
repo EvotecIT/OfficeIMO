@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Text;
+using System.Threading;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -34,6 +36,31 @@ internal static class OfficeProvenanceXml {
             MaxCharactersFromEntities = 0,
             IgnoreWhitespace = false
         };
+
+    internal static Encoding ResolveTextEncoding(
+        string filePath,
+        long maximumBytes,
+        CancellationToken cancellationToken) {
+        string fullPath = Path.GetFullPath(filePath);
+        using var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            4096,
+            FileOptions.SequentialScan);
+        if (stream.Length > maximumBytes) {
+            throw new InvalidDataException("The XML document exceeds the configured text-integrity byte limit.");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        using var reader = new XmlTextReader(stream) {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null
+        };
+        reader.Read();
+        cancellationToken.ThrowIfCancellationRequested();
+        return reader.Encoding ?? Encoding.UTF8;
+    }
 
     internal static void ValidateMaterializedNodeBudget(
         byte[] data,

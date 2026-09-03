@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Xml;
 using OfficeIMO.Core.Internal;
 
@@ -23,7 +24,7 @@ public static class OfficeProvenanceInspector {
         OfficeProvenanceBinary.ValidateLimits(options);
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
         try {
-            byte[] data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+            byte[] data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
             return Inspect(data, fileName, options);
         } finally {
             if (stream.CanSeek) stream.Position = originalPosition;
@@ -35,6 +36,7 @@ public static class OfficeProvenanceInspector {
         if (data == null) throw new ArgumentNullException(nameof(data));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
         if (data.LongLength > options.MaxAssetBytes) {
             throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured limit of {options.MaxAssetBytes} bytes.");
         }
@@ -73,6 +75,9 @@ public static class OfficeProvenanceInspector {
             case OfficeProvenanceAssetFormat.Svg:
                 OfficeProvenanceSvg.Inspect(data, options, context);
                 break;
+            case OfficeProvenanceAssetFormat.Html:
+                OfficeProvenanceHtml.Inspect(data, options, context);
+                break;
             case OfficeProvenanceAssetFormat.ZipPackage:
                 OfficeProvenanceZip.Inspect(data, options, context);
                 break;
@@ -103,9 +108,10 @@ public static class OfficeProvenanceInspector {
         if (OfficeProvenanceZip.HasSignature(data)) return OfficeProvenanceAssetFormat.ZipPackage;
         if (OfficeProvenanceBinary.MatchesAscii(data, 0, "%PDF-")) return OfficeProvenanceAssetFormat.Pdf;
         if (LooksLikeSvg(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Svg;
-        if (LooksLikeHtml(data, null, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.Html;
-        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(data, options.MaxContainerEntries)) return OfficeProvenanceAssetFormat.UnstructuredText;
-        if (OfficeProvenanceText.HasStructuredDelimiter(data)) return OfficeProvenanceAssetFormat.StructuredText;
+        if (LooksLikeHtml(data, null, options.MaxContainerEntries, options.CancellationToken)) return OfficeProvenanceAssetFormat.Html;
+        if (OfficeProvenanceText.HasUnstructuredWrapperPrefix(
+                data, options.MaxContainerEntries, options.CancellationToken)) return OfficeProvenanceAssetFormat.UnstructuredText;
+        if (OfficeProvenanceText.HasStructuredDelimiter(data, options.CancellationToken)) return OfficeProvenanceAssetFormat.StructuredText;
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) return OfficeProvenanceAssetFormat.Svg;
         if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
@@ -115,10 +121,20 @@ public static class OfficeProvenanceInspector {
         return OfficeProvenanceAssetFormat.Unknown;
     }
 
-    private static bool LooksLikeHtml(byte[] data, string? fileName, int maximumContainerEntries) {
+    private static bool LooksLikeHtml(
+        byte[] data,
+        string? fileName,
+        int maximumContainerEntries,
+        CancellationToken cancellationToken) {
         string extension = Path.GetExtension(fileName ?? string.Empty);
         if (extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
             extension.Equals(".htm", StringComparison.OrdinalIgnoreCase)) return true;
+        if (HasUtf16OrUtf32Preamble(data)) {
+            return LooksLikeHtml(
+                OfficeProvenanceHtml.DecodeHtml(data, cancellationToken),
+                maximumContainerEntries,
+                cancellationToken);
+        }
         int offset = 0;
         if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) offset = 3;
         int commentCount = 0;
@@ -128,6 +144,7 @@ public static class OfficeProvenanceInspector {
             if (++commentCount > maximumContainerEntries) {
                 throw new InvalidDataException("HTML format detection exceeds the configured container-entry limit.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
             int commentEnd = FindAscii(data, offset + 4, "-->");
             if (commentEnd < 0) return false;
             offset = commentEnd + 3;
@@ -144,6 +161,47 @@ public static class OfficeProvenanceInspector {
         return value is 0x09 or 0x0A or 0x0C or 0x0D or 0x20 or (byte)'>' ||
             allowSelfClosing && value == (byte)'/';
     }
+
+    private static bool LooksLikeHtml(
+        string data,
+        int maximumContainerEntries,
+        CancellationToken cancellationToken) {
+        int offset = 0;
+        int commentCount = 0;
+        while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (offset < data.Length && IsHtmlWhitespace(data[offset])) offset++;
+            if (!MatchesHtmlToken(data, offset, "<!--")) break;
+            if (++commentCount > maximumContainerEntries) {
+                throw new InvalidDataException("HTML format detection exceeds the configured container-entry limit.");
+            }
+            int commentEnd = data.IndexOf("-->", offset + 4, StringComparison.OrdinalIgnoreCase);
+            if (commentEnd < 0) return false;
+            offset = commentEnd + 3;
+        }
+        return MatchesHtmlTokenWithBoundary(data, offset, "<!doctype html", allowSelfClosing: false) ||
+            MatchesHtmlTokenWithBoundary(data, offset, "<html", allowSelfClosing: true);
+    }
+
+    private static bool MatchesHtmlTokenWithBoundary(string data, int offset, string token, bool allowSelfClosing) {
+        if (!MatchesHtmlToken(data, offset, token)) return false;
+        int boundary = offset + token.Length;
+        if (boundary >= data.Length) return false;
+        char value = data[boundary];
+        return IsHtmlWhitespace(value) || value == '>' || allowSelfClosing && value == '/';
+    }
+
+    private static bool MatchesHtmlToken(string data, int offset, string token) =>
+        offset >= 0 && token.Length <= data.Length - offset &&
+        string.Compare(data, offset, token, 0, token.Length, StringComparison.OrdinalIgnoreCase) == 0;
+
+    private static bool IsHtmlWhitespace(char value) => value is '\t' or '\n' or '\f' or '\r' or ' ';
+
+    private static bool HasUtf16OrUtf32Preamble(byte[] data) =>
+        data.Length >= 2 &&
+        ((data[0] == 0xFE && data[1] == 0xFF) ||
+         (data[0] == 0xFF && data[1] == 0xFE) ||
+         (data.Length >= 4 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF));
 
     private static int FindAscii(byte[] data, int offset, string expected) {
         for (int index = Math.Max(0, offset); index <= data.Length - expected.Length; index++) {
@@ -327,9 +385,11 @@ public static class OfficeProvenanceRemover {
                 break;
         }
 
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(output.LongLength, options.EffectiveMaxOutputBytes);
+        OfficeProvenanceOptions outputInspectionOptions = CreateOutputInspectionOptions(options);
         OfficeProvenanceReport after = forcedFormat.HasValue
-            ? OfficeProvenanceInspector.InspectStructuredText(output, inspectionOptions)
-            : OfficeProvenanceInspector.InspectCore(output, fileName, inspectionOptions);
+            ? OfficeProvenanceInspector.InspectStructuredText(output, outputInspectionOptions)
+            : OfficeProvenanceInspector.InspectCore(output, fileName, outputInspectionOptions);
         return OfficeProvenanceRemovalResult.CreateOwned(output, before, after, changes.AsReadOnly(), reserialized);
     }
 
@@ -339,6 +399,18 @@ public static class OfficeProvenanceRemover {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
+        ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
+        MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
+    };
+
+    private static OfficeProvenanceOptions CreateOutputInspectionOptions(OfficeProvenanceRemovalOptions source) => new OfficeProvenanceOptions {
+        MaxAssetBytes = source.EffectiveMaxOutputBytes,
+        MaxManifestBytes = Math.Min(source.Limits.MaxManifestBytes, source.EffectiveMaxOutputBytes),
+        MaxCarriers = source.Limits.MaxCarriers,
+        MaxContainerEntries = source.Limits.MaxContainerEntries,
+        MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
@@ -355,7 +427,7 @@ public static class OfficeProvenanceRemover {
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         byte[] data;
-        using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
+        using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, result.ToArray());
         return result;

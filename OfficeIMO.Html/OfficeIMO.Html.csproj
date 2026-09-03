@@ -64,6 +64,7 @@
     <InternalsVisibleTo Include="OfficeIMO.OneNote.Html" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
     <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
   </ItemGroup>
 

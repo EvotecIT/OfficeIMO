@@ -478,14 +478,20 @@ namespace OfficeIMO.Security {
             using var contentTypeStream = new MemoryStream(contentTypeBytes, writable: false);
             XDocument document = LoadXDocument(contentTypeStream, maxPartBytes);
             XNamespace contentTypes = "http://schemas.openxmlformats.org/package/2006/content-types";
-            var defaults = document.Root?
-                .Elements(contentTypes + "Default")
-                .Where(element => element.Attribute("Extension") != null && element.Attribute("ContentType") != null)
-                .ToDictionary(
-                    element => ((string)element.Attribute("Extension")!).TrimStart('.'),
-                    element => (string)element.Attribute("ContentType")!,
-                    StringComparer.OrdinalIgnoreCase)
-                ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XElement element in document.Root?.Elements(contentTypes + "Default") ?? Enumerable.Empty<XElement>()) {
+                string extension = ((string?)element.Attribute("Extension") ?? string.Empty).TrimStart('.');
+                string? contentType = (string?)element.Attribute("ContentType");
+                if (extension.Length == 0 || string.IsNullOrWhiteSpace(contentType)) continue;
+                if (defaults.TryGetValue(extension, out string? existing)) {
+                    if (!string.Equals(existing, contentType, StringComparison.OrdinalIgnoreCase)) {
+                        throw new InvalidDataException(
+                            "The OPC package declares conflicting default content types for extension '" + extension + "'.");
+                    }
+                    continue;
+                }
+                defaults.Add(extension, contentType!);
+            }
             var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (XElement element in document.Root?.Elements(contentTypes + "Override") ?? Enumerable.Empty<XElement>()) {
                 string partUri = NormalizePartUri((string?)element.Attribute("PartName") ?? string.Empty);

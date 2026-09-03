@@ -25,6 +25,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("OfficeIMO.Rtf.Markdown")]
 [assembly: InternalsVisibleTo("OfficeIMO.Reader")]
 [assembly: InternalsVisibleTo("OfficeIMO.Shared.Tests")]
+[assembly: InternalsVisibleTo("OfficeIMO.Workflows")]
 [assembly: InternalsVisibleTo("OfficeIMO.Visio")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word.Pdf")]

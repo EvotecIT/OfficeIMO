@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using System.Text.Json;
+using System.Threading;
 using OfficeIMO.Provenance;
 
 namespace OfficeIMO.Provenance.C2pa.Tests;
@@ -225,7 +226,7 @@ public sealed class C2paToolProvenanceSignerTests {
         internal string ManifestPath { get; private set; } = string.Empty;
         internal string StagingPath { get; private set; } = string.Empty;
 
-        public C2paToolProcessResult Run(C2paToolProcessRequest request) {
+        public C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default) {
             if (request.Arguments.SequenceEqual(new[] { "--version" })) {
                 VersionRequest = request;
                 return new C2paToolProcessResult(0, _version, string.Empty);
@@ -252,7 +253,7 @@ public sealed class C2paToolProvenanceSignerTests {
     }
 
     private sealed class UnavailableRunner : IC2paToolProcessRunner {
-        public C2paToolProcessResult Run(C2paToolProcessRequest request) =>
+        public C2paToolProcessResult Run(C2paToolProcessRequest request, CancellationToken cancellationToken = default) =>
             throw new Win32Exception("Executable not found.");
     }
 

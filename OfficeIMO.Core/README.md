@@ -183,6 +183,8 @@ foreach (OfficeProvenanceSignalResult signal in assessment.ProviderSignals) {
 
 `IOfficeProvenanceSignalDetector` is deliberately provider-specific. A detector reports its own durable-media watermark, statistical-text watermark, visible disclosure, or deterministic artifact and keeps `NotDetected`, `Inconclusive`, `ProviderUnavailable`, and `Error` distinct. OfficeIMO does not turn the absence of one vendor's signal into “human-authored.”
 
+Existing detector and verifier implementations remain valid. Providers that perform long-running work can additionally implement `ICancellableOfficeProvenanceSignalDetector` or `ICancellableOfficeProvenanceVerifier`; cancellation-aware assessment and workflow calls pass their token to those providers and fall back to the original contracts for compatibility.
+
 Use `OfficeTextIntegrityInspector` to report exact invisible and context-sensitive Unicode code points. It reports offsets, code points, and risk; it does not call those characters an AI watermark. Format content-safety reports also mirror these as selectable `NonPrintingUnicode` findings when the owning adapter can verify and rewrite the exact native text node. Cleanup has no blanket mode: callers pass only reviewed finding IDs, so legitimate joiners, variation selectors, and typographic spaces are not silently normalized.
 
 ### Inspect concealed content before model ingestion

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -12,12 +13,17 @@ internal static class OfficeProvenanceText {
     private static readonly byte[] WrapperMagic = Encoding.ASCII.GetBytes("C2PATXT\0");
     private static readonly byte[] DataUriPrefix = Encoding.ASCII.GetBytes("data:application/c2pa;base64,");
 
-    internal static bool HasStructuredDelimiter(byte[] data) => IndexOf(data, BeginDelimiter, 0) >= 0;
+    internal static bool HasStructuredDelimiter(byte[] data, CancellationToken cancellationToken = default) =>
+        IndexOf(data, BeginDelimiter, 0, cancellationToken) >= 0;
 
-    internal static bool HasUnstructuredWrapperPrefix(byte[] data, int maximumContainerEntries) {
+    internal static bool HasUnstructuredWrapperPrefix(
+        byte[] data,
+        int maximumContainerEntries,
+        CancellationToken cancellationToken = default) {
         int offset = 0;
         int candidateCount = 0;
         while (offset < data.Length) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadCodePoint(data, offset, out int codePoint, out int prefixBytes) || codePoint != 0xFEFF) { offset++; continue; }
             if (++candidateCount > maximumContainerEntries) {
                 throw new InvalidDataException("Text provenance wrapper detection exceeds the configured container-entry limit.");
@@ -40,8 +46,10 @@ internal static class OfficeProvenanceText {
 
     internal static void Inspect(byte[] data, OfficeProvenanceOptions options, OfficeProvenanceContext context) {
         var evidence = new List<(int Offset, OfficeProvenanceEvidence Evidence)>();
-        StructuredBlock[] structuredBlocks = FindStructuredBlocks(data, options.MaxManifestBytes, options.MaxContainerEntries).ToArray();
-        TextWrapper[] wrappers = FindWrappers(data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true).ToArray();
+        StructuredBlock[] structuredBlocks = FindStructuredBlocks(
+            data, options.MaxManifestBytes, options.MaxContainerEntries, options.CancellationToken).ToArray();
+        TextWrapper[] wrappers = FindWrappers(
+            data, options.MaxManifestBytes, options.MaxContainerEntries, includeInvalid: true, options.CancellationToken).ToArray();
         bool carrierSetIsValid = structuredBlocks.Length + wrappers.Length <= 1;
         foreach (StructuredBlock block in structuredBlocks) {
             evidence.Add((block.Start, new OfficeProvenanceEvidence(
@@ -63,12 +71,15 @@ internal static class OfficeProvenanceText {
     }
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes) {
-        if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveExternalC2paReferences) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
         var candidates = new List<(int Offset, RemovalRange Range, OfficeProvenanceChange Change)>();
         StructuredBlock[] structuredBlocks = FindStructuredBlocks(
-            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries).ToArray();
+            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, options.Limits.CancellationToken).ToArray();
         TextWrapper[] wrappers = FindWrappers(
-            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true).ToArray();
+            data, options.Limits.MaxManifestBytes, options.Limits.MaxContainerEntries, includeInvalid: true,
+            options.Limits.CancellationToken).ToArray();
         bool carrierSetIsValid = structuredBlocks.Length + wrappers.Length <= 1;
         foreach (StructuredBlock block in structuredBlocks) {
             bool requested = block.IsExternal ? options.RemoveExternalC2paReferences : options.RemoveC2paManifests;
@@ -87,10 +98,10 @@ internal static class OfficeProvenanceText {
                     wrapper.End - wrapper.Start)));
             }
         }
-        if (candidates.Count == 0) return (byte[])data.Clone();
+        if (candidates.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
         candidates.Sort((left, right) => left.Offset.CompareTo(right.Offset));
         foreach ((int _, RemovalRange _, OfficeProvenanceChange change) in candidates) changes.Add(change);
-        using var output = new MemoryStream(data.Length);
+        using var output = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxOutputBytes, data.Length);
         int offset = 0;
         foreach (RemovalRange range in candidates.Select(item => item.Range).OrderBy(item => item.Start)) {
             if (range.Start < offset) continue;
@@ -104,19 +115,22 @@ internal static class OfficeProvenanceText {
     private static IEnumerable<StructuredBlock> FindStructuredBlocks(
         byte[] data,
         long maximumManifestBytes,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        CancellationToken cancellationToken) {
         int search = 0;
         int pendingEnd = -1;
         int delimiterCount = 0;
         while (search < data.Length) {
-            int begin = IndexOf(data, BeginDelimiter, search);
-            int orphanEnd = FindStandaloneDelimiter(data, EndDelimiter, search);
+            cancellationToken.ThrowIfCancellationRequested();
+            int begin = IndexOf(data, BeginDelimiter, search, cancellationToken);
+            int orphanEnd = FindStandaloneDelimiter(data, EndDelimiter, search, cancellationToken);
             if (orphanEnd >= 0 && (begin < 0 || orphanEnd < begin)) {
                 if (++delimiterCount > maximumContainerEntries) {
                     throw new InvalidDataException("The structured text exceeds the configured container-entry limit.");
                 }
-                int orphanLineStart = FindLineStart(data, orphanEnd);
-                int orphanLineEnd = FindLineEndIncludingTerminator(data, orphanEnd + EndDelimiter.Length);
+                int orphanLineStart = FindLineStart(data, orphanEnd, cancellationToken);
+                int orphanLineEnd = FindLineEndIncludingTerminator(
+                    data, orphanEnd + EndDelimiter.Length, cancellationToken);
                 yield return new StructuredBlock(orphanEnd, orphanLineStart, orphanLineEnd, false, false, 0L, null);
                 search = orphanEnd + EndDelimiter.Length;
                 continue;
@@ -130,27 +144,32 @@ internal static class OfficeProvenanceText {
                 begin,
                 maximumManifestBytes,
                 maximumContainerEntries,
+                cancellationToken,
                 out StructuredBlock? singleLineBlock)) {
                 yield return singleLineBlock!;
                 search = Math.Max(singleLineBlock!.LineEnd, begin + BeginDelimiter.Length);
                 continue;
             }
-            if (!IsStandaloneDelimiter(data, begin, BeginDelimiter.Length)) {
+            if (!IsStandaloneDelimiter(data, begin, BeginDelimiter.Length, cancellationToken)) {
                 search = begin + BeginDelimiter.Length;
                 continue;
             }
             int contentStart = begin + BeginDelimiter.Length;
-            int end = pendingEnd >= contentStart ? pendingEnd : FindStandaloneDelimiter(data, EndDelimiter, contentStart);
+            int end = pendingEnd >= contentStart
+                ? pendingEnd
+                : FindStandaloneDelimiter(data, EndDelimiter, contentStart, cancellationToken);
             if (end < 0) {
-                int unmatchedLineStart = FindLineStart(data, begin);
-                int unmatchedLineEnd = FindLineEndIncludingTerminator(data, begin + BeginDelimiter.Length);
+                int unmatchedLineStart = FindLineStart(data, begin, cancellationToken);
+                int unmatchedLineEnd = FindLineEndIncludingTerminator(
+                    data, begin + BeginDelimiter.Length, cancellationToken);
                 yield return new StructuredBlock(begin, unmatchedLineStart, unmatchedLineEnd, false, false, 0L, null);
                 yield break;
             }
-            int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart);
+            int newerBegin = FindStandaloneDelimiter(data, BeginDelimiter, contentStart, cancellationToken);
             if (newerBegin >= 0 && newerBegin < end) {
-                int nestedLineStart = FindLineStart(data, begin);
-                int nestedLineEnd = FindLineEndIncludingTerminator(data, begin + BeginDelimiter.Length);
+                int nestedLineStart = FindLineStart(data, begin, cancellationToken);
+                int nestedLineEnd = FindLineEndIncludingTerminator(
+                    data, begin + BeginDelimiter.Length, cancellationToken);
                 yield return new StructuredBlock(begin, nestedLineStart, nestedLineEnd, false, false, 0L, null);
                 pendingEnd = end;
                 search = newerBegin;
@@ -158,20 +177,27 @@ internal static class OfficeProvenanceText {
             }
             pendingEnd = -1;
             int contentEnd = end;
-            while (contentStart < contentEnd && IsAsciiWhitespace(data[contentStart])) contentStart++;
-            while (contentEnd > contentStart && IsAsciiWhitespace(data[contentEnd - 1])) contentEnd--;
+            while (contentStart < contentEnd && IsAsciiWhitespace(data[contentStart])) {
+                if ((contentStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+                contentStart++;
+            }
+            while (contentEnd > contentStart && IsAsciiWhitespace(data[contentEnd - 1])) {
+                if ((contentEnd & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+                contentEnd--;
+            }
             ParseStructuredValue(
                 data,
                 contentStart,
                 contentEnd,
                 maximumManifestBytes,
                 maximumContainerEntries,
+                cancellationToken,
                 out bool external,
                 out bool valid,
                 out long manifestLength,
                 out string? externalUri);
-            int lineStart = FindLineStart(data, begin);
-            int lineEnd = FindLineEndIncludingTerminator(data, end + EndDelimiter.Length);
+            int lineStart = FindLineStart(data, begin, cancellationToken);
+            int lineEnd = FindLineEndIncludingTerminator(data, end + EndDelimiter.Length, cancellationToken);
             yield return new StructuredBlock(begin, lineStart, lineEnd, external, valid, manifestLength, externalUri);
             search = end + EndDelimiter.Length;
         }
@@ -182,48 +208,68 @@ internal static class OfficeProvenanceText {
         int begin,
         long maximumManifestBytes,
         int maximumContainerEntries,
+        CancellationToken cancellationToken,
         out StructuredBlock? block) {
         block = null;
-        int lineStart = FindLineStart(data, begin);
-        int lineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length);
+        int lineStart = FindLineStart(data, begin, cancellationToken);
+        int lineContentEnd = FindLineEnd(data, begin + BeginDelimiter.Length, cancellationToken);
         int contentStart = begin + BeginDelimiter.Length;
-        int end = IndexOf(data, EndDelimiter, contentStart);
+        int end = IndexOf(data, EndDelimiter, contentStart, cancellationToken);
         bool hasSameLineEnd = end >= contentStart && end < lineContentEnd;
 
         int prefixStart = lineStart;
-        while (prefixStart < begin && IsHorizontalWhitespace(data[prefixStart])) prefixStart++;
+        while (prefixStart < begin && IsHorizontalWhitespace(data[prefixStart])) {
+            if ((prefixStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            prefixStart++;
+        }
         int prefixEnd = begin;
-        while (prefixEnd > prefixStart && IsHorizontalWhitespace(data[prefixEnd - 1])) prefixEnd--;
+        while (prefixEnd > prefixStart && IsHorizontalWhitespace(data[prefixEnd - 1])) {
+            if ((prefixEnd & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            prefixEnd--;
+        }
         int prefixLength = prefixEnd - prefixStart;
 
         if (prefixLength == 0) return false;
         int suffixStart = hasSameLineEnd ? end + EndDelimiter.Length : lineContentEnd;
-        while (suffixStart < lineContentEnd && IsHorizontalWhitespace(data[suffixStart])) suffixStart++;
+        while (suffixStart < lineContentEnd && IsHorizontalWhitespace(data[suffixStart])) {
+            if ((suffixStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            suffixStart++;
+        }
         int suffixEnd = lineContentEnd;
-        while (suffixEnd > suffixStart && IsHorizontalWhitespace(data[suffixEnd - 1])) suffixEnd--;
+        while (suffixEnd > suffixStart && IsHorizontalWhitespace(data[suffixEnd - 1])) {
+            if ((suffixEnd & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            suffixEnd--;
+        }
 
         if (!IsSupportedCommentEnvelope(data, prefixStart, prefixLength, suffixStart, suffixEnd - suffixStart)) {
             return false;
         }
 
-        int lineEnd = FindLineEndIncludingTerminator(data, lineContentEnd);
+        int lineEnd = FindLineEndIncludingTerminator(data, lineContentEnd, cancellationToken);
         if (!hasSameLineEnd) {
             block = new StructuredBlock(begin, lineStart, lineEnd, false, false, 0L, null);
             return true;
         }
 
-        int nestedBegin = IndexOf(data, BeginDelimiter, contentStart);
+        int nestedBegin = IndexOf(data, BeginDelimiter, contentStart, cancellationToken);
         bool nested = nestedBegin >= contentStart && nestedBegin < end;
         int valueStart = contentStart;
         int valueEnd = end;
-        while (valueStart < valueEnd && IsHorizontalWhitespace(data[valueStart])) valueStart++;
-        while (valueEnd > valueStart && IsHorizontalWhitespace(data[valueEnd - 1])) valueEnd--;
+        while (valueStart < valueEnd && IsHorizontalWhitespace(data[valueStart])) {
+            if ((valueStart & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            valueStart++;
+        }
+        while (valueEnd > valueStart && IsHorizontalWhitespace(data[valueEnd - 1])) {
+            if ((valueEnd & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            valueEnd--;
+        }
         ParseStructuredValue(
             data,
             valueStart,
             valueEnd,
             maximumManifestBytes,
             maximumContainerEntries,
+            cancellationToken,
             out bool external,
             out bool valid,
             out long manifestLength,
@@ -286,6 +332,7 @@ internal static class OfficeProvenanceText {
         int contentEnd,
         long maximumManifestBytes,
         int maximumContainerEntries,
+        CancellationToken cancellationToken,
         out bool external,
         out bool valid,
         out long manifestLength,
@@ -295,6 +342,7 @@ internal static class OfficeProvenanceText {
         valid = false;
         manifestLength = 0;
         externalUri = null;
+        cancellationToken.ThrowIfCancellationRequested();
         if (StartsWith(data, contentStart, valueLength, DataUriPrefix)) {
             int base64Offset = contentStart + DataUriPrefix.Length;
             int base64Length = contentEnd - base64Offset;
@@ -337,10 +385,12 @@ internal static class OfficeProvenanceText {
         byte[] data,
         long maximumManifestBytes,
         int maximumContainerEntries,
-        bool includeInvalid) {
+        bool includeInvalid,
+        CancellationToken cancellationToken) {
         int offset = 0;
         int selectorCount = 0;
         while (offset < data.Length) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!TryReadCodePoint(data, offset, out int codePoint, out int prefixBytes) || codePoint != 0xFEFF) { offset++; continue; }
             int selectorOffset = offset + prefixBytes;
             var decoded = new List<byte>();
@@ -350,6 +400,7 @@ internal static class OfficeProvenanceText {
                 : maximumManifestBytes + 13L;
             bool exceededLimit = false;
             while (TryReadCodePoint(data, cursor, out int selector, out int selectorBytes) && TrySelectorToByte(selector, out byte value)) {
+                if ((selectorCount & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
                 if (++selectorCount > maximumContainerEntries) {
                     throw new InvalidDataException("Text provenance wrappers exceed the configured container entry limit.");
                 }
@@ -409,8 +460,9 @@ internal static class OfficeProvenanceText {
         value = 0; return false;
     }
 
-    private static int IndexOf(byte[] data, byte[] pattern, int start) {
+    private static int IndexOf(byte[] data, byte[] pattern, int start, CancellationToken cancellationToken) {
         for (int offset = Math.Max(0, start); offset <= data.Length - pattern.Length; offset++) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             int index = 0;
             while (index < pattern.Length && data[offset + index] == pattern[index]) index++;
             if (index == pattern.Length) return offset;
@@ -418,12 +470,17 @@ internal static class OfficeProvenanceText {
         return -1;
     }
 
-    private static int FindStandaloneDelimiter(byte[] data, byte[] delimiter, int start) {
+    private static int FindStandaloneDelimiter(
+        byte[] data,
+        byte[] delimiter,
+        int start,
+        CancellationToken cancellationToken) {
         int search = start;
         while (search < data.Length) {
-            int offset = IndexOf(data, delimiter, search);
+            cancellationToken.ThrowIfCancellationRequested();
+            int offset = IndexOf(data, delimiter, search, cancellationToken);
             if (offset < 0) return -1;
-            if (IsStandaloneDelimiter(data, offset, delimiter.Length)) return offset;
+            if (IsStandaloneDelimiter(data, offset, delimiter.Length, cancellationToken)) return offset;
             search = offset + delimiter.Length;
         }
         return -1;
@@ -436,25 +493,42 @@ internal static class OfficeProvenanceText {
     }
 
     private static bool IsAsciiWhitespace(byte value) => value is 0x09 or 0x0A or 0x0D or 0x20;
-    private static int FindLineStart(byte[] data, int offset) {
-        while (offset > 0 && data[offset - 1] != 0x0A && data[offset - 1] != 0x0D) offset--;
+    private static int FindLineStart(byte[] data, int offset, CancellationToken cancellationToken) {
+        while (offset > 0 && data[offset - 1] != 0x0A && data[offset - 1] != 0x0D) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            offset--;
+        }
         return offset;
     }
-    private static int FindLineEndIncludingTerminator(byte[] data, int offset) {
-        offset = FindLineEnd(data, offset);
+    private static int FindLineEndIncludingTerminator(
+        byte[] data,
+        int offset,
+        CancellationToken cancellationToken) {
+        offset = FindLineEnd(data, offset, cancellationToken);
         if (offset >= data.Length) return offset;
         if (data[offset] == 0x0D && offset + 1 < data.Length && data[offset + 1] == 0x0A) return offset + 2;
         return offset + 1;
     }
-    private static int FindLineEnd(byte[] data, int offset) {
-        while (offset < data.Length && data[offset] != 0x0A && data[offset] != 0x0D) offset++;
+    private static int FindLineEnd(byte[] data, int offset, CancellationToken cancellationToken) {
+        while (offset < data.Length && data[offset] != 0x0A && data[offset] != 0x0D) {
+            if ((offset & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            offset++;
+        }
         return offset;
     }
-    private static bool IsStandaloneDelimiter(byte[] data, int offset, int length) {
-        int lineStart = FindLineStart(data, offset);
-        for (int index = lineStart; index < offset; index++) if (!IsHorizontalWhitespace(data[index])) return false;
+    private static bool IsStandaloneDelimiter(
+        byte[] data,
+        int offset,
+        int length,
+        CancellationToken cancellationToken) {
+        int lineStart = FindLineStart(data, offset, cancellationToken);
+        for (int index = lineStart; index < offset; index++) {
+            if ((index & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (!IsHorizontalWhitespace(data[index])) return false;
+        }
         int cursor = offset + length;
         while (cursor < data.Length && data[cursor] != 0x0A && data[cursor] != 0x0D) {
+            if ((cursor & 0xFFF) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!IsHorizontalWhitespace(data[cursor])) return false;
             cursor++;
         }

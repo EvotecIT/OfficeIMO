@@ -55,7 +55,9 @@ internal static class OfficeProvenanceXmp {
             index++;
         }
         if (!changed) return false;
-        using var stream = new MemoryStream();
+        using var stream = new OfficeProvenanceBoundedMemoryStream(
+            options.EffectiveMaxOutputBytes,
+            packet.Length);
         var settings = new XmlWriterSettings {
             Encoding = new UTF8Encoding(false),
             Indent = false,

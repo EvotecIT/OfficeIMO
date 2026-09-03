@@ -2,7 +2,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
-    <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, output, intake, and capability discovery.</Description>
+    <Description>Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.</Description>
     <AssemblyName>OfficeIMO.Tool</AssemblyName>
     <AssemblyTitle>OfficeIMO.Tool</AssemblyTitle>
     <VersionPrefix>3.3.0</VersionPrefix>
@@ -10,7 +10,7 @@
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.Tool</PackageId>
-    <PackageTags>office;documents;html;pdf;reader;markup;cli;dotnet-tool;officeimo</PackageTags>
+    <PackageTags>office;documents;html;pdf;reader;markup;provenance;c2pa;cli;dotnet-tool;officeimo</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>

@@ -804,10 +804,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         }
     }
 
-    private static void EnforceInputLimit(string path, long size, OfficeWorkflowLimits limits) {
-        if (size > limits.MaximumInputBytes) {
-            throw new InvalidOperationException(
-                $"Input '{Path.GetFileName(path)}' is {size:N0} bytes, above the configured {limits.MaximumInputBytes:N0}-byte limit.");
+    private static void EnforceInputLimit(string path, long size, OfficeWorkflowLimits limits) =>
+        EnforceInputLimit(path, size, limits.MaximumInputBytes);
+
+    private static void EnforceInputLimit(string path, long size, long maximumBytes) {
+        if (size > maximumBytes) {
+            throw OfficeIMO.Provenance.OfficeProvenanceLimitException.Create(
+                $"Input '{Path.GetFileName(path)}' is {size:N0} bytes, above the configured {maximumBytes:N0}-byte limit.");
         }
     }
 

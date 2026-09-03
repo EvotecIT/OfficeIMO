@@ -99,10 +99,11 @@ public partial class ExcelDocument {
         return applicationProperties?.Properties?.DigitalSignature != null;
     }
 
-    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
+    private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceOptions limits = options.Limits;
         if (XlsbPackageDetector.TryFindWorkbookPart(
-            data, limits.MaxAssetBytes, limits.MaxAssetBytes, out _)) return StripXlsbPackageSignatures(data, limits);
-        using var stream = new MemoryStream(data.Length);
+            data, limits.MaxAssetBytes, limits.MaxAssetBytes, out _)) return StripXlsbPackageSignatures(data, options);
+        using var stream = new OfficeProvenanceBoundedMemoryStream(options.EffectiveMaxIntermediateBytes, data.Length);
         stream.Write(data, 0, data.Length);
         stream.Position = 0;
         bool hadSignatures;
@@ -121,7 +122,8 @@ public partial class ExcelDocument {
         return new OfficeProvenanceSignatureStripResult(stream.ToArray(), hadSignatures);
     }
 
-    private static OfficeProvenanceSignatureStripResult StripXlsbPackageSignatures(byte[] data, OfficeProvenanceOptions limits) {
+    private static OfficeProvenanceSignatureStripResult StripXlsbPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
+        OfficeProvenanceOptions limits = options.Limits;
         var inspectionOptions = new OfficePackageSignatureInspectionOptions {
             MaxPackageBytes = limits.MaxAssetBytes,
             MaxPackageParts = limits.MaxContainerEntries,
@@ -148,8 +150,14 @@ public partial class ExcelDocument {
             entryName => signatureEntries.Contains(NormalizePartName(entryName)),
             limits.MaxExpandedContainerBytes,
             entryName => IsXlsbSignatureMetadataEntry(entryName, applicationMetadataEntries),
-            (entryName, content) => RewriteXlsbSignatureMetadata(entryName, content, signatureEntries, limits),
-            limits.MaxAssetBytes);
+            (entryName, content) => RewriteXlsbSignatureMetadata(
+                entryName,
+                content,
+                signatureEntries,
+                limits),
+            limits.MaxAssetBytes,
+            options.EffectiveMaxOutputBytes,
+            limits.CancellationToken);
         return new OfficeProvenanceSignatureStripResult(rewritten.Data, hadSignatures: true);
     }
 
@@ -367,6 +375,7 @@ public partial class ExcelDocument {
         byte[] content,
         HashSet<string> signatureEntries,
         OfficeProvenanceOptions limits) {
+        limits.CancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(content, limits, "XLSB signature metadata");
         using var input = new MemoryStream(content, writable: false);
         using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
@@ -385,7 +394,7 @@ public partial class ExcelDocument {
             XNamespace properties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
             foreach (XElement signature in document.Descendants(properties + "DigSig").ToArray()) signature.Remove();
         }
-        using var output = new MemoryStream();
+        using var output = new OfficeProvenanceBoundedMemoryStream(limits.MaxAssetBytes, content.Length);
         document.Save(output, SaveOptions.DisableFormatting);
         return output.ToArray();
     }

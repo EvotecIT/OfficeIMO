@@ -71,11 +71,13 @@ internal static class OfficeProvenanceTiff {
 
     internal static byte[] Remove(byte[] data, OfficeProvenanceRemovalOptions options, List<OfficeProvenanceChange> changes, out bool reserialized) {
         reserialized = false;
-        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) return (byte[])data.Clone();
+        if (!options.RemoveC2paManifests && !options.RemoveAiSourceMetadata) {
+            return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
+        }
         List<TiffIfd> ifds = ReadIfds(data, options.Limits);
         int reachableC2paCount = ifds.Sum(static ifd => ifd.Entries.Count(static entry => entry.Tag == C2paTag));
         bool allEntriesHaveValidStorage = HasValidEntryStorage(data, ifds);
-        byte[] output = (byte[])data.Clone();
+        byte[] output = OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
         var processedXmpRanges = new HashSet<long>();
         long processedXmpBytes = 0;
         for (int ifdIndex = 0; ifdIndex < ifds.Count; ifdIndex++) {
