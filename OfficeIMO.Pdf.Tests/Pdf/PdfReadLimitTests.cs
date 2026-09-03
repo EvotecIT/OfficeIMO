@@ -534,6 +534,37 @@ public class PdfReadLimitTests {
         Assert.Equal(64, exception.Limit);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(81919)]
+    [InlineData(81920)]
+    [InlineData(81921)]
+    [InlineData(262145)]
+    public void FlateDecoderRoundTripsAcrossCopyBufferBoundaries(int length) {
+        var dictionary = new PdfDictionary();
+        dictionary.Items["Filter"] = new PdfName("FlateDecode");
+        var payload = new byte[length];
+        for (int index = 0; index < payload.Length; index++) {
+            payload[index] = (byte)((index * 31 + index / 251) % 251);
+        }
+        byte[] encoded = CompressForDecoderTest(payload);
+
+        bool decoded = StreamDecoder.TryDecode(dictionary, encoded, length, out byte[] output);
+
+        Assert.True(decoded);
+        Assert.Equal(payload, output);
+        if (length == 0) return;
+
+        Assert.False(StreamDecoder.TryDecode(
+            dictionary,
+            encoded,
+            length - 1,
+            out _,
+            out bool decodedLimitExceeded));
+        Assert.True(decodedLimitExceeded);
+    }
+
     [Fact]
     public void RunLengthAndLzwDecodersStopWhileOutputExceedsBudget() {
         var runLengthDictionary = new PdfDictionary();
