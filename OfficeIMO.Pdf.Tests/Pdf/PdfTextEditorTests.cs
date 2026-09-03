@@ -292,6 +292,88 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void RenderingMode3SearchAndReplacementRequireExplicitOptInsAndRemainInvisible() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 3 Tr 50 700 Td (searchable scan text) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+
+        Assert.Empty(PdfDocument.Load(source).Text.Find("scan", new PdfTextSearchOptions { MatchCase = true }));
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("scan", searchOptions));
+        Assert.True(match.IsTextRenderingMode3);
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(match, "OCR"));
+        var region = new PdfPageRegion(1, match.X, match.Y, match.Width, match.Height);
+
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Replace(
+            region,
+            "OCR",
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+        Assert.Empty(result.Document.Text.Find("OCR", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Single(result.Document.Text.Find("OCR", searchOptions));
+        Assert.DoesNotContain("scan", result.Document.Reader.Text(), StringComparison.Ordinal);
+        PdfTextSpan replacement = Assert.Single(
+            PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(),
+            static span => span.Text.Contains("OCR", StringComparison.Ordinal));
+        Assert.False(replacement.IsVisible);
+        Assert.Equal(3, replacement.TextRenderingMode);
+        Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(source), PdfPageImageRenderer.RenderPageAsPng(result.Document.ToBytes()));
+    }
+
+    [Fact]
+    public void RenderingMode3ReplaceAllRequiresBothOptInsAndPreservesInvisibleOutput() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 3 Tr 50 700 Td (OCR token) Tj 0 -20 Td (OCR token) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+
+        Assert.Throws<NotSupportedException>(() =>
+            PdfDocument.Load(source).Text.ReplaceAll("token", "value", searchOptions));
+
+        PdfTextEditResult result = PdfDocument.Load(source).Text.ReplaceAll(
+            "token",
+            "value",
+            searchOptions,
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+        Assert.Equal(2, result.AffectedCount);
+        Assert.Empty(result.Document.Text.Find("value", new PdfTextSearchOptions { MatchCase = true }));
+        Assert.Equal(2, result.Document.Text.Find("value", searchOptions).Count);
+        Assert.All(
+            PdfReadDocument.Open(result.Document.ToBytes()).Pages[0].GetTextSpans(),
+            static span => Assert.Equal(3, span.TextRenderingMode));
+        Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(source), PdfPageImageRenderer.RenderPageAsPng(result.Document.ToBytes()));
+    }
+
+    [Fact]
+    public void RenderingMode3MovePreservesInvisibleRenderingState() {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf 3 Tr 50 700 Td (move OCR text) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+        PdfTextMatch match = Assert.Single(PdfDocument.Load(source).Text.Find("OCR", searchOptions));
+
+        PdfTextEditResult result = PdfDocument.Load(source).Text.Move(
+            match,
+            40D,
+            -20D,
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+        PdfTextMatch moved = Assert.Single(result.Document.Text.Find("OCR", searchOptions));
+        Assert.InRange(moved.X, match.X + 39.9D, match.X + 40.1D);
+        Assert.InRange(moved.Y, match.Y - 20.1D, match.Y - 19.9D);
+        Assert.Equal(PdfPageImageRenderer.RenderPageAsPng(source), PdfPageImageRenderer.RenderPageAsPng(result.Document.ToBytes()));
+    }
+
+    [Theory]
+    [InlineData("7 Tr")]
+    [InlineData("4 Tr")]
+    public void RenderingMode3OptInDoesNotAuthorizeOtherNonPaintingOrClippingModes(string renderingMode) {
+        byte[] source = BuildRawTextPdf("BT /F1 12 Tf " + renderingMode + " 50 700 Td (unsupported hidden text) Tj ET\n");
+        var region = new PdfPageRegion(1, 40D, 680D, 180D, 45D);
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
+            region,
+            "replacement",
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true }));
+    }
+
+    [Fact]
     public void RotatedMatchUsesMatchedSliceGeometryAndPreservesRotationDuringReplacement() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 0 1 -1 0 200 300 Tm (rotate cat) Tj ET\n");
 

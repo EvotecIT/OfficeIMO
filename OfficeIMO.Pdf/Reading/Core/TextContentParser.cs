@@ -982,7 +982,7 @@ internal static class TextContentParser {
                 blendMode == OfficeBlendMode.Normal &&
                 !hasSoftMask &&
                 !hasUnsupportedEffect &&
-                isVisibleText &&
+                (isVisibleText || textRenderingMode == 3) &&
                 fillColorResolved &&
                 !HasActiveMcid() &&
                 !HasActiveOptionalContent() &&

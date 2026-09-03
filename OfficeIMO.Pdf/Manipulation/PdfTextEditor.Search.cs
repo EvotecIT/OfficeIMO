@@ -20,7 +20,7 @@ internal static partial class PdfTextEditor {
             (double originX, double originY) = page.GetPageBoundaryOrigin();
             IReadOnlyList<PdfTextSpan> spans = page
                 .GetTextSpans()
-                .Where(IsVisibleSearchSpan)
+                .Where(span => IsSearchSpan(span, snapshot.IncludeTextRenderingMode3))
                 .ToArray();
             List<TextLayoutEngine.TextLine> lines = BuildSearchLines(spans);
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
@@ -43,7 +43,8 @@ internal static partial class PdfTextEditor {
                     }
                     PdfRegionText detected = BuildRegionText(new[] { segments[0].Span });
                     SpanBounds matchBounds = GetCombinedSegmentBounds(segments);
-                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees);
+                    bool usesTextRenderingMode3 = segments.Any(static segment => segment.Span.TextRenderingMode == 3);
+                    var match = new PdfTextMatch(pageNumber, unit.Text.Substring(found, text.Length), matchBounds.X - originX, matchBounds.Y - originY, matchBounds.Width, matchBounds.Height, detected.FontSize, detected.SuggestedFont, detected.SourceFont, detected.Color, detected.RotationDegrees, usesTextRenderingMode3);
                     hits.Add(new TextSearchHit(pageNumber, segments, lineSpans, match));
                 }
             }

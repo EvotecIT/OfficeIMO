@@ -45,7 +45,8 @@ public sealed class PdfTextSpan {
     internal IReadOnlyList<byte[]>? GlyphBytes { get; }
     internal IReadOnlyList<double>? GlyphPaintedAdvances { get; }
     internal double CharacterAdvanceDirection { get; }
-    internal int TextRenderingMode { get; }
+    /// <summary>PDF text rendering mode active for this span (0 through 7).</summary>
+    public int TextRenderingMode { get; }
     internal bool CanRestamp { get; }
     internal bool CanScaleAggregateAdvance { get; }
     internal double RestampFontSize { get; }

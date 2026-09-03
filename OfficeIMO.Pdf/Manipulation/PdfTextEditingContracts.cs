@@ -80,11 +80,18 @@ public sealed class PdfTextEditOptions {
         }
     }
 
+    /// <summary>
+    /// Allows editing text painted with PDF rendering mode 3 while preserving that invisible
+    /// rendering mode. Other invisible or clipping text modes remain unsupported.
+    /// </summary>
+    public bool AllowTextRenderingMode3 { get; set; }
+
     internal PdfTextEditOptions Snapshot() => new PdfTextEditOptions {
         Font = Font,
         FontSize = FontSize,
         Color = Color,
-        RotationDegrees = RotationDegrees
+        RotationDegrees = RotationDegrees,
+        AllowTextRenderingMode3 = AllowTextRenderingMode3
     };
 }
 
@@ -130,6 +137,8 @@ public sealed class PdfTextSearchOptions {
     public bool MatchCase { get; set; }
     /// <summary>Requires complete word boundaries around matches when true.</summary>
     public bool WholeWords { get; set; }
+    /// <summary>Includes invisible OCR-style text painted with PDF rendering mode 3.</summary>
+    public bool IncludeTextRenderingMode3 { get; set; }
     /// <summary>Optional one-based pages to search. Null or empty searches every page.</summary>
     public int[]? PageNumbers {
         get => _pageNumbers is null ? null : (int[])_pageNumbers.Clone();
@@ -140,13 +149,14 @@ public sealed class PdfTextSearchOptions {
         }
     }
 
-    internal PdfTextSearchOptions Snapshot() => new PdfTextSearchOptions { MatchCase = MatchCase, WholeWords = WholeWords, PageNumbers = PageNumbers };
+    internal PdfTextSearchOptions Snapshot() => new PdfTextSearchOptions { MatchCase = MatchCase, WholeWords = WholeWords, IncludeTextRenderingMode3 = IncludeTextRenderingMode3, PageNumbers = PageNumbers };
 }
 
 /// <summary>One located text occurrence in PDF user space.</summary>
 public sealed class PdfTextMatch {
-    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees) {
+    internal PdfTextMatch(int pageNumber, string text, double x, double y, double width, double height, double fontSize, PdfStandardFont suggestedFont, string? sourceFont, PdfColor color, double rotationDegrees, bool usesTextRenderingMode3 = false) {
         PageNumber = pageNumber; Text = text; X = x; Y = y; Width = width; Height = height; FontSize = fontSize; SuggestedFont = suggestedFont; SourceFont = sourceFont; Color = color; RotationDegrees = rotationDegrees;
+        IsTextRenderingMode3 = usesTextRenderingMode3;
     }
 
     /// <summary>One-based page number.</summary>
@@ -171,6 +181,8 @@ public sealed class PdfTextMatch {
     public PdfColor Color { get; }
     /// <summary>Source baseline rotation.</summary>
     public double RotationDegrees { get; }
+    /// <summary>True when the occurrence includes OCR-style text painted with rendering mode 3.</summary>
+    public bool IsTextRenderingMode3 { get; }
 }
 
 /// <summary>Result of an existing-page text edit.</summary>
