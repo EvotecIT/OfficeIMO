@@ -41,6 +41,9 @@ public sealed class OfficeProvenanceWorkflowRequest {
 
     /// <summary>Shared input and output byte limits.</summary>
     public OfficeWorkflowLimits Limits { get; set; } = new();
+
+    internal SortedSet<string>? BatchBlockedOutputIdentities { get; set; }
+    internal string? BatchOwnReservedOutputIdentity { get; set; }
 }
 
 /// <summary>Bounds sequential provenance batch execution.</summary>

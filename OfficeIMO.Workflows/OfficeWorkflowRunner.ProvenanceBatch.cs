@@ -63,6 +63,34 @@ public sealed partial class OfficeWorkflowRunner {
             }
             indexes.Add(index);
         }
+        var inputIdentities = new SortedSet<string>(inputRequestIndexes.Keys, StringComparer.Ordinal);
+
+        var removalOutputs = new BatchOutputPath?[requests.Count];
+        var outputIdentities = new SortedSet<string>(StringComparer.Ordinal);
+        var outputPathsByIdentity = new Dictionary<string, string>(StringComparer.Ordinal);
+        for (int index = 0; index < requests.Count; index++) {
+            if (cancellationToken.IsCancellationRequested) return prepared;
+            OfficeProvenanceWorkflowRequest request = requests[index];
+            if (request.Operation != OfficeProvenanceWorkflowOperation.Remove) continue;
+            string? outputPath = TryResolveBatchRemovalOutput(request);
+            string? identity = pathIndex.TryNormalize(outputPath);
+            if (outputPath is null || identity is null) continue;
+            EnsureBatchOutputDoesNotOverlapInput(
+                outputPath,
+                identity,
+                index,
+                inputRequestIndexes,
+                inputIdentities);
+            if (!outputIdentities.Contains(identity) &&
+                TryFindAncestorOrDescendant(identity, outputIdentities, out string? collisionIdentity)) {
+                throw new ArgumentException(
+                    $"Provenance removal outputs '{outputPathsByIdentity[collisionIdentity!]}' and '{outputPath}' have an ancestor/descendant path collision.",
+                    "requests");
+            }
+            outputIdentities.Add(identity);
+            outputPathsByIdentity.TryAdd(identity, outputPath);
+            removalOutputs[index] = new BatchOutputPath(outputPath, identity);
+        }
 
         var fixedOutputIdentities = new HashSet<string>(StringComparer.Ordinal);
         for (int index = 0; index < requests.Count; index++) {
@@ -70,10 +98,9 @@ public sealed partial class OfficeWorkflowRunner {
             OfficeProvenanceWorkflowRequest request = requests[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
                 request.ConflictPolicy == OfficeWorkflowConflictPolicy.Rename) continue;
-            string? outputPath = TryResolveBatchRemovalOutput(request);
-            string? identity = pathIndex.TryNormalize(outputPath);
-            if (outputPath is null || identity is null) continue;
-            EnsureBatchOutputIsSafe(outputPath, identity, index, inputRequestIndexes, fixedOutputIdentities);
+            BatchOutputPath? output = removalOutputs[index];
+            if (output is null) continue;
+            EnsureBatchOutputIsUnique(output.Path, output.Identity, fixedOutputIdentities);
         }
 
         var reservedOutputIdentities = new HashSet<string>(fixedOutputIdentities, StringComparer.Ordinal);
@@ -83,15 +110,16 @@ public sealed partial class OfficeWorkflowRunner {
             OfficeProvenanceWorkflowRequest request = requests[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
                 request.ConflictPolicy != OfficeWorkflowConflictPolicy.Rename) continue;
-            string? requestedPath = TryResolveBatchRemovalOutput(request);
-            if (requestedPath is null) continue;
-            string? requestedIdentity = pathIndex.TryNormalize(requestedPath);
-            if (requestedIdentity is null) continue;
+            BatchOutputPath? output = removalOutputs[index];
+            if (output is null) continue;
+            string requestedPath = output.Path;
+            string requestedIdentity = output.Identity;
             nextSuffixByDestination.TryGetValue(requestedIdentity, out int nextSuffix);
 
             string? selectedPath = SelectBatchRenameOutput(
                 requestedPath,
                 inputRequestIndexes,
+                inputIdentities,
                 reservedOutputIdentities,
                 pathIndex,
                 ref nextSuffix,
@@ -102,21 +130,39 @@ public sealed partial class OfficeWorkflowRunner {
             reservedOutputIdentities.Add(selectedIdentity);
             prepared[index] = CloneBatchRequestForReservedOutput(request, selectedPath);
         }
+        var blockedOutputIdentities = new SortedSet<string>(inputIdentities, StringComparer.Ordinal);
+        blockedOutputIdentities.UnionWith(reservedOutputIdentities);
+        for (int index = 0; index < requests.Count; index++) {
+            if (cancellationToken.IsCancellationRequested) return prepared;
+            OfficeProvenanceWorkflowRequest request = prepared[index];
+            if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
+                request.ConflictPolicy != OfficeWorkflowConflictPolicy.Rename ||
+                string.IsNullOrWhiteSpace(request.OutputPath)) continue;
+            request.BatchBlockedOutputIdentities = blockedOutputIdentities;
+            request.BatchOwnReservedOutputIdentity = pathIndex.NormalizeCandidate(request.OutputPath);
+        }
         return prepared;
     }
 
-    private static void EnsureBatchOutputIsSafe(
+    private static void EnsureBatchOutputDoesNotOverlapInput(
         string outputPath,
         string identity,
         int requestIndex,
         IReadOnlyDictionary<string, List<int>> inputRequestIndexes,
-        ISet<string> outputIdentities) {
-        if (inputRequestIndexes.TryGetValue(identity, out List<int>? indexes) &&
-            indexes.Any(index => index != requestIndex)) {
+        SortedSet<string> inputIdentities) {
+        if ((inputRequestIndexes.TryGetValue(identity, out List<int>? indexes) &&
+             indexes.Any(index => index != requestIndex)) ||
+            TryFindAncestorOrDescendant(identity, inputIdentities, out _)) {
             throw new ArgumentException(
                 $"Provenance removal output '{outputPath}' overlaps another batch request's input path.",
                 "requests");
         }
+    }
+
+    private static void EnsureBatchOutputIsUnique(
+        string outputPath,
+        string identity,
+        ISet<string> outputIdentities) {
         if (!outputIdentities.Add(identity)) {
             throw new ArgumentException(
                 $"Multiple provenance removal requests resolve to the same output path '{outputPath}'.",
@@ -127,6 +173,7 @@ public sealed partial class OfficeWorkflowRunner {
     private static string? SelectBatchRenameOutput(
         string requestedPath,
         IReadOnlyDictionary<string, List<int>> inputRequestIndexes,
+        SortedSet<string> inputIdentities,
         IReadOnlySet<string> reservedOutputIdentities,
         BatchPathIndex pathIndex,
         ref int nextSuffix,
@@ -140,7 +187,9 @@ public sealed partial class OfficeWorkflowRunner {
             nextSuffix++;
             string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
             string identity = pathIndex.NormalizeCandidate(candidate);
-            if (inputRequestIndexes.ContainsKey(identity) || reservedOutputIdentities.Contains(identity) ||
+            if (inputRequestIndexes.ContainsKey(identity) ||
+                TryFindAncestorOrDescendant(identity, inputIdentities, out _) ||
+                reservedOutputIdentities.Contains(identity) ||
                 pathIndex.CandidateExists(candidate)) continue;
             return candidate;
         }
@@ -154,12 +203,37 @@ public sealed partial class OfficeWorkflowRunner {
             Operation = source.Operation,
             InputPath = source.InputPath,
             OutputPath = outputPath,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Fail,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
             Inspection = source.Inspection,
             Assessment = source.Assessment,
             Removal = source.Removal,
             Limits = source.Limits
         };
+
+    private static bool TryFindAncestorOrDescendant(
+        string identity,
+        SortedSet<string> identities,
+        out string? collisionIdentity) {
+        string? parent = Path.GetDirectoryName(identity);
+        while (!string.IsNullOrEmpty(parent)) {
+            if (identities.Contains(parent)) {
+                collisionIdentity = parent;
+                return true;
+            }
+            string? next = Path.GetDirectoryName(parent);
+            if (string.Equals(next, parent, StringComparison.Ordinal)) break;
+            parent = next;
+        }
+
+        string prefix = identity.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) +
+                        Path.DirectorySeparatorChar;
+        foreach (string candidate in identities.GetViewBetween(prefix, prefix + '\uffff')) {
+            collisionIdentity = candidate;
+            return true;
+        }
+        collisionIdentity = null;
+        return false;
+    }
 
     private static string? TryResolveBatchRemovalOutput(OfficeProvenanceWorkflowRequest request) {
         try {
@@ -262,4 +336,6 @@ public sealed partial class OfficeWorkflowRunner {
             Path.Combine(physicalDirectory, fileName),
             caseInsensitive);
     }
+
+    private sealed record BatchOutputPath(string Path, string Identity);
 }

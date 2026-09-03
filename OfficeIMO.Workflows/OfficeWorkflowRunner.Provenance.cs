@@ -188,6 +188,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 ownedStagingPath,
                 validated.OutputPath!,
                 validated.ConflictPolicy,
+                validated.BatchBlockedOutputIdentities,
+                validated.BatchOwnReservedOutputIdentity,
                 stagedFingerprint,
                 validated.Limits.MaximumOutputBytes,
                 cancellationToken,
@@ -447,6 +449,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         string stagingPath,
         string requestedPath,
         OfficeWorkflowConflictPolicy policy,
+        SortedSet<string>? blockedOutputIdentities,
+        string? ownReservedOutputIdentity,
         StagedArtifactFingerprint staged,
         long maximumBytes,
         CancellationToken cancellationToken,
@@ -503,6 +507,20 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             for (int suffix = 0; suffix < 10_000; suffix++) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
+                if (blockedOutputIdentities is not null) {
+                    string identity = OfficeWorkflowPathIdentity.Normalize(candidate);
+                    bool isOwnReservation = string.Equals(
+                        identity,
+                        ownReservedOutputIdentity,
+                        StringComparison.Ordinal);
+                    bool hasHierarchyCollision = TryFindAncestorOrDescendant(
+                        identity,
+                        blockedOutputIdentities,
+                        out string? collisionIdentity) &&
+                        !string.Equals(collisionIdentity, ownReservedOutputIdentity, StringComparison.Ordinal);
+                    if ((!isOwnReservation && blockedOutputIdentities.Contains(identity)) ||
+                        hasHierarchyCollision) continue;
+                }
                 try {
                     File.Move(stagingPath, candidate, overwrite: false);
                 } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
@@ -600,6 +618,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             outputPath,
             ResolveByPath(inputPath),
             request.ConflictPolicy,
+            request.BatchBlockedOutputIdentities,
+            request.BatchOwnReservedOutputIdentity,
             limits,
             inspection,
             assessment,
@@ -751,6 +771,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         string? OutputPath,
         ProvenanceOwner Owner,
         OfficeWorkflowConflictPolicy ConflictPolicy,
+        SortedSet<string>? BatchBlockedOutputIdentities,
+        string? BatchOwnReservedOutputIdentity,
         OfficeWorkflowLimits Limits,
         OfficeProvenanceOptions Inspection,
         OfficeProvenanceAssessmentOptions Assessment,

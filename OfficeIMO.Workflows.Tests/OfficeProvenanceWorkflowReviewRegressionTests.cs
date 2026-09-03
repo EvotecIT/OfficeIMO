@@ -200,7 +200,72 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal(requested, prepared[0].OutputPath);
         Assert.Equal(Path.Combine(scope.Path, "cleaned (9999).html"), prepared[^1].OutputPath);
         Assert.Equal(10_000, prepared.Select(item => item.OutputPath).Distinct(StringComparer.OrdinalIgnoreCase).Count());
-        Assert.All(prepared, item => Assert.Equal(OfficeWorkflowConflictPolicy.Fail, item.ConflictPolicy));
+        Assert.All(prepared, item => Assert.Equal(OfficeWorkflowConflictPolicy.Rename, item.ConflictPolicy));
+        Assert.Same(prepared[0].BatchBlockedOutputIdentities, prepared[^1].BatchBlockedOutputIdentities);
+        Assert.Equal(10_001, prepared[0].BatchBlockedOutputIdentities!.Count);
+    }
+
+    [Fact]
+    public async Task BatchRenameRetriesWithoutClaimingAnotherRequestsReservation() {
+        using var scope = new TempScope();
+        string first = scope.Write("first.html", HtmlWithExternalManifest("first"));
+        string second = scope.Write("second.html", HtmlWithExternalManifest("second"));
+        string requested = Path.Combine(scope.Path, "cleaned.html");
+        var progress = new CreatingOutputProgress("first", requested);
+
+        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync([
+            new OfficeProvenanceWorkflowRequest {
+                Id = "first",
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = first,
+                OutputPath = requested,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            },
+            new OfficeProvenanceWorkflowRequest {
+                Id = "second",
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = second,
+                OutputPath = requested,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+            }
+        ], progress: progress);
+
+        Assert.True(progress.Created);
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Summary));
+        Assert.Equal(Path.Combine(scope.Path, "cleaned (2).html"), results[0].OutputPath);
+        Assert.Equal(Path.Combine(scope.Path, "cleaned (1).html"), results[1].OutputPath);
+        Assert.Equal("occupied during execution", File.ReadAllText(requested));
+    }
+
+    [Fact]
+    public async Task BatchRejectsAncestorOutputPathsBeforePublishingAnything() {
+        using var scope = new TempScope();
+        string first = scope.Write("first.html", HtmlWithExternalManifest("first"));
+        string second = scope.Write("second.html", HtmlWithExternalManifest("second"));
+        string parentOutput = Path.Combine(scope.Path, "result.html");
+        string childOutput = Path.Combine(parentOutput, "child.html");
+
+        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            new OfficeWorkflowRunner().RunProvenanceBatchAsync([
+                new OfficeProvenanceWorkflowRequest {
+                    Id = "first",
+                    Operation = OfficeProvenanceWorkflowOperation.Remove,
+                    InputPath = first,
+                    OutputPath = parentOutput,
+                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                },
+                new OfficeProvenanceWorkflowRequest {
+                    Id = "second",
+                    Operation = OfficeProvenanceWorkflowOperation.Remove,
+                    InputPath = second,
+                    OutputPath = childOutput,
+                    ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+                }
+            ]));
+
+        Assert.Contains("ancestor/descendant", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.False(File.Exists(parentOutput));
+        Assert.False(Directory.Exists(parentOutput));
     }
 
     [Fact]
@@ -586,6 +651,16 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 OfficeProvenanceVerificationStatus.Valid,
                 Name,
                 Array.Empty<string>());
+        }
+    }
+
+    private sealed class CreatingOutputProgress(string requestId, string outputPath) : IProgress<OfficeWorkflowProgress> {
+        internal bool Created { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (Created || value.RequestId != requestId || value.Stage != "validate") return;
+            File.WriteAllText(outputPath, "occupied during execution");
+            Created = true;
         }
     }
 
