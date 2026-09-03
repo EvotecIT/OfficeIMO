@@ -511,10 +511,10 @@ public class PdfOcrTests {
         var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
             At(request, "Alpha", 30, 50, 30, 10), At(request, "project", 65, 50, 42, 10), At(request, "overview", 112, 50, 48, 10),
             At(request, "Delta", 300, 50, 30, 10), At(request, "project", 335, 50, 42, 10), At(request, "overview", 382, 50, 48, 10),
-            At(request, "continues", 30, 90, 48, 10), At(request, "with", 83, 90, 24, 10), At(request, "details", 112, 90, 36, 10),
-            At(request, "continues", 300, 90, 48, 10), At(request, "with", 353, 90, 24, 10), At(request, "details", 382, 90, 36, 10),
-            At(request, "for", 30, 130, 18, 10), At(request, "each", 53, 130, 24, 10), At(request, "audience", 82, 130, 48, 10),
-            At(request, "for", 300, 130, 18, 10), At(request, "each", 323, 130, 24, 10), At(request, "audience", 352, 130, 48, 10)
+            At(request, "continues", 30, 66, 48, 10), At(request, "with", 83, 66, 24, 10), At(request, "details", 112, 66, 36, 10),
+            At(request, "continues", 300, 66, 48, 10), At(request, "with", 353, 66, 24, 10), At(request, "details", 382, 66, 36, 10),
+            At(request, "for", 30, 82, 18, 10), At(request, "each", 53, 82, 24, 10), At(request, "audience", 82, 82, 48, 10),
+            At(request, "for", 300, 82, 18, 10), At(request, "each", 323, 82, 24, 10), At(request, "audience", 352, 82, 48, 10)
         }));
 
         PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
@@ -534,6 +534,25 @@ public class PdfOcrTests {
             PdfLogicalReadingOrderAnalysis.Analyze(page)
                 .Where(static item => item.Kind == PdfLogicalReadingOrderKind.Paragraph)
                 .Select(item => page.Paragraphs[item.SourceIndex].Text));
+    }
+
+    [Fact]
+    public async Task EnrichedDocument_InfersCompactTextOnlyOcrTablesWithoutLanguageTokens() {
+        byte[] pdf = PdfDocument.Create()
+            .Image(PdfPngTestImages.CreateRgbPng(245, 245, 245), 220, 120)
+            .ToBytes();
+        var provider = new StubOcrProvider(request => new PdfOcrResponse(new[] {
+            At(request, "Pole", 30, 50, 34, 10), At(request, "Stan", 150, 50, 30, 10),
+            At(request, "Szukaj", 30, 66, 42, 10), At(request, "Włączone", 150, 66, 54, 10),
+            At(request, "Eksport", 30, 82, 46, 10), At(request, "Wyłączone", 150, 82, 60, 10)
+        }));
+
+        PdfOcrMergeResult result = await PdfDocument.Load(pdf).Ocr.ReadAsync(provider);
+        PdfLogicalTable table = Assert.Single(result.EnrichedDocument.Tables);
+
+        Assert.Equal(PdfLogicalContentSourceKind.Ocr, table.SourceKind);
+        Assert.Equal(3, table.Rows.Count);
+        Assert.Equal(new[] { "Eksport", "Wyłączone" }, table.Rows[2]);
     }
 
     [Fact]

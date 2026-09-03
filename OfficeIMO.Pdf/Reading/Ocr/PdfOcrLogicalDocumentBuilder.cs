@@ -285,6 +285,7 @@ internal static class PdfOcrLogicalDocumentBuilder {
         IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows,
         IReadOnlyList<OcrLine> lines) {
         if (rows.Count < 3 || rows[0].Cells.Count < 2) return false;
+        if (!HasCompactCellStructure(rows)) return false;
         double[] verticalSteps = new double[rows.Count - 1];
         for (int rowIndex = 1; rowIndex < rows.Count; rowIndex++) {
             verticalSteps[rowIndex - 1] = lines[rows[rowIndex].Index].CenterY - lines[rows[rowIndex - 1].Index].CenterY;
@@ -296,6 +297,22 @@ internal static class PdfOcrLogicalDocumentBuilder {
         double smallestStep = verticalSteps.Min();
         double largestStep = verticalSteps.Max();
         return smallestStep > 0D && largestStep <= smallestStep * 1.75D;
+    }
+
+    private static bool HasCompactCellStructure(
+        IReadOnlyList<(int Index, IReadOnlyList<OcrCell> Cells)> rows) {
+        long cellCount = 0L;
+        long wordCount = 0L;
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            IReadOnlyList<OcrCell> cells = rows[rowIndex].Cells;
+            for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                int words = cells[cellIndex].Words.Count;
+                if (words == 0 || words > 4) return false;
+                cellCount++;
+                wordCount += words;
+            }
+        }
+        return cellCount > 0L && wordCount <= cellCount * 2L;
     }
 
     private static IReadOnlyList<OcrCell> SplitCells(List<PdfRecognizedWord> words, double minimumGap) {
