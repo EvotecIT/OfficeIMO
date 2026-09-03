@@ -172,6 +172,7 @@ internal static partial class PdfRedactionVerification {
             ? null
             : PdfRedactionPlanner.PlanForVerification(redactedPdf, reviewedPlan.Areas, readOptions);
         bool hasResidualText = residualPlan is not null &&
+            !residualPlan.Matches.Any(static match => match.Kind == PdfRedactionMatchKind.TextBlock) &&
             HasResidualTextIntersection(redactedPdf, reviewedPlan.Areas, readOptions);
 
         PdfDiagnosticFinding[] blockingFindings = (residualPlan?.Findings ?? Array.Empty<PdfDiagnosticFinding>())
@@ -199,7 +200,6 @@ internal static partial class PdfRedactionVerification {
             residualPlan?.Matches ?? Array.Empty<PdfRedactionMatch>(),
             appliedImageMatches);
         foreach (IGrouping<(PdfRedactionMatchKind Kind, int PageNumber), PdfRedactionMatch> group in unverifiedResidualMatches
-            .Where(static match => match.Kind != PdfRedactionMatchKind.TextBlock)
             .GroupBy(static match => (match.Kind, match.PageNumber))) {
             string marker = group.Key.Kind + "@page:" + group.Key.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
             issues.Add(new PdfRedactionVerificationIssue(
