@@ -359,15 +359,22 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         }
     }
 
-    private sealed class StagedArtifactFingerprint : IDisposable {
-        private readonly string _physicalIdentity;
+    internal sealed class StagedArtifactFingerprint : IDisposable {
+        private readonly string? _physicalIdentity;
+        private readonly bool _usesPhysicalIdentity;
         private FileStream? _lease;
         private FileStream? _publishedLease;
 
-        private StagedArtifactFingerprint(long length, byte[] sha256, string physicalIdentity, FileStream lease) {
+        private StagedArtifactFingerprint(
+            long length,
+            byte[] sha256,
+            string? physicalIdentity,
+            bool usesPhysicalIdentity,
+            FileStream lease) {
             Length = length;
             Sha256 = sha256;
             _physicalIdentity = physicalIdentity;
+            _usesPhysicalIdentity = usesPhysicalIdentity;
             _lease = lease;
         }
 
@@ -384,7 +391,21 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 expectedLength: null,
                 expectedSha256: null,
                 cancellationToken,
-                artifactDescription);
+                artifactDescription,
+                OfficeWorkflowPathIdentity.SupportsPhysicalIdentity);
+
+        /// <summary>Exercises the portable length-and-hash fingerprint path when filesystem identity is unavailable.</summary>
+        internal static StagedArtifactFingerprint CapturePortable(
+            string path,
+            long maximumBytes,
+            CancellationToken cancellationToken = default) => CaptureCore(
+                path,
+                maximumBytes,
+                expectedLength: null,
+                expectedSha256: null,
+                cancellationToken,
+                "staged provenance artifact",
+                usesPhysicalIdentity: false);
 
         internal static StagedArtifactFingerprint CaptureExpected(
             string path,
@@ -397,7 +418,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 expectedLength,
                 expectedSha256 ?? throw new ArgumentNullException(nameof(expectedSha256)),
                 cancellationToken,
-                "staged provenance artifact");
+                "staged provenance artifact",
+                OfficeWorkflowPathIdentity.SupportsPhysicalIdentity);
 
         private static StagedArtifactFingerprint CaptureCore(
             string path,
@@ -405,7 +427,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             long? expectedLength,
             byte[]? expectedSha256,
             CancellationToken cancellationToken,
-            string artifactDescription) {
+            string artifactDescription,
+            bool usesPhysicalIdentity) {
             var stream = OpenForIdentity(path);
             try {
                 if (stream.Length > maximumBytes) {
@@ -420,8 +443,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         "The staged provenance artifact did not match the bytes returned by its format owner.");
                 }
                 stream.Position = 0;
-                string physicalIdentity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
-                return new StagedArtifactFingerprint(stream.Length, sha256, physicalIdentity, stream);
+                string? physicalIdentity = usesPhysicalIdentity
+                    ? OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream)
+                    : null;
+                return new StagedArtifactFingerprint(stream.Length, sha256, physicalIdentity, usesPhysicalIdentity, stream);
             } catch {
                 stream.Dispose();
                 throw;
@@ -522,8 +547,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             long maximumBytes,
             CancellationToken cancellationToken) {
             if (stream.Length > maximumBytes || stream.Length != Length) return false;
-            string physicalIdentity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
-            if (!string.Equals(physicalIdentity, _physicalIdentity, StringComparison.Ordinal)) return false;
+            if (_usesPhysicalIdentity) {
+                string physicalIdentity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
+                if (!string.Equals(physicalIdentity, _physicalIdentity, StringComparison.Ordinal)) return false;
+            }
             byte[] currentHash = ComputeHash(stream, cancellationToken);
             return CryptographicOperations.FixedTimeEquals(currentHash, Sha256);
         }

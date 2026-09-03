@@ -318,6 +318,17 @@ public sealed class ProvenanceAssessmentContracts {
         Assert.Empty(report.Evidence);
     }
 
+    [Theory]
+    [InlineData("<html><body><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></body></html>")]
+    [InlineData("<html><head></head><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></html>")]
+    public void CoreHtmlInspectionDoesNotReopenACompletedHead(string html) {
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
+            Encoding.UTF8.GetBytes(html),
+            "page.html");
+
+        Assert.Empty(report.Evidence);
+    }
+
     [Fact]
     public void CoreHtmlInspectionKeepsManifestLinksInAnImplicitHeadAfterDoctype() {
         byte[] html = Encoding.UTF8.GetBytes(

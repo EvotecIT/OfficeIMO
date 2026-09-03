@@ -8,6 +8,23 @@ namespace OfficeIMO.Workflows.Tests;
 
 public sealed partial class OfficeProvenanceWorkflowTests {
     [Fact]
+    public void PortableStagedArtifactFingerprintUsesLengthAndHash() {
+        using var scope = new TempScope();
+        string staged = scope.Write("staged.html", "<!doctype html><html><body>portable</body></html>");
+
+        using OfficeWorkflowRunner.StagedArtifactFingerprint fingerprint =
+            OfficeWorkflowRunner.StagedArtifactFingerprint.CapturePortable(staged, 4096);
+
+        fingerprint.VerifyStagingPath(staged, 4096, CancellationToken.None);
+        Assert.True(fingerprint.TryPinPublishedPath(staged, 4096, CancellationToken.None));
+        fingerprint.VerifyPublishedPath(staged, 4096, CancellationToken.None);
+
+        File.WriteAllText(staged, "<!doctype html><html><body>changed portable artifact</body></html>");
+        Assert.Throws<InvalidDataException>(() =>
+            fingerprint.VerifyStagingPath(staged, 4096, CancellationToken.None));
+    }
+
+    [Fact]
     public async Task RemovalCanReopenAnExpandedOutputWithinItsSeparateOutputBudget() {
         using var scope = new TempScope();
         string input = scope.Write("compact.html", "<link rel=c2pa-manifest href=x>");

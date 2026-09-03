@@ -67,7 +67,7 @@ internal static class OfficeProvenanceHtml {
 
             if (tag.Name.Equals("head", StringComparison.OrdinalIgnoreCase)) {
                 headSeen = true;
-                inHead = true;
+                if (!bodyStarted && !headFinished) inHead = true;
                 continue;
             }
             if (tag.Name.Equals("body", StringComparison.OrdinalIgnoreCase)) {

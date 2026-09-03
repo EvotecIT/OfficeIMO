@@ -4,6 +4,8 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Routes workflow path identity through the filesystem-aware OfficeIMO owner.</summary>
 internal static class OfficeWorkflowPathIdentity {
+    internal static bool SupportsPhysicalIdentity => OfficePathIdentity.SupportsPhysicalIdentity;
+
     internal static string Normalize(string path) => OfficePathIdentity.Normalize(path);
 
     internal static string Normalize(string path, bool caseInsensitive) =>
