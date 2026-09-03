@@ -196,8 +196,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.Before.ExpandedInspectionBytes);
             ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
-            inputSnapshot!.Dispose();
-            inputSnapshot = null;
 
             failureStage = WorkflowFailureStage.Output;
             long stagedBytes = new FileInfo(stagingPath).Length;
@@ -253,6 +251,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated.BatchBlockedOutputIdentities,
                 validated.BatchOwnReservedOutputIdentity,
                 stagedFingerprint,
+                validated.ConflictPolicy == OfficeWorkflowConflictPolicy.Replace &&
+                OfficeWorkflowPathIdentity.AreEquivalent(validated.InputPath, validated.OutputPath!)
+                    ? inputSnapshot
+                    : null,
                 validated.Limits.MaximumOutputBytes,
                 cancellationToken,
                 beforePublish: () => Report(
@@ -265,6 +267,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     Report(progress, validated.Id, "finalize", "Finalizing the verified provenance artifact", 0.98D);
                     stagedFingerprint.VerifyPublishedPath(path, validated.Limits.MaximumOutputBytes, cancellationToken);
                 });
+            inputSnapshot.Dispose();
+            inputSnapshot = null;
             long outputBytes = stagedFingerprint.Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "AtomicPublication",
@@ -614,6 +618,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         SortedSet<string>? blockedOutputIdentities,
         string? ownReservedOutputIdentity,
         StagedArtifactFingerprint staged,
+        OfficeProvenanceFileSnapshot? expectedDisplacedInput,
         long maximumBytes,
         CancellationToken cancellationToken,
         Action beforePublish,
@@ -714,6 +719,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         string PublishReplacement() {
             EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
             if (!File.Exists(requestedPath)) {
+                if (expectedDisplacedInput != null) {
+                    throw new IOException(
+                        "The provenance input changed while its verified replacement was being published.");
+                }
                 bool destinationAppeared = false;
                 try {
                     File.Move(stagingPath, requestedPath, overwrite: false);
@@ -728,6 +737,21 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             }
 
             EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
+            if (expectedDisplacedInput != null) {
+                bool inputCommitted = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedAndFinalize(
+                    stagingPath,
+                    requestedPath,
+                    backupPath => expectedDisplacedInput.MatchesCapturedSource(backupPath, cancellationToken),
+                    installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
+                    beforeCommitFinalized);
+                if (!inputCommitted) {
+                    staged.ReleasePublishedLease();
+                    throw new IOException(
+                        "The provenance input changed while its verified replacement was being published.");
+                }
+                return requestedPath;
+            }
+
             using StagedArtifactFingerprint destination = StagedArtifactFingerprint.Capture(
                 requestedPath,
                 maximumBytes,

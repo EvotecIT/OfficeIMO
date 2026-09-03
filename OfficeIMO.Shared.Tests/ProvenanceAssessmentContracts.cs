@@ -406,6 +406,26 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void PortableSnapshotMatchesOnlyTheCapturedSourceBytes() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        string displaced = Path.Combine(directory, "displaced.html");
+        File.WriteAllText(path, "captured source", new UTF8Encoding(false));
+        try {
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.CapturePortable(path, 4096);
+            File.Move(path, displaced);
+
+            Assert.True(snapshot.MatchesCapturedSource(displaced));
+
+            File.WriteAllText(displaced, "concurrent save", new UTF8Encoding(false));
+            Assert.False(snapshot.MatchesCapturedSource(displaced));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SnapshotDeduplicatesCaseAliasesOnACaseInsensitiveFileSystem() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);

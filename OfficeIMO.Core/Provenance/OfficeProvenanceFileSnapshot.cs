@@ -18,6 +18,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private readonly string _directoryPath;
     private readonly FileStream _lease;
     private readonly string? _physicalIdentity;
+    private readonly string? _sourcePhysicalIdentity;
+    private readonly string _sourceDirectoryIdentity;
     private readonly bool _usesPhysicalIdentity;
     private readonly byte[] _sha256;
     private readonly List<string> _dependentFiles = new List<string>();
@@ -32,6 +34,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string filePath,
         long length,
         string? physicalIdentity,
+        string? sourcePhysicalIdentity,
+        string sourceDirectoryIdentity,
         byte[] sha256,
         FileStream lease,
         bool usesPhysicalIdentity) {
@@ -39,6 +43,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         FilePath = filePath;
         Length = length;
         _physicalIdentity = physicalIdentity;
+        _sourcePhysicalIdentity = sourcePhysicalIdentity;
+        _sourceDirectoryIdentity = sourceDirectoryIdentity;
         _sha256 = sha256;
         _lease = lease;
         _usesPhysicalIdentity = usesPhysicalIdentity;
@@ -179,6 +185,30 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
     }
 
+    /// <summary>Checks whether a displaced file is the same source captured by this snapshot.</summary>
+    internal bool MatchesCapturedSource(
+        string path,
+        CancellationToken cancellationToken = default) {
+        if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
+        try {
+            using FileStream stream = OpenRegularFileForRead(
+                path,
+                _sourceDirectoryIdentity,
+                _usesPhysicalIdentity,
+                "The captured provenance source could not be reopened as a regular file.");
+            string? identity = _usesPhysicalIdentity
+                ? OfficePathIdentity.GetPhysicalIdentityKey(path, stream.SafeFileHandle)
+                : null;
+            return stream.Length == Length &&
+                   (!_usesPhysicalIdentity || string.Equals(identity, _sourcePhysicalIdentity, StringComparison.Ordinal)) &&
+                   FixedTimeEquals(ComputeHash(stream, cancellationToken), _sha256);
+        } catch (OperationCanceledException) {
+            throw;
+        } catch (Exception exception) when (exception is InvalidDataException or IOException or UnauthorizedAccessException) {
+            return false;
+        }
+    }
+
     /// <summary>Captures one input through a single bounded read and holds a shared-read lease until disposal.</summary>
     internal static OfficeProvenanceFileSnapshot Capture(
         string sourcePath,
@@ -217,6 +247,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             string sourceDirectoryIdentity = usesPhysicalIdentity
                 ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
                 : Path.GetFullPath(sourceDirectory);
+            string? sourcePhysicalIdentity;
             using (FileStream source = OpenSnapshotSource(fullPath, sourceDirectoryIdentity, usesPhysicalIdentity))
             using (var destination = new FileStream(
                        filePath,
@@ -225,6 +256,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                        FileShare.None,
                        81920,
                        FileOptions.SequentialScan)) {
+                sourcePhysicalIdentity = usesPhysicalIdentity
+                    ? OfficePathIdentity.GetPhysicalIdentityKey(fullPath, source.SafeFileHandle)
+                    : null;
                 copiedSha256 = CopyStableSource(
                     source,
                     destination,
@@ -266,6 +300,8 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     filePath,
                     copiedBytes,
                     physicalIdentity,
+                    sourcePhysicalIdentity,
+                    sourceDirectoryIdentity,
                     sha256,
                     lease,
                     usesPhysicalIdentity);

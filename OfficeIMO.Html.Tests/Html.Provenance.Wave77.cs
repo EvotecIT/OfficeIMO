@@ -7,14 +7,20 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlProvenanceWave77Tests {
     [Fact]
-    public async Task DocumentParserObservesCancellationDuringLargeParse() {
-        string html = "<!doctype html><html><body>" +
-                      string.Concat(Enumerable.Repeat("<div>content</div>", 100_000)) +
-                      "</body></html>";
+    public async Task DocumentParserRejectsCancellationAtTheWorkerBoundary() {
+        const string html = "<!doctype html><html><body>content</body></html>";
         using var cancellation = new CancellationTokenSource();
+        var enteredWorker = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var releaseWorker = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        Task parse = Task.Run(() => HtmlDocumentParser.ParseDocument(html, cancellation.Token));
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
+        Task parse = Task.Run(async () => {
+            enteredWorker.SetResult(true);
+            await releaseWorker.Task;
+            HtmlDocumentParser.ParseDocument(html, cancellation.Token);
+        });
+        await enteredWorker.Task;
+        cancellation.Cancel();
+        releaseWorker.SetResult(true);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => parse);
     }

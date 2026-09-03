@@ -137,6 +137,29 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RemovalSnapshot");
     }
 
+    [Fact]
+    public async Task InPlaceRemovalPreservesAConcurrentSaveMadeBeforePublication() {
+        using var scope = new TempScope();
+        string input = scope.Write("source.html", HtmlWithExternalManifest("original"));
+        const string replacement = "<!doctype html><html><body>concurrent save</body></html>";
+        var progress = new ReplacingRemovalProgress(input, replacement, "publish");
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = input,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            progress);
+
+        Assert.True(progress.Replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+        Assert.Contains("input changed", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(replacement, File.ReadAllText(input));
+    }
+
     [Theory]
     [InlineData(".odt", OdfMediaTypes.Text)]
     [InlineData(".ods", OdfMediaTypes.Spreadsheet)]
@@ -1162,15 +1185,19 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     private sealed class ReplacingRemovalProgress : IProgress<OfficeWorkflowProgress> {
         private readonly string _path;
         private readonly string _replacement;
+        private readonly string _stage;
         private bool _replaced;
 
-        internal ReplacingRemovalProgress(string path, string replacement) {
+        internal ReplacingRemovalProgress(string path, string replacement, string stage = "remove") {
             _path = path;
             _replacement = replacement;
+            _stage = stage;
         }
 
+        internal bool Replaced => _replaced;
+
         public void Report(OfficeWorkflowProgress value) {
-            if (_replaced || !string.Equals(value.Stage, "remove", StringComparison.Ordinal)) return;
+            if (_replaced || !string.Equals(value.Stage, _stage, StringComparison.Ordinal)) return;
             File.WriteAllText(_path, _replacement);
             _replaced = true;
         }
