@@ -4,7 +4,7 @@ PowerForge owns Studio publishing, signing, checksums, portable archives, and th
 
 The checked-in `packages.lock.json` files cover Studio's complete project-reference graph and all supported runtime identifiers. Release restores run in locked mode so package or runtime-asset changes must be reviewed and committed before signing.
 
-The Avalonia package is the only explicitly trusted build-task provider. PowerForge still verifies its exact archive through the committed lock before allowing the XAML compiler to execute; Avalonia's separate telemetry build package is excluded from Studio.
+Avalonia and CommunityToolkit.Mvvm are the only explicitly trusted build-code providers. PowerForge still verifies their exact archives through the committed lock before allowing the XAML compiler and MVVM source generator to execute; Avalonia's separate telemetry build package is excluded from Studio.
 
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
