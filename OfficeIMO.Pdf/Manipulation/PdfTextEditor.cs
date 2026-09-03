@@ -310,7 +310,14 @@ internal static partial class PdfTextEditor {
             }
         }
 
-        byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, areas, readOptions: readOptions);
+        IReadOnlyList<PdfRedactionArea> removalAreas = exactTargets is null
+            ? areas
+            : exactTargets.Select(static target => {
+                SpanBounds bounds = GetBounds(target.Span);
+                return new PdfRedactionArea(target.PageNumber, bounds.X, bounds.Y, bounds.Width, bounds.Height)
+                    .WithTextRenderingMode(target.Span.TextRenderingMode);
+            }).ToArray();
+        byte[] removed = PdfRedactionApplier.RemoveTextInAreas(pdf, removalAreas, readOptions: readOptions);
         PdfLoadOptions afterReadOptions = PdfLoadOptions.WithMinimumInputBytes(readOptions, removed.LongLength);
         PdfReadDocument after = PdfReadDocument.Open(removed, afterReadOptions);
         var remainingByPage = affectedPages.ToDictionary(
@@ -919,13 +926,14 @@ internal static partial class PdfTextEditor {
     }
 
     private readonly struct RewriteLineKey : IEquatable<RewriteLineKey> {
-        private RewriteLineKey(int pageNumber, double rotation) { PageNumber = pageNumber; Rotation = rotation; }
+        private RewriteLineKey(int pageNumber, double rotation, bool isTextRenderingMode3) { PageNumber = pageNumber; Rotation = rotation; IsTextRenderingMode3 = isTextRenderingMode3; }
         private int PageNumber { get; }
         private double Rotation { get; }
-        internal static RewriteLineKey Create(PositionedRewrite rewrite) => new RewriteLineKey(rewrite.PageNumber, Math.Round(rewrite.Source.RotationDegrees, 1));
-        public bool Equals(RewriteLineKey other) => PageNumber == other.PageNumber && Rotation.Equals(other.Rotation);
+        private bool IsTextRenderingMode3 { get; }
+        internal static RewriteLineKey Create(PositionedRewrite rewrite) => new RewriteLineKey(rewrite.PageNumber, Math.Round(rewrite.Source.RotationDegrees, 1), rewrite.Source.TextRenderingMode == 3);
+        public bool Equals(RewriteLineKey other) => PageNumber == other.PageNumber && Rotation.Equals(other.Rotation) && IsTextRenderingMode3 == other.IsTextRenderingMode3;
         public override bool Equals(object? obj) => obj is RewriteLineKey other && Equals(other);
-        public override int GetHashCode() { unchecked { return (PageNumber * 397) ^ Rotation.GetHashCode(); } }
+        public override int GetHashCode() { unchecked { return ((PageNumber * 397) ^ Rotation.GetHashCode()) * 397 ^ IsTextRenderingMode3.GetHashCode(); } }
     }
 
     private readonly struct SpanTextEdit {

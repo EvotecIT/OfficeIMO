@@ -1202,7 +1202,10 @@ internal static class TextContentParser {
 
         void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
-            var list = arrObj as List<object>;
+            List<object>? list = arrObj as List<object>;
+            if (list == null && arrObj is double[] numericItems) {
+                list = numericItems.Cast<object>().ToList();
+            }
             if (list == null) return;
             bool hasPositioningAdjustment = list.Any(static item => item is double value && Math.Abs(value) > 0.000001D);
             for (int j = 0; j < list.Count; j++) {

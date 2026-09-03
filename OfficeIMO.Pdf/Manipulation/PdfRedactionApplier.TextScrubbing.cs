@@ -141,7 +141,8 @@ internal static partial class PdfRedactionApplier {
                 area.X,
                 area.Y,
                 area.Width,
-                area.Height))
+                area.Height,
+                area.TextRenderingMode))
             .ToArray();
     }
 
@@ -304,7 +305,8 @@ internal static partial class PdfRedactionApplier {
                         target.X,
                         target.Y,
                         target.Width,
-                        target.Height <= 0D ? RedactionFallbackTextHeight : target.Height))
+                        target.Height <= 0D ? RedactionFallbackTextHeight : target.Height,
+                        target.TextRenderingMode))
                     .ToArray();
                 string replacement = PdfContentStreamTextRewriter.TryRemoveIntersectingGlyphs(
                     span.Value,
@@ -897,12 +899,13 @@ internal static partial class PdfRedactionApplier {
     }
 
     private readonly struct RedactionTextTarget {
-        public RedactionTextTarget(string text, double x, double y, double width, double height) {
+        public RedactionTextTarget(string text, double x, double y, double width, double height, int? textRenderingMode) {
             Text = text;
             X = x;
             Y = y;
             Width = width;
             Height = height;
+            TextRenderingMode = textRenderingMode;
         }
 
         public string Text { get; }
@@ -914,6 +917,8 @@ internal static partial class PdfRedactionApplier {
         public double Width { get; }
 
         public double Height { get; }
+
+        public int? TextRenderingMode { get; }
     }
 
     private readonly struct RedactionTextObject {

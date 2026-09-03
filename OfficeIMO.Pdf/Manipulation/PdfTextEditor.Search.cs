@@ -54,7 +54,8 @@ internal static partial class PdfTextEditor {
 
     private static List<TextLayoutEngine.TextLine> BuildSearchLines(IReadOnlyList<PdfTextSpan> spans) {
         var lines = new List<TextLayoutEngine.TextLine>();
-        foreach (IGrouping<double, PdfTextSpan> rotationGroup in spans.GroupBy(static span => Math.Round(span.RotationDegrees, 1))) {
+        foreach (IGrouping<(double Rotation, bool IsTextRenderingMode3), PdfTextSpan> rotationGroup in spans.GroupBy(
+                     static span => (Math.Round(span.RotationDegrees, 1), span.TextRenderingMode == 3))) {
             PdfTextSpan[] ordered = rotationGroup
                 .OrderByDescending(static span => NormalPosition(span))
                 .ThenBy(static span => BaselinePosition(span))
