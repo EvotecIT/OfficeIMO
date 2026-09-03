@@ -100,10 +100,26 @@ public sealed class PdfRedactionEvidenceTests {
     [Fact]
     public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
-                .Paragraph(paragraph => paragraph.Text("Retained source content"))))
+                .Paragraph(paragraph => paragraph.Text("Retained source content"))),
+                new PdfOptions { CompressContentStreams = false })
             .ToBytes();
+        PdfStream[] sourceStreams = PdfSyntax.ParseObjects(source).Map.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>()
+            .ToArray();
+        int maximumSourceStreamBytes = sourceStreams.Max(static stream => stream.Data.Length);
+        long totalSourceStreamBytes = sourceStreams.Sum(static stream => (long)stream.Data.Length);
         var readOptions = new PdfLoadOptions {
-            Limits = new PdfReadLimits { MaxInputBytes = source.LongLength }
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = maximumSourceStreamBytes,
+                MaxDecodedStreamBytes = maximumSourceStreamBytes,
+                MaxTotalDecodedStreamBytes = totalSourceStreamBytes,
+                MaxPageContentBytes = maximumSourceStreamBytes,
+                MaxRetainedContentBytes = totalSourceStreamBytes,
+                MaxContentOperations = 64,
+                MaxContentOperands = 128
+            }
         };
         PdfRedactionArea[] areas = Enumerable.Range(0, 64)
             .Select(index => new PdfRedactionArea(
@@ -116,8 +132,12 @@ public sealed class PdfRedactionEvidenceTests {
             .ToArray();
         PdfDocument document = PdfDocument.Load(source, readOptions);
         PdfRedactionPlan plan = document.Redactions.Plan(areas);
-
-        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true,
+                CheckManagedRendering = false
+            });
 
         Assert.True(result.Pdf.LongLength > source.LongLength);
         Assert.True(result.IsVerified, result.Evidence.Summary);

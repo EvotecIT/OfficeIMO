@@ -293,12 +293,18 @@ public sealed partial class PdfDocument {
         PdfLoadOptions? readOptions = options ?? ReadOptions;
         byte[] source = GetBytesForOperation();
         PdfMutationPlan mutationPlan = PdfMutationPlanner.RequireFullRewrite(source, PdfMutationOperation.Redact, readOptions);
-        byte[] output = PdfRedactionApplier.Apply(source, plan, applyOptions, layoutOptions, readOptions);
+        byte[] output = PdfRedactionApplier.Apply(
+            source,
+            plan,
+            applyOptions,
+            layoutOptions,
+            readOptions,
+            out PdfGeneratedOutputGrowth generatedGrowth);
         PdfRedactionVerificationOptions effectiveVerification = verificationOptions ?? new PdfRedactionVerificationOptions {
             RequireCompleteStreamInspection = true,
             CheckManagedRendering = true
         };
-        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output);
+        PdfLoadOptions outputReadOptions = PdfLoadOptions.ForGeneratedOutput(readOptions, source, output, generatedGrowth);
         PdfRedactionVerificationReport verification = PdfRedactionVerification.VerifyAppliedPlan(output, plan, effectiveVerification, outputReadOptions);
         IReadOnlyList<PdfRedactionMatch> residualMatches = verification.Issues.Any(static issue =>
             issue.Feature == "ReviewedRedactionPlanBlocked" ||
