@@ -524,6 +524,41 @@ public class PdfOcrTests {
     }
 
     [Fact]
+    public void Document_DoesNotReplaceGeometryWhenTaggedTableOwnsOnlySomeNativeRuns() {
+        byte[] pdf = PdfDocument.Create()
+            .Table(new[] {
+                new[] { "Item", "Value" },
+                new[] { "Alpha", "10" },
+                new[] { "Beta", "20" }
+            })
+            .ToBytes();
+        PdfLogicalPage page = Assert.Single(PdfDocumentReadResult.Load(pdf).Pages);
+        PdfUnderstandingTableCandidate geometry = Assert.Single(page.Analysis.TableCandidates);
+        PdfUnderstandingTableCandidate incompleteTagged = new(
+            "tagged-structure",
+            geometry.YTop,
+            geometry.YBottom,
+            geometry.Columns,
+            geometry.Rows,
+            geometry.SourceLines.Take(1).ToArray(),
+            0.99D,
+            new[] {
+                new PdfInferenceEvidence(
+                    "table.tagged-structure",
+                    "Incomplete tagged ownership used by this regression test.",
+                    0.99D)
+            });
+
+        IReadOnlyList<PdfUnderstandingTableCandidate> reconciled =
+            PdfUnderstandingTableCandidateReconciler.Reconcile(
+                page,
+                new[] { geometry },
+                new[] { incompleteTagged });
+
+        Assert.Same(geometry, Assert.Single(reconciled));
+    }
+
+    [Fact]
     public void Document_PreservesRicherOverlappingOcrTable() {
         byte[] pdf = PdfDocument.Create()
             .Table(new[] {

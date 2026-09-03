@@ -115,7 +115,7 @@ public static class PdfAdvancedUnderstandingStages {
         double angle,
         PdfReadingDirection direction) {
         if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
-        if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns)) return true;
+        if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns, direction)) return true;
         double radians = angle * Math.PI / 180D;
         double gap = direction == PdfReadingDirection.RightToLeft
             ? GetProjectedAlongStart(previous, radians) - GetProjectedAlongEnd(current, radians)
@@ -137,14 +137,20 @@ public static class PdfAdvancedUnderstandingStages {
 
     private static bool HasExplicitBoundarySpace(
         IReadOnlyList<PdfTextSpan> left,
-        IReadOnlyList<PdfTextSpan> right) {
+        IReadOnlyList<PdfTextSpan> right,
+        PdfReadingDirection direction) {
         if (left.Count == 0 || right.Count == 0) return false;
         PdfTextSpan previous = left[left.Count - 1];
         PdfTextSpan current = right[0];
-        return previous.LogicalTrailingSpace ||
-               current.LogicalLeadingSpace ||
-               (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
-               (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
+        return direction == PdfReadingDirection.RightToLeft
+            ? previous.LogicalLeadingSpace ||
+              current.LogicalTrailingSpace ||
+              (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[0])) ||
+              (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[current.Text.Length - 1]))
+            : previous.LogicalTrailingSpace ||
+              current.LogicalLeadingSpace ||
+              (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
+              (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
     }
 
     private static double ProjectAlong(PdfUnderstandingWord word, double radians) =>
@@ -235,8 +241,11 @@ public static class PdfAdvancedUnderstandingStages {
                     double endX = run.X + alongX * endDistance;
                     double confidence = Math.Abs(run.RotationDegrees) <= 0.5D ? 0.96D : 0.9D;
                     int sourceSequence = result.Count;
-                    result.Add(new PdfUnderstandingWord(
+                    string wordText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
                         text.Substring(start, cursor - start),
+                        run.GlyphSequenceProgressesLeftToRight);
+                    result.Add(new PdfUnderstandingWord(
+                        wordText,
                         Math.Min(startX, endX),
                         Math.Max(startX, endX),
                         startY,

@@ -67,6 +67,17 @@ internal static class PdfUnderstandingTableCandidateReconciler {
         double verticalRatio = verticalOverlap / shorterHeight;
         if (horizontalRatio < 0.5D || verticalRatio < 0.3D) return CandidateRelationship.Distinct;
 
+        bool leftTagged = HasTaggedStructureEvidence(left);
+        bool rightTagged = HasTaggedStructureEvidence(right);
+        if (leftTagged != rightTagged) {
+            if (rightTagged && ContainsAllNativeSourceRuns(right, left)) {
+                return CandidateRelationship.AdditionRicher;
+            }
+            if (leftTagged && ContainsAllNativeSourceRuns(left, right)) {
+                return CandidateRelationship.ExistingRicher;
+            }
+        }
+
         Dictionary<string, int> leftRows = GetRowSignatures(left);
         Dictionary<string, int> rightRows = GetRowSignatures(right);
         if (HasStrictlyRicherContent(right, left) && ContainsAll(rightRows, leftRows)) {
@@ -136,6 +147,28 @@ internal static class PdfUnderstandingTableCandidateReconciler {
             }
         }
         return count;
+    }
+
+    private static bool HasTaggedStructureEvidence(PdfUnderstandingTableCandidate candidate) =>
+        candidate.Evidence.Any(static evidence =>
+            string.Equals(evidence.Code, "table.tagged-structure", StringComparison.Ordinal));
+
+    private static bool ContainsAllNativeSourceRuns(
+        PdfUnderstandingTableCandidate container,
+        PdfUnderstandingTableCandidate candidate) {
+        HashSet<PdfTextSpan> containerRuns = GetNativeSourceRuns(container);
+        HashSet<PdfTextSpan> candidateRuns = GetNativeSourceRuns(candidate);
+        return containerRuns.Count > 0 &&
+            candidateRuns.Count > 0 &&
+            candidateRuns.All(containerRuns.Contains);
+    }
+
+    internal static HashSet<PdfTextSpan> GetNativeSourceRuns(PdfUnderstandingTableCandidate candidate) {
+        if (candidate.SourceKind != PdfLogicalContentSourceKind.Native) return new HashSet<PdfTextSpan>();
+        return new HashSet<PdfTextSpan>(
+            candidate.SourceLines
+                .SelectMany(static line => line.Words)
+                .SelectMany(static word => word.SourceRuns));
     }
 
     private static bool TryGetVisualBounds(

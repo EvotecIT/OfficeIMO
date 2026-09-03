@@ -140,6 +140,7 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                 for (int runIndex = 0; runIndex < wordRuns.Count; runIndex++) {
                     context.ConsumeWork();
                     PdfTextSpan sourceRun = wordRuns[runIndex];
+                    if (sourceRun.IsArtifactContent) continue;
                     if (seen.Add(sourceRun)) sourceRuns.Add(sourceRun);
                 }
             }
@@ -155,7 +156,8 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
             sourceRuns.Capacity = Math.Max(sourceRuns.Capacity, context.DecodedRuns.Count);
             for (int runIndex = 0; runIndex < context.DecodedRuns.Count; runIndex++) {
                 context.ConsumeWork();
-                sourceRuns.Add(context.DecodedRuns[runIndex]);
+                PdfTextSpan sourceRun = context.DecodedRuns[runIndex];
+                if (!sourceRun.IsArtifactContent) sourceRuns.Add(sourceRun);
             }
         }
 

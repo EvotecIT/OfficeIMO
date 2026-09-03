@@ -708,6 +708,7 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         int? contentStreamObjectNumber = null,
         Func<int, int?>? contentStreamObjectNumberAtOffset = null,
+        bool inheritedArtifactContent = false,
         Action? cancellationCheck = null,
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null) {
@@ -785,6 +786,7 @@ public sealed partial class PdfReadPage {
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             contentStreamObjectNumber: contentStreamObjectNumber,
             contentStreamObjectNumberAtOffset: contentStreamObjectNumberAtOffset,
+            initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState));
 
@@ -854,6 +856,7 @@ public sealed partial class PdfReadPage {
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
                 var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict), combinedTransform, out int formContentOffset);
                 PdfContentOrderKey? formOrderPrefix = contentOrderPrefix?.Append(invocation.SourceOperatorIndex + contentOrderOffset);
+                bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
 
                 CollectTextAndForms(
                     formContent,
@@ -889,6 +892,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeColorSelection,
                     formObjectNumber,
                     contentStreamObjectNumberAtOffset: null,
+                    inheritedArtifactContent: effectiveArtifactContent,
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState);

@@ -182,7 +182,11 @@ public class PdfUnderstandingPipelineTests {
 
         PdfLogicalPage page = Assert.Single(Read(pdf, options).Pages);
 
-        Assert.NotEmpty(page.Analysis.TableCandidates);
+        PdfUnderstandingTableCandidate table = Assert.Single(page.Analysis.TableCandidates);
+        Assert.Equal(3, table.Columns.Count);
+        Assert.Equal(new[] { "Code", "Owner", "Amount" }, table.Rows[0]);
+        Assert.Equal(new[] { "ACC-001-01", "Owner 02", "1037.25" }, table.Rows[1]);
+        Assert.Equal(new[] { "ACC-001-02", "Owner 03", "1074.50" }, table.Rows[2]);
         Assert.Contains(page.TextBlocks, static block => block.Text == "ACC-001-01");
         Assert.Contains(page.TextBlocks, static block => block.Text == "Owner 02");
         Assert.Contains(page.TextBlocks, static block => block.Text == "1037.25");
@@ -1090,17 +1094,23 @@ public class PdfUnderstandingPipelineTests {
             BuildStreamBody(string.Empty, "/Artifact BMC q /Fm0 Do Q EMC\n"),
             BuildStreamBody(
                 "/Type /XObject /Subtype /Form /BBox [0 0 100 50] /Matrix [1 0 0 1 72 180] " +
-                    "/Resources << /XObject << /Im0 6 0 R >> >>",
-                "/Figure << /MCID 2 >> BDC q 100 0 0 50 0 0 cm /Im0 Do Q EMC\n"),
+                    "/Resources << /XObject << /Im0 6 0 R >> /Font << /F1 9 0 R >> >>",
+                "/Figure << /MCID 2 >> BDC q 100 0 0 50 0 0 cm /Im0 Do Q EMC\n" +
+                    "BT /F1 9 Tf 5 10 Td (Chart axis) Tj ET\n"),
             "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
                 "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\n00FF00>\nendstream",
             "<< /Type /StructTreeRoot /K [8 0 R] >>",
             "<< /Type /StructElem /S /Figure /P 7 0 R /Pg 3 0 R /Alt (Artifact form chart) " +
-                "/K << /Type /MCR /Pg 3 0 R /Stm 5 0 R /MCID 2 >> >>");
+                "/K << /Type /MCR /Pg 3 0 R /Stm 5 0 R /MCID 2 >> >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
 
-        PdfUnderstandingImageRegion region = Assert.Single(
-            Assert.Single(PdfDocument.Load(pdf).Read().Pages).Analysis.ImageRegions);
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(
+            pdf,
+            new PdfLoadOptions { IncludeArtifactText = true }).Read().Pages);
+        PdfUnderstandingImageRegion region = Assert.Single(page.Analysis.ImageRegions);
 
+        Assert.True(Assert.Single(page.Analysis.DecodedRuns, static run => run.Text == "Chart axis").IsArtifactContent);
+        Assert.Empty(page.Tables);
         Assert.Null(region.Placement.MarkedContentId);
         Assert.Null(region.Placement.ContentStreamObjectNumber);
         Assert.False(region.IsFigure);
@@ -2203,6 +2213,44 @@ public class PdfUnderstandingPipelineTests {
             static run => Assert.True(run.MarkedContentId.HasValue));
         Assert.Contains(result.TaggedContent!.StructureElements, element =>
             element.StructureType == "H2" && element.MarkedContentReferences.Count > 0);
+    }
+
+    [Fact]
+    public void StructuredRead_UsesTaggedRowsAndCellsInsteadOfAnOverlappingGeometricGuess() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.Table, table => table
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Code", 40D, 100D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Area", 150D, 100D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 190D, 100D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("State", 232D, 100D, 42D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("A-01", 40D, 120D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("SE", 150D, 120D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("1250.5", 190D, 120D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Ready", 232D, 120D, 42D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("B-02", 40D, 140D, 45D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("PL", 150D, 140D, 35D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("980.25", 190D, 140D, 38D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Done", 232D, 140D, 42D, 16D))))
+                .Figure("Chart axis", figure => figure.Text("1200", 340D, 121D, 40D, 16D)))
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(PdfDocument.Load(pdf).Read().Pages);
+        PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+        PdfLogicalTable table = Assert.Single(page.Tables);
+
+        Assert.Equal("tagged-structure", candidate.DetectionKind);
+        Assert.Contains(candidate.Evidence, static evidence => evidence.Code == "table.tagged-structure");
+        Assert.Equal(4, candidate.Columns.Count);
+        Assert.Equal(new[] { "Code", "Area", "Value", "State" }, candidate.Rows[0]);
+        Assert.Equal(new[] { "A-01", "SE", "1250.5", "Ready" }, candidate.Rows[1]);
+        Assert.Equal(new[] { "B-02", "PL", "980.25", "Done" }, candidate.Rows[2]);
+        Assert.Equal(candidate.Rows.Select(static row => row.ToArray()), table.Rows.Select(static row => row.ToArray()));
+        Assert.DoesNotContain(table.Rows.SelectMany(static row => row), static cell => cell == "1200");
     }
 
     [Fact]

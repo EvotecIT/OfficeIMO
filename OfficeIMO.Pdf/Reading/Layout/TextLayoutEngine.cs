@@ -344,9 +344,14 @@ internal static class TextLayoutEngine {
         var text = new StringBuilder();
         for (int i = 0; i < textSpans.Count; i++) {
             var s = textSpans[i];
+            string logicalText = PdfTextDirectionAnalysis.RestoreLogicalOrderFromGlyphPaintSequence(
+                s.Text,
+                s.GlyphSequenceProgressesLeftToRight);
             if (i > 0) {
                 var previous = textSpans[i - 1];
-                bool explicitBoundarySpace = previous.LogicalTrailingSpace || s.LogicalLeadingSpace;
+                bool explicitBoundarySpace = direction == PdfReadingDirection.RightToLeft
+                    ? previous.LogicalLeadingSpace || s.LogicalTrailingSpace
+                    : previous.LogicalTrailingSpace || s.LogicalLeadingSpace;
                 if (explicitBoundarySpace && text.Length > 0 && text[text.Length - 1] != ' ') {
                     text.Append(' ');
                 }
@@ -390,13 +395,13 @@ internal static class TextLayoutEngine {
                 }
             }
             // drop duplicate shadows: if same text repeats with almost no gap
-            if (text.Length > 0 && IsSameAsTail(text, s.Text) && i > 0) {
+            if (text.Length > 0 && IsSameAsTail(text, logicalText) && i > 0) {
                 var prev = textSpans[i - 1];
                 if (IsSubstantiallyOverlapping(prev, s)) {
                     continue;
                 }
             }
-            text.Append(s.Text);
+            text.Append(logicalText);
             // if leader followed by number, ensure a single space
             if (IsLeaderRun(s.Text) && i + 1 < textSpans.Count && ContainsDigit(textSpans[i + 1].Text)) {
                 if (text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' ');

@@ -1232,7 +1232,10 @@ internal static partial class TableDetector {
             // Dot-leader spans are strong split hints
             for (int k = 0; k < ln.Spans.Count; k++) {
                 var s = ln.Spans[k];
-                if (IsLeaderSpan(s.Text)) {
+                // A leader is a repeated punctuation run. A single hyphen, dot, or underscore
+                // is ordinary cell content (identifiers, decimals, and names) and cannot be
+                // treated as a column boundary.
+                if (s.Text.Length >= 3 && IsLeaderSpan(s.Text)) {
                     double mid = s.X + Math.Max(0, s.Advance) / 2.0;
                     cands.Add(mid);
                 }

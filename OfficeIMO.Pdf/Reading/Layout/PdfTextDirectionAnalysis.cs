@@ -14,4 +14,20 @@ internal static class PdfTextDirectionAnalysis {
         }
         return PdfReadingDirection.LeftToRight;
     }
+
+    internal static string RestoreLogicalOrderFromGlyphPaintSequence(
+        string text,
+        bool glyphSequenceProgressesLeftToRight) {
+        if (!glyphSequenceProgressesLeftToRight || text.Length < 2) return text;
+
+        IReadOnlyList<string> elements = OfficeTextElements.Split(text);
+        if (elements.Count < 2) return text;
+        for (int index = 0; index < elements.Count; index++) {
+            if (OfficeTextElements.ResolveBaseDirection(elements[index]) != OfficeTextDirection.RightToLeft) {
+                return text;
+            }
+        }
+
+        return string.Concat(elements.Reverse());
+    }
 }

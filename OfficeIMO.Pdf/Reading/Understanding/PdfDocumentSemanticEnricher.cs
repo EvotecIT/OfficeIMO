@@ -38,6 +38,14 @@ internal static partial class PdfDocumentSemanticEnricher {
         TaggedFigureCaptionIndex? taggedFigureCaptions = imageRegions.Any(static regions => regions.Count > 0)
             ? BuildTaggedFigureCaptionIndex(document, taggedGraph, workBudget)
             : null;
+        ApplyTaggedTableEvidence(
+            document,
+            pageNumbers,
+            pages,
+            tableCandidates,
+            taggedGraph,
+            maxElementsPerPage,
+            workBudget);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
         ApplyTaggedTableHeaderEvidence(document, pageNumbers, tableCandidates, taggedRoles, workBudget);
         ApplyTaggedImageEvidence(document, pageNumbers, imageRegions, taggedRoles, workBudget);

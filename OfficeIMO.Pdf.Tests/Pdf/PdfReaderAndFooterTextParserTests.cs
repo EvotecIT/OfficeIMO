@@ -236,7 +236,16 @@ public partial class PdfReaderAndFooterRegressionTests {
 
         PdfReadPage page = PdfReadDocument.Open(bytes, options).Pages[0];
 
-        Assert.Equal(2, page.GetTextSpans().Count);
+        Assert.Collection(
+            page.GetTextSpans(),
+            span => {
+                Assert.Equal("Decorative header", span.Text);
+                Assert.True(span.IsArtifactContent);
+            },
+            span => {
+                Assert.Equal("Body text", span.Text);
+                Assert.False(span.IsArtifactContent);
+            });
         Assert.Contains("Decorative header", page.ExtractText(), StringComparison.Ordinal);
         Assert.Contains("Body text", page.ExtractText(), StringComparison.Ordinal);
     }
