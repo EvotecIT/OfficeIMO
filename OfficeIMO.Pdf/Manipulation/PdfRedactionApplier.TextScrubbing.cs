@@ -13,6 +13,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyList<PdfRedactionMatch> matches,
         IReadOnlyList<PdfRedactionArea> areas,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         RedactionTextTarget[] textTargets = BuildTextTargets(matches, areas);
         if (textTargets.Length == 0 ||
@@ -36,7 +37,7 @@ internal static partial class PdfRedactionApplier {
                 break;
             }
 
-            byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes);
+            byte[] contentBytes = StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities));
             contentSegments.Add(PdfEncoding.Latin1GetString(contentBytes));
         }
 
@@ -77,7 +78,7 @@ internal static partial class PdfRedactionApplier {
                     continue;
                 }
 
-                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
+                string content = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
                 string scrubbed = ScrubTextObjects(content, textTargets, fontDecoders, fontWidthProviders, new[] { Matrix2D.Identity }, limits, graphicsState);
                 changed = ReplacePageContentStreamIfChanged(
                     objects,
@@ -92,7 +93,7 @@ internal static partial class PdfRedactionApplier {
             }
         }
 
-        return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, fontWidthProviders, referenceCounts, limits, ref nextObjectNumber) || changed;
+        return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, fontWidthProviders, referenceCounts, limits, sourceStreamIdentities, ref nextObjectNumber) || changed;
     }
 
     private static bool ReplacePageContentStreamIfChanged(
@@ -157,6 +158,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<string, Func<byte[], double>> pageFontWidthProviders,
         IReadOnlyDictionary<int, int> referenceCounts,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         PdfDictionary? resources = GetInheritedDictionary(objects, pageDictionary, "Resources");
         if (resources is null ||
@@ -178,13 +180,13 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, limits.MaxDecodedStreamBytes));
+            contentSegments[index] = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(stream.Dictionary, stream.Data, objects, GetMutationDecodeLimit(stream, limits, sourceStreamIdentities)));
         }
 
         bool changed = false;
         if (allStreamsDecoded && contentSegments.Length > 0) {
             string combinedContent = string.Concat(contentSegments);
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, combinedContent, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             if (!string.Equals(result.Content, combinedContent, StringComparison.Ordinal)) {
                 PdfObject currentContentsObject = contentsObject;
                 for (int index = 0; index < contentReferences.Length; index++) {
@@ -212,7 +214,7 @@ internal static partial class PdfRedactionApplier {
                 continue;
             }
 
-            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, ref nextObjectNumber);
+            TextFormScrubContentResult result = ScrubFormInvocations(objects, resources, xObjects, content, textTargets, pageFontDecoders, pageFontWidthProviders, new[] { Matrix2D.Identity }, referenceCounts, new HashSet<int>(), limits, sourceStreamIdentities, ref nextObjectNumber);
             changed = result.HasChanges || changed;
             changed = ReplacePageContentStreamIfChanged(
                 objects,

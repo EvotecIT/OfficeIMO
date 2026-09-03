@@ -57,7 +57,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerObjectNumber = null, int? defaultValueOwnerObjectNumber = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerObjectNumber = null, int? defaultValueOwnerObjectNumber = null, bool hasValueEntry = false, bool hasDefaultValueEntry = false) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -77,6 +77,8 @@ public sealed class PdfFormField {
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
         ValueOwnerObjectNumber = valueOwnerObjectNumber;
         DefaultValueOwnerObjectNumber = defaultValueOwnerObjectNumber;
+        HasValueEntry = hasValueEntry;
+        HasDefaultValueEntry = hasDefaultValueEntry;
     }
 
     /// <summary>Indirect object number for the field dictionary, when known.</summary>
@@ -85,6 +87,10 @@ public sealed class PdfFormField {
     internal int? ValueOwnerObjectNumber { get; }
 
     internal int? DefaultValueOwnerObjectNumber { get; }
+
+    internal bool HasValueEntry { get; }
+
+    internal bool HasDefaultValueEntry { get; }
 
     /// <summary>Fully qualified field name when a name can be read.</summary>
     public string? Name { get; }

@@ -142,6 +142,115 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetySurfacesDistinctStoredDefaultBehindVisibleCurrentValue() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Tx /T (VisibleField) /V (PUBLIC-CURRENT-VALUE) /DV (SENSITIVE-RESET-DEFAULT) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.Location.EndsWith("/HiddenWidgetDefaultValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("SENSITIVE-RESET-DEFAULT", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("PUBLIC-CURRENT-VALUE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyDoesNotClassifySoleDefaultAsHiddenWhenItsWidgetIsVisible() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Tx /T (DefaultOnlyField) /DV (VISIBLE-INITIAL-DEFAULT) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("VISIBLE-INITIAL-DEFAULT", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("7 0 R 8 0 R")]
+    [InlineData("8 0 R 7 0 R")]
+    public void ContentSafetyReportsInheritedDefaultIndependentlyOfTerminalFieldOrder(string childReferences) {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 11 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Tx /T (Shared) /DV (INHERITED-SECRET-DEFAULT) /Kids [" + childReferences + "] >>\nendobj",
+            "7 0 obj\n<< /T (HiddenChild) /Kids [9 0 R] >>\nendobj",
+            "8 0 obj\n<< /T (VisibleChild) /V (PUBLIC-CURRENT-VALUE) /Kids [10 0 R] >>\nendobj",
+            "9 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 100 40] /P 3 0 R /F 2 >>\nendobj",
+            "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "11 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 12 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        OfficeContentSafetyFinding finding = Assert.Single(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            item.TextPreview.Contains("INHERITED-SECRET-DEFAULT", StringComparison.Ordinal));
+        Assert.EndsWith("/HiddenWidgetDefaultValue", finding.Location, StringComparison.Ordinal);
+        Assert.DoesNotContain(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            item.TextPreview.Contains("PUBLIC-CURRENT-VALUE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyReportsInheritedDefaultWhenVisibleSiblingExplicitlySelectsNoValues() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 11 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Ch /Ff 2097152 /T (Shared) /DV [(INHERITED-SECRET-DEFAULT)] /Kids [7 0 R 8 0 R] >>\nendobj",
+            "7 0 obj\n<< /T (HiddenChild) /Kids [9 0 R] >>\nendobj",
+            "8 0 obj\n<< /T (VisibleChild) /V [] /Kids [10 0 R] >>\nendobj",
+            "9 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 100 40] /P 3 0 R /F 2 >>\nendobj",
+            "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "11 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 12 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        OfficeContentSafetyFinding finding = Assert.Single(report.Findings, item =>
+            item.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            item.TextPreview.Contains("INHERITED-SECRET-DEFAULT", StringComparison.Ordinal));
+        Assert.EndsWith("/HiddenWidgetDefaultValue", finding.Location, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ContentSafetySurfacesWidgetlessFieldValues() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {

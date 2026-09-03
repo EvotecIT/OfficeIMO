@@ -922,6 +922,47 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceAccountsForInPlacePageStreamGrowthFromImageAliases() {
+        byte[] source = BuildManyIdenticalSimpleFlateImageRedactionSource();
+        Dictionary<int, PdfIndirectObject> objects = PdfSyntax.ParseObjects(source).Map;
+        PdfStream[] sourceStreams = objects.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>()
+            .ToArray();
+        byte[][] decodedStreams = sourceStreams
+            .Select(stream => StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, int.MaxValue))
+            .ToArray();
+        PdfStream pageContentStream = Assert.IsType<PdfStream>(objects[4].Value);
+        int sourcePageContentBytes = StreamDecoder.Decode(pageContentStream.Dictionary, pageContentStream.Data, objects, int.MaxValue).Length;
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = sourceStreams.Max(static stream => stream.Data.Length),
+                MaxDecodedStreamBytes = decodedStreams.Max(static stream => stream.Length),
+                MaxTotalDecodedStreamBytes = decodedStreams.Sum(static stream => (long)stream.LongLength),
+                MaxPageContentBytes = sourcePageContentBytes,
+                MaxRetainedContentBytes = sourcePageContentBytes
+            }
+        };
+        PdfDocument document = PdfDocument.Load(source, readOptions);
+        PdfLogicalImage image = GetSingleImage(source);
+        PdfRedactionArea area = CreateImageLeftHalfArea(image, image.PrimaryPlacement!);
+        PdfRedactionPlan plan = document.Redactions.Plan([area]);
+        Assert.Equal(64, plan.Matches.Count(match => match.Kind == PdfRedactionMatchKind.ImagePlacement));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true,
+                CheckManagedRendering = false
+            });
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.Equal(64, PdfImageExtractor.ExtractImagePlacements(result.Pdf).Count);
+        Assert.DoesNotContain("/ASCIIHexDecode", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Apply_RewritesPartiallyCoveredSoftMaskedSimpleImagePixelsAndMask() {
         byte[] source = BuildSoftMaskedSimpleFlateImageRedactionSource();
         PdfLogicalImage image = GetSingleImage(source);
@@ -1407,6 +1448,45 @@ public class PdfRedactionVerificationTests {
     private static byte[] BuildRepeatedIdenticalSimpleFlateImageRedactionSource() {
         const string pageContent = "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\nq\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n";
         return BuildSimpleFlateImagePdf(pageContent);
+    }
+
+    private static byte[] BuildManyIdenticalSimpleFlateImageRedactionSource() {
+        string pageContent = string.Concat(Enumerable.Range(0, 64)
+            .Select(static _ => "q\n40 0 0 20 20 30 cm\n/ImSimple Do\nQ\n"));
+        byte[] pixels = CreateSimpleFlateImagePixels();
+        byte[] compressed = Compress(pixels);
+        string encodedPageContent = ToHex(Encoding.ASCII.GetBytes(pageContent.TrimEnd('\n'))) + ">";
+
+        using var output = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            output.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImSimple 5 0 R >> >> >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + encodedPageContent.Length.ToString(CultureInfo.InvariantCulture) + " /Filter 6 0 R >>",
+            "stream",
+            encodedPageContent,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /FlateDecode /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream"
+        }) + "\n");
+        output.Write(compressed, 0, compressed.Length);
+        WriteAscii("\nendstream\nendobj\n6 0 obj\n/ASCIIHexDecode\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
+        return output.ToArray();
     }
 
     private static byte[] BuildSoftMaskedSimpleFlateImageRedactionSource() {

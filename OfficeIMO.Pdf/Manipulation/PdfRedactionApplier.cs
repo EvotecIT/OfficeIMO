@@ -227,15 +227,19 @@ internal static partial class PdfRedactionApplier {
         }
 
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        HashSet<PdfStream> sourceStreamIdentities = CollectStreamIdentities(objects);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0) {
             throw new ArgumentException("PDF does not contain a readable catalog.", nameof(pdf));
         }
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
+        Dictionary<int, PdfStream> sourceStreams = document.Objects
+            .Where(static item => item.Value.Value is PdfStream)
+            .ToDictionary(static item => item.Key, static item => (PdfStream)item.Value.Value);
         ValidateRedactionAreas(areaArray, document.Pages.Count);
         PdfReadLimits limits = readOptions?.Limits ?? new PdfReadLimits();
-        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, mutationScope, paintMarks, imageTargets);
+        RedactionMutation mutation = ApplyToObjects(objects, document, plan, areaArray, effectiveOptions, limits, sourceStreamIdentities, mutationScope, paintMarks, imageTargets);
         bool cleanupChanged = ApplyCleanupPolicy(objects, catalogObjectNumber, effectiveOptions.CleanupScope);
         if (!mutation.HasChanges && !cleanupChanged) {
             generatedGrowth = default;
@@ -244,7 +248,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        generatedGrowth = BuildGeneratedOutputGrowth(objects, mutation.GeneratedPageContentBytes);
+        generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
         return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf);
@@ -311,6 +315,7 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionArea[] areas,
         PdfRedactionApplyOptions options,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         RedactionMutationScope mutationScope,
         bool paintMarks,
         IReadOnlyList<PdfImagePlacement>? imageTargets) {
@@ -368,9 +373,10 @@ internal static partial class PdfRedactionApplier {
                     currentMatches,
                     pageAreas ?? Array.Empty<PdfRedactionArea>(),
                     limits,
+                    sourceStreamIdentities,
                     ref nextObjectNumber) || pageChanged;
             }
-            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits.MaxDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
+            if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits, sourceStreamIdentities, ref nextObjectNumber) || pageChanged;
             if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches, formFieldObjectNumbers) || pageChanged;
 
             PdfRedactionArea[] paintAreas = paintMarks
@@ -391,13 +397,15 @@ internal static partial class PdfRedactionApplier {
             changed = pageChanged || changed;
         }
 
-        if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers, limits) || changed;
+        if (removedImageObjectNumbers.Count > 0) changed = RemoveUnusedImageObjectReferences(objects, removedImageObjectNumbers, limits, sourceStreamIdentities) || changed;
 
         return new RedactionMutation(changed, generatedPageContentBytes, appliedImageMatches.AsReadOnly());
     }
 
     private static PdfGeneratedOutputGrowth BuildGeneratedOutputGrowth(
         Dictionary<int, PdfIndirectObject> objects,
+        Dictionary<int, PdfStream> sourceStreams,
+        Dictionary<int, PdfIndirectObject> sourceObjects,
         int generatedPageContentBytes) {
         int maximumSerializedStreamBytes = objects.Values
             .Select(static item => item.Value)
@@ -405,18 +413,70 @@ internal static partial class PdfRedactionApplier {
             .Select(static stream => stream.Data.Length)
             .DefaultIfEmpty()
             .Max();
+        int maximumGeneratedDecodedStreamBytes = 0;
+        long additionalDecodedStreamBytes = 0L;
+        foreach (KeyValuePair<int, PdfIndirectObject> item in objects) {
+            if (item.Value.Value is not PdfStream stream) continue;
+            bool hasSourceStream = sourceStreams.TryGetValue(item.Key, out PdfStream? sourceStream);
+            if (hasSourceStream && ReferenceEquals(sourceStream, stream)) continue;
+            // Every selected stream is new or was replaced by this mutation. Supported filtered
+            // streams were produced from already-bounded in-memory content, while unsupported image
+            // codecs are accounted by their encoded bytes like the reader's decoded-stream cache.
+            byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects, int.MaxValue);
+            maximumGeneratedDecodedStreamBytes = Math.Max(maximumGeneratedDecodedStreamBytes, decoded.Length);
+            long sourceDecodedStreamBytes = hasSourceStream
+                ? StreamDecoder.Decode(sourceStream!.Dictionary, sourceStream.Data, sourceObjects, int.MaxValue).LongLength
+                : 0L;
+            additionalDecodedStreamBytes = SaturatingAdd(
+                additionalDecodedStreamBytes,
+                Math.Max(0L, decoded.LongLength - sourceDecodedStreamBytes));
+        }
+
+        int additionalContentBytes = additionalDecodedStreamBytes >= int.MaxValue
+            ? int.MaxValue
+            : (int)additionalDecodedStreamBytes;
+        additionalContentBytes = Math.Max(additionalContentBytes, generatedPageContentBytes);
         return new PdfGeneratedOutputGrowth(
             minimumRawStreamBytes: maximumSerializedStreamBytes,
-            minimumDecodedStreamBytes: Math.Max(maximumSerializedStreamBytes, generatedPageContentBytes),
-            additionalTotalDecodedStreamBytes: generatedPageContentBytes,
-            additionalPageContentBytes: generatedPageContentBytes,
-            additionalRetainedContentBytes: generatedPageContentBytes,
-            additionalContentOperations: generatedPageContentBytes,
-            additionalContentOperands: generatedPageContentBytes);
+            minimumDecodedStreamBytes: Math.Max(maximumSerializedStreamBytes, Math.Max(maximumGeneratedDecodedStreamBytes, generatedPageContentBytes)),
+            additionalTotalDecodedStreamBytes: additionalDecodedStreamBytes,
+            additionalPageContentBytes: additionalContentBytes,
+            additionalRetainedContentBytes: additionalDecodedStreamBytes,
+            additionalContentOperations: additionalContentBytes,
+            additionalContentOperands: additionalContentBytes);
     }
 
     private static int SaturatingAdd(int value, int added) =>
         value > int.MaxValue - added ? int.MaxValue : value + added;
+
+    private static long SaturatingAdd(long value, long added) =>
+        value > long.MaxValue - added ? long.MaxValue : value + added;
+
+    private static int GetMutationDecodeLimit(PdfStream stream, PdfReadLimits limits, HashSet<PdfStream> sourceStreamIdentities) =>
+        sourceStreamIdentities.Contains(stream) ? limits.MaxDecodedStreamBytes : int.MaxValue;
+
+    private static HashSet<PdfStream> CollectStreamIdentities(Dictionary<int, PdfIndirectObject> objects) {
+        var streams = new HashSet<PdfStream>();
+        var visited = new HashSet<PdfObject>();
+        foreach (PdfIndirectObject indirect in objects.Values) CollectStreamIdentities(indirect.Value, streams, visited);
+        return streams;
+    }
+
+    private static void CollectStreamIdentities(PdfObject value, HashSet<PdfStream> streams, HashSet<PdfObject> visited) {
+        if (!visited.Add(value)) return;
+        switch (value) {
+            case PdfStream stream:
+                streams.Add(stream);
+                CollectStreamIdentities(stream.Dictionary, streams, visited);
+                break;
+            case PdfDictionary dictionary:
+                foreach (PdfObject item in dictionary.Items.Values) CollectStreamIdentities(item, streams, visited);
+                break;
+            case PdfArray array:
+                foreach (PdfObject item in array.Items) CollectStreamIdentities(item, streams, visited);
+                break;
+        }
+    }
 
     private static bool MatchesExactImagePlacement(PdfRedactionMatch match, PdfImagePlacement target) {
         const double tolerance = 0.01D;

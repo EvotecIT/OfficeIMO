@@ -242,6 +242,57 @@ public sealed class PdfRedactionEvidenceTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceAccountsForClonedSharedContentInOutputDecodeBudget() {
+        const string sharedContent = "BT /F1 12 Tf 20 100 Td (SHARED-SECRET) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 2 /Kids [3 0 R 6 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj",
+            StreamObject(4, string.Empty, sharedContent),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        byte[] source = Encoding.ASCII.GetBytes(pdf);
+        PdfStream[] sourceStreams = PdfSyntax.ParseObjects(source).Map.Values
+            .Select(static item => item.Value)
+            .OfType<PdfStream>()
+            .ToArray();
+        int maximumSourceStreamBytes = sourceStreams.Max(static stream => stream.Data.Length);
+        long totalSourceStreamBytes = sourceStreams.Sum(static stream => stream.Data.LongLength);
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = maximumSourceStreamBytes,
+                MaxDecodedStreamBytes = maximumSourceStreamBytes,
+                MaxTotalDecodedStreamBytes = totalSourceStreamBytes,
+                MaxPageContentBytes = maximumSourceStreamBytes,
+                MaxRetainedContentBytes = totalSourceStreamBytes,
+                MaxContentOperations = 32,
+                MaxContentOperands = 64
+            }
+        };
+        PdfDocument document = PdfDocument.Load(source, readOptions);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 15, 85, 180, 35, "first-page secret")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true,
+                CheckManagedRendering = false
+            });
+        PdfReadDocument output = PdfReadDocument.Open(result.Pdf);
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.DoesNotContain("SHARED-SECRET", output.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("SHARED-SECRET", output.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RedactionPlanningStopsAtSelfReferencingFormXObject() {
         const string formContent = "BT /F1 12 Tf 20 40 Td (CYCLE-MARKER) Tj ET\n/Loop Do";
         byte[] source = BuildPdf(

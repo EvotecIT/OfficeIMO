@@ -15,6 +15,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         bool changed = false;
         string rewrittenContent = content;
@@ -52,6 +53,7 @@ internal static partial class PdfRedactionApplier {
                     referenceCounts,
                     activeForms,
                     limits,
+                    sourceStreamIdentities,
                     ref nextObjectNumber);
                 if (!result.HasChanges) {
                     if (!SameReference(reference, sourceReference)) {
@@ -92,6 +94,7 @@ internal static partial class PdfRedactionApplier {
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
         PdfReadLimits limits,
+        HashSet<PdfStream> sourceStreamIdentities,
         ref int nextObjectNumber) {
         PdfDictionary formResources = ResolveTextFormResources(objects, inheritedResources, formStream, isolateResources);
         PdfDictionary formXObjects = isolateResources
@@ -104,7 +107,7 @@ internal static partial class PdfRedactionApplier {
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
-        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, limits.MaxDecodedStreamBytes));
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, GetMutationDecodeLimit(formStream, limits, sourceStreamIdentities)));
         string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
@@ -119,6 +122,7 @@ internal static partial class PdfRedactionApplier {
             referenceCounts,
             activeForms,
             limits,
+            sourceStreamIdentities,
             ref nextObjectNumber);
         string rewrittenContent = nestedResult.Content;
         if (!string.Equals(formContent, rewrittenContent, StringComparison.Ordinal)) {

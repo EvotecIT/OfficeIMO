@@ -234,7 +234,7 @@ public sealed partial class PdfDocument {
         for (int fieldIndex = 0; builder.Options.IncludeNonPrimaryContent && fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
             string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
-            string? currentValues = field.HasValues ? string.Join(" ", field.Values) : null;
+            string? currentValues = field.HasValueEntry ? string.Join(" ", field.Values) : null;
             int valueOwnerKey = field.ValueOwnerObjectNumber ?? -(fieldIndex + 1);
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
@@ -247,17 +247,22 @@ public sealed partial class PdfDocument {
                     currentValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
-            string? defaultValues = field.HasDefaultValues ? string.Join(" ", field.DefaultValues) : null;
+            string? defaultValues = field.HasDefaultValueEntry ? string.Join(" ", field.DefaultValues) : null;
             int defaultValueOwnerKey = field.DefaultValueOwnerObjectNumber ?? -(fieldIndex + 1);
+            bool distinctStoredDefault = currentValues is not null &&
+                !string.Equals(defaultValues, currentValues, StringComparison.Ordinal);
             if (defaultValues is not null &&
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
-                reportedDefaultValueOwners.Add(defaultValueOwnerKey) &&
-                !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) {
+                (distinctStoredDefault ||
+                 !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) &&
+                reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
                     location + "/HiddenWidgetDefaultValue",
-                    "The PDF default form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
+                    distinctStoredDefault
+                        ? "The PDF default form value differs from the current value presented by its widgets and remains stored for reset or other viewer behavior."
+                        : "The PDF default form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
                     defaultValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
@@ -288,6 +293,11 @@ public sealed partial class PdfDocument {
             if (ownerObjectNumber.HasValue
                     ? candidateOwnerObjectNumber != ownerObjectNumber
                     : candidateIndex != fieldIndex) continue;
+            if (defaultValue &&
+                candidate.HasValueEntry &&
+                !candidate.DefaultValues.SequenceEqual(candidate.Values, StringComparer.Ordinal)) {
+                continue;
+            }
             for (int widgetIndex = 0; widgetIndex < candidate.Widgets.Count; widgetIndex++) {
                 PdfFormWidget widget = candidate.Widgets[widgetIndex];
                 bool concealed = !widget.PageNumber.HasValue ||
