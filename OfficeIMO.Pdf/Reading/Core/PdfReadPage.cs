@@ -746,6 +746,10 @@ public sealed partial class PdfReadPage {
             string.Equals(font.FontSubtype, "Type3", StringComparison.Ordinal);
         string? ResolveDrawingFontFamily(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
+        int? ResolveFontWeight(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontWeight : null;
+        int? ResolveFontDescriptorFlags(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.FontDescriptorFlags : null;
         byte[]? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualTextBytes(resources, propertyName);
         int? ResolveMarkedContentMcid(string propertyName) =>
@@ -766,6 +770,8 @@ public sealed partial class PdfReadPage {
             baseFontForResource: ResolveBaseFont,
             isType3FontResource: IsType3FontResource,
             drawingFontFamilyForResource: ResolveDrawingFontFamily,
+            fontWeightForResource: ResolveFontWeight,
+            fontDescriptorFlagsForResource: ResolveFontDescriptorFlags,
             optionalContentVisibility: includeHiddenOptionalContent ? null : optionalContentVisibility,
             pageHeight: pageHeight,
             paintOrderBase: paintOrderBase,

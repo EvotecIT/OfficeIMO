@@ -185,6 +185,8 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         }
 
         return string.Equals(left.BaseFont, right.BaseFont, StringComparison.Ordinal) &&
+            left.FontWeight == right.FontWeight &&
+            left.FontDescriptorFlags == right.FontDescriptorFlags &&
             Math.Abs(left.FontSize - right.FontSize) <= 0.001D &&
             left.Color == right.Color &&
             left.IsVisible == right.IsVisible;
@@ -209,20 +211,23 @@ public sealed class PdfLogicalTextRun {
     /// <summary>Source PDF base font name, when available.</summary>
     public string? BaseFont => SourceSpan?.BaseFont;
 
+    /// <summary>Source PDF font descriptor weight, when declared.</summary>
+    public int? FontWeight => SourceSpan?.FontWeight;
+
+    /// <summary>Raw source PDF font descriptor flags, when declared.</summary>
+    public int? FontDescriptorFlags => SourceSpan?.FontDescriptorFlags;
+
     /// <summary>Source font size in points, or zero when no source span was aligned.</summary>
     public double FontSize => SourceSpan?.FontSize ?? 0D;
 
     /// <summary>Source text color, when available.</summary>
     public OfficeIMO.Drawing.OfficeColor? Color => SourceSpan?.Color;
 
-    /// <summary>Best-effort bold classification derived from the source PDF base font name.</summary>
-    public bool IsBold => HasFontStyle("Bold") || HasFontStyle("Black") || HasFontStyle("Demi");
+    /// <summary>Bold classification from declared weight, with a legacy font-name fallback.</summary>
+    public bool IsBold => SourceSpan?.IsBold == true;
 
-    /// <summary>Best-effort italic classification derived from the source PDF base font name.</summary>
-    public bool IsItalic => HasFontStyle("Italic") || HasFontStyle("Oblique");
-
-    private bool HasFontStyle(string token) =>
-        BaseFont?.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
+    /// <summary>Italic classification from descriptor flags, with a legacy font-name fallback.</summary>
+    public bool IsItalic => SourceSpan?.IsItalic == true;
 }
 
 /// <summary>

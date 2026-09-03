@@ -285,6 +285,8 @@ internal static class TextContentParser {
         System.Func<string, string?>? baseFontForResource = null,
         System.Func<string, bool>? isType3FontResource = null,
         System.Func<string, string?>? drawingFontFamilyForResource = null,
+        System.Func<string, int?>? fontWeightForResource = null,
+        System.Func<string, int?>? fontDescriptorFlagsForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
         double paintOrderBase = 0D,
@@ -1104,7 +1106,9 @@ internal static class TextContentParser {
                         eachDecodedGlyphIsOneTextElement &&
                         decodedGlyphCount == OfficeTextElements.Split(normalizedText).Count &&
                         endX - dx > Math.Max(0.000001D, Math.Abs(endY - dy)),
-                    isArtifactContent: hasActiveArtifact));
+                    isArtifactContent: hasActiveArtifact,
+                    fontWeight: fontWeightForResource?.Invoke(font),
+                    fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font)));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

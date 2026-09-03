@@ -601,6 +601,9 @@ internal static partial class ResourceResolver {
         PdfType3FontResource? type3 = string.Equals(fontVal.Get<PdfName>("Subtype")?.Name, "Type3", System.StringComparison.Ordinal)
             ? TryCreateType3FontResource(fontVal, objects)
             : null;
+        PdfDictionary? descriptor = ResolveFontDescriptor(fontVal, objects, out _);
+        int? fontWeight = TryReadFontDescriptorInteger(descriptor, objects, "FontWeight", 1, 1000);
+        int? fontDescriptorFlags = TryReadFontDescriptorInteger(descriptor, objects, "Flags", 0, int.MaxValue);
         return new PdfFontResource(
             resourceName,
             baseFont,
@@ -612,7 +615,9 @@ internal static partial class ResourceResolver {
             fontVal.Get<PdfName>("Subtype")?.Name,
             embeddedProgramSubtype,
             type3,
-            isVerticalWriting);
+            isVerticalWriting,
+            fontWeight,
+            fontDescriptorFlags);
     }
 
     private static bool IsVerticalCMapName(string name) =>
@@ -782,23 +787,7 @@ internal static partial class ResourceResolver {
 
     private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {
         embeddedProgramSubtype = null;
-        PdfDictionary fontWithDescriptor = font;
-        string? programFontSubtype = font.Get<PdfName>("Subtype")?.Name;
-        if (string.Equals(font.Get<PdfName>("Subtype")?.Name, "Type0", System.StringComparison.Ordinal) &&
-            font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject)) {
-            PdfArray? descendants = ResolveArray(descendantsObject, objects);
-            PdfDictionary? descendant = descendants is { Items.Count: > 0 }
-                ? ResolveDict(descendants.Items[0], objects)
-                : null;
-            if (descendant != null) {
-                fontWithDescriptor = descendant;
-                programFontSubtype = descendant.Get<PdfName>("Subtype")?.Name;
-            }
-        }
-
-        PdfDictionary? descriptor = fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject)
-            ? ResolveDict(descriptorObject, objects)
-            : null;
+        PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? programFontSubtype);
         if (descriptor == null) return null;
 
         PdfStream? program = ResolveObject(

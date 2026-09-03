@@ -150,6 +150,8 @@ public sealed class PdfFontInfo {
         string? subsetTag,
         string subtype,
         string encoding,
+        int? fontWeight,
+        int? fontDescriptorFlags,
         bool hasToUnicode,
         bool hasReadableToUnicodeMap,
         int toUnicodeMappingCount,
@@ -169,6 +171,8 @@ public sealed class PdfFontInfo {
         SubsetTag = subsetTag;
         Subtype = subtype;
         Encoding = encoding;
+        FontWeight = fontWeight;
+        FontDescriptorFlags = fontDescriptorFlags;
         HasToUnicode = hasToUnicode;
         HasReadableToUnicodeMap = hasReadableToUnicodeMap;
         ToUnicodeMappingCount = toUnicodeMappingCount;
@@ -206,6 +210,18 @@ public sealed class PdfFontInfo {
 
     /// <summary>Resolved encoding name used by the OfficeIMO.Pdf text decoder.</summary>
     public string Encoding { get; }
+
+    /// <summary>Font descriptor weight from 1 through 1000, when declared by the PDF.</summary>
+    public int? FontWeight { get; }
+
+    /// <summary>Raw PDF font descriptor flags, when declared by the PDF.</summary>
+    public int? FontDescriptorFlags { get; }
+
+    /// <summary>True when declared weight or a legacy font-name fallback identifies a bold face.</summary>
+    public bool IsBold => PdfFontStyleEvidence.IsBold(BaseFontName, FontWeight);
+
+    /// <summary>True when descriptor flags or a legacy font-name fallback identifies an italic face.</summary>
+    public bool IsItalic => PdfFontStyleEvidence.IsItalic(BaseFontName, FontDescriptorFlags);
 
     /// <summary>True when the font dictionary declares a ToUnicode entry.</summary>
     public bool HasToUnicode { get; }

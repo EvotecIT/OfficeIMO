@@ -154,7 +154,12 @@ public sealed partial class PdfReadPage {
 
         foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
             if (font.EmbeddedTrueTypeFont == null) continue;
-            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D, font.DrawingFontFamily);
+            OfficeFontInfo info = ToOfficeFontInfo(
+                font.BaseFont,
+                12D,
+                font.DrawingFontFamily,
+                font.IsBold,
+                font.IsItalic);
             drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style);
         }
 
@@ -2588,7 +2593,7 @@ public sealed partial class PdfReadPage {
                 y,
                 width,
                 height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
         } else {
@@ -2598,7 +2603,7 @@ public sealed partial class PdfReadPage {
                 y,
                 width,
                 height,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
@@ -2665,7 +2670,7 @@ public sealed partial class PdfReadPage {
                 clip.X,
                 clip.Y,
                 officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 textAdvanceWidth: textAdvance);
         } else {
@@ -2678,7 +2683,7 @@ public sealed partial class PdfReadPage {
                 clip.X,
                 clip.Y,
                 officeClipPath,
-                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
+                ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily, span.IsBold, span.IsItalic),
                 span.Color ?? OfficeColor.Black,
                 rotationDegrees: -span.RotationDegrees,
                 rotationCenterX: x,
@@ -2698,21 +2703,16 @@ public sealed partial class PdfReadPage {
         return span.CanScaleAggregateAdvance && advance > 0D && !double.IsNaN(advance) && !double.IsInfinity(advance);
     }
 
-    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size, string? drawingFontFamily = null) {
+    private static OfficeFontInfo ToOfficeFontInfo(
+        string? baseFont,
+        double size,
+        string? drawingFontFamily,
+        bool isBold,
+        bool isItalic) {
         string normalized = StripSubsetPrefix(baseFont);
         OfficeFontStyle style = OfficeFontStyle.Regular;
-        if (ContainsFontStyleToken(normalized, "Bold") ||
-            ContainsFontStyleToken(normalized, "Black") ||
-            ContainsFontStyleToken(normalized, "Heavy") ||
-            ContainsFontStyleToken(normalized, "Demi") ||
-            ContainsFontStyleToken(normalized, "SemiBold")) {
-            style |= OfficeFontStyle.Bold;
-        }
-
-        if (ContainsFontStyleToken(normalized, "Italic") ||
-            ContainsFontStyleToken(normalized, "Oblique")) {
-            style |= OfficeFontStyle.Italic;
-        }
+        if (isBold) style |= OfficeFontStyle.Bold;
+        if (isItalic) style |= OfficeFontStyle.Italic;
 
         string family = string.IsNullOrWhiteSpace(drawingFontFamily)
             ? ResolveOfficeFontFamily(normalized)
@@ -2777,9 +2777,6 @@ public sealed partial class PdfReadPage {
 
         return value;
     }
-
-    private static bool ContainsFontStyleToken(string fontName, string token) =>
-        System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(fontName, token, System.Globalization.CompareOptions.IgnoreCase) >= 0;
 
     private static string RemoveFontSuffix(string value, string suffix) =>
         value.EndsWith(suffix, StringComparison.OrdinalIgnoreCase)

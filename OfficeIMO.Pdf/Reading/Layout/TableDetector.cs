@@ -811,7 +811,7 @@ internal static partial class TableDetector {
         PdfTextSpan[] spans = line.Spans
             .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
             .ToArray();
-        return spans.Length > 0 && spans.All(static span => IsEmphasizedFont(span.BaseFont));
+        return spans.Length > 0 && spans.All(static span => span.IsBold);
     }
 
     private static List<TextLayoutEngine.TextLine>? TryGetPrecedingHeaderLines(
@@ -1192,7 +1192,7 @@ internal static partial class TableDetector {
             .SelectMany(static line => line.Spans)
             .Where(static span => !string.IsNullOrWhiteSpace(span.Text))
             .ToArray();
-        return headerSpans.Length >= 2 && headerSpans.All(static span => IsEmphasizedFont(span.BaseFont));
+        return headerSpans.Length >= 2 && headerSpans.All(static span => span.IsBold);
     }
 
     internal static bool HasDistinctEmphasizedHeader(IReadOnlyList<PdfUnderstandingLine> sourceLines) {
@@ -1214,15 +1214,9 @@ internal static partial class TableDetector {
             .ToArray();
         return headerSpans.Length >= 2 &&
                bodySpans.Length > 0 &&
-               headerSpans.All(static span => IsEmphasizedFont(span.BaseFont)) &&
-               bodySpans.Any(static span => !IsEmphasizedFont(span.BaseFont));
+               headerSpans.All(static span => span.IsBold) &&
+               bodySpans.Any(static span => !span.IsBold);
     }
-
-    private static bool IsEmphasizedFont(string? baseFont) =>
-        baseFont?.IndexOf("Bold", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        baseFont?.IndexOf("Black", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        baseFont?.IndexOf("Demi", StringComparison.OrdinalIgnoreCase) >= 0 ||
-        baseFont?.IndexOf("SemiBold", StringComparison.OrdinalIgnoreCase) >= 0;
 
     private static bool IsTabularValue(string value) => HasManyDigits(value);
 
