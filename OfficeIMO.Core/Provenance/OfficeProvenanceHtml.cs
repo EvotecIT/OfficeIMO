@@ -90,14 +90,18 @@ internal static class OfficeProvenanceHtml {
                 templateDepth = 1;
                 continue;
             }
-            if (!bodyStarted && (inHead || (!headSeen && !headFinished)) &&
-                IsBodyContentElement(tag.Name)) {
+            bool isAfterHeadMetadata = !bodyStarted && headFinished && IsAfterHeadMetadataElement(tag.Name);
+            if (!bodyStarted &&
+                ((headFinished && !isAfterHeadMetadata && !tag.Name.Equals("html", StringComparison.OrdinalIgnoreCase)) ||
+                 ((inHead || (!headSeen && !headFinished)) && IsBodyContentElement(tag.Name)))) {
                 bodyStarted = true;
                 inHead = false;
                 headFinished = true;
             }
 
-            bool isHeadAssociation = inHead || (!headSeen && !headFinished && !bodyStarted);
+            bool isHeadAssociation = inHead ||
+                (!headSeen && !headFinished && !bodyStarted) ||
+                isAfterHeadMetadata;
             if (isHeadAssociation && baseReference == null &&
                 tag.Name.Equals("base", StringComparison.OrdinalIgnoreCase) &&
                 tag.Attributes.TryGetValue("href", out string? candidateBase)) {
@@ -310,6 +314,18 @@ internal static class OfficeProvenanceHtml {
         !name.Equals("style", StringComparison.OrdinalIgnoreCase) &&
         !name.Equals("template", StringComparison.OrdinalIgnoreCase) &&
         !name.Equals("title", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsAfterHeadMetadataElement(string name) =>
+        name.Equals("base", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("basefont", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("bgsound", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("link", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("meta", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("noframes", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("script", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("style", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("template", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("title", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadTag(string html, int start, out HtmlTag tag) {
         tag = default;

@@ -13,6 +13,9 @@ public sealed partial class OfficeWorkflowRunner {
         if (stage == WorkflowFailureStage.Input && exception is IOException or UnauthorizedAccessException) {
             return OfficeWorkflowFailureKind.UnsupportedInput;
         }
+        if (OfficeIMO.Provenance.OfficeProvenanceProviderContractException.Is(exception)) {
+            return OfficeWorkflowFailureKind.OperationFailed;
+        }
         if (exception is NotSupportedException or InvalidDataException) {
             return OfficeWorkflowFailureKind.UnsupportedInput;
         }

@@ -229,10 +229,12 @@ public static class OfficeProvenanceAssessment {
             : Verify(verifier, fullPath, options.Verification, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (verifier != null && verification == null) {
-            throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned no result.");
+            throw OfficeProvenanceProviderContractException.Create(
+                $"The '{verifier.Name}' provenance verifier returned no result.");
         }
         if (verifier != null && !string.Equals(verification!.ProviderName, verifier.Name, StringComparison.Ordinal)) {
-            throw new InvalidDataException($"The '{verifier.Name}' provenance verifier returned inconsistent provider metadata.");
+            throw OfficeProvenanceProviderContractException.Create(
+                $"The '{verifier.Name}' provenance verifier returned inconsistent provider metadata.");
         }
         var signals = new List<OfficeProvenanceSignalResult>();
         if (signalDetectors != null) {
@@ -240,10 +242,12 @@ public static class OfficeProvenanceAssessment {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
                 OfficeProvenanceSignalResult result = Detect(detector, fullPath, cancellationToken) ??
-                    throw new InvalidDataException($"The '{detector.Name}' signal detector returned no result.");
+                    throw OfficeProvenanceProviderContractException.Create(
+                        $"The '{detector.Name}' signal detector returned no result.");
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!string.Equals(result.ProviderName, detector.Name, StringComparison.Ordinal) || result.SignalKind != detector.SignalKind) {
-                    throw new InvalidDataException($"The '{detector.Name}' signal detector returned inconsistent provider metadata.");
+                    throw OfficeProvenanceProviderContractException.Create(
+                        $"The '{detector.Name}' signal detector returned inconsistent provider metadata.");
                 }
                 signals.Add(result);
             }

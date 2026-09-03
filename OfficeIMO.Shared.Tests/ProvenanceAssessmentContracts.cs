@@ -324,7 +324,6 @@ public sealed class ProvenanceAssessmentContracts {
 
     [Theory]
     [InlineData("<html><body><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></body></html>")]
-    [InlineData("<html><head></head><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></html>")]
     public void CoreHtmlInspectionDoesNotReopenACompletedHead(string html) {
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
             Encoding.UTF8.GetBytes(html),
