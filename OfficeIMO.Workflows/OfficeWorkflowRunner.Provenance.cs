@@ -47,23 +47,26 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             failureStage = WorkflowFailureStage.Input;
             inputBytes = new FileInfo(validated.InputPath).Length;
             EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
-            string operationInputPath = validated.InputPath;
-            if (validated.Operation is OfficeProvenanceWorkflowOperation.Assess or OfficeProvenanceWorkflowOperation.Remove) {
-                inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
-                    validated.InputPath,
-                    validated.Limits.MaximumInputBytes,
-                    cancellationToken);
-                operationInputPath = inputSnapshot.FilePath;
-                inputBytes = inputSnapshot.Length;
-                diagnostics.Add(new OfficeWorkflowDiagnostic(
-                    validated.Operation == OfficeProvenanceWorkflowOperation.Assess
-                        ? "AssessmentSnapshot"
-                        : "RemovalSnapshot",
-                    validated.Operation == OfficeProvenanceWorkflowOperation.Assess
-                        ? "Structural, text-integrity, verification, and provider evidence were collected from one bounded immutable input snapshot."
-                        : "Removal preflight and mutation used one bounded immutable input snapshot.",
-                    stage: "validate"));
-            }
+            inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
+                validated.InputPath,
+                validated.Limits.MaximumInputBytes,
+                cancellationToken);
+            string operationInputPath = inputSnapshot.FilePath;
+            inputBytes = inputSnapshot.Length;
+            diagnostics.Add(new OfficeWorkflowDiagnostic(
+                validated.Operation switch {
+                    OfficeProvenanceWorkflowOperation.Inspect => "InspectionSnapshot",
+                    OfficeProvenanceWorkflowOperation.Assess => "AssessmentSnapshot",
+                    _ => "RemovalSnapshot"
+                },
+                validated.Operation switch {
+                    OfficeProvenanceWorkflowOperation.Inspect =>
+                        "Structural provenance was inspected from one bounded immutable input snapshot.",
+                    OfficeProvenanceWorkflowOperation.Assess =>
+                        "Structural, text-integrity, verification, and provider evidence were collected from one bounded immutable input snapshot.",
+                    _ => "Removal preflight and mutation used one bounded immutable input snapshot."
+                },
+                stage: "validate"));
 
             Report(progress, validated.Id, "inspect", "Inspecting through " + ownerPackage, 0.2D);
             failureStage = WorkflowFailureStage.Operation;
@@ -90,6 +93,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             ownerPackage = GetPackage(refinedOwner);
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Inspect) {
+                inputSnapshot.VerifyPrimaryFile(cancellationToken);
+                inputSnapshot.Dispose();
+                inputSnapshot = null;
                 Report(progress, validated.Id, "complete", "Structural provenance report is ready", 1D);
                 return CreateProvenanceResult(
                     validated, OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,

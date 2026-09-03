@@ -302,6 +302,7 @@ public sealed class OfficeProvenanceRemovalResult {
     public bool WasReserialized { get; }
     /// <summary>Gets whether an owning document API removed signatures that the provenance mutation invalidated.</summary>
     public bool WereInvalidatedSignaturesRemoved { get; }
+    internal long DataLength => _data.LongLength;
     /// <summary>Returns an owned copy of the resulting asset.</summary>
     public byte[] ToArray() => (byte[])_data.Clone();
 }

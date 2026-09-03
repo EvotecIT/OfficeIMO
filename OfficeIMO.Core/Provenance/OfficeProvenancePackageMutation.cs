@@ -93,7 +93,10 @@ internal static class OfficeProvenancePackageMutation {
                 replacePackageMetadata);
         }
 
-        OfficeProvenanceRemovalOptions previewOptions = Clone(options, OfficeSignatureMutationPolicy.PreserveSignatureMarkup);
+        OfficeProvenanceRemovalOptions previewOptions = Clone(
+            options,
+            OfficeSignatureMutationPolicy.PreserveSignatureMarkup,
+            Math.Max(options.EffectiveMaxOutputBytes, options.Limits.MaxAssetBytes));
         OfficeProvenanceRemovalResult preview = OfficeProvenanceRemover.RemoveZipPackage(
             data,
             fileName,
@@ -101,7 +104,7 @@ internal static class OfficeProvenancePackageMutation {
             removeOpcManifestReferences,
             shouldReplacePackageMetadata,
             replacePackageMetadata);
-        if (!preview.WasChanged) return preview;
+        if (!preview.WasChanged) return EnforceFinalOutputLimit(preview, options.EffectiveMaxOutputBytes);
 
         OfficeProvenanceZip.ValidateForOwningPackageMutation(data, options.Limits, validateOpcMetadata);
         bool hadSignatureEvidence = hasSignatures?.Invoke(data, options) ?? OfficeProvenanceZip.HasPackageSignature(data, options);
@@ -109,9 +112,9 @@ internal static class OfficeProvenancePackageMutation {
             if (hadSignatureEvidence) {
                 throw new InvalidOperationException("Removing provenance would invalidate package signatures. Choose an explicit signature mutation policy.");
             }
-            return preview;
+            return EnforceFinalOutputLimit(preview, options.EffectiveMaxOutputBytes);
         }
-        if (!hadSignatureEvidence) return preview;
+        if (!hadSignatureEvidence) return EnforceFinalOutputLimit(preview, options.EffectiveMaxOutputBytes);
 
         byte[] previewData = preview.ToArray();
         ValidateAggregateRewriteBudget(data, previewData, options.Limits);
@@ -163,7 +166,8 @@ internal static class OfficeProvenancePackageMutation {
 
     private static OfficeProvenanceRemovalOptions Clone(
         OfficeProvenanceRemovalOptions source,
-        OfficeSignatureMutationPolicy signaturePolicy) {
+        OfficeSignatureMutationPolicy signaturePolicy,
+        long maximumOutputBytes) {
         var clone = new OfficeProvenanceRemovalOptions {
             RemoveC2paManifests = source.RemoveC2paManifests,
             RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
@@ -172,7 +176,7 @@ internal static class OfficeProvenancePackageMutation {
             SignatureMutationPolicy = signaturePolicy,
             ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
             MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets),
-            MaxOutputBytes = source.MaxOutputBytes
+            MaxOutputBytes = maximumOutputBytes
         };
         clone.Limits.MaxAssetBytes = source.Limits.MaxAssetBytes;
         clone.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
@@ -182,5 +186,12 @@ internal static class OfficeProvenancePackageMutation {
         clone.Limits.ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets;
         clone.Limits.MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets);
         return clone;
+    }
+
+    private static OfficeProvenanceRemovalResult EnforceFinalOutputLimit(
+        OfficeProvenanceRemovalResult result,
+        long maximumOutputBytes) {
+        OfficeProvenanceBinary.EnsureOutputWithinLimit(result.DataLength, maximumOutputBytes);
+        return result;
     }
 }

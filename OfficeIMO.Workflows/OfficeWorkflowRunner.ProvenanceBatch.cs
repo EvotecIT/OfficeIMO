@@ -1,3 +1,5 @@
+using OfficeIMO.Provenance;
+
 namespace OfficeIMO.Workflows;
 
 public sealed partial class OfficeWorkflowRunner {
@@ -15,9 +17,7 @@ public sealed partial class OfficeWorkflowRunner {
                 $"The provenance batch exceeds the configured limit of {validatedOptions.MaximumRequests:N0} requests.",
                 nameof(requests));
         }
-        if (!cancellationToken.IsCancellationRequested) {
-            materialized = PrepareBatchRemovalPaths(materialized, cancellationToken);
-        }
+        materialized = PrepareBatchRemovalPaths(materialized, cancellationToken);
         if (materialized.Length == 0) cancellationToken.ThrowIfCancellationRequested();
 
         var results = new List<OfficeProvenanceWorkflowResult>(materialized.Length);
@@ -45,16 +45,20 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken = default) {
         var prepared = new OfficeProvenanceWorkflowRequest[requests.Count];
         for (int index = 0; index < requests.Count; index++) {
-            prepared[index] = requests[index] ??
+            OfficeProvenanceWorkflowRequest request = requests[index] ??
                 throw new ArgumentException("Provenance batches cannot contain null requests.", nameof(requests));
+            prepared[index] = CloneBatchRequest(request);
         }
         if (cancellationToken.IsCancellationRequested) return prepared;
+        if (!prepared.Any(static request => request.Operation == OfficeProvenanceWorkflowOperation.Remove)) {
+            return prepared;
+        }
 
         var pathIndex = new BatchPathIndex(cancellationToken);
         var inputRequestIndexes = new Dictionary<string, List<int>>(StringComparer.Ordinal);
-        for (int index = 0; index < requests.Count; index++) {
+        for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
-            OfficeProvenanceWorkflowRequest request = requests[index];
+            OfficeProvenanceWorkflowRequest request = prepared[index];
             string? identity = pathIndex.TryNormalize(request.InputPath);
             if (identity is null) continue;
             if (!inputRequestIndexes.TryGetValue(identity, out List<int>? indexes)) {
@@ -65,12 +69,12 @@ public sealed partial class OfficeWorkflowRunner {
         }
         var inputIdentities = new SortedSet<string>(inputRequestIndexes.Keys, StringComparer.Ordinal);
 
-        var removalOutputs = new BatchOutputPath?[requests.Count];
+        var removalOutputs = new BatchOutputPath?[prepared.Length];
         var outputIdentities = new SortedSet<string>(StringComparer.Ordinal);
         var outputPathsByIdentity = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (int index = 0; index < requests.Count; index++) {
+        for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
-            OfficeProvenanceWorkflowRequest request = requests[index];
+            OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove) continue;
             string? outputPath = TryResolveBatchRemovalOutput(request);
             string? identity = pathIndex.TryNormalize(outputPath);
@@ -93,9 +97,9 @@ public sealed partial class OfficeWorkflowRunner {
         }
 
         var fixedOutputIdentities = new HashSet<string>(StringComparer.Ordinal);
-        for (int index = 0; index < requests.Count; index++) {
+        for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
-            OfficeProvenanceWorkflowRequest request = requests[index];
+            OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
                 request.ConflictPolicy == OfficeWorkflowConflictPolicy.Rename) continue;
             BatchOutputPath? output = removalOutputs[index];
@@ -105,9 +109,9 @@ public sealed partial class OfficeWorkflowRunner {
 
         var reservedOutputIdentities = new HashSet<string>(fixedOutputIdentities, StringComparer.Ordinal);
         var nextSuffixByDestination = new Dictionary<string, int>(StringComparer.Ordinal);
-        for (int index = 0; index < requests.Count; index++) {
+        for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
-            OfficeProvenanceWorkflowRequest request = requests[index];
+            OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
                 request.ConflictPolicy != OfficeWorkflowConflictPolicy.Rename) continue;
             BatchOutputPath? output = removalOutputs[index];
@@ -128,11 +132,11 @@ public sealed partial class OfficeWorkflowRunner {
             nextSuffixByDestination[requestedIdentity] = nextSuffix;
             string selectedIdentity = pathIndex.NormalizeCandidate(selectedPath);
             reservedOutputIdentities.Add(selectedIdentity);
-            prepared[index] = CloneBatchRequestForReservedOutput(request, selectedPath);
+            request.OutputPath = selectedPath;
         }
         var blockedOutputIdentities = new SortedSet<string>(inputIdentities, StringComparer.Ordinal);
         blockedOutputIdentities.UnionWith(reservedOutputIdentities);
-        for (int index = 0; index < requests.Count; index++) {
+        for (int index = 0; index < prepared.Length; index++) {
             if (cancellationToken.IsCancellationRequested) return prepared;
             OfficeProvenanceWorkflowRequest request = prepared[index];
             if (request.Operation != OfficeProvenanceWorkflowOperation.Remove ||
@@ -196,19 +200,77 @@ public sealed partial class OfficeWorkflowRunner {
         throw new IOException("No available numbered provenance output path could be reserved for the batch.");
     }
 
-    private static OfficeProvenanceWorkflowRequest CloneBatchRequestForReservedOutput(
-        OfficeProvenanceWorkflowRequest source,
-        string outputPath) => new() {
-            Id = source.Id,
-            Operation = source.Operation,
-            InputPath = source.InputPath,
-            OutputPath = outputPath,
-            ConflictPolicy = OfficeWorkflowConflictPolicy.Rename,
-            Inspection = source.Inspection,
-            Assessment = source.Assessment,
-            Removal = source.Removal,
-            Limits = source.Limits
+    private static OfficeProvenanceWorkflowRequest CloneBatchRequest(OfficeProvenanceWorkflowRequest source) => new() {
+        Id = source.Id,
+        Operation = source.Operation,
+        InputPath = source.InputPath,
+        OutputPath = source.OutputPath,
+        ConflictPolicy = source.ConflictPolicy,
+        Inspection = CloneBatchInspectionOptions(source.Inspection)!,
+        Assessment = CloneBatchAssessmentOptions(source.Assessment)!,
+        Removal = CloneBatchRemovalOptions(source.Removal)!,
+        Limits = source.Limits is null
+            ? null!
+            : new OfficeWorkflowLimits {
+                MaximumInputBytes = source.Limits.MaximumInputBytes,
+                MaximumOutputBytes = source.Limits.MaximumOutputBytes
+            }
+    };
+
+    private static OfficeProvenanceOptions? CloneBatchInspectionOptions(OfficeProvenanceOptions? source) {
+        if (source is null) return null;
+        var clone = new OfficeProvenanceOptions();
+        CopyBatchInspectionOptions(source, clone);
+        return clone;
+    }
+
+    private static OfficeProvenanceAssessmentOptions? CloneBatchAssessmentOptions(OfficeProvenanceAssessmentOptions? source) {
+        if (source is null) return null;
+        var clone = new OfficeProvenanceAssessmentOptions {
+            InspectTextIntegrity = source.InspectTextIntegrity
         };
+        CopyBatchInspectionOptions(source.Structural, clone.Structural);
+        clone.TextIntegrity.MaxEncodedBytes = source.TextIntegrity.MaxEncodedBytes;
+        clone.TextIntegrity.MaxCharacters = source.TextIntegrity.MaxCharacters;
+        clone.TextIntegrity.MaxFindings = source.TextIntegrity.MaxFindings;
+        clone.TextIntegrity.IgnoreLeadingByteOrderMark = source.TextIntegrity.IgnoreLeadingByteOrderMark;
+        clone.TextIntegrity.IncludeTypographicSpaces = source.TextIntegrity.IncludeTypographicSpaces;
+        clone.TextIntegrity.IncludeVariationSelectors = source.TextIntegrity.IncludeVariationSelectors;
+        clone.Verification.Timeout = source.Verification.Timeout;
+        clone.Verification.MaxReportBytes = source.Verification.MaxReportBytes;
+        clone.Verification.AllowNetworkAccess = source.Verification.AllowNetworkAccess;
+        clone.Verification.IncludeRawReport = source.Verification.IncludeRawReport;
+        clone.Verification.TrustAnchorsPath = source.Verification.TrustAnchorsPath;
+        clone.Verification.AllowedListPath = source.Verification.AllowedListPath;
+        clone.Verification.TrustConfigurationPath = source.Verification.TrustConfigurationPath;
+        return clone;
+    }
+
+    private static OfficeProvenanceRemovalOptions? CloneBatchRemovalOptions(OfficeProvenanceRemovalOptions? source) {
+        if (source is null) return null;
+        var clone = new OfficeProvenanceRemovalOptions {
+            RemoveC2paManifests = source.RemoveC2paManifests,
+            RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
+            RemoveAiSourceMetadata = source.RemoveAiSourceMetadata,
+            RequireStructurallyValidCarrier = source.RequireStructurallyValidCarrier,
+            SignatureMutationPolicy = source.SignatureMutationPolicy,
+            ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
+            MaxEmbeddedAssets = source.MaxEmbeddedAssets,
+            MaxOutputBytes = source.MaxOutputBytes
+        };
+        CopyBatchInspectionOptions(source.Limits, clone.Limits);
+        return clone;
+    }
+
+    private static void CopyBatchInspectionOptions(OfficeProvenanceOptions source, OfficeProvenanceOptions destination) {
+        destination.MaxAssetBytes = source.MaxAssetBytes;
+        destination.MaxManifestBytes = source.MaxManifestBytes;
+        destination.MaxCarriers = source.MaxCarriers;
+        destination.MaxContainerEntries = source.MaxContainerEntries;
+        destination.MaxExpandedContainerBytes = source.MaxExpandedContainerBytes;
+        destination.ProcessEmbeddedAssets = source.ProcessEmbeddedAssets;
+        destination.MaxEmbeddedAssets = source.MaxEmbeddedAssets;
+    }
 
     private static bool TryFindAncestorOrDescendant(
         string identity,

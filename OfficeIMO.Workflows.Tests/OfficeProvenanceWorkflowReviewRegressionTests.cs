@@ -283,7 +283,61 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             [request],
             cancellation.Token);
 
-        Assert.Same(request, Assert.Single(prepared));
+        Assert.NotSame(request, Assert.Single(prepared));
+    }
+
+    [Fact]
+    public void ReportOnlyBatchPlanningDoesNotResolveInputPaths() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        using var scope = new TempScope();
+        string loop = Path.Combine(scope.Path, "loop");
+        Directory.CreateSymbolicLink(loop, "loop");
+        var request = new OfficeProvenanceWorkflowRequest {
+            Operation = OfficeProvenanceWorkflowOperation.Inspect,
+            InputPath = Path.Combine(loop, "input.html")
+        };
+
+        OfficeProvenanceWorkflowRequest[] prepared = OfficeWorkflowRunner.PrepareBatchRemovalPaths([request]);
+
+        Assert.NotSame(request, Assert.Single(prepared));
+        Assert.Equal(request.InputPath, prepared[0].InputPath);
+#endif
+    }
+
+    [Fact]
+    public async Task BatchExecutesFrozenRequestsWhenTheCallerMutatesALaterItem() {
+        using var scope = new TempScope();
+        string firstInput = scope.Write("first.html", HtmlWithExternalManifest("first"));
+        string secondInput = scope.Write("second.html", HtmlWithExternalManifest("second"));
+        string firstOutput = Path.Combine(scope.Path, "first-clean.html");
+        string secondOutput = Path.Combine(scope.Path, "second-clean.html");
+        var second = new OfficeProvenanceWorkflowRequest {
+            Id = "second",
+            Operation = OfficeProvenanceWorkflowOperation.Remove,
+            InputPath = secondInput,
+            OutputPath = secondOutput,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+        };
+        var progress = new MutatingBatchRequestProgress(second, firstOutput);
+
+        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync([
+            new OfficeProvenanceWorkflowRequest {
+                Id = "first",
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = firstInput,
+                OutputPath = firstOutput,
+                ConflictPolicy = OfficeWorkflowConflictPolicy.Replace
+            },
+            second
+        ], progress: progress);
+
+        Assert.True(progress.Mutated);
+        Assert.All(results, result => Assert.True(result.Succeeded, result.Summary));
+        Assert.Equal(firstOutput, results[0].OutputPath);
+        Assert.Equal(secondOutput, results[1].OutputPath);
+        Assert.Contains("first", File.ReadAllText(firstOutput), StringComparison.Ordinal);
+        Assert.Contains("second", File.ReadAllText(secondOutput), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -354,6 +408,29 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal("OfficeIMO.Html", result.OwnerPackage);
         Assert.Equal(OfficeProvenanceAssetFormat.Html, result.Inspection!.Format);
         Assert.Equal(OfficeProvenanceCarrierKind.C2paExternalManifest, Assert.Single(result.Inspection.Evidence).Carrier);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "InspectionSnapshot");
+    }
+
+    [Fact]
+    public async Task InspectRejectsAUnixFifoWithoutBlockingForAWriter() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".fifo");
+        try {
+            Assert.Equal(0, CreateWorkflowFifoUnix(fifo, 0x180));
+
+            OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+                new OfficeProvenanceWorkflowRequest {
+                    Operation = OfficeProvenanceWorkflowOperation.Inspect,
+                    InputPath = fifo
+                }).WaitAsync(TimeSpan.FromSeconds(2));
+
+            Assert.False(result.Succeeded);
+            Assert.Contains("regular file", result.Summary, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            File.Delete(fifo);
+        }
+#endif
     }
 
     [Fact]
@@ -721,6 +798,22 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         }
     }
 
+    private sealed class MutatingBatchRequestProgress(
+        OfficeProvenanceWorkflowRequest request,
+        string conflictingOutputPath) : IProgress<OfficeWorkflowProgress> {
+        internal bool Mutated { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (Mutated || value.RequestId != "first" || value.Stage != "validate") return;
+            request.InputPath = conflictingOutputPath;
+            request.OutputPath = conflictingOutputPath;
+            request.ConflictPolicy = OfficeWorkflowConflictPolicy.Replace;
+            request.Operation = OfficeProvenanceWorkflowOperation.Inspect;
+            request.Limits.MaximumInputBytes = 1;
+            Mutated = true;
+        }
+    }
+
 #if NET8_0_OR_GREATER
     private sealed class ReplacingSnapshotDetector : IOfficeProvenanceSignalDetector {
         public string Name => "replacing-snapshot";
@@ -792,5 +885,10 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             Deleted = true;
         }
     }
+
+#if NET8_0_OR_GREATER
+    [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true)]
+    private static extern int CreateWorkflowFifoUnix(string path, uint mode);
+#endif
 
 }

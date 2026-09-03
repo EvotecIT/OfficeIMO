@@ -76,6 +76,47 @@ public sealed partial class ProvenanceDocumentContracts {
             OdfDocument.RemoveProvenance(package, "document.odt", options));
     }
 
+    [Fact]
+    public void SignatureRemovalAppliesTheOutputLimitToTheFinalStrippedPackage() {
+        byte[] package = CreateZipPackage(
+            "odt",
+            "META-INF/documentsignatures.xml",
+            CreatePngWithManifest(CreateManifestStore()));
+        var random = new Random(42);
+        var signatureBytes = new byte[16 * 1024];
+        random.NextBytes(signatureBytes);
+        package = ReplaceWave38Entry(
+            package,
+            "META-INF/documentsignatures.xml",
+            Convert.ToBase64String(signatureBytes));
+
+        OfficeProvenanceRemovalResult preview = OdfDocument.RemoveProvenance(
+            package,
+            "document.odt",
+            new OfficeProvenanceRemovalOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+            });
+        OfficeProvenanceRemovalResult baseline = OdfDocument.RemoveProvenance(
+            package,
+            "document.odt",
+            new OfficeProvenanceRemovalOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
+        long finalSize = baseline.ToArray().LongLength;
+        Assert.True(preview.ToArray().LongLength > finalSize);
+        var bounded = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures,
+            MaxOutputBytes = finalSize
+        };
+        bounded.Limits.MaxAssetBytes = 128 * 1024;
+        bounded.Limits.MaxManifestBytes = bounded.Limits.MaxAssetBytes;
+
+        OfficeProvenanceRemovalResult result = OdfDocument.RemoveProvenance(package, "document.odt", bounded);
+
+        Assert.Equal(finalSize, result.ToArray().LongLength);
+        Assert.True(result.WereInvalidatedSignaturesRemoved);
+    }
+
     private static long GetWave72ExpandedBytes(byte[] package) {
         using var archive = new ZipArchive(new MemoryStream(package), ZipArchiveMode.Read);
         return archive.Entries.Sum(entry => entry.Length);
