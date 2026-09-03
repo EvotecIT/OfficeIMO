@@ -91,12 +91,13 @@ internal static class PdfPageXObjectInvocationParser {
         Action<string, OfficeIccRenderingIntent>? visibleShadingWithIntentVisitor = null,
         Action<PdfPageGraphicsStateResource, PdfType3PaintChannels>? graphicsEffectPaintVisitor = null,
         Action<string>? visibleColorSpaceVisitor = null,
-        PdfStrokeDashPattern? initialStrokeDashPattern = null) {
+        PdfStrokeDashPattern? initialStrokeDashPattern = null,
+        Func<string, int?>? mcidForProperty = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern);
+        var parser = new Parser(content, baseTransform, pageHeight, pageWidth, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin, maxOperations, maxNestingDepth, maxOperands, fonts, fontWidthProviders, type3TextVisitor, renderedType3PaintOrders, type3GlyphBudgetConsumer, unsupportedTextVisitor, unsupportedGraphicsEffectVisitor, unsupportedPatternVisitor, unsupportedColorVisitor, visibleFontVisitor, patternInvocationVisitor, patternInvocationWithIntentVisitor, authoredPatternInvocationVisitor, graphicsStateVisitor, allowSupportedGraphicsEffects, patternBaseColorSpaces, initialFillPattern, initialFillPatternBaseColorSpace, initialStrokePattern, initialStrokePatternBaseColorSpace, tilingPatterns, shadingPatterns, type3PaintChannelResolver, xObjectPaintChannelResolver, softMaskVisibilityResolver, visibleShadingVisitor, visibleShadingWithIntentVisitor, graphicsEffectPaintVisitor, invalidPatternSelectionVisitor, ordinaryTextPaintVisitor, patternSelectionVisitor, contentOrderPrefix, textClippingBudget, initialBlendMode, initialAuthoredBlendMode, initialHasUnsupportedBlendMode, initialHasSoftMask, initialHasAuthoredRenderingIntent, initialRenderingIntent, initialFillColorSelection, initialStrokeColorSelection, outputIntentColorTransform, inlineImageArrayComponentCount, visibleColorSpaceVisitor, initialStrokeDashPattern, mcidForProperty);
         return parser.Parse();
     }
 
@@ -127,6 +128,8 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<(PdfPageSoftMaskResource? SoftMask, Matrix2D? Transform, OfficeColor FillColor, OfficeColor StrokeColor, bool HasFillPattern, bool HasStrokePattern, PdfPageGraphicsStateResource? InheritedGraphicsState)> _softMaskStack =
             new Stack<(PdfPageSoftMaskResource?, Matrix2D?, OfficeColor, OfficeColor, bool, bool, PdfPageGraphicsStateResource?)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
+        private readonly Stack<int?> _markedContentMcidStack = new Stack<int?>();
+        private readonly Stack<bool> _artifactContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly List<PdfPageClipPath> _pendingTextClipPaths = new List<PdfPageClipPath>();
@@ -200,6 +203,7 @@ internal static class PdfPageXObjectInvocationParser {
         private PdfPaintColorSelection? _strokeColorSelection;
         private readonly PdfOutputIntentColorTransform? _outputIntentColorTransform;
         private readonly Func<PdfArray, int>? _inlineImageArrayComponentCount;
+        private readonly Func<string, int?>? _mcidForProperty;
         private string? _fillColorSpaceResourceName;
         private string? _strokeColorSpaceResourceName;
 
@@ -272,7 +276,8 @@ internal static class PdfPageXObjectInvocationParser {
             PdfOutputIntentColorTransform? outputIntentColorTransform,
             Func<PdfArray, int>? inlineImageArrayComponentCount,
             Action<string>? visibleColorSpaceVisitor,
-            PdfStrokeDashPattern? initialStrokeDashPattern) {
+            PdfStrokeDashPattern? initialStrokeDashPattern,
+            Func<string, int?>? mcidForProperty) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -317,6 +322,7 @@ internal static class PdfPageXObjectInvocationParser {
             _strokeColorSelection = initialStrokeColorSelection;
             _outputIntentColorTransform = outputIntentColorTransform;
             _inlineImageArrayComponentCount = inlineImageArrayComponentCount;
+            _mcidForProperty = mcidForProperty;
             _visibleColorSpaceVisitor = visibleColorSpaceVisitor;
             _pageHeight = pageHeight;
             _pageWidth = pageWidth;
@@ -1317,7 +1323,9 @@ internal static class PdfPageXObjectInvocationParser {
                             _renderingIntent,
                             _fillColorSelection,
                             _strokeColorSelection,
-                            _state.StrokeDashPattern));
+                            _state.StrokeDashPattern,
+                            GetActiveMcid(),
+                            HasArtifactContent()));
                     }
 
                     break;
@@ -1372,11 +1380,15 @@ internal static class PdfPageXObjectInvocationParser {
                             _renderingIntent,
                             _fillColorSelection,
                             _strokeColorSelection,
-                            _state.StrokeDashPattern));
+                            _state.StrokeDashPattern,
+                            GetActiveMcid(),
+                            HasArtifactContent()));
                     }
 
                     break;
                 case "BDC":
+                    _markedContentMcidStack.Push(GetMcid(_args.Count > 0 ? _args[_args.Count - 1] : null));
+                    _artifactContentStack.Push(IsArtifactTag(_args.Count > 1 ? _args[_args.Count - 2] : null));
                     _hiddenContentStack.Push(
                         hasInvalidOperands ||
                         IsHiddenOptionalContent(
@@ -1384,11 +1396,19 @@ internal static class PdfPageXObjectInvocationParser {
                             _args.Count > 0 ? _args[_args.Count - 1] : null));
                     break;
                 case "BMC":
+                    _markedContentMcidStack.Push(null);
+                    _artifactContentStack.Push(IsArtifactTag(_args.Count > 0 ? _args[_args.Count - 1] : null));
                     _hiddenContentStack.Push(hasInvalidOperands);
                     break;
                 case "EMC":
                     if (_hiddenContentStack.Count > 0) {
                         _hiddenContentStack.Pop();
+                    }
+                    if (_markedContentMcidStack.Count > 0) {
+                        _markedContentMcidStack.Pop();
+                    }
+                    if (_artifactContentStack.Count > 0) {
+                        _artifactContentStack.Pop();
                     }
 
                     break;
@@ -1701,6 +1721,34 @@ internal static class PdfPageXObjectInvocationParser {
              (property is PdfContentDictionary dictionary &&
                 dictionary.OptionalContentReferences is not null &&
                 _optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
+
+        private int? GetActiveMcid() {
+            if (HasArtifactContent()) return null;
+            foreach (int? value in _markedContentMcidStack) {
+                if (value.HasValue) return value;
+            }
+            return null;
+        }
+
+        private bool HasArtifactContent() {
+            foreach (bool isArtifact in _artifactContentStack) {
+                if (isArtifact) return true;
+            }
+            return false;
+        }
+
+        private static bool IsArtifactTag(object? tag) =>
+            tag is string tagName && string.Equals(tagName, "Artifact", StringComparison.Ordinal);
+
+        private int? GetMcid(object? property) {
+            if (property is string propertyName) return _mcidForProperty?.Invoke(propertyName);
+            if (property is not PdfContentDictionary dictionary ||
+                !dictionary.Items.TryGetValue("MCID", out object? value)) return null;
+            if (value is int integer && integer >= 0) return integer;
+            if (value is long longInteger && longInteger >= 0 && longInteger <= int.MaxValue) return (int)longInteger;
+            if (value is double number && number >= 0D && number <= int.MaxValue && Math.Truncate(number) == number) return (int)number;
+            return null;
+        }
 
         private int ResolveInlineImageComponentCount(string colorSpaceName) {
             if (colorSpaceName is "RGB" or "CalRGB" or "Lab") return 3;
@@ -2524,7 +2572,9 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? fillColorSelection = null,
         PdfPaintColorSelection? strokeColorSelection = null,
-        PdfStrokeDashPattern? strokeDashPattern = null) {
+        PdfStrokeDashPattern? strokeDashPattern = null,
+        int? markedContentId = null,
+        bool isArtifactContent = false) {
         Name = name;
         InlineImage = null;
         Transform = transform;
@@ -2554,6 +2604,8 @@ internal readonly struct PdfPageXObjectInvocation {
         RenderingIntent = renderingIntent;
         FillColorSelection = fillColorSelection;
         StrokeColorSelection = strokeColorSelection;
+        MarkedContentId = markedContentId;
+        IsArtifactContent = isArtifactContent;
     }
 
     public PdfPageXObjectInvocation(
@@ -2584,7 +2636,9 @@ internal readonly struct PdfPageXObjectInvocation {
         OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric,
         PdfPaintColorSelection? fillColorSelection = null,
         PdfPaintColorSelection? strokeColorSelection = null,
-        PdfStrokeDashPattern? strokeDashPattern = null) {
+        PdfStrokeDashPattern? strokeDashPattern = null,
+        int? markedContentId = null,
+        bool isArtifactContent = false) {
         Name = inlineImage.ResourceName;
         InlineImage = inlineImage;
         Transform = transform;
@@ -2614,6 +2668,8 @@ internal readonly struct PdfPageXObjectInvocation {
         RenderingIntent = renderingIntent;
         FillColorSelection = fillColorSelection;
         StrokeColorSelection = strokeColorSelection;
+        MarkedContentId = markedContentId;
+        IsArtifactContent = isArtifactContent;
     }
 
     public string Name { get; }
@@ -2666,6 +2722,10 @@ internal readonly struct PdfPageXObjectInvocation {
         StrokeDashPattern);
 
     public double PaintOrder { get; }
+
+    public int? MarkedContentId { get; }
+
+    public bool IsArtifactContent { get; }
 
     internal int SourceOperatorIndex { get; }
 

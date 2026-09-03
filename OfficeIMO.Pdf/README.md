@@ -495,6 +495,32 @@ work-budget context. `PdfUnderstandingPipelineOptions.MaxWorkUnitsPerPage` and
 document-wide evidence; over-complex input fails with
 `PdfReadLimitKind.UnderstandingWork` instead of continuing unbounded work.
 
+Each page result exposes `ImagePlacements` and one `ImageRegion` per placement
+invocation. Regions retain placement geometry and paint order, associate nearby
+caption elements through vertical proximity and horizontal alignment only when
+the image has a non-transparent, clipped intersection with the page, and expose
+confidence plus stable evidence codes. Structured reads also use tagged-PDF
+Figure ownership, including marked content inside Form XObjects, and retain the
+owning Figure's alternate text. Artifact-marked images remain extractable but do
+not inherit structural Figure ownership.
+
+```csharp
+foreach (PdfLogicalPage page in result.Pages) {
+    foreach (PdfUnderstandingImageRegion region in page.Analysis.ImageRegions) {
+        Console.WriteLine(
+            $"{region.Placement.X}, {region.Placement.Y}: " +
+            $"figure={region.IsFigure}, caption={region.Caption?.Region.Text}");
+    }
+}
+```
+
+Set `PdfUnderstandingPipelineOptions.ImageRegionDetection` to replace the
+association stage. A custom stage must return exactly one region for each input
+placement and may associate captions only from the semantic-stage result. The
+built-in stage does not inspect language-specific caption words.
+`MaxImageCaptionCandidatesPerPage` bounds viable image-caption edges before
+matching and sorting, so adversarial overlap fails with a typed read limit.
+
 ### Inspect fonts, image paint, and cross-page continuations
 
 The font inventory reports every unique declared font dictionary and every page

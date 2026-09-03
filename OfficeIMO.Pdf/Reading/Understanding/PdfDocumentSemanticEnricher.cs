@@ -26,6 +26,9 @@ internal static class PdfDocumentSemanticEnricher {
         IReadOnlyList<PdfUnderstandingTableCandidate>[] tableCandidates = pages
             .Select(static page => page.TableCandidates)
             .ToArray();
+        IReadOnlyList<PdfUnderstandingImageRegion>[] imageRegions = pages
+            .Select(static page => page.ImageRegions)
+            .ToArray();
         ApplyRepeatedPageEdgeEvidence(document, pageNumbers, pages, elements, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyOutlineEvidence(document.Outlines, pages, elements, workBudget);
@@ -33,6 +36,7 @@ internal static class PdfDocumentSemanticEnricher {
         TaggedContentRoleIndex? taggedRoles = BuildTaggedContentRoleIndex(document, workBudget);
         ApplyTaggedStructureEvidence(document, pageNumbers, pages, elements, taggedRoles, workBudget);
         ApplyTaggedTableHeaderEvidence(document, pageNumbers, tableCandidates, taggedRoles, workBudget);
+        ApplyTaggedImageEvidence(document, pageNumbers, imageRegions, taggedRoles, workBudget);
         EnsureElementLimits(elements, maxElementsPerPage);
         ApplyHeadingFontTierEvidence(elements, workBudget);
 
@@ -72,7 +76,50 @@ internal static class PdfDocumentSemanticEnricher {
                 page.CompleteOperation,
                 page.LogicalProjectionLines,
                 page.RestrictLogicalProjectionToReadingOrder,
-                tableCandidates[pageIndex]);
+                tableCandidates[pageIndex],
+                page.ImagePlacements,
+                RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]));
+        }
+        return Array.AsReadOnly(result);
+    }
+
+    private static IReadOnlyList<PdfUnderstandingImageRegion> RemapImageCaptions(
+        IReadOnlyList<PdfUnderstandingImageRegion> imageRegions,
+        List<PdfUnderstandingSemanticElement> elements) {
+        if (imageRegions.Count == 0) return imageRegions;
+        var semanticByRegion = new Dictionary<PdfUnderstandingRegion, PdfUnderstandingSemanticElement>();
+        for (int index = 0; index < elements.Count; index++) semanticByRegion[elements[index].Region] = elements[index];
+        var result = new PdfUnderstandingImageRegion[imageRegions.Count];
+        for (int index = 0; index < imageRegions.Count; index++) {
+            PdfUnderstandingImageRegion imageRegion = imageRegions[index];
+            PdfUnderstandingSemanticElement? caption = imageRegion.Caption;
+            bool captionRejected = false;
+            if (caption is not null) {
+                if (semanticByRegion.TryGetValue(caption.Region, out PdfUnderstandingSemanticElement? enriched) &&
+                    enriched.Kind == PdfUnderstandingSemanticKind.Caption) {
+                    caption = enriched;
+                } else {
+                    caption = null;
+                    captionRejected = true;
+                }
+            }
+            IReadOnlyList<PdfInferenceEvidence> evidence = captionRejected
+                ? imageRegion.Evidence.Where(static item =>
+                    !string.Equals(item.Code, "image-region.caption-proximity", StringComparison.Ordinal) &&
+                    !string.Equals(item.Code, "image-region.paint-order", StringComparison.Ordinal)).ToArray()
+                : imageRegion.Evidence;
+            bool taggedFigure = evidence.Any(static item =>
+                string.Equals(item.Code, "image-region.tagged-figure", StringComparison.Ordinal));
+            double confidence = captionRejected && !taggedFigure
+                ? Math.Min(imageRegion.Confidence, imageRegion.Placement.MarkedContentId.HasValue ? 0.9D : 0.75D)
+                : imageRegion.Confidence;
+            result[index] = new PdfUnderstandingImageRegion(
+                imageRegion.Placement,
+                caption,
+                confidence,
+                evidence,
+                imageRegion.IsFigure && (!captionRejected || taggedFigure),
+                imageRegion.AlternativeText);
         }
         return Array.AsReadOnly(result);
     }
@@ -289,10 +336,48 @@ internal static class PdfDocumentSemanticEnricher {
                 index.Add(
                     pageNumber.Value,
                     new MarkedContentKey(reference.ContentStreamObjectNumber, reference.MarkedContentId),
-                    binding.Value.Roles);
+                    binding.Value.Roles,
+                    binding.Value.AlternativeText);
             }
         }
         return index.IsEmpty ? null : index;
+    }
+
+    private static void ApplyTaggedImageEvidence(
+        PdfReadDocument document,
+        int[] pageNumbers,
+        IReadOnlyList<PdfUnderstandingImageRegion>[] imageRegions,
+        TaggedContentRoleIndex? taggedRoles,
+        PdfUnderstandingWorkBudget workBudget) {
+        if (taggedRoles is null) return;
+        for (int pageIndex = 0; pageIndex < imageRegions.Length; pageIndex++) {
+            int pageNumber = pageNumbers[pageIndex];
+            PdfReadPage readPage = document.Pages[pageNumber - 1];
+            PdfUnderstandingImageRegion[] current = imageRegions[pageIndex].ToArray();
+            for (int imageIndex = 0; imageIndex < current.Length; imageIndex++) {
+                workBudget.Consume();
+                PdfUnderstandingImageRegion region = current[imageIndex];
+                PdfImagePlacement placement = region.Placement;
+                if (!placement.MarkedContentId.HasValue) continue;
+                var key = new MarkedContentKey(placement.ContentStreamObjectNumber, placement.MarkedContentId.Value);
+                IReadOnlyList<string> roles = taggedRoles.GetRoles(pageNumber, readPage, key);
+                if (!roles.Any(static role => string.Equals(role, "Figure", StringComparison.OrdinalIgnoreCase))) continue;
+                string? alternativeText = taggedRoles.GetAlternativeText(pageNumber, readPage, key);
+                current[imageIndex] = new PdfUnderstandingImageRegion(
+                    placement,
+                    region.Caption,
+                    Math.Max(region.Confidence, 0.96D),
+                    region.Evidence.Concat(new[] {
+                        new PdfInferenceEvidence(
+                            "image-region.tagged-figure",
+                            "A tagged-PDF Figure structure element owns the image marked content.",
+                            0.98D)
+                    }),
+                    isFigure: true,
+                    alternativeText: alternativeText ?? region.AlternativeText);
+            }
+            imageRegions[pageIndex] = Array.AsReadOnly(current);
+        }
     }
 
     private static void ApplyTaggedStructureEvidence(
@@ -555,12 +640,18 @@ internal static class PdfDocumentSemanticEnricher {
         var roles = new List<string>();
         PdfStructureElementInfo? current = structureElement;
         int? pageObjectNumber = null;
+        string? alternativeText = null;
         while (current is not null && visited.Add(current.ObjectNumber)) {
             workBudget.Consume();
             pageObjectNumber ??= current.PageObjectNumber;
             if (!string.IsNullOrWhiteSpace(current.StructureType)) {
                 string candidate = ResolveRole(tagged, current.StructureType!);
                 if (!roles.Contains(candidate, StringComparer.OrdinalIgnoreCase)) roles.Add(candidate);
+                if (alternativeText is null &&
+                    string.Equals(candidate, "Figure", StringComparison.OrdinalIgnoreCase) &&
+                    !string.IsNullOrWhiteSpace(current.AlternateText)) {
+                    alternativeText = current.AlternateText;
+                }
             }
             current = current.ParentObjectNumber.HasValue &&
                 structuresByObject.TryGetValue(current.ParentObjectNumber.Value, out PdfStructureElementInfo? parent)
@@ -569,7 +660,7 @@ internal static class PdfDocumentSemanticEnricher {
         }
         return roles.Count == 0
             ? null
-            : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber);
+            : new TaggedStructureBinding(roles.AsReadOnly(), pageObjectNumber, alternativeText);
     }
 
     private static TaggedRole? TryMapTaggedRole(string role) {
@@ -703,7 +794,8 @@ internal static class PdfDocumentSemanticEnricher {
 
     private readonly record struct TaggedStructureBinding(
         IReadOnlyList<string> Roles,
-        int? PageObjectNumber);
+        int? PageObjectNumber,
+        string? AlternativeText);
 
     private sealed class OutlineLineCandidate {
         internal OutlineLineCandidate(
@@ -737,10 +829,16 @@ internal static class PdfDocumentSemanticEnricher {
 
     private sealed class TaggedContentRoleIndex {
         private readonly Dictionary<int, Dictionary<MarkedContentKey, List<string>>> _rolesByPage = new();
+        private readonly Dictionary<int, Dictionary<MarkedContentKey, string>> _alternativeTextByPage = new();
+        private readonly Dictionary<int, Dictionary<int, List<MarkedContentKey>>> _scopedKeysByPageAndMcid = new();
 
         internal bool IsEmpty => _rolesByPage.Count == 0;
 
-        internal void Add(int pageNumber, MarkedContentKey key, IReadOnlyList<string> roles) {
+        internal void Add(
+            int pageNumber,
+            MarkedContentKey key,
+            IReadOnlyList<string> roles,
+            string? alternativeText) {
             if (!_rolesByPage.TryGetValue(pageNumber, out Dictionary<MarkedContentKey, List<string>>? pageRoles)) {
                 pageRoles = new Dictionary<MarkedContentKey, List<string>>();
                 _rolesByPage.Add(pageNumber, pageRoles);
@@ -752,6 +850,26 @@ internal static class PdfDocumentSemanticEnricher {
             for (int index = 0; index < roles.Count; index++) {
                 string role = roles[index];
                 if (!values.Contains(role, StringComparer.OrdinalIgnoreCase)) values.Add(role);
+            }
+            if (key.ContentStreamObjectNumber.HasValue) {
+                if (!_scopedKeysByPageAndMcid.TryGetValue(pageNumber, out Dictionary<int, List<MarkedContentKey>>? pageScopedKeys)) {
+                    pageScopedKeys = new Dictionary<int, List<MarkedContentKey>>();
+                    _scopedKeysByPageAndMcid.Add(pageNumber, pageScopedKeys);
+                }
+                if (!pageScopedKeys.TryGetValue(key.MarkedContentId, out List<MarkedContentKey>? scopedKeys)) {
+                    scopedKeys = new List<MarkedContentKey>();
+                    pageScopedKeys.Add(key.MarkedContentId, scopedKeys);
+                }
+                if (!scopedKeys.Contains(key)) scopedKeys.Add(key);
+            }
+            if (!string.IsNullOrWhiteSpace(alternativeText)) {
+                if (!_alternativeTextByPage.TryGetValue(pageNumber, out Dictionary<MarkedContentKey, string>? pageAlternativeText)) {
+                    pageAlternativeText = new Dictionary<MarkedContentKey, string>();
+                    _alternativeTextByPage.Add(pageNumber, pageAlternativeText);
+                }
+#pragma warning disable CA1864 // Dictionary.TryAdd is unavailable for the net472 and netstandard2.0 targets.
+                if (!pageAlternativeText.ContainsKey(key)) pageAlternativeText.Add(key, alternativeText!);
+#pragma warning restore CA1864
             }
         }
 
@@ -765,13 +883,52 @@ internal static class PdfDocumentSemanticEnricher {
                 return Array.Empty<string>();
             }
             if (pageRoles.TryGetValue(key, out List<string>? exactRoles)) return exactRoles;
-            if (!key.ContentStreamObjectNumber.HasValue ||
-                !readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) {
-                return Array.Empty<string>();
+            if (!key.ContentStreamObjectNumber.HasValue) {
+                MarkedContentKey? resolved = ResolveUniquePageContentKey(pageNumber, readPage, key.MarkedContentId);
+                return resolved.HasValue && pageRoles.TryGetValue(resolved.Value, out List<string>? scopedPageContentRoles)
+                    ? scopedPageContentRoles
+                    : Array.Empty<string>();
             }
+            if (!readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) return Array.Empty<string>();
             return pageRoles.TryGetValue(new MarkedContentKey(null, key.MarkedContentId), out List<string>? pageContentRoles)
                 ? pageContentRoles
                 : Array.Empty<string>();
+        }
+
+        internal string? GetAlternativeText(
+            int pageNumber,
+            PdfReadPage readPage,
+            MarkedContentKey key) {
+            if (!_alternativeTextByPage.TryGetValue(pageNumber, out Dictionary<MarkedContentKey, string>? pageAlternativeText)) {
+                return null;
+            }
+            if (pageAlternativeText.TryGetValue(key, out string? exact)) return exact;
+            if (!key.ContentStreamObjectNumber.HasValue) {
+                MarkedContentKey? resolved = ResolveUniquePageContentKey(pageNumber, readPage, key.MarkedContentId);
+                return resolved.HasValue && pageAlternativeText.TryGetValue(resolved.Value, out string? scopedPageContent)
+                    ? scopedPageContent
+                    : null;
+            }
+            if (!readPage.IsPageContentStreamObjectNumber(key.ContentStreamObjectNumber)) return null;
+            return pageAlternativeText.TryGetValue(new MarkedContentKey(null, key.MarkedContentId), out string? pageContent)
+                ? pageContent
+                : null;
+        }
+
+        private MarkedContentKey? ResolveUniquePageContentKey(
+            int pageNumber,
+            PdfReadPage readPage,
+            int markedContentId) {
+            if (!_scopedKeysByPageAndMcid.TryGetValue(pageNumber, out Dictionary<int, List<MarkedContentKey>>? pageScopedKeys) ||
+                !pageScopedKeys.TryGetValue(markedContentId, out List<MarkedContentKey>? candidates)) return null;
+            MarkedContentKey? result = null;
+            for (int index = 0; index < candidates.Count; index++) {
+                MarkedContentKey candidate = candidates[index];
+                if (!readPage.IsPageContentStreamObjectNumber(candidate.ContentStreamObjectNumber)) continue;
+                if (result.HasValue) return null;
+                result = candidate;
+            }
+            return result;
         }
     }
 

@@ -353,9 +353,15 @@ public sealed partial class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
-        IReadOnlyList<PdfImagePlacement> imagePlacements = page.GetImagePlacements(pageNumber);
+        IReadOnlyList<PdfImagePlacement> imagePlacements = analysis is not null
+            ? pageAnalysis.ImagePlacements
+            : page.GetImagePlacements(pageNumber);
         foreach (var image in page.GetImages(pageNumber, imagePlacements)) {
-            var logicalImage = new PdfLogicalImage(image, MatchImagePlacements(image, imagePlacements));
+            IReadOnlyList<PdfImagePlacement> matchingPlacements = MatchImagePlacements(image, imagePlacements);
+            var logicalImage = new PdfLogicalImage(
+                image,
+                matchingPlacements,
+                MatchImageRegions(matchingPlacements, pageAnalysis.ImageRegions));
             images.Add(logicalImage);
             elements.Add(logicalImage);
         }
@@ -673,7 +679,24 @@ public sealed partial class PdfLogicalPage {
                 structured.Tables.AddRange(table.Rows);
             }
         }
+
         return structured;
+    }
+
+    private static IReadOnlyList<PdfUnderstandingImageRegion> MatchImageRegions(
+        IReadOnlyList<PdfImagePlacement> placements,
+        IReadOnlyList<PdfUnderstandingImageRegion> regions) {
+        if (placements.Count == 0 || regions.Count == 0) return Array.Empty<PdfUnderstandingImageRegion>();
+        var result = new List<PdfUnderstandingImageRegion>(placements.Count);
+        for (int placementIndex = 0; placementIndex < placements.Count; placementIndex++) {
+            PdfImagePlacement placement = placements[placementIndex];
+            for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
+                if (!ReferenceEquals(regions[regionIndex].Placement, placement)) continue;
+                result.Add(regions[regionIndex]);
+                break;
+            }
+        }
+        return result.Count == 0 ? Array.Empty<PdfUnderstandingImageRegion>() : result.AsReadOnly();
     }
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphsFromSemanticRegions(

@@ -94,6 +94,7 @@ public sealed class PdfReadOptions {
             PageSegmentation = options.PageSegmentation,
             ReadingOrder = options.ReadingOrder,
             SemanticClassification = options.SemanticClassification,
+            ImageRegionDetection = options.ImageRegionDetection,
             MaxPages = options.MaxPages,
             MaxRunsPerPage = options.MaxRunsPerPage,
             MaxTextCharactersPerPage = options.MaxTextCharactersPerPage,
@@ -101,6 +102,8 @@ public sealed class PdfReadOptions {
             MaxLinesPerPage = options.MaxLinesPerPage,
             MaxTableCandidatesPerPage = options.MaxTableCandidatesPerPage,
             MaxRegionsPerPage = options.MaxRegionsPerPage,
+            MaxImageRegionsPerPage = options.MaxImageRegionsPerPage,
+            MaxImageCaptionCandidatesPerPage = options.MaxImageCaptionCandidatesPerPage,
             MaxWorkUnitsPerPage = options.MaxWorkUnitsPerPage,
             MaxDocumentWorkUnits = options.MaxDocumentWorkUnits
         };

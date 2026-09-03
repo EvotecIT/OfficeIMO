@@ -59,10 +59,10 @@ internal sealed class PdfAdvancedTableDetectionStage : IPdfTableDetectionStage {
                     if (owned) ownedWords.Add(word);
                 }
                 if (ownedWords.Count > 0) {
-                    matchedLines.Add(new PdfUnderstandingLine(
-                        ownedWords.AsReadOnly(),
-                        line.Confidence,
-                        line.Evidence));
+                    matchedLines.Add(PdfAdvancedUnderstandingStages.CreateLineSubset(
+                        context,
+                        line,
+                        ownedWords));
                 }
             }
             PdfUnderstandingLine[] sourceLines = PdfAdvancedUnderstandingStages.CopyAndSort(

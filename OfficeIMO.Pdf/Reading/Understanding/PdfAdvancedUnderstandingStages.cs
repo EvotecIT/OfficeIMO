@@ -20,6 +20,8 @@ public static class PdfAdvancedUnderstandingStages {
     public static IPdfReadingOrderStage ReadingOrder { get; } = new PdfRecursiveXyCutReadingOrderStage();
     /// <summary>Business-document semantic classification.</summary>
     public static IPdfSemanticClassificationStage SemanticClassification { get; } = new AdvancedSemanticClassificationStage();
+    /// <summary>Image-region detection and evidence-based caption association.</summary>
+    public static IPdfImageRegionDetectionStage ImageRegionDetection { get; } = new PdfImageRegionDetectionStage();
 
     internal static T[] CopyAndSort<T>(
         PdfUnderstandingPageContext context,
@@ -56,6 +58,136 @@ public static class PdfAdvancedUnderstandingStages {
             width *= 2;
         }
         return source;
+    }
+
+    internal static PdfUnderstandingLine CreateLineSubset(
+        PdfUnderstandingPageContext context,
+        PdfUnderstandingLine source,
+        IReadOnlyList<PdfUnderstandingWord> words) {
+        if (words.Count == 0) throw new ArgumentException("A line subset requires at least one word.", nameof(words));
+        bool unchanged = words.Count == source.Words.Count;
+        for (int index = 0; unchanged && index < words.Count; index++) {
+            context.ConsumeWork();
+            unchanged = ReferenceEquals(words[index], source.Words[index]);
+        }
+        if (unchanged) return source;
+
+        PdfUnderstandingWord[] snapshot = words.ToArray();
+        PdfReadingDirection direction = PdfTextDirectionAnalysis.Resolve(
+            context.LayoutOptions.ReadingDirection,
+            snapshot.OrderBy(static word => word.SourceSequence).Select(static word => word.Text));
+        int? sourceSequence = snapshot.Any(static word => word.SourceSequence.HasValue)
+            ? snapshot.Where(static word => word.SourceSequence.HasValue).Min(static word => word.SourceSequence!.Value)
+            : source.SourceSequence;
+        return new PdfUnderstandingLine(
+            Array.AsReadOnly(snapshot),
+            ComposeLineText(context, snapshot, source.RotationDegrees, direction),
+            source.Confidence,
+            source.Evidence,
+            source.SourceKind,
+            sourceSequence,
+            source.BlockId,
+            source.ParagraphId,
+            source.LineId);
+    }
+
+    private static string ComposeLineText(
+        PdfUnderstandingPageContext context,
+        PdfUnderstandingWord[] words,
+        double angle,
+        PdfReadingDirection direction) {
+        context.ThrowIfCancellationRequested();
+        if (words.Length == 0) return string.Empty;
+        var text = new System.Text.StringBuilder(words.Sum(static word => word.Text.Length) + words.Length);
+        text.Append(words[0].Text);
+        for (int wordIndex = 1; wordIndex < words.Length; wordIndex++) {
+            PdfUnderstandingWord previous = words[wordIndex - 1];
+            PdfUnderstandingWord current = words[wordIndex];
+            if (NeedsSyntheticSpace(previous, current, angle, direction)) text.Append(' ');
+            text.Append(current.Text);
+        }
+        return text.ToString();
+    }
+
+    private static bool NeedsSyntheticSpace(
+        PdfUnderstandingWord previous,
+        PdfUnderstandingWord current,
+        double angle,
+        PdfReadingDirection direction) {
+        if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
+        if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns)) return true;
+        double radians = angle * Math.PI / 180D;
+        double gap = direction == PdfReadingDirection.RightToLeft
+            ? GetProjectedAlongStart(previous, radians) - GetProjectedAlongEnd(current, radians)
+            : GetProjectedAlongStart(current, radians) - GetProjectedAlongEnd(previous, radians);
+        double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
+        return gap > threshold;
+    }
+
+    private static bool SharesSourceRun(
+        IReadOnlyList<PdfTextSpan> left,
+        IReadOnlyList<PdfTextSpan> right) {
+        for (int leftIndex = 0; leftIndex < left.Count; leftIndex++) {
+            for (int rightIndex = 0; rightIndex < right.Count; rightIndex++) {
+                if (ReferenceEquals(left[leftIndex], right[rightIndex])) return true;
+            }
+        }
+        return false;
+    }
+
+    private static bool HasExplicitBoundarySpace(
+        IReadOnlyList<PdfTextSpan> left,
+        IReadOnlyList<PdfTextSpan> right) {
+        if (left.Count == 0 || right.Count == 0) return false;
+        PdfTextSpan previous = left[left.Count - 1];
+        PdfTextSpan current = right[0];
+        return previous.LogicalTrailingSpace ||
+               current.LogicalLeadingSpace ||
+               (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
+               (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
+    }
+
+    private static double ProjectAlong(PdfUnderstandingWord word, double radians) =>
+        (Math.Cos(radians) * WordAnchorX(word)) + (Math.Sin(radians) * word.BaselineY);
+
+    private static double GetProjectedAlongStart(PdfUnderstandingWord word, double radians) {
+        if (TryGetProjectedAdvance(word, out _)) {
+            double startX = Math.Cos(radians) >= 0D ? word.XStart : word.XEnd;
+            return (Math.Cos(radians) * startX) + (Math.Sin(radians) * word.BaselineY);
+        }
+        double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
+        return ProjectAlong(word, radians) - projectedHalfExtent;
+    }
+
+    private static double GetProjectedAlongEnd(PdfUnderstandingWord word, double radians) {
+        if (TryGetProjectedAdvance(word, out double advance)) return GetProjectedAlongStart(word, radians) + advance;
+        double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
+        return ProjectAlong(word, radians) + projectedHalfExtent;
+    }
+
+    private static bool TryGetProjectedAdvance(PdfUnderstandingWord word, out double advance) {
+        advance = 0D;
+        if (word.Advance is double explicitAdvance && explicitAdvance > 0.001D) {
+            advance = explicitAdvance;
+            return true;
+        }
+        if (word.SourceRuns.Count != 1 || word.Text.Length == 0) return false;
+        PdfTextSpan source = word.SourceRuns[0];
+        string sourceText = source.Text ?? string.Empty;
+        if (sourceText.Length == 0) return false;
+        int sourceScalars = PdfUnicodeScalarAnalysis.CountScalars(sourceText);
+        int wordScalars = PdfUnicodeScalarAnalysis.CountScalars(word.Text);
+        double perScalar = source.Advance > 0D ? source.Advance / sourceScalars : word.FontSize * 0.55D;
+        advance = perScalar * wordScalars;
+        return advance > 0.001D;
+    }
+
+    private static double GetFallbackProjectedHalfExtent(PdfUnderstandingWord word, double radians) {
+        double horizontalProjection = Math.Abs(Math.Cos(radians)) * Math.Max(0D, word.XEnd - word.XStart) / 2D;
+        if (horizontalProjection > 0.001D) return horizontalProjection;
+        return Math.Max(
+            word.FontSize * 0.25D,
+            word.FontSize * PdfUnicodeScalarAnalysis.CountScalars(word.Text) * 0.2D);
     }
 
     private sealed class AdvancedGlyphDecodingStage : IPdfGlyphDecodingStage {
@@ -210,7 +342,7 @@ public static class PdfAdvancedUnderstandingStages {
                 }
                 foreach (List<PdfUnderstandingWord> run in runs) {
                     PdfUnderstandingWord[] runWords = run.ToArray();
-                    string lineText = BuildLineText(context, runWords, group.Angle, direction);
+                    string lineText = ComposeLineText(context, runWords, group.Angle, direction);
                     double normalSpread = runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Max() -
                         runWords.Select(word => (-Math.Sin(radians) * WordAnchorX(word)) + (Math.Cos(radians) * word.BaselineY)).DefaultIfEmpty().Min();
                     int? lineSourceSequence = runWords.Any(static word => word.SourceSequence.HasValue)
@@ -240,9 +372,6 @@ public static class PdfAdvancedUnderstandingStages {
             return sortedLines.Length == 0 ? Array.Empty<PdfUnderstandingLine>() : Array.AsReadOnly(sortedLines);
         }
 
-        private static double ProjectAlong(PdfUnderstandingWord word, double radians) =>
-            (Math.Cos(radians) * WordAnchorX(word)) + (Math.Sin(radians) * word.BaselineY);
-
         private static int CompareRightToLeft(
             PdfUnderstandingWord left,
             PdfUnderstandingWord right,
@@ -257,102 +386,6 @@ public static class PdfAdvancedUnderstandingStages {
             return geometry != 0
                 ? geometry
                 : Nullable.Compare(left.SourceSequence, right.SourceSequence);
-        }
-
-        private static string BuildLineText(
-            PdfUnderstandingPageContext context,
-            PdfUnderstandingWord[] words,
-            double angle,
-            PdfReadingDirection direction) {
-            context.ThrowIfCancellationRequested();
-            if (words.Length == 0) return string.Empty;
-            var text = new System.Text.StringBuilder(words.Sum(static word => word.Text.Length) + words.Length);
-            text.Append(words[0].Text);
-            for (int wordIndex = 1; wordIndex < words.Length; wordIndex++) {
-                PdfUnderstandingWord previous = words[wordIndex - 1];
-                PdfUnderstandingWord current = words[wordIndex];
-                if (NeedsSyntheticSpace(previous, current, angle, direction)) text.Append(' ');
-                text.Append(current.Text);
-            }
-            return text.ToString();
-        }
-
-        private static bool NeedsSyntheticSpace(
-            PdfUnderstandingWord previous,
-            PdfUnderstandingWord current,
-            double angle,
-            PdfReadingDirection direction) {
-            if (SharesSourceRun(previous.SourceRuns, current.SourceRuns)) return true;
-            if (HasExplicitBoundarySpace(previous.SourceRuns, current.SourceRuns)) return true;
-            double radians = angle * Math.PI / 180D;
-            double gap = direction == PdfReadingDirection.RightToLeft
-                ? GetProjectedAlongStart(previous, radians) - GetProjectedAlongEnd(current, radians)
-                : GetProjectedAlongStart(current, radians) - GetProjectedAlongEnd(previous, radians);
-            double threshold = Math.Max(1D, Math.Min(previous.FontSize, current.FontSize) * 0.18D);
-            return gap > threshold;
-        }
-
-        private static bool SharesSourceRun(
-            IReadOnlyList<PdfTextSpan> left,
-            IReadOnlyList<PdfTextSpan> right) {
-            for (int leftIndex = 0; leftIndex < left.Count; leftIndex++) {
-                for (int rightIndex = 0; rightIndex < right.Count; rightIndex++) {
-                    if (ReferenceEquals(left[leftIndex], right[rightIndex])) return true;
-                }
-            }
-            return false;
-        }
-
-        private static bool HasExplicitBoundarySpace(
-            IReadOnlyList<PdfTextSpan> left,
-            IReadOnlyList<PdfTextSpan> right) {
-            if (left.Count == 0 || right.Count == 0) return false;
-            PdfTextSpan previous = left[left.Count - 1];
-            PdfTextSpan current = right[0];
-            return previous.LogicalTrailingSpace ||
-                   current.LogicalLeadingSpace ||
-                   (previous.Text.Length > 0 && char.IsWhiteSpace(previous.Text[previous.Text.Length - 1])) ||
-                   (current.Text.Length > 0 && char.IsWhiteSpace(current.Text[0]));
-        }
-
-        private static double GetProjectedAlongStart(PdfUnderstandingWord word, double radians) {
-            if (TryGetProjectedAdvance(word, out _)) {
-                double startX = Math.Cos(radians) >= 0D ? word.XStart : word.XEnd;
-                return (Math.Cos(radians) * startX) + (Math.Sin(radians) * word.BaselineY);
-            }
-            double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
-            return ProjectAlong(word, radians) - projectedHalfExtent;
-        }
-
-        private static double GetProjectedAlongEnd(PdfUnderstandingWord word, double radians) {
-            if (TryGetProjectedAdvance(word, out double advance)) return GetProjectedAlongStart(word, radians) + advance;
-            double projectedHalfExtent = GetFallbackProjectedHalfExtent(word, radians);
-            return ProjectAlong(word, radians) + projectedHalfExtent;
-        }
-
-        private static bool TryGetProjectedAdvance(PdfUnderstandingWord word, out double advance) {
-            advance = 0D;
-            if (word.Advance is double explicitAdvance && explicitAdvance > 0.001D) {
-                advance = explicitAdvance;
-                return true;
-            }
-            if (word.SourceRuns.Count != 1 || word.Text.Length == 0) return false;
-            PdfTextSpan source = word.SourceRuns[0];
-            string sourceText = source.Text ?? string.Empty;
-            if (sourceText.Length == 0) return false;
-            int sourceScalars = PdfUnicodeScalarAnalysis.CountScalars(sourceText);
-            int wordScalars = PdfUnicodeScalarAnalysis.CountScalars(word.Text);
-            double perScalar = source.Advance > 0D ? source.Advance / sourceScalars : word.FontSize * 0.55D;
-            advance = perScalar * wordScalars;
-            return advance > 0.001D;
-        }
-
-        private static double GetFallbackProjectedHalfExtent(PdfUnderstandingWord word, double radians) {
-            double horizontalProjection = Math.Abs(Math.Cos(radians)) * Math.Max(0D, word.XEnd - word.XStart) / 2D;
-            if (horizontalProjection > 0.001D) return horizontalProjection;
-            return Math.Max(
-                word.FontSize * 0.25D,
-                word.FontSize * PdfUnicodeScalarAnalysis.CountScalars(word.Text) * 0.2D);
         }
 
         private static BaselineGroup? FindIndexedGroup(
@@ -628,10 +661,7 @@ public static class PdfAdvancedUnderstandingStages {
                 if (unownedWords.Count == line.Words.Count) {
                     result.Add(line);
                 } else if (unownedWords.Count > 0) {
-                    result.Add(new PdfUnderstandingLine(
-                        unownedWords.AsReadOnly(),
-                        line.Confidence,
-                        line.Evidence));
+                    result.Add(CreateLineSubset(context, line, unownedWords));
                 }
             }
             PdfUnderstandingLine[] ordered = CopyAndSort(
@@ -736,6 +766,7 @@ public static class PdfAdvancedUnderstandingStages {
             double largest = region.Lines.Max(static line => line.FontSize);
             if (region.Evidence.Any(static evidence => string.Equals(evidence.Code, "region.canonical-table", StringComparison.Ordinal))) return (PdfUnderstandingSemanticKind.Table, 0.93D, "semantic.canonical-table", "The canonical layout engine recovered the region as a validated table.");
             if (IsAdjacentTableCaption(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Caption, 0.78D, "semantic.table-caption-geometry", "A compact line is immediately adjacent to and aligned with a validated table.");
+            if (PdfImageRegionDetectionStage.IsAdjacentImageCaption(context, region)) return (PdfUnderstandingSemanticKind.Caption, 0.8D, "semantic.figure-caption-geometry", "A compact region is immediately adjacent to and aligned with a positioned image.");
             if (ContentStructureExtractor.IsListItemText(text)) return (PdfUnderstandingSemanticKind.ListItem, 0.9D, "semantic.list-marker", "The region begins with a bullet or numbered marker.");
             if (IsLocalTypographicLead(context, region, pageRegions)) return (PdfUnderstandingSemanticKind.Heading, 0.8D, "semantic.local-font-transition", "A compact line is materially larger than the nearby aligned content it introduces.");
             if (median > 0D && largest >= median * 1.2D) return (PdfUnderstandingSemanticKind.Heading, 0.82D, "semantic.large-font", "The region font is materially larger than the page median.");

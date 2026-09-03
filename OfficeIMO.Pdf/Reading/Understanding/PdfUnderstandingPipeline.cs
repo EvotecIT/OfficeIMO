@@ -15,7 +15,8 @@ public sealed class PdfUnderstandingPipelineOptions {
         TableDetection = PdfAdvancedUnderstandingStages.TableDetection,
         PageSegmentation = PdfAdvancedUnderstandingStages.PageSegmentation,
         ReadingOrder = PdfAdvancedUnderstandingStages.ReadingOrder,
-        SemanticClassification = PdfAdvancedUnderstandingStages.SemanticClassification
+        SemanticClassification = PdfAdvancedUnderstandingStages.SemanticClassification,
+        ImageRegionDetection = PdfAdvancedUnderstandingStages.ImageRegionDetection
     };
 
     /// <summary>Glyph/text decoding stage.</summary>
@@ -32,6 +33,8 @@ public sealed class PdfUnderstandingPipelineOptions {
     public IPdfReadingOrderStage? ReadingOrder { get; set; }
     /// <summary>Semantic classification stage.</summary>
     public IPdfSemanticClassificationStage? SemanticClassification { get; set; }
+    /// <summary>Image-region and figure-caption association stage.</summary>
+    public IPdfImageRegionDetectionStage? ImageRegionDetection { get; set; }
     /// <summary>Maximum selected pages processed by one run.</summary>
     public int MaxPages { get; set; } = DefaultMaxPages;
     /// <summary>Maximum decoded text runs retained for one page.</summary>
@@ -46,6 +49,10 @@ public sealed class PdfUnderstandingPipelineOptions {
     public int MaxTableCandidatesPerPage { get; set; } = 1_024;
     /// <summary>Maximum regions and semantic elements retained for one page.</summary>
     public int MaxRegionsPerPage { get; set; } = 10_000;
+    /// <summary>Maximum positioned image regions retained for one page.</summary>
+    public int MaxImageRegionsPerPage { get; set; } = 10_000;
+    /// <summary>Maximum viable image-caption association edges retained before deterministic matching.</summary>
+    public int MaxImageCaptionCandidatesPerPage { get; set; } = 100_000;
     /// <summary>Maximum comparison and traversal work performed by built-in stages for one page.</summary>
     public long MaxWorkUnitsPerPage { get; set; } = 10_000_000;
     /// <summary>Maximum comparison and traversal work performed by document-wide semantic enrichment.</summary>
@@ -61,6 +68,7 @@ public sealed class PdfUnderstandingPipelineOptions {
             PageSegmentation = source.PageSegmentation ?? PdfAdvancedUnderstandingStages.PageSegmentation,
             ReadingOrder = source.ReadingOrder ?? PdfAdvancedUnderstandingStages.ReadingOrder,
             SemanticClassification = source.SemanticClassification ?? PdfAdvancedUnderstandingStages.SemanticClassification,
+            ImageRegionDetection = source.ImageRegionDetection ?? PdfAdvancedUnderstandingStages.ImageRegionDetection,
             MaxPages = source.MaxPages,
             MaxRunsPerPage = source.MaxRunsPerPage,
             MaxTextCharactersPerPage = source.MaxTextCharactersPerPage,
@@ -68,6 +76,8 @@ public sealed class PdfUnderstandingPipelineOptions {
             MaxLinesPerPage = source.MaxLinesPerPage,
             MaxTableCandidatesPerPage = source.MaxTableCandidatesPerPage,
             MaxRegionsPerPage = source.MaxRegionsPerPage,
+            MaxImageRegionsPerPage = source.MaxImageRegionsPerPage,
+            MaxImageCaptionCandidatesPerPage = source.MaxImageCaptionCandidatesPerPage,
             MaxWorkUnitsPerPage = source.MaxWorkUnitsPerPage,
             MaxDocumentWorkUnits = source.MaxDocumentWorkUnits
         };
@@ -83,6 +93,7 @@ internal sealed class PdfUnderstandingPipeline {
     private readonly IPdfPageSegmentationStage _pageSegmentation;
     private readonly IPdfReadingOrderStage _readingOrder;
     private readonly IPdfSemanticClassificationStage _semanticClassification;
+    private readonly IPdfImageRegionDetectionStage _imageRegionDetection;
     private readonly PdfTextLayoutOptions _layout;
     private readonly int _maxPages;
     private readonly PdfUnderstandingPipelineOptions _limits;
@@ -98,6 +109,7 @@ internal sealed class PdfUnderstandingPipeline {
         _pageSegmentation = effective.PageSegmentation!;
         _readingOrder = effective.ReadingOrder!;
         _semanticClassification = effective.SemanticClassification!;
+        _imageRegionDetection = effective.ImageRegionDetection!;
         _restrictLogicalProjectionToReadingOrder =
             !ReferenceEquals(_wordGrouping, PdfAdvancedUnderstandingStages.WordGrouping) ||
             !ReferenceEquals(_lineGrouping, PdfAdvancedUnderstandingStages.LineGrouping) ||
@@ -114,6 +126,8 @@ internal sealed class PdfUnderstandingPipeline {
         ValidateLimit(effective.MaxLinesPerPage, nameof(effective.MaxLinesPerPage));
         ValidateLimit(effective.MaxTableCandidatesPerPage, nameof(effective.MaxTableCandidatesPerPage));
         ValidateLimit(effective.MaxRegionsPerPage, nameof(effective.MaxRegionsPerPage));
+        ValidateLimit(effective.MaxImageRegionsPerPage, nameof(effective.MaxImageRegionsPerPage));
+        ValidateLimit(effective.MaxImageCaptionCandidatesPerPage, nameof(effective.MaxImageCaptionCandidatesPerPage));
         ValidateLimit(effective.MaxWorkUnitsPerPage, nameof(effective.MaxWorkUnitsPerPage));
         ValidateLimit(effective.MaxDocumentWorkUnits, nameof(effective.MaxDocumentWorkUnits));
     }
@@ -157,7 +171,7 @@ internal sealed class PdfUnderstandingPipeline {
         EnsureTextCharacters(words.Select(static word => word.Text), _limits.MaxTextCharactersPerPage);
         EnsureCount(lines.Count, _limits.MaxLinesPerPage);
         context.DecodedRuns = runs;
-        var trace = new List<PdfUnderstandingStageTrace>(7) {
+        var trace = new List<PdfUnderstandingStageTrace>(8) {
             new PdfUnderstandingStageTrace("positioned-word-input", sourceProviderType, runs.Count, words.Count),
             new PdfUnderstandingStageTrace("positioned-line-input", sourceProviderType, words.Count, lines.Count)
         };
@@ -169,7 +183,7 @@ internal sealed class PdfUnderstandingPipeline {
 
     private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber, CancellationToken cancellationToken) {
         PdfUnderstandingPageContext context = CreateContext(page, pageNumber, cancellationToken);
-        var trace = new List<PdfUnderstandingStageTrace>(7);
+        var trace = new List<PdfUnderstandingStageTrace>(8);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
         cancellationToken.ThrowIfCancellationRequested();
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
@@ -211,9 +225,12 @@ internal sealed class PdfUnderstandingPipeline {
             _limits.MaxTextCharactersPerPage,
             _limits.MaxWordsPerPage,
             _limits.MaxWorkUnitsPerPage,
-            cancellationToken) {
-            MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage
+        cancellationToken) {
+            MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage,
+            MaxImageCaptionCandidatesPerPage = _limits.MaxImageCaptionCandidatesPerPage
         };
+        context.ImagePlacements = page.GetImagePlacements(pageNumber);
+        EnsureCount(context.ImagePlacements.Count, _limits.MaxImageRegionsPerPage);
         return context;
     }
 
@@ -249,6 +266,17 @@ internal sealed class PdfUnderstandingPipeline {
         EnsureCount(elements.Count, _limits.MaxRegionsPerPage);
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("semantic-classification", _semanticClassification.GetType(), ordered.Count, elements.Count));
+        IReadOnlyList<PdfUnderstandingImageRegion> imageRegions = NotNull(
+            _imageRegionDetection.Detect(context, elements),
+            nameof(IPdfImageRegionDetectionStage));
+        EnsureCount(imageRegions.Count, _limits.MaxImageRegionsPerPage);
+        EnsureImageRegionArtifacts(context, imageRegions, elements);
+        cancellationToken.ThrowIfCancellationRequested();
+        trace.Add(new PdfUnderstandingStageTrace(
+            "image-region-detection",
+            _imageRegionDetection.GetType(),
+            context.ImagePlacements.Count,
+            imageRegions.Count));
         return new PdfUnderstandingPageResult(
             context.PageNumber,
             runs,
@@ -264,7 +292,9 @@ internal sealed class PdfUnderstandingPipeline {
             context.CompleteOperation,
             logicalProjectionLines: null,
             restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder,
-            tableCandidates: tableCandidates);
+            tableCandidates: tableCandidates,
+            imagePlacements: context.ImagePlacements,
+            imageRegions: imageRegions);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {
@@ -302,6 +332,32 @@ internal sealed class PdfUnderstandingPipeline {
         foreach (string? value in values) {
             total = checked(total + (value?.Length ?? 0));
             if (total > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, total);
+        }
+    }
+
+    private static void EnsureImageRegionArtifacts(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfUnderstandingImageRegion> imageRegions,
+        IReadOnlyList<PdfUnderstandingSemanticElement> semanticElements) {
+        if (imageRegions.Count != context.ImagePlacements.Count) {
+            throw new InvalidOperationException(
+                nameof(IPdfImageRegionDetectionStage) + " must return exactly one region per visible image placement.");
+        }
+        var expectedPlacements = new HashSet<PdfImagePlacement>(context.ImagePlacements);
+        var observedPlacements = new HashSet<PdfImagePlacement>();
+        var expectedSemanticElements = new HashSet<PdfUnderstandingSemanticElement>(semanticElements);
+        for (int index = 0; index < imageRegions.Count; index++) {
+            context.ConsumeWork();
+            PdfUnderstandingImageRegion region = imageRegions[index]
+                ?? throw new InvalidOperationException(nameof(IPdfImageRegionDetectionStage) + " returned a null image region.");
+            if (!expectedPlacements.Contains(region.Placement) || !observedPlacements.Add(region.Placement)) {
+                throw new InvalidOperationException(
+                    nameof(IPdfImageRegionDetectionStage) + " must represent each input image placement exactly once.");
+            }
+            if (region.Caption is not null && !expectedSemanticElements.Contains(region.Caption)) {
+                throw new InvalidOperationException(
+                    nameof(IPdfImageRegionDetectionStage) + " returned a caption outside the semantic-stage result.");
+            }
         }
     }
 
