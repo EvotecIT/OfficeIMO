@@ -25,10 +25,10 @@ internal static partial class PdfRedactionApplier {
         Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
         Dictionary<string, Func<byte[], double>> fontWidthProviders = ResourceResolver.GetFontWidthProviders(pageDictionary, objects);
         PdfDictionary? pageResources = GetInheritedDictionary(objects, pageDictionary, "Resources");
+        HashSet<string> verticalWritingFonts = GetVerticalWritingFontResources(pageResources, objects);
         IReadOnlyDictionary<string, PdfExtGStateFontSelection> extGStateFonts = pageResources == null
             ? new Dictionary<string, PdfExtGStateFontSelection>(StringComparer.Ordinal)
-            : ResolveExtGStateFontSelections(objects, pageResources);
-        HashSet<string> verticalWritingFonts = GetVerticalWritingFontResources(pageResources, objects);
+            : ResolveExtGStateFontSelections(objects, pageResources, fontDecoders, fontWidthProviders, verticalWritingFonts);
         PdfObject currentContentsObject = contentsObject;
         PdfReference[] contentReferences = EnumerateContentReferences(objects, contentsObject).ToArray();
         var contentSegments = new List<string>(contentReferences.Length);
@@ -831,7 +831,7 @@ internal static partial class PdfRedactionApplier {
         resources == null
             ? new HashSet<string>(StringComparer.Ordinal)
             : ResourceResolver.GetFontsForResources(resources, objects)
-                .Where(static entry => string.Equals(entry.Value.Encoding, "Identity-V", StringComparison.Ordinal))
+                .Where(static entry => entry.Value.IsVerticalWriting)
                 .Select(static entry => entry.Key)
                 .ToHashSet(StringComparer.Ordinal);
 

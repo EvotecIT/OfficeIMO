@@ -5,7 +5,7 @@ internal sealed class PdfRedactionTextObjectScope {
         PdfContentOrderKey key,
         PdfTextSpan[] spans,
         IReadOnlyList<PdfRedactionArea>? reviewedAreas = null,
-        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
+        Func<PdfTextSpan, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         Key = key;
         Spans = spans;
         ContentStreamObjectNumber = spans.Select(static span => span.ContentStreamObjectNumber).Distinct().Count() == 1
@@ -18,7 +18,7 @@ internal sealed class PdfRedactionTextObjectScope {
         bool requiresWholeObjectFallback = false;
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
             PdfTextSpan span = spans[spanIndex];
-            PdfRedactionPaintOrderContext spanPaintOrderContext = paintOrderContext?.Invoke(span.PaintOrder) ?? default;
+            PdfRedactionPaintOrderContext spanPaintOrderContext = paintOrderContext?.Invoke(span) ?? default;
             if (!TryCreateGlyphIdentities(span, spanPaintOrderContext, out PdfRedactionTextGlyphIdentity[] glyphs)) {
                 PdfRedactionTextGlyphIdentity aggregate = PdfRedactionTextGlyphIdentity.FromSpan(
                     span,

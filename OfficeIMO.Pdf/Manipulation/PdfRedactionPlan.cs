@@ -251,37 +251,119 @@ public sealed class PdfRedactionPlan {
             .Where(placement => reviewedAreas == null ||
                 !IntersectsReviewedArea(reviewedAreas, placement.X, placement.Y, placement.Width, placement.Height))
             .ToArray();
-        var reviewedTextObjectKeys = new HashSet<PdfContentOrderKey>();
-        if (reviewedAreas != null) {
-            foreach (PdfTextSpan span in spans) {
-                if (span.TextObjectOrderKey is PdfContentOrderKey textObjectKey) {
-                    PdfTextSpanBounds bounds = PdfTextSpanGeometry.GetAxisAlignedBounds(span);
-                    if (IntersectsReviewedArea(reviewedAreas, bounds.Left, bounds.Bottom, bounds.Right - bounds.Left, bounds.Top - bounds.Bottom)) {
-                        reviewedTextObjectKeys.Add(textObjectKey);
-                    }
-                }
-            }
-        }
-        double[] retainedTextPaints = spans
-            .Where(span => span.TextObjectOrderKey is null || !reviewedTextObjectKeys.Contains(span.TextObjectOrderKey))
-            .Select(static span => span.PaintOrder)
-            .Distinct()
-            .ToArray();
-
-        PdfRedactionPaintOrderContext ResolvePaintOrderContext(double paintOrder) => new(
-            paths.Count(path => path.PaintOrder < paintOrder),
-            retainedImages.Count(image => image.PaintOrder < paintOrder),
-            retainedTextPaints.Count(textPaintOrder => textPaintOrder < paintOrder));
-
-        return spans
+        IGrouping<PdfContentOrderKey, PdfTextSpan>[] textObjectGroups = spans
             .Where(static span => span.TextObjectOrderKey is not null)
             .GroupBy(static span => span.TextObjectOrderKey!)
+            .ToArray();
+        var reviewedTextObjectScopes = new Dictionary<PdfContentOrderKey, PdfRedactionTextObjectScope>();
+        if (reviewedAreas != null) {
+            foreach (IGrouping<PdfContentOrderKey, PdfTextSpan> group in textObjectGroups) {
+                var scope = new PdfRedactionTextObjectScope(group.Key, group.ToArray(), reviewedAreas);
+                reviewedTextObjectScopes[group.Key] = scope;
+            }
+        }
+        PdfContentOrderKey[] pathOrderKeys = paths
+            .Select(static path => path.ContentOrderKey)
+            .OfType<PdfContentOrderKey>()
+            .OrderBy(static key => key)
+            .ToArray();
+        double[] pathPaintsWithoutKeys = paths
+            .Where(static path => path.ContentOrderKey == null)
+            .Select(static path => path.PaintOrder)
+            .OrderBy(static value => value)
+            .ToArray();
+        double[] allPathPaints = paths.Select(static path => path.PaintOrder).OrderBy(static value => value).ToArray();
+        PdfContentOrderKey[] imageOrderKeys = retainedImages
+            .Select(static image => image.ContentOrderKey)
+            .OfType<PdfContentOrderKey>()
+            .OrderBy(static key => key)
+            .ToArray();
+        double[] imagePaintsWithoutKeys = retainedImages
+            .Where(static image => image.ContentOrderKey == null)
+            .Select(static image => image.PaintOrder)
+            .OrderBy(static value => value)
+            .ToArray();
+        double[] allImagePaints = retainedImages.Select(static image => image.PaintOrder).OrderBy(static value => value).ToArray();
+        PdfTextSpan[] retainedTextSpans = spans
+            .Where(IsRetainedTextPaint)
+            .ToArray();
+        PdfContentOrderKey[] textOrderKeys = retainedTextSpans
+            .Select(static span => span.ContentOrderKey)
+            .OfType<PdfContentOrderKey>()
+            .Distinct()
+            .OrderBy(static key => key)
+            .ToArray();
+        double[] textPaintsWithoutKeys = retainedTextSpans
+            .Where(static span => span.ContentOrderKey == null)
+            .Select(static span => span.PaintOrder)
+            .Distinct()
+            .OrderBy(static value => value)
+            .ToArray();
+        double[] allTextPaints = retainedTextSpans
+            .Select(static span => span.PaintOrder)
+            .Distinct()
+            .OrderBy(static value => value)
+            .ToArray();
+
+        bool IsRetainedTextPaint(PdfTextSpan span) {
+            if (reviewedAreas == null || span.TextObjectOrderKey is not PdfContentOrderKey key) return true;
+            if (reviewedTextObjectScopes.TryGetValue(key, out PdfRedactionTextObjectScope? objectScope) &&
+                objectScope.HasReviewedIntersection &&
+                !objectScope.RequiresExpectedSurvivors) return false;
+            var spanScope = new PdfRedactionTextObjectScope(key, new[] { span }, reviewedAreas);
+            return !spanScope.HasReviewedIntersection || spanScope.RequiresExpectedSurvivors;
+        }
+
+        PdfRedactionPaintOrderContext ResolvePaintOrderContext(PdfTextSpan span) => new(
+            CountPaintsBefore(pathOrderKeys, pathPaintsWithoutKeys, allPathPaints, span.ContentOrderKey, span.PaintOrder),
+            CountPaintsBefore(imageOrderKeys, imagePaintsWithoutKeys, allImagePaints, span.ContentOrderKey, span.PaintOrder),
+            CountPaintsBefore(textOrderKeys, textPaintsWithoutKeys, allTextPaints, span.ContentOrderKey, span.PaintOrder));
+
+        return textObjectGroups
             .Select(group => new PdfRedactionTextObjectScope(
                 group.Key,
                 group.ToArray(),
                 reviewedAreas,
                 ResolvePaintOrderContext))
             .ToArray();
+
+        static int CountPaintsBefore(
+            PdfContentOrderKey[] sortedOrderKeys,
+            double[] sortedPaintOrdersWithoutKeys,
+            double[] allSortedPaintOrders,
+            PdfContentOrderKey? orderKey,
+            double paintOrder) {
+            if (orderKey == null) return CountValuesBefore(allSortedPaintOrders, paintOrder);
+            return CountKeysBefore(sortedOrderKeys, orderKey) + CountValuesBefore(sortedPaintOrdersWithoutKeys, paintOrder);
+        }
+
+        static int CountKeysBefore(PdfContentOrderKey[] sortedOrderKeys, PdfContentOrderKey orderKey) {
+            int lower = 0;
+            int upper = sortedOrderKeys.Length;
+            while (lower < upper) {
+                int middle = lower + (upper - lower) / 2;
+                if (sortedOrderKeys[middle].CompareTo(orderKey) < 0) {
+                    lower = middle + 1;
+                } else {
+                    upper = middle;
+                }
+            }
+            return lower;
+        }
+
+        static int CountValuesBefore(double[] sortedPaintOrders, double paintOrder) {
+            int lower = 0;
+            int upper = sortedPaintOrders.Length;
+            while (lower < upper) {
+                int middle = lower + (upper - lower) / 2;
+                if (sortedPaintOrders[middle] < paintOrder) {
+                    lower = middle + 1;
+                } else {
+                    upper = middle;
+                }
+            }
+            return lower;
+        }
     }
 
     private static void AppendPageRenderingResourceIdentity(

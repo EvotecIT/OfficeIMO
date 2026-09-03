@@ -904,6 +904,7 @@ internal static class TextContentParser {
             var decodedGlyphCharacterLengths = new List<int>();
             var decodedGlyphBytes = new List<byte[]>();
             var decodedGlyphPaintedAdvances = new List<double>();
+            bool hasUndecodableGlyph = false;
             double advTotal = 0;
             string wholeDecoded = NormalizeDecodedGlyphText(DecodeRun(bytes) ?? string.Empty);
             int decodedGlyphCharacters = 0;
@@ -929,6 +930,8 @@ internal static class TextContentParser {
                     decodedGlyphPaintedAdvances.Add(Math.Abs((w1000 / 1000D) * size * hScale));
                     double perCharacterAdvance = advGlyph / Math.Max(1, t.Length);
                     for (int characterIndex = 0; characterIndex < t.Length; characterIndex++) decodedAdvances.Add(perCharacterAdvance);
+                } else {
+                    hasUndecodableGlyph = true;
                 }
                 advTotal += advGlyph;
                 idx += step;
@@ -987,7 +990,7 @@ internal static class TextContentParser {
                 outputIntentColorTransform == null &&
                 !forceCannotRestamp;
             double restampFontSize = size * unitYLength;
-            IReadOnlyList<double>? transformedCharacterAdvances = decodedAdvances.Count == textOut.Length
+            IReadOnlyList<double>? transformedCharacterAdvances = !hasUndecodableGlyph && decodedAdvances.Count == textOut.Length
                 ? decodedAdvances.Select(advance => advance * unitXLength).ToArray()
                 : null;
             double[]? transformedGlyphPaintedAdvances = decodedGlyphPaintedAdvances.Count == decodedGlyphCharacterLengths.Count
@@ -1051,7 +1054,7 @@ internal static class TextContentParser {
                     currentContentOrderKey,
                     string.Equals(normalizedText, sbOut.ToString(), StringComparison.Ordinal) ? transformedCharacterAdvances : null,
                     textRenderingMode,
-                    canRestamp && visibleGlyphsMatchLogicalText,
+                    canRestamp && visibleGlyphsMatchLogicalText && !hasUndecodableGlyph,
                     restampFontSize,
                     paintedText,
                     Math.Abs(charSpacing) <= 0.000001D && Math.Abs(wordSpacing) <= 0.000001D,
@@ -1070,14 +1073,14 @@ internal static class TextContentParser {
                         UsesStrokeTextPaint(textRenderingMode) ? miterLimit.ToString("R", CultureInfo.InvariantCulture) : "none",
                         UsesStrokeTextPaint(textRenderingMode) ? strokeDashIdentity : "none"
                     }),
-                    decodedGlyphCharacterLengths.Sum() == paintedText.Length
+                    !hasUndecodableGlyph && decodedGlyphCharacterLengths.Sum() == paintedText.Length
                         ? decodedGlyphCharacterLengths
                         : null,
-                    decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
+                    !hasUndecodableGlyph && decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
                         decodedGlyphBytes.Count == decodedGlyphCharacterLengths.Count
                         ? decodedGlyphBytes
                         : null,
-                    decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
+                    !hasUndecodableGlyph && decodedGlyphCharacterLengths.Sum() == paintedText.Length &&
                         transformedGlyphPaintedAdvances?.Length == decodedGlyphCharacterLengths.Count
                         ? transformedGlyphPaintedAdvances
                         : null,

@@ -67,7 +67,7 @@ public class PdfRedactionTextObjectScopeTests {
 
     private static PdfRedactionTextObjectScope CreateReviewedScope(
         int owner,
-        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
+        Func<PdfTextSpan, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         PdfContentOrderKey key = PdfContentOrderKey.Root.Append(owner);
         PdfTextSpan span = CreateSpan(
             "AB",
@@ -90,7 +90,7 @@ public class PdfRedactionTextObjectScopeTests {
         byte glyphByte = 0x42,
         PdfPageClipPath? clipPath = null,
         Matrix2D? transform = null,
-        Func<double, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
+        Func<PdfTextSpan, PdfRedactionPaintOrderContext>? paintOrderContext = null) {
         PdfContentOrderKey key = PdfContentOrderKey.Root.Append(owner);
         PdfTextSpan span = CreateSpan(
             "B",

@@ -155,11 +155,11 @@ public class PdfRedactionApplierTests {
         Assert.Contains("/FontFile2 9 0 R", raw, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Apply_FailsClosedForVerticalWritingTextObjects() {
-        byte[] source = PdfEncoding.Latin1GetBytes(
-            PdfEncoding.Latin1GetString(BuildType0ToUnicodeSingleTextObjectRedactionSource("Alpha secret Omega"))
-                .Replace("/Identity-H", "/Identity-V"));
+    [Theory]
+    [InlineData("/Identity-V")]
+    [InlineData("/UniJIS-UTF16-V")]
+    public void Apply_FailsClosedForNamedVerticalWritingTextObjects(string encoding) {
+        byte[] source = BuildType0ToUnicodeSingleTextObjectRedactionSource("Alpha secret Omega", encoding);
         PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
         PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
 
@@ -167,6 +167,48 @@ public class PdfRedactionApplierTests {
 
         Assert.DoesNotContain("secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
         Assert.DoesNotContain("Alpha", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain(" Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_FailsClosedForCustomVerticalWritingCMap() {
+        const string verticalCMap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/WMode 1% valid delimiter\n def\nendcmap\nend\nend\n";
+        byte[] source = BuildType0ToUnicodeSingleTextObjectRedactionSource("Alpha secret Omega", "10 0 R", verticalCMap);
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain("Alpha", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
+        Assert.DoesNotContain(" Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_DoesNotTreatCommentedCustomWModeAsVerticalWriting() {
+        const string horizontalCMap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n% /WMode 1\n(also /WMode 1) pop\nendcmap\nend\nend\n";
+        byte[] source = BuildType0ToUnicodeSingleTextObjectRedactionSource("Alpha secret Omega", "10 0 R", horizontalCMap);
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Contains("Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Omega", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_FailsClosedWhenAnUndecodableGlyphPrecedesTargetText() {
+        byte[] source = BuildType0TextWithLeadingUndecodableGlyph();
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        Assert.Equal("secret", span.Text);
+        var area = new PdfRedactionArea(1, 150D, 718D, 5D, 22D, "actual trailing glyph position");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        Assert.DoesNotContain("secret", PdfTextExtractor.ExtractAllText(redacted), StringComparison.Ordinal);
         Assert.DoesNotContain(" Tj", PdfEncoding.Latin1GetString(redacted), StringComparison.Ordinal);
     }
 
@@ -468,6 +510,78 @@ public class PdfRedactionApplierTests {
     }
 
     [Fact]
+    public void AppliedPlanVerificationRejectsReorderedPartialSurvivorScopes() {
+        const string first = "BT /F1 20 Tf 72 700 Td (First secret One) Tj ET";
+        const string second = "BT /F1 20 Tf 72 650 Td (Second secret Two) Tj ET";
+        byte[] source = BuildTextContentRedactionSource(first + "\n" + second);
+        PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
+        PdfRedactionArea[] areas = spans
+            .Where(static span => span.Text.Contains("secret", StringComparison.Ordinal))
+            .Select(span => BuildAreaForSubstring(span, "secret"))
+            .ToArray();
+        Assert.Equal(2, areas.Length);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, areas);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        string raw = PdfEncoding.Latin1GetString(redacted);
+        int firstStart = raw.IndexOf("BT /F1 20 Tf 72 700 Td", StringComparison.Ordinal);
+        int secondStart = raw.IndexOf("BT /F1 20 Tf 72 650 Td", StringComparison.Ordinal);
+        int firstEnd = raw.IndexOf("ET", firstStart, StringComparison.Ordinal) + 2;
+        int secondEnd = raw.IndexOf("ET", secondStart, StringComparison.Ordinal) + 2;
+        Assert.True(firstStart >= 0 && firstEnd > firstStart && secondStart > firstEnd && secondEnd > secondStart);
+        string reordered = raw.Substring(0, firstStart) +
+            raw.Substring(secondStart, secondEnd - secondStart) + "\n" +
+            raw.Substring(firstStart, firstEnd - firstStart) +
+            raw.Substring(firstEnd, secondStart - firstEnd) +
+            raw.Substring(secondEnd);
+
+        PdfRedactionVerificationReport report = PdfRedactionVerification.VerifyAppliedPlan(
+            PdfEncoding.Latin1GetBytes(reordered),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(report.IsVerified);
+        Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
+    public void AppliedPlanVerificationRejectsReorderedPartialSurvivorsInsideNestedForm() {
+        byte[] source = BuildNestedFormWithTwoReviewedTextObjects();
+        PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
+        PdfRedactionArea[] areas = spans
+            .Where(static span => span.Text.Contains("secret", StringComparison.Ordinal))
+            .Select(span => BuildAreaForSubstring(span, "secret"))
+            .ToArray();
+        Assert.Equal(2, areas.Length);
+        PdfRedactionPlan plan = PdfRedactionPlanner.Plan(source, areas);
+        byte[] redacted = PdfRedactionApplier.Apply(source, plan);
+        PdfRedactionVerificationReport accepted = PdfRedactionVerification.VerifyAppliedPlan(
+            redacted,
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+        Assert.True(accepted.IsVerified, string.Join("; ", accepted.Issues.Select(static issue => issue.Message)));
+
+        string raw = PdfEncoding.Latin1GetString(redacted);
+        int firstStart = raw.IndexOf("BT /F1 20 Tf 0 0 Td", StringComparison.Ordinal);
+        int secondStart = raw.IndexOf("BT /F1 20 Tf 0 -40 Td", StringComparison.Ordinal);
+        int firstEnd = raw.IndexOf("ET", firstStart, StringComparison.Ordinal) + 2;
+        int secondEnd = raw.IndexOf("ET", secondStart, StringComparison.Ordinal) + 2;
+        Assert.True(firstStart >= 0 && firstEnd > firstStart && secondStart > firstEnd && secondEnd > secondStart);
+        string reordered = raw.Substring(0, firstStart) +
+            raw.Substring(secondStart, secondEnd - secondStart) + "\n" +
+            raw.Substring(firstStart, firstEnd - firstStart) +
+            raw.Substring(firstEnd, secondStart - firstEnd) +
+            raw.Substring(secondEnd);
+
+        PdfRedactionVerificationReport rejected = PdfRedactionVerification.VerifyAppliedPlan(
+            PdfEncoding.Latin1GetBytes(reordered),
+            plan,
+            new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
+
+        Assert.False(rejected.IsVerified);
+        Assert.Contains(rejected.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
+    }
+
+    [Fact]
     public void AppliedPlanVerificationRejectsMissingTextObjectWithExpectedSurvivors() {
         const string textObject = "BT\n/F1 20 Tf\n72 720 Td\n(Alpha secret Omega) Tj\nET";
         byte[] source = BuildTextContentRedactionSource(textObject);
@@ -619,9 +733,14 @@ public class PdfRedactionApplierTests {
         Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Apply_UsesFontSelectedByExtendedGraphicsStateBeforeFormInvocation() {
-        byte[] source = BuildExtGStateFontFormRedactionSource();
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    public void Apply_UsesFontSelectedByExtendedGraphicsStateBeforeFormInvocation(
+        bool indirectFontDictionary,
+        bool includeFontResource) {
+        byte[] source = BuildExtGStateFontFormRedactionSource(indirectFontDictionary, includeFontResource);
         var area = new PdfRedactionArea(1, 182D, 680D, 100D, 35D, "ExtGState-selected secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
@@ -655,6 +774,22 @@ public class PdfRedactionApplierTests {
             PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
             static value => value.Text.Contains("secret", StringComparison.Ordinal));
         Assert.Equal("Helvetica", span.BaseFont);
+        PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+        string text = PdfTextExtractor.ExtractAllText(redacted);
+
+        Assert.Contains("Alpha", text, StringComparison.Ordinal);
+        Assert.Contains("Omega", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Apply_PreservesPartialTextForHorizontalFormFontShadowingVerticalParentFont() {
+        byte[] source = BuildFormShadowingVerticalParentFont();
+        PdfTextSpan span = Assert.Single(
+            PdfReadDocument.Open(source).Pages[0].GetTextSpans(),
+            static value => value.Text.Contains("secret", StringComparison.Ordinal));
         PdfRedactionArea area = BuildAreaForSubstring(span, "secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
@@ -1061,10 +1196,33 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
-    private static byte[] BuildType0ToUnicodeSingleTextObjectRedactionSource(string text) {
+    private static byte[] BuildType0ToUnicodeSingleTextObjectRedactionSource(
+        string text,
+        string encoding = "/Identity-H",
+        string? encodingCMap = null) {
         string content = "BT\n/F1 20 Tf\n72 720 Td\n<" + EncodeTwoByteGlyphHex(text) + "> Tj\nET\n";
         string cmap = BuildTwoByteToUnicodeCMap(text);
         string widths = string.Join(" ", Enumerable.Repeat("600", text.Length));
+        var objects = new List<string> {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /AAAAAA+Composite /Encoding " + encoding + " /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(content)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap)),
+            "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AAAAAA+Composite /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 8 0 R /DW 600 /W [1 [" + widths + "]] >>\nendobj",
+            "8 0 obj\n<< /Type /FontDescriptor /FontName /AAAAAA+Composite /Flags 32 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 9 0 R >>\nendobj",
+            BuildStreamObject(9, Encoding.ASCII.GetBytes("embedded-font-program"))
+        };
+        if (encodingCMap != null) objects.Add(BuildStreamObject(10, Encoding.ASCII.GetBytes(encodingCMap)));
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildType0TextWithLeadingUndecodableGlyph() {
+        const string content = "BT\n/F1 20 Tf\n72 720 Td\n<0001000200030004000500060007> Tj\nET\n";
+        const string cmap = "/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n6 beginbfchar\n" +
+            "<0002> <0073>\n<0003> <0065>\n<0004> <0063>\n<0005> <0072>\n<0006> <0065>\n<0007> <0074>\n" +
+            "endbfchar\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\n";
         var objects = new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> >>\nendobj",
@@ -1072,9 +1230,7 @@ public class PdfRedactionApplierTests {
             "4 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /AAAAAA+Composite /Encoding /Identity-H /DescendantFonts [7 0 R] /ToUnicode 6 0 R >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(content)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap)),
-            "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AAAAAA+Composite /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /FontDescriptor 8 0 R /DW 600 /W [1 [" + widths + "]] >>\nendobj",
-            "8 0 obj\n<< /Type /FontDescriptor /FontName /AAAAAA+Composite /Flags 32 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 9 0 R >>\nendobj",
-            BuildStreamObject(9, Encoding.ASCII.GetBytes("embedded-font-program"))
+            "7 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /AAAAAA+Composite /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 600 /W [1 [600 600 600 600 600 600 600]] >>\nendobj"
         };
         return BuildPdf(objects, rootObjectNumber: 1);
     }
@@ -1151,18 +1307,18 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
-    private static byte[] BuildExtGStateFontFormRedactionSource() {
+    private static byte[] BuildExtGStateFontFormRedactionSource(bool indirectFontDictionary, bool includeFontResource) {
         const string pageContent = "/F1 4 Tf\n/GSFont gs\nq\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
         const string formContent = "BT\n0 0 Td\n(Alpha secret Omega) Tj\nET\n";
         var objects = new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
-            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R /F2 7 0 R >> /ExtGState << /GSFont 8 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R " + (includeFontResource ? "/F2 7 0 R " : string.Empty) + ">> /ExtGState << /GSFont 8 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
             "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
             BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
             BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 420 60]"),
             "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>\nendobj",
-            "8 0 obj\n<< /Type /ExtGState /Font [/F2 30] >>\nendobj"
+            "8 0 obj\n<< /Type /ExtGState /Font [" + (indirectFontDictionary ? "7 0 R" : "/F2") + " 30] >>\nendobj"
         };
         return BuildPdf(objects, rootObjectNumber: 1);
     }
@@ -1214,6 +1370,22 @@ public class PdfRedactionApplierTests {
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
+    private static byte[] BuildFormShadowingVerticalParentFont() {
+        const string pageContent = "q\n1 0 0 1 72 700 cm\n/Fm1 Do\nQ\n";
+        const string formContent = "BT /F1 20 Tf 0 0 Td (Alpha secret Omega) Tj ET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /XObject << /Fm1 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /VerticalParent /Encoding /Identity-V /DescendantFonts [8 0 R] >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(formContent), "/Type /XObject /Subtype /Form /BBox [0 0 320 60] /Resources << /Font << /F1 7 0 R >> >>"),
+            "7 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /VerticalParent /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 600 >>\nendobj"
+        };
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
     private static byte[] BuildNestedInheritedTextStateFormRedactionSource() {
         const string pageContent = "/F1 20 Tf\nq\n1 0 0 1 72 700 cm\n/FmOuter Do\nQ\n";
         const string outerFormContent = "12 Tc\n/FmInner Do\n";
@@ -1259,6 +1431,24 @@ public class PdfRedactionApplierTests {
             BuildStreamObject(7, Encoding.ASCII.GetBytes(innerFormContent), "/Type /XObject /Subtype /Form /BBox [0 0 220 40] /Resources << /Font << /F1 4 0 R >> >>")
         };
 
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildNestedFormWithTwoReviewedTextObjects() {
+        const string pageContent = "q 1 0 0 1 72 700 cm /FmOuter Do Q";
+        const string outerFormContent = "q 1 0 0 1 0 0 cm /FmInner Do Q";
+        const string innerFormContent =
+            "BT /F1 20 Tf 0 0 Td (First secret One) Tj ET\n" +
+            "BT /F1 20 Tf 0 -40 Td (Second secret Two) Tj ET";
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Resources << /XObject << /FmOuter 6 0 R >> >> /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            BuildStreamObject(5, Encoding.ASCII.GetBytes(pageContent)),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(outerFormContent), "/Type /XObject /Subtype /Form /BBox [0 -80 320 80] /Resources << /XObject << /FmInner 7 0 R >> >>"),
+            BuildStreamObject(7, Encoding.ASCII.GetBytes(innerFormContent), "/Type /XObject /Subtype /Form /BBox [0 -80 320 80] /Resources << /Font << /F1 4 0 R >> >>")
+        };
         return BuildPdf(objects, rootObjectNumber: 1);
     }
 
