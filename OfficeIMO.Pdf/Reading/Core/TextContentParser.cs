@@ -1121,9 +1121,15 @@ internal static class TextContentParser {
             double descent = Math.Max(0.001D, size * 0.25D);
             double height = Math.Max(0.001D, size + descent);
             Matrix2D textToPage = Matrix2D.Multiply(ctm, textMatrix);
-            var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
-            textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
-            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+            if (PdfPageClipPathBuilder.TryCreateTransformedRectangle(
+                    textToPage,
+                    left,
+                    textRise - descent,
+                    width,
+                    height,
+                    pageHeight,
+                    OfficeFillRule.NonZero,
+                    out PdfPageClipPath textClipPath)) {
                 textClippingBudget.ChargePath();
                 pendingTextClipPaths.Add(textClipPath);
             }

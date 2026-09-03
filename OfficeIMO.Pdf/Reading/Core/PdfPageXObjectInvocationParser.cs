@@ -664,9 +664,15 @@ internal static class PdfPageXObjectInvocationParser {
             double descent = Math.Max(0.001D, _textSize * 0.25D);
             double height = Math.Max(0.001D, _textSize + descent);
             Matrix2D textToPage = Matrix2D.Multiply(_state.Transform, _textMatrix);
-            var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
-            textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
-            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+            if (PdfPageClipPathBuilder.TryCreateTransformedRectangle(
+                    textToPage,
+                    left,
+                    _textRise - descent,
+                    width,
+                    height,
+                    _pageHeight,
+                    OfficeFillRule.NonZero,
+                    out PdfPageClipPath textClipPath)) {
                 _textClippingBudget.ChargePath();
                 _pendingTextClipPaths.Add(textClipPath);
             }
@@ -687,9 +693,15 @@ internal static class PdfPageXObjectInvocationParser {
             double descent = Math.Max(0.001D, _textSize * 0.25D);
             double height = Math.Max(0.001D, _textSize + descent);
             Matrix2D textToPage = Matrix2D.Multiply(_state.Transform, _textMatrix);
-            var textFrameBuilder = new PdfPageClipPathBuilder(_pageHeight);
-            textFrameBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
-            if (!textFrameBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textFrame)) {
+            if (!PdfPageClipPathBuilder.TryCreateTransformedRectangle(
+                    textToPage,
+                    left,
+                    _textRise - descent,
+                    width,
+                    height,
+                    _pageHeight,
+                    OfficeFillRule.NonZero,
+                    out PdfPageClipPath textFrame)) {
                 return true;
             }
             PdfPageClipPath visibleFrame = PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textFrame);

@@ -13,6 +13,34 @@ internal sealed class PdfPageClipPathBuilder {
         _pageHeight = pageHeight;
     }
 
+    internal static bool TryCreateTransformedRectangle(
+        Matrix2D transform,
+        double x,
+        double y,
+        double width,
+        double height,
+        double pageHeight,
+        OfficeFillRule fillRule,
+        out PdfPageClipPath clipPath) {
+        (double X, double Y) p0 = transform.Transform(x, y);
+        (double X, double Y) p1 = transform.Transform(x + width, y);
+        (double X, double Y) p2 = transform.Transform(x + width, y + height);
+        (double X, double Y) p3 = transform.Transform(x, y + height);
+        if (TryGetAxisAlignedRectangle(p0, p1, p2, p3, pageHeight, out double left, out double top, out double transformedWidth, out double transformedHeight)) {
+            clipPath = PdfPageClipPath.Rectangle(left, top, transformedWidth, transformedHeight);
+            return true;
+        }
+
+        OfficePathCommand[] commands = {
+            OfficePathCommand.MoveTo(ToOfficePoint(p0, pageHeight)),
+            OfficePathCommand.LineTo(ToOfficePoint(p1, pageHeight)),
+            OfficePathCommand.LineTo(ToOfficePoint(p2, pageHeight)),
+            OfficePathCommand.LineTo(ToOfficePoint(p3, pageHeight)),
+            OfficePathCommand.Close()
+        };
+        return PdfPageClipPath.TryCreatePath(commands, fillRule, out clipPath);
+    }
+
     public void AddRectanglePath(Matrix2D transform, double x, double y, double width, double height) {
         DiscardCurrentSubpathIfEmpty();
         var p0 = transform.Transform(x, y);
@@ -142,56 +170,71 @@ internal sealed class PdfPageClipPathBuilder {
             return false;
         }
 
-        double left = _path[0].X;
-        double right = left;
-        double top = ToTop(_path[0].Y);
-        double bottom = top;
-        if (!IsFinite(left) || !IsFinite(top)) return false;
-        for (int i = 1; i < 4; i++) {
-            double pointX = _path[i].X;
-            double pointY = ToTop(_path[i].Y);
-            if (!IsFinite(pointX) || !IsFinite(pointY)) return false;
-            if (pointX < left) left = pointX;
-            if (pointX > right) right = pointX;
-            if (pointY < top) top = pointY;
-            if (pointY > bottom) bottom = pointY;
-        }
-        width = right - left;
-        height = bottom - top;
-        if (width <= 0D || height <= 0D) {
-            return false;
-        }
+        return TryGetAxisAlignedRectangle(
+            _path[0],
+            _path[1],
+            _path[2],
+            _path[3],
+            _pageHeight,
+            out x,
+            out y,
+            out width,
+            out height);
+    }
 
-        int cornerMask = 0;
-        for (int i = 0; i < 4; i++) {
-            bool onVertical = NearlyEqual(_path[i].X, left) || NearlyEqual(_path[i].X, right);
-            double pointY = ToTop(_path[i].Y);
-            bool onHorizontal = NearlyEqual(pointY, top) || NearlyEqual(pointY, bottom);
-            if (!onVertical || !onHorizontal) {
-                return false;
-            }
-
-            (double X, double Y) next = _path[i + 1];
-            bool horizontalEdge = NearlyEqual(_path[i].Y, next.Y) && !NearlyEqual(_path[i].X, next.X);
-            bool verticalEdge = NearlyEqual(_path[i].X, next.X) && !NearlyEqual(_path[i].Y, next.Y);
-            if (!horizontalEdge && !verticalEdge) {
-                return false;
-            }
-
-            bool isLeft = NearlyEqual(_path[i].X, left);
-            bool isTop = NearlyEqual(pointY, top);
-            cornerMask |= isLeft
-                ? isTop ? 1 : 2
-                : isTop ? 4 : 8;
-        }
-
-        if (cornerMask != 15) {
-            return false;
-        }
-
+    private static bool TryGetAxisAlignedRectangle(
+        (double X, double Y) p0,
+        (double X, double Y) p1,
+        (double X, double Y) p2,
+        (double X, double Y) p3,
+        double pageHeight,
+        out double x,
+        out double y,
+        out double width,
+        out double height) {
+        double y0 = pageHeight - p0.Y;
+        double y1 = pageHeight - p1.Y;
+        double y2 = pageHeight - p2.Y;
+        double y3 = pageHeight - p3.Y;
+        double left = Math.Min(Math.Min(p0.X, p1.X), Math.Min(p2.X, p3.X));
+        double right = Math.Max(Math.Max(p0.X, p1.X), Math.Max(p2.X, p3.X));
+        double top = Math.Min(Math.Min(y0, y1), Math.Min(y2, y3));
+        double bottom = Math.Max(Math.Max(y0, y1), Math.Max(y2, y3));
         x = left;
         y = top;
-        return true;
+        width = right - left;
+        height = bottom - top;
+        if (!IsFinite(left) || !IsFinite(right) || !IsFinite(top) || !IsFinite(bottom) ||
+            width <= 0D || height <= 0D ||
+            !IsAxisAlignedEdge(p0, p1) ||
+            !IsAxisAlignedEdge(p1, p2) ||
+            !IsAxisAlignedEdge(p2, p3) ||
+            !IsAxisAlignedEdge(p3, p0)) {
+            return false;
+        }
+
+        int cornerMask = GetCornerBit(p0.X, y0, left, right, top, bottom) |
+            GetCornerBit(p1.X, y1, left, right, top, bottom) |
+            GetCornerBit(p2.X, y2, left, right, top, bottom) |
+            GetCornerBit(p3.X, y3, left, right, top, bottom);
+        return cornerMask == 15;
+    }
+
+    private static bool IsAxisAlignedEdge((double X, double Y) first, (double X, double Y) second) {
+        bool horizontal = NearlyEqual(first.Y, second.Y) && !NearlyEqual(first.X, second.X);
+        bool vertical = NearlyEqual(first.X, second.X) && !NearlyEqual(first.Y, second.Y);
+        return horizontal || vertical;
+    }
+
+    private static int GetCornerBit(double pointX, double pointY, double left, double right, double top, double bottom) {
+        bool isLeft = NearlyEqual(pointX, left);
+        bool isRight = NearlyEqual(pointX, right);
+        bool isTop = NearlyEqual(pointY, top);
+        bool isBottom = NearlyEqual(pointY, bottom);
+        if ((!isLeft && !isRight) || (!isTop && !isBottom)) return 0;
+        return isLeft
+            ? isTop ? 1 : 2
+            : isTop ? 4 : 8;
     }
 
     private void DiscardCurrentSubpathIfEmpty() {
@@ -210,7 +253,10 @@ internal sealed class PdfPageClipPathBuilder {
     }
 
     private OfficePoint ToOfficePoint((double X, double Y) point) =>
-        new OfficePoint(point.X, ToTop(point.Y));
+        ToOfficePoint(point, _pageHeight);
+
+    private static OfficePoint ToOfficePoint((double X, double Y) point, double pageHeight) =>
+        new OfficePoint(point.X, pageHeight - point.Y);
 
     private double ToTop(double y) => _pageHeight - y;
 
