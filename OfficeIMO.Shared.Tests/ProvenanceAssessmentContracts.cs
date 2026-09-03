@@ -209,6 +209,22 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void AssessmentRejectsProviderMutationOfThePrimarySnapshot() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "original", new UTF8Encoding(false));
+        try {
+            Assert.Throws<InvalidDataException>(() => OfficeProvenanceAssessment.InspectFile(
+                path,
+                signalDetectors: [new SnapshotReplacingDetector()]));
+        } finally {
+            File.Delete(path);
+        }
+#endif
+    }
+
+    [Fact]
     public void SnapshotAppliesTheManifestLimitPerExternalDependency() {
         string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
@@ -254,6 +270,40 @@ public sealed class ProvenanceAssessmentContracts {
                     report,
                     maximumDependencyBytes: 4,
                     maximumTotalBytes: 7));
+
+            Assert.Contains("expanded-data limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SnapshotSharesTheExpandedDataLimitWithHtmlStructuralInspection() {
+        string directory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string path = Path.Combine(directory, "page.html");
+        File.WriteAllText(
+            path,
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head>" +
+            "<body><img src=\"data:image/png;base64,AQIDBA==\"></body></html>",
+            new UTF8Encoding(false));
+        File.WriteAllBytes(Path.Combine(directory, "claim.c2pa"), [1, 2, 3, 4]);
+        try {
+            var options = new OfficeProvenanceOptions {
+                MaxAssetBytes = 4096,
+                MaxManifestBytes = 4096,
+                MaxExpandedContainerBytes = 7
+            };
+            OfficeProvenanceReport report = HtmlProvenance.InspectFile(path, options);
+            Assert.Equal(4, report.ExpandedInspectionBytes);
+            using OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(path, 4096);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                snapshot.CaptureExternalManifestDependencies(
+                    path,
+                    report,
+                    maximumDependencyBytes: 4096,
+                    maximumTotalBytes: options.MaxExpandedContainerBytes));
 
             Assert.Contains("expanded-data limit", exception.Message, StringComparison.OrdinalIgnoreCase);
         } finally {
@@ -386,6 +436,23 @@ public sealed class ProvenanceAssessmentContracts {
                 detected ? OfficeProvenanceSignalStatus.Detected : OfficeProvenanceSignalStatus.NotDetected);
         }
     }
+
+#if NET8_0_OR_GREATER
+    private sealed class SnapshotReplacingDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "snapshot-replacing";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+
+        public OfficeProvenanceSignalResult Detect(string filePath) {
+            string replacement = filePath + ".replacement";
+            File.WriteAllText(replacement, "replacement", new UTF8Encoding(false));
+            File.Move(replacement, filePath, overwrite: true);
+            return new OfficeProvenanceSignalResult(
+                Name,
+                SignalKind,
+                OfficeProvenanceSignalStatus.Detected);
+        }
+    }
+#endif
 
     private sealed class CancellingDetector : IOfficeProvenanceSignalDetector {
         private readonly CancellationTokenSource _cancellation;

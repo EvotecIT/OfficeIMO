@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Runtime.InteropServices;
 using System.Text;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Provenance;
@@ -338,6 +339,52 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentFailsClosedWhenAProviderReplacesThePrimarySnapshot() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
+        var detector = new ReplacingSnapshotDetector();
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(
+            provenanceVerifier: null,
+            provenanceSignalDetectors: [detector]).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(detector.Replaced);
+        Assert.False(result.Succeeded);
+        Assert.Contains("primary provenance snapshot changed", result.Summary, StringComparison.OrdinalIgnoreCase);
+#endif
+    }
+
+    [Fact]
+    public async Task AssessmentSharesExpandedDataBudgetWithExternalManifestCapture() {
+        using var scope = new TempScope();
+        string input = scope.Write(
+            "page.html",
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head>" +
+            "<body><img src=\"data:image/png;base64,AQIDBA==\"></body></html>");
+        scope.Write("claim.c2pa", "four");
+        var assessment = new OfficeProvenanceAssessmentOptions();
+        assessment.Structural.MaxExpandedContainerBytes = 7;
+        var verifier = new RelativeManifestVerifier();
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input,
+                Assessment = assessment
+            });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("expanded-data limit", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.False(verifier.SawRelativeManifest);
+    }
+
+    [Fact]
     public async Task DiskBackedSnapshotAcceptsWorkflowCeilingsAboveInt32() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("body"));
@@ -541,6 +588,25 @@ public sealed partial class OfficeProvenanceWorkflowTests {
                 Array.Empty<string>());
         }
     }
+
+#if NET8_0_OR_GREATER
+    private sealed class ReplacingSnapshotDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "replacing-snapshot";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+        internal bool Replaced { get; private set; }
+
+        public OfficeProvenanceSignalResult Detect(string filePath) {
+            string replacementPath = filePath + ".replacement";
+            File.WriteAllText(replacementPath, "replacement");
+            File.Move(replacementPath, filePath, overwrite: true);
+            Replaced = true;
+            return new OfficeProvenanceSignalResult(
+                Name,
+                SignalKind,
+                OfficeProvenanceSignalStatus.Detected);
+        }
+    }
+#endif
 
     private sealed class ReplacingStagedArtifactProgress : IProgress<OfficeWorkflowProgress> {
         private readonly string _directory;

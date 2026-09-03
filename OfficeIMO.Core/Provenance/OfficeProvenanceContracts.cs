@@ -99,10 +99,19 @@ public sealed class OfficeProvenanceReport {
     public OfficeProvenanceReport(
         OfficeProvenanceAssetFormat format,
         IReadOnlyList<OfficeProvenanceEvidence> evidence,
-        IReadOnlyList<string>? diagnostics = null) {
+        IReadOnlyList<string>? diagnostics = null)
+        : this(format, evidence, diagnostics, expandedInspectionBytes: 0) { }
+
+    internal OfficeProvenanceReport(
+        OfficeProvenanceAssetFormat format,
+        IReadOnlyList<OfficeProvenanceEvidence> evidence,
+        IReadOnlyList<string>? diagnostics,
+        long expandedInspectionBytes) {
+        if (expandedInspectionBytes < 0) throw new ArgumentOutOfRangeException(nameof(expandedInspectionBytes));
         Format = format;
         Evidence = new List<OfficeProvenanceEvidence>(evidence ?? throw new ArgumentNullException(nameof(evidence))).AsReadOnly();
         Diagnostics = new List<string>(diagnostics ?? Array.Empty<string>()).AsReadOnly();
+        ExpandedInspectionBytes = expandedInspectionBytes;
     }
 
     /// <summary>Gets the identified asset format.</summary>
@@ -111,6 +120,8 @@ public sealed class OfficeProvenanceReport {
     public IReadOnlyList<OfficeProvenanceEvidence> Evidence { get; }
     /// <summary>Gets structural diagnostics that did not prevent inspection.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+    /// <summary>Gets expanded bytes already consumed by structural inspection for shared assessment limits.</summary>
+    internal long ExpandedInspectionBytes { get; }
     /// <summary>Gets whether an embedded C2PA carrier was discovered.</summary>
     public bool HasC2paManifest {
         get {

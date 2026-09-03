@@ -143,6 +143,7 @@ public static class OfficeProvenanceAssessment {
                 options,
                 verifier,
                 detectors);
+            snapshot.VerifyPrimaryFile();
             if (hasExternalProviders) snapshot.VerifyExternalManifestDependencies();
             return assessment;
         }

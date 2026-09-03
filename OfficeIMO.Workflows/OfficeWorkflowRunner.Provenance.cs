@@ -113,6 +113,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         cancellationToken),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
+                inputSnapshot!.VerifyPrimaryFile(cancellationToken);
                 if (hasExternalProviders) inputSnapshot!.VerifyExternalManifestDependencies(cancellationToken);
                 inputSnapshot!.Dispose();
                 inputSnapshot = null;
@@ -141,6 +142,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
+            inputSnapshot!.VerifyPrimaryFile(cancellationToken);
             inputSnapshot!.Dispose();
             inputSnapshot = null;
 

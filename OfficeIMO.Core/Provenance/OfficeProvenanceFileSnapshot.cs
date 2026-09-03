@@ -16,16 +16,26 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private const uint UnixOwnerReadWriteMode = 0x180; // 0600
     private readonly string _directoryPath;
     private readonly FileStream _lease;
+    private readonly string _physicalIdentity;
+    private readonly byte[] _sha256;
     private readonly List<string> _dependentFiles = new List<string>();
     private readonly List<DependencySnapshot> _dependentSnapshots = new List<DependencySnapshot>();
     private bool _dependentLeasesDisposed;
     private bool _leaseDisposed;
     private bool _disposed;
 
-    private OfficeProvenanceFileSnapshot(string directoryPath, string filePath, long length, FileStream lease) {
+    private OfficeProvenanceFileSnapshot(
+        string directoryPath,
+        string filePath,
+        long length,
+        string physicalIdentity,
+        byte[] sha256,
+        FileStream lease) {
         _directoryPath = directoryPath;
         FilePath = filePath;
         Length = length;
+        _physicalIdentity = physicalIdentity;
+        _sha256 = sha256;
         _lease = lease;
     }
 
@@ -78,7 +88,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     targetDependency,
                     physicalSourceDirectory,
                     maximumDependencyBytes,
-                    maximumTotalBytes - capturedBytes,
+                    maximumTotalBytes - report.ExpandedInspectionBytes - capturedBytes,
                     cancellationToken);
                 capturedBytes += copiedBytes;
                 MakeReadOnly(targetDependency);
@@ -95,6 +105,31 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
         foreach (DependencySnapshot dependency in _dependentSnapshots) {
             dependency.Verify(cancellationToken);
+        }
+    }
+
+    /// <summary>Verifies that the primary snapshot stayed identical throughout owner and provider execution.</summary>
+    internal void VerifyPrimaryFile(CancellationToken cancellationToken = default) {
+        if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
+        try {
+            string physicalDirectory = OfficePathIdentity.ResolvePhysicalPath(_directoryPath);
+            using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(
+                FilePath,
+                physicalDirectory,
+                81920);
+            string identity = OfficePathIdentity.GetPhysicalIdentityKey(FilePath, stream.SafeFileHandle);
+            if (stream.Length != Length ||
+                !string.Equals(identity, _physicalIdentity, StringComparison.Ordinal) ||
+                !FixedTimeEquals(ComputeHash(stream, cancellationToken), _sha256)) {
+                throw new InvalidDataException(
+                    "The primary provenance snapshot changed while the operation was running.");
+            }
+        } catch (InvalidDataException) {
+            throw;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            throw new InvalidDataException(
+                "The primary provenance snapshot disappeared or became inaccessible while the operation was running.",
+                exception);
         }
     }
 
@@ -150,9 +185,23 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 FileMode.Open,
                 FileAccess.Read,
                 FileShare.Read,
-                1,
-                FileOptions.RandomAccess);
-            return new OfficeProvenanceFileSnapshot(directoryPath, filePath, copiedBytes, lease);
+                81920,
+                FileOptions.SequentialScan);
+            try {
+                string physicalIdentity = OfficePathIdentity.GetPhysicalIdentityKey(filePath, lease.SafeFileHandle);
+                byte[] sha256 = ComputeHash(lease, cancellationToken);
+                lease.Position = 0;
+                return new OfficeProvenanceFileSnapshot(
+                    directoryPath,
+                    filePath,
+                    copiedBytes,
+                    physicalIdentity,
+                    sha256,
+                    lease);
+            } catch {
+                lease.Dispose();
+                throw;
+            }
         } catch {
             Cleanup(filePath, directoryPath, throwIfSensitiveDataRemains: true);
             throw;
@@ -185,32 +234,43 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
         }
         long copiedBytes = 0;
-        using FileStream source = OfficePathIdentity.OpenRegularFileForRead(
-            sourcePath,
-            physicalSourceDirectory,
-            81920);
-        if (source.Length > maximumDependencyBytes) {
-            throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
+        FileStream source;
+        try {
+            source = OfficePathIdentity.OpenRegularFileForRead(
+                sourcePath,
+                physicalSourceDirectory,
+                81920);
+        } catch (InvalidDataException) {
+            throw;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            throw new InvalidDataException(
+                "The external provenance manifest could not be opened as a regular file within the source directory.",
+                exception);
         }
-        if (source.Length > remainingTotalBytes) {
-            throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
-        }
-        using var target = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.SequentialScan);
-        var buffer = new byte[81920];
-        int read;
-        while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
-            cancellationToken.ThrowIfCancellationRequested();
-            copiedBytes += read;
-            if (copiedBytes > maximumDependencyBytes) {
+        using (source) {
+            if (source.Length > maximumDependencyBytes) {
                 throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
             }
-            if (copiedBytes > remainingTotalBytes) {
+            if (source.Length > remainingTotalBytes) {
                 throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
             }
-            target.Write(buffer, 0, read);
+            using var target = new FileStream(targetPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, FileOptions.SequentialScan);
+            var buffer = new byte[81920];
+            int read;
+            while ((read = source.Read(buffer, 0, buffer.Length)) != 0) {
+                cancellationToken.ThrowIfCancellationRequested();
+                copiedBytes += read;
+                if (copiedBytes > maximumDependencyBytes) {
+                    throw new InvalidDataException("An external provenance manifest exceeds the configured manifest limit.");
+                }
+                if (copiedBytes > remainingTotalBytes) {
+                    throw new InvalidDataException("External provenance manifests exceed the configured expanded-data limit.");
+                }
+                target.Write(buffer, 0, read);
+            }
+            target.Flush(flushToDisk: true);
+            return copiedBytes;
         }
-        target.Flush(flushToDisk: true);
-        return copiedBytes;
     }
 
     private static bool TryResolveRelativeDependency(
@@ -363,7 +423,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                 81920,
                 FileOptions.SequentialScan);
             try {
-                byte[] sha256 = ComputeHash(lease, cancellationToken);
+                byte[] sha256 = OfficeProvenanceFileSnapshot.ComputeHash(lease, cancellationToken);
                 lease.Position = 0;
                 return new DependencySnapshot(path, lease.Length, sha256, lease);
             } catch {
@@ -382,7 +442,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
                     81920,
                     FileOptions.SequentialScan);
                 if (stream.Length != _length ||
-                    !FixedTimeEquals(ComputeHash(stream, cancellationToken), _sha256)) {
+                    !OfficeProvenanceFileSnapshot.FixedTimeEquals(
+                        OfficeProvenanceFileSnapshot.ComputeHash(stream, cancellationToken),
+                        _sha256)) {
                     throw new InvalidDataException(
                         "An external provenance manifest changed while the assessment was running.");
                 }
@@ -394,24 +456,24 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         }
 
         public void Dispose() => _lease.Dispose();
+    }
 
-        private static byte[] ComputeHash(Stream stream, CancellationToken cancellationToken) {
-            using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var buffer = new byte[81920];
-            int read;
-            while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
-                cancellationToken.ThrowIfCancellationRequested();
-                algorithm.AppendData(buffer, 0, read);
-            }
-            return algorithm.GetHashAndReset();
+    private static byte[] ComputeHash(Stream stream, CancellationToken cancellationToken) {
+        using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[81920];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            algorithm.AppendData(buffer, 0, read);
         }
+        return algorithm.GetHashAndReset();
+    }
 
-        private static bool FixedTimeEquals(byte[] left, byte[] right) {
-            if (left.Length != right.Length) return false;
-            int difference = 0;
-            for (int index = 0; index < left.Length; index++) difference |= left[index] ^ right[index];
-            return difference == 0;
-        }
+    private static bool FixedTimeEquals(byte[] left, byte[] right) {
+        if (left.Length != right.Length) return false;
+        int difference = 0;
+        for (int index = 0; index < left.Length; index++) difference |= left[index] ^ right[index];
+        return difference == 0;
     }
 
     private static Exception? TryEraseAndDeleteFile(string path) {

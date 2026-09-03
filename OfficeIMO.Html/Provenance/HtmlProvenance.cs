@@ -37,7 +37,11 @@ public static partial class HtmlProvenance {
         int embeddedAssetCount = 0;
         InspectEmbeddedImages(document, options, evidence, diagnostics, ref embeddedAssetCount, ref structuralEntries,
             ref expandedBytes, "HTML", srcDocDepth: 0);
-        return new OfficeProvenanceReport(OfficeProvenanceAssetFormat.Html, evidence.AsReadOnly(), diagnostics.AsReadOnly());
+        return new OfficeProvenanceReport(
+            OfficeProvenanceAssetFormat.Html,
+            evidence.AsReadOnly(),
+            diagnostics.AsReadOnly(),
+            expandedBytes);
     }
 
     private static void InspectManifestCarriers(
