@@ -31,7 +31,7 @@ Studio stores versioned user preferences under the operating system's local appl
 
 User-facing XAML, dialogs, file pickers, and capability notices resolve stable, feature-scoped resource keys through `IStudioLocalizer`. Document engines remain culture-neutral. A new translation adds satellite resources and a reviewed catalog entry rather than branching view models or document operations by language.
 
-Studio follows Avalonia's platform font selection and fallback instead of forcing a Windows-only typeface. Navigation and editing controls expose automation names, icon-only controls include help text, normal tab order follows the visual flow, and the shell supports the primary platform modifier for Open, Find, tab switching, tab closing, zoom, and fit commands. Page navigation also supports arrows, Page Up/Down, Home, and End.
+Studio follows Avalonia's platform font selection and fallback instead of forcing a Windows-only typeface. System, light, dark, and explicit high-contrast appearance preferences share the same semantic color resources. Navigation and editing controls expose automation names, icon-only controls include help text, normal tab order follows the visual flow, and the shell supports the primary platform modifier for Open, Find, tab switching, tab closing, zoom, and fit commands. Page navigation also supports arrows, Page Up/Down, Home, and End.
 
 Crash diagnostics stay local, bounded, and privacy-safe. They record stable event codes, runtime metadata, exception type/HResult, and sanitized stack frames. They do not record document contents, document names, document paths, or exception messages.
 
@@ -42,6 +42,7 @@ PowerForge owns the release matrix, signing, archives, generated Windows MSI, ch
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
 ./Build/Studio/Build-Studio.ps1 -Plan
+./Build/Studio/Build-Studio.ps1 -Target Studio.Windows -Runtime win-x64
 ```
 
 The initial update policy is manual: install a newer signed artifact over the stable application identity. Building artifacts never publishes them. See [`Build/Studio/README.md`](../Build/Studio/README.md) for runtime targets and the current native-package boundaries.
