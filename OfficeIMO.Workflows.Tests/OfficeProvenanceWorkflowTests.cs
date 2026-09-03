@@ -267,6 +267,48 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task BatchDoesNotEnumerateRequestsWhenAlreadyCancelled() {
+        int moveNextCount = 0;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        IEnumerable<OfficeProvenanceWorkflowRequest> Requests() {
+            moveNextCount++;
+            yield return new OfficeProvenanceWorkflowRequest { InputPath = "unused" };
+        }
+
+        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync(
+            Requests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Equal(0, moveNextCount);
+        Assert.Empty(results);
+    }
+
+    [Fact]
+    public async Task BatchStopsMaterializingWhenEnumerationCancels() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", "<html><body>body</body></html>");
+        int moveNextCount = 0;
+        using var cancellation = new CancellationTokenSource();
+
+        IEnumerable<OfficeProvenanceWorkflowRequest> Requests() {
+            moveNextCount++;
+            cancellation.Cancel();
+            yield return new OfficeProvenanceWorkflowRequest { InputPath = input };
+            moveNextCount++;
+            yield return new OfficeProvenanceWorkflowRequest { InputPath = input };
+        }
+
+        IReadOnlyList<OfficeProvenanceWorkflowResult> results = await new OfficeWorkflowRunner().RunProvenanceBatchAsync(
+            Requests(),
+            cancellationToken: cancellation.Token);
+
+        Assert.Equal(1, moveNextCount);
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, Assert.Single(results).Status);
+    }
+
+    [Fact]
     public async Task BatchRejectsDuplicateRemovalOutputsBeforeExecution() {
         using var scope = new TempScope();
         string first = scope.Write("first.html", HtmlWithExternalManifest("first"));
@@ -371,7 +413,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
-    public async Task PreCancelledBatchReturnsOneExplicitCancelledResult() {
+    public async Task PreCancelledBatchReturnsWithoutMaterializingRequests() {
         using var scope = new TempScope();
         string first = scope.Write("first.html", "<html><body>first</body></html>");
         string second = scope.Write("second.html", "<html><body>second</body></html>");
@@ -385,9 +427,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             ],
             cancellationToken: cancellation.Token);
 
-        OfficeProvenanceWorkflowResult result = Assert.Single(results);
-        Assert.Equal("first", result.RequestId);
-        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        Assert.Empty(results);
     }
 
     [Fact]

@@ -130,6 +130,9 @@ internal static class OfficeProvenancePackageMutation {
             options.SignatureMutationPolicy,
             options.EffectiveMaxOutputBytes,
             remainingExpandedBytes);
+        stripOptions.Limits.MaxAssetBytes = Math.Max(
+            options.Limits.MaxAssetBytes,
+            options.EffectiveMaxOutputBytes);
         OfficeProvenanceSignatureStripResult stripped = stripSignatures(previewData, stripOptions);
         if (!stripped.HadSignatures) {
             throw new InvalidOperationException("The package contains signature evidence that its owning adapter could not remove safely.");
@@ -137,7 +140,7 @@ internal static class OfficeProvenancePackageMutation {
         if (stripped.Data.SequenceEqual(previewData)) {
             throw new InvalidOperationException("The document reports signatures, but its owning package adapter could not remove them safely.");
         }
-        if (hasSignatures?.Invoke(stripped.Data, options) ?? OfficeProvenanceZip.HasPackageSignature(stripped.Data, options)) {
+        if (hasSignatures?.Invoke(stripped.Data, stripOptions) ?? OfficeProvenanceZip.HasPackageSignature(stripped.Data, stripOptions)) {
             throw new InvalidOperationException("The owning package adapter left signature evidence in the rewritten document.");
         }
         OfficeProvenanceBinary.EnsureOutputWithinLimit(stripped.Data.LongLength, options.EffectiveMaxOutputBytes);

@@ -31,10 +31,21 @@ internal static class OfficeProvenanceHtml {
             options.CancellationToken.ThrowIfCancellationRequested();
             int opening = html.IndexOf('<', index);
             if (opening < 0) break;
+            if (!bodyStarted && (inHead || (!headSeen && !headFinished)) &&
+                ContainsBodyText(html, index, opening)) {
+                inHead = false;
+                headFinished = true;
+                bodyStarted = true;
+            }
             if (StartsWith(html, opening, "<!--")) {
                 int commentEnd = html.IndexOf("-->", opening + 4, StringComparison.Ordinal);
                 if (commentEnd < 0) break;
                 index = commentEnd + 3;
+                continue;
+            }
+            if (opening + 1 < html.Length && (html[opening + 1] == '!' || html[opening + 1] == '?')) {
+                int declarationEnd = html.IndexOf('>', opening + 2);
+                index = declarationEnd < 0 ? html.Length : declarationEnd + 1;
                 continue;
             }
 
@@ -64,6 +75,12 @@ internal static class OfficeProvenanceHtml {
                 inHead = false;
                 headFinished = true;
                 continue;
+            }
+            if (!bodyStarted && (inHead || (!headSeen && !headFinished)) &&
+                IsBodyContentElement(tag.Name)) {
+                bodyStarted = true;
+                inHead = false;
+                headFinished = true;
             }
 
             bool isHeadAssociation = inHead || (!headSeen && !headFinished && !bodyStarted);
@@ -207,6 +224,28 @@ internal static class OfficeProvenanceHtml {
         }
         return false;
     }
+
+    private static bool ContainsBodyText(string html, int start, int end) {
+        for (int index = start; index < end; index++) {
+            char value = html[index];
+            if (value != '\t' && value != '\n' && value != '\f' && value != '\r' && value != ' ') return true;
+        }
+        return false;
+    }
+
+    private static bool IsBodyContentElement(string name) =>
+        !name.Equals("html", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("base", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("basefont", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("bgsound", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("link", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("meta", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("noframes", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("noscript", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("script", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("style", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("template", StringComparison.OrdinalIgnoreCase) &&
+        !name.Equals("title", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryReadTag(string html, int start, out HtmlTag tag) {
         tag = default;

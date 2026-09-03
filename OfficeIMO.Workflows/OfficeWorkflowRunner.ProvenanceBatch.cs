@@ -11,14 +11,16 @@ public sealed partial class OfficeWorkflowRunner {
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(requests);
         OfficeProvenanceWorkflowBatchOptions validatedOptions = (options ?? new OfficeProvenanceWorkflowBatchOptions()).CloneAndValidate();
-        OfficeProvenanceWorkflowRequest[] materialized = requests.Take(validatedOptions.MaximumRequests + 1).ToArray();
+        OfficeProvenanceWorkflowRequest[] materialized = MaterializeBatchRequests(
+            requests,
+            validatedOptions.MaximumRequests,
+            cancellationToken);
         if (materialized.Length > validatedOptions.MaximumRequests) {
             throw new ArgumentException(
                 $"The provenance batch exceeds the configured limit of {validatedOptions.MaximumRequests:N0} requests.",
                 nameof(requests));
         }
         materialized = PrepareBatchRemovalPaths(materialized, cancellationToken);
-        if (materialized.Length == 0) cancellationToken.ThrowIfCancellationRequested();
 
         var results = new List<OfficeProvenanceWorkflowResult>(materialized.Length);
         for (int index = 0; index < materialized.Length; index++) {
@@ -38,6 +40,22 @@ public sealed partial class OfficeWorkflowRunner {
             if (!validatedOptions.ContinueOnFailure && !result.Succeeded) break;
         }
         return results;
+    }
+
+    private static OfficeProvenanceWorkflowRequest[] MaterializeBatchRequests(
+        IEnumerable<OfficeProvenanceWorkflowRequest> requests,
+        int maximumRequests,
+        CancellationToken cancellationToken) {
+        if (cancellationToken.IsCancellationRequested) return Array.Empty<OfficeProvenanceWorkflowRequest>();
+        var materialized = new List<OfficeProvenanceWorkflowRequest>(maximumRequests + 1);
+        using IEnumerator<OfficeProvenanceWorkflowRequest> enumerator = requests.GetEnumerator();
+        while (materialized.Count <= maximumRequests) {
+            if (cancellationToken.IsCancellationRequested) break;
+            if (!enumerator.MoveNext()) break;
+            materialized.Add(enumerator.Current);
+            if (cancellationToken.IsCancellationRequested) break;
+        }
+        return materialized.ToArray();
     }
 
     internal static OfficeProvenanceWorkflowRequest[] PrepareBatchRemovalPaths(

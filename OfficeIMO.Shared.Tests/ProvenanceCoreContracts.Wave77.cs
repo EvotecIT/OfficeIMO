@@ -56,4 +56,41 @@ public sealed partial class ProvenanceCoreContracts {
 
         Assert.Equal(baseline.Data, bounded.Data);
     }
+
+    [Fact]
+    public void SignatureRecheckAllowsAValidOutputAboveTheInputLimit() {
+        byte[] package = CreateCompressedZip(
+            ("keep.bin", Encoding.UTF8.GetBytes("keep")),
+            ("META-INF/content_credential.c2pa", CreateManifestStore()));
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures,
+            MaxOutputBytes = package.LongLength + 1024
+        };
+        options.Limits.MaxAssetBytes = package.LongLength;
+        options.Limits.MaxManifestBytes = Math.Min(package.LongLength, 1024);
+        options.Limits.MaxExpandedContainerBytes = 1024 * 1024;
+        int signatureChecks = 0;
+
+        OfficeProvenanceRemovalResult result = OfficeProvenancePackageMutation.Remove(
+            package,
+            "document.zip",
+            options,
+            (preview, _) => {
+                var expanded = new byte[checked((int)options.Limits.MaxAssetBytes + 1)];
+                Buffer.BlockCopy(preview, 0, expanded, 0, preview.Length);
+                return new OfficeProvenanceSignatureStripResult(expanded, hadSignatures: true);
+            },
+            (candidate, inspectionOptions) => {
+                signatureChecks++;
+                if (signatureChecks == 1) return true;
+                Assert.True(candidate.LongLength > options.Limits.MaxAssetBytes);
+                Assert.True(candidate.LongLength <= inspectionOptions.Limits.MaxAssetBytes);
+                return false;
+            },
+            validateOpcMetadata: false);
+
+        Assert.Equal(options.Limits.MaxAssetBytes + 1, result.DataLength);
+        Assert.Equal(2, signatureChecks);
+        Assert.True(result.WereInvalidatedSignaturesRemoved);
+    }
 }
