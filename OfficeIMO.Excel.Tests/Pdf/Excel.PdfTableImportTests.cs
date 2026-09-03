@@ -1000,6 +1000,43 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_BandGroupingKeepsBaseSplitForAttachedSplitlessHeader() {
+        var headerSpans = new List<PdfCore.PdfTextSpan> {
+            new("Account", "F1", 10, 20, 700, 140, baseFont: "Helvetica-Bold"),
+            new("Total", "F1", 10, 165, 700, 80, baseFont: "Helvetica-Bold")
+        };
+
+        static PdfCore.TextLayoutEngine.TextLine Body(
+            double y,
+            string left,
+            double leftAdvance,
+            double rightX,
+            double rightAdvance,
+            string right) {
+            var spans = new List<PdfCore.PdfTextSpan> {
+                new(left, "F1", 10, 20, y, leftAdvance),
+                new(right, "F1", 10, rightX, y, rightAdvance)
+            };
+            return new PdfCore.TextLayoutEngine.TextLine(y, 20, rightX + rightAdvance, left + " " + right, spans);
+        }
+
+        var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
+            new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 245, "Account Total", headerSpans) },
+            new() { Body(680, "North", 80, 220, 40, "1250") },
+            new() { Body(660, "Western Europe", 155, 201, 59, "980") }
+        };
+
+        PdfCore.StructuredTable table = Assert.Single(
+            PdfCore.TableDetector.DetectTablesFromBands(bands),
+            static candidate => candidate.Kind == "band-group");
+
+        Assert.Equal(3, table.Rows.Count);
+        Assert.True(table.Columns[0].To > 165);
+        Assert.Equal(new[] { "Account", "Total" }, table.Rows[0]);
+        Assert.Equal(new[] { "Western Europe", "980" }, table.Rows[2]);
+    }
+
+    [Fact]
     public void PdfTables_BandGroupingStopsAtMultiLineEmphasizedHeaderBand() {
         static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
             string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";

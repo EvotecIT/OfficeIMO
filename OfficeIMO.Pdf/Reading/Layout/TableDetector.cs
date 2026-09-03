@@ -540,12 +540,17 @@ internal static partial class TableDetector {
                 }
                 effectiveSplits = alignedSplits;
             }
-            Dictionary<TextLayoutEngine.TextLine, List<double>>? bridgeSplits = null;
-            if (includedBridgeBandIndexes.Count > 0) {
-                bridgeSplits = new Dictionary<TextLayoutEngine.TextLine, List<double>>();
+            Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides = null;
+            if (headerLines is not null || includedBridgeBandIndexes.Count > 0) {
+                lineSplitOverrides = new Dictionary<TextLayoutEngine.TextLine, List<double>>();
+                if (headerLines is not null) {
+                    foreach (TextLayoutEngine.TextLine headerLine in headerLines) {
+                        lineSplitOverrides[headerLine] = baseSplits;
+                    }
+                }
                 foreach (int bridgeBandIndex in includedBridgeBandIndexes) {
                     foreach (TextLayoutEngine.TextLine bridgeLine in bands[bridgeBandIndex]) {
-                        bridgeSplits[bridgeLine] = baseSplits;
+                        lineSplitOverrides[bridgeLine] = baseSplits;
                     }
                 }
             }
@@ -553,7 +558,7 @@ internal static partial class TableDetector {
                 groupLines,
                 effectiveSplits,
                 "band-group",
-                bridgeSplits);
+                lineSplitOverrides);
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
                 HasValidatedRows(table, groupLines)) {
