@@ -275,6 +275,9 @@ public sealed partial class PdfLogicalPage {
             : analysis.RestrictLogicalProjectionToReadingOrder
                 ? GetRetainedProjectionRuns(retainedLines!, cancellationToken)
                 : analysis.DecodedRuns;
+        IReadOnlyList<PdfUnderstandingTableCandidate>? projectedTableCandidates = analysis is null
+            ? null
+            : GetProjectedTableCandidates(analysis, retainedRuns!, cancellationToken);
         var structured = analysis is null
             ? page.ExtractStructured(options)
             : page.ExtractStructured(
@@ -282,7 +285,10 @@ public sealed partial class PdfLogicalPage {
                 options,
                 cancellationToken,
                 analysis.ConsumeWork,
-                analysis.CancellationCheck);
+                analysis.CancellationCheck,
+                projectedTableCandidates!
+                    .Select(table => table.ToStructuredTable(analysis.ConsumeWork, analysis.CancellationCheck))
+                    .ToArray());
         if (analysis is not null) {
             ReplaceProjectionLines(page, structured, retainedLines!, cancellationToken);
         }
@@ -339,8 +345,10 @@ public sealed partial class PdfLogicalPage {
             elements.Add(leader);
         }
 
-        foreach (var table in structured.TablesDetailed) {
-            var logicalTable = PdfLogicalTable.From(pageNumber, table);
+        IEnumerable<PdfLogicalTable> logicalTables = analysis is null
+            ? structured.TablesDetailed.Select(table => PdfLogicalTable.From(pageNumber, table))
+            : projectedTableCandidates!.Select(table => PdfLogicalTable.From(pageNumber, table));
+        foreach (PdfLogicalTable logicalTable in logicalTables) {
             tables.Add(logicalTable);
             elements.Add(logicalTable);
         }
@@ -430,6 +438,42 @@ public sealed partial class PdfLogicalPage {
             }
         }
         return retained.AsReadOnly();
+    }
+
+    private static IReadOnlyList<PdfUnderstandingTableCandidate> GetProjectedTableCandidates(
+        PdfUnderstandingPageResult analysis,
+        IReadOnlyList<PdfTextSpan> retainedRuns,
+        CancellationToken cancellationToken) {
+        if (!analysis.RestrictLogicalProjectionToReadingOrder || analysis.TableCandidates.Count == 0) {
+            return analysis.TableCandidates;
+        }
+
+        var retained = new HashSet<PdfTextSpan>(retainedRuns);
+        var candidates = new List<PdfUnderstandingTableCandidate>(analysis.TableCandidates.Count);
+        for (int candidateIndex = 0; candidateIndex < analysis.TableCandidates.Count; candidateIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfUnderstandingTableCandidate candidate = analysis.TableCandidates[candidateIndex];
+            bool hasSourceRun = false;
+            bool isRetained = true;
+            for (int lineIndex = 0; lineIndex < candidate.SourceLines.Count && isRetained; lineIndex++) {
+                IReadOnlyList<PdfUnderstandingWord> words = candidate.SourceLines[lineIndex].Words;
+                for (int wordIndex = 0; wordIndex < words.Count && isRetained; wordIndex++) {
+                    IReadOnlyList<PdfTextSpan> sourceRuns = words[wordIndex].SourceRuns;
+                    for (int runIndex = 0; runIndex < sourceRuns.Count; runIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        hasSourceRun = true;
+                        if (!retained.Contains(sourceRuns[runIndex])) {
+                            isRetained = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (hasSourceRun && isRetained) candidates.Add(candidate);
+        }
+        return candidates.Count == analysis.TableCandidates.Count
+            ? analysis.TableCandidates
+            : candidates.AsReadOnly();
     }
 
     private static void ReplaceProjectionLines(

@@ -569,7 +569,8 @@ public static class PdfReadPageExtensions {
         PdfTextLayoutOptions? options,
         CancellationToken cancellationToken,
         Action<long>? consumeWork = null,
-        Action? cancellationCheck = null) {
+        Action? cancellationCheck = null,
+        IReadOnlyList<StructuredTable>? precomputedTables = null) {
         cancellationToken.ThrowIfCancellationRequested();
         cancellationCheck?.Invoke();
         var (_, pageHeight) = page.GetPageSize();
@@ -588,7 +589,8 @@ public static class PdfReadPageExtensions {
             engineOpts ?? new TextLayoutEngine.Options(),
             pageHeight,
             consumeWork,
-            cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested);
+            cancellationCheck ?? cancellationToken.ThrowIfCancellationRequested,
+            precomputedTables);
         cancellationToken.ThrowIfCancellationRequested();
         cancellationCheck?.Invoke();
         return result;

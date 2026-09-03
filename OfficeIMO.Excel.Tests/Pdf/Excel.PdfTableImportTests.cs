@@ -700,7 +700,9 @@ public partial class Excel {
     [InlineData("Metric", "FY2025")]
     [InlineData("Metric", "Q1")]
     [InlineData("Employee", "Salary")]
-    public void PdfTables_BandGroupingStopsAtANewEmphasizedHeader(string headerLeft, string headerRight) {
+    [InlineData("Kwartał", "Wartość")]
+    [InlineData("指標", "年度")]
+    public void PdfTables_BandGroupingStopsAtAStructurallySeparatedEmphasizedHeader(string headerLeft, string headerRight) {
         static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
             string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
             var spans = new List<PdfCore.PdfTextSpan> {
@@ -714,9 +716,9 @@ public partial class Excel {
             new() { Row(700, true, "Code", "Qty") },
             new() { Row(680, false, "A-100", "12") },
             new() { Row(660, false, "B-200", "14") },
-            new() { Row(640, true, headerLeft, headerRight) },
-            new() { Row(620, false, "Alpha", "22") },
-            new() { Row(600, false, "Beta", "24") }
+            new() { Row(625, true, headerLeft, headerRight) },
+            new() { Row(605, false, "Alpha", "22") },
+            new() { Row(585, false, "Beta", "24") }
         };
 
         List<PdfCore.StructuredTable> tables = PdfCore.TableDetector.DetectTablesFromBands(bands);
@@ -818,7 +820,12 @@ public partial class Excel {
     [InlineData("C-300", "Closed")]
     [InlineData("Enabled", "Yes")]
     [InlineData("Central", "N/A")]
-    public void PdfTables_BandGroupingKeepsEmphasizedDataRows(string label, string value) {
+    [InlineData("2025", "North")]
+    [InlineData("4100", "North")]
+    [InlineData("Q1", "Metric")]
+    [InlineData("٢٠٢٥", "المنطقة")]
+    [InlineData("年度", "東京")]
+    public void PdfTables_BandGroupingKeepsStructurallyAmbiguousEmphasizedRows(string label, string value) {
         static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
             string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
             var spans = new List<PdfCore.PdfTextSpan> {
@@ -974,9 +981,9 @@ public partial class Excel {
         var bands = new List<List<PdfCore.TextLayoutEngine.TextLine>> {
             new() { new PdfCore.TextLayoutEngine.TextLine(700, 20, 220, "Code Qty", attachedHeaderSpans) },
             new() { Row(680, false, "A-100", "12") },
-            new() { Row(660, true, "Name", "Total") },
-            new() { Row(640, false, "Alpha", "22") },
-            new() { Row(620, false, "Beta", "24") }
+            new() { Row(645, true, "Name", "Total") },
+            new() { Row(625, false, "Alpha", "22") },
+            new() { Row(605, false, "Beta", "24") }
         };
 
         PdfCore.StructuredTable[] grouped = PdfCore.TableDetector.DetectTablesFromBands(bands)
@@ -1195,9 +1202,9 @@ public partial class Excel {
             new() { Row(700, true, "Code", "Qty") },
             new() { Row(680, false, "A-100", "12") },
             new() { Row(660, false, "B-200", "14") },
-            new() { Row(640, true, "Account", "Annual"), Row(632, true, "Name", "Total") },
-            new() { Row(610, false, "North", "1250") },
-            new() { Row(590, false, "South", "980") }
+            new() { Row(625, true, "Account", "Annual"), Row(617, true, "Name", "Total") },
+            new() { Row(595, false, "North", "1250") },
+            new() { Row(575, false, "South", "980") }
         };
 
         PdfCore.StructuredTable[] grouped = PdfCore.TableDetector.DetectTablesFromBands(bands)
@@ -1373,6 +1380,7 @@ public partial class Excel {
         Assert.Equal(new[] { "Code", "Qty" }, tables[0].Rows[0]);
         Assert.Equal(new[] { "Name", "Total" }, tables[1].Rows[0]);
         Assert.All(tables, table => Assert.Equal("positioned-cells-bounded", table.Kind));
+        Assert.Empty(tables[0].SourceRuns.Intersect(tables[1].SourceRuns));
     }
 
     [Fact]

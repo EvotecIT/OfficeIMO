@@ -69,6 +69,8 @@ public sealed class PdfUnderstandingPageContext {
     public void ThrowIfCancellationRequested() => _workBudget.ThrowIfCancellationRequested();
     internal void CompleteOperation() => _workBudget.CompleteOperation();
     internal IReadOnlyList<PdfTextSpan> DecodedRuns { get; set; } = Array.Empty<PdfTextSpan>();
+    /// <summary>Table candidates available to page segmentation and later stages.</summary>
+    public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; internal set; } = Array.Empty<PdfUnderstandingTableCandidate>();
 }
 
 /// <summary>One decoded word candidate with source-run traceability.</summary>
@@ -232,7 +234,8 @@ public sealed class PdfUnderstandingPageResult {
         Action? cancellationCheck = null,
         Action? completeOperation = null,
         IReadOnlyList<PdfUnderstandingLine>? logicalProjectionLines = null,
-        bool restrictLogicalProjectionToReadingOrder = false) {
+        bool restrictLogicalProjectionToReadingOrder = false,
+        IReadOnlyList<PdfUnderstandingTableCandidate>? tableCandidates = null) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -242,6 +245,7 @@ public sealed class PdfUnderstandingPageResult {
         ReadingOrderEvidence = readingOrderEvidence;
         Elements = elements;
         Trace = trace;
+        TableCandidates = tableCandidates ?? Array.Empty<PdfUnderstandingTableCandidate>();
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
@@ -264,6 +268,8 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfReadingOrderEvidence> ReadingOrderEvidence { get; }
     /// <summary>Semantically classified ordered regions.</summary>
     public IReadOnlyList<PdfUnderstandingSemanticElement> Elements { get; }
+    /// <summary>Tables recovered before general page segmentation.</summary>
+    public IReadOnlyList<PdfUnderstandingTableCandidate> TableCandidates { get; }
     /// <summary>Stage execution trace.</summary>
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
@@ -273,6 +279,27 @@ public sealed class PdfUnderstandingPageResult {
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
     internal bool RestrictLogicalProjectionToReadingOrder { get; }
     internal void CompleteOperation() => _completeOperation?.Invoke();
+
+    internal PdfUnderstandingPageResult WithAdditionalTableCandidates(
+        IReadOnlyList<PdfUnderstandingTableCandidate> candidates) {
+        if (candidates.Count == 0) return this;
+        return new PdfUnderstandingPageResult(
+            PageNumber,
+            DecodedRuns,
+            Words,
+            Lines,
+            Regions,
+            ReadingOrder,
+            ReadingOrderEvidence,
+            Elements,
+            Trace,
+            ConsumeWork,
+            CancellationCheck,
+            _completeOperation,
+            LogicalProjectionLines,
+            RestrictLogicalProjectionToReadingOrder,
+            TableCandidates.Concat(candidates).ToArray());
+    }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(
         IReadOnlyList<PdfUnderstandingRegion> readingOrder) {
@@ -313,6 +340,11 @@ public interface IPdfWordGroupingStage {
 public interface IPdfLineGroupingStage {
     /// <summary>Groups words into line artifacts.</summary>
     IReadOnlyList<PdfUnderstandingLine> GroupLines(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingWord> words);
+}
+/// <summary>Detects table candidates before general page segmentation.</summary>
+public interface IPdfTableDetectionStage {
+    /// <summary>Returns table candidates and the source lines owned by each table.</summary>
+    IReadOnlyList<PdfUnderstandingTableCandidate> DetectTables(PdfUnderstandingPageContext context, IReadOnlyList<PdfUnderstandingLine> lines);
 }
 /// <summary>Segments page lines into regions.</summary>
 public interface IPdfPageSegmentationStage {

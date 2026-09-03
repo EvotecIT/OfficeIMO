@@ -12,6 +12,7 @@ public sealed class PdfUnderstandingPipelineOptions {
         GlyphDecoding = PdfAdvancedUnderstandingStages.GlyphDecoding,
         WordGrouping = PdfAdvancedUnderstandingStages.WordGrouping,
         LineGrouping = PdfAdvancedUnderstandingStages.LineGrouping,
+        TableDetection = PdfAdvancedUnderstandingStages.TableDetection,
         PageSegmentation = PdfAdvancedUnderstandingStages.PageSegmentation,
         ReadingOrder = PdfAdvancedUnderstandingStages.ReadingOrder,
         SemanticClassification = PdfAdvancedUnderstandingStages.SemanticClassification
@@ -23,6 +24,8 @@ public sealed class PdfUnderstandingPipelineOptions {
     public IPdfWordGroupingStage? WordGrouping { get; set; }
     /// <summary>Line grouping stage.</summary>
     public IPdfLineGroupingStage? LineGrouping { get; set; }
+    /// <summary>Table detection stage run before general page segmentation.</summary>
+    public IPdfTableDetectionStage? TableDetection { get; set; }
     /// <summary>Page segmentation stage.</summary>
     public IPdfPageSegmentationStage? PageSegmentation { get; set; }
     /// <summary>Reading-order stage.</summary>
@@ -39,6 +42,8 @@ public sealed class PdfUnderstandingPipelineOptions {
     public int MaxWordsPerPage { get; set; } = 100_000;
     /// <summary>Maximum grouped lines retained for one page.</summary>
     public int MaxLinesPerPage { get; set; } = 50_000;
+    /// <summary>Maximum table candidates retained for one page.</summary>
+    public int MaxTableCandidatesPerPage { get; set; } = 1_024;
     /// <summary>Maximum regions and semantic elements retained for one page.</summary>
     public int MaxRegionsPerPage { get; set; } = 10_000;
     /// <summary>Maximum comparison and traversal work performed by built-in stages for one page.</summary>
@@ -52,6 +57,7 @@ public sealed class PdfUnderstandingPipelineOptions {
             GlyphDecoding = source.GlyphDecoding ?? PdfAdvancedUnderstandingStages.GlyphDecoding,
             WordGrouping = source.WordGrouping ?? PdfAdvancedUnderstandingStages.WordGrouping,
             LineGrouping = source.LineGrouping ?? PdfAdvancedUnderstandingStages.LineGrouping,
+            TableDetection = source.TableDetection ?? PdfAdvancedUnderstandingStages.TableDetection,
             PageSegmentation = source.PageSegmentation ?? PdfAdvancedUnderstandingStages.PageSegmentation,
             ReadingOrder = source.ReadingOrder ?? PdfAdvancedUnderstandingStages.ReadingOrder,
             SemanticClassification = source.SemanticClassification ?? PdfAdvancedUnderstandingStages.SemanticClassification,
@@ -60,6 +66,7 @@ public sealed class PdfUnderstandingPipelineOptions {
             MaxTextCharactersPerPage = source.MaxTextCharactersPerPage,
             MaxWordsPerPage = source.MaxWordsPerPage,
             MaxLinesPerPage = source.MaxLinesPerPage,
+            MaxTableCandidatesPerPage = source.MaxTableCandidatesPerPage,
             MaxRegionsPerPage = source.MaxRegionsPerPage,
             MaxWorkUnitsPerPage = source.MaxWorkUnitsPerPage,
             MaxDocumentWorkUnits = source.MaxDocumentWorkUnits
@@ -72,6 +79,7 @@ internal sealed class PdfUnderstandingPipeline {
     private readonly IPdfGlyphDecodingStage _glyphDecoding;
     private readonly IPdfWordGroupingStage _wordGrouping;
     private readonly IPdfLineGroupingStage _lineGrouping;
+    private readonly IPdfTableDetectionStage _tableDetection;
     private readonly IPdfPageSegmentationStage _pageSegmentation;
     private readonly IPdfReadingOrderStage _readingOrder;
     private readonly IPdfSemanticClassificationStage _semanticClassification;
@@ -86,12 +94,14 @@ internal sealed class PdfUnderstandingPipeline {
         _glyphDecoding = effective.GlyphDecoding!;
         _wordGrouping = effective.WordGrouping!;
         _lineGrouping = effective.LineGrouping!;
+        _tableDetection = effective.TableDetection!;
         _pageSegmentation = effective.PageSegmentation!;
         _readingOrder = effective.ReadingOrder!;
         _semanticClassification = effective.SemanticClassification!;
         _restrictLogicalProjectionToReadingOrder =
             !ReferenceEquals(_wordGrouping, PdfAdvancedUnderstandingStages.WordGrouping) ||
             !ReferenceEquals(_lineGrouping, PdfAdvancedUnderstandingStages.LineGrouping) ||
+            !ReferenceEquals(_tableDetection, PdfAdvancedUnderstandingStages.TableDetection) ||
             !ReferenceEquals(_pageSegmentation, PdfAdvancedUnderstandingStages.PageSegmentation) ||
             !ReferenceEquals(_readingOrder, PdfAdvancedUnderstandingStages.ReadingOrder);
         _layout = layout ?? throw new ArgumentNullException(nameof(layout));
@@ -102,6 +112,7 @@ internal sealed class PdfUnderstandingPipeline {
         ValidateLimit(effective.MaxTextCharactersPerPage, nameof(effective.MaxTextCharactersPerPage));
         ValidateLimit(effective.MaxWordsPerPage, nameof(effective.MaxWordsPerPage));
         ValidateLimit(effective.MaxLinesPerPage, nameof(effective.MaxLinesPerPage));
+        ValidateLimit(effective.MaxTableCandidatesPerPage, nameof(effective.MaxTableCandidatesPerPage));
         ValidateLimit(effective.MaxRegionsPerPage, nameof(effective.MaxRegionsPerPage));
         ValidateLimit(effective.MaxWorkUnitsPerPage, nameof(effective.MaxWorkUnitsPerPage));
         ValidateLimit(effective.MaxDocumentWorkUnits, nameof(effective.MaxDocumentWorkUnits));
@@ -132,7 +143,7 @@ internal sealed class PdfUnderstandingPipeline {
             _limits.MaxWordsPerPage,
             _limits.MaxWorkUnitsPerPage,
             cancellationToken);
-        var trace = new List<PdfUnderstandingStageTrace>(6);
+        var trace = new List<PdfUnderstandingStageTrace>(7);
         IReadOnlyList<PdfTextSpan> runs = NotNull(_glyphDecoding.Decode(context), nameof(IPdfGlyphDecodingStage));
         cancellationToken.ThrowIfCancellationRequested();
         EnsureCount(runs.Count, _limits.MaxRunsPerPage);
@@ -157,6 +168,19 @@ internal sealed class PdfUnderstandingPipeline {
         EnsureCount(lines.Count, _limits.MaxLinesPerPage);
         cancellationToken.ThrowIfCancellationRequested();
         trace.Add(new PdfUnderstandingStageTrace("line-grouping", _lineGrouping.GetType(), words.Count, lines.Count));
+        IReadOnlyList<PdfUnderstandingTableCandidate> tableCandidates = NotNull(
+            _tableDetection.DetectTables(context, lines),
+            nameof(IPdfTableDetectionStage));
+        EnsureCount(tableCandidates.Count, _limits.MaxTableCandidatesPerPage);
+        EnsureTableCandidateArtifacts(
+            context,
+            tableCandidates,
+            _limits.MaxLinesPerPage,
+            _limits.MaxWordsPerPage,
+            _limits.MaxTextCharactersPerPage);
+        context.TableCandidates = tableCandidates;
+        cancellationToken.ThrowIfCancellationRequested();
+        trace.Add(new PdfUnderstandingStageTrace("table-detection", _tableDetection.GetType(), lines.Count, tableCandidates.Count));
         IReadOnlyList<PdfUnderstandingRegion> regions = NotNull(_pageSegmentation.Segment(context, lines), nameof(IPdfPageSegmentationStage));
         EnsureCount(regions.Count, _limits.MaxRegionsPerPage);
         cancellationToken.ThrowIfCancellationRequested();
@@ -184,7 +208,8 @@ internal sealed class PdfUnderstandingPipeline {
             context.ThrowIfCancellationRequested,
             context.CompleteOperation,
             logicalProjectionLines: null,
-            restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder);
+            restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder,
+            tableCandidates: tableCandidates);
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<PdfReadingOrderEvidence> BuildReadingOrderEvidence(IReadOnlyList<PdfUnderstandingRegion> ordered, Type providerType) {
@@ -221,5 +246,57 @@ internal sealed class PdfUnderstandingPipeline {
             total = checked(total + (value?.Length ?? 0));
             if (total > maximum) throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, total);
         }
+    }
+
+    private static void EnsureTableCandidateArtifacts(
+        PdfUnderstandingPageContext context,
+        IReadOnlyList<PdfUnderstandingTableCandidate> candidates,
+        int maximumLines,
+        int maximumCells,
+        int maximumCharacters) {
+        long rows = 0;
+        long cells = 0;
+        long sourceLines = 0;
+        long characters = 0;
+        for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+            context.ConsumeWork();
+            PdfUnderstandingTableCandidate candidate = candidates[candidateIndex]
+                ?? throw new InvalidOperationException(nameof(IPdfTableDetectionStage) + " returned a null table candidate.");
+            AddCharacters(candidate.DetectionKind);
+            EnsureCount(candidate.Columns.Count, maximumCells);
+            context.ConsumeWork(candidate.Columns.Count);
+            rows = AddAndEnsure(rows, candidate.Rows.Count, maximumLines);
+            sourceLines = AddAndEnsure(sourceLines, candidate.SourceLines.Count, maximumLines);
+            context.ConsumeWork(candidate.SourceLines.Count + 1L);
+            for (int rowIndex = 0; rowIndex < candidate.Rows.Count; rowIndex++) {
+                context.ConsumeWork();
+                IReadOnlyList<string> row = candidate.Rows[rowIndex];
+                cells = AddAndEnsure(cells, row.Count, maximumCells);
+                context.ConsumeWork(row.Count + 1L);
+                for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) AddCharacters(row[cellIndex]);
+            }
+            for (int evidenceIndex = 0; evidenceIndex < candidate.Evidence.Count; evidenceIndex++) {
+                context.ConsumeWork();
+                AddCharacters(candidate.Evidence[evidenceIndex].Code);
+                AddCharacters(candidate.Evidence[evidenceIndex].Message);
+            }
+        }
+
+        void AddCharacters(string? value) {
+            characters = AddAndEnsure(characters, value?.Length ?? 0, maximumCharacters);
+        }
+    }
+
+    private static long AddAndEnsure(long current, long additional, long maximum) {
+        long total;
+        try {
+            total = checked(current + additional);
+        } catch (OverflowException) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, long.MaxValue);
+        }
+        if (total > maximum) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximum, total);
+        }
+        return total;
     }
 }
