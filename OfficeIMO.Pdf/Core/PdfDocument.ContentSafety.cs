@@ -254,7 +254,7 @@ public sealed partial class PdfDocument {
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
                 (hiddenChoiceExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers, widgetAppearanceBudgets))) {
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSizePoints))) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
@@ -274,7 +274,7 @@ public sealed partial class PdfDocument {
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
                 (distinctStoredDefault ||
                  hiddenChoiceDefaultExportValue ||
-                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers, widgetAppearanceBudgets)) &&
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers, widgetAppearanceBudgets, builder.Options.MaximumTinyFontSizePoints)) &&
                 reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
@@ -319,7 +319,8 @@ public sealed partial class PdfDocument {
         int fieldIndex,
         bool defaultValue,
         HashSet<int> concealedAnnotationObjectNumbers,
-        Dictionary<int, PdfReadPage.WidgetAppearanceScanBudget> widgetAppearanceBudgets) {
+        Dictionary<int, PdfReadPage.WidgetAppearanceScanBudget> widgetAppearanceBudgets,
+        double maximumTinyFontSizePoints) {
         PdfFormField field = fields[fieldIndex];
         int? ownerKey = defaultValue
             ? field.DefaultValueOwnerKey
@@ -371,7 +372,8 @@ public sealed partial class PdfDocument {
                     document.Pages[pageIndex].DoesWidgetNormalAppearancePresentAllText(
                         widget.ObjectNumber.Value,
                         presentedValues,
-                        appearanceBudget)) {
+                        appearanceBudget,
+                        maximumTinyFontSizePoints)) {
                     return true;
                 }
             }

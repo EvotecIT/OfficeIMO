@@ -95,13 +95,14 @@ public sealed class PdfRedactionEvidenceReport {
         IReadOnlyList<PdfRedactionMatch> inconclusiveMatches,
         bool verificationPassed) {
         var items = new PdfRedactionEvidenceItem[reviewedMatches.Count];
+        var remainingResiduals = residualMatches.ToList();
         for (int i = 0; i < reviewedMatches.Count; i++) {
             PdfRedactionMatch reviewed = reviewedMatches[i];
-            PdfRedactionMatch[] residual = residualMatches
-                .Where(candidate => candidate.Kind == reviewed.Kind &&
-                    candidate.PageNumber == reviewed.PageNumber &&
-                    SameArea(candidate.Area, reviewed.Area))
-                .ToArray();
+            int residualIndex = remainingResiduals.FindIndex(candidate => SameReviewedItem(candidate, reviewed));
+            PdfRedactionMatch[] residual = residualIndex >= 0
+                ? new[] { remainingResiduals[residualIndex] }
+                : Array.Empty<PdfRedactionMatch>();
+            if (residualIndex >= 0) remainingResiduals.RemoveAt(residualIndex);
             bool explicitlyInconclusive = inconclusiveMatches.Contains(reviewed);
             PdfRedactionEvidenceStatus status = residual.Length > 0
                 ? PdfRedactionEvidenceStatus.Residual
@@ -120,6 +121,26 @@ public sealed class PdfRedactionEvidenceReport {
         Math.Abs(left.Y - right.Y) <= 0.001D &&
         Math.Abs(left.Width - right.Width) <= 0.001D &&
         Math.Abs(left.Height - right.Height) <= 0.001D;
+
+    private static bool SameReviewedItem(PdfRedactionMatch candidate, PdfRedactionMatch reviewed) {
+        const double tolerance = 0.01D;
+        if (candidate.Kind != reviewed.Kind ||
+            candidate.PageNumber != reviewed.PageNumber ||
+            !SameArea(candidate.Area, reviewed.Area) ||
+            Math.Abs(candidate.X - reviewed.X) > tolerance ||
+            Math.Abs(candidate.Y - reviewed.Y) > tolerance ||
+            Math.Abs(candidate.Width - reviewed.Width) > tolerance ||
+            Math.Abs(candidate.Height - reviewed.Height) > tolerance) {
+            return false;
+        }
+        if (candidate.Text is not null && reviewed.Text is not null &&
+            !string.Equals(candidate.Text, reviewed.Text, StringComparison.Ordinal)) return false;
+        if (candidate.Subtype is not null && reviewed.Subtype is not null &&
+            !string.Equals(candidate.Subtype, reviewed.Subtype, StringComparison.Ordinal)) return false;
+        if (candidate.ResourceName is not null && reviewed.ResourceName is not null &&
+            !string.Equals(candidate.ResourceName, reviewed.ResourceName, StringComparison.Ordinal)) return false;
+        return true;
+    }
 }
 
 /// <summary>Rewritten PDF bytes together with the selected mutation path and redaction evidence.</summary>

@@ -193,17 +193,18 @@ public sealed class PdfRedactionPlan {
         const int maximumDepth = 64;
         const int maximumContexts = 16384;
         var visited = new HashSet<(PdfStream Form, PdfDictionary Resources)>();
+        var formResourceIdentities = new HashSet<string>(StringComparer.Ordinal);
         int contextCount = 0;
 
         void AppendForms(PdfDictionary resources, int depth) {
             if (depth > maximumDepth) {
-                identity.Append("|R:Form:depth-limit");
+                formResourceIdentities.Add(":depth-limit");
                 return;
             }
             if (!resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ||
                 PdfObjectLookup.ResolveChain(objects, xObjectValue) is not PdfDictionary xObjects) return;
 
-            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
+            foreach (KeyValuePair<string, PdfObject> entry in xObjects.Items) {
                 if (PdfObjectLookup.ResolveChain(objects, entry.Value) is not PdfStream form ||
                     PdfObjectLookup.ResolveChain(objects, form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) is not PdfName { Name: "Form" }) continue;
 
@@ -212,30 +213,30 @@ public sealed class PdfRedactionPlan {
                     : null;
                 PdfDictionary effectiveResources = declaredResources ?? resources;
 
-                identity.Append("|R:Form:");
-                AppendIdentityString(identity, entry.Key);
-                identity.Append(":OC:");
+                var formIdentity = new System.Text.StringBuilder();
+                formIdentity.Append(":OC:");
                 PdfRedactionImageIdentity.AppendObjectGraph(
-                    identity,
+                    formIdentity,
                     form.Dictionary.Items.TryGetValue("OC", out PdfObject? optionalContent) ? optionalContent : null,
                     objects);
-                identity.Append(":Properties:");
+                formIdentity.Append(":Properties:");
                 PdfRedactionImageIdentity.AppendObjectGraph(
-                    identity,
+                    formIdentity,
                     effectiveResources.Items.TryGetValue("Properties", out PdfObject? properties) ? properties : null,
                     objects);
                 if (declaredResources != null) {
-                    identity.Append(":Font:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
-                    identity.Append(":ExtGState:");
-                    PdfRedactionImageIdentity.AppendObjectGraph(identity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
+                    formIdentity.Append(":Font:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("Font", out PdfObject? fonts) ? fonts : null, objects);
+                    formIdentity.Append(":ExtGState:");
+                    PdfRedactionImageIdentity.AppendObjectGraph(formIdentity, effectiveResources.Items.TryGetValue("ExtGState", out PdfObject? states) ? states : null, objects);
                 } else {
-                    identity.Append(":inherited");
+                    formIdentity.Append(":inherited");
                 }
+                formResourceIdentities.Add(formIdentity.ToString());
 
                 if (!visited.Add((form, effectiveResources))) continue;
                 if (++contextCount > maximumContexts) {
-                    identity.Append("|R:Form:context-limit");
+                    formResourceIdentities.Add(":context-limit");
                     return;
                 }
                 AppendForms(effectiveResources, depth + 1);
@@ -243,6 +244,9 @@ public sealed class PdfRedactionPlan {
         }
 
         AppendForms(pageResources, 0);
+        foreach (string formResourceIdentity in formResourceIdentities.OrderBy(static value => value, StringComparer.Ordinal)) {
+            identity.Append("|R:Form").Append(formResourceIdentity);
+        }
     }
 
     private static void AppendUnredactedPathIdentity(

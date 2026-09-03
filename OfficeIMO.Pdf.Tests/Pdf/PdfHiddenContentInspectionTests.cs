@@ -215,6 +215,8 @@ public sealed class PdfHiddenContentInspectionTests {
     [InlineData("/NeedAppearances false", "BT /F1 10 Tf 2 4 Td (PUBLIC-STALE-VALUE) Tj ET", true)]
     [InlineData("", "BT /F1 10 Tf 2 4 Td (CURRENT-SECRET-VALUE) Tj ET", false)]
     [InlineData("/NeedAppearances false", "BT /F1 10 Tf 2 4 Td 3 Tr (CURRENT-SECRET-VALUE) Tj ET", true)]
+    [InlineData("/NeedAppearances false", "q /GS0 gs BT /F1 10 Tf 2 4 Td (CURRENT-SECRET-VALUE) Tj ET Q", true)]
+    [InlineData("/NeedAppearances false", "BT /F1 0.5 Tf 2 4 Td (CURRENT-SECRET-VALUE) Tj ET", true)]
     [InlineData("/NeedAppearances false", "BT /F1 10 Tf 500 500 Td (CURRENT-SECRET-VALUE) Tj ET", true)]
     public void ContentSafetyRequiresCurrentTextWidgetAppearanceEvidence(string needAppearancesEntry, string? appearanceContent, bool shouldBeConcealed) {
         string appearanceEntry = appearanceContent is null ? string.Empty : " /AP << /N 8 0 R >>";
@@ -229,7 +231,7 @@ public sealed class PdfHiddenContentInspectionTests {
             "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4" + appearanceEntry + " >>\nendobj"
         };
         if (appearanceContent is not null) {
-            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 5 0 R >> >>", appearanceContent));
+            objects.Add(StreamObject(8, "/Type /XObject /Subtype /Form /BBox [0 0 200 20] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GS0 << /ca 0 >> >> >>", appearanceContent));
         }
         objects.Add("trailer\n<< /Root 1 0 R /Size " + (appearanceContent is null ? "8" : "9") + " >>");
         objects.Add("%%EOF");

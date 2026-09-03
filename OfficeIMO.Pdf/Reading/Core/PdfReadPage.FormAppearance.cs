@@ -6,7 +6,8 @@ public sealed partial class PdfReadPage {
     internal bool DoesWidgetNormalAppearancePresentAllText(
         int widgetObjectNumber,
         IReadOnlyList<string> expectedValues,
-        WidgetAppearanceScanBudget budget) {
+        WidgetAppearanceScanBudget budget,
+        double maximumTinyFontSizePoints) {
         if (!_objects.TryGetValue(widgetObjectNumber, out PdfIndirectObject? widgetObject) ||
             widgetObject.Value is not PdfDictionary widget ||
             !TryGetNormalAppearanceStream(widget, out PdfStream appearance)) {
@@ -49,7 +50,11 @@ public sealed partial class PdfReadPage {
 
             double pageHeight = GetPageSize().Height;
             string presentedText = string.Concat(spans
-                .Where(span => span.IsVisible && span.CanProjectCompleteText(pageHeight))
+                .Where(span => span.IsVisible &&
+                    span.Color?.A > 3 &&
+                    Math.Abs(span.Advance) > 0.01D &&
+                    span.FontSize > maximumTinyFontSizePoints &&
+                    span.CanProjectCompleteText(pageHeight))
                 .Select(static span => span.Text));
             for (int i = 0; i < expectedValues.Count; i++) {
                 string expected = expectedValues[i];
