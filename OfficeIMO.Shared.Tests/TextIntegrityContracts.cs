@@ -103,15 +103,27 @@ public sealed class TextIntegrityContracts {
 
     [Fact]
     public void StringInspectionObservesCancellationDuringTraversal() {
-        string text = new string('a', 16 * 1024 * 1024);
+        string text = new string('a', 32 * 1024 * 1024);
         using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(10));
-
-        Assert.Throws<OperationCanceledException>(() => OfficeTextIntegrityInspector.Inspect(
-            text,
-            new OfficeTextIntegrityOptions { MaxCharacters = text.Length },
-            "LargeText",
-            cancellation.Token));
+        using var started = new ManualResetEventSlim();
+        var canceller = new Thread(() => {
+            started.Set();
+            Thread.Sleep(1);
+            cancellation.Cancel();
+        }) {
+            IsBackground = true
+        };
+        canceller.Start();
+        started.Wait();
+        try {
+            Assert.Throws<OperationCanceledException>(() => OfficeTextIntegrityInspector.Inspect(
+                text,
+                new OfficeTextIntegrityOptions { MaxCharacters = text.Length },
+                "LargeText",
+                cancellation.Token));
+        } finally {
+            canceller.Join();
+        }
     }
 
     [Fact]

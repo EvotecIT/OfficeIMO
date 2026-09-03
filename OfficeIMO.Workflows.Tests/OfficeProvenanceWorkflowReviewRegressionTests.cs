@@ -843,6 +843,43 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Equal(existing, File.ReadAllText(output));
     }
 
+    [Fact]
+    public async Task OwnerStagingWriteAccessFailureUsesTheOutputFailureContract() {
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("owner output"));
+        string outputDirectory = Path.Combine(scope.Path, "read-only-output");
+        Directory.CreateDirectory(outputDirectory);
+        string output = Path.Combine(outputDirectory, "cleaned.html");
+        UnixFileMode originalMode = File.GetUnixFileMode(outputDirectory);
+        try {
+            File.SetUnixFileMode(outputDirectory, UnixFileMode.UserRead | UnixFileMode.UserExecute);
+            string permissionProbe = Path.Combine(outputDirectory, "permission-probe");
+            try {
+                File.WriteAllText(permissionProbe, "probe");
+                File.Delete(permissionProbe);
+                return;
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                // The platform enforces the directory mode, so exercise the real owner staging path.
+            }
+
+            OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+                new OfficeProvenanceWorkflowRequest {
+                    Operation = OfficeProvenanceWorkflowOperation.Remove,
+                    InputPath = input,
+                    OutputPath = output
+                });
+
+            Assert.False(result.Succeeded);
+            Assert.Equal(OfficeWorkflowFailureKind.OutputFailed, result.FailureKind);
+            Assert.Contains(
+                result.Diagnostics,
+                diagnostic => diagnostic.Code == "ProvenanceWorkflowFailed" && diagnostic.Stage == "output");
+        } finally {
+            File.SetUnixFileMode(outputDirectory, originalMode);
+        }
+    }
+
     [Theory]
     [InlineData(typeof(IOException))]
     [InlineData(typeof(UnauthorizedAccessException))]

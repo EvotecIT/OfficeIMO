@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Provenance;
@@ -148,7 +149,8 @@ public static class OfficeProvenanceAssessment {
                 structural,
                 options,
                 verifier,
-                detectors);
+                detectors,
+                textEncoding: structural.Format == OfficeProvenanceAssetFormat.Html ? Encoding.UTF8 : null);
             snapshot.VerifyPrimaryFile();
             if (hasExternalProviders) snapshot.VerifyExternalManifestDependencies();
             return assessment;
@@ -183,14 +185,16 @@ public static class OfficeProvenanceAssessment {
         OfficeProvenanceAssessmentOptions? options = null,
         IOfficeProvenanceVerifier? verifier = null,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
-        CancellationToken cancellationToken = default) => AssessFileCore(
+        CancellationToken cancellationToken = default,
+        Encoding? textEncoding = null) => AssessFileCore(
             snapshotFilePath,
             logicalFilePath,
             structural,
             options,
             verifier,
             signalDetectors,
-            cancellationToken);
+            cancellationToken,
+            textEncoding);
 
     private static OfficeProvenanceAssessmentReport AssessFileCore(
         string filePath,
@@ -199,7 +203,8 @@ public static class OfficeProvenanceAssessment {
         OfficeProvenanceAssessmentOptions? options,
         IOfficeProvenanceVerifier? verifier,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Encoding? textEncoding = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         string fullPath = Path.GetFullPath(filePath);
@@ -215,6 +220,7 @@ public static class OfficeProvenanceAssessment {
                 fullPath,
                 options.TextIntegrity,
                 logicalFullPath,
+                textEncoding,
                 cancellationToken);
             cancellationToken.ThrowIfCancellationRequested();
         }

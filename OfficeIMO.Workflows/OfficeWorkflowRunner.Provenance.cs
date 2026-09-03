@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
+using System.Text;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
 using static OfficeIMO.Workflows.OfficeProvenanceWorkflowAdapter;
@@ -46,10 +47,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             cancellationToken.ThrowIfCancellationRequested();
             failureStage = WorkflowFailureStage.Input;
             inputBytes = new FileInfo(validated.InputPath).Length;
-            EnforceInputLimit(validated.InputPath, inputBytes, validated.Limits);
+            long operationInputLimit = GetOperationInputLimit(validated);
+            EnforceInputLimit(validated.InputPath, inputBytes, operationInputLimit);
             inputSnapshot = OfficeProvenanceFileSnapshot.Capture(
                 validated.InputPath,
-                validated.Limits.MaximumInputBytes,
+                operationInputLimit,
                 cancellationToken);
             string operationInputPath = inputSnapshot.FilePath;
             inputBytes = inputSnapshot.Length;
@@ -115,6 +117,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) {
                 Report(progress, validated.Id, "assess", "Collecting optional verification and signal evidence", 0.55D);
+                Encoding? textEncoding = validated.Assessment.InspectTextIntegrity && IsTextLike(structural.Format)
+                    ? OfficeProvenanceWorkflowAdapter.ResolveTextEncoding(
+                        refinedOwner,
+                        structural.Format,
+                        operationInputPath,
+                        validated.Assessment.TextIntegrity.MaxEncodedBytes,
+                        cancellationToken)
+                    : null;
                 bool hasExternalProviders = _provenanceVerifier != null || _provenanceSignalDetectors.Count != 0;
                 if (hasExternalProviders) {
                     inputSnapshot!.CaptureExternalManifestDependencies(
@@ -132,7 +142,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         validated.Assessment,
                         _provenanceVerifier,
                         _provenanceSignalDetectors,
-                        cancellationToken),
+                        cancellationToken,
+                        textEncoding),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 inputSnapshot!.VerifyPrimaryFile(cancellationToken);
@@ -160,9 +171,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 Guid.NewGuid().ToString("N") + Path.GetExtension(validated.OutputPath));
             Report(progress, validated.Id, "remove", "Removing selected carriers through " + ownerPackage, 0.48D);
             failureStage = WorkflowFailureStage.Operation;
-            OfficeProvenanceRemovalResult removal = await Task.Run(
-                () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal, cancellationToken),
-                cancellationToken).ConfigureAwait(false);
+            OfficeProvenanceRemovalResult removal;
+            try {
+                removal = await Task.Run(
+                    () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal, cancellationToken),
+                    cancellationToken).ConfigureAwait(false);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                failureStage = WorkflowFailureStage.Output;
+                throw;
+            }
             cancellationToken.ThrowIfCancellationRequested();
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
             inputSnapshot!.Dispose();
@@ -773,6 +790,13 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         options.MaxEmbeddedAssets = Math.Min(removal.MaxEmbeddedAssets, removal.Limits.MaxEmbeddedAssets);
         return options;
     }
+
+    private static long GetOperationInputLimit(ValidatedProvenanceRequest request) => request.Operation switch {
+        OfficeProvenanceWorkflowOperation.Inspect => request.Inspection.MaxAssetBytes,
+        OfficeProvenanceWorkflowOperation.Assess => request.Assessment.Structural.MaxAssetBytes,
+        OfficeProvenanceWorkflowOperation.Remove => request.RemovalInputInspection.MaxAssetBytes,
+        _ => request.Limits.MaximumInputBytes
+    };
 
     private static OfficeProvenanceOptions CreateOutputInspectionOptions(
         OfficeProvenanceRemovalOptions removal) {

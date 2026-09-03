@@ -128,6 +128,18 @@ public static class OfficeTextIntegrityInspector {
         string filePath,
         OfficeTextIntegrityOptions? options,
         string? location,
+        CancellationToken cancellationToken) => InspectFile(
+            filePath,
+            options,
+            location,
+            encoding: null,
+            cancellationToken);
+
+    internal static OfficeTextIntegrityReport InspectFile(
+        string filePath,
+        OfficeTextIntegrityOptions? options,
+        string? location,
+        Encoding? encoding,
         CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         string fullPath = Path.GetFullPath(filePath);
@@ -140,7 +152,7 @@ public static class OfficeTextIntegrityInspector {
             data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxEncodedBytes, cancellationToken);
         }
         return Inspect(
-            DecodeText(data, options.MaxCharacters, cancellationToken),
+            DecodeText(data, options.MaxCharacters, encoding, cancellationToken),
             options,
             location ?? fullPath,
             cancellationToken);
@@ -309,10 +321,17 @@ public static class OfficeTextIntegrityInspector {
         if (options.MaxFindings <= 0) throw new ArgumentOutOfRangeException(nameof(options), "MaxFindings must be positive.");
     }
 
-    private static string DecodeText(byte[] data, int maximumCharacters, CancellationToken cancellationToken) {
-        Encoding encoding = StrictUtf8;
+    private static string DecodeText(
+        byte[] data,
+        int maximumCharacters,
+        Encoding? requestedEncoding,
+        CancellationToken cancellationToken) {
+        Encoding encoding = requestedEncoding ?? StrictUtf8;
         int offset = 0;
-        if (StartsWith(data, new byte[] { 0x00, 0x00, 0xFE, 0xFF })) {
+        if (requestedEncoding is not null) {
+            byte[] preamble = encoding.GetPreamble();
+            if (preamble.Length != 0 && StartsWith(data, preamble)) offset = preamble.Length;
+        } else if (StartsWith(data, new byte[] { 0x00, 0x00, 0xFE, 0xFF })) {
             encoding = new UTF32Encoding(true, true, true);
             offset = 4;
         } else if (StartsWith(data, new byte[] { 0xFF, 0xFE, 0x00, 0x00 })) {

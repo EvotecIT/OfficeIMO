@@ -60,6 +60,29 @@ internal static class ProvenanceOutput {
                 await writer.WriteLineAsync("  " + evidence.Carrier + " | " + evidence.Location + " | valid=" + evidence.IsStructurallyValid.ToString().ToLowerInvariant()).ConfigureAwait(false);
             }
         }
+        if (result.Assessment is not null) {
+            if (result.Assessment.Verification is not null) {
+                ProvenanceVerificationDto verification = result.Assessment.Verification;
+                await writer.WriteLineAsync("Verification: " + verification.ProviderName + " | status=" + verification.Status).ConfigureAwait(false);
+                foreach (string finding in verification.Findings) {
+                    await writer.WriteLineAsync("  Verification finding: " + finding).ConfigureAwait(false);
+                }
+            }
+            IReadOnlyList<ProvenanceTextFindingDto> textFindings = result.Assessment.TextIntegrity ?? Array.Empty<ProvenanceTextFindingDto>();
+            await writer.WriteLineAsync("Text integrity: " + textFindings.Count + " finding(s)").ConfigureAwait(false);
+            foreach (ProvenanceTextFindingDto finding in textFindings) {
+                await writer.WriteLineAsync(
+                    "  " + finding.Risk + " | " + finding.Kind + " | " + finding.UnicodeNotation +
+                    " | offset=" + finding.TextOffset + " | " + finding.Location).ConfigureAwait(false);
+            }
+            foreach (ProvenanceSignalDto signal in result.Assessment.ProviderSignals) {
+                await writer.WriteLineAsync(
+                    "Provider signal: " + signal.ProviderName + " | " + signal.SignalKind + " | status=" + signal.Status).ConfigureAwait(false);
+                foreach (string finding in signal.Findings) {
+                    await writer.WriteLineAsync("  Provider finding: " + finding).ConfigureAwait(false);
+                }
+            }
+        }
     }
 
     private static ProvenanceCapabilityDto ToDto(OfficeProvenanceWorkflowCapability capability) => new(

@@ -1496,6 +1496,27 @@ public static partial class HtmlProvenance {
         return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes, cancellationToken);
     }
 
+    internal static Encoding ResolveTextEncoding(
+        string filePath,
+        long maximumBytes,
+        CancellationToken cancellationToken) {
+        string fullPath = Path.GetFullPath(filePath);
+        using var stream = new FileStream(
+            fullPath,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.Read,
+            4096,
+            FileOptions.SequentialScan);
+        if (stream.Length > maximumBytes) {
+            throw new InvalidDataException("The HTML document exceeds the configured text-integrity byte limit.");
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        Encoding encoding = HtmlTextEncodingResolver.ResolveHtmlEncoding(stream);
+        cancellationToken.ThrowIfCancellationRequested();
+        return encoding;
+    }
+
     private static string DecodeHtml(byte[] data, out Encoding encoding, out bool hadPreamble) {
         using var stream = new MemoryStream(data, writable: false);
         encoding = HtmlTextEncodingResolver.ResolveHtmlEncoding(stream);

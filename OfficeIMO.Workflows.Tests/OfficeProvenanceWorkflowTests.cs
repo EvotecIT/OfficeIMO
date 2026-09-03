@@ -135,6 +135,46 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentUsesTheHtmlOwnersDeclaredLegacyEncodingForTextIntegrity() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "legacy.html");
+        byte[] prefix = Encoding.ASCII.GetBytes("<!doctype html><meta charset='windows-1252'><p>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</p>");
+        File.WriteAllBytes(input, prefix.Concat(new byte[] { 0xE9, 0xA0 }).Concat(suffix).ToArray());
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Contains(
+            result.Assessment!.TextIntegrity!.Findings,
+            finding => finding.Kind == OfficeTextIntegrityFindingKind.TypographicSpace && finding.CodePoint == 0x00A0);
+    }
+
+    [Fact]
+    public async Task AssessmentUsesTheSvgOwnersDeclaredXmlEncodingForTextIntegrity() {
+        using var scope = new TempScope();
+        string input = Path.Combine(scope.Path, "legacy.svg");
+        byte[] prefix = Encoding.ASCII.GetBytes("<?xml version='1.0' encoding='iso-8859-1'?><svg xmlns='http://www.w3.org/2000/svg'><text>caf");
+        byte[] suffix = Encoding.ASCII.GetBytes("</text></svg>");
+        File.WriteAllBytes(input, prefix.Concat(new byte[] { 0xE9, 0xA0 }).Concat(suffix).ToArray());
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Contains(
+            result.Assessment!.TextIntegrity!.Findings,
+            finding => finding.Kind == OfficeTextIntegrityFindingKind.TypographicSpace && finding.CodePoint == 0x00A0);
+    }
+
+    [Fact]
     public async Task RemoveStagesReopensAndPublishesThroughHtmlOwner() {
         using var scope = new TempScope();
         string input = scope.Write("page.html", HtmlWithExternalManifest("keep me"));
@@ -292,6 +332,41 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         Assert.True(result.Succeeded, result.Summary);
         Assert.True(File.Exists(output));
+    }
+
+    [Theory]
+    [InlineData(OfficeProvenanceWorkflowOperation.Inspect)]
+    [InlineData(OfficeProvenanceWorkflowOperation.Assess)]
+    [InlineData(OfficeProvenanceWorkflowOperation.Remove)]
+    public async Task OperationSpecificInputLimitRejectsBeforeSnapshotCapture(
+        OfficeProvenanceWorkflowOperation operation) {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", "<!doctype html><html><body>" + new string('x', 4096) + "</body></html>");
+        var request = new OfficeProvenanceWorkflowRequest {
+            Operation = operation,
+            InputPath = input,
+            OutputPath = operation == OfficeProvenanceWorkflowOperation.Remove
+                ? Path.Combine(scope.Path, "cleaned.html")
+                : null
+        };
+        switch (operation) {
+            case OfficeProvenanceWorkflowOperation.Inspect:
+                request.Inspection.MaxAssetBytes = 1024;
+                break;
+            case OfficeProvenanceWorkflowOperation.Assess:
+                request.Assessment.Structural.MaxAssetBytes = 1024;
+                break;
+            case OfficeProvenanceWorkflowOperation.Remove:
+                request.Removal.Limits.MaxAssetBytes = 1024;
+                break;
+        }
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(request);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("above the configured", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("byte limit", result.Summary, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code.EndsWith("Snapshot", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -8,6 +8,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Provenance;
 using OfficeIMO.Visio;
 using OfficeIMO.Word;
+using System.Text;
 
 namespace OfficeIMO.Workflows;
 
@@ -90,6 +91,21 @@ internal static class OfficeProvenanceWorkflowAdapter {
             ProvenanceOwner.Markdown => MarkdownProvenance.RemoveFile(inputPath, outputPath, options),
             _ => OfficeProvenanceRemover.RemoveFile(inputPath, outputPath, options)
         };
+    }
+
+    internal static Encoding? ResolveTextEncoding(
+        ProvenanceOwner owner,
+        OfficeProvenanceAssetFormat format,
+        string path,
+        long maximumBytes,
+        CancellationToken cancellationToken) {
+        if (owner == ProvenanceOwner.Html) {
+            return HtmlProvenance.ResolveTextEncoding(path, maximumBytes, cancellationToken);
+        }
+        if (owner == ProvenanceOwner.Core && format == OfficeProvenanceAssetFormat.Svg) {
+            return OfficeProvenanceXml.ResolveTextEncoding(path, maximumBytes, cancellationToken);
+        }
+        return null;
     }
 
     internal static bool SupportsCoreRemoval(OfficeProvenanceAssetFormat format) => format is

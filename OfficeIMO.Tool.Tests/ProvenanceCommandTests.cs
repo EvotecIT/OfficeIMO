@@ -1,4 +1,5 @@
 using System.Text.Json;
+using OfficeIMO.Provenance;
 using OfficeIMO.Tool.Commands.Provenance;
 using OfficeIMO.Workflows;
 using Xunit;
@@ -46,6 +47,30 @@ public sealed class ProvenanceCommandTests {
         using JsonDocument json = JsonDocument.Parse(result.Output);
         JsonElement findings = json.RootElement.GetProperty("assessment").GetProperty("textIntegrity");
         Assert.Contains(findings.EnumerateArray(), item => item.GetProperty("kind").GetString() == "BidirectionalControl");
+    }
+
+    [Fact]
+    public async Task AssessmentTextOutputIncludesVerificationIntegrityAndProviderEvidence() {
+        using var scope = new TestDirectory();
+        string input = scope.Write("page.html", "<!doctype html><html><body>review \u202Ethis</body></html>");
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(
+            new InvalidVerifier(),
+            [new InconclusiveDetector()]).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+        Assert.True(result.Succeeded, result.Summary);
+        using var output = new StringWriter();
+
+        await ProvenanceOutput.WriteResultAsync(output, result, ProvenanceOutputFormat.Text);
+
+        string text = output.ToString();
+        Assert.Contains("Verification: test-verifier | status=Invalid", text, StringComparison.Ordinal);
+        Assert.Contains("Verification finding: content binding failed", text, StringComparison.Ordinal);
+        Assert.Contains("PotentiallyDangerous | BidirectionalControl | U+202E", text, StringComparison.Ordinal);
+        Assert.Contains("Provider signal: test-detector | StatisticalTextWatermark | status=Inconclusive", text, StringComparison.Ordinal);
+        Assert.Contains("Provider finding: sample too short", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -250,6 +275,23 @@ public sealed class ProvenanceCommandTests {
     }
 
     private sealed record ToolResult(int ExitCode, string Output, string Error);
+
+    private sealed class InvalidVerifier : IOfficeProvenanceVerifier {
+        public string Name => "test-verifier";
+
+        public OfficeProvenanceVerificationResult Verify(
+            string filePath,
+            OfficeProvenanceVerificationOptions? options = null) =>
+            new(OfficeProvenanceVerificationStatus.Invalid, Name, ["content binding failed"]);
+    }
+
+    private sealed class InconclusiveDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "test-detector";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.StatisticalTextWatermark;
+
+        public OfficeProvenanceSignalResult Detect(string filePath) =>
+            new(Name, SignalKind, OfficeProvenanceSignalStatus.Inconclusive, ["sample too short"]);
+    }
 
     private sealed class FailureThenCancellationRunner : IOfficeProvenanceWorkflowRunner {
         private readonly string _missingPath;
