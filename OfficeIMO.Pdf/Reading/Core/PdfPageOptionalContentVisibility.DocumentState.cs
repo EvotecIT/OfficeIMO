@@ -25,35 +25,30 @@ internal sealed partial class PdfPageOptionalContentVisibility {
     internal static DocumentState CreateDocumentState(
         PdfDictionary? catalog,
         Dictionary<int, PdfIndirectObject> objects,
-        int maxExpressionDepth) {
+        int maxExpressionDepth,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         int effectiveMaxExpressionDepth = System.Math.Min(
             maxExpressionDepth,
             PdfReadLimits.DefaultMaxContentNestingDepth);
+        if (catalog == null || !catalog.Items.ContainsKey("OCProperties")) {
+            return new DocumentState(
+                objects,
+                new Dictionary<int, bool>(),
+                new HashSet<int>(),
+                effectiveMaxExpressionDepth,
+                hasUnsupportedViewUsageApplications: false);
+        }
+
         Dictionary<int, bool> groupVisibility = ReadGroupVisibility(
             catalog,
             objects,
+            cancellationToken,
             out bool hasUnsupportedViewUsageApplications);
         var hiddenObjectNumbers = new HashSet<int>();
         foreach (KeyValuePair<int, bool> entry in groupVisibility) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!entry.Value) {
-                hiddenObjectNumbers.Add(entry.Key);
-            }
-        }
-
-        var visitedReferences = new HashSet<int>();
-        foreach (KeyValuePair<int, PdfIndirectObject> entry in objects) {
-            if (hiddenObjectNumbers.Contains(entry.Key)) {
-                continue;
-            }
-
-            visitedReferences.Clear();
-            if (IsOptionalContentObjectHidden(
-                    entry.Value.Value,
-                    groupVisibility,
-                    objects,
-                    visitedReferences,
-                    effectiveMaxExpressionDepth,
-                    depth: 0)) {
                 hiddenObjectNumbers.Add(entry.Key);
             }
         }

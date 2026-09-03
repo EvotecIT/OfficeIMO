@@ -11,11 +11,16 @@ internal static partial class PdfDocumentSemanticEnricher {
         PdfUnderstandingWorkBudget workBudget) {
         if (graph is null) return;
 
-        var selectedPageIndexes = new Dictionary<int, int>(selectedPageNumbers.Length);
+        var selectedPageIndexes = new Dictionary<int, List<int>>(selectedPageNumbers.Length);
         var contentIndexes = new TaggedPageContentIndex?[selectedPageNumbers.Length];
         for (int pageIndex = 0; pageIndex < selectedPageNumbers.Length; pageIndex++) {
             workBudget.Consume();
-            selectedPageIndexes.Add(selectedPageNumbers[pageIndex], pageIndex);
+            int pageNumber = selectedPageNumbers[pageIndex];
+            if (!selectedPageIndexes.TryGetValue(pageNumber, out List<int>? pageIndexes)) {
+                pageIndexes = new List<int>(1);
+                selectedPageIndexes.Add(pageNumber, pageIndexes);
+            }
+            pageIndexes.Add(pageIndex);
         }
 
         var additionsByPage = new List<PdfUnderstandingTableCandidate>?[pages.Count];
@@ -37,31 +42,35 @@ internal static partial class PdfDocumentSemanticEnricher {
 
             foreach (IGrouping<int, TaggedTableRow> pageRows in taggedRows.GroupBy(static row => row.PageNumber)) {
                 workBudget.Consume();
-                if (!selectedPageIndexes.TryGetValue(pageRows.Key, out int pageIndex)) continue;
+                if (!selectedPageIndexes.TryGetValue(pageRows.Key, out List<int>? pageIndexes)) continue;
                 TaggedTableRow[] sourceRows = pageRows.ToArray();
                 workBudget.Consume(sourceRows.Length);
                 if (sourceRows.Length < 2) continue;
 
-                TaggedPageContentIndex index = contentIndexes[pageIndex] ??=
-                    new TaggedPageContentIndex(
-                        document.Pages[pageRows.Key - 1],
-                        pages[pageIndex],
+                for (int occurrenceIndex = 0; occurrenceIndex < pageIndexes.Count; occurrenceIndex++) {
+                    workBudget.Consume();
+                    int pageIndex = pageIndexes[occurrenceIndex];
+                    TaggedPageContentIndex index = contentIndexes[pageIndex] ??=
+                        new TaggedPageContentIndex(
+                            document.Pages[pageRows.Key - 1],
+                            pages[pageIndex],
+                            workBudget);
+                    PdfUnderstandingTableCandidate? candidate = BuildTaggedTableCandidate(
+                        sourceRows,
+                        columnCount,
+                        index,
                         workBudget);
-                PdfUnderstandingTableCandidate? candidate = BuildTaggedTableCandidate(
-                    sourceRows,
-                    columnCount,
-                    index,
-                    workBudget);
-                if (candidate is null) continue;
+                    if (candidate is null) continue;
 
-                List<PdfUnderstandingTableCandidate> additions = additionsByPage[pageIndex] ??=
-                    new List<PdfUnderstandingTableCandidate>();
-                additions.Add(candidate);
-                if (additions.Count > maximumArtifactsPerPage) {
-                    throw PdfReadLimitException.Create(
-                        PdfReadLimitKind.UnderstandingArtifacts,
-                        maximumArtifactsPerPage,
-                        additions.Count);
+                    List<PdfUnderstandingTableCandidate> additions = additionsByPage[pageIndex] ??=
+                        new List<PdfUnderstandingTableCandidate>();
+                    additions.Add(candidate);
+                    if (additions.Count > maximumArtifactsPerPage) {
+                        throw PdfReadLimitException.Create(
+                            PdfReadLimitKind.UnderstandingArtifacts,
+                            maximumArtifactsPerPage,
+                            additions.Count);
+                    }
                 }
             }
         }

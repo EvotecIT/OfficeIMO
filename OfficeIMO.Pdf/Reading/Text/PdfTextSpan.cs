@@ -77,9 +77,37 @@ public sealed class PdfTextSpan {
         OfficeColor? color = null,
         bool isVisible = true,
         double rotationDegrees = 0D,
-        string? baseFont = null,
-        int? fontWeight = null,
-        int? fontDescriptorFlags = null)
+        string? baseFont = null)
+        : this(
+            text,
+            fontResource,
+            fontSize,
+            x,
+            y,
+            advance,
+            color,
+            isVisible,
+            rotationDegrees,
+            baseFont,
+            null,
+            fontWeight: null,
+            fontDescriptorFlags: null) {
+    }
+
+    /// <summary>Creates a new text span with explicit PDF font descriptor style evidence.</summary>
+    public PdfTextSpan(
+        string text,
+        string fontResource,
+        double fontSize,
+        double x,
+        double y,
+        double advance,
+        OfficeColor? color,
+        bool isVisible,
+        double rotationDegrees,
+        string? baseFont,
+        int? fontWeight,
+        int? fontDescriptorFlags)
         : this(
             text,
             fontResource,

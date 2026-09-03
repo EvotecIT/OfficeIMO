@@ -536,6 +536,24 @@ public sealed partial class PdfReadPage {
         return GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
     }
 
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(
+        int pageNumber,
+        int maximumPlacements,
+        Action<long> consumeWork,
+        Action cancellationCheck) {
+#pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
+        if (maximumPlacements < 0) throw new ArgumentOutOfRangeException(nameof(maximumPlacements));
+#pragma warning restore CA1512
+        Guard.NotNull(consumeWork, nameof(consumeWork));
+        Guard.NotNull(cancellationCheck, nameof(cancellationCheck));
+        return GetImagePlacements(
+            pageNumber,
+            includeHiddenOptionalContent: false,
+            maximumPlacements: maximumPlacements,
+            consumeWork: consumeWork,
+            cancellationCheck: cancellationCheck);
+    }
+
     internal IReadOnlyList<PdfImagePlacement> GetImagePlacementsIncludingHiddenOptionalContent(int pageNumber) {
         IReadOnlyList<PdfImagePlacement> visible = GetImagePlacements(pageNumber, includeHiddenOptionalContent: false);
         IReadOnlyList<PdfImagePlacement> all = GetImagePlacements(pageNumber, includeHiddenOptionalContent: true);
@@ -551,7 +569,13 @@ public sealed partial class PdfReadPage {
             .ToArray();
     }
 
-    private IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber, bool includeHiddenOptionalContent) {
+    private IReadOnlyList<PdfImagePlacement> GetImagePlacements(
+        int pageNumber,
+        bool includeHiddenOptionalContent,
+        int maximumPlacements = int.MaxValue,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
         var placements = new List<PdfImagePlacement>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -559,8 +583,19 @@ public sealed partial class PdfReadPage {
         var pageContentBudget = new PageContentBudget(this);
 
         string content = GetContentStreamContent(pageContentBudget);
+        cancellationCheck?.Invoke();
         if (content.Length > 0) {
-            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
+            Action? operationCheck = consumeWork is null && cancellationCheck is null
+                ? null
+                : () => {
+                    cancellationCheck?.Invoke();
+                    consumeWork?.Invoke(1L);
+                };
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(
+                content,
+                pageResources,
+                operationCheck);
+            cancellationCheck?.Invoke();
             CollectImagePlacementsAndForms(
                 content,
                 pageResources,
@@ -572,7 +607,10 @@ public sealed partial class PdfReadPage {
                 includeHiddenOptionalContent: includeHiddenOptionalContent,
                 pageContentBudget: pageContentBudget,
                 contentOrderPrefix: PdfContentOrderKey.Root,
-                invokedResourceNames: invokedResources);
+                invokedResourceNames: invokedResources,
+                maximumPlacements: maximumPlacements,
+                consumeWork: consumeWork,
+                cancellationCheck: cancellationCheck);
         }
 
         return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
@@ -955,14 +993,25 @@ public sealed partial class PdfReadPage {
         int? inheritedMarkedContentId = null,
         int? inheritedMarkedContentStreamObjectNumber = null,
         bool inheritedArtifactContent = false,
-        PdfPageInvokedResourceNames? invokedResourceNames = null) {
+        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        int maximumPlacements = int.MaxValue,
+        Action<long>? consumeWork = null,
+        Action? cancellationCheck = null) {
+        cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         textClippingBudget ??= new PdfTextClippingBudget();
+        Action? operationCheck = consumeWork is null && cancellationCheck is null
+            ? null
+            : () => {
+                cancellationCheck?.Invoke();
+                consumeWork?.Invoke(1L);
+            };
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ??
+            GetInvokedResourceNames(content, resources, operationCheck);
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -991,7 +1040,9 @@ public sealed partial class PdfReadPage {
                      outputIntentColorTransform: EffectiveOutputIntentColorTransform,
                      textClippingBudget: textClippingBudget,
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-                     mcidForProperty: propertyName => GetMarkedContentMcid(resources, propertyName))) {
+                     mcidForProperty: propertyName => GetMarkedContentMcid(resources, propertyName),
+                     operationCheck: operationCheck)) {
+            cancellationCheck?.Invoke();
             Matrix2D invocationTransform = invocation.Transform;
             PdfContentOrderKey? invocationOrder = contentOrderPrefix?.Append(invocation.SourceOperatorIndex);
             bool effectiveArtifactContent = inheritedArtifactContent || invocation.IsArtifactContent;
@@ -1026,7 +1077,7 @@ public sealed partial class PdfReadPage {
                     objects: _objects,
                     markedContentId: effectiveMarkedContentId,
                     contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber);
-                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
+                AddPlacement(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
@@ -1063,7 +1114,7 @@ public sealed partial class PdfReadPage {
                     objects: _objects,
                     markedContentId: effectiveMarkedContentId,
                     contentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber);
-                placements.Add(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
+                AddPlacement(invocationOrder == null ? placement : placement.WithContentOrderKey(invocationOrder));
                 continue;
             }
 
@@ -1090,7 +1141,9 @@ public sealed partial class PdfReadPage {
                 }
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formDict);
+                cancellationCheck?.Invoke();
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(pageContentBudget.Decode(formStream)), formDict);
+                cancellationCheck?.Invoke();
                 CollectImagePlacementsAndForms(
                     formContent,
                     formResources,
@@ -1122,10 +1175,25 @@ public sealed partial class PdfReadPage {
                     contentStreamObjectNumber: formObjectNumber,
                     inheritedMarkedContentId: effectiveMarkedContentId,
                     inheritedMarkedContentStreamObjectNumber: effectiveMarkedContentStreamObjectNumber,
-                    inheritedArtifactContent: effectiveArtifactContent);
+                    inheritedArtifactContent: effectiveArtifactContent,
+                    maximumPlacements: maximumPlacements,
+                    consumeWork: consumeWork,
+                    cancellationCheck: cancellationCheck);
             } finally {
                 activeForms.Remove(formStream);
             }
+        }
+
+        void AddPlacement(PdfImagePlacement placement) {
+            cancellationCheck?.Invoke();
+            consumeWork?.Invoke(1L);
+            if (placements.Count >= maximumPlacements) {
+                throw PdfReadLimitException.Create(
+                    PdfReadLimitKind.UnderstandingArtifacts,
+                    maximumPlacements,
+                    (long)placements.Count + 1L);
+            }
+            placements.Add(placement);
         }
     }
 

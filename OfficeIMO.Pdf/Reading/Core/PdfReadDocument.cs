@@ -65,7 +65,8 @@ public sealed partial class PdfReadDocument {
         _optionalContentVisibilityState = PdfPageOptionalContentVisibility.CreateDocumentState(
             _catalog,
             _objects,
-            _options.Limits.MaxContentNestingDepth);
+            _options.Limits.MaxContentNestingDepth,
+            cancellationToken);
         _outputIntentColorTransform = PdfOutputIntentColorTransform.TryCreate(
             _catalog,
             _objects,

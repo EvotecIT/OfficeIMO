@@ -229,8 +229,11 @@ internal sealed class PdfUnderstandingPipeline {
             MaxTableCandidatesPerPage = _limits.MaxTableCandidatesPerPage,
             MaxImageCaptionCandidatesPerPage = _limits.MaxImageCaptionCandidatesPerPage
         };
-        context.ImagePlacements = page.GetImagePlacements(pageNumber);
-        EnsureCount(context.ImagePlacements.Count, _limits.MaxImageRegionsPerPage);
+        context.ImagePlacements = page.GetImagePlacements(
+            pageNumber,
+            _limits.MaxImageRegionsPerPage,
+            context.ConsumeWork,
+            context.ThrowIfCancellationRequested);
         return context;
     }
 

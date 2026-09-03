@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.TestAssets;
 using Xunit;
@@ -7,6 +8,49 @@ using Xunit;
 namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfFontInspectionTests {
+    [Fact]
+    public void TextSpanConstructors_PreserveLegacyAbiAndExposeExplicitFontDescriptorEvidence() {
+        Type[] legacySignature = {
+            typeof(string),
+            typeof(string),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(OfficeColor?),
+            typeof(bool),
+            typeof(double),
+            typeof(string)
+        };
+        Type[] descriptorSignature = legacySignature
+            .Concat(new[] { typeof(int?), typeof(int?) })
+            .ToArray();
+
+        Assert.NotNull(typeof(PdfTextSpan).GetConstructor(legacySignature));
+        Assert.NotNull(typeof(PdfTextSpan).GetConstructor(descriptorSignature));
+
+        var legacy = new PdfTextSpan("Legacy", "F1", 12D, 10D, 20D);
+        var descriptor = new PdfTextSpan(
+            "Declared",
+            "F1",
+            12D,
+            10D,
+            20D,
+            24D,
+            null,
+            true,
+            0D,
+            "NeutralFamily",
+            700,
+            96);
+
+        Assert.Null(legacy.FontWeight);
+        Assert.Equal(700, descriptor.FontWeight);
+        Assert.Equal(96, descriptor.FontDescriptorFlags);
+        Assert.True(descriptor.IsBold);
+        Assert.True(descriptor.IsItalic);
+    }
+
     [Fact]
     public void FontInspectionDiagnosticCodes_PreserveStableLegacyValues() {
         Assert.Equal(0, (int)PdfFontInspectionDiagnosticCode.MissingBaseFont);

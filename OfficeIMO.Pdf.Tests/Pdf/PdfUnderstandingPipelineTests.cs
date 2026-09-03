@@ -738,6 +738,42 @@ public class PdfUnderstandingPipelineTests {
     }
 
     [Fact]
+    public void ImagePlacementDiscovery_ChargesWorkAndObservesCancellationDuringContentTraversal() {
+        byte[] pdf = BuildClassicPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] " +
+                "/Resources << /XObject << /Im0 5 0 R >> >> /Contents 4 0 R >>",
+            BuildStreamBody(string.Empty,
+                "q 120 0 0 60 72 180 cm /Im0 Do Q\n" +
+                "q 120 0 0 60 72 100 cm /Im0 Do Q\n"),
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB " +
+                "/BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 7 >>\nstream\nFF0000>\nendstream");
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+        PdfReadPage page = Assert.Single(document.Pages);
+        var budget = new PdfUnderstandingWorkBudget(3, CancellationToken.None);
+
+        PdfReadLimitException budgetException = Assert.Throws<PdfReadLimitException>(() =>
+            page.GetImagePlacements(1, 10, budget.Consume, budget.ThrowIfCancellationRequested));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingWork, budgetException.Kind);
+        Assert.Equal(3, budgetException.Limit);
+        Assert.True(budgetException.Actual > budgetException.Limit);
+
+        using var cancellation = new CancellationTokenSource();
+        int cancellationPolls = 0;
+        Assert.Throws<OperationCanceledException>(() => page.GetImagePlacements(
+            1,
+            10,
+            static _ => { },
+            () => {
+                if (++cancellationPolls == 5) cancellation.Cancel();
+                cancellation.Token.ThrowIfCancellationRequested();
+            }));
+        Assert.Equal(5, cancellationPolls);
+    }
+
+    [Fact]
     public void StructuredPipeline_BoundsImageCaptionCandidateEdgesBeforeSorting() {
         byte[] pdf = BuildClassicPdf(
             "<< /Type /Catalog /Pages 2 0 R >>",
@@ -1629,7 +1665,7 @@ public class PdfUnderstandingPipelineTests {
             Read(pdf, CreatePassThroughPipeline(new BudgetChargingGlyphStage(101), 100)));
         Assert.Equal(PdfReadLimitKind.UnderstandingWork, exception.Kind);
         Assert.Equal(100, exception.Limit);
-        Assert.Equal(101, exception.Actual);
+        Assert.True(exception.Actual > exception.Limit);
     }
 
     [Fact]
@@ -2216,6 +2252,36 @@ public class PdfUnderstandingPipelineTests {
         Assert.Equal(new[] { "B-02", "PL", "980.25", "Done" }, candidate.Rows[2]);
         Assert.Equal(candidate.Rows.Select(static row => row.ToArray()), table.Rows.Select(static row => row.ToArray()));
         Assert.DoesNotContain(table.Rows.SelectMany(static row => row), static cell => cell == "1200");
+    }
+
+    [Fact]
+    public void StructuredRead_ProjectsTaggedTablesForEveryRepeatedPageSelection() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .TaggedPdfCatalogMarkers()
+            .Canvas(canvas => canvas
+                .Structure(PdfCanvasStructureRole.Table, table => table
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Metric", 40D, 100D, 80D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableHeaderCell, cell => cell.Text("Value", 160D, 100D, 80D, 16D)))
+                    .Structure(PdfCanvasStructureRole.TableRow, row => row
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("Quality", 40D, 120D, 80D, 16D))
+                        .Structure(PdfCanvasStructureRole.TableCell, cell => cell.Text("High", 160D, 120D, 80D, 16D)))))
+            .ToBytes();
+
+        PdfDocumentReadResult result = PdfDocument.Load(pdf).Read(new PdfReadOptions {
+            PageSelection = PdfPageSelection.From(1, 1)
+        });
+
+        Assert.Equal(2, result.Pages.Count);
+        Assert.All(result.Pages, page => {
+            PdfUnderstandingTableCandidate candidate = Assert.Single(page.Analysis.TableCandidates);
+            Assert.Equal("tagged-structure", candidate.DetectionKind);
+            Assert.Equal(new[] { "Metric", "Value" }, candidate.Rows[0]);
+            Assert.Equal(new[] { "Quality", "High" }, candidate.Rows[1]);
+            Assert.Single(page.Tables);
+        });
+        Assert.NotSame(result.Pages[0].Analysis.TableCandidates[0], result.Pages[1].Analysis.TableCandidates[0]);
+        Assert.NotSame(result.Pages[0].Tables[0], result.Pages[1].Tables[0]);
     }
 
     [Fact]

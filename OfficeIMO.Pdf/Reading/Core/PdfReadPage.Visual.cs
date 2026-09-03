@@ -1939,7 +1939,8 @@ public sealed partial class PdfReadPage {
 
     private PdfPageInvokedResourceNames GetInvokedResourceNames(
         string content,
-        PdfDictionary? resources) {
+        PdfDictionary? resources,
+        Action? operationCheck = null) {
         var names = new PdfPageInvokedResourceNames();
         Dictionary<string, PdfPageColorSpace> placeholders = GetColorSpaceResourcePlaceholders(resources);
         (double Width, double Height) pageSize = GetVisualPageSize();
@@ -1965,16 +1966,18 @@ public sealed partial class PdfReadPage {
                     : PdfType3PaintChannels.Visible;
             },
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name));
+            visibleColorSpaceVisitor: name => names.ColorSpaces.Add(name),
+            operationCheck: operationCheck);
         return names;
     }
 
     private PdfPageInvokedResourceNames GetRootInvokedResourceNames(
         string content,
-        PdfDictionary? resources) {
+        PdfDictionary? resources,
+        Action? operationCheck = null) {
         lock (_rootInvokedResourceNamesSync) {
             if (!_rootInvokedResourceNamesInitialized) {
-                _rootInvokedResourceNames = GetInvokedResourceNames(content, resources);
+                _rootInvokedResourceNames = GetInvokedResourceNames(content, resources, operationCheck);
                 _rootInvokedResourceNamesInitialized = true;
             }
 
