@@ -227,7 +227,9 @@ public class PdfRedactionApplierTests {
             new PdfRedactionVerificationOptions { RequireCompleteStreamInspection = true });
 
         Assert.True(report.IsVerified, string.Join("; ", report.Issues.Select(static issue => issue.Message)));
-        Assert.Equal("AZ", PdfTextExtractor.ExtractAllText(redacted).Trim());
+        // Removing a painted glyph preserves its advance, so the remaining glyphs have a visible
+        // word-sized gap. Extraction must retain that geometric boundary without guessing a word.
+        Assert.Equal("A Z", PdfTextExtractor.ExtractAllText(redacted).Trim());
     }
 
     [Fact]
