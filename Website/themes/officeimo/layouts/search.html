@@ -37,14 +37,14 @@
   {{ include "header" }}
 
   <main id="content" class="imo-main imo-main--page">
-    <section class="imo-search">
+    <section class="imo-search" data-webmcp-site-search data-webmcp-tool-name="search_site" data-webmcp-tool-description="Search OfficeIMO documentation, API references, articles, and examples." data-webmcp-search-index="/search/index.json">
       <div class="imo-container">
         <div class="imo-search__panel">
           <div class="imo-search__intro">
             <h1 class="imo-page__title">{{ page.title }}</h1>
             <p class="imo-page__description">{{ page.description }}</p>
           </div>
-          <input id="imo-search-query" class="imo-search__input" type="search" autocomplete="off" placeholder="Search docs, APIs, blog posts, products, and pages" />
+          <input id="imo-search-query" class="imo-search__input" type="search" autocomplete="off" placeholder="Search docs, APIs, blog posts, products, and pages" data-search-page-input />
           <div id="imo-search-meta" class="imo-search__meta">Loading search index...</div>
           <div id="imo-search-results" class="imo-search__results"></div>
         </div>
@@ -56,6 +56,7 @@
 
   {{ assets.js_html }}
   <script src="/js/search-page.js"></script>
+  <script src="/assets/powerforge/webmcp-site-search.v1.js" defer data-powerforge-webmcp></script>
   {{ extra_scripts_html }}
 </body>
 </html>
