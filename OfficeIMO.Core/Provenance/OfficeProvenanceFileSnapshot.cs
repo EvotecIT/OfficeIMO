@@ -12,6 +12,7 @@ namespace OfficeIMO.Provenance;
 /// <summary>Owns one bounded, private, read-only file snapshot used by multi-stage provenance operations.</summary>
 internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private const uint UnixOwnerDirectoryMode = 0x1C0; // 0700
+    private const uint UnixOwnerReadExecuteDirectoryMode = 0x140; // 0500
     private const uint UnixOwnerReadOnlyMode = 0x100; // 0400
     private const uint UnixOwnerReadWriteMode = 0x180; // 0600
     private readonly string _directoryPath;
@@ -23,6 +24,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
     private readonly List<DependencySnapshot> _dependentSnapshots = new List<DependencySnapshot>();
     private bool _dependentLeasesDisposed;
     private bool _leaseDisposed;
+    private bool _directorySealed;
     private bool _disposed;
 
     private OfficeProvenanceFileSnapshot(
@@ -61,45 +63,65 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         if (maximumDependencyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDependencyBytes));
         if (maximumTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTotalBytes));
 
-        string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
-        string sourceDirectoryIdentity = _usesPhysicalIdentity
-            ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
-            : Path.GetFullPath(sourceDirectory);
-        long capturedBytes = 0;
-        var capturedTargets = new HashSet<string>(StringComparer.Ordinal);
-        foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
-                     item.IsStructurallyValid &&
-                     item.Carrier == OfficeProvenanceCarrierKind.C2paExternalManifest &&
-                     !string.IsNullOrWhiteSpace(item.Value))) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (!TryResolveRelativeDependency(
-                    sourceDirectory,
-                    _directoryPath,
-                    FilePath,
-                    report.GetExternalManifestReference(evidence)!,
-                    out string sourceDependency,
-                    out string targetDependency) ||
-                !capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||
-                !File.Exists(sourceDependency)) continue;
+        bool resealDirectory = _directorySealed;
+        if (resealDirectory) MakeSnapshotDirectoriesWritable();
+        try {
+            string sourceDirectory = Path.GetDirectoryName(Path.GetFullPath(sourcePath))!;
+            string sourceDirectoryIdentity = _usesPhysicalIdentity
+                ? OfficePathIdentity.ResolvePhysicalPath(sourceDirectory)
+                : Path.GetFullPath(sourceDirectory);
+            long capturedBytes = 0;
+            var capturedTargets = new HashSet<string>(StringComparer.Ordinal);
+            foreach (OfficeProvenanceEvidence evidence in report.Evidence.Where(item =>
+                         item.IsStructurallyValid &&
+                         item.Carrier == OfficeProvenanceCarrierKind.C2paExternalManifest &&
+                         !string.IsNullOrWhiteSpace(item.Value))) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!TryResolveRelativeDependency(
+                        sourceDirectory,
+                        _directoryPath,
+                        FilePath,
+                        report.GetExternalManifestReference(evidence)!,
+                        out string sourceDependency,
+                        out string targetDependency) ||
+                    !capturedTargets.Add(GetDependencyTargetIdentity(targetDependency)) ||
+                    !File.Exists(sourceDependency)) continue;
 
-            string? targetDirectory = Path.GetDirectoryName(targetDependency);
-            if (!string.IsNullOrEmpty(targetDirectory)) Directory.CreateDirectory(targetDirectory);
-            _dependentFiles.Add(targetDependency);
-            try {
-                long copiedBytes = CopyDependency(
-                    sourceDependency,
-                    targetDependency,
-                    sourceDirectoryIdentity,
-                    _usesPhysicalIdentity,
-                    maximumDependencyBytes,
-                    maximumTotalBytes - report.ExpandedInspectionBytes - capturedBytes,
-                    cancellationToken);
-                capturedBytes += copiedBytes;
-                MakeReadOnly(targetDependency);
-                _dependentSnapshots.Add(DependencySnapshot.Capture(targetDependency, cancellationToken));
-            } catch {
-                _ = TryEraseAndDeleteFile(targetDependency);
-                throw;
+                string? targetDirectory = Path.GetDirectoryName(targetDependency);
+                if (!string.IsNullOrEmpty(targetDirectory)) Directory.CreateDirectory(targetDirectory);
+                _dependentFiles.Add(targetDependency);
+                try {
+                    long copiedBytes = CopyDependency(
+                        sourceDependency,
+                        targetDependency,
+                        sourceDirectoryIdentity,
+                        _usesPhysicalIdentity,
+                        maximumDependencyBytes,
+                        maximumTotalBytes - report.ExpandedInspectionBytes - capturedBytes,
+                        cancellationToken);
+                    capturedBytes += copiedBytes;
+                    MakeReadOnly(targetDependency);
+                    _dependentSnapshots.Add(DependencySnapshot.Capture(targetDependency, cancellationToken));
+                } catch {
+                    _ = TryEraseAndDeleteFile(targetDependency);
+                    throw;
+                }
+            }
+        } finally {
+            if (resealDirectory) SealForProviderAccess();
+        }
+    }
+
+    /// <summary>Removes directory write access while path-based owners and providers consume the snapshot.</summary>
+    internal void SealForProviderAccess() {
+        if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
+        if (_directorySealed) return;
+        _directorySealed = true;
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        foreach (string directory in EnumerateSnapshotDirectories().OrderByDescending(path => path.Length)) {
+            if (Directory.Exists(directory) && UnixChmod(directory, UnixOwnerReadExecuteDirectoryMode) != 0) {
+                throw new IOException(
+                    $"Unable to seal the provenance snapshot directory (errno {Marshal.GetLastWin32Error()}).");
             }
         }
     }
@@ -257,9 +279,28 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
             foreach (DependencySnapshot dependency in _dependentSnapshots) dependency.Dispose();
             _dependentLeasesDisposed = true;
         }
+        MakeSnapshotDirectoriesWritable();
         Cleanup(FilePath, _directoryPath, throwIfSensitiveDataRemains: true, _dependentFiles);
         _disposed = true;
     }
+
+    private void MakeSnapshotDirectoriesWritable() {
+        if (!_directorySealed) return;
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
+            foreach (string directory in EnumerateSnapshotDirectories().OrderBy(path => path.Length)) {
+                if (Directory.Exists(directory) && UnixChmod(directory, UnixOwnerDirectoryMode) != 0) {
+                    throw new IOException(
+                        $"Unable to unlock the provenance snapshot directory for cleanup (errno {Marshal.GetLastWin32Error()}).");
+                }
+            }
+        }
+        _directorySealed = false;
+    }
+
+    private IEnumerable<string> EnumerateSnapshotDirectories() => _dependentFiles
+        .SelectMany(path => EnumerateDependencyDirectories(path, _directoryPath))
+        .Concat(new[] { _directoryPath })
+        .Distinct(OfficePathIdentity.GetComparer(_directoryPath));
 
     private static long CopyDependency(
         string sourcePath,

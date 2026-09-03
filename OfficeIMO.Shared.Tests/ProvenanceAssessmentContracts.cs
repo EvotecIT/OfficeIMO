@@ -25,6 +25,10 @@ public sealed class ProvenanceAssessmentContracts {
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
                     File.GetUnixFileMode(snapshotDirectory));
                 Assert.Equal(Path.GetFileName(source), Path.GetFileName(snapshotPath));
+                snapshot.SealForProviderAccess();
+                Assert.Equal(
+                    UnixFileMode.UserRead | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(snapshotDirectory));
             }
             Assert.False(File.Exists(snapshotPath));
             Assert.False(Directory.Exists(snapshotDirectory));
@@ -330,6 +334,27 @@ public sealed class ProvenanceAssessmentContracts {
     }
 
     [Fact]
+    public void CoreHtmlInspectionExcludesTemplateContentsFromHeadAssociations() {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<html><head><template><link rel=\"c2pa-manifest\" href=\"ignored.c2pa\"></template>" +
+            "<link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></html>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(html, "page.html");
+
+        Assert.Equal("claim.c2pa", Assert.Single(report.Evidence).Value);
+    }
+
+    [Fact]
+    public void CoreHtmlInspectionRejectsWhitespaceAfterATagOpener() {
+        byte[] html = Encoding.UTF8.GetBytes(
+            "<html><head>< link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></html>");
+
+        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(html, "page.html");
+
+        Assert.Empty(report.Evidence);
+    }
+
+    [Fact]
     public void CoreHtmlInspectionKeepsManifestLinksInAnImplicitHeadAfterDoctype() {
         byte[] html = Encoding.UTF8.GetBytes(
             "<!doctype html><html><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"><body>body</body></html>");
@@ -460,6 +485,30 @@ public sealed class ProvenanceAssessmentContracts {
             Assert.Throws<InvalidDataException>(() => OfficeProvenanceAssessment.InspectFile(
                 path,
                 signalDetectors: [new SnapshotReplacingDetector()]));
+        } finally {
+            File.Delete(path);
+        }
+#endif
+    }
+
+    [Fact]
+    public void AssessmentPreventsProviderSnapshotSwapAndRestore() {
+#if NET8_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".txt");
+        File.WriteAllText(path, "original", new UTF8Encoding(false));
+        var detector = new SnapshotSwapRestoreDetector();
+        try {
+            OfficeProvenanceAssessmentReport report = OfficeProvenanceAssessment.InspectFile(
+                path,
+                signalDetectors: [detector]);
+
+            Assert.True(detector.NamespaceWriteBlocked);
+            Assert.False(detector.ObservedReplacement);
+            Assert.Equal(
+                UnixFileMode.UserRead | UnixFileMode.UserExecute,
+                detector.ObservedDirectoryMode);
+            Assert.Single(report.ProviderSignals);
         } finally {
             File.Delete(path);
         }
@@ -715,13 +764,44 @@ public sealed class ProvenanceAssessmentContracts {
         public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
-            string replacement = filePath + ".replacement";
-            File.WriteAllText(replacement, "replacement", new UTF8Encoding(false));
-            File.Move(replacement, filePath, overwrite: true);
+            try {
+                string replacement = filePath + ".replacement";
+                File.WriteAllText(replacement, "replacement", new UTF8Encoding(false));
+                File.Move(replacement, filePath, overwrite: true);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                throw new InvalidDataException("The sealed snapshot namespace rejected provider mutation.", exception);
+            }
             return new OfficeProvenanceSignalResult(
                 Name,
                 SignalKind,
                 OfficeProvenanceSignalStatus.Detected);
+        }
+    }
+
+    private sealed class SnapshotSwapRestoreDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "snapshot-swap-restore";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+        internal bool NamespaceWriteBlocked { get; private set; }
+        internal bool ObservedReplacement { get; private set; }
+        internal UnixFileMode ObservedDirectoryMode { get; private set; }
+
+        public OfficeProvenanceSignalResult Detect(string filePath) {
+            string directory = Path.GetDirectoryName(filePath)!;
+            string backup = filePath + ".leased";
+            ObservedDirectoryMode = File.GetUnixFileMode(directory);
+            try {
+                File.Move(filePath, backup);
+                File.WriteAllText(filePath, "replacement", new UTF8Encoding(false));
+                ObservedReplacement = File.ReadAllText(filePath) == "replacement";
+                File.Delete(filePath);
+                File.Move(backup, filePath);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                NamespaceWriteBlocked = true;
+            }
+            return new OfficeProvenanceSignalResult(
+                Name,
+                SignalKind,
+                OfficeProvenanceSignalStatus.NotDetected);
         }
     }
 #endif

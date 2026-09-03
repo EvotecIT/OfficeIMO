@@ -135,6 +135,7 @@ public static class OfficeProvenanceAssessment {
         using (OfficeProvenanceFileSnapshot snapshot = OfficeProvenanceFileSnapshot.Capture(
                    fullPath,
                    options.Structural.MaxAssetBytes)) {
+            snapshot.SealForProviderAccess();
             OfficeProvenanceReport structural = OfficeProvenanceInspector.InspectFile(snapshot.FilePath, options.Structural);
             if (hasExternalProviders) {
                 snapshot.CaptureExternalManifestDependencies(

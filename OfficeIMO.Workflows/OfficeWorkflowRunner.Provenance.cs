@@ -53,6 +53,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 validated.InputPath,
                 operationInputLimit,
                 cancellationToken);
+            inputSnapshot.SealForProviderAccess();
             string operationInputPath = inputSnapshot.FilePath;
             inputBytes = inputSnapshot.Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(

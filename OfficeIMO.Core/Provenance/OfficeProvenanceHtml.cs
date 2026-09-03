@@ -24,6 +24,7 @@ internal static class OfficeProvenanceHtml {
         bool headSeen = false;
         bool headFinished = false;
         bool bodyStarted = false;
+        int templateDepth = 0;
         int elementCount = 0;
         int index = 0;
 
@@ -55,6 +56,10 @@ internal static class OfficeProvenanceHtml {
             }
             index = tag.End;
             if (tag.IsClosing) {
+                if (templateDepth != 0) {
+                    if (tag.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) templateDepth--;
+                    continue;
+                }
                 if (tag.Name.Equals("head", StringComparison.OrdinalIgnoreCase)) {
                     inHead = false;
                     headFinished = true;
@@ -63,6 +68,11 @@ internal static class OfficeProvenanceHtml {
             }
             if (++elementCount > options.MaxContainerEntries) {
                 throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
+            }
+            if (templateDepth != 0) {
+                if (tag.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) templateDepth++;
+                if (IsRawTextElement(tag.Name)) index = SkipRawTextElement(html, index, tag.Name);
+                continue;
             }
 
             if (tag.Name.Equals("head", StringComparison.OrdinalIgnoreCase)) {
@@ -74,6 +84,10 @@ internal static class OfficeProvenanceHtml {
                 bodyStarted = true;
                 inHead = false;
                 headFinished = true;
+                continue;
+            }
+            if (tag.Name.Equals("template", StringComparison.OrdinalIgnoreCase)) {
+                templateDepth = 1;
                 continue;
             }
             if (!bodyStarted && (inHead || (!headSeen && !headFinished)) &&
@@ -302,7 +316,6 @@ internal static class OfficeProvenanceHtml {
         int index = start + 1;
         bool closing = index < html.Length && html[index] == '/';
         if (closing) index++;
-        while (index < html.Length && IsAsciiWhitespace(html[index])) index++;
         int nameStart = index;
         while (index < html.Length && IsNameCharacter(html[index])) index++;
         if (index == nameStart) return false;
@@ -374,6 +387,14 @@ internal static class OfficeProvenanceHtml {
             search = boundary;
         }
         return -1;
+    }
+
+    private static int SkipRawTextElement(string html, int start, string name) {
+        string closingToken = "</" + name;
+        int closeStart = FindClosingTag(html, start, closingToken);
+        if (closeStart < 0) return html.Length;
+        int closeEnd = html.IndexOf('>', closeStart + closingToken.Length);
+        return closeEnd < 0 ? html.Length : closeEnd + 1;
     }
 
     internal static string DecodeHtml(byte[] data, System.Threading.CancellationToken cancellationToken) {
