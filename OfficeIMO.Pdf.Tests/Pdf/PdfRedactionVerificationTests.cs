@@ -194,6 +194,32 @@ public class PdfRedactionVerificationTests {
         Assert.Contains(report.Issues, static issue => issue.Feature == "RedactionPlanPageIdentityChanged");
     }
 
+    [Fact]
+    public void ApplyWithEvidenceRejectsResidualVectorPathInsideFormXObject() {
+        byte[] source = BuildNestedFormVectorPathPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 55D, 55D, 10D, 10D, "nested vector")
+        ]);
+
+        PdfRedactionMatch plannedPath = Assert.Single(
+            plan.Matches,
+            static match => match.Kind == PdfRedactionMatchKind.VectorPath);
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(
+            plan,
+            verificationOptions: new PdfRedactionVerificationOptions {
+                RequireCompleteStreamInspection = true
+            });
+
+        Assert.False(result.IsVerified);
+        Assert.Contains(result.Evidence.ResidualMatches, match =>
+            match.Kind == PdfRedactionMatchKind.VectorPath &&
+            match.Area == plannedPath.Area);
+        Assert.Contains(result.Evidence.Verification.Issues, static issue =>
+            issue.Feature == "RedactionPlanResidual" &&
+            issue.Marker.StartsWith("VectorPath@page:1", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData("0 J 0 j", "2 J 0 j")]
     [InlineData("0 J 0 j", "0 J 2 j")]
@@ -1313,6 +1339,20 @@ public class PdfRedactionVerificationTests {
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
             "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(content).ToString(CultureInfo.InvariantCulture)} >>", "stream", content, "endstream", "endobj",
             "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF"
+        }));
+    }
+
+    private static byte[] BuildNestedFormVectorPathPdf() {
+        const string pageContent = "q 1 0 0 1 50 50 cm /Fm1 Do Q";
+        const string formContent = "1 0 0 rg 0 0 40 40 re f";
+        return Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Fm1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", $"<< /Length {Encoding.ASCII.GetByteCount(pageContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", pageContent, "endstream", "endobj",
+            "5 0 obj", $"<< /Type /XObject /Subtype /Form /BBox [0 0 40 40] /Length {Encoding.ASCII.GetByteCount(formContent).ToString(CultureInfo.InvariantCulture)} >>", "stream", formContent, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF"
         }));
     }
 

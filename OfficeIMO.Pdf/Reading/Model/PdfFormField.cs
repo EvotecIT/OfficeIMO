@@ -57,7 +57,7 @@ public sealed class PdfFormField {
     private IReadOnlyList<int>? _pageNumbers;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _widgetsByPageNumber;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerKey = null, int? defaultValueOwnerKey = null, bool hasValueEntry = false, bool hasDefaultValueEntry = false) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<int>? selectedIndices = null, IReadOnlyList<PdfFormWidget>? widgets = null, int? valueOwnerKey = null, int? defaultValueOwnerKey = null, bool hasValueEntry = false, bool hasDefaultValueEntry = false, string? richValue = null, string? richValuePlainText = null, int? richValueOwnerKey = null, bool hasRichValueEntry = false) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -79,6 +79,10 @@ public sealed class PdfFormField {
         DefaultValueOwnerKey = defaultValueOwnerKey;
         HasValueEntry = hasValueEntry;
         HasDefaultValueEntry = hasDefaultValueEntry;
+        RichValue = richValue;
+        RichValuePlainText = richValuePlainText;
+        RichValueOwnerKey = richValueOwnerKey;
+        HasRichValueEntry = hasRichValueEntry;
     }
 
     /// <summary>Indirect object number for the field dictionary, when known.</summary>
@@ -91,6 +95,10 @@ public sealed class PdfFormField {
     internal bool HasValueEntry { get; }
 
     internal bool HasDefaultValueEntry { get; }
+
+    internal int? RichValueOwnerKey { get; }
+
+    internal bool HasRichValueEntry { get; }
 
     /// <summary>Fully qualified field name when a name can be read.</summary>
     public string? Name { get; }
@@ -147,6 +155,15 @@ public sealed class PdfFormField {
 
     /// <summary>True when at least one simple default field value was readable.</summary>
     public bool HasDefaultValues => DefaultValues.Count > 0;
+
+    /// <summary>Rich-text field value from /RV, when present.</summary>
+    public string? RichValue { get; }
+
+    /// <summary>Plain-text projection of <see cref="RichValue"/>, when readable.</summary>
+    public string? RichValuePlainText { get; }
+
+    /// <summary>True when a rich-text field value was readable.</summary>
+    public bool HasRichValue => !string.IsNullOrEmpty(RichValue);
 
     /// <summary>Alternate field name used as a user-facing label, when present.</summary>
     public string? AlternateName { get; }

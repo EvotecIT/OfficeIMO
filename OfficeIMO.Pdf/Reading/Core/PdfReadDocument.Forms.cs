@@ -239,6 +239,13 @@ public sealed partial class PdfReadDocument {
         string? defaultValue = hasOwnDefaultValueEntry ? TryReadSimpleFieldValue(field, "DV") : inherited.DefaultValue;
         IReadOnlyList<string> defaultValues = hasOwnDefaultValueEntry ? ReadSimpleFieldValues(field, "DV") : inherited.DefaultValues;
         int? defaultValueOwnerKey = hasOwnDefaultValueEntry ? objectNumber ?? nextDirectValueOwnerKey-- : inherited.DefaultValueOwnerKey;
+        bool hasOwnRichValueEntry = field.Items.ContainsKey("RV");
+        bool hasRichValueEntry = hasOwnRichValueEntry || inherited.HasRichValueEntry;
+        string? richValue = hasOwnRichValueEntry ? TryReadText(field, "RV") : inherited.RichValue;
+        string? richValuePlainText = hasOwnRichValueEntry
+            ? PdfFreeTextStyleParser.ExtractPlainText(richValue)
+            : inherited.RichValuePlainText;
+        int? richValueOwnerKey = hasOwnRichValueEntry ? objectNumber ?? nextDirectValueOwnerKey-- : inherited.RichValueOwnerKey;
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = field.Items.ContainsKey("Ff") ? TryReadInteger(field, "Ff") : inherited.Flags;
@@ -254,7 +261,7 @@ public sealed partial class PdfReadDocument {
         }
 
         PdfArray? kids = field.Items.TryGetValue("Kids", out var kidsObject) ? ResolveArray(kidsObject) : null;
-        bool hasReadableFieldState = fieldType != null || hasValueEntry || hasDefaultValueEntry || flags.HasValue;
+        bool hasReadableFieldState = fieldType != null || hasValueEntry || hasDefaultValueEntry || hasRichValueEntry || flags.HasValue;
         var fieldKids = new List<PdfObject>();
         if (kids is not null) {
             for (int i = 0; i < kids.Items.Count; i++) {
@@ -300,14 +307,18 @@ public sealed partial class PdfReadDocument {
                 valueOwnerKey: valueOwnerKey,
                 defaultValueOwnerKey: defaultValueOwnerKey,
                 hasValueEntry: hasValueEntry,
-                hasDefaultValueEntry: hasDefaultValueEntry));
+                hasDefaultValueEntry: hasDefaultValueEntry,
+                richValue: richValue,
+                richValuePlainText: richValuePlainText,
+                richValueOwnerKey: richValueOwnerKey,
+                hasRichValueEntry: hasRichValueEntry));
         }
 
         if (fieldKids.Count == 0) {
             return;
         }
 
-        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, valueOwnerKey, hasValueEntry, defaultValue, defaultValues, defaultValueOwnerKey, hasDefaultValueEntry, flags, maxLength, defaultAppearance, quadding, options, selectedIndices);
+        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, valueOwnerKey, hasValueEntry, defaultValue, defaultValues, defaultValueOwnerKey, hasDefaultValueEntry, flags, maxLength, defaultAppearance, quadding, options, selectedIndices, richValue, richValuePlainText, richValueOwnerKey, hasRichValueEntry);
         for (int i = 0; i < fieldKids.Count; i++) {
             ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers, actionBudget, ref nextDirectValueOwnerKey, depth + 1);
         }
@@ -322,7 +333,7 @@ public sealed partial class PdfReadDocument {
                 : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, false, null, Array.Empty<string>(), null, false, null, null, defaultAppearance, quadding, Array.Empty<PdfFormFieldOption>(), Array.Empty<int>());
         }
 
-        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, int? valueOwnerKey, bool hasValueEntry, string? defaultValue, IReadOnlyList<string> defaultValues, int? defaultValueOwnerKey, bool hasDefaultValueEntry, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<int> selectedIndices) {
+        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, int? valueOwnerKey, bool hasValueEntry, string? defaultValue, IReadOnlyList<string> defaultValues, int? defaultValueOwnerKey, bool hasDefaultValueEntry, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options, IReadOnlyList<int> selectedIndices, string? richValue = null, string? richValuePlainText = null, int? richValueOwnerKey = null, bool hasRichValueEntry = false) {
             FieldType = fieldType;
             Value = value;
             Values = values;
@@ -338,6 +349,10 @@ public sealed partial class PdfReadDocument {
             Quadding = quadding;
             Options = options;
             SelectedIndices = selectedIndices;
+            RichValue = richValue;
+            RichValuePlainText = richValuePlainText;
+            RichValueOwnerKey = richValueOwnerKey;
+            HasRichValueEntry = hasRichValueEntry;
         }
 
         internal string? FieldType { get; }
@@ -369,6 +384,14 @@ public sealed partial class PdfReadDocument {
         internal IReadOnlyList<PdfFormFieldOption> Options { get; }
 
         internal IReadOnlyList<int> SelectedIndices { get; }
+
+        internal string? RichValue { get; }
+
+        internal string? RichValuePlainText { get; }
+
+        internal int? RichValueOwnerKey { get; }
+
+        internal bool HasRichValueEntry { get; }
     }
 
     private int? TryGetObjectNumber(PdfObject sourceObject, PdfDictionary resolvedDictionary) {

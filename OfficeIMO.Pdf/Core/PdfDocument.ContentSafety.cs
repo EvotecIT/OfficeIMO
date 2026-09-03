@@ -231,19 +231,24 @@ public sealed partial class PdfDocument {
         IReadOnlyList<PdfFormField> formFields = document.FormFields;
         var reportedValueOwners = new HashSet<int>();
         var reportedDefaultValueOwners = new HashSet<int>();
+        var reportedRichValueOwners = new HashSet<int>();
         for (int fieldIndex = 0; builder.Options.IncludeNonPrimaryContent && fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
             string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
             string? currentValues = field.HasValueEntry ? string.Join(" ", field.Values) : null;
             int valueOwnerKey = field.ValueOwnerKey ?? -(fieldIndex + 1);
+            bool hiddenChoiceExportValue = HasChoiceExportValueHiddenByDisplayText(field, defaultValue: false);
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
-                !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers)) {
+                (hiddenChoiceExportValue ||
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers))) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
-                    location + "/HiddenWidgetValue",
-                    "The PDF form value has no visible presentation because its widgets are absent, masked by the field type, outside the page boundary, or concealed by annotation flags or optional-content configuration.",
+                    location + (hiddenChoiceExportValue ? "/HiddenChoiceExportValue" : "/HiddenWidgetValue"),
+                    hiddenChoiceExportValue
+                        ? "The PDF choice field stores an export value that differs from the display text presented by its widget."
+                        : "The PDF form value has no visible presentation because its widgets are absent, masked by the field type, outside the page boundary, or concealed by annotation flags or optional-content configuration.",
                     currentValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
@@ -251,19 +256,37 @@ public sealed partial class PdfDocument {
             int defaultValueOwnerKey = field.DefaultValueOwnerKey ?? -(fieldIndex + 1);
             bool distinctStoredDefault = currentValues is not null &&
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal);
+            bool hiddenChoiceDefaultExportValue = HasChoiceExportValueHiddenByDisplayText(field, defaultValue: true);
             if (defaultValues is not null &&
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
                 (distinctStoredDefault ||
+                 hiddenChoiceDefaultExportValue ||
                  !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) &&
                 reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
-                    location + "/HiddenWidgetDefaultValue",
+                    location + (hiddenChoiceDefaultExportValue ? "/HiddenChoiceDefaultExportValue" : "/HiddenWidgetDefaultValue"),
                     distinctStoredDefault
                         ? "The PDF default form value differs from the current value presented by its widgets and remains stored for reset or other viewer behavior."
+                        : hiddenChoiceDefaultExportValue
+                            ? "The PDF choice field stores a default export value that differs from the display text presented by its widget."
                         : "The PDF default form value has no visible presentation because its widgets are absent, masked by the field type, outside the page boundary, or concealed by annotation flags or optional-content configuration.",
                     defaultValues,
+                    OfficeContentCleanupCapability.ReportOnly);
+            }
+            string? richValue = field.RichValue;
+            int richValueOwnerKey = field.RichValueOwnerKey ?? -(fieldIndex + 1);
+            if (field.HasRichValueEntry &&
+                !string.IsNullOrWhiteSpace(richValue) &&
+                !string.Equals(richValue, currentValues, StringComparison.Ordinal) &&
+                reportedRichValueOwners.Add(richValueOwnerKey)) {
+                builder.Add(
+                    OfficeContentConcealmentKind.HiddenByProperty,
+                    OfficeContentSafetyRisk.ContextDependent,
+                    location + "/HiddenRichValue",
+                    "The PDF form field stores an independent rich-text value that differs from its simple value and may not match the widget presentation.",
+                    richValue,
                     OfficeContentCleanupCapability.ReportOnly);
             }
         }
@@ -314,6 +337,17 @@ public sealed partial class PdfDocument {
         return false;
     }
 
+    private static bool HasChoiceExportValueHiddenByDisplayText(PdfFormField field, bool defaultValue) {
+        if (!field.IsChoiceField) return false;
+        IReadOnlyList<PdfFormFieldOption> options = defaultValue
+            ? field.DefaultSelectedOptions
+            : field.SelectedOptions;
+        for (int i = 0; i < options.Count; i++) {
+            if (options[i].HasSeparateDisplayText) return true;
+        }
+        return false;
+    }
+
     private static bool IsWidgetOutsidePage(PdfReadDocument document, PdfFormWidget widget) {
         if (!widget.PageNumber.HasValue || widget.PageNumber.Value < 1 || widget.PageNumber.Value > document.Pages.Count) return true;
         PdfReadPage page = document.Pages[widget.PageNumber.Value - 1];
@@ -323,6 +357,7 @@ public sealed partial class PdfDocument {
         double right = Math.Max(widget.X1, widget.X2);
         double bottom = Math.Min(widget.Y1, widget.Y2);
         double top = Math.Max(widget.Y1, widget.Y2);
+        if (right <= left || top <= bottom) return true;
         return right <= originX || top <= originY || left >= originX + width || bottom >= originY + height;
     }
 

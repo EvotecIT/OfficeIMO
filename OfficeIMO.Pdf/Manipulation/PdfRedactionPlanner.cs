@@ -35,11 +35,20 @@ internal static partial class PdfRedactionPlanner {
         PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
+        var nestedPathPrimitivesByPage = new Dictionary<int, IReadOnlyList<PdfPageVisualPrimitive>>();
 
         foreach (PdfRedactionArea area in areaArray) {
             AddTextMatches(area, logical, matches);
             AddImageMatches(area, logical.Images, matches, findings);
             AddAnnotationMatches(area, info.Pages, matches);
+            if (area.PageNumber <= readDocument.Pages.Count) {
+                PdfReadPage page = readDocument.Pages[area.PageNumber - 1];
+                if (!nestedPathPrimitivesByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfPageVisualPrimitive>? primitives)) {
+                    primitives = page.GetIdentityVisualPrimitives();
+                    nestedPathPrimitivesByPage.Add(area.PageNumber, primitives);
+                }
+                AddNestedPathMatches(area, page, primitives, matches, findings);
+            }
         }
 
         findings.Add(new PdfDiagnosticFinding(
@@ -196,6 +205,53 @@ internal static partial class PdfRedactionPlanner {
                     placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
                     placement.PageNumber));
             }
+        }
+    }
+
+    private static void AddNestedPathMatches(
+        PdfRedactionArea area,
+        PdfReadPage page,
+        IReadOnlyList<PdfPageVisualPrimitive> primitives,
+        List<PdfRedactionMatch> matches,
+        List<PdfDiagnosticFinding> findings) {
+        PdfVisualBounds visualArea = page.TransformBoundsToVisual(area.X, area.Y, area.Right, area.Top);
+        for (int i = 0; i < primitives.Count; i++) {
+            PdfPageVisualPrimitive primitive = primitives[i];
+            if (primitive.ContentOrderKey?.Depth <= 1) continue;
+            double strokePadding = primitive.HasStrokePaint ? Math.Max(0D, primitive.StrokeWidth) / 2D : 0D;
+            double left = primitive.X - strokePadding;
+            double top = primitive.Y - strokePadding;
+            double right = primitive.X + primitive.Width + strokePadding;
+            double bottom = primitive.Y + primitive.Height + strokePadding;
+            if (!Intersects(
+                    visualArea.Left,
+                    visualArea.Top,
+                    visualArea.Width,
+                    visualArea.Height,
+                    left,
+                    top,
+                    right - left,
+                    bottom - top)) {
+                continue;
+            }
+
+            PdfVisualBounds userBounds = page.TransformVisualBoundsToUser(left, top, right, bottom);
+            matches.Add(new PdfRedactionMatch(
+                PdfRedactionMatchKind.VectorPath,
+                area,
+                area.PageNumber,
+                userBounds.Left,
+                userBounds.Top,
+                userBounds.Width,
+                userBounds.Height,
+                null,
+                primitive.Kind.ToString(),
+                null));
+            findings.Add(new PdfDiagnosticFinding(
+                PdfDiagnosticSeverity.Warning,
+                "RedactionPlanNestedVectorIntersection",
+                "The redaction area intersects vector content inside a nested Form XObject. The current writer cannot remove that path; applied-plan verification will remain unverified while the nested vector content remains.",
+                pageNumber: area.PageNumber));
         }
     }
 

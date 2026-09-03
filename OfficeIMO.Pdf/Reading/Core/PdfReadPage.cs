@@ -98,6 +98,9 @@ public sealed partial class PdfReadPage {
     internal PdfVisualBounds TransformBoundsToVisual(double left, double bottom, double right, double top) =>
         PdfVisualCoordinateMapper.TransformBounds(GetPageBoundaryBox(), GetRotationDegrees(), left, bottom, right, top, GetEffectiveUserUnit());
 
+    internal PdfVisualBounds TransformVisualBoundsToUser(double left, double top, double right, double bottom) =>
+        PdfVisualCoordinateMapper.TransformVisualBoundsToUser(GetPageBoundaryBox(), GetRotationDegrees(), left, top, right, bottom, GetEffectiveUserUnit());
+
     private double GetEffectiveUserUnit() => TryReadDirectPositiveNumber("UserUnit") ?? 1D;
 
     internal (double Width, double Height) GetInteractionPageSize() => GetVisualPageSize();

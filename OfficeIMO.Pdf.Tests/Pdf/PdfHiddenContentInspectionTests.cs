@@ -142,6 +142,79 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyTreatsZeroAreaWidgetAsConcealed() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Tx /T (ZeroAreaField) /V (ZERO-AREA-SECRET) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 20 40] /P 3 0 R /F 4 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenWidgetValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("ZERO-AREA-SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetySurfacesChoiceExportValueBehindDisplayText() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Ch /T (ChoiceField) /V (SECRET-CODE) /Opt [[(SECRET-CODE) (Public label)]] /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenChoiceExportValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("SECRET-CODE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetySurfacesIndependentRichFormValue() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "6 0 obj\n<< /FT /Tx /Ff 33554432 /T (RichField) /V (Public value) /RV (<body><p>RICH-SECRET</p></body>) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        byte[] bytes = Encoding.ASCII.GetBytes(pdf);
+        PdfFormField field = Assert.Single(PdfReadDocument.Open(bytes).FormFields);
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(bytes);
+
+        Assert.True(field.HasRichValue);
+        Assert.Contains("RICH-SECRET", field.RichValuePlainText, StringComparison.Ordinal);
+        Assert.Contains(report.Findings, finding =>
+            finding.Location.EndsWith("/HiddenRichValue", StringComparison.Ordinal) &&
+            finding.TextPreview.Contains("RICH-SECRET", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentSafetySurfacesDistinctStoredDefaultBehindVisibleCurrentValue() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
