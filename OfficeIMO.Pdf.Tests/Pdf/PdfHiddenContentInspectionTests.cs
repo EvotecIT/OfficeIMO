@@ -321,6 +321,61 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyAggregatesVisibilityAcrossDirectValueOwnerChildren() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [<< /FT /Tx /T (Shared) /V (DIRECT-OWNER-VALUE) /Kids [7 0 R 8 0 R] >>] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [9 0 R 10 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "7 0 obj\n<< /T (HiddenChild) /Kids [9 0 R] >>\nendobj",
+            "8 0 obj\n<< /T (VisibleChild) /Kids [10 0 R] >>\nendobj",
+            "9 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 20 100 40] /P 3 0 R /F 2 >>\nendobj",
+            "10 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 8 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 11 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(Encoding.ASCII.GetBytes(pdf));
+
+        Assert.DoesNotContain(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("DIRECT-OWNER-VALUE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ContentSafetyTreatsPasswordWidgetValueAsConcealed() {
+        byte[] pdf = BuildSingleWidgetFieldPdf(
+            fieldEntries: "/FT /Tx /Ff 8192 /T (PasswordField) /V (PASSWORD-SECRET)",
+            widgetRectangle: "20 20 220 40");
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(pdf);
+
+        Assert.Contains(report.Findings, finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("PASSWORD-SECRET", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("260 20 320 40", true)]
+    [InlineData("-80 20 0 40", true)]
+    [InlineData("-20 20 20 40", false)]
+    public void ContentSafetyUsesPageIntersectionForWidgetVisibility(string widgetRectangle, bool shouldBeConcealed) {
+        byte[] pdf = BuildSingleWidgetFieldPdf(
+            fieldEntries: "/FT /Tx /T (PositionedField) /V (POSITIONED-VALUE)",
+            widgetRectangle);
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(pdf);
+        bool concealed = report.Findings.Any(finding =>
+            finding.Kind == OfficeContentConcealmentKind.HiddenByProperty &&
+            finding.TextPreview.Contains("POSITIONED-VALUE", StringComparison.Ordinal));
+
+        Assert.Equal(shouldBeConcealed, concealed);
+    }
+
+    [Fact]
     public void ContentSafetySurfacesOptionalContentAnnotationPayloadsAndDefaultWidgetValues() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
@@ -375,6 +430,23 @@ public sealed class PdfHiddenContentInspectionTests {
             outerFormStream,
             hiddenFormStream,
             "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSingleWidgetFieldPdf(string fieldEntries, string widgetRectangle) {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< " + fieldEntries + " /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [" + widgetRectangle + "] /P 3 0 R /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 8 >>",
             "%%EOF"
         });
         return Encoding.ASCII.GetBytes(pdf);

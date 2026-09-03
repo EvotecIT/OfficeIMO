@@ -1,4 +1,5 @@
 using OfficeIMO.Pdf;
+using OfficeIMO.Core.Internal;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -290,6 +291,66 @@ public sealed class PdfRedactionEvidenceTests {
         Assert.True(result.IsVerified, result.Evidence.Summary);
         Assert.DoesNotContain("SHARED-SECRET", output.Pages[0].ExtractText(), StringComparison.Ordinal);
         Assert.Contains("SHARED-SECRET", output.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratedGrowthDoesNotDecodeOrCountUntouchedRetainedStreams() {
+        byte[] retainedDecoded = new byte[1024 * 1024];
+        byte[] retainedCompressed = OfficeZlibCodec.Compress(retainedDecoded);
+        const string pageContent = "BT /F1 12 Tf 20 100 Td (REMOVE-ME) Tj ET";
+        using var sourceBuffer = new MemoryStream();
+        void WriteAscii(string text) {
+            byte[] bytes = Encoding.ASCII.GetBytes(text);
+            sourceBuffer.Write(bytes, 0, bytes.Length);
+        }
+
+        WriteAscii(string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /RetainedData 7 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            StreamObject(4, string.Empty, pageContent),
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Length " + retainedCompressed.Length + " /Filter /FlateDecode >>",
+            "stream"
+        }) + "\n");
+        sourceBuffer.Write(retainedCompressed, 0, retainedCompressed.Length);
+        WriteAscii("\nendstream\nendobj\ntrailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
+        byte[] source = sourceBuffer.ToArray();
+        var readOptions = new PdfLoadOptions {
+            Limits = new PdfReadLimits {
+                MaxInputBytes = source.LongLength,
+                MaxRawStreamBytes = Math.Max(pageContent.Length, retainedCompressed.Length),
+                MaxDecodedStreamBytes = 1024,
+                MaxTotalDecodedStreamBytes = 2048,
+                MaxPageContentBytes = 1024,
+                MaxRetainedContentBytes = 2048
+            }
+        };
+        PdfDocument document = PdfDocument.Load(source, readOptions);
+        PdfRedactionPlan plan = document.Redactions.Search(
+            new PdfRedactionSearchOptions().AddLiteral("REMOVE-ME"));
+
+        byte[] output = PdfRedactionApplier.Apply(
+            source,
+            plan,
+            applyOptions: null,
+            layoutOptions: null,
+            readOptions,
+            out PdfGeneratedOutputGrowth growth);
+
+        Assert.NotEmpty(output);
+        Assert.True(growth.MinimumDecodedStreamBytes < retainedDecoded.Length);
+        Assert.True(growth.AdditionalTotalDecodedStreamBytes < retainedDecoded.Length);
     }
 
     [Fact]

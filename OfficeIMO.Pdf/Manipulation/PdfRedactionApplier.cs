@@ -248,7 +248,7 @@ internal static partial class PdfRedactionApplier {
         }
 
         PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, mutation.GeneratedPageContentBytes);
+        generatedGrowth = BuildGeneratedOutputGrowth(objects, sourceStreams, document.Objects, sourceStreamIdentities, mutation.GeneratedPageContentBytes);
         appliedImageMatches = mutation.AppliedImageMatches;
         PdfMetadata metadata = (effectiveOptions.CleanupScope & PdfRedactionCleanupScope.Metadata) != 0 ? new PdfMetadata() : document.UncheckedMetadata;
         return RewriteAllObjects(objects, catalogObjectNumber, metadata, pdf);
@@ -406,6 +406,7 @@ internal static partial class PdfRedactionApplier {
         Dictionary<int, PdfIndirectObject> objects,
         Dictionary<int, PdfStream> sourceStreams,
         Dictionary<int, PdfIndirectObject> sourceObjects,
+        HashSet<PdfStream> sourceStreamIdentities,
         int generatedPageContentBytes) {
         int maximumSerializedStreamBytes = objects.Values
             .Select(static item => item.Value)
@@ -417,8 +418,8 @@ internal static partial class PdfRedactionApplier {
         long additionalDecodedStreamBytes = 0L;
         foreach (KeyValuePair<int, PdfIndirectObject> item in objects) {
             if (item.Value.Value is not PdfStream stream) continue;
+            if (sourceStreamIdentities.Contains(stream)) continue;
             bool hasSourceStream = sourceStreams.TryGetValue(item.Key, out PdfStream? sourceStream);
-            if (hasSourceStream && ReferenceEquals(sourceStream, stream)) continue;
             // Every selected stream is new or was replaced by this mutation. Supported filtered
             // streams were produced from already-bounded in-memory content, while unsupported image
             // codecs are accounted by their encoded bytes like the reader's decoded-stream cache.

@@ -235,26 +235,26 @@ public sealed partial class PdfDocument {
             PdfFormField field = formFields[fieldIndex];
             string location = "FormField[" + (fieldIndex + 1).ToString(CultureInfo.InvariantCulture) + "]";
             string? currentValues = field.HasValueEntry ? string.Join(" ", field.Values) : null;
-            int valueOwnerKey = field.ValueOwnerObjectNumber ?? -(fieldIndex + 1);
+            int valueOwnerKey = field.ValueOwnerKey ?? -(fieldIndex + 1);
             if (currentValues is not null &&
                 reportedValueOwners.Add(valueOwnerKey) &&
-                !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers)) {
+                !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: false, concealedAnnotationObjectNumbers)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
                     OfficeContentSafetyRisk.ContextDependent,
                     location + "/HiddenWidgetValue",
-                    "The PDF form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
+                    "The PDF form value has no visible presentation because its widgets are absent, masked by the field type, outside the page boundary, or concealed by annotation flags or optional-content configuration.",
                     currentValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
             string? defaultValues = field.HasDefaultValueEntry ? string.Join(" ", field.DefaultValues) : null;
-            int defaultValueOwnerKey = field.DefaultValueOwnerObjectNumber ?? -(fieldIndex + 1);
+            int defaultValueOwnerKey = field.DefaultValueOwnerKey ?? -(fieldIndex + 1);
             bool distinctStoredDefault = currentValues is not null &&
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal);
             if (defaultValues is not null &&
                 !string.Equals(defaultValues, currentValues, StringComparison.Ordinal) &&
                 (distinctStoredDefault ||
-                 !HasVisibleWidgetForValueOwner(formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) &&
+                 !HasVisibleWidgetForValueOwner(document, formFields, fieldIndex, defaultValue: true, concealedAnnotationObjectNumbers)) &&
                 reportedDefaultValueOwners.Add(defaultValueOwnerKey)) {
                 builder.Add(
                     OfficeContentConcealmentKind.HiddenByProperty,
@@ -262,7 +262,7 @@ public sealed partial class PdfDocument {
                     location + "/HiddenWidgetDefaultValue",
                     distinctStoredDefault
                         ? "The PDF default form value differs from the current value presented by its widgets and remains stored for reset or other viewer behavior."
-                        : "The PDF default form value has no visible widget presentation because its widgets are absent or concealed by annotation flags or optional-content configuration.",
+                        : "The PDF default form value has no visible presentation because its widgets are absent, masked by the field type, outside the page boundary, or concealed by annotation flags or optional-content configuration.",
                     defaultValues,
                     OfficeContentCleanupCapability.ReportOnly);
             }
@@ -277,22 +277,24 @@ public sealed partial class PdfDocument {
     }
 
     private static bool HasVisibleWidgetForValueOwner(
+        PdfReadDocument document,
         IReadOnlyList<PdfFormField> fields,
         int fieldIndex,
         bool defaultValue,
         HashSet<int> concealedAnnotationObjectNumbers) {
         PdfFormField field = fields[fieldIndex];
-        int? ownerObjectNumber = defaultValue
-            ? field.DefaultValueOwnerObjectNumber
-            : field.ValueOwnerObjectNumber;
+        int? ownerKey = defaultValue
+            ? field.DefaultValueOwnerKey
+            : field.ValueOwnerKey;
         for (int candidateIndex = 0; candidateIndex < fields.Count; candidateIndex++) {
             PdfFormField candidate = fields[candidateIndex];
-            int? candidateOwnerObjectNumber = defaultValue
-                ? candidate.DefaultValueOwnerObjectNumber
-                : candidate.ValueOwnerObjectNumber;
-            if (ownerObjectNumber.HasValue
-                    ? candidateOwnerObjectNumber != ownerObjectNumber
+            int? candidateOwnerKey = defaultValue
+                ? candidate.DefaultValueOwnerKey
+                : candidate.ValueOwnerKey;
+            if (ownerKey.HasValue
+                    ? candidateOwnerKey != ownerKey
                     : candidateIndex != fieldIndex) continue;
+            if (candidate.IsPassword) continue;
             if (defaultValue &&
                 candidate.HasValueEntry &&
                 !candidate.DefaultValues.SequenceEqual(candidate.Values, StringComparer.Ordinal)) {
@@ -301,6 +303,7 @@ public sealed partial class PdfDocument {
             for (int widgetIndex = 0; widgetIndex < candidate.Widgets.Count; widgetIndex++) {
                 PdfFormWidget widget = candidate.Widgets[widgetIndex];
                 bool concealed = !widget.PageNumber.HasValue ||
+                    IsWidgetOutsidePage(document, widget) ||
                     widget.IsHidden ||
                     widget.IsInvisible ||
                     widget.IsNoView ||
@@ -309,6 +312,18 @@ public sealed partial class PdfDocument {
             }
         }
         return false;
+    }
+
+    private static bool IsWidgetOutsidePage(PdfReadDocument document, PdfFormWidget widget) {
+        if (!widget.PageNumber.HasValue || widget.PageNumber.Value < 1 || widget.PageNumber.Value > document.Pages.Count) return true;
+        PdfReadPage page = document.Pages[widget.PageNumber.Value - 1];
+        (double originX, double originY) = page.GetPageBoundaryOrigin();
+        (double width, double height) = page.GetPageSize();
+        double left = Math.Min(widget.X1, widget.X2);
+        double right = Math.Max(widget.X1, widget.X2);
+        double bottom = Math.Min(widget.Y1, widget.Y2);
+        double top = Math.Max(widget.Y1, widget.Y2);
+        return right <= originX || top <= originY || left >= originX + width || bottom >= originY + height;
     }
 
     private static bool IsPdfSpanOffCanvas(PdfTextSpan span, double pageWidth, double pageHeight) {
