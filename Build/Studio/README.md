@@ -2,6 +2,8 @@
 
 PowerForge owns Studio publishing, signing, checksums, portable archives, and the generated Windows MSI. Repository-local files contain only OfficeIMO product identity and target choices.
 
+The checked-in `packages.lock.json` files cover Studio's complete project-reference graph. Release restores run in locked mode so a package graph change must be reviewed and committed before signing.
+
 ```powershell
 ./Build/Studio/Build-Studio.ps1 -Validate
 ./Build/Studio/Build-Studio.ps1 -Plan

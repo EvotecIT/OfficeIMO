@@ -8,6 +8,9 @@
     "Build": true,
     "NoRestoreInPublish": true,
     "NoBuildInPublish": true,
+    "MsBuildProperties": {
+      "RestoreLockedMode": "true"
+    },
     "LockedOutputGuard": true
   },
   "SigningProfiles": {

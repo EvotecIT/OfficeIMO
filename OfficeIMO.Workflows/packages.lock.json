@@ -1,0 +1,223 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.7.1",
+        "contentHash": "QBblGpRB3SYD66Mls7fHyl1mWkP93n7ErWDWHc1vd9sPHhdlTkmUoY3CjgfjcWNxGF9m7xjNyztRfErXqoBKOA=="
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "dependencies": {
+          "AngleSharp": "[1.5.0, 2.0.0)"
+        }
+      },
+      "DocumentFormat.OpenXml": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+        "dependencies": {
+          "DocumentFormat.OpenXml.Framework": "3.5.1"
+        }
+      },
+      "DocumentFormat.OpenXml.Framework": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw==",
+        "dependencies": {
+          "System.IO.Packaging": "10.0.2"
+        }
+      },
+      "System.IO.Packaging": {
+        "type": "Transitive",
+        "resolved": "10.0.2",
+        "contentHash": "JTpM4z0wpoIHHDvlCU27HsXo+zVnpWib94HXQpzzr+jc/P9NYf4w353AK4MXyGq/grm1mbLi7eXsOsDU8sGmNg=="
+      },
+      "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.excel": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.excel.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Excel": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "AngleSharp.Css": "[1.0.1, )",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.html.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Html": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
+        }
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.powerpoint": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.powerpoint.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )",
+          "OfficeIMO.PowerPoint": "[3.3.0, )"
+        }
+      },
+      "officeimo.word": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.word.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )",
+          "OfficeIMO.Word": "[3.3.0, )"
+        }
+      }
+    },
+    "net8.0": {
+      "AngleSharp": {
+        "type": "Transitive",
+        "resolved": "1.7.1",
+        "contentHash": "QBblGpRB3SYD66Mls7fHyl1mWkP93n7ErWDWHc1vd9sPHhdlTkmUoY3CjgfjcWNxGF9m7xjNyztRfErXqoBKOA=="
+      },
+      "AngleSharp.Css": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "6S13xNHH+SUGPZd6EO1MhkuDbpEnFroUM6A8DZpLJHQnLRTvtBJb3Ydu65s618E4gWF9FSWmM5jhKk4RIfwT2A==",
+        "dependencies": {
+          "AngleSharp": "[1.5.0, 2.0.0)"
+        }
+      },
+      "DocumentFormat.OpenXml": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "zxdOf5VVCe/uNklbRhj8dVBzQGj3DoqkUuqOp9cAZVuN8mNYDjof1lvSQA2OQNr8Ptc9d7pbA7Azq/ReaI3FpA==",
+        "dependencies": {
+          "DocumentFormat.OpenXml.Framework": "3.5.1"
+        }
+      },
+      "DocumentFormat.OpenXml.Framework": {
+        "type": "Transitive",
+        "resolved": "3.5.1",
+        "contentHash": "U5txtc3ORno73xQx9Lf2gWzfaSZnZwKHfLkTAslhlew9lxe5XbUiCt0dY1fHeAf8yRqszUAe5i/+xLC9R/Xfsw==",
+        "dependencies": {
+          "System.IO.Packaging": "8.0.1"
+        }
+      },
+      "System.IO.Packaging": {
+        "type": "Transitive",
+        "resolved": "8.0.1",
+        "contentHash": "KYkIOAvPexQOLDxPO2g0BVoWInnQhPpkFzRqvNrNrMhVT6kqhVr0zEb6KCHlptLFukxnZrjuMVAnxK7pOGUYrw=="
+      },
+      "System.Text.Encoding.CodePages": {
+        "type": "Transitive",
+        "resolved": "10.0.9",
+        "contentHash": "F5U2mKPs5okLJbfIud5IMfkcGEe+73ye8/6MwWu84txhyUe7D7azXkFtMePUjirhYxOJ4boGCXpW5uZfgUA3Sw=="
+      },
+      "officeimo.core": {
+        "type": "Project"
+      },
+      "officeimo.excel": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )",
+          "System.Text.Encoding.CodePages": "[10.0.9, )"
+        }
+      },
+      "officeimo.excel.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Excel": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
+        }
+      },
+      "officeimo.html": {
+        "type": "Project",
+        "dependencies": {
+          "AngleSharp": "[1.7.1, )",
+          "AngleSharp.Css": "[1.0.1, )",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.html.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Html": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )"
+        }
+      },
+      "officeimo.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.powerpoint": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.powerpoint.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )",
+          "OfficeIMO.PowerPoint": "[3.3.0, )"
+        }
+      },
+      "officeimo.word": {
+        "type": "Project",
+        "dependencies": {
+          "DocumentFormat.OpenXml": "[3.5.1, 4.0.0)",
+          "OfficeIMO.Core": "[3.3.0, )"
+        }
+      },
+      "officeimo.word.pdf": {
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Core": "[3.3.0, )",
+          "OfficeIMO.Pdf": "[3.3.0, )",
+          "OfficeIMO.Word": "[3.3.0, )"
+        }
+      }
+    }
+  }
+}
