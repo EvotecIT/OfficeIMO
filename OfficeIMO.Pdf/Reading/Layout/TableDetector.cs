@@ -12,10 +12,15 @@ namespace OfficeIMO.Pdf;
 /// - Splits when gap exceeds max(2*em, 18pt)
 /// - Emits a row when at least two cells are produced and one cell is numeric-ish
 /// </summary>
-internal static class TableDetector {
+internal static partial class TableDetector {
     private const int MaximumPositionedRecoveryLines = 4096;
     private const int MaximumPositionedRecoveryColumns = 64;
     private const int MaximumPositionedRecoveryCells = 65536;
+    private static readonly HashSet<string> ReportingPeriodHeaderLabels = new(StringComparer.OrdinalIgnoreCase) {
+        "account", "amount", "category", "code", "date", "department", "description", "id", "item",
+        "fiscal year", "measure", "metric", "month", "name", "period", "project", "quarter", "region",
+        "reporting period", "status", "type", "value", "year"
+    };
     public static List<string[]> Detect(List<TextLayoutEngine.TextLine> lines, double? pageHeight = null) {
         var rows = new List<string[]>();
         foreach (var match in DetectLineRows(lines, pageHeight)) {
@@ -207,6 +212,7 @@ internal static class TableDetector {
         var builder = new System.Text.StringBuilder();
         double from = 0D;
         double to = 0D;
+        double lastSpanStart = 0D;
         for (int index = 0; index < line.Spans.Count; index++) {
             PdfTextSpan span = line.Spans[index];
             bool split = false;
@@ -219,7 +225,7 @@ internal static class TableDetector {
             }
 
             if (split) {
-                cells.Add(new PositionedCell(from, to, builder.ToString().Trim()));
+                cells.Add(new PositionedCell(from, to, lastSpanStart, builder.ToString().Trim()));
                 builder.Clear();
             } else if (gap > 1D && builder.Length > 0 && builder[builder.Length - 1] != ' ') {
                 builder.Append(' ');
@@ -228,10 +234,11 @@ internal static class TableDetector {
             if (builder.Length == 0) from = span.X;
             builder.Append(span.Text);
             to = span.X + Math.Max(0D, span.Advance);
+            lastSpanStart = span.X;
             if (cells.Count == MaximumPositionedRecoveryColumns) return null;
         }
 
-        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, builder.ToString().Trim()));
+        if (builder.Length > 0) cells.Add(new PositionedCell(from, to, lastSpanStart, builder.ToString().Trim()));
         return cells.Count is >= 2 and <= MaximumPositionedRecoveryColumns
             ? new PositionedRow(line.Y, cells)
             : null;
@@ -370,13 +377,15 @@ internal static class TableDetector {
     }
 
     private readonly struct PositionedCell {
-        internal PositionedCell(double from, double to, string text) {
+        internal PositionedCell(double from, double to, double lastSpanStart, string text) {
             From = from;
             To = to;
+            LastSpanStart = lastSpanStart;
             Text = text;
         }
         internal double From { get; }
         internal double To { get; }
+        internal double LastSpanStart { get; }
         internal string Text { get; }
     }
 
@@ -432,6 +441,7 @@ internal static class TableDetector {
             bandSplits.Add((i, b, sp));
         }
         int k = 0;
+        var claimedBandIndexes = new HashSet<int>();
         while (k < bandSplits.Count) {
             cancellationCheck?.Invoke();
             consumeWork?.Invoke(1);
@@ -440,27 +450,87 @@ internal static class TableDetector {
             int end = k;
             var includedBridgeBandIndexes = new HashSet<int>();
             bool requiresAlignedCellSplits = false;
+            var alignedSplitAccumulator = new AlignedSplitAccumulator(
+                baseSplits.Count + 1,
+                bandSplits[start].lines);
+            int precedingBandIndex = bandSplits[start].idx - 1;
+            List<TextLayoutEngine.TextLine>? headerLines = claimedBandIndexes.Contains(precedingBandIndex)
+                ? null
+                : TryGetPrecedingHeaderLines(
+                    bands,
+                    bandSplits[start].idx,
+                    baseSplits);
             // Extend while splits remain similar. An intervening band without
             // detectable splits is either retained as a strongly evidenced
             // spanning row or skipped when it belongs to an adjacent region.
             while (end + 1 < bandSplits.Count) {
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) current = bandSplits[end];
                 (int idx, List<TextLayoutEngine.TextLine> lines, List<double> splits) next = bandSplits[end + 1];
-                bool hasNonLeftAlignedCells = BandsHaveNonLeftAlignedCells(current.lines, next.lines);
-                if (next.idx > current.idx + 2 ||
-                    (!AreSplitsSimilar(baseSplits, next.splits) && !hasNonLeftAlignedCells)) {
+                bool startsNewEmphasizedHeader = (end > start || headerLines is not null) &&
+                                                  LooksLikeEmphasizedHeaderBand(next.lines, next.splits);
+                if (startsNewEmphasizedHeader) {
                     break;
                 }
-                requiresAlignedCellSplits |= hasNonLeftAlignedCells;
 
+                bool hasNonLeftAlignedCells = BandsHaveNonLeftAlignedCells(current.lines, next.lines);
+                List<TextLayoutEngine.TextLine>? previous = end > start
+                    ? bandSplits[end - 1].lines
+                    : null;
+                List<TextLayoutEngine.TextLine> rhythmMiddle = current.lines;
+                List<TextLayoutEngine.TextLine>? rhythmPrevious = previous;
+                if (includedBridgeBandIndexes.Contains(current.idx - 1)) {
+                    rhythmPrevious = bands[current.idx - 1];
+                }
+                if (next.idx == current.idx + 2) {
+                    rhythmPrevious = current.lines;
+                    rhythmMiddle = bands[current.idx + 1];
+                }
+                bool hasContinuousAlignedCells = HasEmphasizedText(bandSplits[start].lines[0]) &&
+                                                 BandsHaveAlignedCells(current.lines, next.lines) &&
+                                                 (BandsHaveCompatibleVerticalGap(current.lines, next.lines) ||
+                                                  (rhythmPrevious is not null &&
+                                                   BandsHaveCompatibleVerticalRhythm(
+                                                       rhythmPrevious,
+                                                       rhythmMiddle,
+                                                       next.lines)));
+                bool splitsAreSimilar = AreSplitsSimilar(baseSplits, next.splits);
+                if (next.idx > current.idx + 2 ||
+                    (!splitsAreSimilar &&
+                     !hasNonLeftAlignedCells &&
+                     !hasContinuousAlignedCells)) {
+                    break;
+                }
                 InterveningBandDecision bridgeDecision = ClassifyInterveningBand(
                     bands,
                     current.idx,
                     next.idx,
-                    baseSplits);
+                    baseSplits,
+                    current.idx > bandSplits[start].idx
+                        ? bands[current.idx - 1]
+                        : null);
                 if (bridgeDecision == InterveningBandDecision.Reject) {
                     break;
                 }
+                if (bridgeDecision == InterveningBandDecision.Include &&
+                    LooksLikeEmphasizedHeaderBand(bands[current.idx + 1], next.splits) &&
+                    BandsAlignUsingSplits(bands[current.idx + 1], next.lines, next.splits)) {
+                    break;
+                }
+
+                bool baseSplitsSeparateNextCells = SplitsSeparatePositionedCells(
+                    next.lines,
+                    baseSplits,
+                    baseSplits.Count + 1);
+                bool nextRequiresAlignedCellSplits = !baseSplitsSeparateNextCells ||
+                                                     (!splitsAreSimilar &&
+                                                      (hasNonLeftAlignedCells || hasContinuousAlignedCells));
+                if (!alignedSplitAccumulator.TryAppend(
+                    next.lines,
+                    requiresAlignedCellSplits || nextRequiresAlignedCellSplits)) {
+                    break;
+                }
+                requiresAlignedCellSplits |= nextRequiresAlignedCellSplits;
+
                 if (bridgeDecision == InterveningBandDecision.Include) {
                     includedBridgeBandIndexes.Add(current.idx + 1);
                 }
@@ -468,10 +538,6 @@ internal static class TableDetector {
             }
             // Build table for [start..end], including a compatible header-only band immediately above it.
             var groupLines = new List<TextLayoutEngine.TextLine>();
-            List<TextLayoutEngine.TextLine>? headerLines = TryGetPrecedingHeaderLines(
-                bands,
-                bandSplits[start].idx,
-                baseSplits);
             if (headerLines is not null) {
                 groupLines.AddRange(headerLines);
             }
@@ -485,13 +551,42 @@ internal static class TableDetector {
                     groupLines.AddRange(bands[bandIndex]);
                 }
             }
-            List<double> effectiveSplits = requiresAlignedCellSplits
-                ? InferAlignedCellSplits(groupLines, baseSplits.Count + 1) ?? baseSplits
-                : baseSplits;
-            var table = BuildTableFromLinesAndSplits(groupLines, effectiveSplits, "band-group");
+            List<double> effectiveSplits = baseSplits;
+            if (requiresAlignedCellSplits) {
+                List<double>? alignedSplits = alignedSplitAccumulator.GetSplits();
+                if (alignedSplits is null) {
+                    k = end + 1;
+                    continue;
+                }
+                effectiveSplits = alignedSplits;
+            }
+            Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides = null;
+            if (headerLines is not null || includedBridgeBandIndexes.Count > 0) {
+                lineSplitOverrides = new Dictionary<TextLayoutEngine.TextLine, List<double>>();
+                if (headerLines is not null) {
+                    foreach (TextLayoutEngine.TextLine headerLine in headerLines) {
+                        lineSplitOverrides[headerLine] = baseSplits;
+                    }
+                }
+                foreach (int bridgeBandIndex in includedBridgeBandIndexes) {
+                    foreach (TextLayoutEngine.TextLine bridgeLine in bands[bridgeBandIndex]) {
+                        lineSplitOverrides[bridgeLine] = baseSplits;
+                    }
+                }
+            }
+            var table = BuildTableFromLinesAndSplits(
+                groupLines,
+                effectiveSplits,
+                "band-group",
+                lineSplitOverrides);
             if (table != null &&
                 (table.Rows.Count >= 3 || HasStrongTwoRowEvidence(table, groupLines)) &&
-                HasValidatedRows(table, groupLines)) result.Add(table);
+                HasValidatedRows(table, groupLines)) {
+                result.Add(table);
+                claimedBandIndexes.UnionWith(splitBandIndexes);
+                claimedBandIndexes.UnionWith(includedBridgeBandIndexes);
+                if (headerLines is not null) claimedBandIndexes.Add(precedingBandIndex);
+            }
             k = end + 1;
         }
         return result;
@@ -507,7 +602,8 @@ internal static class TableDetector {
         List<List<TextLayoutEngine.TextLine>> bands,
         int currentBandIndex,
         int nextBandIndex,
-        List<double> splits) {
+        List<double> splits,
+        List<TextLayoutEngine.TextLine>? establishedPreviousBand) {
         if (nextBandIndex == currentBandIndex + 1) return InterveningBandDecision.Skip;
         if (nextBandIndex != currentBandIndex + 2 || splits.Count == 0) {
             return InterveningBandDecision.Reject;
@@ -516,7 +612,11 @@ internal static class TableDetector {
         List<TextLayoutEngine.TextLine> intervening = bands[currentBandIndex + 1];
         if (intervening.Count != 1) return InterveningBandDecision.Reject;
         TextLayoutEngine.TextLine line = intervening[0];
-        if (!HasCompatibleRowRhythm(bands[currentBandIndex], line, bands[nextBandIndex])) {
+        if (!HasCompatibleRowRhythm(
+                establishedPreviousBand,
+                bands[currentBandIndex],
+                line,
+                bands[nextBandIndex])) {
             return InterveningBandDecision.Reject;
         }
         if (!HasMeaningfulHorizontalOverlap(line, bands[currentBandIndex], bands[nextBandIndex])) {
@@ -594,6 +694,35 @@ internal static class TableDetector {
         return first != null && second != null && PositionedRowsAlign(first, second);
     }
 
+    private static bool BandsHaveCompatibleVerticalGap(
+        List<TextLayoutEngine.TextLine> firstBand,
+        List<TextLayoutEngine.TextLine> secondBand,
+        List<TextLayoutEngine.TextLine>? followingBand = null) {
+        if (firstBand.Count != 1 || secondBand.Count == 0) return false;
+        double secondBandTop = secondBand.Max(static line => line.Y);
+        double gap = firstBand[0].Y - secondBandTop;
+        if (gap <= 0D) return false;
+
+        double largestFontSize = firstBand[0].Spans
+            .Concat(secondBand.SelectMany(static line => line.Spans))
+            .Select(static span => span.FontSize)
+            .DefaultIfEmpty(0D)
+            .Max();
+        if (gap <= Math.Max(36D, largestFontSize * 3D)) return true;
+
+        if (followingBand == null ||
+            followingBand.Count == 0 ||
+            !BandsContainAlignedCells(secondBand, followingBand)) {
+            return false;
+        }
+
+        double followingGap = secondBandTop - followingBand.Max(static line => line.Y);
+        if (followingGap <= 0D) return false;
+        double smallerGap = Math.Min(gap, followingGap);
+        double largerGap = Math.Max(gap, followingGap);
+        return largerGap <= smallerGap * 1.75D;
+    }
+
     private static bool BandsHaveNonLeftAlignedCells(
         List<TextLayoutEngine.TextLine> firstBand,
         List<TextLayoutEngine.TextLine> secondBand) {
@@ -617,27 +746,8 @@ internal static class TableDetector {
         return hasNonLeftAlignment;
     }
 
-    private static List<double>? InferAlignedCellSplits(
-        List<TextLayoutEngine.TextLine> lines,
-        int expectedColumnCount) {
-        var rows = new List<PositionedRow>();
-        for (int index = 0; index < lines.Count; index++) {
-            PositionedRow? row = TryCreatePositionedRow(lines[index]);
-            if (row != null && row.Cells.Count == expectedColumnCount) rows.Add(row);
-        }
-        if (rows.Count < 2) return null;
-
-        var splits = new List<double>(expectedColumnCount - 1);
-        for (int columnIndex = 0; columnIndex < expectedColumnCount - 1; columnIndex++) {
-            double leftEdge = rows.Max(row => row.Cells[columnIndex].To);
-            double rightEdge = rows.Min(row => row.Cells[columnIndex + 1].From);
-            if (rightEdge <= leftEdge + 1D) return null;
-            splits.Add(leftEdge + (rightEdge - leftEdge) / 2D);
-        }
-        return splits;
-    }
-
     private static bool HasCompatibleRowRhythm(
+        List<TextLayoutEngine.TextLine>? establishedPreviousBand,
         List<TextLayoutEngine.TextLine> previousBand,
         TextLayoutEngine.TextLine intervening,
         List<TextLayoutEngine.TextLine> nextBand) {
@@ -648,7 +758,16 @@ internal static class TableDetector {
         if (upperGap <= 0D || lowerGap <= 0D) return false;
         double smaller = Math.Min(upperGap, lowerGap);
         double larger = Math.Max(upperGap, lowerGap);
-        return larger <= 36D && larger <= smaller * 1.75D;
+        if (larger > smaller * 1.75D) return false;
+
+        if (establishedPreviousBand is null || establishedPreviousBand.Count == 0) {
+            return larger <= 36D;
+        }
+
+        double establishedPreviousY = establishedPreviousBand.Average(static candidate => candidate.Y);
+        double establishedCurrentY = previousBand.Average(static candidate => candidate.Y);
+        double establishedGap = establishedPreviousY - establishedCurrentY;
+        return establishedGap > 0D && larger <= Math.Max(36D, establishedGap * 1.75D);
     }
 
     private static bool IsCompactNonNarrativeRow(string text) {
@@ -683,6 +802,9 @@ internal static class TableDetector {
             return null;
         }
 
+        List<TextLayoutEngine.TextLine>? followingBodyBand = bodyBandIndex + 1 < bands.Count
+            ? bands[bodyBandIndex + 1]
+            : null;
         if (!IsCompactNonNarrativeRow(headerBand[0].Text.Trim()) ||
             (!BandsHaveAlignedCells(headerBand, bands[bodyBandIndex]) &&
              !HasEmphasizedText(headerBand[0]))) {
@@ -692,6 +814,19 @@ internal static class TableDetector {
         string[] headerCells = SplitBySplits(headerBand[0], bodySplits);
         if (!LooksLikeHeaderRow(headerCells)) {
             return null;
+        }
+
+        if (!BandsHaveCompatibleVerticalGap(headerBand, bands[bodyBandIndex], followingBodyBand)) {
+            var twoRowLines = new List<TextLayoutEngine.TextLine>(headerBand.Count + bands[bodyBandIndex].Count);
+            twoRowLines.AddRange(headerBand);
+            twoRowLines.AddRange(bands[bodyBandIndex]);
+            StructuredTable? twoRowTable = BuildTableFromLinesAndSplits(
+                twoRowLines,
+                bodySplits,
+                "band-group");
+            if (twoRowTable is null || !HasStrongHeaderAndBodyEvidence(twoRowTable, twoRowLines)) {
+                return null;
+            }
         }
 
         return headerBand;
@@ -713,6 +848,119 @@ internal static class TableDetector {
         return true;
     }
 
+    private static bool LooksLikeSummaryRow(string[] cells) {
+        if (cells.Length < 2) return false;
+        string label = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
+        if (!LooksLikeSummaryLabel(label)) return false;
+        return cells.Skip(1).Any(static cell => LooksLikeSummaryValue(
+            ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+    }
+
+    private static bool LooksLikeSummaryValue(string value) =>
+        value.Any(char.IsDigit) ||
+        string.Equals(value, "n/a", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "n.a.", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "na", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "#n/a", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "none", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "null", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "tbd", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "tbc", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "pending", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "unknown", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "unavailable", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "missing", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "no data", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not reported", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not provided", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "redacted", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not applicable", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "not available", StringComparison.OrdinalIgnoreCase) ||
+        value is "-" or "–" or "—" ||
+        string.Equals(value, "yes", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "no", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
+
+    private static bool LooksLikeSummaryLabel(string label) {
+        string value = label.Trim().TrimEnd(':').Trim();
+        return value.Equals("total", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("totals", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("subtotal", StringComparison.OrdinalIgnoreCase) ||
+               value.Equals("sub total", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" total", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" totals", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" subtotal", StringComparison.OrdinalIgnoreCase) ||
+               value.EndsWith(" sub total", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool LooksLikeEmphasizedHeaderBand(
+        List<TextLayoutEngine.TextLine> band,
+        List<double> splits) {
+        if (band.Count == 0 || splits.Count == 0 || band.Any(static line => !HasEmphasizedText(line))) return false;
+        string[] cells = MergeBandCellsBySplits(band, splits);
+        return LooksLikeHeaderRow(cells) &&
+               !LooksLikeSummaryRow(cells) &&
+               !LooksLikeEmphasizedDataRow(cells);
+    }
+
+    private static bool LooksLikeEmphasizedDataRow(string[] cells) {
+        string firstValue = ContentStructureExtractor.NormalizeShattered(cells[0]).Trim();
+        bool reportingPeriodHeader = LooksLikeColumnHeaderLabel(cells[0]) &&
+                                     cells.Skip(1).Any(static cell => LooksLikeReportingPeriodHeaderValue(
+                                         ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+        if (!reportingPeriodHeader &&
+            LooksLikeSummaryValue(firstValue) &&
+            cells.Skip(1).Any(static cell => !string.IsNullOrWhiteSpace(cell))) {
+            return true;
+        }
+        return cells.Skip(1).Any(cell => {
+            string value = ContentStructureExtractor.NormalizeShattered(cell).Trim();
+            return LooksLikeSummaryValue(value) &&
+                   (!reportingPeriodHeader || !LooksLikeReportingPeriodHeaderValue(value));
+        });
+    }
+
+    private static bool LooksLikeColumnHeaderLabel(string cell) {
+        string value = ContentStructureExtractor.NormalizeShattered(cell)
+            .Trim()
+            .Trim(':', '-', '_', '/', '\\');
+        return ReportingPeriodHeaderLabels.Contains(value);
+    }
+
+    private static bool LooksLikeReportingPeriodHeaderValue(string value) {
+        string compact = new string(value.Where(static character => !char.IsWhiteSpace(character)).ToArray());
+        if (int.TryParse(compact, out int year)) return year is >= 1900 and <= 2200;
+        if (compact.Length == 6 &&
+            compact.StartsWith("FY", StringComparison.OrdinalIgnoreCase) &&
+            TryParseFourDigitYear(compact, 2, out year)) {
+            return year is >= 1900 and <= 2200;
+        }
+        if (compact.Length == 2 &&
+            (compact[0] is 'Q' or 'q' && compact[1] is >= '1' and <= '4' ||
+             compact[0] is 'H' or 'h' && compact[1] is >= '1' and <= '2')) {
+            return true;
+        }
+        if (compact.Length > 5 &&
+            TryParseFourDigitYear(compact, 0, out year) &&
+            year is >= 1900 and <= 2200 &&
+            compact[4] is '/' or '-' or '–' or '—') {
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryParseFourDigitYear(string value, int offset, out int year) {
+        year = 0;
+        if (offset < 0 || value.Length - offset < 4) return false;
+        for (int index = offset; index < offset + 4; index++) {
+            char character = value[index];
+            if (character is < '0' or > '9') return false;
+            year = year * 10 + character - '0';
+        }
+        return true;
+    }
+
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {
         if (a.Count != b.Count) return false;
         double tol = 16.0; // points
@@ -720,7 +968,11 @@ internal static class TableDetector {
         return true;
     }
 
-    private static StructuredTable? BuildTableFromLinesAndSplits(List<TextLayoutEngine.TextLine> lines, List<double> splits, string kind) {
+    private static StructuredTable? BuildTableFromLinesAndSplits(
+        List<TextLayoutEngine.TextLine> lines,
+        List<double> splits,
+        string kind,
+        Dictionary<TextLayoutEngine.TextLine, List<double>>? lineSplitOverrides = null) {
         if (splits.Count == 0) return null;
         double minX = double.MaxValue, maxX = double.MinValue;
         foreach (var ln in lines) { minX = Math.Min(minX, ln.XStart); maxX = Math.Max(maxX, ln.XEnd); }
@@ -737,7 +989,11 @@ internal static class TableDetector {
         }
         int cols = table.Columns.Count;
         foreach (var ln in lines) {
-            var cells = SplitBySplits(ln, splits);
+            List<double> lineSplits = lineSplitOverrides is not null &&
+                                      lineSplitOverrides.TryGetValue(ln, out List<double>? splitOverride)
+                ? splitOverride
+                : splits;
+            var cells = SplitBySplits(ln, lineSplits);
             if (cells.Length != cols) continue;
             bool anyContent = false; for (int i = 0; i < cells.Length; i++) if (!string.IsNullOrWhiteSpace(cells[i])) { anyContent = true; break; }
             if (!anyContent) continue;
@@ -843,8 +1099,15 @@ internal static class TableDetector {
         StructuredTable table,
         List<TextLayoutEngine.TextLine> sourceLines) {
         if (table.Rows.Count != 2 || sourceLines.Count != 2) return false;
+        return HasStrongHeaderAndBodyEvidence(table, sourceLines);
+    }
+
+    private static bool HasStrongHeaderAndBodyEvidence(
+        StructuredTable table,
+        List<TextLayoutEngine.TextLine> sourceLines) {
+        if (table.Rows.Count < 2 || sourceLines.Count < 2) return false;
         if (!LooksLikeHeaderRow(table.Rows[0])) return false;
-        return table.Rows[1].Any(IsTabularValue) ||
+        return table.Rows.Skip(1).Any(static row => row.Any(IsTabularValue)) ||
                (HasStableColumnAnchors(table, sourceLines) && HasEmphasizedHeader(sourceLines));
     }
 
