@@ -284,6 +284,9 @@ internal static partial class PdfRedactionApplier {
         bool changed = false;
         int generatedPageContentBytes = 0;
         var removedImageObjectNumbers = new HashSet<int>();
+        var formFieldObjectNumbers = new HashSet<int>(document.FormFields
+            .Where(static field => field.ObjectNumber.HasValue)
+            .Select(static field => field.ObjectNumber!.Value));
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             int pageNumber = pageIndex + 1;
@@ -327,7 +330,7 @@ internal static partial class PdfRedactionApplier {
                     ref nextObjectNumber) || pageChanged;
             }
             if ((mutationScope & RedactionMutationScope.Paths) != 0 && options.RemoveIntersectingPaths) pageChanged = RemoveIntersectingPathObjects(objects, pageDictionary, pageAreas ?? Array.Empty<PdfRedactionArea>(), limits.MaxDecodedStreamBytes, ref nextObjectNumber) || pageChanged;
-            if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
+            if ((mutationScope & RedactionMutationScope.Annotations) != 0) pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches, formFieldObjectNumbers) || pageChanged;
 
             PdfRedactionArea[] paintAreas = paintMarks
                 ? SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options)
@@ -471,7 +474,8 @@ internal static partial class PdfRedactionApplier {
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary pageDictionary,
-        IReadOnlyList<PdfRedactionMatch> matches) {
+        IReadOnlyList<PdfRedactionMatch> matches,
+        HashSet<int> formFieldObjectNumbers) {
         PdfRedactionMatch[] annotationMatches = matches
             .Where(match => match.Kind == PdfRedactionMatchKind.Annotation)
             .ToArray();
@@ -504,7 +508,14 @@ internal static partial class PdfRedactionApplier {
             AddPopupObjectNumber(annotation, popupObjectNumbers);
             if (reference is not null) {
                 annotationObjectNumbers.Add(reference.ObjectNumber);
-                objects.Remove(reference.ObjectNumber);
+                bool remainsOwnedByFormField =
+                    string.Equals(TryReadName(objects, annotation, "Subtype"), "Widget", StringComparison.OrdinalIgnoreCase) &&
+                    (formFieldObjectNumbers.Contains(reference.ObjectNumber) ||
+                     annotation.Items.TryGetValue("Parent", out PdfObject? parentObject) &&
+                     PdfObjectLookup.Resolve(objects, parentObject) is PdfDictionary);
+                if (!remainsOwnedByFormField) {
+                    objects.Remove(reference.ObjectNumber);
+                }
             }
 
             annotations.Items.RemoveAt(i);

@@ -1,5 +1,6 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using System.Threading;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -120,6 +121,46 @@ public class PdfSignatureProfileTests {
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
         Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
+    }
+
+    [Fact]
+    public void VisibleApprovalProfileWithImageHonorsCancellationToken() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Cancelled image-backed approval source"))
+            .ToBytes();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfIncrementalUpdater.PrepareExternalSignature(
+                source,
+                new PdfExternalSignatureOptions {
+                    FieldName = "CancelledImageApproval",
+                    VisibleAppearance = new PdfVisibleSignatureAppearanceOptions {
+                        ImageBytes = PdfPngTestImages.CreateRgbPng(4, 2),
+                        ShowText = false
+                    },
+                    ReservedSignatureContentsBytes = 512,
+                    CancellationToken = cancellation.Token
+                }));
+    }
+
+    [Fact]
+    public void RasterImageStreamPreparationHonorsCancellationToken() {
+        byte[] imageBytes = PdfPngTestImages.CreateRgbPng(4, 2);
+        var imageInfo = new OfficeImageInfo(OfficeImageFormat.Png, 4, 2);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            PdfWriter.TryBuildImageStream(
+                imageBytes,
+                imageInfo,
+                4,
+                2,
+                cancellation.Token,
+                out _,
+                out _));
     }
 
     [Theory]

@@ -314,12 +314,52 @@ public sealed partial class PdfDocument {
             issue.Feature == "RedactionPlanInspectionBlocked")
             ? Array.Empty<PdfRedactionMatch>()
             : PdfRedactionPlanner.Plan(output, plan.Areas, layoutOptions, outputReadOptions).Matches;
+        IReadOnlyList<PdfRedactionMatch> inconclusiveMatches = FindWidgetMatchesWithReachableFieldOwners(
+            source,
+            output,
+            plan,
+            readOptions,
+            outputReadOptions);
         var evidence = new PdfRedactionEvidenceReport(
             plan,
             PdfRedactionPlan.ComputeSourceSha256(output),
             residualMatches,
+            inconclusiveMatches,
             verification);
         return new PdfRedactionApplyResult(output, mutationPlan, evidence, outputReadOptions);
+    }
+
+    private static IReadOnlyList<PdfRedactionMatch> FindWidgetMatchesWithReachableFieldOwners(
+        byte[] source,
+        byte[] output,
+        PdfRedactionPlan plan,
+        PdfLoadOptions? sourceReadOptions,
+        PdfLoadOptions outputReadOptions) {
+        PdfRedactionMatch[] widgetMatches = plan.Matches
+            .Where(static match => match.Kind == PdfRedactionMatchKind.Annotation &&
+                string.Equals(match.Subtype, "Widget", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        if (widgetMatches.Length == 0) return Array.Empty<PdfRedactionMatch>();
+
+        IReadOnlyList<PdfFormField> sourceFields = PdfReadDocument.Open(source, sourceReadOptions).FormFields;
+        var outputFieldNames = new HashSet<string>(
+            PdfReadDocument.Open(output, outputReadOptions).FormFields
+                .Where(static field => !string.IsNullOrEmpty(field.Name))
+                .Select(static field => field.Name!),
+            StringComparer.Ordinal);
+        var inconclusive = new List<PdfRedactionMatch>();
+        for (int matchIndex = 0; matchIndex < widgetMatches.Length; matchIndex++) {
+            PdfRedactionMatch match = widgetMatches[matchIndex];
+            PdfFormField? owner = sourceFields.FirstOrDefault(field =>
+                match.ObjectNumber.HasValue &&
+                (field.ObjectNumber == match.ObjectNumber ||
+                 field.Widgets.Any(widget => widget.ObjectNumber == match.ObjectNumber)));
+            if (owner?.Name is null || outputFieldNames.Contains(owner.Name)) {
+                inconclusive.Add(match);
+            }
+        }
+
+        return inconclusive.AsReadOnly();
     }
 
     /// <summary>

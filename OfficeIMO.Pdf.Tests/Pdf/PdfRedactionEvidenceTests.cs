@@ -98,6 +98,103 @@ public sealed class PdfRedactionEvidenceTests {
     }
 
     [Fact]
+    public void ApplyWithEvidenceDoesNotVerifyWidgetWhileItsParentFieldValueRemains() {
+        byte[] source = BuildParentOwnedWidgetValuePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 40, 20, 140, 30, "reviewed widget")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        PdfRedactionEvidenceItem item = Assert.Single(
+            result.Evidence.Items,
+            evidence => evidence.ReviewedMatch.Kind == PdfRedactionMatchKind.Annotation);
+        Assert.False(result.IsVerified);
+        Assert.Equal("Widget", item.ReviewedMatch.Subtype);
+        Assert.Equal(PdfRedactionEvidenceStatus.Inconclusive, item.Status);
+        Assert.Contains(
+            PdfReadDocument.Open(result.Pdf).FormFields,
+            field => field.Name == "SensitiveField" && field.Values.Contains("PARENT-FIELD-SECRET"));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceDoesNotDeleteTerminalFieldWidgetOrVerifyItsRetainedValue() {
+        byte[] source = BuildTerminalFieldWidgetValuePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 40, 20, 140, 30, "reviewed terminal widget")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        PdfRedactionEvidenceItem item = Assert.Single(
+            result.Evidence.Items,
+            evidence => evidence.ReviewedMatch.Kind == PdfRedactionMatchKind.Annotation);
+        Assert.False(result.IsVerified);
+        Assert.Equal(PdfRedactionEvidenceStatus.Inconclusive, item.Status);
+        Assert.Contains(
+            PdfReadDocument.Open(result.Pdf).FormFields,
+            field => field.Name == "TerminalSensitiveField" && field.Values.Contains("TERMINAL-FIELD-SECRET"));
+    }
+
+    [Fact]
+    public void ApplyWithEvidenceVerifiesWidgetWhenTheReviewedFieldOwnerIsRemoved() {
+        byte[] source = BuildParentOwnedWidgetValuePdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Search(
+            new PdfRedactionSearchOptions().AddFormField("SensitiveField"));
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.True(result.IsVerified, result.Evidence.Summary);
+        Assert.All(result.Evidence.Items, item => Assert.Equal(PdfRedactionEvidenceStatus.VerifiedAbsent, item.Status));
+        Assert.DoesNotContain(PdfReadDocument.Open(result.Pdf).FormFields, field => field.Name == "SensitiveField");
+        Assert.DoesNotContain("PARENT-FIELD-SECRET", PdfEncoding.Latin1GetString(result.Pdf), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AreaRedactionUsesDeclaredFontWidthsWhenDecidingTextIntersection() {
+        const string retained = "AAAAAAAAAA";
+        byte[] source = BuildPdf(
+            pageResources: "<< /Font << /F1 5 0 R >> >>",
+            pageContent: "BT /F1 12 Tf 10 100 Td (" + retained + ") Tj ET",
+            additionalObjects: new[] {
+                "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 65 /LastChar 65 /Widths [100] >>\nendobj"
+            });
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 40, 95, 5, 10, "outside narrow glyph run")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.DoesNotContain(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.Contains(retained, result.ToDocument().Read().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AreaRedactionUsesNestedFormFontWidthsWhenDecidingTextIntersection() {
+        const string retained = "AAAAAAAAAA";
+        byte[] source = BuildPdf(
+            pageResources: "<< /XObject << /Fm 6 0 R >> >>",
+            pageContent: "/Fm Do",
+            additionalObjects: new[] {
+                "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /FirstChar 65 /LastChar 65 /Widths [100] >>\nendobj",
+                StreamObject(6, "/Type /XObject /Subtype /Form /BBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >>", "BT /F1 12 Tf 10 100 Td (" + retained + ") Tj ET")
+            });
+        PdfDocument document = PdfDocument.Load(source);
+        PdfRedactionPlan plan = document.Redactions.Plan([
+            new PdfRedactionArea(1, 40, 95, 5, 10, "outside narrow nested glyph run")
+        ]);
+
+        PdfRedactionApplyResult result = document.Redactions.ApplyWithEvidence(plan);
+
+        Assert.DoesNotContain(plan.Matches, match => match.Kind == PdfRedactionMatchKind.TextBlock);
+        Assert.Contains(retained, result.ToDocument().Read().Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ApplyWithEvidenceExpandsSourceTightLimitsForGeneratedOutput() {
         byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content
                 .Paragraph(paragraph => paragraph.Text("Retained source content"))),
@@ -184,6 +281,39 @@ public sealed class PdfRedactionEvidenceTests {
             StreamObject(4, string.Empty, content),
             "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
             "6 0 obj\n<< /Type /Annot /Subtype /Text /Rect [20 20 60 60] /Contents (SENSITIVE-NOTE) /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildParentOwnedWidgetValuePdf() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /FT /Tx /T (SensitiveField) /V (PARENT-FIELD-SECRET) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [40 20 180 50] /P 3 0 R /F 4 >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTerminalFieldWidgetValuePdf() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R /Annots [6 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "6 0 obj\n<< /Type /Annot /Subtype /Widget /FT /Tx /T (TerminalSensitiveField) /V (TERMINAL-FIELD-SECRET) /Rect [40 20 180 50] /P 3 0 R /F 4 >>\nendobj",
             "trailer\n<< /Root 1 0 R /Size 7 >>",
             "%%EOF"
         });

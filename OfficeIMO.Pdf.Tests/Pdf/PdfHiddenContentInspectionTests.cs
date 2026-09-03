@@ -25,6 +25,54 @@ public sealed class PdfHiddenContentInspectionTests {
     }
 
     [Fact]
+    public void ContentSafetyTreatsUnsupportedOptionalContentViewIntentAsInconclusive() {
+        byte[] pdf = BuildHiddenOptionalContentPdf(unsupportedViewIntent: true);
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(pdf);
+
+        Assert.DoesNotContain(
+            report.Findings,
+            finding => finding.Kind == OfficeContentConcealmentKind.HiddenContainer &&
+                finding.TextPreview.Contains("HIDDEN-", StringComparison.Ordinal));
+        Assert.Contains(
+            report.Diagnostics,
+            diagnostic => diagnostic.Contains("inconclusive", StringComparison.OrdinalIgnoreCase) &&
+                diagnostic.Contains("view intent", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void ContentSafetyExcludesAnnotationsAndFormValuesWhenNonPrimaryContentIsDisabled() {
+        const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [6 0 R] >> >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [5 0 R 7 0 R] >>\nendobj",
+            StreamObject(4, string.Empty, content),
+            "5 0 obj\n<< /Type /Annot /Subtype /Text /Rect [20 20 40 40] /Contents (HIDDEN-ANNOTATION) /F 2 >>\nendobj",
+            "6 0 obj\n<< /FT /Tx /T (HiddenField) /V (HIDDEN-FIELD-VALUE) /Kids [7 0 R] >>\nendobj",
+            "7 0 obj\n<< /Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [60 20 180 40] /P 3 0 R /F 2 >>\nendobj",
+            "8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
+            "trailer\n<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        OfficeContentSafetyReport report = PdfDocument.InspectContentSafety(
+            Encoding.ASCII.GetBytes(pdf),
+            new OfficeContentSafetyOptions { IncludeNonPrimaryContent = false });
+        OfficeContentSafetyReport layered = PdfDocument.InspectContentSafety(
+            BuildHiddenOptionalContentPdf(),
+            new OfficeContentSafetyOptions { IncludeNonPrimaryContent = false });
+
+        Assert.DoesNotContain(report.Findings, finding => finding.TextPreview.Contains("HIDDEN-ANNOTATION", StringComparison.Ordinal));
+        Assert.DoesNotContain(report.Findings, finding => finding.TextPreview.Contains("HIDDEN-FIELD-VALUE", StringComparison.Ordinal));
+        Assert.Contains(
+            layered.Findings,
+            finding => finding.Kind == OfficeContentConcealmentKind.HiddenContainer &&
+                finding.TextPreview.Contains("HIDDEN-PAGE-CONTENT", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ContentSafetySurfacesHiddenAnnotationAndWidgetValues() {
         const string content = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET";
         string pdf = string.Join("\n", new[] {
@@ -106,7 +154,7 @@ public sealed class PdfHiddenContentInspectionTests {
             finding => Assert.Equal(OfficeContentCleanupCapability.ReportOnly, finding.CleanupCapability));
     }
 
-    private static byte[] BuildHiddenOptionalContentPdf() {
+    private static byte[] BuildHiddenOptionalContentPdf(bool unsupportedViewIntent = false) {
         const string pageContent = "BT /F1 12 Tf 20 150 Td (VISIBLE-CONTENT) Tj ET\n/OC /Hidden BDC BT /F1 12 Tf 20 100 Td (HIDDEN-PAGE-CONTENT) Tj ET EMC\n/OuterForm Do";
         const string outerFormContent = "/HiddenForm Do";
         const string formContent = "BT /F1 12 Tf 20 60 Td (HIDDEN-FORM-CONTENT) Tj ET";
@@ -126,7 +174,7 @@ public sealed class PdfHiddenContentInspectionTests {
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> /Properties << /Hidden 6 0 R >> /XObject << /OuterForm 7 0 R >> >> /Contents 4 0 R >>\nendobj",
             pageStream,
             "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj",
-            "6 0 obj\n<< /Type /OCG /Name (Hidden layer) >>\nendobj",
+            "6 0 obj\n<< /Type /OCG /Name (Hidden layer)" + (unsupportedViewIntent ? " /Intent /Design" : string.Empty) + " >>\nendobj",
             outerFormStream,
             hiddenFormStream,
             "trailer\n<< /Root 1 0 R /Size 9 >>",

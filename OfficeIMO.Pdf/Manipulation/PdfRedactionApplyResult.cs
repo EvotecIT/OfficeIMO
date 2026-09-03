@@ -37,6 +37,7 @@ public sealed class PdfRedactionEvidenceReport {
         PdfRedactionPlan reviewedPlan,
         string outputSha256,
         IReadOnlyList<PdfRedactionMatch> residualMatches,
+        IReadOnlyList<PdfRedactionMatch> inconclusiveMatches,
         PdfRedactionVerificationReport verification) {
         ReviewedPlan = reviewedPlan;
         OutputSha256 = outputSha256;
@@ -47,7 +48,7 @@ public sealed class PdfRedactionEvidenceReport {
             .Distinct()
             .OrderBy(static pageNumber => pageNumber)
             .ToArray();
-        Items = BuildItems(reviewedPlan.Matches, residualMatches, verification.IsVerified);
+        Items = BuildItems(reviewedPlan.Matches, residualMatches, inconclusiveMatches, verification.IsVerified);
     }
 
     /// <summary>Reviewed plan bound to the exact source bytes that were rewritten.</summary>
@@ -91,6 +92,7 @@ public sealed class PdfRedactionEvidenceReport {
     private static PdfRedactionEvidenceItem[] BuildItems(
         IReadOnlyList<PdfRedactionMatch> reviewedMatches,
         IReadOnlyList<PdfRedactionMatch> residualMatches,
+        IReadOnlyList<PdfRedactionMatch> inconclusiveMatches,
         bool verificationPassed) {
         var items = new PdfRedactionEvidenceItem[reviewedMatches.Count];
         for (int i = 0; i < reviewedMatches.Count; i++) {
@@ -100,9 +102,10 @@ public sealed class PdfRedactionEvidenceReport {
                     candidate.PageNumber == reviewed.PageNumber &&
                     SameArea(candidate.Area, reviewed.Area))
                 .ToArray();
+            bool explicitlyInconclusive = inconclusiveMatches.Contains(reviewed);
             PdfRedactionEvidenceStatus status = residual.Length > 0
                 ? PdfRedactionEvidenceStatus.Residual
-                : verificationPassed
+                : verificationPassed && !explicitlyInconclusive
                     ? PdfRedactionEvidenceStatus.VerifiedAbsent
                     : PdfRedactionEvidenceStatus.Inconclusive;
             items[i] = new PdfRedactionEvidenceItem(reviewed, status, residual);

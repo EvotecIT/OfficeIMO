@@ -8,10 +8,21 @@ public sealed partial class PdfReadPage {
         }
 
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
-        return GetOptionalContentVisibility(pageResources)?.IsHidden(optionalContentObject) == true;
+        PdfPageOptionalContentVisibility? visibility = GetOptionalContentVisibility(pageResources);
+        return visibility?.HasUnsupportedViewUsageApplications == false &&
+            visibility.IsHidden(optionalContentObject);
+    }
+
+    internal bool HasUnsupportedOptionalContentViewUsageApplications() {
+        PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        return GetOptionalContentVisibility(pageResources)?.HasUnsupportedViewUsageApplications == true;
     }
 
     internal IReadOnlyList<PdfTextSpan> GetHiddenOptionalContentTextSpans(bool includeArtifactText) {
+        if (HasUnsupportedOptionalContentViewUsageApplications()) {
+            return Array.Empty<PdfTextSpan>();
+        }
+
         IReadOnlyList<PdfTextSpan> visible = GetTextSpans(includeArtifactText, default);
         IReadOnlyList<PdfTextSpan> includingHidden = GetTextSpans(
             includeArtifactText,

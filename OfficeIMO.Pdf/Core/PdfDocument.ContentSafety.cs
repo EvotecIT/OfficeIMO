@@ -96,6 +96,7 @@ public sealed partial class PdfDocument {
         PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions);
         var builder = new OfficeContentSafetyBuilder("PDF", options);
         var concealedAnnotationObjectNumbers = new HashSet<int>();
+        bool optionalContentInspectionInconclusive = false;
         for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
             PdfReadPage page = document.Pages[pageIndex];
             (double pageWidth, double pageHeight) = page.GetPageSize();
@@ -155,7 +156,11 @@ public sealed partial class PdfDocument {
                 }
             }
 
-            IReadOnlyList<PdfTextSpan> hiddenOptionalContent = page.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
+            bool unsupportedOptionalContentViewUsage = page.HasUnsupportedOptionalContentViewUsageApplications();
+            optionalContentInspectionInconclusive |= unsupportedOptionalContentViewUsage;
+            IReadOnlyList<PdfTextSpan> hiddenOptionalContent = unsupportedOptionalContentViewUsage
+                ? Array.Empty<PdfTextSpan>()
+                : page.GetHiddenOptionalContentTextSpans(includeArtifactText: true);
             for (int hiddenIndex = 0; hiddenIndex < hiddenOptionalContent.Count; hiddenIndex++) {
                 PdfTextSpan span = hiddenOptionalContent[hiddenIndex];
                 if (string.IsNullOrWhiteSpace(span.Text)) continue;
@@ -169,6 +174,8 @@ public sealed partial class PdfDocument {
                     OfficeContentCleanupCapability.ReportOnly,
                     inspectTextIntegrityEvidence: true);
             }
+
+            if (!builder.Options.IncludeNonPrimaryContent) continue;
 
             IReadOnlyList<PdfAnnotation> annotations = page.GetAnnotations();
             for (int annotationIndex = 0; annotationIndex < annotations.Count; annotationIndex++) {
@@ -221,7 +228,7 @@ public sealed partial class PdfDocument {
         }
 
         IReadOnlyList<PdfFormField> formFields = document.FormFields;
-        for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
+        for (int fieldIndex = 0; builder.Options.IncludeNonPrimaryContent && fieldIndex < formFields.Count; fieldIndex++) {
             PdfFormField field = formFields[fieldIndex];
             bool allWidgetsHidden = field.Widgets.Count > 0 &&
                 field.Widgets.All(widget =>
@@ -253,7 +260,11 @@ public sealed partial class PdfDocument {
             }
         }
 
-        if (document.OptionalContent != null) builder.AddDiagnostic("Optional-content metadata and hidden text were inspected using the document's default layer configuration. Hidden optional-content findings are report-only.");
+        if (optionalContentInspectionInconclusive) {
+            builder.AddDiagnostic("Optional-content hidden-state inspection was inconclusive because the document uses unsupported default view intent or usage applications.");
+        } else if (document.OptionalContent != null) {
+            builder.AddDiagnostic("Optional-content metadata and hidden text were inspected using the document's default layer configuration. Hidden optional-content findings are report-only.");
+        }
         return builder.Build();
     }
 

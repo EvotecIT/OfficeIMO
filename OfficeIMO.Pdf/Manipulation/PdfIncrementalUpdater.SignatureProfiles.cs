@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -47,7 +48,8 @@ internal static partial class PdfIncrementalUpdater {
         PdfSignatureProfile profile,
         ref int nextObjectNumber,
         ref bool catalogChanged,
-        HashSet<int> changedObjects) {
+        HashSet<int> changedObjects,
+        CancellationToken cancellationToken) {
         if (profile == PdfSignatureProfile.Certification) {
             ApplyCertificationReference(
                 objects,
@@ -69,7 +71,8 @@ internal static partial class PdfIncrementalUpdater {
                 options.FieldName,
                 options.VisibleAppearance,
                 ref nextObjectNumber,
-                changedObjects);
+                changedObjects,
+                cancellationToken);
         }
     }
 
@@ -105,9 +108,11 @@ internal static partial class PdfIncrementalUpdater {
         string fieldName,
         PdfVisibleSignatureAppearanceOptions options,
         ref int nextObjectNumber,
-        HashSet<int> changedObjects) {
+        HashSet<int> changedObjects,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         ValidateVisibleAppearance(options);
-        PdfReadDocument document = PdfReadDocument.Open(sourcePdf);
+        PdfReadDocument document = PdfReadDocument.Open(sourcePdf, options: null, cancellationToken);
         if (options.PageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(options), "Visible signature page exceeds the document page count.");
         }
@@ -128,16 +133,20 @@ internal static partial class PdfIncrementalUpdater {
         int? imageObjectNumber = null;
         byte[]? imageBytes = options.GetImageBytes();
         if (imageBytes is not null) {
-            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes);
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfDocument.PreparedImage prepared = PdfDocument.PrepareImageBytes(imageBytes, cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
             if (!PdfWriter.TryBuildImageStream(
                     prepared.Data,
                     prepared.Info,
                     Math.Max(1, prepared.Info.Width),
                     Math.Max(1, prepared.Info.Height),
+                    cancellationToken,
                     out PdfWriter.PdfImageStream preparedStream,
                     out string? unsupportedReason)) {
                 throw new NotSupportedException(unsupportedReason ?? "Visible signature image format is not supported.");
             }
+            cancellationToken.ThrowIfCancellationRequested();
 
             imageStream = preparedStream;
             int? softMaskObjectNumber = null;

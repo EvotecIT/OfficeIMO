@@ -855,17 +855,28 @@ internal static partial class PdfWriter {
         return new string(chars);
     }
 
-    internal static bool TryBuildImageStream(byte[] data, OfficeImageInfo info, double fallbackWidth, double fallbackHeight, out PdfImageStream image, out string? unsupportedReason) {
+    internal static bool TryBuildImageStream(byte[] data, OfficeImageInfo info, double fallbackWidth, double fallbackHeight, out PdfImageStream image, out string? unsupportedReason) =>
+        TryBuildImageStream(data, info, fallbackWidth, fallbackHeight, CancellationToken.None, out image, out unsupportedReason);
+
+    internal static bool TryBuildImageStream(
+        byte[] data,
+        OfficeImageInfo info,
+        double fallbackWidth,
+        double fallbackHeight,
+        CancellationToken cancellationToken,
+        out PdfImageStream image,
+        out string? unsupportedReason) {
+        cancellationToken.ThrowIfCancellationRequested();
         unsupportedReason = null;
 
         if (info.Format == OfficeImageFormat.Png) {
-            return TryGetPngImageData(data, out image, out unsupportedReason);
+            return TryGetPngImageData(data, cancellationToken, out image, out unsupportedReason);
         }
 
         int pixelWidth = info.Width > 0 ? info.Width : Math.Max(1, (int)Math.Round(fallbackWidth));
         int pixelHeight = info.Height > 0 ? info.Height : Math.Max(1, (int)Math.Round(fallbackHeight));
         string colorSpace = "/DeviceRGB";
-        if (TryGetJpegComponentCount(data, out int componentCount)) {
+        if (TryGetJpegComponentCount(data, cancellationToken, out int componentCount)) {
             if (componentCount == 1) colorSpace = "/DeviceGray";
             else if (componentCount == 4) colorSpace = "/DeviceCMYK";
             else if (componentCount != 3) {
@@ -880,6 +891,7 @@ internal static partial class PdfWriter {
             PixelHeight = pixelHeight,
             DictionarySuffix = " /ColorSpace " + colorSpace + " /BitsPerComponent 8 /Filter /DCTDecode"
         };
+        cancellationToken.ThrowIfCancellationRequested();
         return true;
     }
 

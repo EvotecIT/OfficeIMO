@@ -10,6 +10,7 @@ internal static partial class PdfRedactionApplier {
         string content,
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
         IReadOnlyList<Matrix2D> parentTransforms,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
@@ -46,6 +47,7 @@ internal static partial class PdfRedactionApplier {
                     invocation.Transform,
                     textTargets,
                     parentFontDecoders,
+                    parentFontWidthProviders,
                     parentTransforms,
                     referenceCounts,
                     activeForms,
@@ -85,6 +87,7 @@ internal static partial class PdfRedactionApplier {
         Matrix2D invocationTransform,
         RedactionTextTarget[] textTargets,
         IReadOnlyDictionary<string, Func<byte[], string>> parentFontDecoders,
+        IReadOnlyDictionary<string, Func<byte[], double>> parentFontWidthProviders,
         IReadOnlyList<Matrix2D> parentTransforms,
         IReadOnlyDictionary<int, int> referenceCounts,
         HashSet<int> activeForms,
@@ -95,11 +98,14 @@ internal static partial class PdfRedactionApplier {
             ? EnsureResourceXObjects(objects, formResources)
             : ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
         Dictionary<string, Func<byte[], string>> formDecoders = MergeDecoders(parentFontDecoders, ResourceResolver.GetFontDecodersForForm(formStream.Dictionary, objects));
+        Dictionary<string, Func<byte[], double>> formWidthProviders = MergeWidthProviders(
+            parentFontWidthProviders,
+            ResourceResolver.GetFontWidthProvidersForResources(formResources, objects));
         Matrix2D[] effectiveTransforms = parentTransforms
             .Select(parent => ApplyFormMatrix(Matrix2D.Multiply(parent, invocationTransform), formStream.Dictionary))
             .ToArray();
         string formContent = PdfEncoding.Latin1GetString(StreamDecoder.DecodeRequired(formStream.Dictionary, formStream.Data, objects, limits.MaxDecodedStreamBytes));
-        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, effectiveTransforms, limits);
+        string scrubbed = ScrubTextObjects(formContent, textTargets, formDecoders, formWidthProviders, effectiveTransforms, limits);
         bool changed = !string.Equals(formContent, scrubbed, StringComparison.Ordinal);
         TextFormScrubContentResult nestedResult = ScrubFormInvocations(
             objects,
@@ -108,6 +114,7 @@ internal static partial class PdfRedactionApplier {
             scrubbed,
             textTargets,
             formDecoders,
+            formWidthProviders,
             effectiveTransforms,
             referenceCounts,
             activeForms,
