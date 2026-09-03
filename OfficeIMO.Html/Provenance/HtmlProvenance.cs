@@ -3,6 +3,7 @@ using AngleSharp.Html.Dom;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Provenance;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 namespace OfficeIMO.Html;
 
@@ -28,12 +29,13 @@ public static partial class HtmlProvenance {
         bool enforceUtf8Size,
         Uri? documentUri = null) {
         OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
         if (enforceUtf8Size && Encoding.UTF8.GetByteCount(html) > options.MaxAssetBytes) {
             throw new InvalidDataException("The HTML document exceeds the configured asset limit.");
         }
 
         int structuralEntries = 0;
-        IHtmlDocument document = ParseBoundedDocument(html, options.MaxContainerEntries, ref structuralEntries);
+        IHtmlDocument document = ParseBoundedDocument(html, options.MaxContainerEntries, ref structuralEntries, options.CancellationToken);
         var evidence = new List<OfficeProvenanceEvidence>();
         var diagnostics = new List<string>();
         var resolvedExternalManifestReferences = new Dictionary<OfficeProvenanceEvidence, string>();
@@ -80,6 +82,7 @@ public static partial class HtmlProvenance {
         if (manifestElements.Length > 1) diagnostics.Add($"{documentLocation}: manifest.html.multipleManifests: the HTML head contains multiple C2PA manifest associations.");
         int carrierIndex = 0;
         foreach (IElement script in head.QuerySelectorAll("script[type]")) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(TrimAsciiWhitespace(script.GetAttribute("type")), "application/c2pa", StringComparison.OrdinalIgnoreCase)) continue;
             TryDecodeManifest(
                 script.TextContent,
@@ -98,6 +101,7 @@ public static partial class HtmlProvenance {
         }
 
         foreach (IElement link in head.QuerySelectorAll("link[rel][href]")) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!HasRelationship(link.GetAttribute("rel"), "c2pa-manifest")) continue;
             string value = TrimAsciiWhitespace(link.GetAttribute("href"));
             bool safeReference = IsSafeManifestReference(value, out Uri? uri);
@@ -144,7 +148,7 @@ public static partial class HtmlProvenance {
         if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
-        byte[] data = ReadBounded(filePath, options.MaxAssetBytes);
+        byte[] data = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
         return InspectCore(
             DecodeHtml(data, out _, out _),
             options,
@@ -166,10 +170,11 @@ public static partial class HtmlProvenance {
         Encoding? outputEncoding,
         bool outputHadPreamble) {
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceOptions inspectionOptions = CreateInspectionOptions(options);
         OfficeProvenanceReport before = InspectCore(html, inspectionOptions, enforceUtf8Size);
         int structuralEntries = 0;
-        IHtmlDocument document = ParseBoundedDocument(html, options.Limits.MaxContainerEntries, ref structuralEntries);
+        IHtmlDocument document = ParseBoundedDocument(html, options.Limits.MaxContainerEntries, ref structuralEntries, options.Limits.CancellationToken);
         var changes = new List<OfficeProvenanceChange>();
         long expandedBytes = 0;
         RemoveManifestCarriers(document, options, changes, "HTML", ref expandedBytes);
@@ -259,7 +264,7 @@ public static partial class HtmlProvenance {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
-        byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes);
+        byte[] input = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         string html = DecodeHtml(input, out Encoding encoding, out bool hadPreamble);
         OfficeProvenanceRemovalResult result = RemoveCore(
             html, options, enforceUtf8Size: false, outputEncoding: encoding, outputHadPreamble: hadPreamble);
@@ -297,12 +302,14 @@ public static partial class HtmlProvenance {
                 options.MaxExpandedContainerBytes - expandedBytes);
             ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
+                options.CancellationToken.ThrowIfCancellationRequested();
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
                 foreach (EmbeddedImageReference reference in GetEmbeddedImageReferences(
                     document, element, usedDeclarations, resolvedFallbacks, cssScope.ComputedStyles,
                     cssScope.ComputedStyleSet, dataStylesheet)) {
+                    options.CancellationToken.ThrowIfCancellationRequested();
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                     int index = count++;
@@ -340,10 +347,11 @@ public static partial class HtmlProvenance {
         }
         int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]").Where(IsHtmlIframe)) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
-            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries);
+            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.MaxContainerEntries, ref structuralEntries, options.CancellationToken);
             Uri? nestedBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(nested, effectiveBaseUri);
             InspectManifestCarriers(
                 nested,
@@ -379,6 +387,7 @@ public static partial class HtmlProvenance {
                 options.Limits.MaxExpandedContainerBytes - expandedBytes);
             ReserveExpandedBytes(ref expandedBytes, cssScope.DecodedStylesheetBytes, options.Limits.MaxExpandedContainerBytes);
             foreach (IElement element in elements) {
+                options.Limits.CancellationToken.ThrowIfCancellationRequested();
                 cssScope.UsedCustomPropertyDeclarations.TryGetValue(element, out HashSet<int>? usedDeclarations);
                 cssScope.ResolvedVarFallbackStarts.TryGetValue(element, out HashSet<int>? resolvedFallbacks);
                 cssScope.DataStylesheets.TryGetValue(element, out HtmlProvenanceDataStylesheet? dataStylesheet);
@@ -387,6 +396,7 @@ public static partial class HtmlProvenance {
                     cssScope.ComputedStyleSet, dataStylesheet).ToArray();
                 var replacements = new List<(EmbeddedImageReference Reference, string Value)>();
                 foreach (EmbeddedImageReference reference in references) {
+                    options.Limits.CancellationToken.ThrowIfCancellationRequested();
                     if (!HtmlImageDataUri.TryParse(reference.Value, out HtmlImageDataUri dataUri)) continue;
                     if (!IsSupportedProvenanceImage(dataUri.MediaType)) continue;
                     int index = count++;
@@ -436,10 +446,11 @@ public static partial class HtmlProvenance {
         }
         int iframeIndex = 0;
         foreach (IElement iframe in document.QuerySelectorAll("iframe[srcdoc]").Where(IsHtmlIframe)) {
+            options.Limits.CancellationToken.ThrowIfCancellationRequested();
             string? srcdoc = iframe.GetAttribute("srcdoc");
             if (srcdoc == null || string.IsNullOrWhiteSpace(srcdoc)) continue;
             string location = $"{documentLocation}/iframe[srcdoc][{iframeIndex++}]";
-            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries);
+            IHtmlDocument nested = ParseBoundedDocument(srcdoc, options.Limits.MaxContainerEntries, ref structuralEntries, options.Limits.CancellationToken);
             int priorChanges = changes.Count;
             RemoveManifestCarriers(nested, options, changes, location, ref expandedBytes);
             RemoveEmbeddedImages(nested, options, changes, ref count, ref structuralEntries,
@@ -953,10 +964,15 @@ public static partial class HtmlProvenance {
             .Replace("\n", string.Empty)
             .Replace("\r", string.Empty);
 
-    private static IHtmlDocument ParseBoundedDocument(string html, int maximumEntries, ref int structuralEntries) {
+    private static IHtmlDocument ParseBoundedDocument(
+        string html,
+        int maximumEntries,
+        ref int structuralEntries,
+        CancellationToken cancellationToken) {
         int remaining = maximumEntries - structuralEntries;
         if (remaining <= 0) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
-        ValidatePotentialElementCount(html, remaining);
+        ValidatePotentialElementCountCore(html, remaining, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
         int elementCount = document.All.Length;
         if (elementCount > remaining) throw new InvalidDataException("The HTML document exceeds the configured container-entry limit.");
@@ -964,7 +980,13 @@ public static partial class HtmlProvenance {
         return document;
     }
 
-    private static void ValidatePotentialElementCount(string html, int maximumEntries) {
+    private static void ValidatePotentialElementCount(string html, int maximumEntries) =>
+        ValidatePotentialElementCountCore(html, maximumEntries, CancellationToken.None);
+
+    private static void ValidatePotentialElementCountCore(
+        string html,
+        int maximumEntries,
+        CancellationToken cancellationToken) {
         int count = 0;
         int index = 0;
         bool sawHtmlElement = false;
@@ -972,6 +994,7 @@ public static partial class HtmlProvenance {
         bool sawBodyElement = false;
         var openElements = new List<HtmlPreflightElement>();
         while (index < html.Length - 1) {
+            cancellationToken.ThrowIfCancellationRequested();
             int markup = html.IndexOf('<', index);
             if (markup < 0 || markup == html.Length - 1) break;
             if (markup <= html.Length - 4 && string.CompareOrdinal(html, markup, "<!--", 0, 4) == 0) {
@@ -1419,6 +1442,7 @@ public static partial class HtmlProvenance {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
@@ -1429,6 +1453,7 @@ public static partial class HtmlProvenance {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
@@ -1439,6 +1464,7 @@ public static partial class HtmlProvenance {
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
         MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = false,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets
     };
@@ -1458,15 +1484,16 @@ public static partial class HtmlProvenance {
         nested.Limits.MaxCarriers = source.Limits.MaxCarriers;
         nested.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
         nested.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        nested.Limits.CancellationToken = source.Limits.CancellationToken;
         nested.Limits.ProcessEmbeddedAssets = false;
         nested.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;
         return nested;
     }
 
-    private static byte[] ReadBounded(string filePath, long maximumBytes) {
+    private static byte[] ReadBounded(string filePath, long maximumBytes, CancellationToken cancellationToken) {
         string fullPath = Path.GetFullPath(filePath);
         using var stream = File.OpenRead(fullPath);
-        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes);
+        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes, cancellationToken);
     }
 
     private static string DecodeHtml(byte[] data, out Encoding encoding, out bool hadPreamble) {

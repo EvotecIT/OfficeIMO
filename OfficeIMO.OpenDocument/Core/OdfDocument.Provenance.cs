@@ -15,7 +15,7 @@ public abstract partial class OdfDocument {
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
-        using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+        using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
         ValidatePackageForInspection(data, options);
         return OfficeProvenanceInspector.Inspect(data, fullPath, options);
     }
@@ -29,7 +29,7 @@ public abstract partial class OdfDocument {
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] data;
-        using (Stream stream = File.OpenRead(Path.GetFullPath(inputPath))) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
+        using (Stream stream = File.OpenRead(Path.GetFullPath(inputPath))) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         OfficeProvenanceRemovalResult result = RemoveProvenance(data, Path.GetFileName(inputPath), options);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), result.ToArray());
         return result;
@@ -57,7 +57,6 @@ public abstract partial class OdfDocument {
                     ? RemoveManifestEntries(
                         manifest,
                         options.Limits,
-                        options.EffectiveMaxOutputBytes,
                         path => path == ProvenanceManifestPath)
                     : manifest);
     }
@@ -88,6 +87,7 @@ public abstract partial class OdfDocument {
         var exactEntryNames = new HashSet<string>(StringComparer.Ordinal);
         var foldedEntryNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (ZipArchiveEntry entry in archive.Entries) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             string normalized = OfficeArchiveSafety.NormalizeEntryName(entry.FullName);
             if (!string.Equals(normalized, entry.FullName, StringComparison.Ordinal) ||
                 OfficeArchiveSafety.IsUnsafePath(normalized)) {
@@ -107,7 +107,7 @@ public abstract partial class OdfDocument {
 
         long maximumManifestBytes = Math.Min(options.MaxAssetBytes, options.MaxExpandedContainerBytes);
         byte[] manifestBytes;
-        using (Stream stream = manifestEntries[0].Open()) manifestBytes = OfficeProvenanceBinary.ReadBounded(stream, maximumManifestBytes);
+        using (Stream stream = manifestEntries[0].Open()) manifestBytes = OfficeProvenanceBinary.ReadBounded(stream, maximumManifestBytes, options.CancellationToken);
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(manifestBytes, options, "ODF manifest");
 
         XDocument manifest;
@@ -115,6 +115,7 @@ public abstract partial class OdfDocument {
         using (XmlReader reader = XmlReader.Create(stream, OfficeProvenanceXml.CreateReaderSettings(options))) {
             manifest = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         }
+        options.CancellationToken.ThrowIfCancellationRequested();
         XNamespace manifestNamespace = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
         XElement root = manifest.Root ?? throw new InvalidDataException("OpenDocument manifest has no root element.");
         if (root.Name != manifestNamespace + "manifest") {
@@ -134,8 +135,8 @@ public abstract partial class OdfDocument {
         }
     }
 
-    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) =>
-        OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath);
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) =>
+        OfficeProvenanceZip.HasEntry(data, OdfPackage.IsSignaturePath, options.Limits.CancellationToken);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
         OfficeProvenanceOptions limits = options.Limits;
@@ -147,30 +148,31 @@ public abstract partial class OdfDocument {
             (_, manifest) => RemoveManifestEntries(
                 manifest,
                 limits,
-                options.EffectiveMaxOutputBytes,
                 OdfPackage.IsSignaturePath),
-            Math.Min(limits.MaxAssetBytes, options.EffectiveMaxOutputBytes),
-            options.EffectiveMaxOutputBytes);
+            limits.MaxAssetBytes,
+            options.EffectiveMaxOutputBytes,
+            limits.CancellationToken);
     }
 
     private static byte[] RemoveManifestEntries(
         byte[] data,
         OfficeProvenanceOptions limits,
-        long maximumOutputBytes,
         Func<string, bool> shouldRemove) {
+        limits.CancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(data, limits, "ODF manifest");
         XDocument document;
         using (var stream = new MemoryStream(data, writable: false))
         using (XmlReader reader = XmlReader.Create(stream, OfficeProvenanceXml.CreateReaderSettings(limits))) {
             document = XDocument.Load(reader, LoadOptions.PreserveWhitespace);
         }
+        limits.CancellationToken.ThrowIfCancellationRequested();
         XNamespace manifestNamespace = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
         foreach (XElement entry in document.Descendants(manifestNamespace + "file-entry").ToArray()) {
+            limits.CancellationToken.ThrowIfCancellationRequested();
             string? path = (string?)entry.Attribute(manifestNamespace + "full-path");
             if (path != null && shouldRemove(path)) entry.Remove();
         }
-        using var output = new OfficeProvenanceBoundedMemoryStream(
-            Math.Min(limits.MaxAssetBytes, maximumOutputBytes));
+        using var output = new OfficeProvenanceBoundedMemoryStream(limits.MaxAssetBytes);
         using (XmlWriter writer = XmlWriter.Create(output, new XmlWriterSettings {
             Encoding = new System.Text.UTF8Encoding(false),
             Indent = false,

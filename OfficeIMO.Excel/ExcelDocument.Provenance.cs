@@ -154,10 +154,10 @@ public partial class ExcelDocument {
                 entryName,
                 content,
                 signatureEntries,
-                limits,
-                options.EffectiveMaxIntermediateBytes),
-            Math.Min(limits.MaxAssetBytes, options.EffectiveMaxIntermediateBytes),
-            options.EffectiveMaxIntermediateBytes);
+                limits),
+            limits.MaxAssetBytes,
+            options.EffectiveMaxOutputBytes,
+            limits.CancellationToken);
         return new OfficeProvenanceSignatureStripResult(rewritten.Data, hadSignatures: true);
     }
 
@@ -374,8 +374,8 @@ public partial class ExcelDocument {
         string entryName,
         byte[] content,
         HashSet<string> signatureEntries,
-        OfficeProvenanceOptions limits,
-        long maximumOutputBytes) {
+        OfficeProvenanceOptions limits) {
+        limits.CancellationToken.ThrowIfCancellationRequested();
         OfficeProvenanceXml.ValidateMaterializedNodeBudget(content, limits, "XLSB signature metadata");
         using var input = new MemoryStream(content, writable: false);
         using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(limits));
@@ -394,7 +394,7 @@ public partial class ExcelDocument {
             XNamespace properties = "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties";
             foreach (XElement signature in document.Descendants(properties + "DigSig").ToArray()) signature.Remove();
         }
-        using var output = new OfficeProvenanceBoundedMemoryStream(maximumOutputBytes, content.Length);
+        using var output = new OfficeProvenanceBoundedMemoryStream(limits.MaxAssetBytes, content.Length);
         document.Save(output, SaveOptions.DisableFormatting);
         return output.ToArray();
     }

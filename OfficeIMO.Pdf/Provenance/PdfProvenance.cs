@@ -15,12 +15,15 @@ public static partial class PdfProvenance {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
         if (pdf.LongLength > options.MaxAssetBytes) throw new InvalidDataException("The PDF exceeds the configured asset limit.");
 
         long maximumManifestBytes = GetMaximumManifestBytes(options);
         PdfLoadOptions effectiveReadOptions = CreateReadOptionsForInspection(options, readOptions);
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        options.CancellationToken.ThrowIfCancellationRequested();
         foreach (PdfOutputIntentInfo outputIntent in document.OutputIntents) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             _ = outputIntent.DestinationOutputProfileSizeBytes;
             _ = outputIntent.DestinationOutputProfileDeviceClass;
         }
@@ -41,6 +44,7 @@ public static partial class PdfProvenance {
             allowedObjectNumbers: reachableObjectNumbers);
         var evidence = new List<OfficeProvenanceEvidence>();
         foreach (PdfExtractedAttachment attachment in attachments) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!IsCandidate(attachment)) continue;
             byte[] manifest = attachment.Bytes;
             if (manifest.LongLength > options.MaxManifestBytes) throw new InvalidDataException("A PDF provenance manifest exceeds the configured manifest limit.");
@@ -70,7 +74,7 @@ public static partial class PdfProvenance {
         PdfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         options ??= new OfficeProvenanceOptions();
-        byte[] pdf = ReadBounded(filePath, options.MaxAssetBytes);
+        byte[] pdf = ReadBounded(filePath, options.MaxAssetBytes, options.CancellationToken);
         return Inspect(pdf, options, readOptions);
     }
 
@@ -82,6 +86,7 @@ public static partial class PdfProvenance {
         Guard.NotNull(pdf, nameof(pdf));
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         long maximumManifestBytes = Math.Min(
             options.Limits.MaxExpandedContainerBytes,
             MultiplySaturating(options.Limits.MaxManifestBytes, options.Limits.MaxCarriers));
@@ -103,6 +108,7 @@ public static partial class PdfProvenance {
         }
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, effectiveReadOptions);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         HashSet<int> pageTreeObjectNumbers = CollectPageTreeObjectNumbers(document, options.Limits.MaxContainerEntries);
         _ = CollectAssociationProfile(
             document,
@@ -122,6 +128,7 @@ public static partial class PdfProvenance {
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
         for (int index = 0; index < attachments.Count; index++) {
+            options.Limits.CancellationToken.ThrowIfCancellationRequested();
             PdfExtractedAttachment attachment = attachments[index];
             if (!IsCandidate(attachment)) continue;
             OfficeProvenanceEvidence evidence = before.Evidence[evidenceIndex++];
@@ -145,6 +152,7 @@ public static partial class PdfProvenance {
         }
 
         PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf, effectiveReadOptions);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         if (security.HasEncryption) {
             throw new InvalidOperationException("Provenance removal does not remove or replace PDF encryption. Decrypt the document through an explicit PDF security workflow first.");
         }
@@ -160,6 +168,7 @@ public static partial class PdfProvenance {
             removeFileSpecifications,
             effectiveReadOptions,
             options.EffectiveMaxOutputBytes);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions outputReadOptions = PdfLoadOptions.WithMinimumInputBytes(effectiveReadOptions, output.LongLength);
         OfficeProvenanceOptions outputLimits = CreateOutputInspectionOptions(options.Limits, options.EffectiveMaxOutputBytes);
         OfficeProvenanceReport after = Inspect(output, outputLimits, outputReadOptions);
@@ -175,7 +184,7 @@ public static partial class PdfProvenance {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeProvenanceRemovalOptions();
-        byte[] pdf = ReadBounded(inputPath, options.Limits.MaxAssetBytes);
+        byte[] pdf = ReadBounded(inputPath, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         OfficeProvenanceRemovalResult result = Remove(pdf, options, readOptions);
         OfficeFileCommit.WriteAllBytes(Path.GetFullPath(outputPath), result.ToArray());
         return result;
@@ -283,6 +292,7 @@ public static partial class PdfProvenance {
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
         MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets
     };
@@ -1116,8 +1126,8 @@ public static partial class PdfProvenance {
              _documentLevel.Contains(fileSpecObjectNumber) && _secondaryDocumentReferences.Contains(fileSpecObjectNumber));
     }
 
-    private static byte[] ReadBounded(string filePath, long maximumBytes) {
+    private static byte[] ReadBounded(string filePath, long maximumBytes, System.Threading.CancellationToken cancellationToken) {
         using var stream = File.OpenRead(Path.GetFullPath(filePath));
-        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes);
+        return OfficeProvenanceBinary.ReadBounded(stream, maximumBytes, cancellationToken);
     }
 }

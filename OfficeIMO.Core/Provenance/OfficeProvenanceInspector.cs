@@ -23,7 +23,7 @@ public static class OfficeProvenanceInspector {
         OfficeProvenanceBinary.ValidateLimits(options);
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
         try {
-            byte[] data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+            byte[] data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
             return Inspect(data, fileName, options);
         } finally {
             if (stream.CanSeek) stream.Position = originalPosition;
@@ -35,6 +35,7 @@ public static class OfficeProvenanceInspector {
         if (data == null) throw new ArgumentNullException(nameof(data));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
         if (data.LongLength > options.MaxAssetBytes) {
             throw OfficeProvenanceLimitException.Create($"The asset exceeds the configured limit of {options.MaxAssetBytes} bytes.");
         }
@@ -341,6 +342,7 @@ public static class OfficeProvenanceRemover {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
@@ -351,6 +353,7 @@ public static class OfficeProvenanceRemover {
         MaxCarriers = source.Limits.MaxCarriers,
         MaxContainerEntries = source.Limits.MaxContainerEntries,
         MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes,
+        CancellationToken = source.Limits.CancellationToken,
         ProcessEmbeddedAssets = source.ProcessEmbeddedAssets && source.Limits.ProcessEmbeddedAssets,
         MaxEmbeddedAssets = Math.Min(source.MaxEmbeddedAssets, source.Limits.MaxEmbeddedAssets)
     };
@@ -367,7 +370,7 @@ public static class OfficeProvenanceRemover {
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         byte[] data;
-        using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
+        using (var stream = File.OpenRead(fullInputPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         OfficeProvenanceRemovalResult result = Remove(data, fullInputPath, options);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, result.ToArray());
         return result;

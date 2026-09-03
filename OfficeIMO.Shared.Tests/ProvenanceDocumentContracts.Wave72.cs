@@ -81,6 +81,36 @@ public sealed partial class ProvenanceDocumentContracts {
     }
 
     [Fact]
+    public void SignatureStripConsumesTheRemainingAggregateRewriteBudget() {
+        byte[] package = CreateZipPackage(
+            "odt",
+            "META-INF/documentsignatures.xml",
+            CreatePngWithManifest(CreateManifestStore()));
+        OfficeProvenanceRemovalResult preview = OdfDocument.RemoveProvenance(
+            package,
+            "document.odt",
+            new OfficeProvenanceRemovalOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.PreserveSignatureMarkup
+            });
+        OfficeProvenanceRemovalResult stripped = OdfDocument.RemoveProvenance(
+            package,
+            "document.odt",
+            new OfficeProvenanceRemovalOptions {
+                SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+            });
+        long aggregateExpandedBytes = GetWave72ExpandedBytes(package) +
+                                     GetWave72ExpandedBytes(preview.ToArray()) +
+                                     GetWave72ExpandedBytes(stripped.ToArray());
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        options.Limits.MaxExpandedContainerBytes = aggregateExpandedBytes - 1;
+
+        Assert.Throws<InvalidDataException>(() =>
+            OdfDocument.RemoveProvenance(package, "document.odt", options));
+    }
+
+    [Fact]
     public void SignatureRemovalAppliesTheOutputLimitToTheFinalStrippedPackage() {
         byte[] package = CreateZipPackage(
             "odt",

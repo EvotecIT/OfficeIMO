@@ -141,8 +141,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
 
         string fullPath = Path.GetFullPath(sourcePath);
         string directoryPath = CreatePrivateDirectory();
-        string extension = Path.GetExtension(fullPath);
-        string filePath = Path.Combine(directoryPath, "snapshot" + extension);
+        string filePath = Path.Combine(directoryPath, Path.GetFileName(fullPath));
         try {
             long copiedBytes = 0;
             string physicalSourceDirectory = OfficePathIdentity.ResolvePhysicalPath(

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
@@ -30,7 +31,8 @@ internal static class OfficeProvenanceZipWriter {
         IReadOnlyList<OfficeProvenanceZipWriteEntry> entries,
         long maximumExpandedBytes,
         byte[]? archiveComment = null,
-        long maximumOutputBytes = int.MaxValue) {
+        long maximumOutputBytes = int.MaxValue,
+        CancellationToken cancellationToken = default) {
         if (entries == null) throw new ArgumentNullException(nameof(entries));
         if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
         archiveComment ??= Array.Empty<byte>();
@@ -42,6 +44,7 @@ internal static class OfficeProvenanceZipWriter {
         byte[] buffer = new byte[81920];
 
         foreach (OfficeProvenanceZipWriteEntry entry in entries) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] name = Encoding.UTF8.GetBytes(entry.Name);
             if (name.Length > ushort.MaxValue) throw new InvalidDataException("ZIP entry name exceeds the supported length.");
             byte[] localExtraField = RemoveExtraField(
@@ -68,9 +71,9 @@ internal static class OfficeProvenanceZipWriter {
             using (Stream source = entry.Open()) {
                 if (entry.Compress) {
                     using var compressor = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true);
-                    Copy(source, compressor, buffer, ref crc, ref uncompressedLength, ref expandedBytes, maximumExpandedBytes);
+                    Copy(source, compressor, buffer, ref crc, ref uncompressedLength, ref expandedBytes, maximumExpandedBytes, cancellationToken);
                 } else {
-                    Copy(source, output, buffer, ref crc, ref uncompressedLength, ref expandedBytes, maximumExpandedBytes);
+                    Copy(source, output, buffer, ref crc, ref uncompressedLength, ref expandedBytes, maximumExpandedBytes, cancellationToken);
                 }
             }
             if (uncompressedLength != entry.ExpectedLength) throw new InvalidDataException("ZIP entry expanded to an unexpected length.");
@@ -99,6 +102,7 @@ internal static class OfficeProvenanceZipWriter {
 
         uint centralOffset = ToUInt32(output.Position, "central directory offset");
         foreach (OfficeProvenanceZipRecord record in records) {
+            cancellationToken.ThrowIfCancellationRequested();
             WriteCentralHeader(writer, record);
             writer.Write(record.Name);
             writer.Write(record.CentralExtraField);
@@ -124,8 +128,10 @@ internal static class OfficeProvenanceZipWriter {
         ref uint crc,
         ref long entryBytes,
         ref long expandedBytes,
-        long maximumExpandedBytes) {
+        long maximumExpandedBytes,
+        CancellationToken cancellationToken) {
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = source.Read(buffer, 0, buffer.Length);
             if (read <= 0) break;
             if (expandedBytes > maximumExpandedBytes - read) {

@@ -12,7 +12,7 @@ public sealed partial class EpubDocument {
         options ??= new OfficeProvenanceOptions();
         string fullPath = Path.GetFullPath(filePath);
         byte[] data;
-        using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+        using (Stream stream = File.OpenRead(fullPath)) data = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
         ValidatePackage(data, options);
         return OfficeProvenanceInspector.Inspect(data, fullPath, options);
     }
@@ -52,6 +52,7 @@ public sealed partial class EpubDocument {
         using var input = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false);
         foreach (ZipArchiveEntry entry in archive.Entries) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (!EpubReader.TryNormalizeArchiveEntryPath(entry.FullName, out string normalized) ||
                 !string.Equals(normalized, entry.FullName, StringComparison.Ordinal)) {
                 throw new InvalidDataException($"EPUB package contains unsafe or non-canonical entry path '{entry.FullName}'.");
@@ -62,7 +63,7 @@ public sealed partial class EpubDocument {
             .ToArray();
         if (containers.Length != 1) throw new InvalidDataException("The EPUB package must contain exactly one META-INF/container.xml part.");
         using Stream containerStream = containers[0].Open();
-        byte[] containerXml = OfficeProvenanceBinary.ReadBounded(containerStream, options.MaxAssetBytes);
+        byte[] containerXml = OfficeProvenanceBinary.ReadBounded(containerStream, options.MaxAssetBytes, options.CancellationToken);
         if (containerXml.LongLength > options.MaxExpandedContainerBytes) {
             throw new InvalidDataException("The EPUB container metadata exceeds the configured expanded-container limit.");
         }
@@ -70,6 +71,7 @@ public sealed partial class EpubDocument {
         using var xmlInput = new MemoryStream(containerXml, writable: false);
         using XmlReader reader = XmlReader.Create(xmlInput, OfficeProvenanceXml.CreateReaderSettings(options));
         XDocument document = XDocument.Load(reader, LoadOptions.None);
+        options.CancellationToken.ThrowIfCancellationRequested();
         XNamespace containerNamespace = "urn:oasis:names:tc:opendocument:xmlns:container";
         if (document.Root?.Name != containerNamespace + "container") {
             throw new InvalidDataException("The EPUB container metadata has an unexpected root element.");
@@ -85,6 +87,7 @@ public sealed partial class EpubDocument {
         bool hasValidPackageDocument = false;
         long expandedMetadataBytes = containerXml.LongLength;
         foreach (XElement rootfile in rootfileContainers[0].Elements(containerNamespace + "rootfile")) {
+            options.CancellationToken.ThrowIfCancellationRequested();
             if (++declaredRootfiles > options.MaxContainerEntries) {
                 throw new InvalidDataException("The EPUB container declares too many rootfiles.");
             }
@@ -116,13 +119,14 @@ public sealed partial class EpubDocument {
             throw new InvalidDataException("The EPUB package metadata exceeds the configured expanded-container limit.");
         }
         using Stream source = entry.Open();
-        byte[] opf = OfficeProvenanceBinary.ReadBounded(source, Math.Min(options.MaxAssetBytes, remainingExpandedBytes));
+        byte[] opf = OfficeProvenanceBinary.ReadBounded(source, Math.Min(options.MaxAssetBytes, remainingExpandedBytes), options.CancellationToken);
         expandedMetadataBytes += opf.LongLength;
         try {
             OfficeProvenanceXml.ValidateMaterializedNodeBudget(opf, options, "EPUB package document");
             using var input = new MemoryStream(opf, writable: false);
             using XmlReader reader = XmlReader.Create(input, OfficeProvenanceXml.CreateReaderSettings(options));
             XDocument document = XDocument.Load(reader, LoadOptions.None);
+            options.CancellationToken.ThrowIfCancellationRequested();
             XNamespace opfNamespace = "http://www.idpf.org/2007/opf";
             return document.Root?.Name == opfNamespace + "package";
         } catch (XmlException) {
@@ -179,14 +183,17 @@ public sealed partial class EpubDocument {
     private static bool IsHexDigit(char value) =>
         value is >= '0' and <= '9' or >= 'A' and <= 'F' or >= 'a' and <= 'f';
 
-    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions _) => OfficeProvenanceZip.HasEntry(data, path =>
-        path.Equals("META-INF/signatures.xml", StringComparison.Ordinal));
+    private static bool HasPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) => OfficeProvenanceZip.HasEntry(
+        data,
+        path => path.Equals("META-INF/signatures.xml", StringComparison.Ordinal),
+        options.Limits.CancellationToken);
 
     private static OfficeProvenanceSignatureStripResult StripPackageSignatures(byte[] data, OfficeProvenanceRemovalOptions options) {
         return OfficeProvenanceZip.RemoveEntries(
             data,
             path => path.Equals("META-INF/signatures.xml", StringComparison.Ordinal),
             options.Limits.MaxExpandedContainerBytes,
-            maximumOutputBytes: options.EffectiveMaxOutputBytes);
+            maximumOutputBytes: options.EffectiveMaxOutputBytes,
+            cancellationToken: options.Limits.CancellationToken);
     }
 }

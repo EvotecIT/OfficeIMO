@@ -80,7 +80,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     validated.Owner,
                     operationInputPath,
                     inspectionOptions,
-                    validated.InputPath),
+                    validated.InputPath,
+                    cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             ProvenanceOwner refinedOwner = Refine(validated.Owner, structural.Format);
@@ -93,7 +94,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         refinedOwner,
                         operationInputPath,
                         inspectionOptions,
-                        validated.InputPath),
+                        validated.InputPath,
+                        cancellationToken),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
             }
@@ -159,7 +161,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             Report(progress, validated.Id, "remove", "Removing selected carriers through " + ownerPackage, 0.48D);
             failureStage = WorkflowFailureStage.Operation;
             OfficeProvenanceRemovalResult removal = await Task.Run(
-                () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal),
+                () => OfficeProvenanceWorkflowAdapter.Remove(refinedOwner, operationInputPath, stagingPath, validated.Removal, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
@@ -185,7 +187,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     refinedOwner,
                     stagingPath,
                     validated.RemovalOutputInspection,
-                    validated.OutputPath),
+                    validated.OutputPath,
+                    cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
             EnsureEquivalent(removal.After, reopened);
@@ -242,9 +245,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 wereInvalidatedSignaturesRemoved: removal.WereInvalidatedSignaturesRemoved);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
+            bool stagingCleaned = TryCleanupStaging(ref stagingPath, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "Cancelled",
-                "The provenance workflow was cancelled before publication; no staged artifact was retained.",
+                stagingCleaned
+                    ? "The provenance workflow was cancelled before publication; no staged artifact was retained."
+                    : "The provenance workflow was cancelled before publication, but staging cleanup failed; the retained path is reported in diagnostics.",
                 OfficeWorkflowDiagnosticSeverity.Information,
                 "cancel"));
             return new OfficeProvenanceWorkflowResult(
@@ -261,6 +267,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 diagnostics);
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
+            TryCleanupStaging(ref stagingPath, diagnostics);
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 "ProvenanceWorkflowFailed",
                 exception.Message,
@@ -308,6 +315,30 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["exceptionType"] = exception.GetType().Name
                 }));
+        }
+    }
+
+    private static bool TryCleanupStaging(
+        ref string? stagingPath,
+        ICollection<OfficeWorkflowDiagnostic> diagnostics) {
+        if (stagingPath is null) return true;
+        string retainedPath = stagingPath;
+        try {
+            File.Delete(retainedPath);
+            stagingPath = null;
+            return true;
+        } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+            stagingPath = null;
+            diagnostics.Add(new OfficeWorkflowDiagnostic(
+                "ProvenanceStagingCleanupFailed",
+                $"The staged provenance artifact could not be removed; '{retainedPath}' is retained for operator cleanup.",
+                OfficeWorkflowDiagnosticSeverity.Error,
+                "cleanup",
+                new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["retainedPath"] = retainedPath,
+                    ["exceptionType"] = exception.GetType().Name
+                }));
+            return false;
         }
     }
 

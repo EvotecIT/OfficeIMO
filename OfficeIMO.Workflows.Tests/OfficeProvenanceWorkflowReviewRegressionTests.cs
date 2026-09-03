@@ -571,6 +571,26 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     }
 
     [Fact]
+    public async Task AssessmentSnapshotNamespaceDoesNotHideASiblingNamedSnapshotHtml() {
+        using var scope = new TempScope();
+        string input = scope.Write(
+            "page.html",
+            "<!doctype html><html><head><link rel=\"c2pa-manifest\" href=\"snapshot.html\"></head><body>body</body></html>");
+        scope.Write("snapshot.html", "sibling manifest");
+        var verifier = new NestedRelativeManifestVerifier("snapshot.html", "sibling manifest");
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner(verifier).RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Assess,
+                InputPath = input
+            });
+
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.True(verifier.SawRelativeManifest);
+        Assert.False(Directory.Exists(verifier.ObservedDirectory));
+    }
+
+    [Fact]
     public async Task AssessmentResolvesRelativeManifestAgainstTheHtmlBaseElement() {
         using var scope = new TempScope();
         string input = scope.Write(
@@ -679,6 +699,56 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             });
 
         Assert.True(result.Succeeded, result.Summary);
+    }
+
+    [Fact]
+    public void FirstPartyOwnerAdapterThreadsCancellationIntoHtmlInspection() {
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", "<!doctype html><html><body>body</body></html>");
+        var options = new OfficeProvenanceOptions();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => OfficeProvenanceWorkflowAdapter.Inspect(
+            OfficeProvenanceWorkflowAdapter.ProvenanceOwner.Html,
+            input,
+            options,
+            input,
+            cancellation.Token));
+    }
+
+    [Fact]
+    public async Task CancellationReportsAStagingArtifactRetainedByAWindowsLease() {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        using var scope = new TempScope();
+        string input = scope.Write("page.html", HtmlWithExternalManifest("owner output"));
+        string output = Path.Combine(scope.Path, "cleaned.html");
+        using var cancellation = new CancellationTokenSource();
+        var progress = new CancellingStagingLeaseProgress(scope.Path, output, cancellation);
+
+        OfficeProvenanceWorkflowResult result = await new OfficeWorkflowRunner().RunProvenanceAsync(
+            new OfficeProvenanceWorkflowRequest {
+                Operation = OfficeProvenanceWorkflowOperation.Remove,
+                InputPath = input,
+                OutputPath = output
+            },
+            progress,
+            cancellation.Token);
+
+        Assert.Equal(OfficeWorkflowStatus.Cancelled, result.Status);
+        OfficeWorkflowDiagnostic cleanup = Assert.Single(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == "ProvenanceStagingCleanupFailed");
+        string retainedPath = cleanup.Details["retainedPath"];
+        Assert.Equal(progress.StagingPath, retainedPath);
+        Assert.True(File.Exists(retainedPath));
+        Assert.Contains("cleanup failed", Assert.Single(
+            result.Diagnostics,
+            diagnostic => diagnostic.Code == "Cancelled").Message,
+            StringComparison.OrdinalIgnoreCase);
+
+        progress.Dispose();
+        File.Delete(retainedPath);
     }
 
     [Fact]
@@ -1058,6 +1128,39 @@ public sealed partial class OfficeProvenanceWorkflowTests {
             if (Deleted || !string.Equals(value.Stage, "complete", StringComparison.Ordinal)) return;
             File.Delete(_path);
             Deleted = true;
+        }
+    }
+
+    private sealed class CancellingStagingLeaseProgress : IProgress<OfficeWorkflowProgress>, IDisposable {
+        private readonly string _directory;
+        private readonly string _outputPath;
+        private readonly CancellationTokenSource _cancellation;
+        private FileStream? _lease;
+
+        internal CancellingStagingLeaseProgress(
+            string directory,
+            string outputPath,
+            CancellationTokenSource cancellation) {
+            _directory = directory;
+            _outputPath = outputPath;
+            _cancellation = cancellation;
+        }
+
+        internal string? StagingPath { get; private set; }
+
+        public void Report(OfficeWorkflowProgress value) {
+            if (_lease != null || !string.Equals(value.Stage, "validate-output", StringComparison.Ordinal)) return;
+            StagingPath = Directory.GetFiles(
+                    _directory,
+                    "." + Path.GetFileNameWithoutExtension(_outputPath) + ".*" + Path.GetExtension(_outputPath))
+                .Single();
+            _lease = new FileStream(StagingPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            _cancellation.Cancel();
+        }
+
+        public void Dispose() {
+            _lease?.Dispose();
+            _lease = null;
         }
     }
 

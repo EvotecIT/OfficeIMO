@@ -52,7 +52,10 @@ internal static class OfficeProvenanceWorkflowAdapter {
         ProvenanceOwner owner,
         string path,
         OfficeProvenanceOptions options,
-        string? logicalFilePath = null) => owner switch {
+        string? logicalFilePath = null,
+        CancellationToken cancellationToken = default) {
+        options.CancellationToken = cancellationToken;
+        return owner switch {
             ProvenanceOwner.Word => WordDocument.InspectProvenance(path, options),
             ProvenanceOwner.Excel => ExcelDocument.InspectProvenance(path, options),
             ProvenanceOwner.PowerPoint => PowerPointPresentation.InspectProvenance(path, options),
@@ -66,12 +69,16 @@ internal static class OfficeProvenanceWorkflowAdapter {
             ProvenanceOwner.Markdown => MarkdownProvenance.InspectFile(path, options),
             _ => OfficeProvenanceInspector.InspectFile(path, options)
         };
+    }
 
     internal static OfficeProvenanceRemovalResult Remove(
         ProvenanceOwner owner,
         string inputPath,
         string outputPath,
-        OfficeProvenanceRemovalOptions options) => owner switch {
+        OfficeProvenanceRemovalOptions options,
+        CancellationToken cancellationToken = default) {
+        options.Limits.CancellationToken = cancellationToken;
+        return owner switch {
             ProvenanceOwner.Word => WordDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.Excel => ExcelDocument.RemoveProvenance(inputPath, outputPath, options),
             ProvenanceOwner.PowerPoint => PowerPointPresentation.RemoveProvenance(inputPath, outputPath, options),
@@ -83,6 +90,7 @@ internal static class OfficeProvenanceWorkflowAdapter {
             ProvenanceOwner.Markdown => MarkdownProvenance.RemoveFile(inputPath, outputPath, options),
             _ => OfficeProvenanceRemover.RemoveFile(inputPath, outputPath, options)
         };
+    }
 
     internal static bool SupportsCoreRemoval(OfficeProvenanceAssetFormat format) => format is
         OfficeProvenanceAssetFormat.Jpeg or

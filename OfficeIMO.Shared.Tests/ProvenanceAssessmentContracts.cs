@@ -24,7 +24,7 @@ public sealed class ProvenanceAssessmentContracts {
                 Assert.Equal(
                     UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
                     File.GetUnixFileMode(snapshotDirectory));
-                Assert.Equal("snapshot.txt", Path.GetFileName(snapshotPath));
+                Assert.Equal(Path.GetFileName(source), Path.GetFileName(snapshotPath));
             }
             Assert.False(File.Exists(snapshotPath));
             Assert.False(Directory.Exists(snapshotDirectory));

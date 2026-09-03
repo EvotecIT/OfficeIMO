@@ -1,11 +1,12 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceBinary {
-    internal static byte[] ReadBounded(Stream stream, long maximumBytes) {
+    internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken = default) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (maximumBytes <= 0 || maximumBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes), "The asset limit must be between 1 byte and Int32.MaxValue.");
@@ -17,13 +18,14 @@ internal static class OfficeProvenanceBinary {
                 throw new InvalidDataException($"The asset exceeds the configured limit of {maximumBytes} bytes.");
             }
             byte[] data = new byte[(int)remaining];
-            ReadExactly(stream, data, 0, data.Length);
+            ReadExactly(stream, data, 0, data.Length, cancellationToken);
             return data;
         }
 
         using var buffer = new MemoryStream();
         byte[] chunk = new byte[8192];
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = stream.Read(chunk, 0, chunk.Length);
             if (read <= 0) break;
             if (buffer.Length > maximumBytes - read) {
@@ -165,8 +167,9 @@ internal static class OfficeProvenanceBinary {
         return encoding.GetString(data, offset, count);
     }
 
-    internal static void ReadExactly(Stream stream, byte[] buffer, int offset, int count) {
+    internal static void ReadExactly(Stream stream, byte[] buffer, int offset, int count, CancellationToken cancellationToken = default) {
         while (count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = stream.Read(buffer, offset, count);
             if (read <= 0) throw new EndOfStreamException("Unexpected end of provenance data.");
             offset += read;

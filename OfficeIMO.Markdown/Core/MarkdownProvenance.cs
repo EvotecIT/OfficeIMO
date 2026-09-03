@@ -14,6 +14,7 @@ public static class MarkdownProvenance {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
+        options.CancellationToken.ThrowIfCancellationRequested();
         return OfficeProvenanceInspector.InspectStructuredText(
             EncodeUtf8Bounded(markdown, options.MaxAssetBytes),
             options);
@@ -26,7 +27,7 @@ public static class MarkdownProvenance {
         OfficeProvenanceBinary.ValidateLimits(options);
         byte[] input;
         using (var stream = File.OpenRead(Path.GetFullPath(filePath))) {
-            input = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes);
+            input = OfficeProvenanceBinary.ReadBounded(stream, options.MaxAssetBytes, options.CancellationToken);
         }
         string markdown = DecodeFileText(input, out _, out _);
         return OfficeProvenanceInspector.InspectStructuredText(
@@ -41,6 +42,7 @@ public static class MarkdownProvenance {
         if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
+        options.Limits.CancellationToken.ThrowIfCancellationRequested();
         return OfficeProvenanceRemover.RemoveStructuredText(
             EncodeUtf8Bounded(markdown, options.Limits.MaxAssetBytes),
             "document.md",
@@ -57,7 +59,7 @@ public static class MarkdownProvenance {
         options ??= new OfficeProvenanceRemovalOptions();
         byte[] input;
         using (var stream = File.OpenRead(Path.GetFullPath(inputPath))) {
-            input = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes);
+            input = OfficeProvenanceBinary.ReadBounded(stream, options.Limits.MaxAssetBytes, options.Limits.CancellationToken);
         }
         string markdown = DecodeFileText(input, out Encoding encoding, out bool hadPreamble);
         byte[] utf8Input = EncodeDecodedFileTextAsUtf8(markdown);
@@ -102,6 +104,7 @@ public static class MarkdownProvenance {
         clone.Limits.MaxCarriers = source.Limits.MaxCarriers;
         clone.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
         clone.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        clone.Limits.CancellationToken = source.Limits.CancellationToken;
         clone.Limits.ProcessEmbeddedAssets = source.Limits.ProcessEmbeddedAssets;
         clone.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;
         return clone;
