@@ -865,8 +865,43 @@ internal static partial class TableDetector {
     }
 
     private static bool LooksLikeEmphasizedDataRow(string[] cells) =>
-        cells.Skip(1).Any(static cell => LooksLikeSummaryValue(
-            ContentStructureExtractor.NormalizeShattered(cell).Trim()));
+        cells.Skip(1).Any(static cell => {
+            string value = ContentStructureExtractor.NormalizeShattered(cell).Trim();
+            return LooksLikeSummaryValue(value) && !LooksLikeReportingPeriodHeaderValue(value);
+        });
+
+    private static bool LooksLikeReportingPeriodHeaderValue(string value) {
+        string compact = new string(value.Where(static character => !char.IsWhiteSpace(character)).ToArray());
+        if (int.TryParse(compact, out int year)) return year is >= 1900 and <= 2200;
+        if (compact.Length == 6 &&
+            compact.StartsWith("FY", StringComparison.OrdinalIgnoreCase) &&
+            TryParseFourDigitYear(compact, 2, out year)) {
+            return year is >= 1900 and <= 2200;
+        }
+        if (compact.Length == 2 &&
+            (compact[0] is 'Q' or 'q' && compact[1] is >= '1' and <= '4' ||
+             compact[0] is 'H' or 'h' && compact[1] is >= '1' and <= '2')) {
+            return true;
+        }
+        if (compact.Length > 5 &&
+            TryParseFourDigitYear(compact, 0, out year) &&
+            year is >= 1900 and <= 2200 &&
+            compact[4] is '/' or '-' or '–' or '—') {
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryParseFourDigitYear(string value, int offset, out int year) {
+        year = 0;
+        if (offset < 0 || value.Length - offset < 4) return false;
+        for (int index = offset; index < offset + 4; index++) {
+            char character = value[index];
+            if (character is < '0' or > '9') return false;
+            year = year * 10 + character - '0';
+        }
+        return true;
+    }
 
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {
         if (a.Count != b.Count) return false;

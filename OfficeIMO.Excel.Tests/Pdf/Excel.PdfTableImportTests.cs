@@ -694,8 +694,11 @@ public partial class Excel {
             table.Rows.SelectMany(static row => row).Contains("Name", StringComparer.Ordinal));
     }
 
-    [Fact]
-    public void PdfTables_BandGroupingStopsAtANewEmphasizedHeader() {
+    [Theory]
+    [InlineData("Name", "Total")]
+    [InlineData("Metric", "2025")]
+    [InlineData("Metric", "FY2025")]
+    public void PdfTables_BandGroupingStopsAtANewEmphasizedHeader(string headerLeft, string headerRight) {
         static PdfCore.TextLayoutEngine.TextLine Row(double y, bool emphasized, string left, string right) {
             string? baseFont = emphasized ? "Helvetica-Bold" : "Helvetica";
             var spans = new List<PdfCore.PdfTextSpan> {
@@ -709,7 +712,7 @@ public partial class Excel {
             new() { Row(700, true, "Code", "Qty") },
             new() { Row(680, false, "A-100", "12") },
             new() { Row(660, false, "B-200", "14") },
-            new() { Row(640, true, "Name", "Total") },
+            new() { Row(640, true, headerLeft, headerRight) },
             new() { Row(620, false, "Alpha", "22") },
             new() { Row(600, false, "Beta", "24") }
         };
@@ -719,7 +722,7 @@ public partial class Excel {
 
         Assert.Equal(2, grouped.Length);
         Assert.Equal(new[] { "Code", "Qty" }, grouped[0].Rows[0]);
-        Assert.Equal(new[] { "Name", "Total" }, grouped[1].Rows[0]);
+        Assert.Equal(new[] { headerLeft, headerRight }, grouped[1].Rows[0]);
     }
 
     [Fact]
@@ -805,6 +808,7 @@ public partial class Excel {
 
     [Theory]
     [InlineData("North", "1250")]
+    [InlineData("North", "7")]
     [InlineData("Enabled", "Yes")]
     [InlineData("Central", "N/A")]
     public void PdfTables_BandGroupingKeepsEmphasizedDataRows(string label, string value) {
