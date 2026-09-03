@@ -81,8 +81,8 @@ public sealed class PdfTextEditOptions {
     }
 
     /// <summary>
-    /// Allows editing text painted with PDF rendering mode 3 while preserving that invisible
-    /// rendering mode. Other invisible or clipping text modes remain unsupported.
+    /// Allows editing non-Type3 text painted with PDF rendering mode 3 while preserving that
+    /// invisible rendering mode. Other invisible or clipping text modes remain unsupported.
     /// </summary>
     public bool AllowTextRenderingMode3 { get; set; }
 
@@ -137,7 +137,7 @@ public sealed class PdfTextSearchOptions {
     public bool MatchCase { get; set; }
     /// <summary>Requires complete word boundaries around matches when true.</summary>
     public bool WholeWords { get; set; }
-    /// <summary>Includes invisible OCR-style text painted with PDF rendering mode 3.</summary>
+    /// <summary>Includes non-Type3 invisible OCR-style text painted with PDF rendering mode 3.</summary>
     public bool IncludeTextRenderingMode3 { get; set; }
     /// <summary>Optional one-based pages to search. Null or empty searches every page.</summary>
     public int[]? PageNumbers {

@@ -280,6 +280,7 @@ internal static class TextContentParser {
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
+        System.Func<string, bool>? isType3FontResource = null,
         System.Func<string, string?>? drawingFontFamilyForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
@@ -1085,7 +1086,8 @@ internal static class TextContentParser {
                         ? transformedGlyphPaintedAdvances
                         : null,
                     characterAdvanceDirection,
-                    actualTextState is not null));
+                    actualTextState is not null,
+                    isType3FontResource?.Invoke(font) == true));
                 sbOutGlobal.Append(normalizedText);
                 emittedTextInTextObject = true;
                 pendingLineBreaks = 0;

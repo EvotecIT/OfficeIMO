@@ -158,7 +158,7 @@ internal static partial class PdfTextEditor {
                 edits.Add(new SpanTextEdit(segment.Start, segment.Length, segmentIndex == 0 ? replacement : string.Empty));
             }
         }
-        IncludeTrailingFlowSpans(rewrites, hits);
+        IncludeTrailingFlowSpans(rewrites, hits, snapshot.AllowTextRenderingMode3);
 
         PdfRedactionArea[] areas = rewrites.Keys
             .Select(static key => {
@@ -452,7 +452,8 @@ internal static partial class PdfTextEditor {
 
     private static void IncludeTrailingFlowSpans(
         Dictionary<PageSpanKey, List<SpanTextEdit>> rewrites,
-        IReadOnlyList<TextSearchHit> hits) {
+        IReadOnlyList<TextSearchHit> hits,
+        bool allowTextRenderingMode3) {
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
             foreach (IGrouping<PdfTextSpan[], TextSearchHit> lineHits in pageHits.GroupBy(
                          static hit => hit.LineSpans,
@@ -480,6 +481,10 @@ internal static partial class PdfTextEditor {
                         rewrites.Add(key, new List<SpanTextEdit>());
                     }
                 }
+
+                EnsureCompatibleRenderingModes(
+                    lineSpans.Where(span => rewrites.ContainsKey(new PageSpanKey(pageHits.Key, span))).ToArray(),
+                    allowTextRenderingMode3);
             }
         }
     }
@@ -732,13 +737,14 @@ internal static partial class PdfTextEditor {
     private static bool IsSafelyEditableSpan(PdfTextSpan span, bool allowTextRenderingMode3 = false) =>
         ((span.IsVisible && span.TextRenderingMode == 0) ||
          (allowTextRenderingMode3 && !span.IsVisible && span.TextRenderingMode == 3)) &&
+        !(span.TextRenderingMode == 3 && span.IsType3Font) &&
         !span.ClipPath.HasValue &&
         (span.TextRenderingMode == 3 || !span.Color.HasValue || span.Color.Value.A == byte.MaxValue) &&
         span.CanRestamp &&
         !string.IsNullOrEmpty(span.Text);
 
     private static bool IsSearchSpan(PdfTextSpan span, bool includeTextRenderingMode3) =>
-        (span.IsVisible || (includeTextRenderingMode3 && span.TextRenderingMode == 3)) &&
+        (span.IsVisible || (includeTextRenderingMode3 && span.TextRenderingMode == 3 && !span.IsType3Font)) &&
         !span.ClipPath.HasValue &&
         (span.TextRenderingMode == 3 || !span.Color.HasValue || span.Color.Value.A > 0) &&
         !string.IsNullOrEmpty(span.Text);

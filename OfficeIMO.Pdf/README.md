@@ -910,6 +910,32 @@ Unmatched glyphs remain encoded in their original font; newly inserted replaceme
 `PdfTextEditResult.Warnings` reports source-font substitutions that can change
 metrics or letterforms.
 
+Invisible OCR text stored with PDF text rendering mode 3 is opt-in for both
+discovery and mutation. Use `IncludeTextRenderingMode3` to find it, then
+`AllowTextRenderingMode3` to authorize an edit that preserves the invisible
+rendering mode:
+
+```csharp
+PdfDocument scanned = PdfDocument.Load("scanned-contract.pdf");
+var ocrSearch = new PdfTextSearchOptions {
+    MatchCase = true,
+    IncludeTextRenderingMode3 = true
+};
+
+PdfTextMatch ocrMatch = scanned.Text.Find("Account number", ocrSearch).Single();
+PdfTextEditResult corrected = scanned.Text.Replace(
+    ocrMatch,
+    "Customer number",
+    new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+
+corrected.Document.Save("scanned-contract-corrected.pdf");
+```
+
+The OCR opt-ins do not authorize clipping text modes or Type3 font glyph
+programs, because those glyph programs can paint visible graphics independently
+of the text rendering mode. One edit also cannot combine visible text and
+rendering-mode-3 OCR text.
+
 ### Find and edit existing page images
 
 Image placement coordinates also use PDF points from the page bottom-left.

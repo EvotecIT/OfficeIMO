@@ -393,6 +393,62 @@ public class PdfTextEditorTests {
     }
 
     [Fact]
+    public void RenderingMode3ReplacementRejectsVisibleTrailingReflowSpans() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td 3 Tr (OCR token) Tj 0 Tr ( visible tail) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.ReplaceAll(
+            "token",
+            "replacement",
+            searchOptions,
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true }));
+    }
+
+    [Fact]
+    public void RenderingMode3OccurrenceIdentityDisambiguatesCoincidentVisibleText() {
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 12 Tf 50 700 Td (token) Tj ET\n" +
+            "BT /F1 12 Tf 3 Tr 50 700 Td (token) Tj ET\n");
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+        PdfTextMatch[] matches = PdfDocument.Load(source).Text.Find("token", searchOptions).ToArray();
+        PdfTextMatch ocrMatch = Assert.Single(matches, static match => match.IsTextRenderingMode3);
+
+        PdfTextEditResult replaced = PdfDocument.Load(source).Text.Replace(
+            ocrMatch,
+            "value",
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+        PdfTextMatch replacement = Assert.Single(replaced.Document.Text.Find("value", searchOptions));
+        Assert.True(replacement.IsTextRenderingMode3);
+        Assert.Single(replaced.Document.Text.Find("token", searchOptions), static match => !match.IsTextRenderingMode3);
+
+        PdfTextEditResult moved = PdfDocument.Load(source).Text.Move(
+            ocrMatch,
+            30D,
+            -20D,
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true });
+        PdfTextMatch movedOcr = Assert.Single(moved.Document.Text.Find("token", searchOptions), static match => match.IsTextRenderingMode3);
+        Assert.InRange(movedOcr.X, ocrMatch.X + 29.9D, ocrMatch.X + 30.1D);
+        Assert.InRange(movedOcr.Y, ocrMatch.Y - 20.1D, ocrMatch.Y - 19.9D);
+        Assert.Single(moved.Document.Text.Find("token", searchOptions), static match => !match.IsTextRenderingMode3);
+    }
+
+    [Fact]
+    public void RenderingMode3OptInsExcludeType3GlyphPrograms() {
+        byte[] source = BuildRenderingMode3Type3TextPdf();
+        var searchOptions = new PdfTextSearchOptions { MatchCase = true, IncludeTextRenderingMode3 = true };
+        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans());
+        var region = new PdfPageRegion(1, span.X, span.Y - span.FontSize, Math.Max(1D, span.Advance), span.FontSize * 2D);
+
+        Assert.True(span.IsType3Font);
+        Assert.Empty(PdfDocument.Load(source).Text.Find("A", searchOptions));
+        Assert.Throws<NotSupportedException>(() => PdfDocument.Load(source).Text.Replace(
+            region,
+            "B",
+            new PdfTextEditOptions { AllowTextRenderingMode3 = true }));
+    }
+
+    [Fact]
     public void RotatedMatchUsesMatchedSliceGeometryAndPreservesRotationDuringReplacement() {
         byte[] source = BuildRawTextPdf("BT /F1 12 Tf 0 1 -1 0 200 300 Tm (rotate cat) Tj ET\n");
 
@@ -1190,6 +1246,21 @@ public class PdfTextEditorTests {
         WriteAscii(output, additionalObjects);
         WriteAscii(output, "trailer\n<< /Root 1 0 R /Size 8 >>\n%%EOF\n");
         return output.ToArray();
+    }
+
+    private static byte[] BuildRenderingMode3Type3TextPdf() {
+        const string type3Font = "<< /Type /Font /Subtype /Type3 /Name /F1 /BaseFont /PaintedGlyph " +
+            "/FontBBox [0 0 600 700] /FontMatrix [0.001 0 0 0.001 0 0] " +
+            "/CharProcs << /A 7 0 R >> /Encoding << /Type /Encoding /Differences [65 /A] >> " +
+            "/FirstChar 65 /LastChar 65 /Widths [600] /Resources << >> >>";
+        const string glyph = "0 0 600 700 d1 0 0 600 700 re f\n";
+        byte[] source = BuildRawTextPdf(
+            "BT /F1 24 Tf 3 Tr 50 700 Td (A) Tj ET\n",
+            additionalObjects: "7 0 obj\n<< /Length " + glyph.Length + " >>\nstream\n" + glyph + "endstream\nendobj\n");
+        string raw = PdfEncoding.Latin1GetString(source).Replace(
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            type3Font);
+        return PdfEncoding.Latin1GetBytes(raw);
     }
 
     private static void WriteAscii(Stream stream, string value) {
